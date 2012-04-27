@@ -1,5 +1,6 @@
 import itertools
 import distance #libdistance library http://monkey.org/~jose/software/libdistance/
+import lr
 
 def canonicalImport(filename) :
     import csv
@@ -20,13 +21,13 @@ def canonicalImport(filename) :
                 
             data_d[i] = instance
 
-    duplicates_l = []
+    duplicates_s = set([])
     for unique_id in duplicates_d :
       if len(duplicates_d[unique_id]) > 1 :
         for pair in itertools.combinations(duplicates_d[unique_id], 2) :
-          duplicates_l.append(pair)
+          duplicates_s.add(frozenset(pair))
 
-    return(data_d, header, duplicates_l)
+    return(data_d, header, duplicates_s)
 
 def dataModel() :
   return  {'fields': 
@@ -54,7 +55,7 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
         score += distances[name] * fields[name]['weight']
       scorePair[pair] = score
       #print (pair, score)
-      if score < threshold :
+      if score > threshold :
         print (data_d[pair[0]],data_d[pair[1]])
         print score
         duplicateScores.append(scorePair)
@@ -71,44 +72,72 @@ def calculateDistance(instance_1, instance_2, fields) :
 
   return distances_d
 
-def createTrainingPairs(data_d, duplicates_l, n) :
+def createTrainingPairs(data_d, duplicates_s, n) :
   import random
   train_pairs = {}
-  for pair in duplicates_l :
-    train_pairs[pair] = 1
   while len(train_pairs) < n :
-    random_pair = tuple(random.sample(data_d.keys(), 2))
-    if random_pair not in train_pairs : 
+    random_pair = frozenset(random.sample(data_d.keys(), 2))
+    if random_pair in duplicates_s : 
+      train_pairs[random_pair] = 1
+    else :
       train_pairs[random_pair] = 0
       
   return(train_pairs)
 
-def createTrainingData(data_d, duplicates_l, n, data_model) :
-  train_pairs = createTrainingPairs(data_d, duplicates_l, n)
+def createTrainingData(data_d, duplicates_s, n, data_model) :
+  train_pairs = createTrainingPairs(data_d, duplicates_s, n)
 
   training_data = []
   for pair in train_pairs :
-    distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], data_model['fields'])
-    training_data.append((distances, train_pairs[pair]))
+      instance_1 = data_d[tuple(pair)[0]]
+      instance_2 = data_d[tuple(pair)[1]]
+      distances = calculateDistance(instance_1,
+                                    instance_2,
+                                    data_model['fields'])
+      training_data.append((train_pairs[pair], distances))
 
   return training_data
 
+def trainModel(training_data, iterations, data_model) :
+    trainer = lr.LogisticRegression()
+    trainer.train(training_data, iterations)
+
+    data_model['bias'] = trainer.bias
+    for name in data_model['fields'] :
+        data_model['fields'][name]['weight'] = trainer.weight[name]
+
+    return(data_model)
+
 if __name__ == '__main__':
-  data_d, header, duplicates_l = canonicalImport("./datasets/restaurant-nophone-training.csv")
+  data_d, header, duplicates_s = canonicalImport("./datasets/restaurant-nophone-training.csv")
   data_model = dataModel()
   candidates = identifyCandidates(data_d)
   #print "training data: "
-  #print duplicates_l
+  #print duplicates_s
   
   print "number of known duplicates: "
-  print len(duplicates_l)
+  print len(duplicates_s)
 
-  train_pairs = createTrainingData(data_d, duplicates_l, 500, data_model)
-  print "training data from known duplicates: "
-  print train_pairs
+  training_data = createTrainingData(data_d, duplicates_s, 50000, data_model)
+  #print "training data from known duplicates: "
+  #print training_data
   print "number of training items: "
-  print len(train_pairs)
+  print len(training_data)
 
+  data_model = trainModel(training_data, 100, data_model)
+  
   print "finding duplicates ..."
-  dupes = findDuplicates(candidates, data_d, data_model, 5)
-  #print dupes
+  dupes = findDuplicates(candidates, data_d, data_model, -.5)
+  true_positives = 0
+  false_positives = 0
+  for dupe_pair in dupes :
+    if set(dupe_pair.keys()[0]) in duplicates_s :
+        true_positives += 1
+    else :
+        false_positives += 1
+
+  print "precision"
+  print (len(dupes) - false_positives)/float(len(dupes))
+
+  print "recall"
+  print true_positives/float(len(duplicates_s))
