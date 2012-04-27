@@ -1,7 +1,10 @@
+import itertools
+
 def canonicalImport(filename) :
     import csv
 
     data_d = {}
+    training_d = {}
     with open(filename) as f :
         reader = csv.reader(f)
         header = reader.next()
@@ -9,10 +12,20 @@ def canonicalImport(filename) :
         for i, row in enumerate(reader) :
             instance = {}
             for j, col in enumerate(row) :
+              if header[j] == 'unique_id' :
+                training_d.setdefault(col, []).append(i)
+              else :
                 instance[header[j]] = col.strip()
+                
             data_d[i] = instance
 
-    return(data_d, header)
+    training_l = []
+    for unique_id in training_d :
+      if len(training_d[unique_id]) > 1 :
+        for pair in itertools.combinations(training_d[unique_id], 2) :
+          training_l.append(pair)
+
+    return(data_d, header, training_l)
 
 def dataModel() :
   return  {'fields': 
@@ -28,7 +41,6 @@ def identifyCandidates(data_d) :
 
 def findDuplicates(candidates, data_d, data_model, threshold) :
   import distance #libdistance library http://monkey.org/~jose/software/libdistance/
-  import itertools
   duplicateScores = []
 
   for candidates_set in candidates :
@@ -51,9 +63,13 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
   return duplicateScores
 
 if __name__ == '__main__':
-  data_d, header = canonicalImport("./datasets/restaurant-nophone.csv")
+  data_d, header, training_l = canonicalImport("./datasets/restaurant-nophone-training.csv")
   data_model = dataModel()
   candidates = identifyCandidates(data_d)
-  print "finding duplicates"
+  #print "training data: "
+  #print training_l
+  print "number of duplicates from training data "
+  print len(training_l)
+  print "finding duplicates ..."
   dupes = findDuplicates(candidates, data_d, data_model, 5)
-  #print dupes
+  print dupes

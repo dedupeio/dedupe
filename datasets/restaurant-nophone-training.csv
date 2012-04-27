@@ -1,3 +1,4 @@
+name,address,city,cuisine,unique_id
 "arnie morton's of chicago", "435 s. la cienega blv.", "los angeles", "american", '0'
 "arnie morton's of chicago", "435 s. la cienega blvd.", "los angeles", "steakhouses", '0'
 "art's delicatessen", "12224 ventura blvd.", "studio city", "american", '1'
