@@ -1,1 +1,3 @@
 libdistance-0.2.1
+*.pyc
+logfile

@@ -1,5 +1,6 @@
 import itertools
-import distance #libdistance library http://monkey.org/~jose/software/libdistance/
+#import distance #libdistance library http://monkey.org/~jose/software/libdistance/
+import affinegap
 import lr
 
 def canonicalImport(filename) :
@@ -66,7 +67,7 @@ def calculateDistance(instance_1, instance_2, fields) :
   distances_d = {}
   for name in fields :
     if fields[name]['type'] == 'String' :
-      distanceFunc = distance.levenshtein
+      distanceFunc = affinegap.affineGapDistance
     x = distanceFunc(instance_1[name],instance_2[name])
     distances_d[name] = x
 
@@ -118,7 +119,7 @@ if __name__ == '__main__':
   print "number of known duplicates: "
   print len(duplicates_s)
 
-  training_data = createTrainingData(data_d, duplicates_s, 50000, data_model)
+  training_data = createTrainingData(data_d, duplicates_s, 500, data_model)
   #print "training data from known duplicates: "
   #print training_data
   print "number of training items: "
