@@ -108,8 +108,10 @@ def trainModel(training_data, iterations, data_model) :
         data_model['fields'][name]['weight'] = trainer.weight[name]
 
     return(data_model)
-
-if __name__ == '__main__':
+    
+def run(numTrainingPairs, numIterations) :
+  import time
+  t0 = time.time()
   data_d, header, duplicates_s = canonicalImport("./datasets/restaurant-nophone-training.csv")
   data_model = dataModel()
   candidates = identifyCandidates(data_d)
@@ -119,13 +121,13 @@ if __name__ == '__main__':
   print "number of known duplicates: "
   print len(duplicates_s)
 
-  training_data = createTrainingData(data_d, duplicates_s, 4000, data_model)
+  training_data = createTrainingData(data_d, duplicates_s, numTrainingPairs, data_model)
   #print "training data from known duplicates: "
   #print training_data
   print "number of training items: "
   print len(training_data)
 
-  data_model = trainModel(training_data, 500, data_model)
+  data_model = trainModel(training_data, numIterations, data_model)
   
   print "finding duplicates ..."
   dupes = findDuplicates(candidates, data_d, data_model, -.5)
@@ -142,3 +144,7 @@ if __name__ == '__main__':
 
   print "recall"
   print true_positives/float(len(duplicates_s))
+  print "ran in ", time.time() - t0, "seconds"
+
+if __name__ == '__main__':
+  run(4000,500)

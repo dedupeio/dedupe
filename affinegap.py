@@ -21,7 +21,6 @@ def defineCharacterScore(matchWeight, mismatchWeight) :
 #calculate the affine gap distance between 2 strings
 #default weights taken from page 28 of Bilenko's Ph. D dissertation: Learnable Similarity Functions and their Application to Record Linkage and Clustering
 def affineGapDistance(string1, string2, matchWeight = -5, mismatchWeight = 5, gapWeight = 5, spaceWeight = 1):
-  import copy
   
   length1 = len(string1)
   length2 = len(string2)
@@ -40,9 +39,9 @@ def affineGapDistance(string1, string2, matchWeight = -5, mismatchWeight = 5, ga
     v_matrix[row] = [(i * spaceWeight + gapWeight) for i in range(row, row + length1 + 1)]
   
   #set up recurrence matrices
-  e_matrix = copy.deepcopy(v_matrix)
-  f_matrix = copy.deepcopy(v_matrix)
-  g_matrix = copy.deepcopy(v_matrix)
+  e_matrix = [x[:] for x in v_matrix]
+  f_matrix = [x[:] for x in v_matrix]
+  g_matrix = [x[:] for x in v_matrix]
   
   for row in range(1,length2 + 1) :
     for col in range(1,length1 + 1) :
