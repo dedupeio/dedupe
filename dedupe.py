@@ -119,13 +119,13 @@ if __name__ == '__main__':
   print "number of known duplicates: "
   print len(duplicates_s)
 
-  training_data = createTrainingData(data_d, duplicates_s, 500, data_model)
+  training_data = createTrainingData(data_d, duplicates_s, 4000, data_model)
   #print "training data from known duplicates: "
   #print training_data
   print "number of training items: "
   print len(training_data)
 
-  data_model = trainModel(training_data, 100, data_model)
+  data_model = trainModel(training_data, 500, data_model)
   
   print "finding duplicates ..."
   dupes = findDuplicates(candidates, data_d, data_model, -.5)
