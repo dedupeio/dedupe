@@ -75,14 +75,6 @@ def affineGapDistance(string1, string2,
                         if f[j] < g
                         else g)
 
-
-  
-  #print "Affine Gap v_matrix:"
-  #print_matrix(g_matrix)
-  #print_matrix(e_matrix)
-  #print_matrix(f_matrix)
-  #print_matrix(v_matrix)
-  
   return v_matrix[length2][length1]/float(length1 + length2)
 
 if __name__ == "__main__" :
