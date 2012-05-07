@@ -62,7 +62,7 @@ def affineGapDistance(string1, string2,
       #print "e: ", e_matrix[row][col]
       
       f_matrix[j] = (f_matrix[j] + spaceWeight
-                     if f_matrix[j] > v_matrix[i][j-1] + gapWeight
+                     if f_matrix[j] > v_matrix[i-1][j] + gapWeight
                      else v_matrix[i-1][j] + gapWeight + spaceWeight)
 
       #print "f: ", f_matrix[row][col]
