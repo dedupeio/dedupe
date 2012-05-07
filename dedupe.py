@@ -146,5 +146,7 @@ def run(numTrainingPairs, numIterations) :
   print true_positives/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
 
+  print data_model
+
 if __name__ == '__main__':
-  run(4000,500)
+  run(8000,300)
