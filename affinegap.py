@@ -24,52 +24,58 @@ def affineGapDistance(string1, string2,
 
   #set up recurrence matrices
 
-  #v_matrix = minimum distance matrix
+  #V_matrix = minimum distance matrix
   v_matrix = [[None for _ in xrange(length1+1)] for _ in xrange(length2+1)]
 
   # define base case of recurrences
-  # Matrix(0,0) = 0
-  # Matrix(0,j) = gapWeight + spaceWeight * j
-  v_matrix[0] = f_matrix = [(j * spaceWeight + gapWeight) for j in xrange(length1 + 1)]
+  # V(0,0) = F(0,0) = 0
+  # V(0,j) = F(0,j) = gapWeight + spaceWeight * j
+  
+  v_matrix[0] = f = [(j * spaceWeight + gapWeight)
+                     for j in xrange(length1 + 1)]
   v_matrix[0][0] = 0
 
-  #e_matrix: minimum distance matrix when string1 prefix is left aligned to
-  #string2
-  #e_matrix = [row[:] for row in v_matrix]
-
-  #f_matrix: minimum distance matrix when string1 prefix is right
-  #aligned to string2
-  #f_matrix = [row[:] for row in v_matrix]
 
   for i in xrange(1,length2 + 1) :
-    # Matrix(i,0) = gapWeight + spaceWeight * i
+    # Base conditions  
+    # V(i,0) = E(i,0) = gapWeight + spaceWeight * i
     v_matrix[i][0] = e = i * spaceWeight + gapWeight
 
     for j in xrange(1,length1 + 1) :
+
+      # E: minimum distance matrix when string1 prefix is left aligned
+      # to string2
+      #
+      # E(i,j) = min(E(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
+      e = (e + spaceWeight
+           if e < v_matrix[i][j-1] + gapWeight
+           else v_matrix[i][j-1] + gapWeight + spaceWeight)
+
+      # F: minimum distance matrix when string1 prefix is right
+      # aligned to string2
+      #
+      # F(i,j) = min(F(i-1,j), V(i-1,j) + gapWeight) + spaceWeight
+      f[j] = (f[j] + spaceWeight
+              if f[j] < v_matrix[i-1][j] + gapWeight
+              else v_matrix[i-1][j] + gapWeight + spaceWeight)
+
+      # G: minimum distance matrix when string1 prefix is aligned to
+      # string2
+      #
+      # G(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
       if string2[i-1] == string1[j-1] :  
         g = v_matrix[i-1][j-1] + matchWeight
       else :
         g = v_matrix[i-1][j-1] + mismatchWeight
 
-      e = (e + spaceWeight
-           if e > v_matrix[i][j-1] + gapWeight
-           else v_matrix[i][j-1] + gapWeight + spaceWeight)
+      # V(i,j) = min(E(i,j), F(i,j), G(i,j))
+      v_matrix[i][j] = (e
+                        if e < f[j]
+                        else f[j]
+                        if f[j] < g
+                        else g)
 
-      #print "g: ", g_matrix[row][col]
-      #e_matrix[i][j] = (min(e_matrix[i][j-1],
-      #                      v_matrix[i][j-1] + gapWeight)
-      #                  + spaceWeight)
-      #print "e: ", e_matrix[row][col]
-      
-      f_matrix[j] = (f_matrix[j] + spaceWeight
-                     if f_matrix[j] > v_matrix[i-1][j] + gapWeight
-                     else v_matrix[i-1][j] + gapWeight + spaceWeight)
 
-      #print "f: ", f_matrix[row][col]
-      v_matrix[i][j] = min(e,
-                           f_matrix[j],
-                           g)
-      #print "v: ", v_matrix[row][col]
   
   #print "Affine Gap v_matrix:"
   #print_matrix(g_matrix)
