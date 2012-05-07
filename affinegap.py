@@ -51,16 +51,20 @@ def affineGapDistance(string1, string2,
       else :
         g = v_matrix[i-1][j-1] + mismatchWeight
 
-      e = min(e, v_matrix[i][j-1] + gapWeight) + spaceWeight
+      e = (e + spaceWeight
+           if e > v_matrix[i][j-1] + gapWeight
+           else v_matrix[i][j-1] + gapWeight + spaceWeight)
 
       #print "g: ", g_matrix[row][col]
       #e_matrix[i][j] = (min(e_matrix[i][j-1],
       #                      v_matrix[i][j-1] + gapWeight)
       #                  + spaceWeight)
       #print "e: ", e_matrix[row][col]
-      f_matrix[j] = (min(f_matrix[j],
-                         v_matrix[i-1][j] + gapWeight)
-                        + spaceWeight)
+      
+      f_matrix[j] = (f_matrix[j] + spaceWeight
+                     if f_matrix[j] > v_matrix[i][j-1] + gapWeight
+                     else v_matrix[i-1][j] + gapWeight + spaceWeight)
+
       #print "f: ", f_matrix[row][col]
       v_matrix[i][j] = min(e,
                            f_matrix[j],
