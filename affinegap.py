@@ -25,15 +25,18 @@ def affineGapDistance(string1, string2,
   #set up recurrence matrices
 
   #V_matrix = minimum distance matrix
-  v_matrix = [[None for _ in xrange(length1+1)] for _ in xrange(length2+1)]
+  v_matrix = [[None for _ in xrange(length1+1)]
+              for _ in xrange(length2+1)]
 
   # define base case of recurrences
   # V(0,0) = F(0,0) = 0
   # V(0,j) = F(0,j) = gapWeight + spaceWeight * j
   
-  v_matrix[0] = f = [(j * spaceWeight + gapWeight)
-                     for j in xrange(length1 + 1)]
-  v_matrix[0][0] = 0
+  f = [j * spaceWeight + gapWeight
+       for j in xrange(length1 + 1)]
+  f[0] = 0
+  
+  v_matrix[0] = list(f)
 
 
   for i in xrange(1,length2 + 1) :
