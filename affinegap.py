@@ -28,7 +28,7 @@ def affineGapDistance(string1, string2,
   v_matrix = [[None for _ in xrange(length1+1)]
               for _ in xrange(length2+1)]
 
-  # define base case of recurrences
+  # Base conditions 
   # V(0,0) = F(0,0) = 0
   # V(0,j) = F(0,j) = gapWeight + spaceWeight * j
   
@@ -79,14 +79,44 @@ def affineGapDistance(string1, string2,
                         else g)
 
 
-  return v_matrix[length2][length1]/float(length1 + length2)
+  return v_matrix[length2][length1]
+
+def normalizedAffineGapDistance(string1, string2,
+                      matchWeight = -5,
+                      mismatchWeight = 5,
+                      gapWeight = 5,
+                      spaceWeight = 1) :
+
+    normalizer = float(len(string1) + len(string2))
+    
+    return affineGapDistance(string1, string2,
+                             matchWeight = -5,
+                             mismatchWeight = 5,
+                             gapWeight = 5,
+                             spaceWeight = 1)/normalizer
+
 
 if __name__ == "__main__" :
     import cProfile
-    def test() :
+    def performanceTest() :
         for i in xrange(300000) :
             string1 = 'asdf'
             string2 = 'fdsa'
-            distance = affineGapDistance(string1, string2)		
+            distance = affineGapDistance(string1, string2)
 
-    cProfile.run('test()')
+    def correctnessTest() :
+        print affineGapDistance('a', 'b', -5, 5, 5, 1) == 5
+        print affineGapDistance('b', 'a', -5, 5, 5, 1) == 5
+        print affineGapDistance('a', 'a', -5, 5, 5, 1) == -5
+        print affineGapDistance('a', '', -5, 5, 5, 1) == 6
+        print affineGapDistance('', 'a', -5, 5, 5, 1) == 6
+        print affineGapDistance('aba', 'aaa', -5, 5, 5, 1) == -5
+        print affineGapDistance('aaa', 'aba', -5, 5, 5, 1) == -5
+        print affineGapDistance('aaa', 'aa', -5, 5, 5, 1) == -4
+        print affineGapDistance('aaa', 'a', -5, 5, 5, 1) == 2
+        print affineGapDistance('aaa', '', -5, 5, 5, 1) == 8
+        print affineGapDistance('aaa', 'abba', -5, 5, 5, 1) == 1
+
+        
+    correctnessTest()
+    #cProfile.run('peformanceTest()')
