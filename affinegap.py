@@ -119,4 +119,4 @@ if __name__ == "__main__" :
 
         
     correctnessTest()
-    #cProfile.run('peformanceTest()')
+    cProfile.run('performanceTest()')
