@@ -18,7 +18,7 @@ def canonicalImport(filename) :
               if header[j] == 'unique_id' :
                 duplicates_d.setdefault(col, []).append(i)
               else :
-                instance[header[j]] = col.strip()
+                instance[header[j]] = col.strip().strip('"').strip("'")
                 
             data_d[i] = instance
 
@@ -67,7 +67,7 @@ def calculateDistance(instance_1, instance_2, fields) :
   distances_d = {}
   for name in fields :
     if fields[name]['type'] == 'String' :
-      distanceFunc = affinegap.affineGapDistance
+      distanceFunc = affinegap.normalizedAffineGapDistance
     x = distanceFunc(instance_1[name],instance_2[name])
     distances_d[name] = x
 
