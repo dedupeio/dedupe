@@ -70,17 +70,18 @@ def affineGapDistance(string1, string2,
 
       # V(i,j) = min(E(i,j), F(i,j), G(i,j))
       v_matrix[i][j] = (e
-                        if e < f[j]
+                        if e < f[j] and e < g
                         else f[j]
                         if f[j] < g
                         else g)
+
 
   return v_matrix[length2][length1]/float(length1 + length2)
 
 if __name__ == "__main__" :
     import cProfile
     def test() :
-        for i in xrange(100000) :
+        for i in xrange(300000) :
             string1 = 'asdf'
             string2 = 'fdsa'
             distance = affineGapDistance(string1, string2)		
