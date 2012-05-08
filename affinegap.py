@@ -99,7 +99,7 @@ def normalizedAffineGapDistance(string1, string2,
 if __name__ == "__main__" :
     import cProfile
     def performanceTest() :
-        for i in xrange(300000) :
+        for i in xrange(100000) :
             string1 = 'asdf'
             string2 = 'fdsa'
             distance = affineGapDistance(string1, string2)
@@ -116,6 +116,7 @@ if __name__ == "__main__" :
         print affineGapDistance('aaa', 'a', -5, 5, 5, 1) == 2
         print affineGapDistance('aaa', '', -5, 5, 5, 1) == 8
         print affineGapDistance('aaa', 'abba', -5, 5, 5, 1) == 1
+        print affineGapDistance('abba', 'aaa', -5, 5, 5, 1) == 1
 
         
     correctnessTest()
