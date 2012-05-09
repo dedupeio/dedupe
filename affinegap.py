@@ -1,51 +1,56 @@
 def print_matrix(m):
-    print ' '
-    for line in m:
-        spTupel = ()
-        breite = len(line)
-        for column in line:
-            spTupel = spTupel + (column, )
-        print "%3i"*breite % spTupel
+  print ' '
+  for line in m:
+    spTupel = ()
+    breite = len(line)
+    for column in line:
+      spTupel = spTupel + (column, )
+      print "%3i"*breite % spTupel
 
 #calculate the affine gap distance between 2 strings default weights
 #taken from page 28 of Bilenko's Ph. D dissertation: Learnable
 #Similarity Functions and their Application to Record Linkage and
 #Clustering
 
+#@profile
 def affineGapDistance(string1, string2,
                       matchWeight = -5,
                       mismatchWeight = 5,
                       gapWeight = 5,
                       spaceWeight = 1):
-  
+
+  string1 = list(enumerate(string1,1))
+  string2 = list(enumerate(string2,1))
+
   length1 = len(string1)
   length2 = len(string2)
-  
+    
+  if length1 < length2 :
+      string1, string2 = string2, string1
+      length1, length2 = length2, length1
 
   #set up recurrence matrices
-
+  #
   #V_matrix = minimum distance matrix
-  v_matrix = [[None for _ in xrange(length1+1)]
-              for _ in xrange(length2+1)]
+  v_matrix = [[None] * (length1 + 1)
+              for _ in string2]
 
   # Base conditions 
   # V(0,0) = F(0,0) = 0
   # V(0,j) = F(0,j) = gapWeight + spaceWeight * j
-  
-  f = [j * spaceWeight + gapWeight
-       for j in xrange(length1 + 1)]
-  f[0] = 0
-  
-  v_matrix[0] = list(f)
 
-
-  for i in xrange(1,length2 + 1) :
+  f = [0] + [j * spaceWeight + gapWeight
+             for j, char in string1]
+  v_matrix.insert(0, f[:])
+  
+  
+  for i, char2 in string2 :
     # Base conditions  
     # V(i,0) = E(i,0) = gapWeight + spaceWeight * i
     v_matrix[i][0] = e = i * spaceWeight + gapWeight
-
-    for j in xrange(1,length1 + 1) :
-
+      
+    for j, char1 in string1 :
+      
       # E: minimum distance matrix when string1 prefix is left aligned
       # to string2
       #
@@ -53,7 +58,7 @@ def affineGapDistance(string1, string2,
       e = (e + spaceWeight
            if e < v_matrix[i][j-1] + gapWeight
            else v_matrix[i][j-1] + gapWeight + spaceWeight)
-
+      
       # F: minimum distance matrix when string1 prefix is right
       # aligned to string2
       #
@@ -61,23 +66,26 @@ def affineGapDistance(string1, string2,
       f[j] = (f[j] + spaceWeight
               if f[j] < v_matrix[i-1][j] + gapWeight
               else v_matrix[i-1][j] + gapWeight + spaceWeight)
-
+              
       # G: minimum distance matrix when string1 prefix is aligned to
       # string2
       #
       # G(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
-      if string2[i-1] == string1[j-1] :  
+      if char2 == char1 :  
         g = v_matrix[i-1][j-1] + matchWeight
       else :
         g = v_matrix[i-1][j-1] + mismatchWeight
 
       # V(i,j) = min(E(i,j), F(i,j), G(i,j))
-      v_matrix[i][j] = (e
-                        if e < f[j] and e < g
-                        else f[j]
-                        if f[j] < g
-                        else g)
-
+      if e < g  :
+        if e < f[j] :
+          v_matrix[i][j] = e
+        else :
+          v_matrix[i][j] = f[j]
+      elif g < f[j] :
+        v_matrix[i][j] = g
+      else :
+        v_matrix[i][j] = f[j]
 
   return v_matrix[length2][length1]
 
@@ -99,9 +107,9 @@ def normalizedAffineGapDistance(string1, string2,
 if __name__ == "__main__" :
     import cProfile
     def performanceTest() :
-        for i in xrange(100000) :
-            string1 = 'asdf'
-            string2 = 'fdsa'
+        for i in xrange(10000) :
+            string2 = 'asdfa;dsjnfas;dfasdsdfasdf asdf'
+            string1 = 'fdsa576576576'
             distance = affineGapDistance(string1, string2)
 
     def correctnessTest() :
@@ -109,7 +117,6 @@ if __name__ == "__main__" :
         print affineGapDistance('b', 'a', -5, 5, 5, 1) == 5
         print affineGapDistance('a', 'a', -5, 5, 5, 1) == -5
         print affineGapDistance('a', '', -5, 5, 5, 1) == 6
-        print affineGapDistance('', 'a', -5, 5, 5, 1) == 6
         print affineGapDistance('aba', 'aaa', -5, 5, 5, 1) == -5
         print affineGapDistance('aaa', 'aba', -5, 5, 5, 1) == -5
         print affineGapDistance('aaa', 'aa', -5, 5, 5, 1) == -4
@@ -120,4 +127,4 @@ if __name__ == "__main__" :
 
         
     correctnessTest()
-    cProfile.run('performanceTest()')
+    performanceTest()
