@@ -31,63 +31,75 @@ def affineGapDistance(string1, string2,
 
   #set up recurrence matrices
   #
-  #V_matrix = minimum distance matrix
-  v_matrix = [[None] * (length1 + 1)
-              for _ in string2]
-
   # Base conditions 
   # V(0,0) = F(0,0) = 0
   # V(0,j) = F(0,j) = gapWeight + spaceWeight * j
+  f = [0] + range(gapWeight + spaceWeight,
+                  gapWeight + spaceWeight * (length1 + 1),
+                  spaceWeight)
 
-  f = [0] + [j * spaceWeight + gapWeight
-             for j, char in string1]
-  v_matrix.insert(0, f[:])
-  
-  
+
+  v_current = f[:]
+
+
   for i, char2 in string2 :
+    v_previous = v_current[:]
+
     # Base conditions  
     # V(i,0) = E(i,0) = gapWeight + spaceWeight * i
-    v_matrix[i][0] = e = i * spaceWeight + gapWeight
-      
+
+    v_current[0] = e = i * spaceWeight + gapWeight
+
     for j, char1 in string1 :
+        
+
       
       # E: minimum distance matrix when string1 prefix is left aligned
       # to string2
       #
       # E(i,j) = min(E(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
+      vcj = v_current[j-1] + gapWeight
+
       e = (e + spaceWeight
-           if e < v_matrix[i][j-1] + gapWeight
-           else v_matrix[i][j-1] + gapWeight + spaceWeight)
+           if e < vcj
+           else vcj + spaceWeight)
       
       # F: minimum distance matrix when string1 prefix is right
       # aligned to string2
       #
       # F(i,j) = min(F(i-1,j), V(i-1,j) + gapWeight) + spaceWeight
-      f[j] = (f[j] + spaceWeight
-              if f[j] < v_matrix[i-1][j] + gapWeight
-              else v_matrix[i-1][j] + gapWeight + spaceWeight)
+      f_j = f[j]
+      vpj = v_previous[j] + gapWeight
+
+      f[j] = f_j = (f_j + spaceWeight
+                    if f_j < vpj
+                    else vpj + spaceWeight)
               
       # G: minimum distance matrix when string1 prefix is aligned to
       # string2
       #
       # G(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
-      if char2 == char1 :  
-        g = v_matrix[i-1][j-1] + matchWeight
-      else :
-        g = v_matrix[i-1][j-1] + mismatchWeight
+      g = (v_previous[j-1] + matchWeight
+           if char2 == char1
+           else v_previous[j-1] + mismatchWeight
+           )
+
 
       # V(i,j) = min(E(i,j), F(i,j), G(i,j))
       if e < g  :
-        if e < f[j] :
-          v_matrix[i][j] = e
+        if e < f_j :
+          v_current[j] = e
         else :
-          v_matrix[i][j] = f[j]
-      elif g < f[j] :
-        v_matrix[i][j] = g
+          v_current[j] = f_j
+      elif g < f_j :
+        v_current[j] = g
       else :
-        v_matrix[i][j] = f[j]
+        v_current[j] = f_j
 
-  return v_matrix[length2][length1]
+
+
+
+  return v_current[length1]
 
 def normalizedAffineGapDistance(string1, string2,
                       matchWeight = -5,
