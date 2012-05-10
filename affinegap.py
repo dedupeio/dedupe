@@ -19,6 +19,13 @@ def affineGapDistance(string1, string2,
                       gapWeight = 5,
                       spaceWeight = 1):
 
+     
+  if (string1 == string2 and
+      matchWeight == min(matchWeight,
+                         mismatchWeight,
+                         gapWeight)):
+      return matchWeight * len(string1)
+
   string1 = list(enumerate(string1,1))
   string2 = list(enumerate(string2,1))
 
@@ -37,32 +44,29 @@ def affineGapDistance(string1, string2,
   f = [0] + range(gapWeight + spaceWeight,
                   gapWeight + spaceWeight * (length1 + 1),
                   spaceWeight)
+  
 
-
+  v_previous = f[:]
   v_current = f[:]
-
-
+  
   for i, char2 in string2 :
-    v_previous = v_current[:]
+    v_current, v_previous = v_previous, v_current
 
     # Base conditions  
     # V(i,0) = E(i,0) = gapWeight + spaceWeight * i
-
     v_current[0] = e = i * spaceWeight + gapWeight
+  
 
     for j, char1 in string1 :
-        
 
-      
       # E: minimum distance matrix when string1 prefix is left aligned
       # to string2
       #
       # E(i,j) = min(E(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
-      vcj = v_current[j-1] + gapWeight
 
       e = (e + spaceWeight
-           if e < vcj
-           else vcj + spaceWeight)
+           if e < v_current[j-1] + gapWeight
+           else v_current[j-1] + gapWeight + spaceWeight)
       
       # F: minimum distance matrix when string1 prefix is right
       # aligned to string2
