@@ -46,11 +46,10 @@ def affineGapDistance(string1, string2,
                   spaceWeight)
   
 
-  v_previous = f[:]
   v_current = f[:]
   
   for i, char2 in string2 :
-    v_current, v_previous = v_previous, v_current
+    v_previous = v_current[:]
 
     # Base conditions  
     # V(i,0) = E(i,0) = gapWeight + spaceWeight * i
@@ -73,11 +72,10 @@ def affineGapDistance(string1, string2,
       #
       # F(i,j) = min(F(i-1,j), V(i-1,j) + gapWeight) + spaceWeight
       f_j = f[j]
-      vpj = v_previous[j] + gapWeight
 
       f[j] = f_j = (f_j + spaceWeight
-                    if f_j < vpj
-                    else vpj + spaceWeight)
+                    if f_j < v_previous[j] + gapWeight
+                    else v_previous[j] + gapWeight + spaceWeight)
               
       # G: minimum distance matrix when string1 prefix is aligned to
       # string2
