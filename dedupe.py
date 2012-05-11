@@ -1,4 +1,5 @@
 import itertools
+import math
 #import distance #libdistance library http://monkey.org/~jose/software/libdistance/
 import affinegap
 import lr
@@ -111,9 +112,22 @@ def trainModel(training_data, iterations, data_model) :
     
 def trainBlocking(data_d, train_pairs, data_model, predicates) :
 
-  numGoodPairs = {}
-  numBadPairs = {}
-  allPredicateSets = {}
+  eta = len(train_pairs)
+  
+  knownGoodPairs = []
+  knownBadPairs = []
+  
+  for pair in train_pairs :
+    if train_pairs[pair] == 1 :
+      knownGoodPairs.append(tuple(pair))
+    else :
+      knownBadPairs.append(tuple(pair))
+  
+  foundGoodPairs = {}
+  foundBadPairs = {}
+  
+  numGoodPairs = 0
+  numBadPairs = 0
   
   for fieldName in data_model['fields'] :
     for pair in train_pairs :
@@ -123,22 +137,112 @@ def trainBlocking(data_d, train_pairs, data_model, predicates) :
       
       for predicate in predicates :
         if predicate(instance_1[fieldName]) == predicate(instance_2[fieldName]) :
+          numGoodPairs += 1
           #clean this up - there's a better way w/o try/except
           try :
-            numGoodPairs[(predicate,fieldName)] += 1
+            foundGoodPairs[(predicate,fieldName)] += 1
           except KeyError :
-            numGoodPairs[(predicate,fieldName)] = 1
+            foundGoodPairs[(predicate,fieldName)] = 1
         else :
+          numBadPairs += 1
           try :
-            numBadPairs[(predicate,fieldName)] += 1
+            foundBadPairs[(predicate,fieldName)] += 1
           except KeyError :
-            numBadPairs[(predicate,fieldName)] = 1
+            foundBadPairs[(predicate,fieldName)] = 1
+  
+  print "foundGoodPairs: "
+  print foundGoodPairs
+  print "foundBadPairs: "
+  print foundBadPairs  
+  
+  predicateSet = set(foundGoodPairs.keys()).union(set(foundBadPairs.keys()))
+  print "predicateSet: "
+  print predicateSet
+  
+  filteredPredicateSet = set()
+  for predicate in predicateSet :
+    if foundBadPairs[predicate] < eta :
+      filteredPredicateSet.add(predicate)
       
-  print "numGoodPairs: "
-  print numGoodPairs
-  print "numBadPairs: "
-  print numBadPairs  
+  print "filteredPredicateSet: "
+  print filteredPredicateSet
+  
+  expectedBadPairs = math.sqrt(len(train_pairs) / math.log(numGoodPairs))
+  print "expectedBadPairs: ", expectedBadPairs
+  
+      
+  filteredBadPairs = knownBadPairs[:]   
+  predicateCount = {}
+  for pair in knownBadPairs :
+    try :
+      predicateCount[pair] += 1
+    except KeyError :
+      predicateCount[pair] = 1
    
+    if predicateCount[pair] > expectedBadPairs :
+      filteredBadPairs.remove(pair)
+  
+  print "numGoodPairs: ", numGoodPairs
+  print "numBadPairs: ", numBadPairs
+      
+  print "filteredBadPairs: "
+  print len(filteredBadPairs)
+  
+  #print "knownBadPairs: "
+  #print knownBadPairs
+  
+  filteredBadCoverage, numCoveredPairs = predicateDegree(data_d, data_model, filteredBadPairs, predicates)
+  
+  print "filteredBadCoverage: "
+  print filteredBadCoverage
+  
+  print "numCoveredPairs: ", numCoveredPairs
+  
+  epsilon = 1
+  finalPredicateSet = []
+  consideredPredicates = filteredBadCoverage
+  while numGoodPairs >= epsilon :
+    optimumCover = 0
+    foundCoverage = 0
+    bestPredicate = None
+    for predicate in consideredPredicates :
+      cover = foundGoodPairs[predicate] / float(filteredBadCoverage[predicate])
+      if cover > optimumCover :
+        optimumCover = cover
+        foundCoverage = foundGoodPairs[predicate]
+        bestPredicate = predicate
+
+    if not bestPredicate : break
+
+    consideredPredicates.pop(bestPredicate)
+    numGoodPairs = numGoodPairs - foundCoverage
+    finalPredicateSet.append(bestPredicate)
+    
+  print "FINAL PREDICATE SET!!!!"
+  print finalPredicateSet
+  return finalPredicateSet
+
+def predicateDegree(data_d, data_model, pairs, predicates) :
+  numPairs = 0
+  foundPairs = {}
+  
+  for fieldName in data_model['fields'] :
+    for pair in pairs :
+      instance_1 = data_d[tuple(pair)[0]]
+      instance_2 = data_d[tuple(pair)[1]]
+    
+      for predicate in predicates :
+        if predicate(instance_1[fieldName]) == predicate(instance_2[fieldName]) :
+          numPairs += 1
+          #clean this up - there's a better way w/o try/except
+          try :
+            foundPairs[(predicate,fieldName)] += 1
+          except KeyError :
+            foundPairs[(predicate,fieldName)] = 1
+  
+  return (foundPairs, numPairs)
+
+
 
 #returns the field as a tuple
 def wholeFieldPredicate(field) :
@@ -193,4 +297,4 @@ def run(numTrainingPairs, numIterations) :
 #   print data_model
 
 if __name__ == '__main__':
-  run(500,300)
+  run(8000,300)
