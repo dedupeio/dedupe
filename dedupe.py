@@ -97,7 +97,7 @@ def createTrainingData(data_d, duplicates_s, n, data_model) :
                                     data_model['fields'])
       training_data.append((train_pairs[pair], distances))
 
-  return training_data
+  return (training_data, train_pairs)
 
 def trainModel(training_data, iterations, data_model) :
     trainer = lr.LogisticRegression()
@@ -108,6 +108,48 @@ def trainModel(training_data, iterations, data_model) :
         data_model['fields'][name]['weight'] = trainer.weight[name]
 
     return(data_model)
+    
+def trainBlocking(data_d, train_pairs, data_model, predicates) :
+
+  numGoodPairs = {}
+  numBadPairs = {}
+  allPredicateSets = {}
+  
+  for fieldName in data_model['fields'] :
+    for pair in train_pairs :
+      label = train_pairs[pair]
+      instance_1 = data_d[tuple(pair)[0]]
+      instance_2 = data_d[tuple(pair)[1]]
+      
+      for predicate in predicates :
+        if predicate(instance_1[fieldName]) == predicate(instance_2[fieldName]) :
+          #clean this up - there's a better way w/o try/except
+          try :
+            numGoodPairs[(predicate,fieldName)] += 1
+          except KeyError :
+            numGoodPairs[(predicate,fieldName)] = 1
+        else :
+          try :
+            numBadPairs[(predicate,fieldName)] += 1
+          except KeyError :
+            numBadPairs[(predicate,fieldName)] = 1
+      
+  print "numGoodPairs: "
+  print numGoodPairs
+  print "numBadPairs: "
+  print numBadPairs  
+   
+
+#returns the field as a tuple
+def wholeFieldPredicate(field) :
+
+  return (field, )
+  
+#returns the tokens in the field as a tuple, split on whitespace
+def tokenFieldPredicate(field) :
+  
+  return field.split()
+  
     
 def run(numTrainingPairs, numIterations) :
   import time
@@ -121,32 +163,34 @@ def run(numTrainingPairs, numIterations) :
   print "number of known duplicates: "
   print len(duplicates_s)
 
-  training_data = createTrainingData(data_d, duplicates_s, numTrainingPairs, data_model)
+  training_data, train_pairs = createTrainingData(data_d, duplicates_s, numTrainingPairs, data_model)
   #print "training data from known duplicates: "
   #print training_data
   print "number of training items: "
   print len(training_data)
-
-  data_model = trainModel(training_data, numIterations, data_model)
   
-  print "finding duplicates ..."
-  dupes = findDuplicates(candidates, data_d, data_model, -.5)
-  true_positives = 0
-  false_positives = 0
-  for dupe_pair in dupes :
-    if set(dupe_pair.keys()[0]) in duplicates_s :
-        true_positives += 1
-    else :
-        false_positives += 1
+  trainBlocking(data_d, train_pairs, data_model, (wholeFieldPredicate, ))
 
-  print "precision"
-  print (len(dupes) - false_positives)/float(len(dupes))
-
-  print "recall"
-  print true_positives/float(len(duplicates_s))
-  print "ran in ", time.time() - t0, "seconds"
-
-  print data_model
+  # data_model = trainModel(training_data, numIterations, data_model)
+#   
+#   print "finding duplicates ..."
+#   dupes = findDuplicates(candidates, data_d, data_model, -.5)
+#   true_positives = 0
+#   false_positives = 0
+#   for dupe_pair in dupes :
+#     if set(dupe_pair.keys()[0]) in duplicates_s :
+#         true_positives += 1
+#     else :
+#         false_positives += 1
+# 
+#   print "precision"
+#   print (len(dupes) - false_positives)/float(len(dupes))
+# 
+#   print "recall"
+#   print true_positives/float(len(duplicates_s))
+#   print "ran in ", time.time() - t0, "seconds"
+# 
+#   print data_model
 
 if __name__ == '__main__':
-  run(8000,300)
+  run(500,300)
