@@ -1,0 +1,43 @@
+= Deduplication Library
+A free python library for accurate and scaleable deduplication and entity-resolution. 
+
+Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Functions and their Application to Record Linkage and Clustering
+
+
+== Features
+
+* coming soon
+  
+== Python Dependencies
+
+* itertools
+* csv
+* pegasos
+
+== Team
+
+* Forest Gregg
+* Derek Eder mailto:derek.eder@opencityapps.org
+
+== Usage
+
+  > python dedupe.py
+
+
+== Errors / Bugs
+
+If something is not behaving intuitively, it is a bug, and should be reported.
+Report it here: https://github.com/open-city/dedupe/issues
+
+
+== Note on Patches/Pull Requests
+ 
+* Fork the project.
+* Make your feature addition or bug fix.
+* Send me a pull request. Bonus points for topic branches.
+
+== Copyright
+
+Copyright (c) 2012 Forest Gregg and Derek Eder of Open City. Released under the MIT License.
+
+See LICENSE for details https://github.com/open-city/dedupe/wiki/License
