@@ -2,7 +2,8 @@ import itertools
 import math
 #import distance #libdistance library http://monkey.org/~jose/software/libdistance/
 import affinegap
-import pegasos
+import lr
+#import pegasos
 
 
 def canonicalImport(filename) :
@@ -292,27 +293,26 @@ def run(numTrainingPairs, numIterations) :
   print "number of training items: "
   print len(training_data)
 
-  return(training_data)
-  ##data_model = trainModel(training_data, numIterations, data_model)
+  data_model = trainModel(training_data, numIterations, data_model)
   
-  ## print "finding duplicates ..."
-  ## dupes = findDuplicates(candidates, data_d, data_model, -.5)
-  ## true_positives = 0
-  ## false_positives = 0
-  ## for dupe_pair in dupes :
-  ##   if set(dupe_pair.keys()[0]) in duplicates_s :
-  ##       true_positives += 1
-  ##   else :
-  ##       false_positives += 1
+  print "finding duplicates ..."
+  dupes = findDuplicates(candidates, data_d, data_model, -.5)
+  true_positives = 0
+  false_positives = 0
+  for dupe_pair in dupes :
+    if set(dupe_pair.keys()[0]) in duplicates_s :
+        true_positives += 1
+    else :
+        false_positives += 1
 
-  ## print "precision"
-  ## print (len(dupes) - false_positives)/float(len(dupes))
+  print "precision"
+  print (len(dupes) - false_positives)/float(len(dupes))
 
-  ## print "recall"
-  ## print true_positives/float(len(duplicates_s))
-  ## print "ran in ", time.time() - t0, "seconds"
+  print "recall"
+  print true_positives/float(len(duplicates_s))
+  print "ran in ", time.time() - t0, "seconds"
 
-  ## print data_model
+  print data_model
 
 if __name__ == '__main__':
-  td = run(8000,300)
+  run(8000,50)
