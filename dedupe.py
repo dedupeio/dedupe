@@ -4,6 +4,7 @@ import math
 import affinegap
 import lr
 #import pegasos
+from collections import defaultdict
 
 
 def canonicalImport(filename) :
@@ -136,91 +137,92 @@ def trainModelSVM(training_data, iterations, data_model) :
 
     return(data_model)
 
-    
-def trainBlocking(training_pairs, predicates, fields) :
-
-# Much of this would be easier if the pair functions were hashable
-# Maybe something like tuple(sorted(d.iteritems())) then we could leverage the set operations
-
-  eta = len(training_pairs)
-  
-  knownGoodPairs, knownBadPairs = training_pairs
-  
-  def predicateCoverage(pairs, predicates, fields) :
-      coverage = {}
-      covered_pairs = 0
-      for pair in pairs :
-          covered = False
-          for field in fields :
-              for predicate in predicates :
-                  keys1 = predicate(pair[0][field])
-                  keys2 = predicate(pair[1][field])
-                  if set(keys1) & set(keys2) :
-                      coverage.setdefault((predicate,field),[]).append(pair)
-                      covered = True
-          if covered : covered_pairs += 1
+def predicateCoverage(pairs, predicates, data_model) :
+    coverage = defaultdict(list)
+    covered_pairs = 0
+    for pair in pairs :
+        covered = False
+        for field in data_model['fields'] :
+            for predicate in predicates :
+                keys1 = predicate(pair[0][field])
+                keys2 = predicate(pair[1][field])
+                if set(keys1) & set(keys2) :
+                    coverage[(predicate,field)].append(pair)
+                    covered = True
+        if covered : covered_pairs += 1
               
-      return(coverage, covered_pairs)
+    return(coverage, covered_pairs)
 
-  foundGoodPairs, numFoundGood = predicateCover(knownGoodPairs, predicates)
-  foundBadPairs, numFoundBad = predicateCover(knownBadPairs, predicates)
+    
+def trainBlocking(training_pairs, predicates, data_model) :
 
-  predicateSet = set(foundGoodPairs.keys()) | set(foundBadPairs.keys())
+  training_distinct, training_dupe = training_pairs
+  n_training_dupe = len(training_dupe)
+  n_training_distinct = len(training_distinct)
+  sample_size = n_training_dupe + n_training_distinct
 
-  filteredPredicateSet = set()
-  for predicate in predicate :
-    if len(foundBadPairs[predicate]) < eta :
-      filteredPredicateSet.add(predicate)
+  found_dupes, dupe_covered = predicateCoverage(training_dupe,
+                                                predicates,
+                                                data_model)
+  found_distinct, distinct_covered = predicateCoverage(training_distinct,
+                                                       predicates,
+                                                       data_model)
+
+  
+  eta = sample_size
+
+  predicateSet = set(found_dupes.keys()) & set(found_distinct.keys())
+
+  [predicateSet.remove(predicate)
+   for predicate in found_distinct
+   if len(found_distinct[predicate]) > eta]
       
   print "filteredPredicateSet: "
-  print filteredPredicateSet
+  print  predicateSet
   
-  expectedBadPairs = math.sqrt(len(train_pairs) / math.log(numGoodPairs))
-  print "expectedBadPairs: ", expectedBadPairs
+  expected_distinct_coverage = (math.sqrt(sample_size)
+                                / math.log(n_training_dupe))
+  print "expected coverage of distinct pairs:", expected_distinct_coverage
   
-  filteredBadPairs = []
-  for pair in knownBadPairs :
+  for pair in training_distinct :
       if sum([pair in coveredpairs
               for coveredpairs
-              in foundBadPairs.values()]) > expectedBadPairs :
-        filteredBadPairs.append(pair)
+              in found_distinct.values()]) > expected_distinct_coverage :
+        training_distinct.remove(pair)
   
-  print "numGoodPairs: ", numGoodPairs
-  print "numBadPairs: ", numBadPairs
-      
-  print "filteredBadPairs: "
-  print len(filteredBadPairs)
-  
-  #print "knownBadPairs: "
-  #print knownBadPairs
-  
-  filteredBadCoverage, numCoveredPairs = predicateCover(filteredBadPairs, predicates)
+  found_distinct, distinct_covered = predicateCoverage(training_distinct,
+                                                       predicates,
+                                                       data_model)
 
-
-  
-  print "filteredBadCoverage: "
-  print filteredBadCoverage
-  
-  print "numCoveredPairs: ", numCoveredPairs
-  
   epsilon = 1
   finalPredicateSet = []
-  consideredPredicates = filteredPredicateSet
-  while numGoodPairs >= epsilon :
+  print "Uncovered dupes"
+  print n_training_dupe
+  while n_training_dupe >= epsilon :
+
+
     optimumCover = 0
     bestPredicate = None
-    for predicate in consideredPredicates :
-      cover = len(foundGoodPairs[predicate]) / float(len(filteredBadCoverage[predicate]))
+    for predicate in predicateSet :
+      cover = (len(found_dupes[predicate])
+               / float(len(found_distinct[predicate]))
+               )
       if cover > optimumCover :
         optimumCover = cover
         bestPredicate = predicate
 
-    if not bestPredicate : break
+    if not bestPredicate :
+        print "Ran out of predicates"
+        break
 
-    consideredPredicates.pop(bestPredicate)
-    numGoodPairs -= len(foundGoodPairs[predicate])
-    
-    foundGoodPairs
+    predicateSet.remove(bestPredicate)
+    n_training_dupe -= len(found_dupes[bestPredicate])
+    [training_dupe.remove(pair) for pair in found_dupes[bestPredicate]]
+    found_dupes, dupe_covered = predicateCoverage(training_dupe,
+                                                  predicates,
+                                                  data_model)
+    print n_training_dupe
+
     finalPredicateSet.append(bestPredicate)
     
   print "FINAL PREDICATE SET!!!!"
@@ -243,7 +245,7 @@ def tokenFieldPredicate(field) :
   
 
 if __name__ == '__main__':
-  numTrainingPairs = 8000
+  numTrainingPairs = 16000
   numIterations = 50
 
   import time
@@ -259,31 +261,33 @@ if __name__ == '__main__':
 
   training_pairs = createTrainingPairs(data_d, duplicates_s, numTrainingPairs)
 
-  training_data = createTrainingData(training_pairs)
-  #print "training data from known duplicates: "
-  #print training_data
-  print "number of training items: "
-  print len(training_data)
-
-  data_model = trainModel(training_data, numIterations, data_model)
+  trainBlocking(training_pairs, (wholeFieldPredicate, tokenFieldPredicate), data_model)  
   
-  print "finding duplicates ..."
-  dupes = findDuplicates(candidates, data_d, data_model, -2)
-  true_positives = 0
-  false_positives = 0
-  for dupe_pair in dupes :
-    if set(dupe_pair.keys()[0]) in duplicates_s :
-        true_positives += 1
-    else :
-        false_positives += 1
+  ## training_data = createTrainingData(training_pairs)
+  ## #print "training data from known duplicates: "
+  ## #print training_data
+  ## print "number of training items: "
+  ## print len(training_data)
 
-  print "precision"
-  print (len(dupes) - false_positives)/float(len(dupes))
+  ## data_model = trainModel(training_data, numIterations, data_model)
+  
+  ## print "finding duplicates ..."
+  ## dupes = findDuplicates(candidates, data_d, data_model, -2)
+  ## true_positives = 0
+  ## false_positives = 0
+  ## for dupe_pair in dupes :
+  ##   if set(dupe_pair.keys()[0]) in duplicates_s :
+  ##       true_positives += 1
+  ##   else :
+  ##       false_positives += 1
 
-  print "recall"
-  print true_positives/float(len(duplicates_s))
-  print "ran in ", time.time() - t0, "seconds"
+  ## print "precision"
+  ## print (len(dupes) - false_positives)/float(len(dupes))
 
-  print data_model
+  ## print "recall"
+  ## print true_positives/float(len(duplicates_s))
+  ## print "ran in ", time.time() - t0, "seconds"
+
+  ## print data_model
 
 
