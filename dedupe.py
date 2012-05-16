@@ -137,76 +137,88 @@ def trainModelSVM(training_data, iterations, data_model) :
 
     return(data_model)
 
-def predicateCoverage(pairs, predicates, data_model) :
+def predicateCoverage(pairs, predicates) :
     coverage = defaultdict(list)
     covered_pairs = 0
     for pair in pairs :
         covered = False
-        for field in data_model['fields'] :
-            for predicate in predicates :
-                keys1 = predicate(pair[0][field])
-                keys2 = predicate(pair[1][field])
-                if set(keys1) & set(keys2) :
-                    coverage[(predicate,field)].append(pair)
-                    covered = True
+        for predicate, field in predicates :
+            #print (predicate, field)
+            keys1 = predicate(pair[0][field])
+            keys2 = predicate(pair[1][field])
+            if set(keys1) & set(keys2) :
+                coverage[(predicate,field)].append(pair)
+                covered = True
         if covered : covered_pairs += 1
               
     return(coverage, covered_pairs)
 
     
-def trainBlocking(training_pairs, predicates, data_model) :
+def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
-  training_distinct, training_dupe = training_pairs
-  n_training_dupe = len(training_dupe)
+  training_distinct, training_dupes = training_pairs
+  n_training_dupes = len(training_dupes)
   n_training_distinct = len(training_distinct)
-  sample_size = n_training_dupe + n_training_distinct
+  sample_size = n_training_dupes + n_training_distinct
 
-  found_dupes, dupe_covered = predicateCoverage(training_dupe,
-                                                predicates,
-                                                data_model)
+  # The set of all predicate functions operating over all fields
+  predicateSet = list(itertools.product(predicates, data_model['fields']))
+  n_predicates = len(predicateSet)
+
+  found_dupes, dupes_covered = predicateCoverage(training_dupes,
+                                                predicateSet)
   found_distinct, distinct_covered = predicateCoverage(training_distinct,
-                                                       predicates,
-                                                       data_model)
+                                                       predicateSet)
 
-  
-  eta = sample_size
 
-  predicateSet = set(found_dupes.keys()) & set(found_distinct.keys())
+  predicateSet = found_dupes.keys() 
+
+  # We want to throw away the predicates that puts together too many
+  # distinct pairs
+  eta = sample_size * eta
 
   [predicateSet.remove(predicate)
    for predicate in found_distinct
-   if len(found_distinct[predicate]) > eta]
-      
-  print "filteredPredicateSet: "
-  print  predicateSet
-  
-  expected_distinct_coverage = (math.sqrt(sample_size)
-                                / math.log(n_training_dupe))
-  print "expected coverage of distinct pairs:", expected_distinct_coverage
-  
-  for pair in training_distinct :
-      if sum([pair in coveredpairs
-              for coveredpairs
-              in found_distinct.values()]) > expected_distinct_coverage :
-        training_distinct.remove(pair)
-  
-  found_distinct, distinct_covered = predicateCoverage(training_distinct,
-                                                       predicates,
-                                                       data_model)
+   if len(found_distinct[predicate]) >= eta]
 
-  epsilon = 1
+  # We don't want to penalize a blocker if it puts distinct pairs
+  # together that look like they could be duplicates. Here we compute
+  # the expected number of predicates that will cover a duplicate pair
+  expected_dupe_coverage = math.sqrt(n_predicates / math.log(n_training_dupes))
+
+
+  # Certainly has to be a faster way to do this
+  def wideCoverage(pair) :
+      coverage = 0
+      for coveredpairs in found_distinct.values() :
+          if pair in coveredpairs :
+              coverage += 1
+          if coverage > expected_dupe_coverage :
+              return False
+
+      return True
+  training_distinct = filter(wideCoverage, training_distinct)
+
+
+  found_distinct, distinct_covered = predicateCoverage(training_distinct,
+                                                       predicateSet)
+
+  # Greedily find the predicates that, at each step, covers the most
+  # duplicates and covers the least distinct pairs
   finalPredicateSet = []
   print "Uncovered dupes"
-  print n_training_dupe
-  while n_training_dupe >= epsilon :
-
+  print n_training_dupes
+  while n_training_dupes >= epsilon :
 
     optimumCover = 0
     bestPredicate = None
     for predicate in predicateSet :
-      cover = (len(found_dupes[predicate])
-               / float(len(found_distinct[predicate]))
-               )
+      try:  
+          cover = (len(found_dupes[predicate])
+                   / float(len(found_distinct[predicate]))
+                   )
+      except ZeroDivisionError:
+          cover = len(found_dupes[predicate])
       if cover > optimumCover :
         optimumCover = cover
         bestPredicate = predicate
@@ -216,12 +228,12 @@ def trainBlocking(training_pairs, predicates, data_model) :
         break
 
     predicateSet.remove(bestPredicate)
-    n_training_dupe -= len(found_dupes[bestPredicate])
-    [training_dupe.remove(pair) for pair in found_dupes[bestPredicate]]
-    found_dupes, dupe_covered = predicateCoverage(training_dupe,
-                                                  predicates,
-                                                  data_model)
-    print n_training_dupe
+    n_training_dupes -= len(found_dupes[bestPredicate])
+    [training_dupes.remove(pair) for pair in found_dupes[bestPredicate]]
+    found_dupes, dupe_covered = predicateCoverage(training_dupes,
+                                                  predicateSet)
+
+    print n_training_dupes
 
     finalPredicateSet.append(bestPredicate)
     
@@ -261,7 +273,7 @@ if __name__ == '__main__':
 
   training_pairs = createTrainingPairs(data_d, duplicates_s, numTrainingPairs)
 
-  trainBlocking(training_pairs, (wholeFieldPredicate, tokenFieldPredicate), data_model)  
+  trainBlocking(training_pairs, (wholeFieldPredicate, tokenFieldPredicate), data_model, 1, 1)  
   
   ## training_data = createTrainingData(training_pairs)
   ## #print "training data from known duplicates: "
