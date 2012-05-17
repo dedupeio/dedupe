@@ -1,4 +1,5 @@
-import itertools
+from itertools import combinations
+from random import sample
 import math
 #import distance #libdistance library http://monkey.org/~jose/software/libdistance/
 import affinegap
@@ -8,7 +9,6 @@ from collections import defaultdict
 from blocking import trainBlocking
 from predicates import *
 
-
 def identifyCandidates(data_d) :
   return [data_d.keys()]
 
@@ -16,7 +16,7 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
   duplicateScores = []
 
   for candidates_set in candidates :
-    for pair in itertools.combinations(candidates_set, 2):
+    for pair in combinations(candidates_set, 2):
       scorePair = {}
       score = data_model['bias'] 
       fields = data_model['fields']
@@ -45,21 +45,18 @@ def calculateDistance(instance_1, instance_2, fields) :
 
 def createTrainingPairs(data_d, duplicates_s, n) :
   import random
-  nonduplicates_s = set([])
   duplicates = []
   nonduplicates = []
   nPairs = 0
-  while nPairs < n :
-    random_pair = frozenset(random.sample(data_d, 2))
+  random_pairs = sample(list(combinations(data_d, 2)), n)
+  for random_pair in random_pairs :
     training_pair = (data_d[tuple(random_pair)[0]],
                      data_d[tuple(random_pair)[1]])
-    if random_pair in duplicates_s :
+    if set(random_pair) in duplicates_s :
       duplicates.append(training_pair)
-      nPairs += 1
-    elif random_pair not in nonduplicates_s :
+    else:
       nonduplicates.append(training_pair)
-      nonduplicates_s.add(random_pair)
-      nPairs += 1
+
       
   return(nonduplicates, duplicates)
 
