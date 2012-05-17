@@ -17,19 +17,18 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
 
   for candidates_set in candidates :
     for pair in combinations(candidates_set, 2):
-      scorePair = {}
-      score = data_model['bias'] 
       fields = data_model['fields']
-
       distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
+
+      score = data_model['bias'] 
       for name in fields :
         score += distances[name] * fields[name]['weight']
-      scorePair[pair] = score
+
       #print (pair, score)
       if score > threshold :
         #print (data_d[pair[0]],data_d[pair[1]])
         #print score
-        duplicateScores.append(scorePair)
+        duplicateScores.append({ pair : score })
   
   return duplicateScores
 
