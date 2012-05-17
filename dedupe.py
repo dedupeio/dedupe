@@ -44,10 +44,8 @@ def calculateDistance(instance_1, instance_2, fields) :
   return distances_d
 
 def createTrainingPairs(data_d, duplicates_s, n) :
-  import random
   duplicates = []
   nonduplicates = []
-  nPairs = 0
   random_pairs = sample(list(combinations(data_d, 2)), n)
   for random_pair in random_pairs :
     training_pair = (data_d[tuple(random_pair)[0]],
