@@ -7,10 +7,12 @@ def print_matrix(m):
       spTupel = spTupel + (column, )
       print "%3i"*breite % spTupel
 
-#calculate the affine gap distance between 2 strings default weights
-#taken from page 28 of Bilenko's Ph. D dissertation: Learnable
-#Similarity Functions and their Application to Record Linkage and
-#Clustering
+# Calculate the affine gap distance between two strings 
+#
+# Default weights are from Alvaro Monge and Charles Elkan, 1996, 
+# "The field matching problem: Algorithms and applications" 
+# http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
+
 
 #@profile
 def affineGapDistance(string1, string2,

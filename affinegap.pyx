@@ -1,15 +1,20 @@
 #cython: boundscheck=False, wraparound=False
 DEF ArraySize = 1000
+#import numpy as np
+#cimport numpy as np
+#DTYPE = np.int
+#ctypedef np.int_t DTYPE_t
 
-#calculate the affine gap distance between 2 strings default weights
-#taken from page 28 of Bilenko's Ph. D dissertation: Learnable
-#Similarity Functions and their Application to Record Linkage and
-#Clustering
+# Calculate the affine gap distance between two strings 
+#
+# Default weights are from Alvaro Monge and Charles Elkan, 1996, 
+# "The field matching problem: Algorithms and applications" 
+# http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
 
 cpdef affineGapDistance(char *string1, char *string2,
                       int matchWeight = -5,
                       int mismatchWeight = 5,
-                      int gapWeight = 5,
+                      int gapWeight = 4,
                       int spaceWeight = 1):
 
   cdef int length1 = len(string1)
@@ -39,6 +44,12 @@ cpdef affineGapDistance(char *string1, char *string2,
   cdef int f[ArraySize]
   cdef int v_current[ArraySize]
   cdef int v_previous[ArraySize]
+
+  # This is less brittle, but requires that the end user have numpy
+  # installed
+  #cdef np.ndarray[DTYPE_t] f = np.zeros(length1 + 1, dtype=DTYPE)
+  #cdef np.ndarray[DTYPE_t] v_current = np.zeros(length1 + 1, dtype=DTYPE)
+  #cdef np.ndarray[DTYPE_t] v_previous = np.zeros(length1 + 1, dtype=DTYPE)
 
   cdef char char1, char2
   cdef int i, j, e, g
