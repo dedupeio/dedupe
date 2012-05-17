@@ -59,10 +59,16 @@ def createTrainingPairs(data_d, duplicates_s, n) :
   return(nonduplicates, duplicates)
 
 def createTrainingData(training_pairs) :
-
   training_data = []
 
-  for label, examples in enumerate(training_pairs) :
+  # Use 0,1 labels for logistic regression -1,1 for SVM
+  nonduplicate_label = 0
+  duplicate_label = 1
+  training_pairs = zip((nonduplicate_label,
+                        duplicate_label),
+                       training_pairs)
+                            
+  for label, examples in training_pairs :
       for pair in examples :
           distances = calculateDistance(pair[0],
                                         pair[1],
