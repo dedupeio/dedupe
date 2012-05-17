@@ -6,7 +6,7 @@ from blocking import trainBlocking
 from predicates import *
 
 
-def createTrainingPairs(data_d, duplicates_s, n) :
+def createRandomTrainingPairs(data_d, duplicates_s, n) :
   duplicates = []
   nonduplicates = []
   random_pairs = sample(list(combinations(data_d, 2)), n)
@@ -21,12 +21,33 @@ def createTrainingPairs(data_d, duplicates_s, n) :
       
   return(nonduplicates, duplicates)
 
+def createOverSampleTrainingPairs(data_d, duplicates_s, n) :
+  duplicates = []
+
+  for random_pair in duplicates_s :
+    training_pair = (data_d[tuple(random_pair)[0]],
+                     data_d[tuple(random_pair)[1]])      
+    duplicates.append(training_pair)
+
+  n -= len(duplicates)
+  nonduplicates = []
+
+  all_pairs = list(combinations(data_d, 2))
+
+  for random_pair in sample(all_pairs, n) :
+    training_pair = (data_d[tuple(random_pair)[0]],
+                     data_d[tuple(random_pair)[1]])
+    if set(random_pair) not in duplicates_s :
+      nonduplicates.append(training_pair)
+      
+  return(nonduplicates, duplicates)
+
 def calculateDistance(instance_1, instance_2, fields) :
   distances_d = {}
   for name in fields :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
-    distances_d[name] = distanceFunc(instance_1[name],instance_2[name])
+    distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1)
 
   return distances_d
 
@@ -85,7 +106,7 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
 
 if __name__ == '__main__':
   from test_data import init
-  numTrainingPairs = 16000
+  numTrainingPairs = 8000
   numIterations = 50
 
   import time
@@ -98,7 +119,7 @@ if __name__ == '__main__':
   print "number of known duplicates: "
   print len(duplicates_s)
 
-  training_pairs = createTrainingPairs(data_d, duplicates_s, numTrainingPairs)
+  training_pairs = createOverSampleTrainingPairs(data_d, duplicates_s, numTrainingPairs)
 
   trainBlocking(training_pairs,
                 (wholeFieldPredicate,
@@ -122,22 +143,25 @@ if __name__ == '__main__':
   
   print "finding duplicates ..."
   dupes = findDuplicates(candidates, data_d, data_model, -2)
-  true_positives = 0
-  false_positives = 0
-  for dupe_pair in dupes :
-    if set(dupe_pair.keys()[0]) in duplicates_s :
-        true_positives += 1
-    else :
-        false_positives += 1
+  dupe_ids = set([frozenset(list(dupe_pair.keys()[0])) for dupe_pair in dupes])
+  true_positives = dupe_ids & duplicates_s
+  false_positives = dupe_ids - duplicates_s
+  uncovered_dupes = duplicates_s - dupe_ids
 
   print "precision"
-  print (len(dupes) - false_positives)/float(len(dupes))
+  print (len(dupes) - len(false_positives))/float(len(dupes))
 
   print "recall"
-  print true_positives/float(len(duplicates_s))
+  print  len(true_positives)/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
 
   print data_model
+
+  ## for pair in uncovered_dupes :
+  ##        print ""
+  ##        print (data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
+
+
 
   
 
