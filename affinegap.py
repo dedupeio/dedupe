@@ -18,7 +18,7 @@ def print_matrix(m):
 def affineGapDistance(string1, string2,
                       matchWeight = -5,
                       mismatchWeight = 5,
-                      gapWeight = 5,
+                      gapWeight = 4,
                       spaceWeight = 1):
 
      
