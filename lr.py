@@ -12,7 +12,7 @@ class LogisticRegression:
         self.rate = 0.01
         self.weight = {}
         self.bias = 0
-        self.alpha = 0.0
+        self.alpha = 0
         return
     # data is a list of [label, feature]. label is an integer,
     # 1 for positive instance, 0 for negative instance. feature is
@@ -24,7 +24,7 @@ class LogisticRegression:
     # We use online update formula to train the model.
     def train(self, data, n):
         for i in range(n):
-            max_update = 0.1
+            max_update = 0
             for [label, feature] in data:
                 predicted = self.classify(feature)
 
