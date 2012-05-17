@@ -1,45 +1,10 @@
 from itertools import combinations
 from random import sample
-import math
-#import distance #libdistance library http://monkey.org/~jose/software/libdistance/
 import affinegap
 import lr
-#import pegasos
-from collections import defaultdict
 from blocking import trainBlocking
 from predicates import *
 
-def identifyCandidates(data_d) :
-  return [data_d.keys()]
-
-def findDuplicates(candidates, data_d, data_model, threshold) :
-  duplicateScores = []
-
-  for candidates_set in candidates :
-    for pair in combinations(candidates_set, 2):
-      fields = data_model['fields']
-      distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
-
-      score = data_model['bias'] 
-      for name in fields :
-        score += distances[name] * fields[name]['weight']
-
-      #print (pair, score)
-      if score > threshold :
-        #print (data_d[pair[0]],data_d[pair[1]])
-        #print score
-        duplicateScores.append({ pair : score })
-  
-  return duplicateScores
-
-def calculateDistance(instance_1, instance_2, fields) :
-  distances_d = {}
-  for name in fields :
-    if fields[name]['type'] == 'String' :
-      distanceFunc = affinegap.normalizedAffineGapDistance
-    distances_d[name] = distanceFunc(instance_1[name],instance_2[name])
-
-  return distances_d
 
 def createTrainingPairs(data_d, duplicates_s, n) :
   duplicates = []
@@ -55,6 +20,15 @@ def createTrainingPairs(data_d, duplicates_s, n) :
 
       
   return(nonduplicates, duplicates)
+
+def calculateDistance(instance_1, instance_2, fields) :
+  distances_d = {}
+  for name in fields :
+    if fields[name]['type'] == 'String' :
+      distanceFunc = affinegap.normalizedAffineGapDistance
+    distances_d[name] = distanceFunc(instance_1[name],instance_2[name])
+
+  return distances_d
 
 def createTrainingData(training_pairs) :
   training_data = []
@@ -85,23 +59,29 @@ def trainModel(training_data, iterations, data_model) :
 
     return(data_model)
 
-def trainModelSVM(training_data, iterations, data_model) :
 
-    labels, vectors = zip(*training_data)
+def identifyCandidates(data_d) :
+  return [data_d.keys()]
 
-    keys = data_model['fields'].keys()
-    vectors = [[_[key] for key in keys] for _ in vectors]
-    
-    trainer = pegasos.PEGASOS()
+def findDuplicates(candidates, data_d, data_model, threshold) :
+  duplicateScores = []
 
-    trainer.train((labels, vectors))
+  for candidates_set in candidates :
+    for pair in combinations(candidates_set, 2):
+      fields = data_model['fields']
+      distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
 
-    data_model['bias'] = trainer.bias
-    for i, name in enumerate(keys) :
-        data_model['fields'][name]['weight'] = trainer.lw[i]
+      score = data_model['bias'] 
+      for name in fields :
+        score += distances[name] * fields[name]['weight']
 
-    return(data_model)
-
+      #print (pair, score)
+      if score > threshold :
+        #print (data_d[pair[0]],data_d[pair[1]])
+        #print score
+        duplicateScores.append({ pair : score })
+  
+  return duplicateScores
 
 if __name__ == '__main__':
   from test_data import init
