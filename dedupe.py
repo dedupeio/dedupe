@@ -37,8 +37,7 @@ def calculateDistance(instance_1, instance_2, fields) :
   for name in fields :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
-    x = distanceFunc(instance_1[name],instance_2[name])
-    distances_d[name] = x
+    distnaces_d[name] = distanceFunc(instance_1[name],instance_2[name])
 
   return distances_d
 
