@@ -108,15 +108,17 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   return finalPredicateSet
 
 if __name__ == '__main__':
-  import dedupe
+  from dedupe import createTrainingPairs
+  from test_data import init
   from predicates import *
 
 
   numTrainingPairs = 64000
-  data_d, header, duplicates_s = dedupe.canonicalImport("./datasets/restaurant-nophone-training.csv")
-  data_model = dedupe.dataModel()
+  (data_d, duplicates_s, data_model) = init()
 
-  training_pairs = dedupe.createTrainingPairs(data_d, duplicates_s, numTrainingPairs)
+  training_pairs = createTrainingPairs(data_d,
+                                       duplicates_s,
+                                       numTrainingPairs)
 
   trainBlocking(training_pairs,
                 (wholeFieldPredicate,
