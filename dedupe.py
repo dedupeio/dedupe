@@ -47,7 +47,7 @@ def calculateDistance(instance_1, instance_2, fields) :
   for name in fields :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
-    distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1)
+    distances_d[name] = distanceFunc(instance_1[name],instance_2[name])
 
   return distances_d
 
@@ -106,8 +106,8 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
 
 if __name__ == '__main__':
   from test_data import init
-  numTrainingPairs = 8000
-  numIterations = 50
+  numTrainingPairs = 16000
+  numIterations = 20
 
   import time
   t0 = time.time()
@@ -120,6 +120,7 @@ if __name__ == '__main__':
   print len(duplicates_s)
 
   training_pairs = createOverSampleTrainingPairs(data_d, duplicates_s, numTrainingPairs)
+  #training_pairs = createRandomTrainingPairs(data_d, duplicates_s, numTrainingPairs)
 
   trainBlocking(training_pairs,
                 (wholeFieldPredicate,
@@ -140,9 +141,10 @@ if __name__ == '__main__':
   print len(training_data)
 
   data_model = trainModel(training_data, numIterations, data_model)
-  
+
+  print data_model
   print "finding duplicates ..."
-  dupes = findDuplicates(candidates, data_d, data_model, -2)
+  dupes = findDuplicates(candidates, data_d, data_model, -3)
   dupe_ids = set([frozenset(list(dupe_pair.keys()[0])) for dupe_pair in dupes])
   true_positives = dupe_ids & duplicates_s
   false_positives = dupe_ids - duplicates_s
@@ -157,9 +159,9 @@ if __name__ == '__main__':
 
   print data_model
 
-  ## for pair in uncovered_dupes :
-  ##        print ""
-  ##        print (data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
+  for pair in uncovered_dupes :
+         print ""
+         print (data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
 
 
 
