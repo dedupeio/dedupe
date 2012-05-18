@@ -14,7 +14,7 @@ DEF ArraySize = 1000
 cpdef affineGapDistance(char *string1, char *string2,
                       int matchWeight = -5,
                       int mismatchWeight = 5,
-                      int gapWeight = 4,
+                      int gapWeight = 5,
                       int spaceWeight = 1):
 
   cdef int length1 = len(string1)
@@ -62,8 +62,7 @@ cpdef affineGapDistance(char *string1, char *string2,
     f[i] = v_current[i] = v_previous[i] = gapWeight + spaceWeight * i
 
   for i in range(1, length2+1) :
-    char2 = string2[i]
-
+    char2 = string2[i-1]
     # v_previous = v_current, probably a better way to do this
     for i in range(0, length1) :	
       v_previous[i] = v_current[i]
@@ -73,9 +72,9 @@ cpdef affineGapDistance(char *string1, char *string2,
     v_current[0] = e = i * spaceWeight + gapWeight
   
 
-    for j in range(1, length1 + 1) :
-      char1 = string1[j]
 
+    for j in range(1, length1 + 1) :
+      char1 = string1[j-1]
       # E: minimum distance matrix when string1 prefix is left aligned
       # to string2
       #
@@ -117,6 +116,7 @@ def normalizedAffineGapDistance(char *string1, char *string2,
                       int spaceWeight = 1) :
 
     cdef float normalizer = float(len(string1) + len(string2))
+    cdef float alpha = max(matchWeight, mismatchWeight, gapWeight, spaceWeight)
     
     cdef float distance = affineGapDistance(string1, string2,
                              matchWeight,
@@ -124,6 +124,6 @@ def normalizedAffineGapDistance(char *string1, char *string2,
                              gapWeight ,
                              spaceWeight)
 
+    #return (alpha * normalizer - distance)/2
     return distance/normalizer
-
 
