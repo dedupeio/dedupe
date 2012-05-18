@@ -112,12 +112,15 @@ def normalizedAffineGapDistance(string1, string2,
                       spaceWeight = 1) :
 
     normalizer = float(len(string1) + len(string2))
+    alpha = max(matchWeight, misMatchWeight, gapWeight, spaceWeight)
     
-    return affineGapDistance(string1, string2,
-                             matchWeight = -5,
-                             mismatchWeight = 5,
-                             gapWeight = 5,
-                             spaceWeight = 1)/normalizer
+    gld = affineGapDistance(string1, string2,
+                            matchWeight,
+                            mismatchWeight,
+                            gapWeight,
+                            spaceWeight)
+    #return (alpha * normalizer - gld) / normalizer
+    return ld / normalizer
 
 
 if __name__ == "__main__" :
