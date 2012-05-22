@@ -1,72 +1,61 @@
 from itertools import combinations
-from random import sample
+from random import sample, shuffle
 import affinegap
 import lr
 from blocking import trainBlocking
 from predicates import *
+from math import log
 
-
-def createRandomTrainingPairs(data_d, duplicates_s, n) :
-  duplicates = []
-  nonduplicates = []
-  random_pairs = sample(list(combinations(data_d, 2)), n)
-  for random_pair in random_pairs :
-    training_pair = (data_d[tuple(random_pair)[0]],
-                     data_d[tuple(random_pair)[1]])
-    if set(random_pair) in duplicates_s :
-      duplicates.append(training_pair)
-    else:
-      nonduplicates.append(training_pair)
-
-      
-  return(nonduplicates, duplicates)
-
-def createOverSampleTrainingPairs(data_d, duplicates_s, n) :
+def createTrainingPairs(data_d,
+                        duplicates_s,
+                        n_training_dupes,
+                        n_training_distinct) :
   duplicates = []
 
-  for random_pair in duplicates_s :
+  duplicates_set = list(duplicates_s)
+  shuffle(duplicates_set)
+
+  for random_pair in duplicates_set :
     training_pair = (data_d[tuple(random_pair)[0]],
                      data_d[tuple(random_pair)[1]])      
     duplicates.append(training_pair)
+    if len(duplicates) == n_training_dupes :
+      break
 
-  n -= len(duplicates)
   nonduplicates = []
 
   all_pairs = list(combinations(data_d, 2))
 
-  for random_pair in sample(all_pairs, n) :
+  for random_pair in sample(all_pairs,
+                            n_training_dupes + n_training_distinct) :
     training_pair = (data_d[tuple(random_pair)[0]],
                      data_d[tuple(random_pair)[1]])
     if set(random_pair) not in duplicates_s :
       nonduplicates.append(training_pair)
+    if len(nonduplicates) == n_training_distinct :
+      break
       
-  return(nonduplicates, duplicates)
+  return({0:nonduplicates, 1:duplicates})
 
 def calculateDistance(instance_1, instance_2, fields) :
   distances_d = {}
   for name in fields :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
-    distances_d[name] = distanceFunc(instance_1[name],instance_2[name])
+    distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1)
 
   return distances_d
 
 def createTrainingData(training_pairs) :
   training_data = []
 
-  # Use 0,1 labels for logistic regression -1,1 for SVM
-  nonduplicate_label = 0
-  duplicate_label = 1
-  training_pairs = zip((nonduplicate_label,
-                        duplicate_label),
-                       training_pairs)
-                            
-  for label, examples in training_pairs :
+  for label, examples in training_pairs.items() :
       for pair in examples :
           distances = calculateDistance(pair[0],
                                         pair[1],
                                         data_model['fields'])
           training_data.append((label, distances))
+          print (label, distances)
 
   return training_data
 
@@ -87,6 +76,8 @@ def identifyCandidates(data_d) :
 def findDuplicates(candidates, data_d, data_model, threshold) :
   duplicateScores = []
 
+  threshold = log(threshold/(1-threshold))
+
   for candidates_set in candidates :
     for pair in combinations(candidates_set, 2):
       fields = data_model['fields']
@@ -106,8 +97,9 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
 
 if __name__ == '__main__':
   from test_data import init
-  numTrainingPairs = 16000
-  numIterations = 20
+  num_training_dupes = 200
+  num_training_distinct = 200
+  numIterations = 1000
 
   import time
   t0 = time.time()
@@ -116,11 +108,13 @@ if __name__ == '__main__':
   #print "training data: "
   #print duplicates_s
   
-  print "number of known duplicates: "
+  print "number of duplicates pairs"
   print len(duplicates_s)
 
-  training_pairs = createOverSampleTrainingPairs(data_d, duplicates_s, numTrainingPairs)
-  #training_pairs = createRandomTrainingPairs(data_d, duplicates_s, numTrainingPairs)
+  training_pairs = createTrainingPairs(data_d,
+                                       duplicates_s,
+                                       num_training_dupes,
+                                       num_training_distinct)
 
   trainBlocking(training_pairs,
                 (wholeFieldPredicate,
@@ -144,7 +138,7 @@ if __name__ == '__main__':
 
   print data_model
   print "finding duplicates ..."
-  dupes = findDuplicates(candidates, data_d, data_model, -3)
+  dupes = findDuplicates(candidates, data_d, data_model, .99)
   dupe_ids = set([frozenset(list(dupe_pair.keys()[0])) for dupe_pair in dupes])
   true_positives = dupe_ids & duplicates_s
   false_positives = dupe_ids - duplicates_s
