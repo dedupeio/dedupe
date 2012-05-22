@@ -1,5 +1,6 @@
 from itertools import combinations
 import csv
+import re
 
 def canonicalImport(filename) :
 
@@ -15,6 +16,9 @@ def canonicalImport(filename) :
               if header[j] == 'unique_id' :
                 duplicates_d.setdefault(col, []).append(i)
               else :
+                #col = col.strip()
+                #col = re.sub('[^a-z0-9 ]', ' ', col)
+                #col = re.sub('  +', ' ', col)
                 instance[header[j]] = col.strip().strip('"').strip("'")
                 
             data_d[i] = instance
