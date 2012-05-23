@@ -43,20 +43,20 @@ def affineGapDistance(string1, string2,
   # Base conditions 
   # V(0,0) = F(0,0) = 0
   # V(0,j) = F(0,j) = gapWeight + spaceWeight * j
-  f = [0] + range(gapWeight + spaceWeight,
-                  gapWeight + spaceWeight * (length1 + 1),
-                  spaceWeight)
+  v_current = [0] + range(gapWeight + spaceWeight,
+                          gapWeight + spaceWeight * (length1 + 1),
+                          spaceWeight)
   
 
-  v_current = f[:]
+  f = [1000000] * len(v_current)
   
   for i, char2 in string2 :
     v_previous = v_current[:]
 
     # Base conditions  
     # V(i,0) = E(i,0) = gapWeight + spaceWeight * i
-    v_current[0] = e = i * spaceWeight + gapWeight
-  
+    v_current[0] = i * spaceWeight + gapWeight
+    e = 1000000000
 
     for j, char1 in string1 :
 
