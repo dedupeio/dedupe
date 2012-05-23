@@ -1,5 +1,5 @@
 from collections import defaultdict
-from itertools import product, chain
+from itertools import product, chain, combinations
 from math import sqrt, log
 
 def hashPair(pair) :
@@ -108,6 +108,33 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
   return finalPredicateSet
 
+
+def blockingIndex(data_d, predicate_functions) :
+  blocked_data = defaultdict(list)
+  for key, instance in data_d.items() :
+    for F, field in predicate_functions :
+      predicate = F(data_d[key][field])
+      blocked_data[predicate].append(key)
+
+  return blocked_data
+
+def blockCandidates(data_d, predicate_functions) :
+  candidates = set()
+
+  blocked_data = blockingIndex(data_d, predicate_functions) 
+  
+  for block in blocked_data.values() :
+    if len(block) > 1 :
+      sorted(block)
+      for pair in combinations(block, 2) :
+        candidates.add(pair)
+    
+  return candidates
+
+def allCandidates(data_d) :
+  return list(combinations(sorted(data_d.keys()),2))
+
+
 if __name__ == '__main__':
   from dedupe import createTrainingPairs
   from test_data import init
@@ -121,14 +148,17 @@ if __name__ == '__main__':
                                        duplicates_s,
                                        numTrainingPairs)
 
-  trainBlocking(training_pairs,
-                (wholeFieldPredicate,
-                 tokenFieldPredicate,
-                 commonIntegerPredicate,
-                 sameThreeCharStartPredicate,
-                 sameFiveCharStartPredicate,
-                 sameSevenCharStartPredicate,
-                 nearIntegersPredicate,
-                 commonFourGram,
-                 commonSixGram),
-                data_model, 1, 1)  
+  predicates = trainBlocking(training_pairs,
+                             (wholeFieldPredicate,
+                              tokenFieldPredicate,
+                              commonIntegerPredicate,
+                              sameThreeCharStartPredicate,
+                              sameFiveCharStartPredicate,
+                              sameSevenCharStartPredicate,
+                              nearIntegersPredicate,
+                              commonFourGram,
+                              commonSixGram),
+                             data_model, 1, 1)  
+
+  candidates = blockCandidates(data_d, predicates)
+  print len(candidates)

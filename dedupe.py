@@ -2,9 +2,10 @@ from itertools import combinations
 from random import sample, shuffle
 import affinegap
 import lr
-from blocking import trainBlocking
+from blocking import trainBlocking, blockCandidates, allCandidates
 from predicates import *
 from math import log
+
 
 def createTrainingPairs(data_d,
                         duplicates_s,
@@ -14,6 +15,7 @@ def createTrainingPairs(data_d,
 
   duplicates_set = list(duplicates_s)
   shuffle(duplicates_set)
+
 
   for random_pair in duplicates_set :
     training_pair = (data_d[tuple(random_pair)[0]],
@@ -42,6 +44,7 @@ def calculateDistance(instance_1, instance_2, fields) :
   for name in fields :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
+    #distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -1, 1, 0.8, 0.2)
     distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1)
 
   return distances_d
@@ -55,8 +58,8 @@ def createTrainingData(training_pairs) :
                                         pair[1],
                                         data_model['fields'])
           training_data.append((label, distances))
-          print (label, distances)
 
+  shuffle(training_data)
   return training_data
 
 def trainModel(training_data, iterations, data_model) :
@@ -70,79 +73,128 @@ def trainModel(training_data, iterations, data_model) :
     return(data_model)
 
 
-def identifyCandidates(data_d) :
-  return [data_d.keys()]
 
 def findDuplicates(candidates, data_d, data_model, threshold) :
   duplicateScores = []
 
   threshold = log(threshold/(1-threshold))
 
-  for candidates_set in candidates :
-    for pair in combinations(candidates_set, 2):
-      fields = data_model['fields']
-      distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
+  for pair in candidates :
+    fields = data_model['fields']
+    distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
 
-      score = data_model['bias'] 
-      for name in fields :
-        score += distances[name] * fields[name]['weight']
+    score = data_model['bias'] 
+    for name in fields :
+      score += distances[name] * fields[name]['weight']
 
-      #print (pair, score)
-      if score > threshold :
-        #print (data_d[pair[0]],data_d[pair[1]])
-        #print score
-        duplicateScores.append({ pair : score })
+    #print (pair, score)
+    if score > threshold :
+    #print (data_d[pair[0]],data_d[pair[1]])
+    #print score
+      duplicateScores.append({ pair : score })
   
   return duplicateScores
 
+
+
 if __name__ == '__main__':
   from test_data import init
-  num_training_dupes = 200
-  num_training_distinct = 200
-  numIterations = 1000
+  num_training_dupes = 50
+  num_training_distinct = 16000
+  numIterations = 50
 
   import time
   t0 = time.time()
   (data_d, duplicates_s, data_model) = init()
-  candidates = identifyCandidates(data_d)
+  #candidates = allCandidates(data_d)
   #print "training data: "
   #print duplicates_s
-  
+
   print "number of duplicates pairs"
   print len(duplicates_s)
+  print ""
 
   training_pairs = createTrainingPairs(data_d,
                                        duplicates_s,
                                        num_training_dupes,
                                        num_training_distinct)
 
-  trainBlocking(training_pairs,
-                (wholeFieldPredicate,
-                 tokenFieldPredicate,
-                 commonIntegerPredicate,
-                 sameThreeCharStartPredicate,
-                 sameFiveCharStartPredicate,
-                 sameSevenCharStartPredicate,
-                 nearIntegersPredicate,
-                 commonFourGram,
-                 commonSixGram),
-                data_model, 1, 1)  
-  
+  predicates = trainBlocking(training_pairs,
+                            (wholeFieldPredicate,
+                             tokenFieldPredicate,
+                             commonIntegerPredicate,
+                             sameThreeCharStartPredicate,
+                             sameFiveCharStartPredicate,
+                             sameSevenCharStartPredicate,
+                             nearIntegersPredicate,
+                             commonFourGram,
+                             commonSixGram),
+                             data_model, 1, 1)
+
+  candidates = blockCandidates(data_d, predicates)
+
+
+  print ""
+  print "Blocking reduced the number of comparisons by",
+  print int((1-len(candidates)/float(0.5*len(data_d)**2))*100),
+  print "%"
+  print "We'll make",
+  print len(candidates),
+  print "comparisons."
+
   training_data = createTrainingData(training_pairs)
   #print "training data from known duplicates: "
-  #print training_data
+  #for instance in training_data :
+  #  print instance
+
+  print ""
   print "number of training items: "
   print len(training_data)
+  print ""
 
+  print "training weights ..."
   data_model = trainModel(training_data, numIterations, data_model)
+  print ""
 
-  print data_model
+  print "Learned Weights"
+  for k1, v1 in data_model.items() :
+    try:
+      for k2, v2 in v1.items() :
+        print (k2, v2['weight'])
+    except :
+      print (k1, v1)
+
+  print ""
+  
   print "finding duplicates ..."
-  dupes = findDuplicates(candidates, data_d, data_model, .99)
+  print ""
+  dupes = findDuplicates(candidates, data_d, data_model, .20)
+
   dupe_ids = set([frozenset(list(dupe_pair.keys()[0])) for dupe_pair in dupes])
   true_positives = dupe_ids & duplicates_s
   false_positives = dupe_ids - duplicates_s
   uncovered_dupes = duplicates_s - dupe_ids
+
+  print "False negatives" 
+  for pair in uncovered_dupes :
+         print ""
+         for instance in tuple(pair) :
+           print data_d[instance].values()
+
+  print "____________________________________________"
+  print "False positives" 
+
+  for pair in false_positives :
+         print ""
+         for instance in tuple(pair) :
+           print data_d[instance].values()
+
+
+
+  print ""
+
+  print "found duplicate"
+  print len(dupes)
 
   print "precision"
   print (len(dupes) - len(false_positives))/float(len(dupes))
@@ -150,14 +202,6 @@ if __name__ == '__main__':
   print "recall"
   print  len(true_positives)/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
-
-  print data_model
-
-  for pair in uncovered_dupes :
-         print ""
-         print (data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
-
-
 
   
 
