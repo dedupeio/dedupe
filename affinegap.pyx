@@ -11,7 +11,7 @@ DEF ArraySize = 1000
 cpdef affineGapDistance(char *string1, char *string2,
                       float matchWeight = -5,
                       float mismatchWeight = 5,
-                      float gapWeight = 5,
+                      float gapWeight = 4,
                       float spaceWeight = 1):
 
   cdef int length1 = len(string1)
@@ -114,7 +114,7 @@ cpdef affineGapDistance(char *string1, char *string2,
 def normalizedAffineGapDistance(char *string1, char *string2,
                       float matchWeight = -5,
                       float mismatchWeight = 5,
-                      float gapWeight = 5,
+                      float gapWeight = 4,
                       float spaceWeight = 1) :
 
     cdef float normalizer = len(string1) + len(string2)
