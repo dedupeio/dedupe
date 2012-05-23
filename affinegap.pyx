@@ -1,3 +1,4 @@
+from libc cimport limits 
 #cython: boundscheck=False, wraparound=False
 DEF ArraySize = 1000
 #import numpy as np
@@ -32,15 +33,13 @@ cpdef affineGapDistance(char *string1, char *string2,
       length1, length2 = length2, length1
 
       
-  #set up recurrence matrices
-  #
-  # Base conditions 
-  # V(0,0) = F(0,0) = 0
-  # V(0,j) = F(0,j) = gapWeight + spaceWeight * j
-
   # This is a terrible part of the code. Pythonic list indexing is
   # very slow, and doing it this way saves an enormous amount of
   # time. However it's pretty brittle
+  #
+  # Cython 0.17 looks like it will have fix for this:
+  # http://bit.ly/LDxyj3
+
   cdef int f[ArraySize]
   cdef int v_current[ArraySize]
   cdef int v_previous[ArraySize]
@@ -54,32 +53,36 @@ cpdef affineGapDistance(char *string1, char *string2,
   cdef char char1, char2
   cdef int i, j, e, g
 
+  # Set up Recurrence relations
+  #
   # Base conditions
   # V(0,0) = 0
-  # V(0,j) = F(0,j) = gapWeight + spaceWeight * i
-  v_current[0] = v_previous[0] = 0
+  # V(0,j) = gapWeight + spaceWeight * i
+  # F(0,j) = Infinity
+  v_current[0] = 0
   for i in range(1, length1 + 1) :
-    f[i] = v_current[i] = v_previous[i] = gapWeight + spaceWeight * i
+    v_current[i] = gapWeight + spaceWeight * i
+    f[i] = limits.INT_MAX
 
   for i in range(1, length2+1) :
     char2 = string2[i-1]
-    # v_previous = v_current, probably a better way to do this
-    for i in range(0, length1) :	
-      v_previous[i] = v_current[i]
+    # v_previous = v_current, probably a better way to do this. This
+    # will also be fixable in cython 0.17
+    for _ in range(0, length1+1) :	
+      v_previous[_] = v_current[_]
 
     # Base conditions  
-    # V(i,0) = E(i,0) = gapWeight + spaceWeight * i
-    v_current[0] = e = i * spaceWeight + gapWeight
+    # V(i,0) = gapWeight + spaceWeight * i
+    # E(i,0) = Infinity 
+    v_current[0] = i * spaceWeight + gapWeight
+    e = limits.INT_MAX
   
-
-
     for j in range(1, length1 + 1) :
       char1 = string1[j-1]
       # E: minimum distance matrix when string1 prefix is left aligned
       # to string2
       #
       # E(i,j) = min(E(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
-
       e = min(e, v_current[j-1] + gapWeight) + spaceWeight
       
       # F: minimum distance matrix when string1 prefix is right
@@ -94,11 +97,13 @@ cpdef affineGapDistance(char *string1, char *string2,
       # G(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
       if char2 == char1 :
         g = v_previous[j-1] + matchWeight
-      else :
+      # if the two characters are different integers, then pay double
+      # the normal cost for mismatch
+      #elif 47 < char2 < 59 and 47 < char1 < 59 :
+      #  g = v_previous[j-1] + mismatchWeight * 2
+      else:
         g = v_previous[j-1] + mismatchWeight
-
       
-
 
 
       # V(i,j) = min(E(i,j), F(i,j), G(i,j))
@@ -107,7 +112,7 @@ cpdef affineGapDistance(char *string1, char *string2,
 
 
 
-  return v_current[length1]
+  return v_current[j]
 
 def normalizedAffineGapDistance(char *string1, char *string2,
                       int matchWeight = -5,
