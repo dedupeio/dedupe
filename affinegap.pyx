@@ -1,10 +1,6 @@
 from libc cimport limits 
 #cython: boundscheck=False, wraparound=False
 DEF ArraySize = 1000
-#import numpy as np
-#cimport numpy as np
-#DTYPE = np.int
-#ctypedef np.int_t DTYPE_t
 
 # Calculate the affine gap distance between two strings 
 #
@@ -13,13 +9,13 @@ DEF ArraySize = 1000
 # http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
 
 cpdef affineGapDistance(char *string1, char *string2,
-                      int matchWeight = -5,
-                      int mismatchWeight = 5,
-                      int gapWeight = 5,
-                      int spaceWeight = 1):
+                      float matchWeight = -5,
+                      float mismatchWeight = 5,
+                      float gapWeight = 5,
+                      float spaceWeight = 1):
 
   cdef int length1 = len(string1)
-     
+
   if (string1 == string2 and
       matchWeight == min(matchWeight,
                          mismatchWeight,
@@ -27,6 +23,9 @@ cpdef affineGapDistance(char *string1, char *string2,
       return matchWeight * length1
 
   cdef int length2 = len(string2)
+
+  if length1 == 0 or length2 == 0 :
+    return gapWeight + spaceWeight * (length1 + length2)
 
   if length1 < length2 :
       string1, string2 = string2, string1
@@ -40,18 +39,19 @@ cpdef affineGapDistance(char *string1, char *string2,
   # Cython 0.17 looks like it will have fix for this:
   # http://bit.ly/LDxyj3
 
-  cdef int f[ArraySize]
-  cdef int v_current[ArraySize]
-  cdef int v_previous[ArraySize]
+  cdef float f[ArraySize]
+  cdef float v_current[ArraySize]
+  cdef float v_previous[ArraySize]
 
-  # This is less brittle, but requires that the end user have numpy
-  # installed
-  #cdef np.ndarray[DTYPE_t] f = np.zeros(length1 + 1, dtype=DTYPE)
-  #cdef np.ndarray[DTYPE_t] v_current = np.zeros(length1 + 1, dtype=DTYPE)
-  #cdef np.ndarray[DTYPE_t] v_previous = np.zeros(length1 + 1, dtype=DTYPE)
+  # This works, but it is about 20 times slower
+  #
+  #cdef list f = range(length1+1)
+  #cdef list v_current = range(length1+1)
+  #cdef list v_previous = range(length1+1)
 
   cdef char char1, char2
-  cdef int i, j, e, g
+  cdef int i, j
+  cdef float e, g
 
   # Set up Recurrence relations
   #
@@ -109,19 +109,16 @@ cpdef affineGapDistance(char *string1, char *string2,
       # V(i,j) = min(E(i,j), F(i,j), G(i,j))
       v_current[j] = min(e, g, f[j])
 
-
-
-
-  return v_current[j]
+  return v_current[length1]
 
 def normalizedAffineGapDistance(char *string1, char *string2,
-                      int matchWeight = -5,
-                      int mismatchWeight = 5,
-                      int gapWeight = 5,
-                      int spaceWeight = 1) :
+                      float matchWeight = -5,
+                      float mismatchWeight = 5,
+                      float gapWeight = 5,
+                      float spaceWeight = 1) :
 
-    cdef float normalizer = float(len(string1) + len(string2))
-    cdef float alpha = max(matchWeight, mismatchWeight, gapWeight, spaceWeight)
+    cdef float normalizer = len(string1) + len(string2)
+    cdef float alpha = gapWeight + spaceWeight
     
     cdef float distance = affineGapDistance(string1, string2,
                              matchWeight,
@@ -129,6 +126,8 @@ def normalizedAffineGapDistance(char *string1, char *string2,
                              gapWeight ,
                              spaceWeight)
 
-    #return (alpha * normalizer - distance)/2
-    return distance/normalizer
+    # Normalization proposed by Li Yujian and Li Bo's in "A Normalized
+    # Levenshtein Distance Metric" http://dx.doi.org/10.1109/TPAMI.2007.1078
+    return (2 * distance)/(alpha * normalizer + distance)
+
 
