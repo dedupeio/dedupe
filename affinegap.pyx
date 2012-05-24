@@ -89,12 +89,14 @@ cpdef float affineGapDistance(char *string1, char *string2,
         continue
             
       char1 = string1[j-1]
-      # I(i,j) is the edit distance if the jth character was inserted.
+      # I(i,j) is the edit distance if the jth character of string 1
+      # was inserted into string 2.
       #
       # I(i,j) = min(I(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
       I = min(I, V_current[j-1] + gapWeight) + spaceWeight
       
-      # D(i,j) is the edit distance if the ith character was deleted
+      # D(i,j) is the edit distance if the ith character of string 2
+      # was deleted from string 1
       #
       # D(i,j) = min((i-1,j), V(i-1,j) + gapWeight) + spaceWeight
       D[j] = min(D[j], V_previous[j] + gapWeight) + spaceWeight
