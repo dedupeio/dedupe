@@ -40,15 +40,15 @@ cpdef float affineGapDistance(char *string1, char *string2,
   # Cython 0.17 looks like it will have fix for this:
   # http://bit.ly/LDxyj3
 
-  #cdef float f[ArraySize]
-  #cdef float v_current[ArraySize]
-  #cdef float v_previous[ArraySize]
+  #cdef float D[ArraySize]
+  #cdef float V_current[ArraySize]
+  #cdef float V_previous[ArraySize]
 
   # With blocking, this is acceptable. It is about 20 times slower
   # than using a a buffer.
-  cdef list D = range(length1+1)
-  cdef list V_current = range(length1+1)
-  cdef list V_previous = range(length1+1)
+  D = [0] * (length1+1) 
+  V_current = [0] * (length1+1) 
+  V_previous = [0] * (length1+1) 
 
   cdef char char1, char2
   cdef int i, j
