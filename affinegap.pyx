@@ -105,10 +105,6 @@ cpdef float affineGapDistance(char *string1, char *string2,
       # M(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
       if char2 == char1 :
         M = V_previous[j-1] + matchWeight
-      # if the two characters are different integers, then pay double
-      # the normal cost for mismatch
-      #elif 47 < char2 < 59 and 47 < char1 < 59 :
-      #  M = V_previous[j-1] + mismatchWeight * 2
       else:
         M = V_previous[j-1] + mismatchWeight
       
