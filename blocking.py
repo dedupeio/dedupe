@@ -110,11 +110,12 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
 
 def blockingIndex(data_d, predicate_functions) :
-  blocked_data = defaultdict(list)
+  blocked_data = defaultdict(set)
   for key, instance in data_d.items() :
     for F, field in predicate_functions :
-      predicate = F(data_d[key][field])
-      blocked_data[predicate].append(key)
+      predicates = F(data_d[key][field])
+      for predicate in predicates :
+        blocked_data[predicate].add(key)
 
   return blocked_data
 
