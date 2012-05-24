@@ -12,7 +12,7 @@ class LogisticRegression:
         self.rate = 0.01
         self.weight = {}
         self.bias = 0
-        self.alpha = 0.001
+        self.alpha = 0.0001
         return
     # data is a list of [label, feature]. label is an integer,
     # 1 for positive instance, 0 for negative instance. feature is
@@ -28,21 +28,20 @@ class LogisticRegression:
             max_update = 0
             for [label, feature] in data:
                 predicted = self.classify(feature)
-                
+                rate_n = self.rate - (self.rate * i)/float(n)
 
                 for f,v in feature.iteritems():
                     if f not in self.weight:
                         self.weight[f] = 0
-                        print f
                     update = (label - predicted) * v - self.alpha * self.weight[f]
-                    self.weight[f] += self.rate * update
+                    self.weight[f] += rate_n * update
                     if abs(update * self.rate) > max_update :
-                        max_update = abs(update * self.rate)
+                        max_update = abs(update * rate_n)
                 bias_update = (label - predicted) 
-                self.bias += self.rate * bias_update
-            print 'iteration', i, 'done. Max update:', max_update
-            if abs(max_update - old_update)/max_update < .0001 : return
-            else : old_update = max_update
+                self.bias += rate_n * bias_update
+            #print 'iteration', i, 'done. Max update:', max_update
+            if max_update < .0001 : return
+            #else : old_update = max_update
         return
     # feature is a dict object, the key is feature name, the value
     # is feature weight. Return value is the probability of being

@@ -73,7 +73,6 @@ def trainModel(training_data, iterations, data_model) :
     return(data_model)
 
 
-
 def findDuplicates(candidates, data_d, data_model, threshold) :
   duplicateScores = []
 
@@ -90,7 +89,6 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
     #print (pair, score)
     if score > threshold :
     #print (data_d[pair[0]],data_d[pair[1]])
-    #print score
       duplicateScores.append({ pair : score })
   
   return duplicateScores
@@ -101,7 +99,7 @@ if __name__ == '__main__':
   from test_data import init
   num_training_dupes = 200
   num_training_distinct = 16000
-  numIterations = 50
+  numIterations = 100
 
   import time
   t0 = time.time()
@@ -130,6 +128,7 @@ if __name__ == '__main__':
                              commonFourGram,
                              commonSixGram),
                              data_model, 1, 1)
+
 
   blocked_data = blockingIndex(data_d, predicates)
   candidates = mergeBlocks(blocked_data)
@@ -170,7 +169,7 @@ if __name__ == '__main__':
   
   print "finding duplicates ..."
   print ""
-  dupes = findDuplicates(candidates, data_d, data_model, .40)
+  dupes = findDuplicates(candidates, data_d, data_model, .60)
 
   dupe_ids = set([frozenset(list(dupe_pair.keys()[0])) for dupe_pair in dupes])
   true_positives = dupe_ids & duplicates_s

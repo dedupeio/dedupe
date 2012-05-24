@@ -16,9 +16,25 @@ def canonicalImport(filename) :
               if header[j] == 'unique_id' :
                 duplicates_d.setdefault(col, []).append(i)
               else :
+                # we may want to think about removing common stop
+                # words
                 #col = col.strip()
                 #col = re.sub('[^a-z0-9 ]', ' ', col)
-                #col = re.sub('  +', ' ', col)
+                #col = re.sub('\.', ' ', col)
+                #col = re.sub(r'\bthe\b', ' ', col)
+                #col = re.sub(r'restaurant', ' ', col)
+                #col = re.sub(r'cafe', ' ', col)
+                #col = re.sub(r'diner', ' ', col)
+                #col = re.sub(r'\(.*\)', ' ', col)
+                
+                #col = re.sub(r'\bn\.', ' ', col)
+                #col = re.sub(r'\bs\.', ' ', col)
+                #col = re.sub(r'\be\.', ' ', col)
+                #col = re.sub(r'\bw\.', ' ', col)
+                col = re.sub(r'\broad\b', 'rd', col)
+                col = re.sub('  +', ' ', col)
+                
+
                 instance[header[j]] = col.strip().strip('"').strip("'")
                 
             data_d[i] = instance

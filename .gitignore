@@ -8,5 +8,7 @@ logfile
 *.py.*
 *.*gz
 *.html
+.#*
+*.*#
 kernprof.py
 possible_classifiers
