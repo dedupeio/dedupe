@@ -118,11 +118,8 @@ def blockingIndex(data_d, predicate_functions) :
 
   return blocked_data
 
-def blockCandidates(data_d, predicate_functions) :
+def mergeBlocks(blocked_data) :
   candidates = set()
-
-  blocked_data = blockingIndex(data_d, predicate_functions) 
-  
   for block in blocked_data.values() :
     if len(block) > 1 :
       sorted(block)
@@ -160,5 +157,6 @@ if __name__ == '__main__':
                               commonSixGram),
                              data_model, 1, 1)  
 
-  candidates = blockCandidates(data_d, predicates)
+  blocked_data = blockingIndex(data_d, predicates)
+  candidates = mergeBlocks(blocked_data)
   print len(candidates)

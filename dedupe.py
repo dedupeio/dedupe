@@ -2,7 +2,7 @@ from itertools import combinations
 from random import sample, shuffle
 import affinegap
 import lr
-from blocking import trainBlocking, blockCandidates, allCandidates
+from blocking import trainBlocking, blockingIndex, mergeBlocks, allCandidates
 from predicates import *
 from math import log
 
@@ -99,7 +99,7 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
 
 if __name__ == '__main__':
   from test_data import init
-  num_training_dupes = 50
+  num_training_dupes = 200
   num_training_distinct = 16000
   numIterations = 50
 
@@ -131,7 +131,9 @@ if __name__ == '__main__':
                              commonSixGram),
                              data_model, 1, 1)
 
-  candidates = blockCandidates(data_d, predicates)
+  blocked_data = blockingIndex(data_d, predicates)
+  candidates = mergeBlocks(blocked_data)
+
 
 
   print ""
@@ -168,7 +170,7 @@ if __name__ == '__main__':
   
   print "finding duplicates ..."
   print ""
-  dupes = findDuplicates(candidates, data_d, data_model, .20)
+  dupes = findDuplicates(candidates, data_d, data_model, .40)
 
   dupe_ids = set([frozenset(list(dupe_pair.keys()[0])) for dupe_pair in dupes])
   true_positives = dupe_ids & duplicates_s
