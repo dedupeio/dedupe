@@ -12,7 +12,8 @@ cpdef float affineGapDistance(char *string1, char *string2,
                               float matchWeight = -5,
                               float mismatchWeight = 5,
                               float gapWeight = 4,
-                              float spaceWeight = 1):
+                              float spaceWeight = 1,
+                              float abbreviation_scale = .5):
 
   cdef int length1 = len(string1)
 
@@ -25,7 +26,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
   cdef int length2 = len(string2)
 
   if length1 == 0 or length2 == 0 :
-    return gapWeight + spaceWeight * (length1 + length2)
+    return (gapWeight + spaceWeight * (length1 + length2)) * abbreviation_scale
 
   if length1 < length2 :
       string1, string2 = string2, string1
@@ -39,15 +40,15 @@ cpdef float affineGapDistance(char *string1, char *string2,
   # Cython 0.17 looks like it will have fix for this:
   # http://bit.ly/LDxyj3
 
-  cdef float f[ArraySize]
-  cdef float v_current[ArraySize]
-  cdef float v_previous[ArraySize]
+  #cdef float f[ArraySize]
+  #cdef float v_current[ArraySize]
+  #cdef float v_previous[ArraySize]
 
-  # This works, but it is about 20 times slower
-  #
-  #cdef list f = range(length1+1)
-  #cdef list v_current = range(length1+1)
-  #cdef list v_previous = range(length1+1)
+  # With blocking, this is acceptable. It is about 20 times slower
+  # than using a a buffer.
+  cdef list f = range(length1+1)
+  cdef list v_current = range(length1+1)
+  cdef list v_previous = range(length1+1)
 
   cdef char char1, char2
   cdef int i, j
@@ -78,6 +79,12 @@ cpdef float affineGapDistance(char *string1, char *string2,
     e = limits.INT_MAX
   
     for j in range(1, length1 + 1) :
+      if j > length2 :
+        e = (min(e, v_current[j-1] + gapWeight * abbreviation_scale)
+             + spaceWeight * abbreviation_scale)
+        v_current[j] = e
+        continue
+            
       char1 = string1[j-1]
       # E: minimum distance matrix when string1 prefix is left aligned
       # to string2
