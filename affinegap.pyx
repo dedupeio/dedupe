@@ -46,9 +46,9 @@ cpdef float affineGapDistance(char *string1, char *string2,
 
   # With blocking, this is acceptable. It is about 20 times slower
   # than using a a buffer.
-  cdef list f = range(length1+1)
-  cdef list v_current = range(length1+1)
-  cdef list v_previous = range(length1+1)
+  cdef list D = range(length1+1)
+  cdef list V_current = range(length1+1)
+  cdef list V_previous = range(length1+1)
 
   cdef char char1, char2
   cdef int i, j
@@ -59,64 +59,65 @@ cpdef float affineGapDistance(char *string1, char *string2,
   # Base conditions
   # V(0,0) = 0
   # V(0,j) = gapWeight + spaceWeight * i
-  # F(0,j) = Infinity
-  v_current[0] = 0
+  # D(0,j) = Infinity
+  V_current[0] = 0
   for i in range(1, length1 + 1) :
-    v_current[i] = gapWeight + spaceWeight * i
-    f[i] = limits.INT_MAX
+    V_current[i] = gapWeight + spaceWeight * i
+    D[i] = limits.INT_MAX
 
   for i in range(1, length2+1) :
     char2 = string2[i-1]
     # v_previous = v_current, probably a better way to do this. This
     # will also be fixable in cython 0.17
     for _ in range(0, length1+1) :	
-      v_previous[_] = v_current[_]
+      V_previous[_] = V_current[_]
 
     # Base conditions  
     # V(i,0) = gapWeight + spaceWeight * i
-    # E(i,0) = Infinity 
-    v_current[0] = i * spaceWeight + gapWeight
-    e = limits.INT_MAX
+    # I(i,0) = Infinity 
+    V_current[0] = i * spaceWeight + gapWeight
+    I = limits.INT_MAX
   
     for j in range(1, length1 + 1) :
+
+      # Pay less for abbreviations
+      # i.e. 'spago (los angeles) to 'spago'
       if j > length2 :
-        e = (min(e, v_current[j-1] + gapWeight * abbreviation_scale)
+        I = (min(I, V_current[j-1] + gapWeight * abbreviation_scale)
              + spaceWeight * abbreviation_scale)
-        v_current[j] = e
+        V_current[j] = I
         continue
             
       char1 = string1[j-1]
-      # E: minimum distance matrix when string1 prefix is left aligned
-      # to string2
+      # I(i,j) is the edit distance if the jth character was inserted.
       #
-      # E(i,j) = min(E(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
-      e = min(e, v_current[j-1] + gapWeight) + spaceWeight
+      # I(i,j) = min(I(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
+      I = min(I, V_current[j-1] + gapWeight) + spaceWeight
       
-      # F: minimum distance matrix when string1 prefix is right
-      # aligned to string2
+      # D(i,j) is the edit distance if the ith character was deleted
       #
-      # F(i,j) = min(F(i-1,j), V(i-1,j) + gapWeight) + spaceWeight
-      f[j] = min(f[j], v_previous[j] + gapWeight) + spaceWeight
+      # D(i,j) = min((i-1,j), V(i-1,j) + gapWeight) + spaceWeight
+      D[j] = min(D[j], V_previous[j] + gapWeight) + spaceWeight
               
-      # G: minimum distance matrix when string1 prefix is aligned to
-      # string2
+      # M(i,j) is the edit distance if the ith and jth characters
+      # match or mismatch
       #
-      # G(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
+      # M(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
       if char2 == char1 :
-        g = v_previous[j-1] + matchWeight
+        M = V_previous[j-1] + matchWeight
       # if the two characters are different integers, then pay double
       # the normal cost for mismatch
       #elif 47 < char2 < 59 and 47 < char1 < 59 :
-      #  g = v_previous[j-1] + mismatchWeight * 2
+      #  M = V_previous[j-1] + mismatchWeight * 2
       else:
-        g = v_previous[j-1] + mismatchWeight
+        M = V_previous[j-1] + mismatchWeight
       
-
-
+      # V(i,j) is the minimum edit distance 
+      #  
       # V(i,j) = min(E(i,j), F(i,j), G(i,j))
-      v_current[j] = min(e, g, f[j])
+      V_current[j] = min(I, D[j], M)
 
-  return v_current[length1]
+  return V_current[length1]
 
 cpdef float normalizedAffineGapDistance(char *string1, char *string2,
                                         float matchWeight = -5,
