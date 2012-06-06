@@ -16,7 +16,7 @@ Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Fu
 * Derek Eder mailto:derek.eder@opencityapps.org
 
 == Usage
-  > python setup.py build_ext
+  > python setup.py build_ext --inplace
   > python dedupe.py
 
 
