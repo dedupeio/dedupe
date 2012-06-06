@@ -75,7 +75,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
     # Base conditions  
     # V(i,0) = gapWeight + spaceWeight * i
     # I(i,0) = Infinity 
-    V_current[0] = i * spaceWeight + gapWeight
+    V_current[0] = gapWeight + spaceWeight * i
     I = limits.INT_MAX
   
     for j in range(1, length1 + 1) :
