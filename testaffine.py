@@ -2,7 +2,7 @@ import cProfile
 from affinegap import affineGapDistance, normalizedAffineGapDistance
 
 def performanceTest() :
-  for i in xrange(10000) :
+  for i in xrange(100000) :
     string2 = 'asdfa;dsjnfas;dfasdsdfasdf asdf'
     string1 = 'fdsa576576576'
     distance = affineGapDistance(string1, string2)
@@ -21,11 +21,10 @@ def correctnessTest() :
   print affineGapDistance('aaa', 'aa', -5, 5, 5, 1) == -7
   print affineGapDistance('aaa', 'a', -5, 5, 5, 1) == -1.5
   print affineGapDistance('aaa', '', -5, 5, 5, 1) == 4
-  print affineGapDistance('aaa', 'abba', -5, 5, 5, 1) == 8
-  print normalizedAffineGapDistance("bone's", "bone's restaurant", -5, 5, 5, 1)
+  print affineGapDistance('aaa', 'abba', -5, 5, 5, 1) == 1
 
 
 
         
 correctnessTest()
-#performanceTest()
+#cProfile.run("performanceTest()")

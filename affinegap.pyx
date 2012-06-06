@@ -79,22 +79,21 @@ cpdef float affineGapDistance(char *string1, char *string2,
     I = limits.INT_MAX
   
     for j in range(1, length1 + 1) :
-
-      # Pay less for abbreviations
-      # i.e. 'spago (los angeles) to 'spago'
-      if j > length2 :
-        I = (min(I, V_current[j-1] + gapWeight * abbreviation_scale)
-             + spaceWeight * abbreviation_scale)
-        V_current[j] = I
-        continue
-            
       char1 = string1[j-1]
+
       # I(i,j) is the edit distance if the jth character of string 1
       # was inserted into string 2.
       #
       # I(i,j) = min(I(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
-      I = min(I, V_current[j-1] + gapWeight) + spaceWeight
-      
+
+      if j <= length2 :
+        I = min(I, V_current[j-1] + gapWeight) + spaceWeight
+      else :
+        # Pay less for abbreviations
+        # i.e. 'spago (los angeles) to 'spago'
+        I = (min(I, V_current[j-1] + gapWeight * abbreviation_scale)
+             + spaceWeight * abbreviation_scale)
+        
       # D(i,j) is the edit distance if the ith character of string 2
       # was deleted from string 1
       #
@@ -121,16 +120,18 @@ cpdef float normalizedAffineGapDistance(char *string1, char *string2,
                                         float matchWeight = -5,
                                         float mismatchWeight = 5,
                                         float gapWeight = 4,
-                                        float spaceWeight = 1) :
+                                        float spaceWeight = 1,
+                                        float abbreviation_scale = .5) :
   
     cdef float normalizer = len(string1) + len(string2)
     cdef float alpha = gapWeight + spaceWeight
     
     cdef float distance = affineGapDistance(string1, string2,
-                             matchWeight,
-                             mismatchWeight,
-                             gapWeight ,
-                             spaceWeight)
+                                            matchWeight,
+                                            mismatchWeight,
+                                            gapWeight,
+                                            spaceWeight,
+                                            abbreviation_scale)
 
     # Normalization proposed by Li Yujian and Li Bo's in "A Normalized
     # Levenshtein Distance Metric" http://dx.doi.org/10.1109/TPAMI.2007.1078
