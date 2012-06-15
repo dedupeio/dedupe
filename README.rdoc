@@ -3,6 +3,7 @@ A free python library for accurate and scaleable deduplication and entity-resolu
 
 Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Functions and their Application to Record Linkage and Clustering
 
+Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
 
 == Features
 
