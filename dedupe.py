@@ -49,6 +49,45 @@ def calculateDistance(instance_1, instance_2, fields) :
 
   return distances_d
 
+def findUncertainPairs(data_d, data_model, num_pairs) :
+  uncertain_pairs = (1, 2) #fill this in
+  
+  return uncertain_pairs
+
+def adaptiveLearning(data_d, data_model, labelPairFunction) :
+
+  training_data = []
+  fic_score = 0
+
+  while convergence == False :
+    uncertain_pairs = findUncertainPairs(data_d, data_model, 1)
+    labeled_pairs = labelPairFunction(uncertain_pairs)
+    training_data = addTrainingData(labeled_pairs, training_data)
+    data_model = train_model(training_data, iterations, data_model)
+    old_fic_score = fic_score(data_model)
+    fic_score = fischerInformation(data_model)
+    if fic_score - old_fic_score < epsilon :
+      convergence = True
+  
+  return(training_data, data_model)
+
+def fischerInformation(data_model) :
+  fic_score = 0
+  
+  return fic_score
+  
+def addTrainingData(labeled_pairs, training_data) :
+
+  for label, examples in labeled_pairs.items() :
+      for pair in examples :
+          distances = calculateDistance(pair[0],
+                                        pair[1],
+                                        data_model['fields'])
+          training_data.append((label, distances))
+          
+  return training_data
+
+
 def createTrainingData(training_pairs) :
   training_data = []
 
