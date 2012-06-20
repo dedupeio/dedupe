@@ -27,4 +27,4 @@ def correctnessTest() :
 
         
 correctnessTest()
-#cProfile.run("performanceTest()")
+cProfile.run("performanceTest()")

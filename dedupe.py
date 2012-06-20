@@ -254,8 +254,9 @@ if __name__ == '__main__':
   print "False positives" 
 
   for pair in false_positives :
-         print ""
-
+    print ""
+    for instance in tuple(pair) :
+      print data_d[instance].values()
 
 
 
