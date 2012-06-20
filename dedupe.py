@@ -136,6 +136,35 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
 
 if __name__ == '__main__':
   from test_data import init
+
+  def consoleLabel(uncertain_pairs) :
+    duplicates = []
+    nonduplicates = []
+    
+    for pair in uncertain_pairs :
+      label = ''
+      
+      for instance in tuple(pair) :
+        print instance.values()
+        print "Do these records refer to the same thing?"  
+      
+        valid_response = False
+        while not valid_response :
+          label = raw_input('yes(y)/no(n)/unsure(u)\n')
+          if label in ['y', 'n', 'u'] :
+            valid_response = True
+
+        if label == 'y' :
+          duplicates.append(pair)
+        elif label == 'n' :
+          nonduplicates.append(pair)
+        elif label != 'u' :
+          print 'Nonvalid response'
+          raise
+
+    return({0:nonduplicates, 1:duplicates})
+
+  
   num_training_dupes = 200
   num_training_distinct = 16000
   numIterations = 100
@@ -226,8 +255,7 @@ if __name__ == '__main__':
 
   for pair in false_positives :
          print ""
-         for instance in tuple(pair) :
-           print data_d[instance].values()
+
 
 
 
