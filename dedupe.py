@@ -4,7 +4,7 @@ import affinegap
 import lr
 from blocking import trainBlocking, blockingIndex, mergeBlocks, allCandidates
 from predicates import *
-from math import log
+from math import log, exp
 
 
 def createTrainingPairs(data_d,
@@ -50,11 +50,29 @@ def calculateDistance(instance_1, instance_2, fields) :
   return distances_d
 
 def findUncertainPairs(data_d, data_model, num_pairs) :
-  uncertain_pairs = (1, 2) #fill this in
-  
-  return uncertain_pairs
+  pairs = allCandidates(data_d) 
 
-def adaptiveLearning(data_d, data_model, labelPairFunction) :
+  duplicateScores = scorePairs(pairs, data_d, data_model)
+
+  uncertain_pairs = []
+  for scored_pair in duplicateScores :
+    pair = scored_pair.keys()[0]
+    probability = scored_pair.values()[0]
+
+    try:
+      entropy = -(probability * log(probability) +
+                  (1-probability) * log(1-probability))
+    except:
+      print probability
+
+    uncertain_pairs.append({pair : entropy})
+
+    
+  uncertain_pairs = sorted(uncertain_pairs, key=lambda(d): -d.values()[0])
+
+  return uncertain_pairs[0:num_pairs]
+
+def activeLearning(data_d, data_model, labelPairFunction) :
 
   training_data = []
   fic_score = 0
@@ -112,26 +130,29 @@ def trainModel(training_data, iterations, data_model) :
     return(data_model)
 
 
-def findDuplicates(candidates, data_d, data_model, threshold) :
-  duplicateScores = []
 
-  threshold = log(threshold/(1-threshold))
+def scorePairs(candidates, data_d, data_model) :
+  duplicateScores = []
 
   for pair in candidates :
     fields = data_model['fields']
     distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
-
+    
     score = data_model['bias'] 
     for name in fields :
       score += distances[name] * fields[name]['weight']
 
-    #print (pair, score)
-    if score > threshold :
-    #print (data_d[pair[0]],data_d[pair[1]])
-      duplicateScores.append({ pair : score })
-  
-  return duplicateScores
+    score = exp(score)/(1 + exp(score))
+    duplicateScores.append({ pair : score })
 
+  return(duplicateScores)
+
+
+def findDuplicates(candidates, data_d, data_model, threshold) :
+
+  duplicateScores = scorePairs(candidates, data_d, data_model)
+
+  return([pair for pair in duplicateScores if pair.values()[0] > threshold])
 
 
 if __name__ == '__main__':
@@ -269,6 +290,9 @@ if __name__ == '__main__':
   print "recall"
   print  len(true_positives)/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
+
+  print findUncertainPairs(data_d, data_model, 10)
+
 
   
 
