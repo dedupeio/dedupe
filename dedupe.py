@@ -258,8 +258,6 @@ if __name__ == '__main__':
     for instance in tuple(pair) :
       print data_d[instance].values()
 
-
-
   print ""
 
   print "found duplicate"
