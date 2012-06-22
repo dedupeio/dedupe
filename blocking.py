@@ -134,7 +134,7 @@ def allCandidates(data_d) :
 
 
 if __name__ == '__main__':
-  from dedupe import createTrainingPairs
+  from dedupe import randomTrainingPairs
   from test_data import init
   from predicates import *
 
@@ -142,7 +142,7 @@ if __name__ == '__main__':
   numTrainingPairs = 64000
   (data_d, duplicates_s, data_model) = init()
 
-  training_pairs = createTrainingPairs(data_d,
+  training_pairs = randomTrainingPairs(data_d,
                                        duplicates_s,
                                        numTrainingPairs)
 
