@@ -6,7 +6,9 @@ from blocking import trainBlocking, blockingIndex, mergeBlocks, allCandidates
 from predicates import *
 from math import log, exp
 
+## canonical dataset functions ##
 
+# create a set of training pairs based on known duplicates from canonical dataset
 def createTrainingPairs(data_d,
                         duplicates_s,
                         n_training_dupes,
@@ -39,16 +41,23 @@ def createTrainingPairs(data_d,
       
   return({0:nonduplicates, 1:duplicates})
 
-def calculateDistance(instance_1, instance_2, fields) :
-  distances_d = {}
-  for name in fields :
-    if fields[name]['type'] == 'String' :
-      distanceFunc = affinegap.normalizedAffineGapDistance
-    #distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -1, 1, 0.8, 0.2)
-    distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
+# create a set of training data
+def createTrainingData(training_pairs) :
+  training_data = []
 
-  return distances_d
+  for label, examples in training_pairs.items() :
+      for pair in examples :
+          distances = calculateDistance(pair[0],
+                                        pair[1],
+                                        data_model['fields'])
+          training_data.append((label, distances))
 
+  shuffle(training_data)
+  return training_data
+
+## user training functions ##
+
+# based on the data model and training we have so far, returns the n record pairs we are least certain about
 def findUncertainPairs(data_d, data_model, num_pairs) :
   pairs = allCandidates(data_d) 
 
@@ -59,12 +68,9 @@ def findUncertainPairs(data_d, data_model, num_pairs) :
     pair = scored_pair.keys()[0]
     probability = scored_pair.values()[0]
 
-    try:
-      entropy = -(probability * log(probability) +
-                  (1-probability) * log(1-probability))
-    except:
-      print probability
-
+    entropy = -(probability * log(probability, 2) +
+                  (1-probability) * log(1-probability, 2))
+    
     uncertain_pairs.append({pair : entropy})
 
     
@@ -72,6 +78,7 @@ def findUncertainPairs(data_d, data_model, num_pairs) :
 
   return uncertain_pairs[0:num_pairs]
 
+# loop for user to enter training data
 def activeLearning(data_d, data_model, labelPairFunction) :
 
   training_data = []
@@ -93,7 +100,8 @@ def fischerInformation(data_model) :
   fic_score = 0
   
   return fic_score
-  
+
+# appends training data to the training data collection  
 def addTrainingData(labeled_pairs, training_data) :
 
   for label, examples in labeled_pairs.items() :
@@ -105,20 +113,20 @@ def addTrainingData(labeled_pairs, training_data) :
           
   return training_data
 
+## core functions ##
 
-def createTrainingData(training_pairs) :
-  training_data = []
+# based on field type, calculate using the appropriate distance function and return distance
+def calculateDistance(instance_1, instance_2, fields) :
+  distances_d = {}
+  for name in fields :
+    if fields[name]['type'] == 'String' :
+      distanceFunc = affinegap.normalizedAffineGapDistance
+    #distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -1, 1, 0.8, 0.2)
+    distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
 
-  for label, examples in training_pairs.items() :
-      for pair in examples :
-          distances = calculateDistance(pair[0],
-                                        pair[1],
-                                        data_model['fields'])
-          training_data.append((label, distances))
+  return distances_d
 
-  shuffle(training_data)
-  return training_data
-
+# using logistic regression, train weights for all fields in the data model
 def trainModel(training_data, iterations, data_model) :
     trainer = lr.LogisticRegression()
     trainer.train(training_data, iterations)
@@ -129,8 +137,7 @@ def trainModel(training_data, iterations, data_model) :
 
     return(data_model)
 
-
-
+# assign a score of how likely a pair of records are duplicates
 def scorePairs(candidates, data_d, data_model) :
   duplicateScores = []
 
@@ -147,14 +154,14 @@ def scorePairs(candidates, data_d, data_model) :
 
   return(duplicateScores)
 
-
+# identify all pairs above a set threshold as duplicates
 def findDuplicates(candidates, data_d, data_model, threshold) :
 
   duplicateScores = scorePairs(candidates, data_d, data_model)
 
   return([pair for pair in duplicateScores if pair.values()[0] > threshold])
 
-
+# main execution of dedupe
 if __name__ == '__main__':
   from test_data import init
 
