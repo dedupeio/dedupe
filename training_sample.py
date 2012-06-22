@@ -77,7 +77,7 @@ def activeLearning(data_d, data_model, labelPairFunction) :
   training_data = []
   pairs = allCandidates(data_d) 
   record_distances = recordDistances(pairs, data_d, data_model)
-  for _ in range(20) :
+  for _ in range(2) :
     print "finding the next uncertain pair ..."
     uncertain_pairs = findUncertainPairs(record_distances, data_model, 1)
     labeled_pairs = labelPairFunction(uncertain_pairs)

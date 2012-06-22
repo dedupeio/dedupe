@@ -38,7 +38,7 @@ def canonicalImport(filename) :
 
                 instance[header[j]] = col.strip().strip('"').strip("'")
                 
-            data_d[i] = hashabledict(instance)
+            data_d[i] = frozendict(instance)
 
     duplicates_s = set([])
     for unique_id in duplicates_d :

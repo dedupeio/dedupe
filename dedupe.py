@@ -62,13 +62,31 @@ def findDuplicates(candidates, data_d, data_model, threshold) :
   return([pair for pair in duplicateScores if pair.values()[0] > threshold])
   
 # define a data type for hashable dictionaries
-class hashabledict(dict):
-  def __key(self):
-    return tuple((k,self[k]) for k in sorted(self))
-  def __hash__(self):
-    return hash(self.__key())
-  def __eq__(self, other):
-    return self.__key() == other.__key()
+class frozendict(dict):
+    def _blocked_attribute(obj):
+        raise AttributeError, "A frozendict cannot be modified."
+    _blocked_attribute = property(_blocked_attribute)
+
+    __delitem__ = __setitem__ = clear = _blocked_attribute
+    pop = popitem = setdefault = update = _blocked_attribute
+
+    def __new__(cls, *args):
+        new = dict.__new__(cls)
+        dict.__init__(new, *args)
+        return new
+
+    def __init__(self, *args):
+        pass
+
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(tuple(sorted(self.items())))
+            return h
+
+    def __repr__(self):
+        return "frozendict(%s)" % dict.__repr__(self)
 
 # main execution of dedupe
 if __name__ == '__main__':
