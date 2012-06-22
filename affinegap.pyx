@@ -1,15 +1,8 @@
-<<<<<<< HEAD
-from libc cimport limits
-from cpython cimport array
-
-#cython: boundscheck=False, wraparound=False
-=======
 #!python
 #cython: boundscheck=False, wraparound=False
 
 from libc cimport limits
 from cpython cimport array
->>>>>>> master
 
 # Calculate the affine gap distance between two strings 
 #
@@ -42,15 +35,6 @@ cpdef float affineGapDistance(char *string1, char *string2,
       string1, string2 = string2, string1
       length1, length2 = length2, length1
 
-<<<<<<< HEAD
-      
-  # Cython 0.17 looks like it will have fix for this:
-  # http://bit.ly/LDxyj3 . We are using the development branch now.
-
-  cdef array.array[float] D = array.array('f', [0] * (length1 + 1))
-  cdef array.array V_current = array.copy(D)
-  cdef array.array V_previous = array.copy(V_current)
-=======
   # array.array is part of Cython 0.17 http://bit.ly/LDxyj3 . We are
   # using the development branch now.
   cdef array.array D = array.array('f')
@@ -59,9 +43,6 @@ cpdef float affineGapDistance(char *string1, char *string2,
 
   cdef array.array V_current = array.copy(D)
   cdef array.array V_previous = array.copy(V_current)
-
-
->>>>>>> master
 
   cdef char char1, char2
   cdef int i, j
@@ -80,15 +61,9 @@ cpdef float affineGapDistance(char *string1, char *string2,
 
   for i in range(1, length2+1) :
     char2 = string2[i-1]
-<<<<<<< HEAD
-    V_previous = array.copy(V_current)
-=======
     # V_previous = V_current
     for _ in range(0, length1 + 1) :
         V_previous._f[_] = V_current._f[_]
-
-
->>>>>>> master
 
     # Base conditions  
     # V(i,0) = gapWeight + spaceWeight * i
