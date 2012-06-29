@@ -153,4 +153,17 @@ if __name__ == '__main__':
   print ""
 
   #lets do some active learning here
-  training_pairs = activeLearning(data_d, data_model, consoleLabel);
+  #training_pairs = activeLearning(data_d, data_model, consoleLabel);
+  
+  #profiling
+  
+  labelPairFunction = consoleLabel
+  training_data = []
+  pairs = allCandidates(data_d) 
+  record_distances = recordDistances(pairs, data_d, data_model)
+  for _ in range(2) :
+    print "finding the next uncertain pair ..."
+    uncertain_pairs = findUncertainPairs(record_distances, data_model, 1)
+    labeled_pairs = labelPairFunction(uncertain_pairs)
+    training_data = addTrainingData(labeled_pairs, training_data)
+    data_model = trainModel(training_data, numIterations, data_model)
