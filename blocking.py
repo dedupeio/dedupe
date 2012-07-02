@@ -26,6 +26,8 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   training_dupes = training_pairs[1][:]
   n_training_dupes = len(training_dupes)
   n_training_distinct = len(training_distinct)
+  print n_training_dupes
+  print n_training_distinct
   sample_size = n_training_dupes + n_training_distinct
 
   # The set of all predicate functions operating over all fields

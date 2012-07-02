@@ -1,7 +1,9 @@
 # provides functions for selecting a sample of training data
 from random import sample, shuffle
 from itertools import combinations
-from dedupe import *
+import blocking
+import core
+import numpy
 
 # create a set of training data
 def trainingDistances(training_pairs, data_model) :
@@ -9,9 +11,9 @@ def trainingDistances(training_pairs, data_model) :
 
   for label, examples in training_pairs.items() :
       for pair in examples :
-          distances = calculateDistance(pair[0],
-                                        pair[1],
-                                        data_model['fields'])
+          distances = core.calculateDistance(pair[0],
+                                             pair[1],
+                                             data_model['fields'])
           training_data.append((label, distances))
 
   shuffle(training_data)
@@ -55,7 +57,7 @@ def randomTrainingPairs(data_d,
 # based on the data model and training we have so far, returns the n record pairs we are least certain about
 def findUncertainPairs(record_distances, data_model) :
 
-  probability = scorePairs(record_distances, data_model)
+  probability = core.scorePairs(record_distances, data_model)
 
   uncertainties = (probability * numpy.log2(probability)
                    + (1-probability) * numpy.log(1-probability)
@@ -66,8 +68,11 @@ def findUncertainPairs(record_distances, data_model) :
 # loop for user to enter training data
 def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
   training_data = []
-  pairs = allCandidates(data_d)
-  record_distances = recordDistances(pairs, data_d, data_model)
+  duplicates = []
+  nonduplicates = []
+  num_iterations = 100
+  pairs = blocking.allCandidates(data_d)
+  record_distances = core.recordDistances(pairs, data_d, data_model)
   for _ in range(num_questions) :
     print "finding the next uncertain pair ..."
     uncertain_indices = findUncertainPairs(record_distances, data_model)
@@ -77,11 +82,17 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
     record_distances = record_distances[1:]
 
     labeled_pairs = labelPairFunction(uncertain_pairs, data_d)
+
+    nonduplicates.extend(labeled_pairs[0])
+    duplicates.extend(labeled_pairs[1])
+    
     training_data = addTrainingData(labeled_pairs, training_data, data_model)
 
-    data_model = trainModel(training_data, numIterations, data_model)
+    data_model = core.trainModel(training_data, num_iterations, data_model)
+
+  training_pairs = {0 : nonduplicates, 1 : duplicates}  
   
-  return(training_data, data_model)
+  return(training_data, training_pairs, data_model)
 
 def fischerInformation(data_model) :
   fic_score = 0
@@ -101,16 +112,18 @@ def addTrainingData(labeled_pairs, training_data, data_model) :
 
   for label, examples in labeled_pairs.items() :
       for pair in examples :
-          c_distances = calculateDistance(pair[0],
-                                        pair[1],
-                                        fields,
-                                        distances)
+          c_distances = core.calculateDistance(pair[0],
+                                               pair[1],
+                                               fields,
+                                               distances)
           c_distances = dict(zip(fields.keys(), c_distances[0]['values']))
           training_data.append((label, c_distances))
           
   return training_data
   
 if __name__ == '__main__':
+  from core import *
+
   from canonical_example import init
 
   # user defined function to label pairs as duplicates or non-duplicates
@@ -168,7 +181,7 @@ if __name__ == '__main__':
   training_data, data_model = activeLearning(data_d,
                                              data_model,
                                              consoleLabel,
-                                             20) 
+                                             1) 
 
   print ''
   print 'training data'

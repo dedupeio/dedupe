@@ -1,7 +1,7 @@
 from itertools import combinations
 import csv
 import re
-from dedupe import *
+from core import *
 from training_sample import *
 
 def canonicalImport(filename) :
