@@ -3,17 +3,21 @@ from blocking import trainBlocking, blockingIndex, mergeBlocks, allCandidates
 from predicates import *
 from math import log, exp
 import affinegap
+import numpy
 
 # based on field type, calculate using the appropriate distance function and return distance
 def calculateDistance(instance_1, instance_2, fields) :
-  distances_d = {}
-  for name in fields :
+  
+  field_dtype = zip(fields.keys(), ['f4'] * len(fields))
+
+  distances = numpy.zeros(1, dtype=field_dtype)
+
+  for i, name in enumerate(fields) :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
-    #distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -1, 1, 0.8, 0.2)
-    distances_d[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
+    distances[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
 
-  return distances_d
+  return distances
 
 # using logistic regression, train weights for all fields in the data model
 def trainModel(training_data, iterations, data_model) :
@@ -28,30 +32,51 @@ def trainModel(training_data, iterations, data_model) :
 
 # assign a score of how likely a pair of records are duplicates
 def recordDistances(candidates, data_d, data_model) :
-  record_distances = []
-  for pair in candidates :
-    fields = data_model['fields']
-    distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
-    record_distances.append({pair : distances})
+  # The record array has two elements, the first element is an array
+  # of floats that has length equal the number of fields. The second
+  # argument is a array of length 2 which stores the id of the
+  # considered elements in the pair.
+
+  fields = data_model['fields']
+
+  field_dtype = zip(fields.keys(), ['f4'] * len(fields))
+
+  record_dtype = [('pairs', [('pair1', 'i4'),
+                             ('pair2', 'i4')]),
+                  ('field_distances', field_dtype)
+                  ]
+
+  record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
+
+
+#  print record_distance
+
+  for i, pair in enumerate(candidates) :
     
+    distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
+
+    record_distances[i] = ((pair[0], pair[1]), distances)
+    
+
   return record_distances  
 
-
+@profile
 def scorePairs(record_distances, data_model) :
-  duplicateScores = []
+  fields = data_model['fields']
 
-  for record_distance in record_distances :
-    pair = record_distance.keys()[0]
-    distances = record_distance.values()[0]   
-    fields = data_model['fields']
-    score = data_model['bias'] 
-    for name in fields :
-      score += distances[name] * fields[name]['weight']
+  field_weights = [fields[name]['weight'] for name in fields]
+  bias = data_model['bias'] 
 
-    score = exp(score)/(1 + exp(score))
-    duplicateScores.append({ pair : score })
+  field_distances = [col for row in record_distances['field_distances']
+                     for col in row]
 
-  return(duplicateScores)
+  field_distances = numpy.reshape(field_distances, (-1, len(fields)))
+
+  scores = numpy.dot(field_distances, field_weights)
+
+  scores = [exp(score + bias)/(1 + exp(score + bias)) for score in scores]
+
+  return(scores)
 
 # identify all pairs above a set threshold as duplicates
 def findDuplicates(candidates, data_d, data_model, threshold) :
