@@ -44,8 +44,6 @@ cpdef float affineGapDistance(char *string1, char *string2,
   cdef array.array V_current = array.copy(D)
   cdef array.array V_previous = array.copy(V_current)
 
-
-
   cdef char char1, char2
   cdef int i, j
   cdef float e, g
@@ -66,8 +64,6 @@ cpdef float affineGapDistance(char *string1, char *string2,
     # V_previous = V_current
     for _ in range(0, length1 + 1) :
         V_previous._f[_] = V_current._f[_]
-
-
 
     # Base conditions  
     # V(i,0) = gapWeight + spaceWeight * i
