@@ -64,18 +64,22 @@ def findUncertainPairs(record_distances, data_model) :
   return(numpy.argsort(uncertainties))
 
 # loop for user to enter training data
-def activeLearning(data_d, data_model, labelPairFunction) :
+def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
   training_data = []
   pairs = allCandidates(data_d)
   record_distances = recordDistances(pairs, data_d, data_model)
-  for _ in range(2) :
+  for _ in range(num_questions) :
     print "finding the next uncertain pair ..."
-    uncertain_pairs = findUncertainPairs(record_distances, data_model, 1)
-    labeled_pairs = labelPairFunction(uncertain_pairs, data_d)
-    training_data = addTrainingData(labeled_pairs, training_data)
+    uncertain_indices = findUncertainPairs(record_distances, data_model)
+    record_distances = record_distances[: , uncertain_indices]
 
-    print training_data
-    #data_model = trainModel(training_data, numIterations, data_model)
+    uncertain_pairs = record_distances['pairs'][0:1]
+    record_distances = record_distances[1:]
+
+    labeled_pairs = labelPairFunction(uncertain_pairs, data_d)
+    training_data = addTrainingData(labeled_pairs, training_data, data_model)
+
+    data_model = trainModel(training_data, numIterations, data_model)
   
   return(training_data, data_model)
 
@@ -161,22 +165,21 @@ if __name__ == '__main__':
   #training_pairs = activeLearning(data_d, data_model, consoleLabel);
   
   #profiling
+  training_data, data_model = activeLearning(data_d,
+                                             data_model,
+                                             consoleLabel,
+                                             20) 
 
-  
-  labelPairFunction = consoleLabel
-  training_data = []
-  pairs = allCandidates(data_d)
-  record_distances = recordDistances(pairs, data_d, data_model)
-  for _ in range(20) :
-    print "finding the next uncertain pair ..."
-    uncertain_indices = findUncertainPairs(record_distances, data_model)
-    record_distances = record_distances[: , uncertain_indices]
-    uncertain_pairs = record_distances['pairs'][0:1]
-    record_distances = record_distances[1:]
-    labeled_pairs = labelPairFunction(uncertain_pairs, data_d)
-    training_data = addTrainingData(labeled_pairs, training_data, data_model)
+  print ''
+  print 'training data'
+  for example in training_data :
+    print example
 
-    data_model = trainModel(training_data, numIterations, data_model)
+  print ''
+  print 'data model'
+  for k,v in data_model['fields'].iteritems() :
+    print (k,v)
+  print ('bias', data_model['bias'])
 
 
 
