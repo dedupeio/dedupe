@@ -6,16 +6,14 @@ import affinegap
 import numpy
 
 # based on field type, calculate using the appropriate distance function and return distance
-def calculateDistance(instance_1, instance_2, fields) :
-  
-  field_dtype = zip(fields.keys(), ['f4'] * len(fields))
-
-  distances = numpy.zeros(1, dtype=field_dtype)
+def calculateDistance(instance_1, instance_2, fields, distances) :
 
   for i, name in enumerate(fields) :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
-    distances[name] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
+
+    distances[0]['names'][i] = name
+    distances[0]['values'][i] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
 
   return distances
 
@@ -39,7 +37,11 @@ def recordDistances(candidates, data_d, data_model) :
 
   fields = data_model['fields']
 
-  field_dtype = zip(fields.keys(), ['f4'] * len(fields))
+  field_dtype = [('names', 'a10', (len(fields)),),
+                 ('values', 'f4', (len(fields)),)
+                 ]
+  
+  distances = numpy.zeros(1, dtype=field_dtype)
 
   record_dtype = [('pairs', [('pair1', 'i4'),
                              ('pair2', 'i4')]),
@@ -53,28 +55,35 @@ def recordDistances(candidates, data_d, data_model) :
 
   for i, pair in enumerate(candidates) :
     
-    distances = calculateDistance(data_d[pair[0]], data_d[pair[1]], fields)
+    c_distances = calculateDistance(data_d[pair[0]],
+                                    data_d[pair[1]],
+                                    fields,
+                                    distances)
 
-    record_distances[i] = ((pair[0], pair[1]), distances)
+    record_distances[i] = ((pair[0], pair[1]),
+                           (c_distances['names'],
+                            c_distances['values'])
+                           )
     
-
   return record_distances  
 
-@profile
 def scorePairs(record_distances, data_model) :
   fields = data_model['fields']
 
   field_weights = [fields[name]['weight'] for name in fields]
-  bias = data_model['bias'] 
+  bias = data_model['bias']
 
-  field_distances = [col for row in record_distances['field_distances']
-                     for col in row]
 
-  field_distances = numpy.reshape(field_distances, (-1, len(fields)))
+
+  #field_distances = [col for row in record_distances['field_distances']
+  #                   for col in row]
+  field_distances = record_distances['field_distances']['values']
+
+#  field_distances = numpy.reshape(field_distances, (-1, len(fields)))
 
   scores = numpy.dot(field_distances, field_weights)
 
-  scores = [exp(score + bias)/(1 + exp(score + bias)) for score in scores]
+  scores = numpy.exp(scores + bias)/(1 + numpy.exp(scores + bias))
 
   return(scores)
 

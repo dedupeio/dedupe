@@ -55,15 +55,11 @@ def randomTrainingPairs(data_d,
 # based on the data model and training we have so far, returns the n record pairs we are least certain about
 def findUncertainPairs(record_distances, data_model) :
 
-  duplicate_scores = scorePairs(record_distances, data_model)
+  probability = scorePairs(record_distances, data_model)
 
-  def uncertainty(probability) :
-    neg_entropy = (probability * log(probability, 2) +
-               (1-probability) * log(1-probability, 2))
-    return(neg_entropy)
-
-  uncertainties = [uncertainty(probability)
-                   for probability in duplicate_scores]
+  uncertainties = (probability * numpy.log2(probability)
+                   + (1-probability) * numpy.log(1-probability)
+                   )
   
   return(numpy.argsort(uncertainties))
 
@@ -93,13 +89,20 @@ def addTrainingData(labeled_pairs, training_data, data_model) :
 
   fields = data_model['fields']
 
+  field_dtype = [('names', 'a10', (len(fields)),),
+                 ('values', 'f4', (len(fields)),)
+                 ]
+  
+  distances = numpy.zeros(1, dtype=field_dtype)
+
   for label, examples in labeled_pairs.items() :
       for pair in examples :
-          distances = calculateDistance(pair[0],
+          c_distances = calculateDistance(pair[0],
                                         pair[1],
-                                        fields)
-          distances = dict(zip(fields.keys(), distances[0]))
-          training_data.append((label, distances))
+                                        fields,
+                                        distances)
+          c_distances = dict(zip(fields.keys(), c_distances[0]['values']))
+          training_data.append((label, c_distances))
           
   return training_data
   
@@ -112,7 +115,6 @@ if __name__ == '__main__':
     nonduplicates = []
     
     for pair in uncertain_pairs :
-      print pair
       label = ''
 
       record_pair = [data_d[instance] for instance in pair]
@@ -165,7 +167,7 @@ if __name__ == '__main__':
   training_data = []
   pairs = allCandidates(data_d)
   record_distances = recordDistances(pairs, data_d, data_model)
-  for _ in range(2) :
+  for _ in range(20) :
     print "finding the next uncertain pair ..."
     uncertain_indices = findUncertainPairs(record_distances, data_model)
     record_distances = record_distances[: , uncertain_indices]
