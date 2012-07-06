@@ -4,12 +4,10 @@ A free python library for accurate and scaleable deduplication and entity-resolu
 Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Functions and their Application to Record Linkage and Clustering
 
 Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
-
-== Features
-
-* coming soon
   
 == Python Dependencies
+
+* numpy (http://numpy.scipy.org/)
 
 == Team
 
@@ -19,7 +17,14 @@ Current solutions break easily, don’t scale, and require significant developer
 == Usage
   > python setup.py build_ext --inplace
   > python dedupe.py
+  (use 'y', 'n' and 'u' keys to flag duplicates for active learning) 
 
+== Other Executable Modules
+
+* blocking.py - loads in test data and finds optimum blocking predicates
+* canonical_example.py - loads in canonical restaurant test data and trains based on provided known duplicates. outputs precision and recall values
+* predicates.py - tests the functionality of defined predicates
+* training_sample.py - tests active learning with user input
 
 == Errors / Bugs
 
@@ -31,7 +36,7 @@ Report it here: https://github.com/open-city/dedupe/issues
  
 * Fork the project.
 * Make your feature addition or bug fix.
-* Send me a pull request. Bonus points for topic branches.
+* Send us a pull request. Bonus points for topic branches.
 
 == Copyright
 
