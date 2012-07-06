@@ -26,6 +26,8 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   training_dupes = training_pairs[1][:]
   n_training_dupes = len(training_dupes)
   n_training_distinct = len(training_distinct)
+  print n_training_dupes
+  print n_training_distinct
   sample_size = n_training_dupes + n_training_distinct
 
   # The set of all predicate functions operating over all fields
@@ -134,7 +136,7 @@ def allCandidates(data_d) :
 
 
 if __name__ == '__main__':
-  from dedupe import createTrainingPairs
+  from dedupe import randomTrainingPairs
   from test_data import init
   from predicates import *
 
@@ -142,7 +144,7 @@ if __name__ == '__main__':
   numTrainingPairs = 64000
   (data_d, duplicates_s, data_model) = init()
 
-  training_pairs = createTrainingPairs(data_d,
+  training_pairs = randomTrainingPairs(data_d,
                                        duplicates_s,
                                        numTrainingPairs)
 
