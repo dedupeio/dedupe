@@ -1,8 +1,7 @@
 from itertools import combinations
 import csv
 import re
-from core import *
-from training_sample import *
+from core import frozendict
 
 def canonicalImport(filename) :
 
@@ -59,6 +58,7 @@ def dataModel() :
 
 
 def init() :
+    
   data_d, header, duplicates_s = canonicalImport("./datasets/restaurant-nophone-training.csv")
   data_model = dataModel()
   return (data_d, duplicates_s, data_model)
@@ -66,9 +66,14 @@ def init() :
 # main execution
 if __name__ == '__main__':
     
+  from predicates import *
+  import core
+  import training_sample
+  import blocking
+    
   num_training_dupes = 200
   num_training_distinct = 16000
-  numIterations = 100
+  numIterations = 20
 
   import time
   t0 = time.time()
@@ -81,26 +86,26 @@ if __name__ == '__main__':
   print len(duplicates_s)
   print ""
 
-  training_pairs = randomTrainingPairs(data_d,
-                                       duplicates_s,
-                                       num_training_dupes,
-                                       num_training_distinct)
+  training_pairs = training_sample.randomTrainingPairs(data_d,
+                                                       duplicates_s,
+                                                       num_training_dupes,
+                                                       num_training_distinct)
 
-  predicates = trainBlocking(training_pairs,
-                            (wholeFieldPredicate,
-                             tokenFieldPredicate,
-                             commonIntegerPredicate,
-                             sameThreeCharStartPredicate,
-                             sameFiveCharStartPredicate,
-                             sameSevenCharStartPredicate,
-                             nearIntegersPredicate,
-                             commonFourGram,
-                             commonSixGram),
-                             data_model, 1, 1)
+  predicates = blocking.trainBlocking(training_pairs,
+                                      (wholeFieldPredicate,
+                                       tokenFieldPredicate,
+                                       commonIntegerPredicate,
+                                       sameThreeCharStartPredicate,
+                                       sameFiveCharStartPredicate,
+                                       sameSevenCharStartPredicate,
+                                       nearIntegersPredicate,
+                                       commonFourGram,
+                                       commonSixGram),
+                                      data_model, 1, 1)
+  
 
-
-  blocked_data = blockingIndex(data_d, predicates)
-  candidates = mergeBlocks(blocked_data)
+  blocked_data = blocking.blockingIndex(data_d, predicates)
+  candidates = blocking.mergeBlocks(blocked_data)
 
 
 
@@ -112,7 +117,7 @@ if __name__ == '__main__':
   print len(candidates),
   print "comparisons."
 
-  training_data = trainingDistances(training_pairs, data_model)
+  training_data = training_sample.trainingDistances(training_pairs, data_model)
   #print "training data from known duplicates: "
   #for instance in training_data :
   #  print instance
@@ -123,7 +128,7 @@ if __name__ == '__main__':
   print ""
 
   print "training weights ..."
-  data_model = trainModel(training_data, numIterations, data_model)
+  data_model = core.trainModel(training_data, numIterations, data_model)
   print ""
 
   print "Learned Weights"
@@ -138,35 +143,39 @@ if __name__ == '__main__':
   
   print "finding duplicates ..."
   print ""
-  dupes = findDuplicates(candidates, data_d, data_model, .60)
+  dupes = core.findDuplicates(candidates, data_d, data_model, .60)
 
-  dupe_ids = set([frozenset(list(dupe_pair.keys()[0])) for dupe_pair in dupes])
+  print dupes
+
+  dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
   true_positives = dupe_ids & duplicates_s
   false_positives = dupe_ids - duplicates_s
   uncovered_dupes = duplicates_s - dupe_ids
 
   print "False negatives" 
   for pair in uncovered_dupes :
-         print ""
-         for instance in tuple(pair) :
-           print data_d[instance].values()
-
+      print ""
+      for instance in tuple(pair) :
+          print data_d[instance].values()
+          
   print "____________________________________________"
   print "False positives" 
 
   for pair in false_positives :
-    print ""
-    for instance in tuple(pair) :
-      print data_d[instance].values()
+      print ""
+      for instance in tuple(pair) :
+          print data_d[instance].values()
 
   print ""
 
   print "found duplicate"
   print len(dupes)
-
+  
   print "precision"
   print (len(dupes) - len(false_positives))/float(len(dupes))
 
   print "recall"
   print  len(true_positives)/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
+
+
