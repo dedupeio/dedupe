@@ -7,16 +7,26 @@ import numpy
 
 # create a set of training data
 def trainingDistances(training_pairs, data_model) :
+  fields = data_model['fields']
+
+  field_dtype = [('names', 'a10', (len(fields)),),
+                 ('values', 'f4', (len(fields)),)
+                 ]
+  
+  distances = numpy.zeros(1, dtype=field_dtype)
+
   training_data = []
 
   for label, examples in training_pairs.items() :
-      for pair in examples :
-          distances = core.calculateDistance(pair[0],
+      for i, pair in enumerate(examples) :
+    
+        c_distances = core.calculateDistance(pair[0],
                                              pair[1],
-                                             data_model['fields'])
-          training_data.append((label, distances))
+                                             fields,
+                                             distances)
+        c_distances = dict(zip(fields.keys(), c_distances[0]['values']))
+        training_data.append((label, c_distances))
 
-  shuffle(training_data)
   return training_data
 
 # create a random set of training pairs based on known duplicates
@@ -24,32 +34,27 @@ def randomTrainingPairs(data_d,
                         duplicates_s,
                         n_training_dupes,
                         n_training_distinct) :
-  duplicates = []
 
-  duplicates_set = list(duplicates_s)
-  shuffle(duplicates_set)
+  duplicates_s
 
+  if n_training_dupes < len(duplicates_s) :
+    duplicates = sample(duplicates_s, n_training_dupes)
+  else :
+    duplicates = duplicates_s
 
-  for random_pair in duplicates_set :
-    training_pair = (data_d[tuple(random_pair)[0]],
-                     data_d[tuple(random_pair)[1]])      
-    duplicates.append(training_pair)
-    if len(duplicates) == n_training_dupes :
-      break
-
-  nonduplicates = []
+  duplicates = [(data_d[tuple(pair)[0]],
+                 data_d[tuple(pair)[1]])
+                for pair in duplicates]
 
   all_pairs = list(combinations(data_d, 2))
+  all_nonduplicates = set(all_pairs) - set(duplicates_s)
 
-  for random_pair in sample(all_pairs,
-                            n_training_dupes + n_training_distinct) :
-    training_pair = (data_d[tuple(random_pair)[0]],
-                     data_d[tuple(random_pair)[1]])
-    if set(random_pair) not in duplicates_s :
-      nonduplicates.append(training_pair)
-    if len(nonduplicates) == n_training_distinct :
-      break
-      
+  nonduplicates = sample(all_nonduplicates, n_training_distinct)
+
+  nonduplicates = [(data_d[pair[0]],
+                    data_d[pair[1]])
+                   for pair in nonduplicates]
+
   return({0:nonduplicates, 1:duplicates})
   
 ## user training functions ##
