@@ -49,10 +49,10 @@ def canonicalImport(filename) :
 
 def dataModel() :
   return  {'fields': 
-            {'name' : {'type': 'String', 'weight' : 1}, 
-             'address' : {'type' :'String', 'weight' : 1},
-             'city' : {'type': 'String', 'weight' : 1},
-             'cuisine' : {'type': 'String', 'weight' : 1}
+            {'name' : {'type': 'String', 'weight' : 0}, 
+             'address' : {'type' :'String', 'weight' : 0},
+             'city' : {'type': 'String', 'weight' : 0},
+             'cuisine' : {'type': 'String', 'weight' : 0}
             },
            'bias' : 0}
 
