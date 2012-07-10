@@ -1,20 +1,11 @@
-duplicates = {(1,2) : .9,
-              (1,3) : .7,
-              (1,4) : .2,
-              (2,5) : .6,
-              (2,7) : .8,
-              (2,3) : .9,
-              (3,5) : .2
-              }
-
-
 def nearestNeighbors(duplicates) :
   nn = {}
+  duplicates = dict(duplicates)
   pairs = duplicates.keys()
   pairs = sorted(pairs, key=lambda pair : pair[1])
   pairs = sorted(pairs, key=lambda pair : pair[0])
   print pairs
-  for pair in duplicates :
+  for pair in pairs :
     new_proximity = 1-duplicates[pair]
     candidate_1, candidate_2 = pair
     if candidate_1 in nn :
@@ -80,28 +71,37 @@ def partition(compact_pairs, neighborhood_attributes, sparseness_threshold) :
     max_growth = max(neighborhood_attributes[candidate_1]['neighborhood growth'],
                      neighborhood_attributes[candidate_2]['neighborhood growth'])
     if max_growth < sparseness_threshold :
-      cluster = cluster.union(set(pair))
-    elif cluster :
-      clusters.append(cluster)
-      cluster = set([])
+      print pair
+      if cluster.intersection(set(pair)) :
+        print 'intersects'
+        cluster = cluster.union(set(pair))
+      elif cluster :
+        clusters.append(cluster)
+        cluster = set(pair)
+      else :
+        cluster = set(pair)
 
   if cluster :
     clusters.append(cluster)
 
   return clusters
       
-        
-    
-      
-      
-    
-  
+if __name__ == '__main__' :
 
-nn = nearestNeighbors(duplicates)
-print nn
+  duplicates = (((1,2), .9),
+                ((1,3), .7),
+                ((1,4), .2),
+                ((2,5), .6),
+                ((2,7), .8),
+                ((2,3), .9),
+                ((3,5), .2)
+                )
 
-neighborhood_attributes = neighborhoodAttributes(nn, 2, 3)
-    
-compact_pairs = compactPairs(neighborhood_attributes)        
+  nn = nearestNeighbors(duplicates)
+  print nn
 
-print partition(compact_pairs, neighborhood_attributes, 2)
+  neighborhood_attributes = neighborhoodAttributes(nn, 2, 3)
+
+  compact_pairs = compactPairs(neighborhood_attributes)        
+
+  print partition(compact_pairs, neighborhood_attributes, 2)

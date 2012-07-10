@@ -70,6 +70,7 @@ if __name__ == '__main__':
   import core
   import training_sample
   import blocking
+  import clustering 
     
   num_training_dupes = 200
   num_training_distinct = 16000
@@ -178,4 +179,12 @@ if __name__ == '__main__':
   print  len(true_positives)/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
 
+  print dupes
+  nn = clustering.nearestNeighbors(dupes)
+  print nn
 
+  neighborhood_attributes = clustering.neighborhoodAttributes(nn, 2, 3)
+
+  compact_pairs = clustering.compactPairs(neighborhood_attributes)        
+
+  print clustering.partition(compact_pairs, neighborhood_attributes, 2)
