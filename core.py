@@ -48,8 +48,6 @@ def recordDistances(candidates, data_d, data_model) :
   record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
 
 
-#  print record_distance
-
   for i, pair in enumerate(candidates) :
     
     c_distances = calculateDistance(data_d[pair[0]],
