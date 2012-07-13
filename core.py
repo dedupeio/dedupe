@@ -48,8 +48,6 @@ def recordDistances(candidates, data_d, data_model) :
   record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
 
 
-#  print record_distance
-
   for i, pair in enumerate(candidates) :
     
     c_distances = calculateDistance(data_d[pair[0]],
@@ -85,14 +83,16 @@ def scorePairs(record_distances, data_model) :
   return(scores)
 
 # identify all pairs above a set threshold as duplicates
-def findDuplicates(candidates, data_d, data_model, threshold) :
+def scoreDuplicates(candidates, data_d, data_model, threshold = None) :
 
   record_distances = recordDistances(candidates, data_d, data_model)
   duplicate_scores = scorePairs(record_distances, data_model)
 
   scored_pairs = zip(candidates, duplicate_scores)
-  
-  return([pair for pair in scored_pairs if pair[1] > threshold])
+  if (threshold) :
+    return([pair for pair in scored_pairs if pair[1] > threshold])
+  else :
+    return scored_pairs
   
 # define a data type for hashable dictionaries
 class frozendict(dict):
