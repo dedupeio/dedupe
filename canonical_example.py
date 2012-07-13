@@ -2,6 +2,7 @@ from itertools import combinations
 import csv
 import re
 from core import frozendict
+from clustering import cluster
 
 def canonicalImport(filename) :
 
@@ -144,14 +145,21 @@ if __name__ == '__main__':
   
   print "finding duplicates ..."
   print ""
-  dupes = core.findDuplicates(candidates, data_d, data_model, .60)
+  dupes = core.scoreDuplicates(candidates, data_d, data_model)
+  clustered_dupes = cluster(dupes, .2) 
+  
+  confirm_dupes = set([])
+  for dupe_set in clustered_dupes :
+    if (len(dupe_set) == 2) :
+      confirm_dupes.add(frozenset(dupe_set))
+    else :
+      for pair in combinations(dupe_set, 2) :
+        confirm_dupes.add(frozenset(pair))
 
-  print dupes
-
-  dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
-  true_positives = dupe_ids & duplicates_s
-  false_positives = dupe_ids - duplicates_s
-  uncovered_dupes = duplicates_s - dupe_ids
+  #dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
+  true_positives = confirm_dupes & duplicates_s
+  false_positives = confirm_dupes - duplicates_s
+  uncovered_dupes = duplicates_s - confirm_dupes
 
   print "False negatives" 
   for pair in uncovered_dupes :
@@ -178,13 +186,3 @@ if __name__ == '__main__':
   print "recall"
   print  len(true_positives)/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
-
-  print dupes
-  nn = clustering.nearestNeighbors(dupes)
-  print nn
-
-  neighborhood_attributes = clustering.neighborhoodAttributes(nn, 2, 3)
-
-  compact_pairs = clustering.compactPairs(neighborhood_attributes)        
-
-  print clustering.partition(compact_pairs, neighborhood_attributes, 2)

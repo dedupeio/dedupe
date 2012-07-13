@@ -69,7 +69,7 @@ def partition(compact_pairs, neighborhood_attributes, sparseness_threshold) :
     candidate_1, candidate_2 = pair
     max_growth = max(neighborhood_attributes[candidate_1]['neighborhood growth'],
                      neighborhood_attributes[candidate_2]['neighborhood growth'])
-    if max_growth < sparseness_threshold :
+    if max_growth <= sparseness_threshold :
       if cluster.intersection(set(pair)) :
         cluster = cluster.union(set(pair))
       elif cluster :
@@ -138,3 +138,25 @@ def calculateSparsenessThreshold(ng_distribution, ng_cumulative_distribution, es
         return ng_distribution[fraction_window[j]][1]
         
     return ng_distribution[fraction_window[j]][1]
+    
+def cluster(dupes, threshold, num_nearest_neighbors = 6, neighborhood_multiplier = 2) :
+  print "clustering"
+  nn = nearestNeighbors(dupes)
+  neighborhood_attributes = neighborhoodAttributes(nn, neighborhood_multiplier, num_nearest_neighbors)
+  compact_pairs = compactPairs(neighborhood_attributes)
+  
+  print compact_pairs
+  print 'number of compact pairs', len(compact_pairs)
+  
+  ng_distribution, ng_cumulative_distribution = calculateGrowthDistributions(neighborhood_attributes)
+  sparseness_threshold = calculateSparsenessThreshold(ng_distribution, ng_cumulative_distribution, threshold)
+  
+  print "sparseness_threshold"
+  print sparseness_threshold
+  
+  clustering_partition = partition(compact_pairs, neighborhood_attributes, sparseness_threshold)
+  
+  print "clustering_partition"
+  print clustering_partition
+  
+  return clustering_partition
