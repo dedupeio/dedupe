@@ -145,7 +145,7 @@ def cluster(dupes, threshold, num_nearest_neighbors = 6, neighborhood_multiplier
   neighborhood_attributes = neighborhoodAttributes(nn, neighborhood_multiplier, num_nearest_neighbors)
   compact_pairs = compactPairs(neighborhood_attributes)
   
-  print compact_pairs
+  #print compact_pairs
   print 'number of compact pairs', len(compact_pairs)
   
   ng_distribution, ng_cumulative_distribution = calculateGrowthDistributions(neighborhood_attributes)

@@ -106,8 +106,47 @@ def consoleLabel(uncertain_pairs, data_d) :
 def dictSubset(d, keys) :
   return dict((k,d[k]) for k in keys if k in d)
 
-def printRow(item) :
+def printToCsv(clustered_dupes, original_data_d) :
+  print "writing to csv"
+  FILE = open("output/ECP_dupes_list_" + str(time.time()) + ".csv","w")
+  output = "\"Group id\",\"Id\",\"Source\",\"Site name\",\"Address\",\"Phone\",\"Fax\",\"Program Name\",\"Length of Day\",\"IDHS Provider ID\",\"Agency\",\"Neighborhood\",\"Funded Enrollment\",\"Program Option\",\"Number per Site EHS\",\"Number per Site HS\",\"Director\",\"Head Start Fund\",\"Early Head Start Fund\",\"CC fund\",\"Progmod\",\"Website\",\"Executive Director\",\"Center Director\",\"ECE Available Programs\",\"NAEYC Valid Until\",\"NAEYC Program Id\",\"Email Address\",\"Ounce of Prevention Description\",\"Purple binder service type\"\n"
+  FILE.write(output)
+  
+  #print out all found dupes
+  dupe_id_list = []
+  i = 1
+  row_cnt = 0
+  for dupe_set in clustered_dupes :
+    for dupe_id in dupe_set :
+      item = original_data_d[dupe_id]
+      dupe_id_list.append(dupe_id)
+      FILE.write(printRow(item,i))
+      row_cnt += 1
+    i += 1
+      
+  #print the rest that weren't found
+  dupe_id_list = set(dupe_id_list)
+  #print "dupe ids"
+  #print dupe_id_list
+  for row in original_data_d :
+    #print row
+    #print "row in dupes?", (not row in dupe_id_list)
+    if not row in dupe_id_list :
+      #print "adding"
+      FILE.write(printRow(original_data_d[row],i))
+      i += 1
+      row_cnt += 1
+  
+  FILE.close()
+  print len(original_data_d), "input rows"
+  print len(clustered_dupes), "dupe clusters found"
+  print i, "groups printed"
+  print row_cnt, "rows printed"
+
+
+def printRow(item, i) :
   output = str(i) + ","
+  output += "\"" + item['Id'] + "\","
   output += "\"" + item['Source'] + "\","
   output += "\"" + item['Site name'] + "\","
   output += "\"" + item['Address'] + "\","
@@ -193,24 +232,7 @@ clustered_dupes = cluster(dupes, .6, 8)
 
 print "# duplicates"
 print len(clustered_dupes)
+
+printToCsv(clustered_dupes, original_data_d)
+
 print "ran in ", time.time() - t0, "seconds"
-
-print "writing to csv"
-FILE = open("ECP_dupes_list_" + str(time.time()) + ".csv","w")
-output = "\"Group id\",\"Source\",\"Site name\",\"Address\",\"Phone\",\"Fax\",\"Program Name\",\"Length of Day\",\"IDHS Provider ID\",\"Agency\",\"Neighborhood\",\"Funded Enrollment\",\"Program Option\",\"Number per Site EHS\",\"Number per Site HS\",\"Director\",\"Head Start Fund\",\"Early Head Start Fund\",\"CC fund\",\"Progmod\",\"Website\",\"Executive Director\",\"Center Director\",\"ECE Available Programs\",\"NAEYC Valid Until\",\"NAEYC Program Id\",\"Email Address\",\"Ounce of Prevention Description\",\"Purple binder service type\"\n"
-FILE.write(output)
-
-#print out all found dupes
-dupe_id_list = []
-for i, dupe_set in enumerate(clustered_dupes) :
-  for dupe_id in dupe_set :
-    item = original_data_d[dupe_id]
-    dupe_id_list.append(dupe_id)
-    FILE.write(printRow(item))
-    
-#print the rest that weren't found
-# dupe_id_list = set(dupe_id_list)
-# for item in original_data_d :
-#   if item in 
-
-FILE.close()
