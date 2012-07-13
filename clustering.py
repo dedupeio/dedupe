@@ -4,7 +4,6 @@ def nearestNeighbors(duplicates) :
   pairs = duplicates.keys()
   pairs = sorted(pairs, key=lambda pair : pair[1])
   pairs = sorted(pairs, key=lambda pair : pair[0])
-  print pairs
   for pair in pairs :
     new_proximity = 1-duplicates[pair]
     candidate_1, candidate_2 = pair
@@ -71,9 +70,7 @@ def partition(compact_pairs, neighborhood_attributes, sparseness_threshold) :
     max_growth = max(neighborhood_attributes[candidate_1]['neighborhood growth'],
                      neighborhood_attributes[candidate_2]['neighborhood growth'])
     if max_growth < sparseness_threshold :
-      print pair
       if cluster.intersection(set(pair)) :
-        print 'intersects'
         cluster = cluster.union(set(pair))
       elif cluster :
         clusters.append(cluster)
@@ -85,23 +82,59 @@ def partition(compact_pairs, neighborhood_attributes, sparseness_threshold) :
     clusters.append(cluster)
 
   return clusters
+  
+def calculateGrowthDistributions(neighborhood_attributes) :
+  neighborhood_growths = []
+  for candidate in neighborhood_attributes :
+    neighborhood_growths.append(neighborhood_attributes[candidate]['neighborhood growth'])
+
+  ng_distribution = [(neighborhood_growths.count(neighborhood_growth), neighborhood_growth) 
+                    for neighborhood_growth in set(neighborhood_growths)]
+                    
+  ng_distribution = sorted(ng_distribution, key = lambda growth : growth[1])
+  
+  ng_distribution = [(growth[0]/float(len(neighborhood_growths)), growth[1]) for growth in ng_distribution]
+  
+  print "ng_distribution"                  
+  print ng_distribution
+  
+  ng_cumulative_distribution = []
+  cumulative_growth = 0
+  for i, growth in enumerate(ng_distribution) :
+    cumulative_growth += growth[0]
+    ng_cumulative_distribution.append((cumulative_growth, growth[1]))
+       
+  print "ng_cumulative_distribution"                  
+  print ng_cumulative_distribution
+  
+  return ng_distribution, ng_cumulative_distribution
+  
+def calculateSparsenessThreshold(ng_distribution, ng_cumulative_distribution, estimated_dupe_fraction, epsilon = 0.05) :
+  fraction_window = []
+  i = 0
+  growth_quantiles = zip(*ng_cumulative_distribution)[0]
+  while growth_quantiles[i] < (estimated_dupe_fraction + epsilon) :
+    if (growth_quantiles[i] > (estimated_dupe_fraction - epsilon)) :
+      fraction_window.append(i)
+    i += 1
       
-if __name__ == '__main__' :
-
-  duplicates = (((1,2), .9),
-                ((1,3), .7),
-                ((1,4), .2),
-                ((2,5), .6),
-                ((2,7), .8),
-                ((2,3), .9),
-                ((3,5), .2)
-                )
-
-  nn = nearestNeighbors(duplicates)
-  print nn
-
-  neighborhood_attributes = neighborhoodAttributes(nn, 2, 3)
-
-  compact_pairs = compactPairs(neighborhood_attributes)        
-
-  print partition(compact_pairs, neighborhood_attributes, 2)
+  print "fraction_window"
+  print fraction_window
+  
+  if (len(fraction_window) == 1) :
+    print "fraction_window length is 1, return " , ng_distribution[fraction_window[0]][1]
+    return ng_distribution[fraction_window[0]][1]
+  
+  elif (len(fraction_window) == 0) :
+    #return the next largest distribution
+    print "fraction_window length is 0, return " , ng_distribution[i][1]
+    return ng_distribution[i][1]
+  
+  else :
+    #of the quantiles found, return minimum spike
+    print "fraction_window length is > 1"
+    for j in range(1, len(fraction_window)) :
+      if ((ng_distribution[fraction_window[j]][0] - ng_distribution[fraction_window[j-1]][0]) > 0) :
+        return ng_distribution[fraction_window[j]][1]
+        
+    return ng_distribution[fraction_window[j]][1]
