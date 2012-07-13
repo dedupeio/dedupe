@@ -2,7 +2,8 @@ from canonical_example import init
 from training_sample import activeLearning
 from blocking import trainBlocking, blockingIndex, mergeBlocks
 from predicates import *
-from core import findDuplicates
+from core import scorePairs
+from clustering import cluster
 
 # user defined function to label pairs as duplicates or non-duplicates
 def consoleLabel(uncertain_pairs, data_d) :
@@ -112,37 +113,37 @@ print ""
 
 print "finding duplicates ..."
 print ""
-dupes = findDuplicates(candidates, data_d, data_model, .50)
 
-dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
-true_positives = dupe_ids & duplicates_s
-false_positives = dupe_ids - duplicates_s
-uncovered_dupes = duplicates_s - dupe_ids
+dupes = scoreDuplicates(candidates, data_d, data_model)
+clustered_dupes = cluster(dupes, .2) 
 
-print "False negatives" 
-for pair in uncovered_dupes :
-       print ""
-       for instance in tuple(pair) :
-         print data_d[instance].values()
-
-print "____________________________________________"
-print "False positives" 
-
-for pair in false_positives :
-  print ""
-  for instance in tuple(pair) :
-    print data_d[instance].values()
-
-print ""
-
-print "found duplicate"
-print len(dupes)
-
-print "precision"
-print (len(dupes) - len(false_positives))/float(len(dupes))
-
-print "recall"
-print  len(true_positives)/float(len(duplicates_s))
-print "ran in ", time.time() - t0, "seconds"
-
-
+# dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
+# true_positives = dupe_ids & duplicates_s
+# false_positives = dupe_ids - duplicates_s
+# uncovered_dupes = duplicates_s - dupe_ids
+# 
+# print "False negatives" 
+# for pair in uncovered_dupes :
+#        print ""
+#        for instance in tuple(pair) :
+#          print data_d[instance].values()
+# 
+# print "____________________________________________"
+# print "False positives" 
+# 
+# for pair in false_positives :
+#   print ""
+#   for instance in tuple(pair) :
+#     print data_d[instance].values()
+# 
+# print ""
+# 
+# print "found duplicate"
+# print len(dupes)
+# 
+# print "precision"
+# print (len(dupes) - len(false_positives))/float(len(dupes))
+# 
+# print "recall"
+# print  len(true_positives)/float(len(duplicates_s))
+# print "ran in ", time.time() - t0, "seconds"
