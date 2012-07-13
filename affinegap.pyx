@@ -117,6 +117,9 @@ cpdef float normalizedAffineGapDistance(char *string1, char *string2,
                                         float abbreviation_scale = .5) :
   
     cdef float normalizer = len(string1) + len(string2)
+    if normalizer == 0 :
+      return 0
+
     cdef float alpha = gapWeight + spaceWeight
     
     cdef float distance = affineGapDistance(string1, string2,
