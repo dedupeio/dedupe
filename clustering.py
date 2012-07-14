@@ -64,23 +64,30 @@ def compactPairs(neighborhood_attributes) :
 def partition(compact_pairs, neighborhood_attributes, sparseness_threshold) :
   clusters = []
   cluster = set([])
+  assigned_candidates = set([])
   
   for pair in compact_pairs :
     candidate_1, candidate_2 = pair
-    max_growth = max(neighborhood_attributes[candidate_1]['neighborhood growth'],
-                     neighborhood_attributes[candidate_2]['neighborhood growth'])
-    if max_growth <= sparseness_threshold :
-      if cluster.intersection(set(pair)) :
-        cluster = cluster.union(set(pair))
-      elif cluster :
-        clusters.append(cluster)
-        cluster = set(pair)
-      else :
-        cluster = set(pair)
+    if candidate_2 not in assigned_candidates :
+        
+      max_growth = max(neighborhood_attributes[candidate_1]['neighborhood growth'],
+                       neighborhood_attributes[candidate_2]['neighborhood growth'])
+      if max_growth <= sparseness_threshold :
+        if candidate_1 in cluster :
+          cluster.add(candidate_2)
+          assigned_candidates.add(candidate_2)
+        elif cluster :
+          clusters.append(cluster)
+          cluster = set(pair)
+          assigned_candidates.update(pair)
+        else :
+          cluster = set(pair)
 
+    
   if cluster :
     clusters.append(cluster)
 
+  print assigned_candidates
   return clusters
   
 def calculateGrowthDistributions(neighborhood_attributes) :
