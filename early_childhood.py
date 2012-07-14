@@ -43,7 +43,8 @@ def earlyChildhoodImport(filename) :
 def dataModel() :
   return  {'fields': 
             { 'Site name' : {'type': 'String', 'weight' : 0}, 
-              'Address' : {'type': 'String', 'weight' : 0}, 
+              'Address' : {'type': 'String', 'weight' : 0},
+              'Zip' : {'type': 'String', 'weight' : 0}, 
               'Phone' : {'type': 'String', 'weight' : 0}
             },
            'bias' : 0}
@@ -109,7 +110,7 @@ def dictSubset(d, keys) :
 def printToCsv(clustered_dupes, original_data_d) :
   print "writing to csv"
   FILE = open("output/ECP_dupes_list_" + str(time.time()) + ".csv","w")
-  output = "\"Group id\",\"Id\",\"Source\",\"Site name\",\"Address\",\"Phone\",\"Fax\",\"Program Name\",\"Length of Day\",\"IDHS Provider ID\",\"Agency\",\"Neighborhood\",\"Funded Enrollment\",\"Program Option\",\"Number per Site EHS\",\"Number per Site HS\",\"Director\",\"Head Start Fund\",\"Early Head Start Fund\",\"CC fund\",\"Progmod\",\"Website\",\"Executive Director\",\"Center Director\",\"ECE Available Programs\",\"NAEYC Valid Until\",\"NAEYC Program Id\",\"Email Address\",\"Ounce of Prevention Description\",\"Purple binder service type\"\n"
+  output = "\"Group id\",\"Id\",\"Source\",\"Site name\",\"Address\",\"Zip\",\"Phone\",\"Fax\",\"Program Name\",\"Length of Day\",\"IDHS Provider ID\",\"Agency\",\"Neighborhood\",\"Funded Enrollment\",\"Program Option\",\"Number per Site EHS\",\"Number per Site HS\",\"Director\",\"Head Start Fund\",\"Early Head Start Fund\",\"CC fund\",\"Progmod\",\"Website\",\"Executive Director\",\"Center Director\",\"ECE Available Programs\",\"NAEYC Valid Until\",\"NAEYC Program Id\",\"Email Address\",\"Ounce of Prevention Description\",\"Purple binder service type\"\n"
   FILE.write(output)
   
   #print out all found dupes
@@ -150,6 +151,7 @@ def printRow(item, i) :
   output += "\"" + item['Source'] + "\","
   output += "\"" + item['Site name'] + "\","
   output += "\"" + item['Address'] + "\","
+  output += "\"" + item['Zip'] + "\","
   output += "\"" + item['Phone'] + "\","
   output += "\"" + item['Fax'] + "\","
   output += "\"" + item['Program Name'] + "\","
@@ -182,6 +184,7 @@ def printRow(item, i) :
 num_training_dupes = 200
 num_training_distinct = 16000
 numIterations = 100
+numTrainingPairs = 30
 
 import time
 t0 = time.time()
@@ -189,7 +192,7 @@ t0 = time.time()
 
 print "importing data ..."
 #lets do some active learning here
-training_data, training_pairs, data_model = activeLearning(dictSubset(data_d, sample(data_d.keys(), 700)), data_model, consoleLabel, 20)
+training_data, training_pairs, data_model = activeLearning(dictSubset(data_d, sample(data_d.keys(), 700)), data_model, consoleLabel, numTrainingPairs)
 
 predicates = trainBlocking(training_pairs,
                           (wholeFieldPredicate,
