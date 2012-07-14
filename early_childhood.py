@@ -72,15 +72,17 @@ def consoleLabel(uncertain_pairs, data_d) :
     record_pair = [data_d[instance] for instance in pair]
     record_pair = tuple(record_pair)
 
-    print("Site name: ", record_pair[0]['Site name'])
-    print("Address: ", record_pair[0]['Address'])
-    print("Phone: ", record_pair[0]['Phone'])
+    print "Site name: ", record_pair[0]['Site name'] 
+    print "Address: ", record_pair[0]['Address'] 
+    print "Zip: ", record_pair[0]['Zip'] 
+    print "Phone: ", record_pair[0]['Phone'] 
     
     print ""
     
-    print("Site name: ", record_pair[1]['Site name'])
-    print("Address: ", record_pair[1]['Address'])
-    print("Phone: ", record_pair[1]['Phone'])
+    print "Site name: ", record_pair[1]['Site name']
+    print "Address: ", record_pair[1]['Address']
+    print "Zip: ", record_pair[1]['Zip']
+    print "Phone: ", record_pair[1]['Phone']
     
     #for instance in record_pair :
     #  print instance
