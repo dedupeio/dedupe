@@ -187,6 +187,8 @@ num_training_dupes = 200
 num_training_distinct = 16000
 numIterations = 100
 numTrainingPairs = 30
+percentEstimatedDupes = .7
+numNearestNeighbors = 8
 
 import time
 t0 = time.time()
@@ -233,7 +235,7 @@ print ""
 print "finding duplicates ..."
 print ""
 dupes = scoreDuplicates(candidates, data_d, data_model)
-clustered_dupes = cluster(dupes, .6, 8)
+clustered_dupes = cluster(dupes, percentEstimatedDupes, numNearestNeighbors)
 
 print "# duplicates"
 print len(clustered_dupes)
