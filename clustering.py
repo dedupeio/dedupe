@@ -1,72 +1,100 @@
-def nearestNeighbors(duplicates) :
-  nn = {}
-  duplicates = dict(duplicates)
-  pairs = duplicates.keys()
-  pairs = sorted(pairs, key=lambda pair : pair[1])
-  pairs = sorted(pairs, key=lambda pair : pair[0])
-  for pair in pairs :
-    new_proximity = 1-duplicates[pair]
+from collections import defaultdict
+from itertools import combinations
+
+def memoize(f):
+  cache= {}
+  def memf(*x):
+    x_key = (tuple(x[0]), x[1])
+    if x_key not in cache:
+      cache[x_key] = f(*x)
+    return cache[x_key]
+
+  return memf
+
+def neighbors(duplicates) :
+  neighbors = defaultdict(list)
+
+  for pair, similarity in duplicates :
     candidate_1, candidate_2 = pair
-    if candidate_1 in nn :
-      for i, neighbor in enumerate(nn[candidate_1]) :
-        neighbor_id, proximity = neighbor
-        if new_proximity < proximity :
-          nn[candidate_1].insert(i, (candidate_2, new_proximity))
-          break
-      else :
-        nn[candidate_1].append((candidate_2, new_proximity))
-    else :
-      nn[candidate_1] = [(candidate_2, new_proximity)]
-    if candidate_2 in nn :
-      for i, neighbor in enumerate(nn[candidate_2]) :
-        neighbor_id, proximity = neighbor
-        if new_proximity < proximity :
-          nn[candidate_2].insert(i, (candidate_1, new_proximity))
-          break
-      else :
-        nn[candidate_2].append((candidate_1, new_proximity))
-    else :
-      nn[candidate_2] = [(candidate_1, new_proximity)]
-      
-  return nn
+    distance = 1-similarity
 
-def neighborhoodAttributes(nn, p, K) :
-  neighborhood_attributes = {}
-  for candidate in nn :
-    neighbors = nn[candidate]
-    neighbor_ids, proximities = zip(*neighbors)
-    closest_proximity = proximities[0]
-    neighborhood_growth = sum([proximity < closest_proximity * p for
-                               proximity in proximities])
-    k = min(K, len(proximities))
-    neighborhood_attributes[candidate] = {'neighbor list' : neighbors[0:k],
-                                          'neighborhood growth' : neighborhood_growth}
+    neighbors[candidate_1].append((candidate_2, distance))
+    neighbors[candidate_2].append((candidate_1, distance))
+    
+  for candidate in neighbors :
+    neighbors[candidate] = sorted(neighbors[candidate],
+                                  key = lambda neighborhood : neighborhood[1])
+                                   
+  return neighbors
 
-  return neighborhood_attributes
+@memoize
+def neighborhoodGrowth(neighborhood, p) :
+  distances = zip(*neighborhood)[1]
+  smallest_distance = min(distances)
+  neighborhood_growth = sum([distance < (p * smallest_distance)
+                             for distance in distances])
 
-def compactPairs(neighborhood_attributes) :
+  return neighborhood_growth
+
+def kOverlap(neighborhood_1, neighborhood_2) :
+  K = min(len(neighborhood_1), len(neighborhood_2))
+  overlap = [False] * K
+
+  if set(neighborhood_1[:K+1]).intersection(set(neighborhood_2[:K+1])) :
+    for k in range(1,K+1) :
+      if set(neighborhood_1[:k]) == set(neighborhood_2[:k]) :
+        overlap[k-1] = True
+
+  return overlap
+  
+def compactPairs(neighbors, p, k, sparseness_threshold) :
   compact_pairs = []
-  target_keys = neighborhood_attributes.keys()
-  for candidate in neighborhood_attributes :
-    candidate_neighbors = neighborhood_attributes[candidate]['neighbor list']
-    candidate_neighbor_ids, proximities = zip(*candidate_neighbors)
 
-    target_keys.remove(candidate)
+  candidates = neighbors.keys()
+  candidate_pairs = combinations(candidates, 2)
 
-    for target_candidate in target_keys :
-      target_neighbors = neighborhood_attributes[target_candidate]['neighbor list']
-      target_neighbor_ids, proximities = zip(*target_neighbors)
-      if candidate in target_neighbor_ids and target_candidate in candidate_neighbor_ids:
-        compact_pairs.append((candidate, target_candidate))
+  for pair in candidate_pairs :
+    candidate_1, candidate_2 = pair
 
+    # This is appropriate if the aggregate function for the Spatial
+    # Neighborhood Threshold is MAX, not if its AVG
+    neighbors_1 = neighbors[candidate_1]
+    ng_1 = neighborhoodGrowth(neighbors_1, p) 
+    if ng_1 > sparseness_threshold :
+      continue
+      
+    neighbors_2 = neighbors[candidate_2]
+    ng_2 = neighborhoodGrowth(neighbors_2, p) 
+    if ng_2 > sparseness_threshold :
+      continue
+
+    neighb_candidates_1 = list(zip(*neighbors_1)[0][:k])
+    neighb_candidates_1.insert(0, candidate_1)
+
+    neighb_candidates_2 = list(zip(*neighbors_2)[0][:k])
+    neighb_candidates_2.insert(0, candidate_2)
+
+    k_set_overlap = kOverlap(neighb_candidates_1,
+                             neighb_candidates_2)
+
+    k_set_overlap = k_set_overlap[1:]
+
+    if any(k_set_overlap) :
+      compact_pairs.append((pair,
+                            k_set_overlap,
+                            (ng_1, ng_2)))
+    
   return compact_pairs
 
-def partition(compact_pairs, neighborhood_attributes, sparseness_threshold) :
-  clusters = []
-  cluster = set([])
-  assigned_candidates = set([])
-  
-  for pair in compact_pairs :
+def partition(compact_pairs, sparseness_threshold) :
+
+  assigned_candidates = []
+
+  pairs_ids = compact_pairs.keys()
+  pairs_ids = sorted(pairs_ids, key=lambda pair : pair[1])
+  pairs_ids = sorted(pairs_ids, key=lambda pair : pair[0])
+
+  for pair in pair_ids :
     candidate_1, candidate_2 = pair
     if candidate_2 not in assigned_candidates :
         
@@ -150,8 +178,14 @@ def cluster(dupes, threshold, num_nearest_neighbors = 6, neighborhood_multiplier
   print "clustering"
   nn = nearestNeighbors(dupes)
   neighborhood_attributes = neighborhoodAttributes(nn, neighborhood_multiplier, num_nearest_neighbors)
-  compact_pairs = compactPairs(neighborhood_attributes)
+
   
+  print "nearest neighbors"
+  print neighborhood_atributes
+  
+  compact_pairs = compactPairs(neighborhood_attributes)
+
+  print "compact pairs"
   print compact_pairs
   print 'number of compact pairs', len(compact_pairs)
   
@@ -167,3 +201,22 @@ def cluster(dupes, threshold, num_nearest_neighbors = 6, neighborhood_multiplier
   print clustering_partition
   
   return clustering_partition
+
+
+
+
+  
+
+def neighborhoodAttributes(neighbors, p, K) :
+  neighborhood_attributes = {}
+  for candidate in nn :
+    neighbors = nn[candidate]
+    neighbor_ids, proximities = zip(*neighbors)
+    closest_proximity = proximities[0]
+    neighborhood_growth = sum([proximity < closest_proximity * p for
+                               proximity in proximities])
+    k = min(K, len(proximities))
+    neighborhood_attributes[candidate] = {'neighbor list' : neighbors[0:k],
+                                          'neighborhood growth' : neighborhood_growth}
+
+  return neighborhood_attributes
