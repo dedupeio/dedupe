@@ -75,7 +75,7 @@ if __name__ == '__main__':
     
   num_training_dupes = 200
   num_training_distinct = 16000
-  numIterations = 20
+  numIterations = 10
 
   import time
   t0 = time.time()
@@ -146,7 +146,7 @@ if __name__ == '__main__':
   print "finding duplicates ..."
   print ""
   dupes = core.scoreDuplicates(candidates, data_d, data_model)
-  clustered_dupes = cluster(dupes, .2) 
+  clustered_dupes = cluster(dupes, estimated_dupe_fraction = 0.2) 
   
   confirm_dupes = set([])
   for dupe_set in clustered_dupes :
