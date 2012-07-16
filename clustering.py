@@ -87,7 +87,7 @@ def partition(compact_pairs, neighborhood_attributes, sparseness_threshold) :
   if cluster :
     clusters.append(cluster)
 
-  print assigned_candidates
+  #print assigned_candidates
   return clusters
   
 def calculateGrowthDistributions(neighborhood_attributes) :
@@ -102,8 +102,8 @@ def calculateGrowthDistributions(neighborhood_attributes) :
   
   ng_distribution = [(growth[0]/float(len(neighborhood_growths)), growth[1]) for growth in ng_distribution]
   
-  print "ng_distribution"                  
-  print ng_distribution
+  #print "ng_distribution"                  
+  #print ng_distribution
   
   ng_cumulative_distribution = []
   cumulative_growth = 0
@@ -111,8 +111,8 @@ def calculateGrowthDistributions(neighborhood_attributes) :
     cumulative_growth += growth[0]
     ng_cumulative_distribution.append((cumulative_growth, growth[1]))
        
-  print "ng_cumulative_distribution"                  
-  print ng_cumulative_distribution
+  #print "ng_cumulative_distribution"                  
+  #print ng_cumulative_distribution
   
   return ng_distribution, ng_cumulative_distribution
   
@@ -152,7 +152,7 @@ def cluster(dupes, threshold, num_nearest_neighbors = 6, neighborhood_multiplier
   neighborhood_attributes = neighborhoodAttributes(nn, neighborhood_multiplier, num_nearest_neighbors)
   compact_pairs = compactPairs(neighborhood_attributes)
   
-  print compact_pairs
+  #print compact_pairs
   print 'number of compact pairs', len(compact_pairs)
   
   ng_distribution, ng_cumulative_distribution = calculateGrowthDistributions(neighborhood_attributes)

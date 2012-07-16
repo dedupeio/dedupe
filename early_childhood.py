@@ -237,7 +237,7 @@ print ""
 dupes = scoreDuplicates(candidates, data_d, data_model)
 clustered_dupes = cluster(dupes, percentEstimatedDupes, numNearestNeighbors)
 
-print "# duplicates"
+print "# duplicate sets"
 print len(clustered_dupes)
 
 printToCsv(clustered_dupes, original_data_d)
