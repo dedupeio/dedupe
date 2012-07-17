@@ -102,31 +102,6 @@ def partition(compact_pairs) :
 
   assigned_candidates = set([])
   clusters = []
-<<<<<<< HEAD
-  cluster = set([])
-  assigned_candidates = set([])
-  
-  for pair in compact_pairs :
-    candidate_1, candidate_2 = pair
-    if candidate_2 not in assigned_candidates :
-        
-      max_growth = max(neighborhood_attributes[candidate_1]['neighborhood growth'],
-                       neighborhood_attributes[candidate_2]['neighborhood growth'])
-      if max_growth <= sparseness_threshold :
-        if candidate_1 in cluster :
-          cluster.add(candidate_2)
-          assigned_candidates.add(candidate_2)
-        elif cluster :
-          clusters.append(cluster)
-          cluster = set(pair)
-          assigned_candidates.update(pair)
-        else :
-          cluster = set(pair)
-
-    
-  if cluster :
-    clusters.append(cluster)
-=======
 
   groups = defaultdict(list)
   for pair in compact_pairs :
@@ -149,7 +124,6 @@ def partition(compact_pairs) :
 
       if cluster :
         clusters.append(cluster)
->>>>>>> upstream/master
 
   #print assigned_candidates
   return clusters
@@ -167,15 +141,10 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
                     
   distribution = sorted(distribution, key = lambda growth : growth[1])
   
-<<<<<<< HEAD
-  #print "ng_distribution"                  
-  #print ng_distribution
-=======
   distribution = [(growth[0]/float(len(growths)),
                    growth[1])
                   for growth in distribution]
 
->>>>>>> upstream/master
   
   cumulative_distribution = []
   cumulative_growth = 0
@@ -183,14 +152,7 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
     cumulative_growth += growth[0]
     cumulative_distribution.append((cumulative_growth, growth[1]))
        
-<<<<<<< HEAD
-  #print "ng_cumulative_distribution"                  
-  #print ng_cumulative_distribution
-  
-  return ng_distribution, ng_cumulative_distribution
-=======
   return distribution, cumulative_distribution
->>>>>>> upstream/master
   
 def sparsenessThreshold(neighbors,
                         estimated_dupe_fraction,

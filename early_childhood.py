@@ -1,7 +1,7 @@
 from training_sample import activeLearning
 from blocking import trainBlocking, blockingIndex, mergeBlocks
 from predicates import *
-from core import scoreDuplicates
+import core
 from random import sample
 from clustering import cluster 
 from itertools import combinations
@@ -210,6 +210,10 @@ predicates = trainBlocking(training_pairs,
                            commonSixGram),
                            data_model, 1, 1)
 
+core.writeSettings('learned_settings.py',
+                   data_model,
+                   predicates)
+
 
 blocked_data = blockingIndex(data_d, predicates)
 candidates = mergeBlocks(blocked_data)
@@ -234,7 +238,7 @@ print ""
 
 print "finding duplicates ..."
 print ""
-dupes = scoreDuplicates(candidates, data_d, data_model)
+dupes = core.scoreDuplicates(candidates, data_d, data_model)
 clustered_dupes = cluster(dupes, percentEstimatedDupes, numNearestNeighbors)
 
 print "# duplicate sets"
