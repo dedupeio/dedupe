@@ -3,8 +3,6 @@ import csv
 import re
 from core import frozendict
 from clustering import cluster
-import json
-import inspect
 
 def canonicalImport(filename) :
 
@@ -155,7 +153,9 @@ if __name__ == '__main__':
   print "finding duplicates ..."
   print ""
   dupes = core.scoreDuplicates(candidates, data_d, data_model)
-  clustered_dupes = cluster(dupes, estimated_dupe_fraction = 0.2) 
+  clustered_dupes = cluster(dupes,
+                            estimated_dupe_fraction = .2)
+
   
   confirm_dupes = set([])
   for dupe_set in clustered_dupes :
@@ -187,7 +187,7 @@ if __name__ == '__main__':
   print ""
 
   print "found duplicate"
-  print len(dupes)
+  print len(confirm_dupes)
   
   print "precision"
   print (len(confirm_dupes) - len(false_positives))/float(len(confirm_dupes))

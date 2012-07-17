@@ -1,6 +1,7 @@
 from collections import defaultdict
 from itertools import combinations
 
+
 def memoize(f):
   cache= {}
   def memf(*x):
@@ -16,7 +17,7 @@ def neighborDict(duplicates) :
 
   for pair, similarity in duplicates :
     candidate_1, candidate_2 = pair
-    distance = 1-similarity
+    distance = 1 - similarity
 
     neighbors[candidate_1].append((candidate_2, distance))
     neighbors[candidate_2].append((candidate_1, distance))
