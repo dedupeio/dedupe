@@ -11,56 +11,36 @@ from core import frozendict
 import os
 
 def earlyChildhoodImport(filename) :
+  data_d = {}
+  duplicates_d = {}
+  with open(filename) as f :
+    reader = csv.reader(f)
+    header = reader.next()
+    for i, row in enumerate(reader) :
+      instance = {}
+      for j, col in enumerate(row) :
+        col = re.sub('  +', ' ', col)
+        col = re.sub('\n', ' ', col)
+        instance[header[j]] = col.strip().strip('"').strip("'").lower()
+        
+        data_d[i] = frozendict(instance)
 
-    original_data_d = {}
-    data_d = {}
-    duplicates_d = {}
-    with open(filename) as f :
-        reader = csv.reader(f)
-        header = reader.next()
-        for i, row in enumerate(reader) :
-            instance_orig = {}
-            instance = {}
-            for j, col in enumerate(row) :
-              col = re.sub('  +', ' ', col)
-              col = re.sub('\n', ' ', col)
-              instance_orig[header[j]] = col.strip().strip('"').strip("'")
-              instance[header[j]] = col.strip().strip('"').strip("'").lower()
-            
-            original_data_d[i] = frozendict(instance_orig)    
-            data_d[i] = frozendict(instance)
-            #print data_d[i]
-
-    return(original_data_d, data_d, header)
+    return(data_d, header)
     
     
-             # 'Id' : {'type': 'String', 'weight' : 0}, 
-#              'Site Name' : {'type': 'String', 'weight' : 0}, 
-#              'Program Name' : {'type': 'String', 'weight' : 0}, 
-#              'Length of Day' : {'type' :'String', 'weight' : 0},
-#              'Address' : {'type': 'String', 'weight' : 0},
-#              'Phone' : {'type': 'String', 'weight' : 0}
-
 def dataModel() :
   return  {'fields': 
             { 'Site name' : {'type': 'String', 'weight' : 0}, 
-              'Address' : {'type': 'String', 'weight' : 0},
-              'Zip' : {'type': 'String', 'weight' : 0}, 
-              'Phone' : {'type': 'String', 'weight' : 0}
+              'Address'   : {'type': 'String', 'weight' : 0},
+              'Zip'       : {'type': 'String', 'weight' : 0}, 
+              'Phone'     : {'type': 'String', 'weight' : 0}
             },
            'bias' : 0}
 
-
 def init() :
-    
-  #data_d, header = earlyChildhoodImport("source/csv/CPS_Early_Childhood_Portal_scrape.csv")
-  original_data_d, data_d, header = earlyChildhoodImport("datasets/ECP_all_raw_input.csv")
-  
-  #print data_d
-  
+  data_d, header = earlyChildhoodImport("datasets/ECP_all_raw_input.csv")
   data_model = dataModel()
-  return (original_data_d, data_d, data_model)
-
+  return (data_d, data_model, header)
 
 # user defined function to label pairs as duplicates or non-duplicates
 def consoleLabel(uncertain_pairs, data_d) :
@@ -110,79 +90,6 @@ def consoleLabel(uncertain_pairs, data_d) :
 def dictSubset(d, keys) :
   return dict((k,d[k]) for k in keys if k in d)
 
-def printToCsv(clustered_dupes, original_data_d) :
-  print "writing to csv"
-  FILE = open("output/ECP_dupes_list_" + str(time.time()) + ".csv","w")
-  output = "\"Group id\",\"Id\",\"Source\",\"Site name\",\"Address\",\"Zip\",\"Phone\",\"Fax\",\"Program Name\",\"Length of Day\",\"IDHS Provider ID\",\"Agency\",\"Neighborhood\",\"Funded Enrollment\",\"Program Option\",\"Number per Site EHS\",\"Number per Site HS\",\"Director\",\"Head Start Fund\",\"Early Head Start Fund\",\"CC fund\",\"Progmod\",\"Website\",\"Executive Director\",\"Center Director\",\"ECE Available Programs\",\"NAEYC Valid Until\",\"NAEYC Program Id\",\"Email Address\",\"Ounce of Prevention Description\",\"Purple binder service type\"\n"
-  FILE.write(output)
-  
-  #print out all found dupes
-  dupe_id_list = []
-  i = 1
-  row_cnt = 0
-  for dupe_set in clustered_dupes :
-    for dupe_id in dupe_set :
-      item = original_data_d[dupe_id]
-      dupe_id_list.append(dupe_id)
-      FILE.write(printRow(item,i))
-      row_cnt += 1
-    i += 1
-      
-  #print the rest that weren't found
-  dupe_id_list = set(dupe_id_list)
-  #print "dupe ids"
-  #print dupe_id_list
-  for row in original_data_d :
-    #print row
-    #print "row in dupes?", (not row in dupe_id_list)
-    if not row in dupe_id_list :
-      #print "adding"
-      FILE.write(printRow(original_data_d[row],i))
-      i += 1
-      row_cnt += 1
-  
-  FILE.close()
-  print len(original_data_d), "input rows"
-  print len(clustered_dupes), "dupe clusters found"
-  print i, "groups printed"
-  print row_cnt, "rows printed"
-
-
-def printRow(item, i) :
-  output = str(i) + ","
-  output += "\"" + item['Id'] + "\","
-  output += "\"" + item['Source'] + "\","
-  output += "\"" + item['Site name'] + "\","
-  output += "\"" + item['Address'] + "\","
-  output += "\"" + item['Zip'] + "\","
-  output += "\"" + item['Phone'] + "\","
-  output += "\"" + item['Fax'] + "\","
-  output += "\"" + item['Program Name'] + "\","
-  output += "\"" + item['Length of Day'] + "\","
-  output += "\"" + item['IDHS Provider ID'] + "\","
-  output += "\"" + item['Agency'] + "\","
-  output += "\"" + item['Neighborhood'] + "\","
-  output += "\"" + item['Funded Enrollment'] + "\","
-  output += "\"" + item['Program Option'] + "\","
-  output += "\"" + item['Number per Site EHS'] + "\","
-  output += "\"" + item['Number per Site HS'] + "\","
-  output += "\"" + item['Director'] + "\","
-  output += "\"" + item['Head Start Fund'] + "\","
-  output += "\"" + item['Eearly Head Start Fund'] + "\","
-  output += "\"" + item['CC fund'] + "\","
-  output += "\"" + item['Progmod'] + "\","
-  output += "\"" + item['Website'] + "\","
-  output += "\"" + item['Executive Director'] + "\","
-  output += "\"" + item['Center Director'] + "\","
-  output += "\"" + item['ECE Available Programs'] + "\","
-  output += "\"" + item['NAEYC Valid Until'] + "\","
-  output += "\"" + item['NAEYC Program Id'] + "\","
-  output += "\"" + item['Email Address'] + "\","
-  output += "\"" + item['Ounce of Prevention Description'] + "\","
-  output += "\"" + item['Purple binder service type'] + "\","
-  output += "\n"
-  
-  return output
 
 num_training_dupes = 200
 num_training_distinct = 16000
@@ -191,7 +98,9 @@ numTrainingPairs = 30
 
 import time
 t0 = time.time()
-(original_data_d, data_d, data_model) = init()
+data_d, data_model, header = init()
+
+
 
 
 print "importing data ..."
@@ -248,6 +157,25 @@ clustered_dupes = cluster(dupes, estimated_dupe_fraction = 0.2)
 print "# duplicate sets"
 print len(clustered_dupes)
 
-printToCsv(clustered_dupes, original_data_d)
+orig_data = {}
+with open("datasets/ECP_all_raw_input.csv") as f :
+  reader = csv.reader(f)
+  reader.next()
+  for row_id, row in enumerate(reader) :
+    orig_data[row_id] = row
+    
+
+with open("output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as f :
+  writer = csv.writer(f)
+  heading_row = header
+  heading_row.insert(0, "Group_ID")
+  writer.writerow(heading_row)
+  
+  for group_id, cluster in enumerate(clustered_dupes, 1) :
+    for candidate in sorted(cluster) :
+      row = orig_data[candidate]
+      row.insert(0, group_id)
+      writer.writerow(row)
+
 
 print "ran in ", time.time() - t0, "seconds"
