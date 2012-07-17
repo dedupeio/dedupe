@@ -1,42 +1,9 @@
 from canonical_example import init
-from training_sample import activeLearning
+from training_sample import activeLearning, consoleLabel
 from blocking import trainBlocking, blockingIndex, mergeBlocks
 from predicates import *
 from core import scorePairs
 from clustering import cluster
-
-# user defined function to label pairs as duplicates or non-duplicates
-def consoleLabel(uncertain_pairs, data_d) :
-  duplicates = []
-  nonduplicates = []
-
-  for pair in uncertain_pairs :
-    label = ''
-
-    record_pair = [data_d[instance] for instance in pair]
-    record_pair = tuple(record_pair)
-
-    for instance in record_pair :
-      print instance
-
-    print "Do these records refer to the same thing?"  
-
-    valid_response = False
-    while not valid_response :
-      label = raw_input('(y)es / (n)o / (u)nsure\n')
-      if label in ['y', 'n', 'u'] :
-        valid_response = True
-
-    if label == 'y' :
-      duplicates.append(record_pair)
-    elif label == 'n' :
-      nonduplicates.append(record_pair)
-    elif label != 'u' :
-      print 'Nonvalid response'
-      raise
-
-  return({0:nonduplicates, 1:duplicates})
-
 
 num_training_dupes = 200
 num_training_distinct = 16000

@@ -1,4 +1,4 @@
-from training_sample import activeLearning
+from training_sample import activeLearning, consoleLabel
 from blocking import trainBlocking, blockingIndex, mergeBlocks
 from predicates import *
 import core
@@ -41,49 +41,7 @@ def init() :
   return (data_d, data_model, header)
 
 # user defined function to label pairs as duplicates or non-duplicates
-def consoleLabel(uncertain_pairs, data_d) :
-  duplicates = []
-  nonduplicates = []
 
-  for pair in uncertain_pairs :
-    label = ''
-
-    record_pair = [data_d[instance] for instance in pair]
-    record_pair = tuple(record_pair)
-
-    print "Site name: ", record_pair[0]['Site name'] 
-    print "Address: ", record_pair[0]['Address'] 
-    print "Zip: ", record_pair[0]['Zip'] 
-    print "Phone: ", record_pair[0]['Phone'] 
-    
-    print ""
-    
-    print "Site name: ", record_pair[1]['Site name']
-    print "Address: ", record_pair[1]['Address']
-    print "Zip: ", record_pair[1]['Zip']
-    print "Phone: ", record_pair[1]['Phone']
-    
-    #for instance in record_pair :
-    #  print instance
-  
-    print ""
-    print "Do these records refer to the same thing?"  
-
-    valid_response = False
-    while not valid_response :
-      label = raw_input('(y)es / (n)o / (u)nsure\n')
-      if label in ['y', 'n', 'u'] :
-        valid_response = True
-
-    if label == 'y' :
-      duplicates.append(record_pair)
-    elif label == 'n' :
-      nonduplicates.append(record_pair)
-    elif label != 'u' :
-      print 'Nonvalid response'
-      raise
-
-  return({0:nonduplicates, 1:duplicates})
 
 def dictSubset(d, keys) :
   return dict((k,d[k]) for k in keys if k in d)
