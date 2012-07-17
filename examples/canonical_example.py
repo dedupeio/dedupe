@@ -60,7 +60,7 @@ def dataModel() :
 
 def init() :
     
-  data_d, header, duplicates_s = canonicalImport("./datasets/restaurant-nophone-training.csv")
+  data_d, header, duplicates_s = canonicalImport("examples/datasets/restaurant-nophone-training.csv")
   data_model = dataModel()
   return (data_d, duplicates_s, data_model)
   
