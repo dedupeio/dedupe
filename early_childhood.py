@@ -8,6 +8,7 @@ from itertools import combinations
 import csv
 import re
 from core import frozendict
+import os
 
 def earlyChildhoodImport(filename) :
 
@@ -187,32 +188,35 @@ num_training_dupes = 200
 num_training_distinct = 16000
 numIterations = 100
 numTrainingPairs = 30
-percentEstimatedDupes = .7
-numNearestNeighbors = 8
 
 import time
 t0 = time.time()
 (original_data_d, data_d, data_model) = init()
 
+
 print "importing data ..."
-#lets do some active learning here
-training_data, training_pairs, data_model = activeLearning(dictSubset(data_d, sample(data_d.keys(), 700)), data_model, consoleLabel, numTrainingPairs)
 
-predicates = trainBlocking(training_pairs,
-                          (wholeFieldPredicate,
-                           tokenFieldPredicate,
-                           commonIntegerPredicate,
-                           sameThreeCharStartPredicate,
-                           sameFiveCharStartPredicate,
-                           sameSevenCharStartPredicate,
-                           nearIntegersPredicate,
-                           commonFourGram,
-                           commonSixGram),
-                           data_model, 1, 1)
+if os.path.exists('learned_settings.json') :
+  data_model, predicates = core.readSettings('learned_settings.json')
+else:
+  #lets do some active learning here
+  training_data, training_pairs, data_model = activeLearning(dictSubset(data_d, sample(data_d.keys(), 700)), data_model, consoleLabel, numTrainingPairs)
 
-core.writeSettings('learned_settings.py',
-                   data_model,
-                   predicates)
+  predicates = trainBlocking(training_pairs,
+                             (wholeFieldPredicate,
+                              tokenFieldPredicate,
+                              commonIntegerPredicate,
+                              sameThreeCharStartPredicate,
+                              sameFiveCharStartPredicate,
+                              sameSevenCharStartPredicate,
+                              nearIntegersPredicate,
+                              commonFourGram,
+                              commonSixGram),
+                             data_model, 1, 1)
+
+  core.writeSettings('learned_settings.json',
+                     data_model,
+                     predicates)
 
 
 blocked_data = blockingIndex(data_d, predicates)
@@ -239,7 +243,7 @@ print ""
 print "finding duplicates ..."
 print ""
 dupes = core.scoreDuplicates(candidates, data_d, data_model)
-clustered_dupes = cluster(dupes, percentEstimatedDupes, numNearestNeighbors)
+clustered_dupes = cluster(dupes, estimated_dupe_fraction = 0.2)
 
 print "# duplicate sets"
 print len(clustered_dupes)
