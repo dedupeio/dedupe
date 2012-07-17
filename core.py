@@ -1,6 +1,27 @@
 import lr
 import affinegap
 import numpy
+import json
+
+def writeSettings(file_name, data_model, predicates) :
+  source_predicates = [(predicate[0].__name__,
+                        predicate[1])
+                       for predicate in predicates]
+  with open(file_name, 'w') as f :
+    json.dump({'data model' : data_model,
+               'predicates' : source_predicates}, f)
+  
+  
+def readSettings(file_name) :
+  from predicates import *
+  with open(file_name, 'r') as f :
+    learned_settings = json.load(f)
+
+  data_model = learned_settings['data model']
+  predicates = [(eval(predicate[0]), predicate[1])
+                for predicate in learned_settings['predicates']]
+
+  return data_model, predicates
 
 # based on field type, calculate using the appropriate distance function and return distance
 def calculateDistance(instance_1, instance_2, fields, distances) :
@@ -120,4 +141,3 @@ class frozendict(dict):
 
     def __repr__(self):
         return "frozendict(%s)" % dict.__repr__(self)
-

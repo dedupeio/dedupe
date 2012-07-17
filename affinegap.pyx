@@ -117,11 +117,10 @@ cpdef float normalizedAffineGapDistance(char *string1, char *string2,
                                         float abbreviation_scale = .5) :
   
     cdef float normalizer = len(string1) + len(string2)
+
     if normalizer == 0 :
       return 0
 
-    cdef float alpha = gapWeight + spaceWeight
-    
     cdef float distance = affineGapDistance(string1, string2,
                                             matchWeight,
                                             mismatchWeight,
@@ -129,9 +128,5 @@ cpdef float normalizedAffineGapDistance(char *string1, char *string2,
                                             spaceWeight,
                                             abbreviation_scale)
 
-    # Normalization proposed by Li Yujian and Li Bo's in "A Normalized
-    # Levenshtein Distance Metric"
-    # http://dx.doi.org/10.1109/TPAMI.2007.1078
-    return (2 * distance)/(alpha * normalizer + distance)
-
+    return distance/normalizer
 
