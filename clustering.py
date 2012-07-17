@@ -125,7 +125,6 @@ def partition(compact_pairs) :
       if cluster :
         clusters.append(cluster)
 
-  #print assigned_candidates
   return clusters
 
   
@@ -205,7 +204,4 @@ def cluster(duplicates,
 
 
 
-
-
-  
 
