@@ -3,6 +3,8 @@ import csv
 import re
 from core import frozendict
 from clustering import cluster
+import json
+import inspect
 
 def canonicalImport(filename) :
 
@@ -71,45 +73,73 @@ if __name__ == '__main__':
   import core
   import training_sample
   import blocking
-  import clustering 
+  import clustering
+  import os
     
+
+  import time
+  t0 = time.time()
+
   num_training_dupes = 200
   num_training_distinct = 16000
   numIterations = 10
 
-  import time
-  t0 = time.time()
   (data_d, duplicates_s, data_model) = init()
-  #candidates = allCandidates(data_d)
-  #print "training data: "
-  #print duplicates_s
 
   print "number of duplicates pairs"
   print len(duplicates_s)
   print ""
 
-  training_pairs = training_sample.randomTrainingPairs(data_d,
-                                                       duplicates_s,
-                                                       num_training_dupes,
-                                                       num_training_distinct)
+  if os.path.exists('learned_settings.json') :
+    data_model, predicates = core.readSettings('learned_settings.json')
 
-  predicates = blocking.trainBlocking(training_pairs,
-                                      (wholeFieldPredicate,
-                                       tokenFieldPredicate,
-                                       commonIntegerPredicate,
-                                       sameThreeCharStartPredicate,
-                                       sameFiveCharStartPredicate,
-                                       sameSevenCharStartPredicate,
-                                       nearIntegersPredicate,
-                                       commonFourGram,
-                                       commonSixGram),
-                                      data_model, 1, 1)
+  else :
+      
+    training_pairs = training_sample.randomTrainingPairs(data_d,
+                                                         duplicates_s,
+                                                         num_training_dupes,
+                                                         num_training_distinct)
+
+    
+
+    predicates = blocking.trainBlocking(training_pairs,
+                                        (wholeFieldPredicate,
+                                         tokenFieldPredicate,
+                                         commonIntegerPredicate,
+                                         sameThreeCharStartPredicate,
+                                         sameFiveCharStartPredicate,
+                                         sameSevenCharStartPredicate,
+                                         nearIntegersPredicate,
+                                         commonFourGram,
+                                         commonSixGram),
+                                        data_model, 1, 1)
   
+
+    training_data = training_sample.trainingDistances(training_pairs, data_model)
+
+
+    print ""
+    print "number of training items: "
+    print len(training_data)
+    print ""
+
+
+    print "training weights ..."
+    data_model = core.trainModel(training_data, numIterations, data_model)
+    print ""
+
+    core.writeSettings('learned_settings.json', data_model, predicates)
+
+  print "Learned Weights"
+  for k1, v1 in data_model.items() :
+    try:
+      for k2, v2 in v1.items() :
+        print (k2, v2['weight'])
+    except :
+      print (k1, v1)
 
   blocked_data = blocking.blockingIndex(data_d, predicates)
   candidates = blocking.mergeBlocks(blocked_data)
-
-
 
   print ""
   print "Blocking reduced the number of comparisons by",
@@ -119,27 +149,6 @@ if __name__ == '__main__':
   print len(candidates),
   print "comparisons."
 
-  training_data = training_sample.trainingDistances(training_pairs, data_model)
-  #print "training data from known duplicates: "
-  #for instance in training_data :
-  #  print instance
-
-  print ""
-  print "number of training items: "
-  print len(training_data)
-  print ""
-
-  print "training weights ..."
-  data_model = core.trainModel(training_data, numIterations, data_model)
-  print ""
-
-  print "Learned Weights"
-  for k1, v1 in data_model.items() :
-    try:
-      for k2, v2 in v1.items() :
-        print (k2, v2['weight'])
-    except :
-      print (k1, v1)
 
   print ""
   
