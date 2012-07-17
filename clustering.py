@@ -65,12 +65,12 @@ def compactPairs(neighbors,
     # Neighborhood Threshold is MAX, not if its AVG
     neighbors_1 = neighbors[candidate_1]
     ng_1 = neighborhoodGrowth(neighbors_1, neighborhood_multiplier) 
-    if ng_1 > sparseness_threshold :
+    if ng_1 >= sparseness_threshold :
       continue
       
     neighbors_2 = neighbors[candidate_2]
     ng_2 = neighborhoodGrowth(neighbors_2, neighborhood_multiplier) 
-    if ng_2 > sparseness_threshold :
+    if ng_2 >= sparseness_threshold :
       continue
 
     # Include candidates in list of neighbors of candidate so
@@ -150,12 +150,17 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
   for i, growth in enumerate(distribution) :
     cumulative_growth += growth[0]
     cumulative_distribution.append((cumulative_growth, growth[1]))
+
+  print "Distribution of Growths"
+  for quantile in distribution :
+    print ("%.2f" % quantile[0], quantile[1])
+  
        
   return distribution, cumulative_distribution
   
 def sparsenessThreshold(neighbors,
                         estimated_dupe_fraction,
-                        epsilon = 0.05,
+                        epsilon = 0.1,
                         neighborhood_multiplier=2) :
 
   (distribution,
@@ -170,17 +175,15 @@ def sparsenessThreshold(neighbors,
     elif quantile > (estimated_dupe_fraction - epsilon) :
       fraction_window.append(i)
 
-  if (len(fraction_window) == 0) :
-    return distribution[i][1]
-  
-  else :
-    # of the quantiles found, return minimum spike
-    for j in range(1, len(fraction_window)) :
-      if (distribution[fraction_window[j]][0]
-          - distribution[fraction_window[j-1]][0]) > 0 :
-        return distribution[fraction_window[j]][1]
+
+
+  # of the quantiles found, return minimum spike
+  for j in range(1, len(fraction_window)) :
+    if (distribution[fraction_window[j]][0]
+        - distribution[fraction_window[j-1]][0]) > 0 :
+      return distribution[fraction_window[j]][1]
         
-  return distribution[fraction_window[-1]][1]
+  return distribution[i+1][1]
 
 
     
@@ -195,6 +198,7 @@ def cluster(duplicates,
   if estimated_dupe_fraction :
     sparseness_threshold = sparsenessThreshold(neighbors,
                                                estimated_dupe_fraction)
+    print "Sparseness Threshold is ", sparseness_threshold
 
   compact_pairs = compactPairs(neighbors,
                                neighborhood_multiplier,
@@ -204,6 +208,4 @@ def cluster(duplicates,
 
 
 
-
-  
 
