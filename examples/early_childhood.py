@@ -36,7 +36,7 @@ def dataModel() :
            'bias' : 0}
 
 def init() :
-  data_d, header = earlyChildhoodImport("datasets/ECP_all_raw_input.csv")
+  data_d, header = earlyChildhoodImport("examples/datasets/ECP_all_raw_input.csv")
   data_model = dataModel()
   return (data_d, data_model, header)
 
@@ -156,14 +156,14 @@ print "# duplicate sets"
 print len(clustered_dupes)
 
 orig_data = {}
-with open("datasets/ECP_all_raw_input.csv") as f :
+with open("examples/datasets/ECP_all_raw_input.csv") as f :
   reader = csv.reader(f)
   reader.next()
   for row_id, row in enumerate(reader) :
     orig_data[row_id] = row
     
 
-with open("output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as f :
+with open("examples/output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as f :
   writer = csv.writer(f)
   heading_row = header
   heading_row.insert(0, "Group_ID")
