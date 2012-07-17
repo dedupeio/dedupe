@@ -10,5 +10,6 @@ logfile
 *.html
 .#*
 *.*#
+*.json
 kernprof.py
 possible_classifiers
