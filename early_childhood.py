@@ -3,18 +3,16 @@ from blocking import trainBlocking, blockingIndex, mergeBlocks
 from predicates import *
 import core
 from random import sample
-from clustering import cluster 
-from itertools import combinations
+import clustering
 import csv
 import re
-from core import frozendict
 import os
 
 def earlyChildhoodImport(filename) :
   data_d = {}
   duplicates_d = {}
   with open(filename) as f :
-    reader = csv.reader(f)
+    reader = csv.reader(f, delimiter=',', quotechar='"')
     header = reader.next()
     for i, row in enumerate(reader) :
       instance = {}
@@ -23,7 +21,7 @@ def earlyChildhoodImport(filename) :
         col = re.sub('\n', ' ', col)
         instance[header[j]] = col.strip().strip('"').strip("'").lower()
         
-        data_d[i] = frozendict(instance)
+        data_d[i] = core.frozendict(instance)
 
     return(data_d, header)
     
@@ -152,7 +150,7 @@ print ""
 print "finding duplicates ..."
 print ""
 dupes = core.scoreDuplicates(candidates, data_d, data_model)
-clustered_dupes = cluster(dupes, estimated_dupe_fraction = 0.2)
+clustered_dupes = clustering.cluster(dupes, estimated_dupe_fraction = 0.4)
 
 print "# duplicate sets"
 print len(clustered_dupes)

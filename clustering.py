@@ -150,6 +150,11 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
   for i, growth in enumerate(distribution) :
     cumulative_growth += growth[0]
     cumulative_distribution.append((cumulative_growth, growth[1]))
+
+  print "Distribution of Growths"
+  for quantile in distribution :
+    print ("%.2f" % quantile[0], quantile[1])
+  
        
   return distribution, cumulative_distribution
   
@@ -168,7 +173,7 @@ def sparsenessThreshold(neighbors,
     if quantile > (estimated_dupe_fraction + epsilon) :
       break
     elif quantile > (estimated_dupe_fraction - epsilon) :
-      fraction_window.append(i)
+      fraction_window.append(i+1)
 
   if (len(fraction_window) == 0) :
     return distribution[i][1]
@@ -195,6 +200,7 @@ def cluster(duplicates,
   if estimated_dupe_fraction :
     sparseness_threshold = sparsenessThreshold(neighbors,
                                                estimated_dupe_fraction)
+    print "Sparseness Threshold is ", sparseness_threshold
 
   compact_pairs = compactPairs(neighbors,
                                neighborhood_multiplier,
