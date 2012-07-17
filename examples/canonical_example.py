@@ -90,8 +90,8 @@ if __name__ == '__main__':
   print len(duplicates_s)
   print ""
 
-  if os.path.exists('learned_settings.json') :
-    data_model, predicates = core.readSettings('learned_settings.json')
+  if os.path.exists('restaurant_learned_settings.json') :
+    data_model, predicates = core.readSettings('restaurant_learned_settings.json')
 
   else :
       
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     data_model = core.trainModel(training_data, numIterations, data_model)
     print ""
 
-    core.writeSettings('learned_settings.json', data_model, predicates)
+    core.writeSettings('restaurant_learned_settings.json', data_model, predicates)
 
   print "Learned Weights"
   for k1, v1 in data_model.items() :
@@ -190,7 +190,7 @@ if __name__ == '__main__':
   print len(dupes)
   
   print "precision"
-  print (len(dupes) - len(false_positives))/float(len(dupes))
+  print (len(confirm_dupes) - len(false_positives))/float(len(confirm_dupes))
 
   print "recall"
   print  len(true_positives)/float(len(duplicates_s))
