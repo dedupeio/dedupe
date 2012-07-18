@@ -107,7 +107,7 @@ print ""
 
 print "finding duplicates ..."
 print ""
-dupes = core.scoreDuplicates(candidates, data_d, data_model)
+dupes = core.scoreDuplicates(candidates, data_d, data_model, .5)
 clustered_dupes = clustering.cluster(dupes, estimated_dupe_fraction = 0.4)
 
 print "# duplicate sets"
