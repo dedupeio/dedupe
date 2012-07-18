@@ -1,17 +1,6 @@
 from collections import defaultdict
 from itertools import combinations
 
-
-def memoize(f):
-  cache= {}
-  def memf(*x):
-    x_key = (tuple(x[0]), x[1])
-    if x_key not in cache:
-      cache[x_key] = f(*x)
-    return cache[x_key]
-
-  return memf
-
 def neighborDict(duplicates) :
   neighbors = defaultdict(list)
 
@@ -28,7 +17,6 @@ def neighborDict(duplicates) :
                                    
   return neighbors
 
-@memoize
 def neighborhoodGrowth(neighborhood, neighborhood_multiplier) :
   distances = zip(*neighborhood)[1]
   smallest_distance = min(distances)
@@ -42,17 +30,14 @@ def kOverlap(neighborhood_1, neighborhood_2) :
   K = min(len(neighborhood_1), len(neighborhood_2))
   overlap = [False] * K
 
-  if set(neighborhood_1[:K+1]).intersection(set(neighborhood_2[:K+1])) :
-    for k in range(1,K+1) :
-      if set(neighborhood_1[:k]) == set(neighborhood_2[:k]) :
-        overlap[k-1] = True
+  for k in xrange(1,K+1) :
+    if set(neighborhood_1[:k]) == set(neighborhood_2[:k]) :
+      overlap[k-1] = True
 
   return overlap
-  
-def compactPairs(neighbors,
-                 neighborhood_multiplier,
-                 k_nearest_neighbors,
-                 sparseness_threshold) :
+
+def compactPairs(neighbors) :
+
   compact_pairs = []
 
   candidates = neighbors.keys()
@@ -65,36 +50,26 @@ def compactPairs(neighbors,
     # This is appropriate if the aggregate function for the Spatial
     # Neighborhood Threshold is MAX, not if its AVG
     neighbors_1 = neighbors[candidate_1]
-    ng_1 = neighborhoodGrowth(neighbors_1, neighborhood_multiplier) 
-    if ng_1 >= sparseness_threshold :
-      continue
       
     neighbors_2 = neighbors[candidate_2]
-    ng_2 = neighborhoodGrowth(neighbors_2, neighborhood_multiplier) 
-    if ng_2 >= sparseness_threshold :
-      continue
 
     # Include candidates in list of neighbors of candidate so
     # that 1 : [2, 3] and 2 : [1,3] will become identical sets
     # 1 : [1, 2, 3] and 2 : [2, 1, 3]  
     
-    neighb_candidates_1 = list(zip(*neighbors_1)[0][:k_nearest_neighbors])
-    neighb_candidates_1.insert(0, candidate_1)
-
-    neighb_candidates_2 = list(zip(*neighbors_2)[0][:k_nearest_neighbors])
-    neighb_candidates_2.insert(0, candidate_2)
-
-    k_set_overlap = kOverlap(neighb_candidates_1,
-                             neighb_candidates_2)
+    if (candidate_1 in neighbors_2
+        and candidate_2 in neighbors_1) :
+      k_set_overlap = kOverlap(neighbors_1,
+                               neighbors_2)
 
 
-    if any(k_set_overlap) :
-      # Since the nearest neighbor to a candidate is always itself the
-      # first elements will never overlap
-      k_set_overlap = k_set_overlap[1:]
+      if any(k_set_overlap) :
+        # Since the nearest neighbor to a candidate is always itself the
+        # first elements will never overlap
+        k_set_overlap = k_set_overlap[1:]
 
-      compact_pairs.append((pair,
-                            k_set_overlap))
+        compact_pairs.append((pair,
+                              k_set_overlap))
 
     
   return compact_pairs
@@ -158,7 +133,7 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
   
        
   return distribution, cumulative_distribution
-  
+
 def sparsenessThreshold(neighbors,
                         estimated_dupe_fraction,
                         epsilon = 0.1,
@@ -201,10 +176,12 @@ def cluster(duplicates,
                                                estimated_dupe_fraction)
     print "Sparseness Threshold is ", sparseness_threshold
 
-  compact_pairs = compactPairs(neighbors,
-                               neighborhood_multiplier,
-                               k_nearest_neighbors,
-                               sparseness_threshold)
+  neighbors = dict([(k, (k,) + zip(*v[:k_nearest_neighbors])[0])
+                    for k, v in neighbors.iteritems()
+                    if neighborhoodGrowth(v, 2) < sparseness_threshold])
+
+  compact_pairs = compactPairs(neighbors)
+
   return(partition(compact_pairs))
 
 
