@@ -11,5 +11,6 @@ logfile
 .#*
 *.*#
 *.json
+examples/output/*.*
 kernprof.py
 possible_classifiers
