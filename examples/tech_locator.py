@@ -29,7 +29,6 @@ def techLocatorImport(filename) :
 def dataModel() :
   return  {'fields': 
             { 'OrganizationName' : {'type': 'String', 'weight' : 0}, 
-              'OrganizationType'   : {'type': 'String', 'weight' : 0},
               'Address'   : {'type': 'String', 'weight' : 0},
               'ZipCode'       : {'type': 'String', 'weight' : 0}, 
               'OrgPhone'     : {'type': 'String', 'weight' : 0}
