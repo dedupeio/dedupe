@@ -30,13 +30,13 @@ def dataModel() :
   return  {'fields': 
             { 'Site name' : {'type': 'String', 'weight' : 0}, 
               'Address'   : {'type': 'String', 'weight' : 0},
-              'Zip'       : {'type': 'String', 'weight' : 0}, 
+              'Zip'       : {'type': 'String', 'weight' : 0},
               'Phone'     : {'type': 'String', 'weight' : 0}
             },
            'bias' : 0}
 
-def init() :
-  data_d, header = earlyChildhoodImport("examples/datasets/ECP_all_raw_input.csv")
+def init(inputFile) :
+  data_d, header = earlyChildhoodImport(inputFile)
   data_model = dataModel()
   return (data_d, data_model, header)
 
@@ -46,7 +46,7 @@ def init() :
 def dictSubset(d, keys) :
   return dict((k,d[k]) for k in keys if k in d)
 
-
+inputFile = "examples/datasets/ECP_all_raw_input.csv"
 num_training_dupes = 200
 num_training_distinct = 16000
 numIterations = 100
@@ -54,7 +54,7 @@ numTrainingPairs = 30
 
 import time
 t0 = time.time()
-data_d, data_model, header = init()
+data_d, data_model, header = init(inputFile)
 
 
 
@@ -108,13 +108,13 @@ print ""
 print "finding duplicates ..."
 print ""
 dupes = core.scoreDuplicates(candidates, data_d, data_model, .5)
-clustered_dupes = clustering.cluster(dupes, estimated_dupe_fraction = 0.4)
+clustered_dupes = clustering.cluster(dupes, estimated_dupe_fraction = 0.3)
 
 print "# duplicate sets"
 print len(clustered_dupes)
 
 orig_data = {}
-with open("examples/datasets/ECP_all_raw_input.csv") as f :
+with open(inputFile) as f :
   reader = csv.reader(f)
   reader.next()
   for row_id, row in enumerate(reader) :
@@ -127,10 +127,19 @@ with open("examples/output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as 
   heading_row.insert(0, "Group_ID")
   writer.writerow(heading_row)
   
+  dupe_id_list = []
+  
   for group_id, cluster in enumerate(clustered_dupes, 1) :
     for candidate in sorted(cluster) :
+      dupe_id_list.append(candidate)
       row = orig_data[candidate]
       row.insert(0, group_id)
+      writer.writerow(row)
+      
+  for id in orig_data :
+    if not id in set(dupe_id_list) :
+      row = orig_data[id]
+      row.insert(0, 'x')
       writer.writerow(row)
 
 
