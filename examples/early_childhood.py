@@ -1,12 +1,14 @@
-from training_sample import activeLearning, consoleLabel
-from blocking import trainBlocking, blockingIndex, mergeBlocks
-from predicates import *
-import core
 from random import sample
-import clustering
 import csv
 import re
 import os
+
+#dedupe modules
+from dedupe.training_sample import activeLearning, consoleLabel
+from dedupe.blocking import trainBlocking, blockingIndex, mergeBlocks
+from dedupe.predicates import *
+import dedupe.core
+import dedupe.clustering
 
 def earlyChildhoodImport(filename) :
   data_d = {}
@@ -21,7 +23,7 @@ def earlyChildhoodImport(filename) :
         col = re.sub('\n', ' ', col)
         instance[header[j]] = col.strip().strip('"').strip("'").lower()
         
-        data_d[i] = core.frozendict(instance)
+        data_d[i] = dedupe.core.frozendict(instance)
 
     return(data_d, header)
     
@@ -46,7 +48,7 @@ def init(inputFile) :
 def dictSubset(d, keys) :
   return dict((k,d[k]) for k in keys if k in d)
 
-inputFile = "examples/datasets/ECP_all_raw_input.csv"
+inputFile = "datasets/ECP_all_raw_input.csv"
 num_training_dupes = 200
 num_training_distinct = 16000
 numIterations = 100
@@ -121,7 +123,7 @@ with open(inputFile) as f :
     orig_data[row_id] = row
     
 
-with open("examples/output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as f :
+with open("output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as f :
   writer = csv.writer(f)
   heading_row = header
   heading_row.insert(0, "Group_ID")

@@ -1,9 +1,10 @@
+from dedupe import *
 from canonical_example import init
-from training_sample import activeLearning, consoleLabel
-from blocking import trainBlocking, blockingIndex, mergeBlocks
-from predicates import *
-from core import scorePairs
-from clustering import cluster
+from dedupe.training_sample import activeLearning, consoleLabel
+from dedupe.blocking import trainBlocking, blockingIndex, mergeBlocks
+from dedupe.predicates import *
+from dedupe.core import scorePairs
+from dedupe.clustering import cluster
 
 num_training_dupes = 200
 num_training_distinct = 16000
