@@ -15,7 +15,7 @@ Current solutions break easily, don’t scale, and require significant developer
 * Derek Eder mailto:derek.eder@opencityapps.org
 
 == Usage
-  > python setup.py build_ext --inplace
+  > python setup.py install
   > cd examples
   > python active_canonical_example.py
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning) 
@@ -24,17 +24,15 @@ Current solutions break easily, don’t scale, and require significant developer
 
 As we continue to refine this library, we have added several datasets to test against. These can all be executed from the examples/ directory. 
 
+The following use human input to flag duplicates:
+
 * active_canonical_example.py - 864 rows. canonical restaurant dataset from Bilenko's research 
 * early_childhood.py - 3,720 rows. compilation of 9 datasets containing locations for early childhood education in Chicago
 * tech_locator.py - 852 rows. compilation of 2 lists of locations of technology resources in the City of Chicago. 
 
-
-== Other Executable Modules
+The following do not use human input:
 
 * canonical_example.py - loads in canonical restaurant test data and trains based on provided known duplicates. outputs precision and recall values
-* blocking.py - loads in test data and finds optimum blocking predicates
-* predicates.py - tests the functionality of defined predicates
-* training_sample.py - tests active learning with user input
 
 == Errors / Bugs
 
