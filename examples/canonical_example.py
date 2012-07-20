@@ -1,8 +1,11 @@
 from itertools import combinations
 import csv
 import re
-from core import frozendict
-from clustering import cluster
+
+#dedupe modules
+from dedupe import *
+from dedupe.core import frozendict
+from dedupe.clustering import cluster
 
 def canonicalImport(filename) :
 
@@ -67,13 +70,9 @@ def init() :
 # main execution
 if __name__ == '__main__':
     
-  from predicates import *
-  import core
-  import training_sample
-  import blocking
-  import clustering
+  from dedupe import *
+  from dedupe.predicates import *
   import os
-    
 
   import time
   t0 = time.time()
