@@ -14,3 +14,4 @@ logfile
 examples/output/*.*
 kernprof.py
 possible_classifiers
+.DS_Store
