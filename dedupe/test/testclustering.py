@@ -1,4 +1,4 @@
-from clustering import *
+from ..clustering import *
 
 
 dupes =       (((1,2), .95),
