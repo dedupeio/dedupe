@@ -1,5 +1,6 @@
 import cProfile
-from affinegap import affineGapDistance, normalizedAffineGapDistance
+
+from ..affinegap import affineGapDistance, normalizedAffineGapDistance
 
 def performanceTest() :
   for i in xrange(100000) :
