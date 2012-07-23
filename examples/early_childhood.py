@@ -44,9 +44,9 @@ def init(inputFile) :
 
 # user defined function to label pairs as duplicates or non-duplicates
 
-
-def dictSubset(d, keys) :
-  return dict((k,d[k]) for k in keys if k in d)
+def sampleDict(d, sample_size) :
+  sample_keys = sample(d.keys(), sample_size)
+  return dict((k,d[k]) for k in d.keys() if k in sample_keys)
 
 inputFile = "datasets/ECP_all_raw_input.csv"
 num_training_dupes = 200
@@ -59,15 +59,13 @@ t0 = time.time()
 data_d, data_model, header = init(inputFile)
 
 
-
-
 print "importing data ..."
 
 if os.path.exists('learned_settings.json') :
   data_model, predicates = core.readSettings('learned_settings.json')
 else:
   #lets do some active learning here
-  training_data, training_pairs, data_model = activeLearning(dictSubset(data_d, sample(data_d.keys(), 700)), data_model, consoleLabel, numTrainingPairs)
+  training_data, training_pairs, data_model = activeLearning(sampleDict(data_d, 700), data_model, consoleLabel, numTrainingPairs)
 
   predicates = trainBlocking(training_pairs,
                              (wholeFieldPredicate,
