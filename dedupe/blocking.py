@@ -30,8 +30,11 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   print n_training_distinct
   sample_size = n_training_dupes + n_training_distinct
 
+  fields = [field for field in data_model['fields'] 
+            if data_model['fields'][field]['type'] != 'Interaction']
+  
   # The set of all predicate functions operating over all fields
-  predicateSet = list(product(predicates, data_model['fields']))
+  predicateSet = list(product(predicates, fields))
   n_predicates = len(predicateSet)
 
   
@@ -107,8 +110,12 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
     
   print "FINAL PREDICATE SET!!!!"
   print finalPredicateSet
-
-  return finalPredicateSet
+  
+  if finalPredicateSet :
+    return finalPredicateSet
+  else :
+    print "No predicate found!"
+    raise 
 
 
 def blockingIndex(data_d, predicate_functions) :

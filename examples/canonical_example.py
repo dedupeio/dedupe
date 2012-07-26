@@ -56,7 +56,8 @@ def dataModel() :
             {'name' : {'type': 'String', 'weight' : 0}, 
              'address' : {'type' :'String', 'weight' : 0},
              'city' : {'type': 'String', 'weight' : 0},
-             'cuisine' : {'type': 'String', 'weight' : 0}
+             'cuisine' : {'type': 'String', 'weight' : 0},
+             'name:city' : {'type': 'Interaction', 'interaction-terms': ['name', 'city'], 'weight' : 0}
             },
            'bias' : 0}
 
@@ -79,7 +80,7 @@ if __name__ == '__main__':
 
   num_training_dupes = 200
   num_training_distinct = 16000
-  numIterations = 10
+  numIterations = 30
 
   (data_d, duplicates_s, data_model) = init()
 
@@ -149,48 +150,83 @@ if __name__ == '__main__':
 
   print ""
   
-  print "finding duplicates ..."
-  print ""
-  dupes = core.scoreDuplicates(candidates, data_d, data_model)
-  clustered_dupes = cluster(dupes,
-                            estimated_dupe_fraction = .2)
+  dupes = core.scoreDuplicates(candidates, data_d, data_model, .70)
 
-  
-  confirm_dupes = set([])
-  for dupe_set in clustered_dupes :
-    if (len(dupe_set) == 2) :
-      confirm_dupes.add(frozenset(dupe_set))
-    else :
-      for pair in combinations(dupe_set, 2) :
-        confirm_dupes.add(frozenset(pair))
+  #print dupes
 
-  #dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
-  true_positives = confirm_dupes & duplicates_s
-  false_positives = confirm_dupes - duplicates_s
-  uncovered_dupes = duplicates_s - confirm_dupes
+  dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
+  true_positives = dupe_ids & duplicates_s
+  false_positives = dupe_ids - duplicates_s
+  uncovered_dupes = duplicates_s - dupe_ids
 
-  print "False negatives" 
-  for pair in uncovered_dupes :
-      print ""
-      for instance in tuple(pair) :
-          print data_d[instance].values()
-          
-  print "____________________________________________"
-  print "False positives" 
+ #  print "False negatives" 
+#   for pair in uncovered_dupes :
+#       print ""
+#       for instance in tuple(pair) :
+#           print data_d[instance].values()
+#           
+#   print "____________________________________________"
+#   print "False positives" 
+# 
+#   for pair in false_positives :
+#       print ""
+#       for instance in tuple(pair) :
+#           print data_d[instance].values()
+# 
+#   print ""
 
-  for pair in false_positives :
-      print ""
-      for instance in tuple(pair) :
-          print data_d[instance].values()
-
-  print ""
-
-  print "found duplicate"
-  print len(confirm_dupes)
+  #print "found duplicate"
+  #print len(dupes)
   
   print "precision"
-  print (len(confirm_dupes) - len(false_positives))/float(len(confirm_dupes))
+  print (len(dupes) - len(false_positives))/float(len(dupes))
 
   print "recall"
   print  len(true_positives)/float(len(duplicates_s))
   print "ran in ", time.time() - t0, "seconds"
+  
+  # print "finding duplicates ..."
+#   print ""
+#   dupes = core.scoreDuplicates(candidates, data_d, data_model)
+#   clustered_dupes = cluster(dupes,
+#                             estimated_dupe_fraction = .2)
+# 
+#   
+#   confirm_dupes = set([])
+#   for dupe_set in clustered_dupes :
+#     if (len(dupe_set) == 2) :
+#       confirm_dupes.add(frozenset(dupe_set))
+#     else :
+#       for pair in combinations(dupe_set, 2) :
+#         confirm_dupes.add(frozenset(pair))
+# 
+#   #dupe_ids = set([frozenset(dupe_pair[0]) for dupe_pair in dupes])
+#   true_positives = confirm_dupes & duplicates_s
+#   false_positives = confirm_dupes - duplicates_s
+#   uncovered_dupes = duplicates_s - confirm_dupes
+# 
+#   print "False negatives" 
+#   for pair in uncovered_dupes :
+#       print ""
+#       for instance in tuple(pair) :
+#           print data_d[instance].values()
+#           
+#   print "____________________________________________"
+#   print "False positives" 
+# 
+#   for pair in false_positives :
+#       print ""
+#       for instance in tuple(pair) :
+#           print data_d[instance].values()
+# 
+#   print ""
+# 
+#   print "found duplicate"
+#   print len(confirm_dupes)
+#   
+#   print "precision"
+#   print (len(confirm_dupes) - len(false_positives))/float(len(confirm_dupes))
+# 
+#   print "recall"
+#   print  len(true_positives)/float(len(duplicates_s))
+#   print "ran in ", time.time() - t0, "seconds"

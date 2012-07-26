@@ -96,6 +96,7 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
     data_model = core.trainModel(training_data, num_iterations, data_model)
 
   training_pairs = {0 : nonduplicates, 1 : duplicates}  
+  print training_pairs
   
   return(training_data, training_pairs, data_model)
 
@@ -127,7 +128,8 @@ def consoleLabel(uncertain_pairs, data_d, data_model) :
   duplicates = []
   nonduplicates = []
 
-  fields = data_model['fields'].keys()
+  fields = [field for field in data_model['fields'] 
+            if data_model['fields'][field]['type'] != 'Interaction']
 
   for pair in uncertain_pairs :
     label = ''
