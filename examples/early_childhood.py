@@ -36,7 +36,7 @@ def dataModel() :
               'Address'   : {'type': 'String', 'weight' : 0},
               'Zip'       : {'type': 'String', 'weight' : 0},
               'Phone'     : {'type': 'String', 'weight' : 0},
-#             'SiteName:Address' : {'type': 'Interaction', 'interaction-terms': ['Site name', 'Address'], 'weight' : 0}
+#              'SiteName:Address' : {'type': 'Interaction', 'interaction-terms': ['Site name', 'Address'], 'weight' : 0}
             },
            'bias' : 0}
 
@@ -116,6 +116,7 @@ else:
 
 blocked_data = blockingIndex(data_d, predicates)
 candidates = mergeBlocks(blocked_data)
+print candidates
 
 print ""
 print "Blocking reduced the number of comparisons by",
@@ -139,7 +140,20 @@ print "finding duplicates ..."
 print ""
 dupes = dedupe.core.scoreDuplicates(candidates, data_d, data_model)
 
-clustered_dupes = dedupe.clustering.cluster(dupes, estimated_dupe_fraction = .9)
+
+
+## for pair, score in dupes :
+##   if 6 in (pair[0], pair[1]) :
+##     print "Score :", score
+##     print pair
+##     for k in ['Site name', 'Address'] :
+##       print data_d[pair[0]][k]
+##       print data_d[pair[1]][k]
+##     print 
+
+#clustered_dupes = dedupe.clustering.chaudhi.cluster(dupes, estimated_dupe_fraction = .9)
+clustered_dupes = dedupe.clustering.hierarchical.cluster(dupes, .5)
+print clustered_dupes
 
 print "# duplicate sets"
 print len(clustered_dupes)
