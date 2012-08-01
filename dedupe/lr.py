@@ -12,7 +12,7 @@ class LogisticRegression:
         self.rate = 0.01
         self.weight = {}
         self.bias = 0
-        self.alpha = 0.1
+        self.alpha = 0.001
         return
     # data is a list of [label, feature]. label is an integer,
     # 1 for positive instance, 0 for negative instance. feature is
