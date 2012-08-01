@@ -48,7 +48,7 @@ def dictSubset(d, keys) :
   return dict((k,d[k]) for k in keys if k in d)
 
 
-inputFile = "datasets/Tech Locator Master List.csv"
+inputFile = "examples/datasets/Tech Locator Master List.csv"
 num_training_dupes = 200
 num_training_distinct = 16000
 numIterations = 100
@@ -121,7 +121,7 @@ with open(inputFile) as f :
     orig_data[row_id] = row
     
 
-with open("output/TL_dupes_list_" + str(time.time()) + ".csv","w") as f :
+with open("examples/output/TL_dupes_list_" + str(time.time()) + ".csv","w") as f :
   writer = csv.writer(f)
   heading_row = header
   heading_row.insert(0, "Group_ID")

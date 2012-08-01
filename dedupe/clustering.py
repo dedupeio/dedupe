@@ -13,15 +13,17 @@ def neighborDict(duplicates) :
     
   for candidate in neighbors :
     neighbors[candidate] = sorted(neighbors[candidate],
+                                  key = lambda neighborhood : neighborhood[0])
+    neighbors[candidate] = sorted(neighbors[candidate],
                                   key = lambda neighborhood : neighborhood[1])
-                                   
+
   return neighbors
 
 def neighborhoodGrowth(neighborhood, neighborhood_multiplier) :
   distances = zip(*neighborhood)[1]
   smallest_distance = min(distances)
-  neighborhood_growth = sum([distance < (neighborhood_multiplier
-                                         * smallest_distance)
+  neighborhood_growth = sum([distance <= (neighborhood_multiplier
+                                          * smallest_distance)
                              for distance in distances])
 
   return neighborhood_growth
@@ -44,8 +46,13 @@ def compactPairs(neighbors) :
   candidates = sorted(candidates)
   candidate_pairs = combinations(candidates, 2)
 
+
   for pair in candidate_pairs :
     candidate_1, candidate_2 = pair
+
+
+
+
 
     # This is appropriate if the aggregate function for the Spatial
     # Neighborhood Threshold is MAX, not if its AVG
@@ -71,7 +78,6 @@ def compactPairs(neighbors) :
         compact_pairs.append((pair,
                               k_set_overlap))
 
-    
   return compact_pairs
 
 def partition(compact_pairs) :

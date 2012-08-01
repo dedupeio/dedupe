@@ -24,14 +24,36 @@ def readSettings(file_name) :
   return data_model, predicates
 
 # based on field type, calculate using the appropriate distance function and return distance
+#@profile
 def calculateDistance(instance_1, instance_2, fields, distances) :
 
+  calculated = {}
+
+
+  
   for i, name in enumerate(fields) :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
+      distances[0]['names'][i] = name
+      distances[0]['values'][i] = calculated.setdefault(name,
+                                                        #distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
+                                                        distanceFunc(instance_1[name],instance_2[name], 1, 11, 10, 7, .125))
 
-    distances[0]['names'][i] = name
-    distances[0]['values'][i] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
+    if fields[name]['type'] == 'Interaction' :
+      interaction_term = 1
+      for term in fields[name]['interaction-terms'] :
+        if fields[term]['type'] == 'String' :
+          distanceFunc = affinegap.normalizedAffineGapDistance
+          interaction_term *= calculated.setdefault(term,
+                                                    #distanceFunc(instance_1[term],instance_2[term], -5, 5, 4, 1, .125)
+                                                    distanceFunc(instance_1[term],instance_2[term], 1, 11, 10, 7, .125))
+      distances[0]['names'][i] = name
+      distances[0]['values'][i] = interaction_term
+      
+
+
+
+    
 
   return distances
 
@@ -55,7 +77,7 @@ def recordDistances(candidates, data_d, data_model) :
 
   fields = data_model['fields']
 
-  field_dtype = [('names', 'a10', (len(fields)),),
+  field_dtype = [('names', 'a20', (len(fields)),),
                  ('values', 'f4', (len(fields)),)
                  ]
   
@@ -68,14 +90,13 @@ def recordDistances(candidates, data_d, data_model) :
 
   record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
 
-
   for i, pair in enumerate(candidates) :
-    
+
     c_distances = calculateDistance(data_d[pair[0]],
                                     data_d[pair[1]],
                                     fields,
                                     distances)
-
+                                    
     record_distances[i] = ((pair[0], pair[1]),
                            (c_distances['names'],
                             c_distances['values'])
