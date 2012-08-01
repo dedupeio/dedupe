@@ -36,7 +36,7 @@ def dataModel() :
               'Address'   : {'type': 'String', 'weight' : 0},
               'Zip'       : {'type': 'String', 'weight' : 0},
               'Phone'     : {'type': 'String', 'weight' : 0},
-              'SiteName:Address' : {'type': 'Interaction', 'interaction-terms': ['Site name', 'Address'], 'weight' : 0}
+#             'SiteName:Address' : {'type': 'Interaction', 'interaction-terms': ['Site name', 'Address'], 'weight' : 0}
             },
            'bias' : 0}
 
@@ -137,8 +137,9 @@ print ""
 
 print "finding duplicates ..."
 print ""
-dupes = dedupe.core.scoreDuplicates(candidates, data_d, data_model, .5)
-clustered_dupes = dedupe.clustering.cluster(dupes, estimated_dupe_fraction = 0.7)
+dupes = dedupe.core.scoreDuplicates(candidates, data_d, data_model)
+
+clustered_dupes = dedupe.clustering.cluster(dupes, estimated_dupe_fraction = .9)
 
 print "# duplicate sets"
 print len(clustered_dupes)
@@ -151,7 +152,8 @@ with open(inputFile) as f :
     orig_data[row_id] = row
     
 
-with open("examples/output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as f :
+#with open("examples/output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as f :
+with open("examples/output/ECP_dupes_list.csv","w") as f :
   writer = csv.writer(f)
   heading_row = header
   heading_row.insert(0, "Group_ID")
@@ -167,7 +169,7 @@ with open("examples/output/ECP_dupes_list_" + str(time.time()) + ".csv","w") as 
       writer.writerow(row)
       
   for id in orig_data :
-    if not id in set(dupe_id_list) :
+    if id not in set(dupe_id_list) :
       row = orig_data[id]
       row.insert(0, 'x')
       writer.writerow(row)

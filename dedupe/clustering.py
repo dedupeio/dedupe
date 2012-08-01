@@ -20,8 +20,8 @@ def neighborDict(duplicates) :
 def neighborhoodGrowth(neighborhood, neighborhood_multiplier) :
   distances = zip(*neighborhood)[1]
   smallest_distance = min(distances)
-  neighborhood_growth = sum([distance < (neighborhood_multiplier
-                                         * smallest_distance)
+  neighborhood_growth = sum([distance <= (neighborhood_multiplier
+                                          * smallest_distance)
                              for distance in distances])
 
   return neighborhood_growth
