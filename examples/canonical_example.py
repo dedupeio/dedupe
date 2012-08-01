@@ -57,7 +57,7 @@ def dataModel() :
              'address' : {'type' :'String', 'weight' : 0},
              'city' : {'type': 'String', 'weight' : 0},
              'cuisine' : {'type': 'String', 'weight' : 0},
-             'name:city' : {'type': 'Interaction', 'interaction-terms': ['name', 'city'], 'weight' : 0}
+#             'name:city' : {'type': 'Interaction', 'interaction-terms': ['name', 'city'], 'weight' : 0}
             },
            'bias' : 0}
 
@@ -77,7 +77,6 @@ if __name__ == '__main__':
 
   import time
   t0 = time.time()
-
   num_training_dupes = 200
   num_training_distinct = 16000
   numIterations = 30
@@ -112,8 +111,7 @@ if __name__ == '__main__':
                                          commonSixGram),
                                         data_model, 1, 1)
   
-
-    training_data = training_sample.trainingDistances(training_pairs, data_model)
+    training_data = training_sample.addTrainingData(training_pairs, data_model)
 
 
     print ""
@@ -150,7 +148,7 @@ if __name__ == '__main__':
 
   print ""
   
-  dupes = core.scoreDuplicates(candidates, data_d, data_model, .70)
+  dupes = core.scoreDuplicates(candidates, data_d, data_model, .50)
 
   #print dupes
 

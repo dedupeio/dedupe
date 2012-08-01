@@ -30,12 +30,13 @@ def trainingDistances(training_pairs, data_model) :
   return training_data
 
 # create a random set of training pairs based on known duplicates
+
+
+
 def randomTrainingPairs(data_d,
                         duplicates_s,
                         n_training_dupes,
                         n_training_distinct) :
-
-  duplicates_s
 
   if n_training_dupes < len(duplicates_s) :
     duplicates = sample(duplicates_s, n_training_dupes)
@@ -91,7 +92,7 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
     nonduplicates.extend(labeled_pairs[0])
     duplicates.extend(labeled_pairs[1])
     
-    training_data = addTrainingData(labeled_pairs, training_data, data_model)
+    training_data = addTrainingData(labeled_pairs, data_model, training_data)
 
     data_model = core.trainModel(training_data, num_iterations, data_model)
 
@@ -103,7 +104,7 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
 
 
 # appends training data to the training data collection  
-def addTrainingData(labeled_pairs, training_data, data_model) :
+def addTrainingData(labeled_pairs, data_model, training_data=[]) :
 
   fields = data_model['fields']
 

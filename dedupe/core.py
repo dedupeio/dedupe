@@ -30,8 +30,8 @@ def calculateDistance(instance_1, instance_2, fields, distances) :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
 
-      distances[0]['names'][i] = name
-      distances[0]['values'][i] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
+    distances[0]['names'][i] = name
+    distances[0]['values'][i] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
       #distances[0]['values'][i] = distanceFunc(instance_1[name],instance_2[name], 1, 11, 10, 7, .125)
     
 
@@ -74,18 +74,6 @@ def recordDistances(candidates, data_d, data_model) :
                     if data_model['fields'][k]['type'] != 'Interaction'])
                     
   
-  interaction_fields = []
-
-  for i, field in enumerate(data_model['fields']) :
-    if data_model['fields'][field]['type'] == 'Interaction' :
-      
-      interaction_terms = data_model['fields'][field]['interaction-terms']
-        
-      field_indices = [primary_fields.keys().index(term) for term in interaction_terms]
-          
-      interaction_fields.append((i, field, field_indices))
-
-
   for i, pair in enumerate(candidates) :
 
     c_distances = calculateDistance(data_d[pair[0]],
@@ -93,15 +81,6 @@ def recordDistances(candidates, data_d, data_model) :
                                     primary_fields,
                                     distances)
                                     
-    for i, interaction_field, field_indices in interaction_fields :
-      interaction_value = 1
-      for field_index in field_indices :
-        interaction_value *= c_distances[0]['values'][field_index]
-       
-      c_distances[0]['names'][i] = field   
-      c_distances[0]['values'][i] = interaction_value
-
-
     record_distances[i] = ((pair[0], pair[1]),
                            (c_distances['names'],
                             c_distances['values'])

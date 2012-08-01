@@ -88,8 +88,7 @@ else:
 
   if os.path.exists(trainingFile) :
     training_pairs = readTraining(trainingFile)
-    training_data = []
-    training_data = dedupe.training_sample.addTrainingData(training_pairs, training_data, data_model)
+    training_data = dedupe.training_sample.addTrainingData(training_pairs, data_model)
     
     data_model = dedupe.core.trainModel(training_data, numIterations, data_model)
   else :  
