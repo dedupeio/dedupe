@@ -8,6 +8,9 @@ Current solutions break easily, don’t scale, and require significant developer
 == Python Dependencies
 
 * numpy (http://numpy.scipy.org/)
+* hierarchical cluster depends upon
+** fcluster (http://math.stanford.edu/~muellner/fastcluster.html)
+** hcluster (http://code.google.com/p/scipy-cluster/)
 
 == Team
 
