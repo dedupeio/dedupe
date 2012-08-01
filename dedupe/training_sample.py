@@ -30,12 +30,13 @@ def trainingDistances(training_pairs, data_model) :
   return training_data
 
 # create a random set of training pairs based on known duplicates
+
+
+
 def randomTrainingPairs(data_d,
                         duplicates_s,
                         n_training_dupes,
                         n_training_distinct) :
-
-  duplicates_s
 
   if n_training_dupes < len(duplicates_s) :
     duplicates = sample(duplicates_s, n_training_dupes)
@@ -91,18 +92,19 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
     nonduplicates.extend(labeled_pairs[0])
     duplicates.extend(labeled_pairs[1])
     
-    training_data = addTrainingData(labeled_pairs, training_data, data_model)
+    training_data = addTrainingData(labeled_pairs, data_model, training_data)
 
     data_model = core.trainModel(training_data, num_iterations, data_model)
 
   training_pairs = {0 : nonduplicates, 1 : duplicates}  
+  print training_pairs
   
   return(training_data, training_pairs, data_model)
 
 
 
 # appends training data to the training data collection  
-def addTrainingData(labeled_pairs, training_data, data_model) :
+def addTrainingData(labeled_pairs, data_model, training_data=[]) :
 
   fields = data_model['fields']
 
@@ -127,7 +129,8 @@ def consoleLabel(uncertain_pairs, data_d, data_model) :
   duplicates = []
   nonduplicates = []
 
-  fields = data_model['fields'].keys()
+  fields = [field for field in data_model['fields'] 
+            if data_model['fields'][field]['type'] != 'Interaction']
 
   for pair in uncertain_pairs :
     label = ''

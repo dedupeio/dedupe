@@ -1,6 +1,6 @@
 import cProfile
 
-from ..affinegap import affineGapDistance, normalizedAffineGapDistance
+from dedupe.affinegap import affineGapDistance, normalizedAffineGapDistance
 
 def performanceTest() :
   for i in xrange(100000) :
@@ -27,6 +27,13 @@ def correctnessTest() :
   print affineGapDistance('aaa', 'abba', -5, 5, 5, 1) == 1
   print 'Normalized Affine Gap Tests'
   print normalizedAffineGapDistance('', '', -5, 5, 5, 1) == 0
+  
+  print "test with higher weights"
+  print affineGapDistance('a', 'b', 1, 11, 10, 7)
+  print affineGapDistance('ab', 'cd', 1, 11, 10, 7)
+  print affineGapDistance('ab', 'cde', 1, 11, 10, 7)
+  print affineGapDistance('a', 'cde', 1, 11, 10, 7)
+  print affineGapDistance('a', 'cd', 1, 11, 10, 7)
 
 
         
