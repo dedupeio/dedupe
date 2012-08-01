@@ -70,15 +70,11 @@ def recordDistances(candidates, data_d, data_model) :
 
   record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
 
-  primary_fields = dict([(k, v) for k,v in data_model['fields'].iteritems() 
-                    if data_model['fields'][k]['type'] != 'Interaction'])
-                    
-  
   for i, pair in enumerate(candidates) :
 
     c_distances = calculateDistance(data_d[pair[0]],
                                     data_d[pair[1]],
-                                    primary_fields,
+                                    fields,
                                     distances)
                                     
     record_distances[i] = ((pair[0], pair[1]),
