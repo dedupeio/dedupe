@@ -57,7 +57,7 @@ def dataModel() :
              'address' : {'type' :'String', 'weight' : 0},
              'city' : {'type': 'String', 'weight' : 0},
              'cuisine' : {'type': 'String', 'weight' : 0},
-#             'name:city' : {'type': 'Interaction', 'interaction-terms': ['name', 'city'], 'weight' : 0}
+             'name:city' : {'type': 'Interaction', 'interaction-terms': ['name', 'city'], 'weight' : 0}
             },
            'bias' : 0}
 
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
   print ""
   
-  dupes = core.scoreDuplicates(candidates, data_d, data_model, .50)
+  dupes = core.scoreDuplicates(candidates, data_d, data_model, .60)
 
   #print dupes
 

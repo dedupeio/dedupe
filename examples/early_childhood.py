@@ -73,7 +73,7 @@ trainingFile = "ecp_training.json"
 num_training_dupes = 200
 num_training_distinct = 16000
 numIterations = 100
-numTrainingPairs = 5
+numTrainingPairs = 30
 
 import time
 t0 = time.time()

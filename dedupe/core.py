@@ -24,15 +24,35 @@ def readSettings(file_name) :
   return data_model, predicates
 
 # based on field type, calculate using the appropriate distance function and return distance
+#@profile
 def calculateDistance(instance_1, instance_2, fields, distances) :
 
+  calculated = {}
+
+
+  
   for i, name in enumerate(fields) :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
+      distances[0]['names'][i] = name
+      distances[0]['values'][i] = calculated.setdefault(name,
+                                                        #distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
+                                                        distanceFunc(instance_1[name],instance_2[name], 1, 11, 10, 7, .125))
 
-    distances[0]['names'][i] = name
-    distances[0]['values'][i] = distanceFunc(instance_1[name],instance_2[name], -5, 5, 4, 1, .125)
-      #distances[0]['values'][i] = distanceFunc(instance_1[name],instance_2[name], 1, 11, 10, 7, .125)
+    if fields[name]['type'] == 'Interaction' :
+      interaction_term = 1
+      for term in fields[name]['interaction-terms'] :
+        if fields[term]['type'] == 'String' :
+          distanceFunc = affinegap.normalizedAffineGapDistance
+          interaction_term *= calculated.setdefault(term,
+                                                    #distanceFunc(instance_1[term],instance_2[term], -5, 5, 4, 1, .125)
+                                                    distanceFunc(instance_1[term],instance_2[term], 1, 11, 10, 7, .125))
+      distances[0]['names'][i] = name
+      distances[0]['values'][i] = interaction_term
+      
+
+
+
     
 
   return distances
