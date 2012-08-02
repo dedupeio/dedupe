@@ -2,7 +2,16 @@ import numpy
 import fastcluster
 import hcluster
 
-def dupesToCondensedDistance(dupes) :
+def condensedDistance(dupes) :
+  # Convert the pairwise list of distances in dupes to "condensed
+  # distance matrix" required by the hierarchical clustering
+  # algorithms. Also return a dictionary that maps the distance matrix
+  # to the record_ids.
+  #
+  # The condensed distance matrix is described in the scipy
+  # documentation of scipy.cluster.hierarchy.linkage
+  # http://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+
   
   candidate_set = set([])
   for pair, _ in dupes :
@@ -27,9 +36,9 @@ def dupesToCondensedDistance(dupes) :
   return remap, condensed_distances
 
 def cluster(dupes, threshold) :
-  remap, condensed_distances = dupesToCondensedDistance(dupes) 
+  remap, condensed_distances = condensedDistance(dupes) 
   linkage = fastcluster.linkage(numpy.array(condensed_distances),
-                          method='single')
+                          method='ward')
   partition = hcluster.fcluster(linkage, threshold)
 
   clustering = {}

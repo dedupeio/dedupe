@@ -58,8 +58,9 @@ def calculateDistance(instance_1, instance_2, fields, distances) :
   return distances
 
 # using logistic regression, train weights for all fields in the data model
-def trainModel(training_data, iterations, data_model) :
+def trainModel(training_data, iterations, data_model, alpha=.001) :
     trainer = lr.LogisticRegression()
+    trainer.alpha = alpha
     trainer.train(training_data, iterations)
 
     data_model['bias'] = trainer.bias

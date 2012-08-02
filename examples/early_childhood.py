@@ -60,9 +60,9 @@ def writeTraining(file_name, training_pairs) :
   
 def readTraining(file_name) :
   with open(file_name, 'r') as f :
-    training_data = json.load(f)
+    training_pairs_raw = json.load(f)
 
-  training_pairs = dict([(int(dupe), examples) for dupe, examples in training_data.iteritems()])
+  training_pairs = dict([(int(dupe), examples) for dupe, examples in training_pairs_raw.iteritems()])
   
   return training_pairs
   
@@ -89,8 +89,13 @@ else:
   if os.path.exists(trainingFile) :
     training_pairs = readTraining(trainingFile)
     training_data = dedupe.training_sample.addTrainingData(training_pairs, data_model)
+    import dedupe.crossvalidation
+
+    alpha = dedupe.crossvalidation.gridSearch(training_data,
+                                              dedupe.core.trainModel,
+                                              data_model)
     
-    data_model = dedupe.core.trainModel(training_data, numIterations, data_model)
+    data_model = dedupe.core.trainModel(training_data, numIterations, data_model, alpha)
   else :  
     #lets do some active learning here
     training_data, training_pairs, data_model = activeLearning(sampleDict(data_d, 700), data_model, consoleLabel, numTrainingPairs)
@@ -116,7 +121,7 @@ else:
 
 blocked_data = blockingIndex(data_d, predicates)
 candidates = mergeBlocks(blocked_data)
-print candidates
+
 
 print ""
 print "Blocking reduced the number of comparisons by",
@@ -152,8 +157,8 @@ dupes = dedupe.core.scoreDuplicates(candidates, data_d, data_model)
 ##     print 
 
 #clustered_dupes = dedupe.clustering.chaudhi.cluster(dupes, estimated_dupe_fraction = .9)
-clustered_dupes = dedupe.clustering.hierarchical.cluster(dupes, .5)
-print clustered_dupes
+clustered_dupes = dedupe.clustering.hierarchical.cluster(dupes, .8)
+
 
 print "# duplicate sets"
 print len(clustered_dupes)

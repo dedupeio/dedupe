@@ -5,7 +5,7 @@ import re
 #dedupe modules
 from dedupe import *
 from dedupe.core import frozendict
-from dedupe.clustering import cluster
+from dedupe.clustering.chaudhi import cluster
 
 def canonicalImport(filename) :
 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
   import time
   t0 = time.time()
   num_training_dupes = 200
-  num_training_distinct = 16000
+  num_training_distinct = 1600
   numIterations = 30
 
   (data_d, duplicates_s, data_model) = init()
@@ -119,9 +119,12 @@ if __name__ == '__main__':
     print len(training_data)
     print ""
 
+    alpha = crossvalidation.gridSearch(training_data,
+                                       core.trainModel,
+                                       data_model)
 
     print "training weights ..."
-    data_model = core.trainModel(training_data, numIterations, data_model)
+    data_model = core.trainModel(training_data, numIterations, data_model, alpha)
     print ""
 
     core.writeSettings('restaurant_learned_settings.json', data_model, predicates)
@@ -148,7 +151,7 @@ if __name__ == '__main__':
 
   print ""
   
-  dupes = core.scoreDuplicates(candidates, data_d, data_model, .60)
+  dupes = core.scoreDuplicates(candidates, data_d, data_model, .50)
 
   #print dupes
 
