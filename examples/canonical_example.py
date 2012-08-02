@@ -57,7 +57,7 @@ def dataModel() :
              'address' : {'type' :'String', 'weight' : 0},
              'city' : {'type': 'String', 'weight' : 0},
              'cuisine' : {'type': 'String', 'weight' : 0},
-             'name:city' : {'type': 'Interaction', 'interaction-terms': ['name', 'city'], 'weight' : 0}
+#             'name:city' : {'type': 'Interaction', 'interaction-terms': ['name', 'city'], 'weight' : 0}
             },
            'bias' : 0}
 

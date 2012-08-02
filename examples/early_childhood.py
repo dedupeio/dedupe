@@ -93,7 +93,8 @@ else:
 
     alpha = dedupe.crossvalidation.gridSearch(training_data,
                                               dedupe.core.trainModel,
-                                              data_model)
+                                              data_model,
+                                              k = 10)
     
     data_model = dedupe.core.trainModel(training_data, numIterations, data_model, alpha)
   else :  
