@@ -158,7 +158,7 @@ dupes = dedupe.core.scoreDuplicates(candidates, data_d, data_model)
 ##     print 
 
 #clustered_dupes = dedupe.clustering.chaudhi.cluster(dupes, estimated_dupe_fraction = .9)
-clustered_dupes = dedupe.clustering.hierarchical.cluster(dupes, .8)
+clustered_dupes = dedupe.clustering.hierarchical.cluster(dupes, .5)
 
 
 print "# duplicate sets"

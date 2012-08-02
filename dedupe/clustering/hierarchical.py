@@ -38,7 +38,7 @@ def condensedDistance(dupes) :
 def cluster(dupes, threshold) :
   remap, condensed_distances = condensedDistance(dupes) 
   linkage = fastcluster.linkage(numpy.array(condensed_distances),
-                          method='ward')
+                          method='centroid')
   partition = hcluster.fcluster(linkage, threshold)
 
   clustering = {}
