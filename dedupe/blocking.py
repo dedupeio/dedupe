@@ -2,24 +2,29 @@ from collections import defaultdict
 from itertools import product, chain, combinations
 from math import sqrt, log
 import core
+from random import sample
 
 def predicateCoverage(pairs, predicates) :
-    coverage = defaultdict(list)
-    for pair in pairs :
-        for predicate, field in predicates :
-            keys1 = predicate(pair[0][field])
-            keys2 = predicate(pair[1][field])
-            if set(keys1) & set(keys2) :
-                coverage[(predicate,field)].append(pair)
-              
-    return(coverage)
+  coverage = defaultdict(list)
+  for pair in pairs :
+    for predicate in predicates :
+      keys1 = set([])
+      keys2 = set([])
+      for predicate_f, field in predicate : 
+        keys1.update(predicate_f(pair[0][field]))
+        keys2.update(predicate_f(pair[1][field]))
+      if keys1 & keys2 :
+        coverage[predicate].append(pair)
+
+
+  return(coverage)
 
 
 # Approximate learning of blocking following the ApproxRBSetCover from
 # page 102 of Bilenko
 def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
-  training_distinct = training_pairs[0][:]
+  training_distinct = sample(training_pairs[0][:], 1000)
   training_dupes = training_pairs[1][:]
   n_training_dupes = len(training_dupes)
   n_training_distinct = len(training_distinct)
@@ -32,6 +37,15 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   
   # The set of all predicate functions operating over all fields
   predicateSet = list(product(predicates, fields))
+
+  disjunctive_predicates = list(combinations(predicateSet, 2))
+  # filter out disjunctive predicates that operate on same field
+  disjunctive_predicates = [predicate for predicate
+                            in disjunctive_predicates
+                            if predicate[0][1] != predicate[1][1]]
+
+  predicateSet = [(predicate,) for predicate in predicateSet]
+  predicateSet.extend(disjunctive_predicates)
   n_predicates = len(predicateSet)
 
   
@@ -75,7 +89,7 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   print "Uncovered dupes"
   print n_training_dupes
   while n_training_dupes >= epsilon :
-
+        
     optimumCover = 0
     bestPredicate = None
     for predicate in predicateSet :
@@ -115,13 +129,14 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
     raise 
 
 
-def blockingIndex(data_d, predicate_functions) :
+def blockingIndex(data_d, predicates) :
   blocked_data = defaultdict(set)
   for key, instance in data_d.items() :
-    for F, field in predicate_functions :
-      predicates = F(data_d[key][field])
-      for predicate in predicates :
-        blocked_data[predicate].add(key)
+    for predicate in predicates :
+      predicate_tuples = product([F(data_d[key][field])
+                                  for F, field in predicate])
+      for predicate_tuple in predicate_tuples :
+        blocked_data[str(predicate_tuple)].add(key)
 
   return blocked_data
 

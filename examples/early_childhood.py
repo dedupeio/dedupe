@@ -131,9 +131,9 @@ else:
                               commonSixGram),
                              data_model, 1, 1)
   
-  dedupe.core.writeSettings(learnedSettingsFile,
-                            data_model,
-                            predicates)
+  #dedupe.core.writeSettings(learnedSettingsFile,
+  #                          data_model,
+  #                          predicates)
 
 
 blocked_data = blockingIndex(data_d, predicates)
