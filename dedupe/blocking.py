@@ -1,10 +1,7 @@
 from collections import defaultdict
 from itertools import product, chain, combinations
 from math import sqrt, log
-
-def hashPair(pair) :
-      return tuple(sorted([tuple(sorted(pair[0].items())), tuple(sorted(pair[1].items()))]))
-
+import core
 
 def predicateCoverage(pairs, predicates) :
     coverage = defaultdict(list)
@@ -63,10 +60,10 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
   predicate_count = defaultdict(int)
   for pair in chain(*found_distinct.values()) :
-      predicate_count[hashPair(pair)] += 1
+      predicate_count[pair] += 1
 
   training_distinct = [pair for pair in training_distinct
-                       if predicate_count[hashPair(pair)] < expected_dupe_cover]
+                       if predicate_count[pair] < expected_dupe_cover]
 
 
   found_distinct = predicateCoverage(training_distinct,
@@ -132,7 +129,7 @@ def mergeBlocks(blocked_data) :
   candidates = set()
   for block in blocked_data.values() :
     if len(block) > 1 :
-      sorted(block)
+      block = sorted(block)
       for pair in combinations(block, 2) :
         candidates.add(pair)
     
@@ -140,6 +137,25 @@ def mergeBlocks(blocked_data) :
 
 def allCandidates(data_d) :
   return list(combinations(sorted(data_d.keys()),2))
+
+def semiSupervisedNonDuplicates(data_d,
+                                data_model,
+                                nonduplicate_confidence_threshold = .7) :
+  
+  #this is an expensive call and we're making it multiple times
+  pairs = allCandidates(data_d)
+  record_distances = core.recordDistances(pairs, data_d, data_model)
+  
+  confident_nonduplicate_ids = []
+  scored_pairs = core.scorePairs(record_distances, data_model)
+  for i, score in enumerate(scored_pairs) :
+    if score < (1 - nonduplicate_confidence_threshold) : 
+      confident_nonduplicate_ids.append(record_distances['pairs'][i]) 
+  
+  confident_nonduplicate_pairs = [(data_d[pair[0]], data_d[pair[1]])
+                                  for pair in confident_nonduplicate_ids]
+
+  return confident_nonduplicate_pairs
 
 
 if __name__ == '__main__':
