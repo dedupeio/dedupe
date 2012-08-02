@@ -9,7 +9,7 @@ Current solutions break easily, don’t scale, and require significant developer
 
 * numpy (http://numpy.scipy.org/)
 * hierarchical cluster depends upon
-  * fcluster (http://math.stanford.edu/~muellner/fastcluster.html)
+  * fastcluster (http://math.stanford.edu/~muellner/fastcluster.html)
   * hcluster (http://code.google.com/p/scipy-cluster/)
 
 == Team
