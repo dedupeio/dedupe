@@ -6,7 +6,7 @@ import json
 
 #dedupe modules
 from dedupe.training_sample import activeLearning, consoleLabel
-from dedupe.blocking import trainBlocking, blockingIndex, mergeBlocks
+from dedupe.blocking import trainBlocking, blockingIndex, mergeBlocks, allCandidates
 from dedupe.predicates import *
 import dedupe.core
 import dedupe.clustering
@@ -65,6 +65,22 @@ def readTraining(file_name) :
   training_pairs = dict([(int(dupe), examples) for dupe, examples in training_pairs_raw.iteritems()])
   
   return training_pairs
+
+def semiSupervisedDuplicates(data_d, data_model, nonduplicate_confidence_threshold = .8) :
+  
+  #this is an expensive call and we're making it multiple times
+  pairs = allCandidates(data_d)
+  record_distances = dedupe.core.recordDistances(pairs, data_d, data_model)
+  
+  high_confidence_nonduplicates = []
+  scored_pairs = dedupe.core.scorePairs(record_distances, data_model)
+  for i, score in enumerate(scored_pairs) :
+    if score < (1 - nonduplicate_confidence_threshold) : 
+      high_confidence_nonduplicates.append(record_distances['pairs'][i]) 
+  
+  print "# high_confidence_nonduplicates"    
+  print len(high_confidence_nonduplicates)
+
   
   
 inputFile = "examples/datasets/ECP_all_raw_input.csv"
@@ -103,6 +119,9 @@ else:
   
     writeTraining(trainingFile, training_pairs)
 
+  
+  semiSupervisedDuplicates(data_d, data_model)
+  
   predicates = trainBlocking(training_pairs,
                              (wholeFieldPredicate,
                               tokenFieldPredicate,

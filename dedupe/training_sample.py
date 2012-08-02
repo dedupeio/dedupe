@@ -82,8 +82,9 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
   for _ in range(num_questions) :
     print "finding the next uncertain pair ..."
     uncertain_indices = findUncertainPairs(record_distances, data_model)
-    record_distances = record_distances[: , uncertain_indices]
 
+    # pop the next most uncertain pair off of record distances
+    record_distances = record_distances[: , uncertain_indices]
     uncertain_pairs = record_distances['pairs'][0:1]
     record_distances = record_distances[1:]
 
@@ -95,7 +96,7 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
     training_data = addTrainingData(labeled_pairs, data_model, training_data)
 
     data_model = core.trainModel(training_data, num_iterations, data_model)
-
+  
   training_pairs = {0 : nonduplicates, 1 : duplicates}  
   print training_pairs
   
