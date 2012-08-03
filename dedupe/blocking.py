@@ -1,28 +1,30 @@
 from collections import defaultdict
 from itertools import product, chain, combinations
 from math import sqrt, log
-
-def hashPair(pair) :
-      return tuple(sorted([tuple(sorted(pair[0].items())), tuple(sorted(pair[1].items()))]))
-
+import core
+from random import sample
 
 def predicateCoverage(pairs, predicates) :
-    coverage = defaultdict(list)
-    for pair in pairs :
-        for predicate, field in predicates :
-            keys1 = predicate(pair[0][field])
-            keys2 = predicate(pair[1][field])
-            if set(keys1) & set(keys2) :
-                coverage[(predicate,field)].append(pair)
-              
-    return(coverage)
+  coverage = defaultdict(list)
+  for pair in pairs :
+    for predicate in predicates :
+      keys1 = set(product(*[F(pair[0][field])
+                       for F, field in predicate]))
+      keys2 = set(product(*[F(pair[1][field])
+                           for F, field in predicate]))
+      if keys1 & keys2 :
+        coverage[predicate].append(pair)
+
+
+
+  return(coverage)
 
 
 # Approximate learning of blocking following the ApproxRBSetCover from
 # page 102 of Bilenko
 def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
-  training_distinct = training_pairs[0][:]
+  training_distinct = sample(training_pairs[0][:], 1000)
   training_dupes = training_pairs[1][:]
   n_training_dupes = len(training_dupes)
   n_training_distinct = len(training_distinct)
@@ -35,6 +37,15 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   
   # The set of all predicate functions operating over all fields
   predicateSet = list(product(predicates, fields))
+
+  disjunctive_predicates = list(combinations(predicateSet, 2))
+  # filter out disjunctive predicates that operate on same field
+  disjunctive_predicates = [predicate for predicate
+                            in disjunctive_predicates
+                            if predicate[0][1] != predicate[1][1]]
+
+  predicateSet = [(predicate,) for predicate in predicateSet]
+  predicateSet.extend(disjunctive_predicates)
   n_predicates = len(predicateSet)
 
   
@@ -63,10 +74,10 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
   predicate_count = defaultdict(int)
   for pair in chain(*found_distinct.values()) :
-      predicate_count[hashPair(pair)] += 1
+      predicate_count[pair] += 1
 
   training_distinct = [pair for pair in training_distinct
-                       if predicate_count[hashPair(pair)] < expected_dupe_cover]
+                       if predicate_count[pair] < expected_dupe_cover]
 
 
   found_distinct = predicateCoverage(training_distinct,
@@ -78,7 +89,7 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
   print "Uncovered dupes"
   print n_training_dupes
   while n_training_dupes >= epsilon :
-
+        
     optimumCover = 0
     bestPredicate = None
     for predicate in predicateSet :
@@ -118,21 +129,24 @@ def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
     raise 
 
 
-def blockingIndex(data_d, predicate_functions) :
+def blockingIndex(data_d, predicates) :
   blocked_data = defaultdict(set)
   for key, instance in data_d.items() :
-    for F, field in predicate_functions :
-      predicates = F(data_d[key][field])
-      for predicate in predicates :
-        blocked_data[predicate].add(key)
+    for predicate in predicates :
+      predicate_tuples = product(*[F(data_d[key][field])
+                                  for F, field in predicate])
+      
+      for predicate_tuple in predicate_tuples :
+        blocked_data[str(predicate_tuple)].add(key)
 
+ 
   return blocked_data
 
 def mergeBlocks(blocked_data) :
   candidates = set()
   for block in blocked_data.values() :
     if len(block) > 1 :
-      sorted(block)
+      block = sorted(block)
       for pair in combinations(block, 2) :
         candidates.add(pair)
     
@@ -140,6 +154,25 @@ def mergeBlocks(blocked_data) :
 
 def allCandidates(data_d) :
   return list(combinations(sorted(data_d.keys()),2))
+
+def semiSupervisedNonDuplicates(data_d,
+                                data_model,
+                                nonduplicate_confidence_threshold = .7) :
+  
+  #this is an expensive call and we're making it multiple times
+  pairs = allCandidates(data_d)
+  record_distances = core.recordDistances(pairs, data_d, data_model)
+  
+  confident_nonduplicate_ids = []
+  scored_pairs = core.scorePairs(record_distances, data_model)
+  for i, score in enumerate(scored_pairs) :
+    if score < (1 - nonduplicate_confidence_threshold) : 
+      confident_nonduplicate_ids.append(record_distances['pairs'][i]) 
+  
+  confident_nonduplicate_pairs = [(data_d[pair[0]], data_d[pair[1]])
+                                  for pair in confident_nonduplicate_ids]
+
+  return confident_nonduplicate_pairs
 
 
 if __name__ == '__main__':

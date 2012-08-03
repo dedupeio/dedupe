@@ -6,22 +6,22 @@ def wholeFieldPredicate(field) :
   
 #returns the tokens in the field as a tuple, split on whitespace
 def tokenFieldPredicate(field) :
-  return field.split()
+  return tuple(field.split())
 
 # Contain common integer
 def commonIntegerPredicate(field) :
-    return re.findall("\d+", field)
+    return tuple(re.findall("\d+", field))
 
 def nearIntegersPredicate(field) :
     ints = sorted([int(i) for i in re.findall("\d+", field)])
-    return [(i-1, i, i+1) for i in ints]
+    return tuple([(i-1, i, i+1) for i in ints])
 
 
 def commonFourGram(field) :
-    return [field[pos:pos + 4] for pos in xrange(0, len(field), 4)]
+    return tuple([field[pos:pos + 4] for pos in xrange(0, len(field), 4)])
 
 def commonSixGram(field) :
-    return [field[pos:pos + 6] for pos in xrange(0, len(field), 6)]
+    return tuple([field[pos:pos + 6] for pos in xrange(0, len(field), 6)])
 
 def sameThreeCharStartPredicate(field) :
     return (field[:3],)
