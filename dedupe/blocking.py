@@ -8,13 +8,13 @@ def predicateCoverage(pairs, predicates) :
   coverage = defaultdict(list)
   for pair in pairs :
     for predicate in predicates :
-      keys1 = set([])
-      keys2 = set([])
-      for predicate_f, field in predicate : 
-        keys1.update(predicate_f(pair[0][field]))
-        keys2.update(predicate_f(pair[1][field]))
+      keys1 = set(product(*[F(pair[0][field])
+                       for F, field in predicate]))
+      keys2 = set(product(*[F(pair[1][field])
+                           for F, field in predicate]))
       if keys1 & keys2 :
         coverage[predicate].append(pair)
+
 
 
   return(coverage)
@@ -133,11 +133,13 @@ def blockingIndex(data_d, predicates) :
   blocked_data = defaultdict(set)
   for key, instance in data_d.items() :
     for predicate in predicates :
-      predicate_tuples = product([F(data_d[key][field])
+      predicate_tuples = product(*[F(data_d[key][field])
                                   for F, field in predicate])
+      
       for predicate_tuple in predicate_tuples :
         blocked_data[str(predicate_tuple)].add(key)
 
+ 
   return blocked_data
 
 def mergeBlocks(blocked_data) :

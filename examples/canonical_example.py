@@ -119,15 +119,17 @@ if __name__ == '__main__':
     print len(training_data)
     print ""
 
-    alpha = crossvalidation.gridSearch(training_data,
-                                       core.trainModel,
-                                       data_model)
+    ## alpha = crossvalidation.gridSearch(training_data,
+    ##                                    core.trainModel,
+    ##                                    data_model)
+
+    alpha = .01
 
     print "training weights ..."
     data_model = core.trainModel(training_data, numIterations, data_model, alpha)
     print ""
 
-    core.writeSettings('restaurant_learned_settings.json', data_model, predicates)
+    #core.writeSettings('restaurant_learned_settings.json', data_model, predicates)
 
   print "Learned Weights"
   for k1, v1 in data_model.items() :
