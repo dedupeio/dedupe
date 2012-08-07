@@ -6,7 +6,8 @@ import json
 
 #dedupe modules
 from dedupe.training_sample import activeLearning, consoleLabel
-from dedupe.blocking import trainBlocking, blockingIndex, mergeBlocks
+from dedupe.blocking import trainBlocking, blockingIndex, mergeBlocks, allCandidates, semiSupervisedNonDuplicates
+from dedupe.core import frozendict
 from dedupe.predicates import *
 import dedupe.core
 import dedupe.clustering
@@ -61,10 +62,17 @@ def writeTraining(file_name, training_pairs) :
 def readTraining(file_name) :
   with open(file_name, 'r') as f :
     training_pairs_raw = json.load(f)
-
-  training_pairs = dict([(int(dupe), examples) for dupe, examples in training_pairs_raw.iteritems()])
   
+  training_pairs = {0 : [], 1 : []}
+  for label, examples in training_pairs_raw.iteritems() :
+    for pair in examples :
+      training_pairs[int(label)].append((frozendict(pair[0]),
+                                         frozendict(pair[1])))
+                        
   return training_pairs
+
+ 
+
   
   
 inputFile = "examples/datasets/ECP_all_raw_input.csv"
@@ -91,10 +99,12 @@ else:
     training_data = dedupe.training_sample.addTrainingData(training_pairs, data_model)
     import dedupe.crossvalidation
 
-    alpha = dedupe.crossvalidation.gridSearch(training_data,
-                                              dedupe.core.trainModel,
-                                              data_model,
-                                              k = 10)
+    ## alpha = dedupe.crossvalidation.gridSearch(training_data,
+    ##                                           dedupe.core.trainModel,
+    ##                                           data_model,
+    ##                                           k = 10)
+
+    alpha = 1
     
     data_model = dedupe.core.trainModel(training_data, numIterations, data_model, alpha)
   else :  
@@ -103,6 +113,12 @@ else:
   
     writeTraining(trainingFile, training_pairs)
 
+  
+  confident_nonduplicates = semiSupervisedNonDuplicates(sampleDict(data_d, 700),
+                                                        data_model)
+
+  training_pairs[0].extend(confident_nonduplicates)
+  
   predicates = trainBlocking(training_pairs,
                              (wholeFieldPredicate,
                               tokenFieldPredicate,
@@ -115,9 +131,9 @@ else:
                               commonSixGram),
                              data_model, 1, 1)
   
-  dedupe.core.writeSettings(learnedSettingsFile,
-                     data_model,
-                     predicates)
+  #dedupe.core.writeSettings(learnedSettingsFile,
+  #                          data_model,
+  #                          predicates)
 
 
 blocked_data = blockingIndex(data_d, predicates)
