@@ -61,6 +61,7 @@ def calculateDistance(instance_1, instance_2, fields, distances) :
 def trainModel(training_data, iterations, data_model, alpha=.001) :
     trainer = lr.LogisticRegression()
     trainer.alpha = alpha
+    #trainer.determineLearnRate(training_data)
     trainer.train(training_data, iterations)
 
     data_model['bias'] = trainer.bias

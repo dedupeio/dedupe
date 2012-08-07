@@ -8,7 +8,7 @@ def gridSearch(training_data,
                trainer,
                original_data_model,
                k = 3,
-               search_space = [0,.0001, .001, .01, .1, 1],
+               search_space = [.0001, .001, .01, .1, 1],
                randomize=True) :
 
   if randomize :
@@ -48,7 +48,7 @@ def gridSearch(training_data,
     print alpha, float(all_score)/all_N
     scores.append(float(all_score)/all_N)
 
-  best_alpha = search_space[scores.index(max(scores))]
+  best_alpha = search_space[::-1][scores[::-1].index(max(scores))]
   
   return best_alpha
 
