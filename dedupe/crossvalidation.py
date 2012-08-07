@@ -48,7 +48,7 @@ def gridSearch(training_data,
     print alpha, float(all_score)/all_N
     scores.append(float(all_score)/all_N)
 
-  best_alpha = search_space[scores.index(max(scores))]
+  best_alpha = search_space[::-1][scores[::-1].index(max(scores))]
   
   return best_alpha
 
