@@ -8,7 +8,7 @@ def gridSearch(training_data,
                trainer,
                original_data_model,
                k = 3,
-               search_space = [0,.0001, .001, .01, .1, 1],
+               search_space = [.0001, .001, .01, .1, 1],
                randomize=True) :
 
   if randomize :

@@ -80,8 +80,8 @@ learnedSettingsFile = "ecp_learned_settings.json"
 trainingFile = "ecp_training.json"
 num_training_dupes = 200
 num_training_distinct = 16000
-numIterations = 100
-numTrainingPairs = 30
+numIterations = 5
+numTrainingPairs = 100
 
 import time
 t0 = time.time()
@@ -99,10 +99,10 @@ else:
     training_data = dedupe.training_sample.addTrainingData(training_pairs, data_model)
     import dedupe.crossvalidation
 
-    ## alpha = dedupe.crossvalidation.gridSearch(training_data,
-    ##                                           dedupe.core.trainModel,
-    ##                                           data_model,
-    ##                                           k = 10)
+    alpha = dedupe.crossvalidation.gridSearch(training_data,
+                                              dedupe.core.trainModel,
+                                              data_model,
+                                              k = 10)
 
     alpha = 1
     

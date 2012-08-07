@@ -79,7 +79,7 @@ if __name__ == '__main__':
   t0 = time.time()
   num_training_dupes = 200
   num_training_distinct = 1600
-  numIterations = 30
+  numIterations = 100
 
   (data_d, duplicates_s, data_model) = init()
 
@@ -119,11 +119,11 @@ if __name__ == '__main__':
     print len(training_data)
     print ""
 
-    ## alpha = crossvalidation.gridSearch(training_data,
-    ##                                    core.trainModel,
-    ##                                    data_model)
+    alpha = crossvalidation.gridSearch(training_data,
+                                        core.trainModel,
+                                        data_model)
 
-    alpha = .01
+    #alpha = .01
 
     print "training weights ..."
     data_model = core.trainModel(training_data, numIterations, data_model, alpha)
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
   print ""
   
-  dupes = core.scoreDuplicates(candidates, data_d, data_model, .50)
+  dupes = core.scoreDuplicates(candidates, data_d, data_model, .40)
 
   #print dupes
 
