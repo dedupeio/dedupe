@@ -2,14 +2,7 @@ import csv
 import re
 import os
 import json
-
-#dedupe modules
-from dedupe.training_sample import activeLearning, consoleLabel
-from dedupe.blocking import trainBlocking, blockingIndex, mergeBlocks, allCandidates, semiSupervisedNonDuplicates
-from dedupe.core import frozendict
-from dedupe.predicates import *
-import dedupe.core
-import dedupe.clustering
+import dedupe.dedupe
 import dedupe.training_sample
 
 def earlyChildhoodImport(filename) :
@@ -29,9 +22,14 @@ def earlyChildhoodImport(filename) :
 
     return(data_d, header)
     
-    
-def dataModel() :
-  return  {'fields': 
+def init(inputFile) :
+  data_d, header = earlyChildhoodImport(inputFile)
+  return (data_d, header)
+
+#create our deduper object  
+deduper = dedupe.dedupe.Dedupe() #<- irony
+ 
+deduper.data_model = {'fields': 
             { 'Site name' : {'type': 'String', 'weight' : 0}, 
               'Address'   : {'type': 'String', 'weight' : 0},
               'Zip'       : {'type': 'String', 'weight' : 0},
@@ -40,104 +38,43 @@ def dataModel() :
             },
            'bias' : 0}
 
-def init(inputFile) :
-  data_d, header = earlyChildhoodImport(inputFile)
-  data_model = dataModel()
-  return (data_d, data_model, header)
-
-# user defined function to label pairs as duplicates or non-duplicates
-  
-def writeTraining(file_name, training_pairs) :
-  with open(file_name, 'w') as f :
-    json.dump(training_pairs, f)
-  
-  
-def readTraining(file_name) :
-  with open(file_name, 'r') as f :
-    training_pairs_raw = json.load(f)
-  
-  training_pairs = {0 : [], 1 : []}
-  for label, examples in training_pairs_raw.iteritems() :
-    for pair in examples :
-      training_pairs[int(label)].append((frozendict(pair[0]),
-                                         frozendict(pair[1])))
-                        
-  return training_pairs
-  
 inputFile = "examples/datasets/ECP_all_raw_input.csv"
 learnedSettingsFile = "ecp_learned_settings.json"
 trainingFile = "ecp_training.json"
-num_training_dupes = 200
-num_training_distinct = 16000
-numIterations = 5
-numTrainingPairs = 100
 
 import time
 t0 = time.time()
-data_d, data_model, header = init(inputFile)
+data_d, header = init(inputFile)
 
 
 print "importing data ..."
 
 if os.path.exists(learnedSettingsFile) :
-  data_model, predicates = dedupe.core.readSettings(learnedSettingsFile)
+  deduper.readSettings(learnedSettingsFile)
 else:
-
   if os.path.exists(trainingFile) :
-    training_pairs = readTraining(trainingFile)
-    training_data = dedupe.training_sample.addTrainingData(training_pairs, data_model)
-    import dedupe.crossvalidation
-
-    alpha = dedupe.crossvalidation.gridSearch(training_data,
-                                              dedupe.core.trainModel,
-                                              data_model,
-                                              k = 10)
-
-    alpha = 1
-    
-    data_model = dedupe.core.trainModel(training_data, numIterations, data_model, alpha)
+    #read in training json file
+    deduper.readTraining(trainingFile)
+    deduper.findAlpha()
+    deduper.train()
   else :  
-    #lets do some active learning here
-    training_data, training_pairs, data_model = activeLearning(dedupe.core.sampleDict(data_d, 700), data_model, consoleLabel, numTrainingPairs)
-  
-    writeTraining(trainingFile, training_pairs)
+    #get user input for active learning
+    deduper.activeLearning(data_d, dedupe.training_sample.consoleLabel) 
+    deduper.writeTraining(trainingFile)
 
-  confident_nonduplicates = semiSupervisedNonDuplicates(dedupe.core.sampleDict(data_d, 700),
-                                                        data_model)
-
-  training_pairs[0].extend(confident_nonduplicates)
-  
-  predicates = trainBlocking(training_pairs,
-                             (wholeFieldPredicate,
-                              tokenFieldPredicate,
-                              commonIntegerPredicate,
-                              sameThreeCharStartPredicate,
-                              sameFiveCharStartPredicate,
-                              sameSevenCharStartPredicate,
-                              nearIntegersPredicate,
-                              commonFourGram,
-                              commonSixGram),
-                             data_model, 1, 1)
-  
-  #dedupe.core.writeSettings(learnedSettingsFile,
-  #                          data_model,
-  #                          predicates)
-
-
-blocked_data = blockingIndex(data_d, predicates)
-candidates = mergeBlocks(blocked_data)
-
+deduper.mapBlocking(data_d)  
+deduper.identifyCandidates()
 
 print ""
 print "Blocking reduced the number of comparisons by",
-print int((1-len(candidates)/float(0.5*len(data_d)**2))*100),
+print int((1-len(deduper.candidates)/float(0.5*len(data_d)**2))*100),
 print "%"
 print "We'll make",
-print len(candidates),
+print len(deduper.candidates),
 print "comparisons."
 
 print "Learned Weights"
-for k1, v1 in data_model.items() :
+for k1, v1 in deduper.data_model.items() :
   try:
     for k2, v2 in v1.items() :
       print (k2, v2['weight'])
@@ -148,11 +85,9 @@ print ""
 
 print "finding duplicates ..."
 print ""
-dupes = dedupe.core.scoreDuplicates(candidates, data_d, data_model)
+deduper.score(data_d)
 
-
-
-## for pair, score in dupes :
+## for pair, score in deduper.dupes :
 ##   if 6 in (pair[0], pair[1]) :
 ##     print "Score :", score
 ##     print pair
@@ -161,9 +96,8 @@ dupes = dedupe.core.scoreDuplicates(candidates, data_d, data_model)
 ##       print data_d[pair[1]][k]
 ##     print 
 
-#clustered_dupes = dedupe.clustering.chaudhi.cluster(dupes, estimated_dupe_fraction = .9)
-clustered_dupes = dedupe.clustering.hierarchical.cluster(dupes, .5)
-
+#clustered_dupes = dedupe.clustering.chaudhi.cluster(deduper.dupes, estimated_dupe_fraction = .9)
+clustered_dupes = deduper.duplicateClusters(.5)
 
 print "# duplicate sets"
 print len(clustered_dupes)
