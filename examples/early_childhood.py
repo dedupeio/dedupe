@@ -63,10 +63,6 @@ def readTraining(file_name) :
                                          frozendict(pair[1])))
                         
   return training_pairs
-
- 
-
-  
   
 inputFile = "examples/datasets/ECP_all_raw_input.csv"
 learnedSettingsFile = "ecp_learned_settings.json"
@@ -106,7 +102,6 @@ else:
   
     writeTraining(trainingFile, training_pairs)
 
-  
   confident_nonduplicates = semiSupervisedNonDuplicates(dedupe.core.sampleDict(data_d, 700),
                                                         data_model)
 
