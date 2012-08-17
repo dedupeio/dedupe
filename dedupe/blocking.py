@@ -25,7 +25,7 @@ def predicateCoverage(pairs, predicates) :
 def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
   sample_size = 1000
-  if len(training_pairs) <= sample_size :
+  if len(training_pairs[0]) <= sample_size :
     training_distinct = training_pairs[0][:]
   else :
     training_distinct = sample(training_pairs[0][:], sample_size)
