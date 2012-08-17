@@ -1,5 +1,5 @@
 __all__ = ["affinegap", "blocking", "clustering", "core", "lr", "predicates", 
-	   "training_sample", "crossvalidation"]
+	   "training_sample", "crossvalidation", "dedupe"]
 
 import affinegap
 import blocking
@@ -9,3 +9,4 @@ import lr
 import predicates
 import training_sample
 import crossvalidation
+from dedupe import Dedupe

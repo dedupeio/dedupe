@@ -18,16 +18,31 @@ def sampleDict(d, sample_size) :
 
 class Dedupe:
 
-  def __init__(self):
-    self.data_model = None
-    self.training_data = None
-    self.training_pairs = None
-    self.alpha = 0
+  def __init__(self, init = None, input_type = None):
+    if init :
+      if input_type == "fields" :
+        self.initializeSettings(init)
+      elif input_type == "settings file" :
+        self.readSettings(self, init)
+      elif input_type :
+        raise ValueError, "Invalid Input Type, input_type must be 'fields' or 'settings file'"
+      else :
+        raise ValueError, "Undefined Input Type, input_type must be 'fields' or 'settings file'"
+    
+
+  def initializeSettings(self, fields) :
     self.predicates = None
-    self.blocked_map = None
-    self.candidates = None 
-    self.dupes = None
-  
+    self.alpha = 0
+    self.data_model = {}
+    self.data_model['fields'] = {}
+
+    for k,v in fields.iteritems() :
+      v.update({'weight' : 0})
+      self.data_model['fields'][k] = v
+
+    self.data_model['bias'] = 0
+        
+
   
   def activeLearning(self, data_d, labelingFunction, numTrainingPairs = 30) :
     (self.training_data, 
@@ -45,9 +60,10 @@ class Dedupe:
                                             k = 10)
   
   def train(self, num_iterations = 100) :
+    self.findAlpha()
     self.data_model = core.trainModel(self.training_data, num_iterations, self.data_model, self.alpha)
   
-  def learnBlocking(self, data_d, semi_supervised) :
+  def learnBlocking(self, data_d, semi_supervised = True) :
     if semi_supervised :
       confident_nonduplicates = blocking.semiSupervisedNonDuplicates(sampleDict(data_d, 700),
                                                                      self.data_model)
@@ -75,7 +91,7 @@ class Dedupe:
   def score(self, data_d) :
     self.dupes = core.scoreDuplicates(self.candidates, data_d, self.data_model)
   
-  def findDuplicates(self, data_d) :
+  def findDuplicates(self, data_d, semi_supervised=True) :
     if (not self.predicates) :
       self.learnBlocking(data_d, semi_supervised)
     

@@ -1,4 +1,22 @@
 import csv
+import re
+import dedupe.core
+
+def preProcess(column) :
+  column = re.sub('  +', ' ', column)
+  column = re.sub('\n', ' ', column)
+  column = column.strip().strip('"').strip("'").lower()
+  return column
+
+def readData(filename) :
+  data_d = {}
+  with open(filename) as f :
+    reader = csv.DictReader(f, delimiter=',', quotechar='"')
+    for i, row in enumerate(reader) :
+      clean_row = [(k, preProcess(v)) for k,v in row.iteritems()]
+      data_d[i] = dedupe.core.frozendict(clean_row)
+      
+  return(data_d, reader.fieldnames)
 
 def print_csv(input_file, output_file, header, clustered_dupes) :
   orig_data = {}
