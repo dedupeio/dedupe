@@ -1,4 +1,6 @@
 import json
+import random
+
 import core
 import training_sample
 import crossvalidation
@@ -6,32 +8,13 @@ from predicates import *
 import blocking
 import clustering
 
-# define a data type for hashable dictionaries
-class frozendict(dict):
-    def _blocked_attribute(obj):
-        raise AttributeError, "A frozendict cannot be modified."
-    _blocked_attribute = property(_blocked_attribute)
-
-    __delitem__ = __setitem__ = clear = _blocked_attribute
-    pop = popitem = setdefault = update = _blocked_attribute
-
-    def __new__(cls, *args):
-        new = dict.__new__(cls)
-        dict.__init__(new, *args)
-        return new
-
-    def __init__(self, *args):
-        pass
-
-    def __hash__(self):
-        try:
-            return self._cached_hash
-        except AttributeError:
-            h = self._cached_hash = hash(tuple(sorted(self.items())))
-            return h
-
-    def __repr__(self):
-        return "frozendict(%s)" % dict.__repr__(self)
+def sampleDict(d, sample_size) :
+  
+  if len(d) <= sample_size :
+    return d
+  
+  sample_keys = random.sample(d.keys(), sample_size)
+  return dict((k,d[k]) for k in d.keys() if k in sample_keys)
 
 class Dedupe:
 
@@ -74,14 +57,14 @@ class Dedupe:
     training_pairs = {0 : [], 1 : []}
     for label, examples in training_pairs_raw.iteritems() :
       for pair in examples :
-        training_pairs[int(label)].append((frozendict(pair[0]),
-                                           frozendict(pair[1])))
+        training_pairs[int(label)].append((core.frozendict(pair[0]),
+                                           core.frozendict(pair[1])))
                           
     self.training_pairs = training_pairs
     self.training_data = training_sample.addTrainingData(self.training_pairs, self.data_model)
   
   def activeLearning(self, data_d, labelingFunction, numTrainingPairs = 30) :
-    self.training_data, self.training_pairs, self.data_model = training_sample.activeLearning(core.sampleDict(data_d, 700), self.data_model, labelingFunction, numTrainingPairs)
+    self.training_data, self.training_pairs, self.data_model = training_sample.activeLearning(sampleDict(data_d, 700), self.data_model, labelingFunction, numTrainingPairs)
   
   
   def findAlpha(self) :
@@ -95,7 +78,7 @@ class Dedupe:
   
   def learnBlocking(self, data_d, semi_supervised) :
     if semi_supervised :
-      confident_nonduplicates = blocking.semiSupervisedNonDuplicates(core.sampleDict(data_d, 700),
+      confident_nonduplicates = blocking.semiSupervisedNonDuplicates(sampleDict(data_d, 700),
                                                         self.data_model)
 
       self.training_pairs[0].extend(confident_nonduplicates)
@@ -126,17 +109,27 @@ class Dedupe:
   
   def duplicateClusters(self, threshold = .5) : 
     return clustering.hierarchical.cluster(self.dupes, threshold)
+    
+  def findDuplicates(self, data_d) :
+    self.mapBlocking(data_d)  
+    self.identifyCandidates()
+    self.printBlockingSummary(data_d)
+    print "finding duplicates ..."
+    self.score(data_d)
+    
+  def printBlockingSummary(self, data_d) :
+    print "Blocking reduced the number of comparisons by",
+    print int((1-len(self.candidates)/float(0.5*len(data_d)**2))*100),
+    print "%"
+    print "We'll make",
+    print len(self.candidates),
+    print "comparisons."
   
-  # def activelearn :
-# 
-#   def train :
-#   
-#   def loadSettings :
-#   
-#   def writeSettings :
-#   
-#   def blocking_map : #[dictionary where k is a block key, and elements are row_ids]
-#   
-#   def score :
-#   
-#   def clusters :
+  def printLearnedWeights(self) :  
+    print "Learned Weights"
+    for k1, v1 in self.data_model.items() :
+      try:
+        for k2, v2 in v1.items() :
+          print (k2, v2['weight'])
+      except :
+        print (k1, v1)

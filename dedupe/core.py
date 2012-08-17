@@ -139,14 +139,6 @@ def scoreDuplicates(candidates, data_d, data_model, threshold = None) :
   else :
     return scored_pairs
     
-def sampleDict(d, sample_size) :
-  
-  if len(d) <= sample_size :
-    return d
-  
-  sample_keys = random.sample(d.keys(), sample_size)
-  return dict((k,d[k]) for k in d.keys() if k in sample_keys)
-  
 # define a data type for hashable dictionaries
 class frozendict(dict):
     def _blocked_attribute(obj):
