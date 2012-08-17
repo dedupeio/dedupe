@@ -1,4 +1,3 @@
-import random
 import csv
 import re
 import os
@@ -47,12 +46,6 @@ def init(inputFile) :
   return (data_d, data_model, header)
 
 # user defined function to label pairs as duplicates or non-duplicates
-
-def sampleDict(d, sample_size) :
-  
-  sample_keys = random.sample(d.keys(), sample_size)
-  return dict((k,d[k]) for k in d.keys() if k in sample_keys)
-  
   
 def writeTraining(file_name, training_pairs) :
   with open(file_name, 'w') as f :
@@ -109,12 +102,12 @@ else:
     data_model = dedupe.core.trainModel(training_data, numIterations, data_model, alpha)
   else :  
     #lets do some active learning here
-    training_data, training_pairs, data_model = activeLearning(sampleDict(data_d, 700), data_model, consoleLabel, numTrainingPairs)
+    training_data, training_pairs, data_model = activeLearning(dedupe.core.sampleDict(data_d, 700), data_model, consoleLabel, numTrainingPairs)
   
     writeTraining(trainingFile, training_pairs)
 
   
-  confident_nonduplicates = semiSupervisedNonDuplicates(sampleDict(data_d, 700),
+  confident_nonduplicates = semiSupervisedNonDuplicates(dedupe.core.sampleDict(data_d, 700),
                                                         data_model)
 
   training_pairs[0].extend(confident_nonduplicates)

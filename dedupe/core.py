@@ -1,3 +1,4 @@
+import random
 import lr
 import affinegap
 import numpy
@@ -137,6 +138,14 @@ def scoreDuplicates(candidates, data_d, data_model, threshold = None) :
     return([pair for pair in scored_pairs if pair[1] > threshold])
   else :
     return scored_pairs
+    
+def sampleDict(d, sample_size) :
+  
+  if len(d) <= sample_size :
+    return d
+  
+  sample_keys = random.sample(d.keys(), sample_size)
+  return dict((k,d[k]) for k in d.keys() if k in sample_keys)
   
 # define a data type for hashable dictionaries
 class frozendict(dict):

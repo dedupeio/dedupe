@@ -24,7 +24,12 @@ def predicateCoverage(pairs, predicates) :
 # page 102 of Bilenko
 def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
 
-  training_distinct = sample(training_pairs[0][:], 1000)
+  sample_size = 1000
+  if len(training_pairs) <= sample_size :
+    training_distinct = training_pairs[0][:]
+  else :
+    training_distinct = sample(training_pairs[0][:], sample_size)
+    
   training_dupes = training_pairs[1][:]
   n_training_dupes = len(training_dupes)
   n_training_distinct = len(training_distinct)
