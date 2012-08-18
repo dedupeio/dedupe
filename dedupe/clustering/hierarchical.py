@@ -17,34 +17,36 @@ def condensedDistance(dupes) :
   for pair, _ in dupes :
     candidate_set.update(pair)
 
-  remap = dict([(candidate_id, i) for i, candidate_id
-                in enumerate(sorted(list(candidate_set)))])
+  id_to_i = dict([(candidate_id, i) for i, candidate_id
+                  in enumerate(sorted(list(candidate_set)))])
+  i_to_id = dict([(i, candidate_id) for candidate_id, i
+                  in id_to_i.iteritems()])
 
-  N = len(remap)
+  N = len(candidate_set)
   matrix_length = (N * (N-1))/2 
 
   condensed_distances = [1] * matrix_length
 
   for pair, score in dupes :
-    (i, j) = (remap[pair[0]], remap[pair[1]])
+    (i, j) = (id_to_i[pair[0]], id_to_i[pair[1]])
     if i > j :
       i,j = j,i
     subN = ((N - i)*(N - i - 1))/2
     index = matrix_length - subN + j - i - 1
     condensed_distances[index] = 1-score
 
-  return remap, condensed_distances
+  return i_to_id, condensed_distances
 
 def cluster(dupes, threshold) :
-  remap, condensed_distances = condensedDistance(dupes) 
+  i_to_id, condensed_distances = condensedDistance(dupes) 
   linkage = fastcluster.linkage(numpy.array(condensed_distances),
                           method='centroid')
   partition = hcluster.fcluster(linkage, threshold)
 
-  clustering = {}
+  clustering = {}  
   
-  for cluster_id, record_id in zip(partition, remap.keys()) :
-    clustering.setdefault(cluster_id, []).append(record_id)
+  for i, cluster_id in enumerate(partition) :
+    clustering.setdefault(cluster_id, []).append(i_to_id[i])
 
   clusters = [set(l) for l in clustering.values() if len(l) > 1]
 
