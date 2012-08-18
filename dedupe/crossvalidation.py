@@ -9,7 +9,8 @@ def gridSearch(training_data,
                original_data_model,
                k = 3,
                search_space = [.0001, .001, .01, .1, 1],
-               randomize=True) :
+               randomize=True,
+               num_iterations = 100) :
 
   if randomize :
     shuffle(training_data)
@@ -20,7 +21,7 @@ def gridSearch(training_data,
     all_N = 0
     for training, validation in kFolds(training_data, k) :
 
-      data_model = trainer(training, 100, original_data_model, alpha)
+      data_model = trainer(training, num_iterations, original_data_model, alpha)
 
       (real_labels,
        validation_distances) = zip(*[(label, distances)

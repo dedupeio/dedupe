@@ -42,7 +42,9 @@ class Dedupe:
 
     self.data_model['bias'] = 0
         
-
+  def trainingDistance(self) :
+    self.training_data = training_sample.addTrainingData(self.training_pairs,
+                                                         self.data_model)
   
   def activeLearning(self, data_d, labelingFunction, numTrainingPairs = 30) :
     (self.training_data, 
@@ -53,14 +55,15 @@ class Dedupe:
                                                        numTrainingPairs)
   
   
-  def findAlpha(self) :
+  def findAlpha(self, num_iters = 100) :
     self.alpha = crossvalidation.gridSearch(self.training_data,
                                             core.trainModel,
                                             self.data_model,
-                                            k = 10)
+                                            k = 10,
+                                            num_iterations = num_iters)
   
   def train(self, num_iterations = 100) :
-    self.findAlpha()
+    self.findAlpha(num_iterations)
     self.data_model = core.trainModel(self.training_data, num_iterations, self.data_model, self.alpha)
   
   def learnBlocking(self, data_d, semi_supervised = True) :
@@ -88,10 +91,10 @@ class Dedupe:
   def identifyCandidates(self) :
     self.candidates = blocking.mergeBlocks(self.blocked_map)
     
-  def score(self, data_d) :
-    self.dupes = core.scoreDuplicates(self.candidates, data_d, self.data_model)
+  def score(self, data_d, threshold=None) :
+    self.dupes = core.scoreDuplicates(self.candidates, data_d, self.data_model, threshold)
   
-  def findDuplicates(self, data_d, semi_supervised=True) :
+  def findDuplicates(self, data_d, semi_supervised=True, threshold=None) :
     if (not self.predicates) :
       self.learnBlocking(data_d, semi_supervised)
     
@@ -99,8 +102,8 @@ class Dedupe:
     self.identifyCandidates()
     self.printBlockingSummary(data_d)
     print "finding duplicates ..."
-    self.score(data_d)
-    
+    self.score(data_d, threshold)
+
   def duplicateClusters(self, threshold = .5) : 
     return clustering.hierarchical.cluster(self.dupes, threshold)
                 
@@ -121,7 +124,6 @@ class Dedupe:
     print "We'll make",
     print len(self.candidates),
     print "comparisons."
-  
 
   def writeSettings(self, file_name) :
     source_predicates = [(predicate[0].__name__,
@@ -143,8 +145,7 @@ class Dedupe:
   def writeTraining(self, file_name) :
     with open(file_name, 'w') as f :
       json.dump(self.training_pairs, f)
-    
-    
+
   def readTraining(self, file_name) :
     with open(file_name, 'r') as f :
       training_pairs_raw = json.load(f)
@@ -156,4 +157,4 @@ class Dedupe:
                                            core.frozendict(pair[1])))
                           
     self.training_pairs = training_pairs
-    self.training_data = training_sample.addTrainingData(self.training_pairs, self.data_model)
+    self.trainingDistance()
