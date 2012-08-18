@@ -74,6 +74,7 @@ else :
                          'interaction-terms': ['name', 'city']}
           }
     deduper = dedupe.Dedupe(fields, 'fields')
+    deduper.num_iterations = num_iterations
     
     deduper.training_pairs = dedupe.training_sample.randomTrainingPairs(data_d,
                                                                        duplicates_s,
@@ -81,7 +82,7 @@ else :
                                                                        num_training_distinct)
 
     deduper.trainingDistance()
-    deduper.train(num_iterations)
+    deduper.train()
     
 deduper.findDuplicates(data_d, threshold=0.5)
 

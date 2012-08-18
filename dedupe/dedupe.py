@@ -19,6 +19,7 @@ def sampleDict(d, sample_size) :
 class Dedupe:
 
   def __init__(self, init = None, input_type = None):
+    self.num_iterations = 100
     if init :
       if input_type == "fields" :
         self.initializeSettings(init)
@@ -46,6 +47,21 @@ class Dedupe:
     self.training_data = training_sample.addTrainingData(self.training_pairs,
                                                          self.data_model)
   
+  def findAlpha(self) :
+    self.alpha = crossvalidation.gridSearch(self.training_data,
+                                            core.trainModel,
+                                            self.data_model,
+                                            k = 10,
+                                            num_iterations = self.num_iterations)
+  
+  def train(self) :
+    self.findAlpha()
+    self.data_model = core.trainModel(self.training_data,
+                                      self.num_iterations,
+                                      self.data_model,
+                                      self.alpha)
+    self.printLearnedWeights()
+
   def activeLearning(self, data_d, labelingFunction, numTrainingPairs = 30) :
     (self.training_data, 
      self.training_pairs, 
@@ -53,18 +69,10 @@ class Dedupe:
                                                        self.data_model, 
                                                        labelingFunction, 
                                                        numTrainingPairs)
+    self.train()
   
   
-  def findAlpha(self, num_iters = 100) :
-    self.alpha = crossvalidation.gridSearch(self.training_data,
-                                            core.trainModel,
-                                            self.data_model,
-                                            k = 10,
-                                            num_iterations = num_iters)
-  
-  def train(self, num_iterations = 100) :
-    self.findAlpha(num_iterations)
-    self.data_model = core.trainModel(self.training_data, num_iterations, self.data_model, self.alpha)
+
   
   def learnBlocking(self, data_d, semi_supervised = True) :
     if semi_supervised :

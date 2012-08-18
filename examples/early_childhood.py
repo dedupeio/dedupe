@@ -34,7 +34,6 @@ else:
     deduper.activeLearning(data_d, dedupe.training_sample.consoleLabel) 
     deduper.writeTraining(training_file)
 
-deduper.printLearnedWeights()
 deduper.findDuplicates(data_d)
 
 #clustered_dupes = dedupe.clustering.chaudhi.cluster(deduper.dupes, estimated_dupe_fraction = .9)
