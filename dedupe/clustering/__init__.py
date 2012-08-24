@@ -1,2 +1,2 @@
-import chaudhi
+import chaudhuri
 import hierarchical
