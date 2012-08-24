@@ -84,17 +84,18 @@ else :
     deduper.trainingDistance()
     deduper.train()
     
-deduper.findDuplicates(data_d, threshold=0.5)
+deduper.findDuplicates(data_d)
 
-print "Evaluate Scoring"
-found_dupes = set([frozenset(dupe_pair[0])
-                   for dupe_pair in deduper.dupes])
-
-evaluateDuplicates(found_dupes, duplicates_s)
+# print "Evaluate Scoring"
+# found_dupes = set([frozenset(dupe_pair[0])
+#                    for dupe_pair in deduper.dupes])
+# 
+# evaluateDuplicates(found_dupes, duplicates_s)
 
 print "Evaluate Clustering"
 
-clustered_dupes = deduper.duplicateClusters(.5)
+#clustered_dupes = deduper.duplicateClusters(threshold = .5)
+clustered_dupes = deduper.duplicateClusters(clustering_algorithm = dedupe.clustering.chaudhuri.cluster)
 
 confirm_dupes = set([])
 for dupe_set in clustered_dupes :

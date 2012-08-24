@@ -112,8 +112,8 @@ class Dedupe:
     print "finding duplicates ..."
     self.score(data_d, threshold)
 
-  def duplicateClusters(self, threshold = .5) : 
-    return clustering.hierarchical.cluster(self.dupes, threshold)
+  def duplicateClusters(self, clustering_algorithm = clustering.hierarchical.cluster, **args) : 
+    return clustering_algorithm(self.dupes, **args)
                 
   def printLearnedWeights(self) :  
     print "Learned Weights"
