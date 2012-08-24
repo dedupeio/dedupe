@@ -1,7 +1,7 @@
 from collections import defaultdict
 from itertools import combinations
 
-def neighborDict(duplicates) :
+def neighborDict(duplicates, k_nearest_neighbors) :
   neighbors = defaultdict(list)
 
   for pair, similarity in duplicates :
@@ -11,16 +11,17 @@ def neighborDict(duplicates) :
     neighbors[candidate_1].append((candidate_2, distance))
     neighbors[candidate_2].append((candidate_1, distance))
     
-  for candidate in neighbors :
-    neighbors[candidate] = sorted(neighbors[candidate],
-                                  key = lambda neighborhood : neighborhood[0])
-    neighbors[candidate] = sorted(neighbors[candidate],
-                                  key = lambda neighborhood : neighborhood[1])
+  for candidate, neighborhood in neighbors.iteritems() :
+    neighborhood += [(candidate, 0)]
+    neighborhood = sorted(neighbors[candidate],
+                          key = lambda neighborhood : neighborhood[0])
+    neighborhood = sorted(neighbors[candidate],
+                          key = lambda neighborhood : neighborhood[1])
+    neighbors[candidate] = neighborhood[:(k_nearest_neighbors + 1)]
 
   return neighbors
 
-def neighborhoodGrowth(neighborhood, neighborhood_multiplier) :
-  distances = zip(*neighborhood)[1]
+def neighborhoodGrowth(distances, neighborhood_multiplier) :
   smallest_distance = min(distances)
   neighborhood_growth = sum([distance <= (neighborhood_multiplier
                                           * smallest_distance)
@@ -29,6 +30,8 @@ def neighborhoodGrowth(neighborhood, neighborhood_multiplier) :
   return neighborhood_growth
 
 def kOverlap(neighborhood_1, neighborhood_2) :
+  
+
   K = min(len(neighborhood_1), len(neighborhood_2))
   overlap = [False] * K
 
@@ -38,7 +41,7 @@ def kOverlap(neighborhood_1, neighborhood_2) :
 
   return overlap
 
-def compactPairs(neighbors) :
+def compactPairs(neighbors, neighborhood_multiplier) :
 
   compact_pairs = []
 
@@ -50,24 +53,16 @@ def compactPairs(neighbors) :
   for pair in candidate_pairs :
     candidate_1, candidate_2 = pair
 
-
-
-
-
-    # This is appropriate if the aggregate function for the Spatial
-    # Neighborhood Threshold is MAX, not if its AVG
     neighbors_1 = neighbors[candidate_1]
-      
     neighbors_2 = neighbors[candidate_2]
 
-    # Include candidates in list of neighbors of candidate so
-    # that 1 : [2, 3] and 2 : [1,3] will become identical sets
-    # 1 : [1, 2, 3] and 2 : [2, 1, 3]  
+    neighbor_ids_1, distances_1 = zip(*neighbors_1)
+    neighbor_ids_2, distances_2 = zip(*neighbors_2)
     
-    if (candidate_1 in neighbors_2
-        and candidate_2 in neighbors_1) :
-      k_set_overlap = kOverlap(neighbors_1,
-                               neighbors_2)
+    if (candidate_1 in neighbor_ids_2
+        and candidate_2 in neighbor_ids_1) :
+      k_set_overlap = kOverlap(neighbor_ids_1,
+                               neighbor_ids_2)
 
 
       if any(k_set_overlap) :
@@ -75,12 +70,17 @@ def compactPairs(neighbors) :
         # first elements will never overlap
         k_set_overlap = k_set_overlap[1:]
 
+        growths = (neighborhoodGrowth(distances_1[1:], neighborhood_multiplier),
+                   neighborhoodGrowth(distances_2[1:], neighborhood_multiplier))
+
         compact_pairs.append((pair,
-                              k_set_overlap))
+                              k_set_overlap,
+                              growths)) 
+
 
   return compact_pairs
 
-def partition(compact_pairs) :
+def partition(compact_pairs, sparseness_threshold) :
 
   assigned_candidates = set([])
   clusters = []
@@ -91,21 +91,30 @@ def partition(compact_pairs) :
 
   for group_id, group in groups.iteritems() :
     if group_id not in assigned_candidates :
-      pair_ids, k_compact_set = zip(*group)
+      pair_ids, k_compact_set, growths = zip(*group)
 
-      compact_set_sizes = [sum(compact_bool) for compact_bool
-                           in zip(*k_compact_set)]
+      #Find the largest compact set that is has an aggregate NG below
+      #the the threshold
 
-      k = compact_set_sizes.index(max(compact_set_sizes))
-
-      cluster = set([])
-      for i, compact_bool in enumerate(k_compact_set) :
-        if compact_bool[k] :
-          cluster.update(pair_ids[i])
-          assigned_candidates.update(pair_ids[i])
-
-      if cluster :
-        clusters.append(cluster)
+      largest_compact_sets = []
+      max_c_set = set([])
+      for compact_bools in zip(*k_compact_set) :
+        max_growth = 0
+        c_set = set([group_id])
+        for i, compact_bool in enumerate(compact_bools) :
+          if compact_bool :
+            try:
+              c_set.update([pair_ids[i][1]])
+            except:
+              print c_set
+              raise
+            max_growth = max(max_growth, max(growths[i]))
+        if len(c_set) > len(max_c_set) and max_growth < sparseness_threshold :
+          max_c_set = c_set
+          
+      if len(max_c_set) > 1 :
+        clusters.append(max_c_set)
+        assigned_candidates.update(max_c_set)
 
   return clusters
 
@@ -167,6 +176,20 @@ def sparsenessThreshold(neighbors,
         
   return distribution[i+1][1]
 
+def sparseness_filter(neighbors,
+                      sparseness_threshold,
+                      k_nearest_neighbors,
+                      neighborhood_multiplier) :
+  filtered_neighbors = {}
+  for k, v in neighbors.iteritems() :
+    if neighborhoodGrowth(v, neighborhood_multiplier) < sparseness_threshold :
+      # Include candidates in list of neighbors of candidate so
+      # that 1 : [2, 3] and 2 : [1,3] will become identical sets 1 : [1,
+      # 2, 3] and 2 : [2, 1, 3]
+      near_neighbors =  (k,) + (zip(*v[:k_nearest_neighbors])[0])
+      filtered_neighbors[k] = near_neighbors
+
+  return filtered_neighbors
 
     
 def cluster(duplicates,
@@ -175,20 +198,18 @@ def cluster(duplicates,
             neighborhood_multiplier = 2,
             estimated_dupe_fraction = None) :
 
-  neighbors = neighborDict(duplicates)
+  neighbors = neighborDict(duplicates, k_nearest_neighbors)
 
   if estimated_dupe_fraction :
     sparseness_threshold = sparsenessThreshold(neighbors,
                                                estimated_dupe_fraction)
     print "Sparseness Threshold is ", sparseness_threshold
 
-  neighbors = dict([(k, (k,) + zip(*v[:k_nearest_neighbors])[0])
-                    for k, v in neighbors.iteritems()
-                    if neighborhoodGrowth(v, 2) < sparseness_threshold])
+  compact_pairs = compactPairs(neighbors, neighborhood_multiplier)
 
-  compact_pairs = compactPairs(neighbors)
+  partitions = partition(compact_pairs, sparseness_threshold)
 
-  return(partition(compact_pairs))
+  return(partitions)
 
 
 

@@ -36,7 +36,6 @@ else:
 
 deduper.findDuplicates(data_d)
 
-#clustered_dupes = dedupe.clustering.chaudhi.cluster(deduper.dupes, estimated_dupe_fraction = .9)
 clustered_dupes = deduper.duplicateClusters(.5)
 
 print "# duplicate sets"
