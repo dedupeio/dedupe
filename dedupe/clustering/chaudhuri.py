@@ -176,22 +176,6 @@ def sparsenessThreshold(neighbors,
         
   return distribution[i+1][1]
 
-def sparseness_filter(neighbors,
-                      sparseness_threshold,
-                      k_nearest_neighbors,
-                      neighborhood_multiplier) :
-  filtered_neighbors = {}
-  for k, v in neighbors.iteritems() :
-    if neighborhoodGrowth(v, neighborhood_multiplier) < sparseness_threshold :
-      # Include candidates in list of neighbors of candidate so
-      # that 1 : [2, 3] and 2 : [1,3] will become identical sets 1 : [1,
-      # 2, 3] and 2 : [2, 1, 3]
-      near_neighbors =  (k,) + (zip(*v[:k_nearest_neighbors])[0])
-      filtered_neighbors[k] = near_neighbors
-
-  return filtered_neighbors
-
-    
 def cluster(duplicates,
             sparseness_threshold = 4,
             k_nearest_neighbors = 6,
