@@ -95,7 +95,7 @@ deduper.findDuplicates(data_d)
 print "Evaluate Clustering"
 
 #clustered_dupes = deduper.duplicateClusters(threshold = .5)
-clustered_dupes = deduper.duplicateClusters(clustering_algorithm = dedupe.clustering.chaudhuri.cluster)
+clustered_dupes = deduper.duplicateClusters(clustering_algorithm = dedupe.clustering.chaudhuri.cluster, estimated_dupe_fraction=.1)
 
 confirm_dupes = set([])
 for dupe_set in clustered_dupes :

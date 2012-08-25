@@ -1,7 +1,7 @@
 from collections import defaultdict
 from itertools import combinations
 
-def neighborDict(duplicates, k_nearest_neighbors) :
+def neighborDict(duplicates) :
   neighbors = defaultdict(list)
 
   for pair, similarity in duplicates :
@@ -13,11 +13,11 @@ def neighborDict(duplicates, k_nearest_neighbors) :
     
   for candidate, neighborhood in neighbors.iteritems() :
     neighborhood += [(candidate, 0)]
-    neighborhood = sorted(neighbors[candidate],
+    neighborhood = sorted(neighborhood,
                           key = lambda neighborhood : neighborhood[0])
-    neighborhood = sorted(neighbors[candidate],
+    neighborhood = sorted(neighborhood,
                           key = lambda neighborhood : neighborhood[1])
-    neighbors[candidate] = neighborhood[:(k_nearest_neighbors + 1)]
+    neighbors[candidate] = neighborhood
 
   return neighbors
 
@@ -109,7 +109,7 @@ def partition(compact_pairs, sparseness_threshold) :
               print c_set
               raise
             max_growth = max(max_growth, max(growths[i]))
-        if len(c_set) > len(max_c_set) and max_growth < sparseness_threshold :
+        if len(c_set) > len(max_c_set) and max_growth <= sparseness_threshold :
           max_c_set = c_set
           
       if len(max_c_set) > 1 :
@@ -123,7 +123,10 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
   growths = []
 
   for neighborhood in neighbors.values() :
-    growths.append(neighborhoodGrowth(neighborhood, neighborhood_multiplier))
+    distances = zip(*neighborhood)[1][1:]
+    growths.append(neighborhoodGrowth(distances, neighborhood_multiplier))
+
+
 
   distribution = [(growths.count(growth),
                    growth) 
@@ -142,9 +145,9 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
     cumulative_growth += growth[0]
     cumulative_distribution.append((cumulative_growth, growth[1]))
 
-  print "Distribution of Growths"
-  for quantile in distribution :
-    print ("%.2f" % quantile[0], quantile[1])
+  ## print "Distribution of Growths"
+  ## for quantile in distribution :
+  ##   print ("%.2f" % quantile[0], quantile[1])
   
        
   return distribution, cumulative_distribution
@@ -155,13 +158,14 @@ def sparsenessThreshold(neighbors,
                         neighborhood_multiplier=2) :
 
   (distribution,
-   cumulative_distribution) = growthDistributions(neighbors, 2)
+   cumulative_distribution) = growthDistributions(neighbors,
+                                                  neighborhood_multiplier)
 
   growth_quantiles = zip(*cumulative_distribution)[0]
 
   fraction_window = []
   for i, quantile in enumerate(growth_quantiles) :
-    if quantile > (estimated_dupe_fraction + epsilon) :
+    if quantile >= (estimated_dupe_fraction + epsilon) :
       break
     elif quantile > (estimated_dupe_fraction - epsilon) :
       fraction_window.append(i)
@@ -182,12 +186,15 @@ def cluster(duplicates,
             neighborhood_multiplier = 2,
             estimated_dupe_fraction = None) :
 
-  neighbors = neighborDict(duplicates, k_nearest_neighbors)
+  neighbors = neighborDict(duplicates)
 
   if estimated_dupe_fraction :
     sparseness_threshold = sparsenessThreshold(neighbors,
                                                estimated_dupe_fraction)
     print "Sparseness Threshold is ", sparseness_threshold
+
+  neighbors = dict([(k, v[:(k_nearest_neighbors+1)])
+                      for k, v in neighbors.iteritems()])
 
   compact_pairs = compactPairs(neighbors, neighborhood_multiplier)
 
