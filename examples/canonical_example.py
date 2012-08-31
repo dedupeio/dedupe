@@ -70,8 +70,8 @@ else :
           'address' : {'type' :'String'},
           'city' : {'type': 'String'},
           'cuisine' : {'type': 'String'},
-          'name:city' : {'type': 'Interaction',
-                         'interaction-terms': ['name', 'city']}
+          #'name:city' : {'type': 'Interaction',
+          #               'interaction-terms': ['name', 'city']}
           }
     deduper = dedupe.Dedupe(fields, 'fields')
     deduper.num_iterations = num_iterations
@@ -86,16 +86,17 @@ else :
     
 deduper.findDuplicates(data_d)
 
-# print "Evaluate Scoring"
-# found_dupes = set([frozenset(dupe_pair[0])
-#                    for dupe_pair in deduper.dupes])
-# 
-# evaluateDuplicates(found_dupes, duplicates_s)
+print "Evaluate Scoring"
+found_dupes = set([frozenset(pair)
+                   for pair, score in deduper.dupes
+                   if score > .40])
+ 
+evaluateDuplicates(found_dupes, duplicates_s)
 
 print "Evaluate Clustering"
 
 #clustered_dupes = deduper.duplicateClusters(threshold = .5)
-clustered_dupes = deduper.duplicateClusters(clustering_algorithm = dedupe.clustering.chaudhuri.cluster, estimated_dupe_fraction=.1)
+clustered_dupes = deduper.duplicateClusters(clustering_algorithm = dedupe.clustering.chaudhuri.cluster, sparseness_threshold = 2)
 
 confirm_dupes = set([])
 for dupe_set in clustered_dupes :

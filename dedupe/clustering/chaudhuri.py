@@ -145,9 +145,9 @@ def growthDistributions(neighbors, neighborhood_multiplier) :
     cumulative_growth += growth[0]
     cumulative_distribution.append((cumulative_growth, growth[1]))
 
-  ## print "Distribution of Growths"
-  ## for quantile in distribution :
-  ##   print ("%.2f" % quantile[0], quantile[1])
+  print "Distribution of Growths"
+  for quantile in distribution :
+    print ("%.2f" % quantile[0], quantile[1])
   
        
   return distribution, cumulative_distribution
