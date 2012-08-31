@@ -49,31 +49,32 @@ def semiSupervisedNonDuplicates(data_d,
   return confident_nonduplicate_pairs
 
 class Blocking:
-  def __init__(self, training_pairs, predicate_functions, data_model, eta, epsilon):
-    self.eta = eta
-    self.sample_size = 1000
+  def __init__(self, training_pairs, predicate_functions, data_model, eta = 1 , epsilon = 1):
     self.epsilon = epsilon
-    if len(training_pairs[0]) <= self.sample_size :
-      self.training_distinct = training_pairs[0][:]
-    else :
-      self.training_distinct = sample(training_pairs[0][:], self.sample_size)
-      
     self.predicate_functions = predicate_functions
-    self.training_dupes = training_pairs[1][:]
-    self.n_training_dupes = len(self.training_dupes)
-    self.n_training_distinct = len(self.training_distinct)
-    # print n_training_dupes
-    # print n_training_distinct
-    self.sample_size = self.n_training_dupes + self.n_training_distinct
 
     self.fields = [field for field in data_model['fields'] 
-              if data_model['fields'][field]['type'] != 'Interaction']
+                   if data_model['fields'][field]['type'] != 'Interaction']
+
+    n_sample_distinct = 1000
+    if len(training_pairs[0]) <= n_sample_distinct :
+      self.training_distinct = training_pairs[0][:]
+    else :
+      self.training_distinct = sample(training_pairs[0][:], n_sample_distinct)
+
+    self.training_dupes = training_pairs[1][:]
+
+    # We want to throw away the predicates that puts together too many
+    # distinct pairs
+    sample_size = len(self.training_dupes) + len(self.training_distinct)
+    self.coverage_threshold = eta * sample_size
+
     
   # Approximate learning of blocking following the ApproxRBSetCover from
   # page 102 of Bilenko
   def trainBlocking(self, disjunctive = True) :
     self.predicate_set = self.createPredicateSet(disjunctive)
-    self.n_predicates = len(self.predicate_set)
+    n_predicates = len(self.predicate_set)
 
     found_dupes = self.predicateCoverage(self.training_dupes)
     found_distinct = self.predicateCoverage(self.training_distinct)
@@ -83,16 +84,20 @@ class Blocking:
 
     # We want to throw away the predicates that puts together too many
     # distinct pairs
-    self.eta = self.sample_size * self.eta
-
     [self.predicate_set.remove(predicate)
      for predicate in found_distinct
-     if len(found_distinct[predicate]) >= self.eta]
+     if len(found_distinct[predicate]) >= self.coverage_threshold]
 
-    expected_dupe_cover = sqrt(self.n_predicates / log(self.n_training_dupes))
-    found_distinct = self.filterOutIndistinctPairs(expected_dupe_cover, found_distinct, self.training_distinct)
+    # Expected number of predicates that should cover a duplicate pair
+    expected_dupe_cover = sqrt(n_predicates / log(len(self.training_dupes)))
+    found_distinct = self.filterOutIndistinctPairs(expected_dupe_cover,
+                                                   found_distinct,
+                                                   self.training_distinct)
     
-    final_predicate_set = self.findOptimumBlocking(self.training_dupes, self.predicate_set, found_dupes, found_distinct)  
+    final_predicate_set = self.findOptimumBlocking(self.training_dupes,
+                                                   self.predicate_set,
+                                                   found_dupes,
+                                                   found_distinct)  
 
     print "Final predicate set"
     print final_predicate_set
@@ -135,12 +140,11 @@ class Blocking:
 
     return predicate_set
 
-  def filterOutIndistinctPairs(self, expected_dupe_cover, found_distinct, training_distinct):
+  def filterOutIndistinctPairs(self, expected_dupe_cover,
+                               found_distinct, training_distinct):
     # We don't want to penalize a blocker if it puts distinct pairs
-    # together that look like they could be duplicates. Here we compute
-    # the expected number of predicates that will cover a duplicate pair
-    # We'll remove all the distince pairs from consideration if they are
-    # covered by many predicates
+    # together that look like they could be duplicates.
+
     predicate_count = defaultdict(int)
     for pair in chain(*found_distinct.values()) :
         predicate_count[pair] += 1
@@ -150,9 +154,10 @@ class Blocking:
 
     return self.predicateCoverage(training_distinct)
 
-  def findOptimumBlocking(self, training_dupes, predicate_set, found_dupes, found_distinct):
+  def findOptimumBlocking(self, training_dupes, predicate_set,
+                          found_dupes, found_distinct):
     # Greedily find the predicates that, at each step, covers the most
-    # duplicates and covers the least distinct pairs, dute to Chvatal, 1979
+    # duplicates and covers the least distinct pairs, due to Chvatal, 1979
     final_predicate_set = []
     n_training_dupes = len(training_dupes)
     print "Uncovered dupes"
