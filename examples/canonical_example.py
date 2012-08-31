@@ -64,7 +64,7 @@ print len(duplicates_s)
 print ""
 
 if os.path.exists(settings_file) :
-    deduper = dedupe.Dedupe(settings_file, 'settings_file')
+    deduper = dedupe.Dedupe(settings_file, 'settings file')
 else :
     fields = {'name' : {'type': 'String'}, 
           'address' : {'type' :'String'},
@@ -85,6 +85,7 @@ else :
     deduper.train()
     
 deduper.findDuplicates(data_d)
+deduper.writeSettings(settings_file)
 
 print "Evaluate Scoring"
 found_dupes = set([frozenset(pair)
