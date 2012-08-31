@@ -80,8 +80,8 @@ class Dedupe:
                                                                      self.data_model)
 
       self.training_pairs[0].extend(confident_nonduplicates)
-      
-    self.predicates = blocking.trainBlocking(self.training_pairs,
+    
+    blocker = blocking.Blocking(self.training_pairs,
                                  (wholeFieldPredicate,
                                   tokenFieldPredicate,
                                   commonIntegerPredicate,
@@ -92,6 +92,8 @@ class Dedupe:
                                   commonFourGram,
                                   commonSixGram),
                                  self.data_model, 1, 1)
+
+    self.predicates = blocker.trainBlocking()
                                  
   def mapBlocking(self, data_d, semi_supervised = True) : 
     self.blocked_map = blocking.blockingIndex(data_d, self.predicates)

@@ -201,7 +201,3 @@ def cluster(duplicates,
   partitions = partition(compact_pairs, sparseness_threshold)
 
   return(partitions)
-
-
-
-

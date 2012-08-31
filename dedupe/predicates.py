@@ -24,13 +24,22 @@ def commonSixGram(field) :
     return tuple([field[pos:pos + 6] for pos in xrange(0, len(field), 6)])
 
 def sameThreeCharStartPredicate(field) :
-    return (field[:3],)
+  if len(field) < 3 :
+    return ()
+    
+  return (field[:3],)
 
 def sameFiveCharStartPredicate(field) :
-    return (field[:5],)
+  if len(field) < 5 :
+    return ()
+    
+  return (field[:5],)
 
 def sameSevenCharStartPredicate(field) :
-    return (field[:7],)
+  if len(field) < 7 :
+    return ()
+    
+  return (field[:7],)
 
 if __name__ == '__main__':
   field = '123 16th st'

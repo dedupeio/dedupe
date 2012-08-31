@@ -118,8 +118,40 @@ class ClusteringTest(unittest.TestCase):
     assert sparsenessThreshold(neighbors, .5) == 3
     assert sparsenessThreshold(neighbors, .6) == 4
 
+class BlockingTest(unittest.TestCase):
+  def setUp(self):
+    pass
+
+  def test_create_predicate_set(self):
+    f1 = 'foo'
+    f2 = 'bar'
+    predicates = (f1,f2)
+    fields = ["name", "age"]
+
+    assert dedupe.blocking.createPredicateSet(fields, predicates) == [(('foo', 'name'),), 
+                                                                      (('foo', 'age'),), 
+                                                                      (('bar', 'name'),), 
+                                                                      (('bar', 'age'),), 
+                                                                      (('foo', 'name'), ('foo', 'age')), 
+                                                                      (('foo', 'name'), ('bar', 'age')), 
+                                                                      (('foo', 'age'), ('bar', 'name')), 
+                                                                      (('bar', 'name'), ('bar', 'age'))]
+
+  def test_predicate_coverage(self):
+    from itertools import product
+    predicateCoverage = dedupe.blocking.predicateCoverage
+    wholeFieldPredicate = dedupe.predicates.wholeFieldPredicate
+    sameThreeCharStartPredicate = dedupe.predicates.sameThreeCharStartPredicate
+    frozendict = dedupe.core.frozendict
     
- 
+    pairs = [(frozendict({"name": "Jimmy", "age": "20"}), frozendict({"name": "Jimbo", "age": "21"}))]
+    predicates = (wholeFieldPredicate,sameThreeCharStartPredicate)
+    fields = ["name", "age"]
+    predicateSet = dedupe.blocking.createPredicateSet(fields, predicates)
+    assert predicateCoverage(pairs, predicateSet) == {((sameThreeCharStartPredicate, 'name'),): 
+                                                        [(frozendict({'age': '20', 'name': 'Jimmy'}), 
+                                                          frozendict({'age': '21', 'name': 'Jimbo'}))]}
+
         
 if __name__ == "__main__":
     unittest.main()

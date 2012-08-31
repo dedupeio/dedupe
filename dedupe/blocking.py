@@ -4,136 +4,6 @@ from math import sqrt, log
 import core
 from random import sample
 
-def predicateCoverage(pairs, predicates) :
-  coverage = defaultdict(list)
-  for pair in pairs :
-    for predicate in predicates :
-      keys1 = set(product(*[F(pair[0][field])
-                       for F, field in predicate]))
-      keys2 = set(product(*[F(pair[1][field])
-                           for F, field in predicate]))
-      if keys1 & keys2 :
-        coverage[predicate].append(pair)
-
-
-
-  return(coverage)
-
-
-# Approximate learning of blocking following the ApproxRBSetCover from
-# page 102 of Bilenko
-def trainBlocking(training_pairs, predicates, data_model, eta, epsilon) :
-
-  sample_size = 1000
-  if len(training_pairs[0]) <= sample_size :
-    training_distinct = training_pairs[0][:]
-  else :
-    training_distinct = sample(training_pairs[0][:], sample_size)
-    
-  training_dupes = training_pairs[1][:]
-  n_training_dupes = len(training_dupes)
-  n_training_distinct = len(training_distinct)
-  print n_training_dupes
-  print n_training_distinct
-  sample_size = n_training_dupes + n_training_distinct
-
-  fields = [field for field in data_model['fields'] 
-            if data_model['fields'][field]['type'] != 'Interaction']
-  
-  # The set of all predicate functions operating over all fields
-  predicateSet = list(product(predicates, fields))
-
-  disjunctive_predicates = list(combinations(predicateSet, 2))
-  # filter out disjunctive predicates that operate on same field
-  disjunctive_predicates = [predicate for predicate
-                            in disjunctive_predicates
-                            if predicate[0][1] != predicate[1][1]]
-
-  predicateSet = [(predicate,) for predicate in predicateSet]
-  predicateSet.extend(disjunctive_predicates)
-  n_predicates = len(predicateSet)
-
-  
-  found_dupes = predicateCoverage(training_dupes,
-                                  predicateSet)
-  found_distinct = predicateCoverage(training_distinct,
-                                     predicateSet)
-
-
-  predicateSet = found_dupes.keys() 
-
-  # We want to throw away the predicates that puts together too many
-  # distinct pairs
-  eta = sample_size * eta
-
-  [predicateSet.remove(predicate)
-   for predicate in found_distinct
-   if len(found_distinct[predicate]) >= eta]
-
-  # We don't want to penalize a blocker if it puts distinct pairs
-  # together that look like they could be duplicates. Here we compute
-  # the expected number of predicates that will cover a duplicate pair
-  # We'll remove all the distince pairs from consideration if they are
-  # covered by many predicates
-  expected_dupe_cover = sqrt(n_predicates / log(n_training_dupes))
-
-  predicate_count = defaultdict(int)
-  for pair in chain(*found_distinct.values()) :
-      predicate_count[pair] += 1
-
-  training_distinct = [pair for pair in training_distinct
-                       if predicate_count[pair] < expected_dupe_cover]
-
-
-  found_distinct = predicateCoverage(training_distinct,
-                                     predicateSet)
-
-  # Greedily find the predicates that, at each step, covers the most
-  # duplicates and covers the least distinct pairs, dute to Chvatal, 1979
-  finalPredicateSet = []
-  print "Uncovered dupes"
-  print n_training_dupes
-  while n_training_dupes >= epsilon :
-        
-    optimumCover = 0
-    bestPredicate = None
-    for predicate in predicateSet :
-      try:  
-          cover = (len(found_dupes[predicate])
-                   / float(len(found_distinct[predicate]))
-                   )
-      except ZeroDivisionError:
-          cover = len(found_dupes[predicate])
-
-      if cover > optimumCover :
-        optimumCover = cover
-        bestPredicate = predicate
-
-
-    if not bestPredicate :
-        print "Ran out of predicates"
-        break
-
-    predicateSet.remove(bestPredicate)
-    n_training_dupes -= len(found_dupes[bestPredicate])
-    [training_dupes.remove(pair) for pair in found_dupes[bestPredicate]]
-    found_dupes = predicateCoverage(training_dupes,
-                                    predicateSet)
-
-    print n_training_dupes
-
-    finalPredicateSet.append(bestPredicate)
-    
-  print "FINAL PREDICATE SET!!!!"
-  print finalPredicateSet
-  
-  if finalPredicateSet :
-    return finalPredicateSet
-  else :
-    print "No predicate found!"
-    raise 
-
-
 def blockingIndex(data_d, predicates) :
   blocked_data = defaultdict(set)
   for key, instance in data_d.items() :
@@ -144,7 +14,6 @@ def blockingIndex(data_d, predicates) :
       for predicate_tuple in predicate_tuples :
         blocked_data[str(predicate_tuple)].add(key)
 
- 
   return blocked_data
 
 def mergeBlocks(blocked_data) :
@@ -179,32 +48,140 @@ def semiSupervisedNonDuplicates(data_d,
 
   return confident_nonduplicate_pairs
 
+class Blocking:
+  def __init__(self, training_pairs, predicate_functions, data_model, eta, epsilon):
+    self.eta = eta
+    self.sample_size = 1000
+    self.epsilon = epsilon
+    if len(training_pairs[0]) <= self.sample_size :
+      self.training_distinct = training_pairs[0][:]
+    else :
+      self.training_distinct = sample(training_pairs[0][:], self.sample_size)
+      
+    self.predicate_functions = predicate_functions
+    self.training_dupes = training_pairs[1][:]
+    self.n_training_dupes = len(self.training_dupes)
+    self.n_training_distinct = len(self.training_distinct)
+    # print n_training_dupes
+    # print n_training_distinct
+    self.sample_size = self.n_training_dupes + self.n_training_distinct
 
-if __name__ == '__main__':
-  from dedupe import randomTrainingPairs
-  from test_data import init
-  from predicates import *
+    self.fields = [field for field in data_model['fields'] 
+              if data_model['fields'][field]['type'] != 'Interaction']
+    
+  # Approximate learning of blocking following the ApproxRBSetCover from
+  # page 102 of Bilenko
+  def trainBlocking(self, disjunctive = True) :
+    self.predicate_set = self.createPredicateSet(disjunctive)
+    self.n_predicates = len(self.predicate_set)
+
+    self.found_dupes = self.predicateCoverage(self.training_dupes)
+    self.found_distinct = self.predicateCoverage(self.training_distinct)
+
+    # Only consider predicates that cover at least one duplicate pair
+    self.predicate_set = self.found_dupes.keys() 
+
+    # We want to throw away the predicates that puts together too many
+    # distinct pairs
+    self.eta = self.sample_size * self.eta
+
+    [self.predicate_set.remove(predicate)
+     for predicate in self.found_distinct
+     if len(self.found_distinct[predicate]) >= self.eta]
+
+    expected_dupe_cover = sqrt(self.n_predicates / log(self.n_training_dupes))
+    self.found_distinct = self.filterOutIndistinctPairs(expected_dupe_cover)
+    
+    final_predicate_set = self.findOptimumBlocking()  
+
+    print "Final predicate set"
+    print final_predicate_set
+    
+    if final_predicate_set :
+      return final_predicate_set
+    else :
+      print "No predicate found!"
+      raise 
+
+  def predicateCoverage(self, pairs) :
+    coverage = defaultdict(list)
+    for pair in pairs :
+      for predicate in self.predicate_set :
+        keys1 = set(product(*[F(pair[0][field])
+                              for F, field in predicate]))
+        keys2 = set(product(*[F(pair[1][field])
+                              for F, field in predicate]))
+        if keys1 & keys2 :
+          coverage[predicate].append(pair)
+
+    return coverage
+
+  def createPredicateSet(self, disjunctive):
+    # The set of simple predicates
+    predicate_set = list(product(self.predicate_functions, self.fields))
+
+    if (disjunctive) :
+      disjunctive_predicates = list(combinations(predicate_set, 2))
+      # filter out disjunctive predicates that operate on same field
+      disjunctive_predicates = [predicate for predicate
+                                in disjunctive_predicates
+                                if predicate[0][1] != predicate[1][1]]
+
+      predicate_set = [(predicate,) for predicate in predicate_set]
+      predicate_set.extend(disjunctive_predicates)
+
+    else :
+      predicate_set = [(predicate,) for predicate in predicate_set]
+
+    return predicate_set
+
+  def filterOutIndistinctPairs(self, expected_dupe_cover):
+    # We don't want to penalize a blocker if it puts distinct pairs
+    # together that look like they could be duplicates. Here we compute
+    # the expected number of predicates that will cover a duplicate pair
+    # We'll remove all the distince pairs from consideration if they are
+    # covered by many predicates
+    predicate_count = defaultdict(int)
+    for pair in chain(*self.found_distinct.values()) :
+        predicate_count[pair] += 1
+
+    self.training_distinct = [pair for pair in self.training_distinct
+                         if predicate_count[pair] < expected_dupe_cover]
+
+    return self.predicateCoverage(self.training_distinct)
+
+  def findOptimumBlocking(self):
+    # Greedily find the predicates that, at each step, covers the most
+    # duplicates and covers the least distinct pairs, dute to Chvatal, 1979
+    final_predicate_set = []
+    print "Uncovered dupes"
+    print self.n_training_dupes
+    while self.n_training_dupes >= self.epsilon :
+          
+      optimumCover = 0
+      bestPredicate = None
+      for predicate in self.predicate_set :
+        try:  
+            cover = (len(self.found_dupes[predicate])
+                     / float(len(self.found_distinct[predicate]))
+                     )
+        except ZeroDivisionError:
+            cover = len(self.found_dupes[predicate])
+
+        if cover > optimumCover :
+          optimumCover = cover
+          bestPredicate = predicate
 
 
-  numTrainingPairs = 64000
-  (data_d, duplicates_s, data_model) = init()
+      if not bestPredicate :
+          print "Ran out of predicates"
+          break
 
-  training_pairs = randomTrainingPairs(data_d,
-                                       duplicates_s,
-                                       numTrainingPairs)
+      self.predicate_set.remove(bestPredicate)
+      self.n_training_dupes -= len(self.found_dupes[bestPredicate])
+      [self.training_dupes.remove(pair) for pair in self.found_dupes[bestPredicate]]
+      self.found_dupes = self.predicateCoverage(self.training_dupes)
 
-  predicates = trainBlocking(training_pairs,
-                             (wholeFieldPredicate,
-                              tokenFieldPredicate,
-                              commonIntegerPredicate,
-                              sameThreeCharStartPredicate,
-                              sameFiveCharStartPredicate,
-                              sameSevenCharStartPredicate,
-                              nearIntegersPredicate,
-                              commonFourGram,
-                              commonSixGram),
-                             data_model, 1, 1)  
+      final_predicate_set.append(bestPredicate)
 
-  blocked_data = blockingIndex(data_d, predicates)
-  candidates = mergeBlocks(blocked_data)
-  print len(candidates)
+    return final_predicate_set
