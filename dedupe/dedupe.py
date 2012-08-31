@@ -148,8 +148,8 @@ class Dedupe:
 
     with open(file_name, 'w') as f :
       json.dump({'data model' : self.data_model,
-                 'predicates' : source_predicates,
-                 'alpha' : self.alpha}, f)
+                 'predicates' : source_predicates
+                 }, f)
     
     
   def readSettings(self, file_name) :
@@ -157,7 +157,6 @@ class Dedupe:
       learned_settings = json.load(f)
   
     self.data_model = learned_settings['data model']
-    self.alpha = learned_settings['alpha']
     self.predicates = []
     for predicate_l in learned_settings['predicates'] :
       predicate_tuple = tuple([(eval(predicate[0]), predicate[1])
