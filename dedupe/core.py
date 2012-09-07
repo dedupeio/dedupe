@@ -30,8 +30,6 @@ def calculateDistance(instance_1, instance_2, fields, distances) :
 
   calculated = {}
 
-
-  
   for i, name in enumerate(fields) :
     if fields[name]['type'] == 'String' :
       distanceFunc = affinegap.normalizedAffineGapDistance
@@ -50,11 +48,6 @@ def calculateDistance(instance_1, instance_2, fields, distances) :
                                                     distanceFunc(instance_1[term],instance_2[term], 1, 11, 10, 7, .125))
       distances[0]['names'][i] = name
       distances[0]['values'][i] = interaction_term
-      
-
-
-
-    
 
   return distances
 

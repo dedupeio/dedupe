@@ -51,4 +51,3 @@ def cluster(dupes, threshold) :
   clusters = [set(l) for l in clustering.values() if len(l) > 1]
 
   return clusters
-
