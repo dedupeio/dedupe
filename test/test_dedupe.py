@@ -162,6 +162,19 @@ class BlockingTest(unittest.TestCase):
 
   def test_train_blocking(self):
       assert self.blocker.trainBlocking(disjunctive = False) == [((self.sameThreeCharStartPredicate, 'name'),)]
+
+class PredicatesTest(unittest.TestCase):
+  def test_predicates_correctness(self):
+    field = '123 16th st'
+    assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
+    assert dedupe.predicates.tokenFieldPredicate(field) == ('123', '16th', 'st')
+    assert dedupe.predicates.commonIntegerPredicate(field) == ('123', '16')
+    assert dedupe.predicates.sameThreeCharStartPredicate(field) == ('123',)
+    assert dedupe.predicates.sameFiveCharStartPredicate(field) == ('123 1',)
+    assert dedupe.predicates.sameSevenCharStartPredicate(field) == ('123 16t',)
+    assert dedupe.predicates.nearIntegersPredicate(field) == ((15, 16, 17), (122, 123, 124))
+    assert dedupe.predicates.commonFourGram(field) == ('123 ', '16th', ' st')
+    assert dedupe.predicates.commonSixGram(field) == ('123 16', 'th st')
         
 if __name__ == "__main__":
     unittest.main()

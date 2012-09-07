@@ -40,16 +40,3 @@ def sameSevenCharStartPredicate(field) :
     return ()
     
   return (field[:7],)
-
-if __name__ == '__main__':
-  field = '123 16th st'
-  print wholeFieldPredicate(field) == ('123 16th st',)
-  print tokenFieldPredicate(field) == ['123', '16th', 'st']
-  print commonIntegerPredicate(field) == ['123', '16']
-  print sameThreeCharStartPredicate(field) == ('123',)
-  print sameFiveCharStartPredicate(field) == ('123 1',)
-  print sameSevenCharStartPredicate(field) == ('123 16t',)
-  print nearIntegersPredicate(field) == [(15, 16, 17), (122, 123, 124)]
-  print commonFourGram(field) == ['123 ', '16th', ' st']
-  print commonSixGram(field) == ['123 16', 'th st']
-

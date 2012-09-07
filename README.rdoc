@@ -15,12 +15,11 @@ Current solutions break easily, don’t scale, and require significant developer
 == Team
 
 * Forest Gregg mailto:fgregg@gmail.com
-* Derek Eder mailto:derek.eder@opencityapps.org
+* Derek Eder mailto:derek.eder@gmail.com
 
 == Usage
   > python setup.py install
-  > cd examples
-  > python active_canonical_example.py
+  > python examples/active_canonical_example.py
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning) 
 
 == Example datasets
