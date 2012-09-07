@@ -58,9 +58,11 @@ def trainModel(training_data, iterations, data_model, alpha=.001) :
     #trainer.determineLearnRate(training_data)
     trainer.train(training_data, iterations)
 
+    weights = dict(zip(trainer.feature_names, trainer.weight))
+    
     data_model['bias'] = trainer.bias
     for name in data_model['fields'] :
-        data_model['fields'][name]['weight'] = trainer.weight[name]
+        data_model['fields'][name]['weight'] = weights[name]
 
     return(data_model)
 
