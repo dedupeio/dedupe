@@ -13,8 +13,9 @@ def gridSearch(training_data,
                randomize=True,
                num_iterations = 100) :
 
-  if randomize :
-    shuffle(training_data)
+
+
+  numpy.random.shuffle(training_data)
 
   print "using cross validation to find optimum alpha"
   scores = []
@@ -27,20 +28,19 @@ def gridSearch(training_data,
     for training, validation in kFolds(training_data, k) :
       data_model = trainer(training, num_iterations, original_data_model, alpha)
       
-      weights = numpy.array([data_model['fields'][field]['weight'] for field in fields]) 
-      print weights, 
+      weight = numpy.array([data_model['fields'][field]['weight'] for field in fields]) 
+      #print weight, 
 
       (real_labels,
        validation_distances) = zip(*[(label, distances)
                                      for label, distances in validation])
 
-
       predicted_labels = []
       bias = data_model["bias"]
-      print bias
+      #print bias
       for example in validation_distances :
-        prediction = bias + numpy.dot(weights, example[1])
-        print prediction
+        prediction = bias + numpy.dot(weight, example[1])
+        #print prediction
         #for name, distance in example.iteritems() :
         #  prediction += distance * data_model['fields'][name]["weight"]
         if prediction > 0 :
@@ -48,7 +48,7 @@ def gridSearch(training_data,
         else :
           predicted_labels.append(0)
 
-      print predicted_labels
+
 
       score = 0
       for real_label, predicted_label in zip(real_labels, predicted_labels) :
