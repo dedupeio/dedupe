@@ -15,6 +15,7 @@ def gridSearch(training_data,
   if randomize :
     shuffle(training_data)
 
+  print "using cross validation to find optimum alpha"
   scores = []
   for alpha in search_space :
     all_score = 0

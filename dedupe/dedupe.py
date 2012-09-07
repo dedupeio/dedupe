@@ -24,7 +24,7 @@ class Dedupe:
       if input_type == "fields" :
         self.initializeSettings(init)
       elif input_type == "settings file" :
-        self.readSettings(self, init)
+        self.readSettings(init)
       elif input_type :
         raise ValueError, "Invalid Input Type, input_type must be 'fields' or 'settings file'"
       else :
@@ -80,18 +80,22 @@ class Dedupe:
                                                                      self.data_model)
 
       self.training_pairs[0].extend(confident_nonduplicates)
-      
-    self.predicates = blocking.trainBlocking(self.training_pairs,
-                                 (wholeFieldPredicate,
-                                  tokenFieldPredicate,
-                                  commonIntegerPredicate,
-                                  sameThreeCharStartPredicate,
-                                  sameFiveCharStartPredicate,
-                                  sameSevenCharStartPredicate,
-                                  nearIntegersPredicate,
-                                  commonFourGram,
-                                  commonSixGram),
-                                 self.data_model, 1, 1)
+
+    predicate_functions = (wholeFieldPredicate,
+                           tokenFieldPredicate,
+                           commonIntegerPredicate,
+                           sameThreeCharStartPredicate,
+                           sameFiveCharStartPredicate,
+                           sameSevenCharStartPredicate,
+                           nearIntegersPredicate,
+                           commonFourGram,
+                           commonSixGram)
+
+    blocker = blocking.Blocking(self.training_pairs,
+                                predicate_functions,
+                                self.data_model)
+
+    self.predicates = blocker.trainBlocking()
                                  
   def mapBlocking(self, data_d, semi_supervised = True) : 
     self.blocked_map = blocking.blockingIndex(data_d, self.predicates)
@@ -112,8 +116,8 @@ class Dedupe:
     print "finding duplicates ..."
     self.score(data_d, threshold)
 
-  def duplicateClusters(self, threshold = .5) : 
-    return clustering.hierarchical.cluster(self.dupes, threshold)
+  def duplicateClusters(self, clustering_algorithm = clustering.hierarchical.cluster, **args) : 
+    return clustering_algorithm(self.dupes, **args)
                 
   def printLearnedWeights(self) :  
     print "Learned Weights"
@@ -134,12 +138,18 @@ class Dedupe:
     print "comparisons."
 
   def writeSettings(self, file_name) :
-    source_predicates = [(predicate[0].__name__,
-                          predicate[1])
-                         for predicate in self.predicates]
+    source_predicates = []
+    for predicate_tuple in self.predicates :
+      source_predicate = []
+      for predicate in predicate_tuple :
+        source_predicate.append((predicate[0].__name__,
+                                 predicate[1]))
+      source_predicates.append(source_predicate)
+
     with open(file_name, 'w') as f :
       json.dump({'data model' : self.data_model,
-                 'predicates' : source_predicates}, f)
+                 'predicates' : source_predicates
+                 }, f)
     
     
   def readSettings(self, file_name) :
@@ -147,8 +157,11 @@ class Dedupe:
       learned_settings = json.load(f)
   
     self.data_model = learned_settings['data model']
-    self.predicates = [(eval(predicate[0]), predicate[1])
-                  for predicate in learned_settings['predicates']]
+    self.predicates = []
+    for predicate_l in learned_settings['predicates'] :
+      predicate_tuple = tuple([(eval(predicate[0]), predicate[1])
+                               for predicate in predicate_l])
+      self.predicates.append(predicate_tuple)
   
   def writeTraining(self, file_name) :
     with open(file_name, 'w') as f :
