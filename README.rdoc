@@ -12,15 +12,14 @@ Current solutions break easily, don’t scale, and require significant developer
   * fastcluster (http://math.stanford.edu/~muellner/fastcluster.html)
   * hcluster (http://code.google.com/p/scipy-cluster/)
 
-== Team
-
-* Forest Gregg mailto:fgregg@gmail.com
-* Derek Eder mailto:derek.eder@gmail.com
-
 == Usage
   > python setup.py install
   > python examples/active_canonical_example.py
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning) 
+
+== Compiling
+
+During setup, several c files need to be compiled. For some reason, the clang compiler fails to build correctly on OSX, so LLVM-GCC needs to be used. For more info, see issue #46
 
 == Example datasets
 
@@ -35,6 +34,11 @@ The following use human input to flag duplicates:
 The following do not use human input:
 
 * canonical_example.py - loads in canonical restaurant test data and trains based on provided known duplicates. outputs precision and recall values
+
+== Team
+
+* Forest Gregg mailto:fgregg@gmail.com
+* Derek Eder mailto:derek.eder@gmail.com
 
 == Errors / Bugs
 
