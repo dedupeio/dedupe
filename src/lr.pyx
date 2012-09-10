@@ -1,19 +1,17 @@
 #cython: boundscheck=False, wraparound=False, cdivision=True
 
 from libc cimport math
-import numpy
 cimport numpy
 
-ctypedef numpy.float32_t DTYPE_t
 
 def lr(numpy.ndarray[numpy.int32_t, ndim=1] labels,
-       numpy.ndarray[DTYPE_t, ndim=2] examples,
+       numpy.ndarray[numpy.float32_t, ndim=2] examples,
        float alpha) :
 
     cdef int i, j, n, label, n_features, n_examples
     cdef float rate, rate_n, bias, predicted, update, error, logit
 
-    cdef numpy.ndarray[DTYPE_t, ndim=1] weight
+    cdef numpy.ndarray[numpy.float32_t, ndim=1] weight
 
     n_examples = examples.shape[0]
     n_features = examples.shape[1]
@@ -21,7 +19,7 @@ def lr(numpy.ndarray[numpy.int32_t, ndim=1] labels,
     n = 500
     rate = 0.01
 
-    weight = numpy.zeros(n_features, dtype='f4')
+    weight = examples[0] * 0
     bias = 0
 
     for i in range(n):
