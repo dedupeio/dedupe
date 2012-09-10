@@ -17,14 +17,14 @@ t0 = time.time()
 print 'importing data ...'
 
 if os.path.exists(settings_file):
-    deduper = dedupe.Dedupe(settings_file, 'settings file')
+    deduper = dedupe.Dedupe(settings_file)
 else:
     fields = {'Site name': {'type': 'String'},
               'Address': {'type': 'String'},
               'Zip': {'type': 'String'},
               'Phone': {'type': 'String'},
               }
-    deduper = dedupe.Dedupe(fields, 'fields')
+    deduper = dedupe.Dedupe(fields)
 
     if os.path.exists(training_file):
 

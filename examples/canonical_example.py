@@ -70,7 +70,7 @@ print len(duplicates_s)
 print ''
 
 if os.path.exists(settings_file):
-    deduper = dedupe.Dedupe(settings_file, 'settings file')
+    deduper = dedupe.Dedupe(settings_file)
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
@@ -80,7 +80,7 @@ else:
               #               'interaction-terms': ['name', 'city']}
               }
 
-    deduper = dedupe.Dedupe(fields, 'fields')
+    deduper = dedupe.Dedupe(fields)
     deduper.num_iterations = num_iterations
 
     deduper.training_pairs = \
