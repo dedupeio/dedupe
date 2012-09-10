@@ -7,8 +7,9 @@ setup(
     name='Dedupe',
     version='0.3',
     packages=['dedupe', 'dedupe.clustering'],
-    include_dirs=[numpy.get_include()],
     ext_modules=[Extension('dedupe.affinegap', ['src/affinegap.c']),
-                 Extension('dedupe.lr', ['src/lr.c'])],
+                 Extension('dedupe.lr',
+                           sources=['src/lr.c'],
+                           include_dirs=[numpy.get_include()])],
     install_requires=['numpy', 'fastcluster', 'hcluster'],
     )
