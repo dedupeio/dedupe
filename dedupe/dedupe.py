@@ -24,20 +24,58 @@ def sampleDict(d, sample_size):
 class Dedupe:
 
     def __init__(self, init=None, input_type=None):
+        """
+        Load or initialize a data model
+
+        Keyword arguments:
+        init -- a field definition or a file location for a settings
+                file, required
+        input_type -- a 'fields' or 'settings file' flag, required
+
+        a field definition is a dictionary where the keys are the fields
+        that will be used for training a model and the values are the
+        field specification
+
+        field types include
+        - String
+        - Interaction
+
+        a 'String' type field must have as its key a name of a field
+        as it appears in the data dictionary and a type declaration
+        ex. {'Phone': {type: 'String'}}
+
+        an 'Interaction' type field should have as its keys the names
+        of the fields involved in the interaction, and must include
+        a type declaration and a sequence of the interacting fields
+        as they appear in the data dictionary
+
+        ex. {'name:city' : {'type': 'Interaction',
+                            'interaction-terms': ['name', 'city']}}
+
+        Longer example of a field definition:
+        fields = {'name':       {'type': 'String'},
+                  'address':    {'type': 'String'},
+                  'city':       {'type': 'String'},
+                  'cuisine':    {'type': 'String'},
+                  'name:city' : {'type': 'Interaction',
+                                 'interaction-terms': ['name', 'city']}
+                  }
+         """
         if init:
             if input_type == 'fields':
                 self.initializeSettings(init)
             elif input_type == 'settings file':
                 self.readSettings(init)
             elif input_type:
-                raise ValueError("Invalid Input Type, input_type "
+                raise ValueError("Invalid Input Type: input_type "
                                  "must be 'fields' or 'settings file'"
                                  )
             else:
-                raise ValueError("Undefined Input Type, input_type "
-                                 "must be 'fields' or 'settings file'"
+                raise ValueError("No Input:, must supply either"
+                                 "a field definition or a settings file"
+                                 "as well as an input type argument"
                                  )
-
+            
     def initializeSettings(self, fields):
         self.predicates = None
         self.alpha = 0
