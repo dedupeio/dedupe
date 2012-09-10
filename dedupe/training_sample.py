@@ -76,7 +76,6 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
   training_data = []
   duplicates = []
   nonduplicates = []
-  num_iterations = 100
   pairs = blocking.allCandidates(data_d)
   record_distances = core.recordDistances(pairs, data_d, data_model)
   for _ in range(num_questions) :
@@ -95,7 +94,7 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
     
     training_data = addTrainingData(labeled_pairs, data_model, training_data)
 
-    data_model = core.trainModel(training_data, num_iterations, data_model)
+    data_model = core.trainModel(training_data, data_model)
   
   training_pairs = {0 : nonduplicates, 1 : duplicates}  
   print training_pairs
@@ -105,26 +104,44 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
 
 
 # appends training data to the training data collection  
-def addTrainingData(labeled_pairs, data_model, training_data=[]) :
+def addTrainingData(labeled_pairs, data_model, old_training_data=[]) :
 
   fields = data_model['fields']
 
-  field_dtype = [('names', 'a10', (len(fields)),),
-                 ('values', 'f4', (len(fields)),)
-                 ]
+  # field_dtype = [('names', 'a10', (len(fields)),),
+  #                ('values', 'f4', (len(fields)),)
+  #                ]
   
+  field_dtype = old_training_data.dtype[1]
+
   distances = numpy.zeros(1, dtype=field_dtype)
 
+  num_existing_examples = old_training_data.shape[0]
+  num_training_pairs = len(labeled_pairs[0]) + len(labeled_pairs[1])
+
+  training_data = numpy.zeros(num_training_pairs + num_existing_examples,
+                              dtype=old_training_data.dtype)
+  
+  i = num_existing_examples
   for label, examples in labeled_pairs.items() :
-      for pair in examples :
+      for i, pair in enumerate(examples, i) :
           c_distances = core.calculateDistance(pair[0],
                                                pair[1],
                                                fields,
                                                distances)
-          c_distances = dict(zip(fields.keys(), c_distances[0]['values']))
-          training_data.append((label, c_distances))
-          
+
+          example = ((label), c_distances)
+          training_data[i] = example
+      i += 1
+          # print training_data
+          # raise
+          # c_distances = dict(zip(fields.keys(), c_distances[0]['values']))
+          # training_data.append((label, c_distances))
+  
+  #print c_distances
   return training_data
+
+
 
 def consoleLabel(uncertain_pairs, data_d, data_model) :
   duplicates = []
@@ -169,7 +186,6 @@ if __name__ == '__main__':
 
   num_training_dupes = 200
   num_training_distinct = 16000
-  numIterations = 100
 
   import time
   t0 = time.time()
