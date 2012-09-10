@@ -74,7 +74,7 @@ class Dedupe:
          
         """
         if init.__class__ is dict and init:
-            self.initializeSettings(init)
+            self._initializeSettings(init)
         elif init.__class__ is str and init:
             self.readSettings(init)            
         elif init:
@@ -95,27 +95,27 @@ class Dedupe:
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
             
-    def initializeSettings(self, fields):
-        self.data_model = {}
-        self.data_model['fields'] = {}
+    def _initializeSettings(self, fields):
+        data_model = {}
+        data_model['fields'] = {}
 
         for (k, v) in fields.iteritems():
             if v.__class__ is not dict:
                 raise ValueError("Incorrect field specification: "
                                  "field specifications are dictionaries "
-                                 "that must include a type defintion, "
+                                 "that must include a type definition, "
                                  "ex. {'Phone': {type: 'String'}}"
                                  )
             elif 'type' not in v:
                 raise ValueError("Incorrect field specification: "
                                  "field specifications are dictionaries "
-                                 "that must include a type defintion, "
+                                 "that must include a type definition, "
                                  "ex. {'Phone': {type: 'String'}}"
                                  )
             elif v['type'] not in ['String', 'Interaction']:
                 raise ValueError("Incorrect field specification: "
                                  "field specifications are dictionaries "
-                                 "that must include a type defintion, "
+                                 "that must include a type definition, "
                                  "ex. {'Phone': {type: 'String'}}"
                                  )
             elif v['type'] == 'Interaction' and ('interaction_terms'
@@ -131,9 +131,10 @@ class Dedupe:
                 
             
             v.update({'weight': 0})
-            self.data_model['fields'][k] = v
+            data_model['fields'][k] = v
 
-        self.data_model['bias'] = 0
+        data_model['bias'] = 0
+        self.data_model = data_model
         self.alpha = 0
         self.predicates = None
 
