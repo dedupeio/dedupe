@@ -1,8 +1,12 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 import numpy
 import fastcluster
 import hcluster
 
-def condensedDistance(dupes) :
+
+def condensedDistance(dupes):
+
   # Convert the pairwise list of distances in dupes to "condensed
   # distance matrix" required by the hierarchical clustering
   # algorithms. Also return a dictionary that maps the distance matrix
@@ -12,42 +16,42 @@ def condensedDistance(dupes) :
   # documentation of scipy.cluster.hierarchy.linkage
   # http://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
 
-  
-  candidate_set = set([])
-  for pair, _ in dupes :
-    candidate_set.update(pair)
+    candidate_set = set([])
+    for (pair, _) in dupes:
+        candidate_set.update(pair)
 
-  id_to_i = dict([(candidate_id, i) for i, candidate_id
-                  in enumerate(sorted(list(candidate_set)))])
-  i_to_id = dict([(i, candidate_id) for candidate_id, i
-                  in id_to_i.iteritems()])
+    id_to_i = dict([(candidate_id, i) for (i, candidate_id) in
+                   enumerate(sorted(list(candidate_set)))])
+    i_to_id = dict([(i, candidate_id) for (candidate_id, i) in
+                   id_to_i.iteritems()])
 
-  N = len(candidate_set)
-  matrix_length = (N * (N-1))/2 
+    N = len(candidate_set)
+    matrix_length = N * (N - 1) / 2
 
-  condensed_distances = [1] * matrix_length
+    condensed_distances = [1] * matrix_length
 
-  for pair, score in dupes :
-    (i, j) = (id_to_i[pair[0]], id_to_i[pair[1]])
-    if i > j :
-      i,j = j,i
-    subN = ((N - i)*(N - i - 1))/2
-    index = matrix_length - subN + j - i - 1
-    condensed_distances[index] = 1-score
+    for (pair, score) in dupes:
+        (i, j) = (id_to_i[pair[0]], id_to_i[pair[1]])
+        if i > j:
+            (i, j) = (j, i)
+        subN = (N - i) * (N - i - 1) / 2
+        index = matrix_length - subN + j - i - 1
+        condensed_distances[index] = 1 - score
 
-  return i_to_id, condensed_distances
+    return (i_to_id, condensed_distances)
 
-def cluster(dupes, threshold) :
-  i_to_id, condensed_distances = condensedDistance(dupes) 
-  linkage = fastcluster.linkage(numpy.array(condensed_distances),
-                          method='centroid')
-  partition = hcluster.fcluster(linkage, threshold)
 
-  clustering = {}  
-  
-  for i, cluster_id in enumerate(partition) :
-    clustering.setdefault(cluster_id, []).append(i_to_id[i])
+def cluster(dupes, threshold):
+    (i_to_id, condensed_distances) = condensedDistance(dupes)
+    linkage = fastcluster.linkage(numpy.array(condensed_distances),
+                                  method='centroid')
+    partition = hcluster.fcluster(linkage, threshold)
 
-  clusters = [set(l) for l in clustering.values() if len(l) > 1]
+    clustering = {}
 
-  return clusters
+    for (i, cluster_id) in enumerate(partition):
+        clustering.setdefault(cluster_id, []).append(i_to_id[i])
+
+    clusters = [set(l) for l in clustering.values() if len(l) > 1]
+
+    return clusters

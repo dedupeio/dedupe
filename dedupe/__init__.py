@@ -1,5 +1,15 @@
-__all__ = ["affinegap", "blocking", "clustering", "core", "lr", "predicates", 
-	   "training_sample", "crossvalidation", "dedupe"]
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+__all__ = ['affinegap',
+           'blocking',
+           'clustering',
+           'core',
+           'lr',
+           'predicates',
+           'training_sample',
+           'crossvalidation',
+           'dedupe',
+           ]
 
 import affinegap
 import blocking
