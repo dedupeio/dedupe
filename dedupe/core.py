@@ -51,18 +51,24 @@ def calculateDistance(instance_1, instance_2, fields, distances) :
 
   return distances
 
-# using logistic regression, train weights for all fields in the data model
-def trainModel(training_data, iterations, data_model, alpha=.001) :
-    trainer = lr.LogisticRegression()
-    trainer.alpha = alpha
-    #trainer.determineLearnRate(training_data)
-    trainer.train(training_data, iterations)
 
-    data_model['bias'] = trainer.bias
-    for name in data_model['fields'] :
-        data_model['fields'][name]['weight'] = trainer.weight[name]
+#using logistic regression, train weights for all fields in the data model
+def trainModel(training_data, data_model, alpha=.001) :
+  
+  labels, fields, examples = zip(*[(l, f, e) for (l, (f, e))
+                                   in training_data])
 
-    return(data_model)
+  labels = numpy.array(labels, dtype='i4')
+  examples = numpy.array(examples, dtype='f4')
+  weight, bias = lr.lr(labels, examples, alpha)
+
+  weights = dict(zip(fields[0], weight))
+  for name in data_model['fields'] :
+    data_model['fields'][name]['weight'] = float(weights[name])
+
+  data_model['bias'] = bias
+
+  return data_model
 
 # assign a score of how likely a pair of records are duplicates
 def recordDistances(candidates, data_d, data_model) :
@@ -77,12 +83,13 @@ def recordDistances(candidates, data_d, data_model) :
                  ('values', 'f4', (len(fields)),)
                  ]
   
-  distances = numpy.zeros(1, dtype=field_dtype)
-
   record_dtype = [('pairs', [('pair1', 'i4'),
                              ('pair2', 'i4')]),
                   ('field_distances', field_dtype)
                   ]
+
+  distances = numpy.zeros(1, dtype=field_dtype)
+
 
   record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
 
@@ -97,7 +104,9 @@ def recordDistances(candidates, data_d, data_model) :
                            (c_distances['names'],
                             c_distances['values'])
                            )
-    
+
+
+
   return record_distances  
 
 def scorePairs(record_distances, data_model) :

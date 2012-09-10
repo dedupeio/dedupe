@@ -7,6 +7,7 @@ import crossvalidation
 from predicates import *
 import blocking
 import clustering
+import numpy
 
 def sampleDict(d, sample_size) :
   
@@ -19,7 +20,6 @@ def sampleDict(d, sample_size) :
 class Dedupe:
 
   def __init__(self, init = None, input_type = None):
-    self.num_iterations = 100
     if init :
       if input_type == "fields" :
         self.initializeSettings(init)
@@ -42,22 +42,31 @@ class Dedupe:
       self.data_model['fields'][k] = v
 
     self.data_model['bias'] = 0
+
+    field_dtype = [('names', 'a20', (len(fields)),),
+                   ('values', 'f4', (len(fields)),)
+                     ]
+
+    training_dtype = [('label', 'i4'),
+                      ('field_distances', field_dtype)
+                          ]
+    self.training_data = numpy.zeros(0, dtype=training_dtype)
+
         
   def trainingDistance(self) :
     self.training_data = training_sample.addTrainingData(self.training_pairs,
-                                                         self.data_model)
+                                                         self.data_model, self.training_data)
   
   def findAlpha(self) :
     self.alpha = crossvalidation.gridSearch(self.training_data,
                                             core.trainModel,
                                             self.data_model,
-                                            k = 10,
-                                            num_iterations = self.num_iterations)
+                                            k = 10)
+
   
   def train(self) :
     self.findAlpha()
     self.data_model = core.trainModel(self.training_data,
-                                      self.num_iterations,
                                       self.data_model,
                                       self.alpha)
     self.printLearnedWeights()
