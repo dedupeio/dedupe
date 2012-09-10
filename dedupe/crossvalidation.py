@@ -8,7 +8,7 @@ import numpy
 def gridSearch(training_data,
                trainer,
                original_data_model,
-               k = 3,
+               k = 10,
                search_space = [.0001, .001, .01, .1, 1],
                randomize=True,
                num_iterations = 100) :
@@ -66,11 +66,15 @@ def gridSearch(training_data,
   return best_alpha
 
 def kFolds(training_data, k):
+    train_dtype = training_data.dtype
     slices = [training_data[i::k] for i in xrange(k)]
     for i in xrange(k):
         validation = slices[i]
         training = [datum 
                     for s in slices if s is not validation
                     for datum in s]
+        validation = numpy.array(validation, train_dtype)
+        training = numpy.array(training, train_dtype)
+
         yield training, validation
 

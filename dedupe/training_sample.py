@@ -114,10 +114,14 @@ def addTrainingData(labeled_pairs, data_model, old_training_data=[]) :
   #                ]
   
   field_dtype = old_training_data.dtype[1]
+
   distances = numpy.zeros(1, dtype=field_dtype)
+
   num_existing_examples = old_training_data.shape[0]
   num_training_pairs = len(labeled_pairs[0]) + len(labeled_pairs[1])
-  training_data = numpy.zeros(num_training_pairs + num_existing_examples, dtype=old_training_data.dtype)
+
+  training_data = numpy.zeros(num_training_pairs + num_existing_examples,
+                              dtype=old_training_data.dtype)
   
   i = num_existing_examples
   for label, examples in labeled_pairs.items() :
@@ -138,25 +142,7 @@ def addTrainingData(labeled_pairs, data_model, old_training_data=[]) :
   #print c_distances
   return training_data
 
-  # def convert_to_numpy(self, training_data):
-  #     fields = training_data[0][1].keys()
 
-  #     field_dtype = [('names', 'a20', (len(fields)),),
-  #                    ('values', 'f4', (len(fields)),)
-  #                    ]
-
-  #     training_dtype = [('label', 'i4'),
-  #                       ('field_distances', field_dtype)
-  #                       ]
-
-  #     training_array = numpy.zeros(len(training_data), dtype=training_dtype)
-
-  #     for i, example in enumerate(training_data) :
-  #       training_array[i] = ((example[0]),
-  #                          (example[1].keys(),
-  #                           example[1].values())
-  #                          )
-  #     return training_array
 
 def consoleLabel(uncertain_pairs, data_d, data_model) :
   duplicates = []
