@@ -19,7 +19,7 @@ Current solutions break easily, don’t scale, and require significant developer
 
 == Compiling
 
-During setup, several c files need to be compiled. For some reason, the clang compiler fails to build correctly on OSX, so LLVM-GCC needs to be used. For more info, see issue #46
+During setup, several c files need to be compiled. For some reason, the clang compiler fails to build correctly on OSX, so LLVM-GCC needs to be used. For more info, see (issue #46)[https://github.com/open-city/dedupe/issues/46]
 
 == Example datasets
 
