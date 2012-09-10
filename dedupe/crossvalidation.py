@@ -10,8 +10,7 @@ def gridSearch(training_data,
                original_data_model,
                k = 10,
                search_space = [.0001, .001, .01, .1, 1],
-               randomize=True,
-               num_iterations = 100) :
+               randomize=True) :
 
 
 
@@ -26,10 +25,9 @@ def gridSearch(training_data,
     all_score = 0
     all_N = 0
     for training, validation in kFolds(training_data, k) :
-      data_model = trainer(training, num_iterations, original_data_model, alpha)
+      data_model = trainer(training, original_data_model, alpha)
       
       weight = numpy.array([data_model['fields'][field]['weight'] for field in fields]) 
-      #print weight, 
 
       (real_labels,
        validation_distances) = zip(*[(label, distances)
@@ -37,12 +35,8 @@ def gridSearch(training_data,
 
       predicted_labels = []
       bias = data_model["bias"]
-      #print bias
       for example in validation_distances :
         prediction = bias + numpy.dot(weight, example[1])
-        #print prediction
-        #for name, distance in example.iteritems() :
-        #  prediction += distance * data_model['fields'][name]["weight"]
         if prediction > 0 :
           predicted_labels.append(1)
         else :

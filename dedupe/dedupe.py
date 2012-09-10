@@ -20,7 +20,6 @@ def sampleDict(d, sample_size) :
 class Dedupe:
 
   def __init__(self, init = None, input_type = None):
-    self.num_iterations = 100
     if init :
       if input_type == "fields" :
         self.initializeSettings(init)
@@ -62,13 +61,12 @@ class Dedupe:
     self.alpha = crossvalidation.gridSearch(self.training_data,
                                             core.trainModel,
                                             self.data_model,
-                                            k = 10,
-                                            num_iterations = self.num_iterations)
+                                            k = 10)
+
   
   def train(self) :
     self.findAlpha()
     self.data_model = core.trainModel(self.training_data,
-                                      self.num_iterations,
                                       self.data_model,
                                       self.alpha)
     self.printLearnedWeights()

@@ -76,7 +76,6 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
   training_data = []
   duplicates = []
   nonduplicates = []
-  num_iterations = 100
   pairs = blocking.allCandidates(data_d)
   record_distances = core.recordDistances(pairs, data_d, data_model)
   for _ in range(num_questions) :
@@ -95,7 +94,7 @@ def activeLearning(data_d, data_model, labelPairFunction, num_questions) :
     
     training_data = addTrainingData(labeled_pairs, data_model, training_data)
 
-    data_model = core.trainModel(training_data, num_iterations, data_model)
+    data_model = core.trainModel(training_data, data_model)
   
   training_pairs = {0 : nonduplicates, 1 : duplicates}  
   print training_pairs
@@ -187,7 +186,6 @@ if __name__ == '__main__':
 
   num_training_dupes = 200
   num_training_distinct = 16000
-  numIterations = 100
 
   import time
   t0 = time.time()

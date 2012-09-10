@@ -51,22 +51,9 @@ def calculateDistance(instance_1, instance_2, fields, distances) :
 
   return distances
 
+
 #using logistic regression, train weights for all fields in the data model
-## def trainModel(training_data, iterations, data_model, alpha=.001) :
-##     trainer = lr.LogisticRegression()
-##     trainer.alpha = alpha
-##     #trainer.determineLearnRate(training_data)
-##     trainer.train(training_data, iterations)
-
-##     weights = dict(zip(trainer.feature_names, trainer.weight))
-    
-##     data_model['bias'] = trainer.bias
-##     for name in data_model['fields'] :
-##         data_model['fields'][name]['weight'] = weights[name]
-
-##     return(data_model)
-
-def trainModel(training_data, iterations, data_model, alpha=.001) :
+def trainModel(training_data, data_model, alpha=.001) :
   
   labels, fields, examples = zip(*[(l, f, e) for (l, (f, e))
                                    in training_data])
