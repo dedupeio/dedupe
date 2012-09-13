@@ -11,6 +11,7 @@ import blocking
 import clustering
 import numpy
 
+import types
 
 def sampleDict(d, sample_size):
 
@@ -94,6 +95,11 @@ class Dedupe:
                           ('field_distances', field_dtype)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
+
+    def loadData(self, data_d, sample_size=None):
+        self.record_distance = None
+        self.data_d = None
+        pass
             
     def _initializeSettings(self, fields):
         data_model = {}
@@ -138,14 +144,46 @@ class Dedupe:
         self.alpha = 0
         self.predicates = None
 
+    def initializeTraining(self, training_file=None) :
+        n_fields = len(self.data_model['fields'])
+
+        field_dtype = [('names', 'a20', n_fields),
+                       ('values', 'f4', n_fields)]
+        training_dtype = [('label', 'i4'),
+                          ('field_distances', field_dtype)]
+
+        training_data = numpy.zeros(0, dtype=training_dtype)
+
+        if training_file :
+            (self.training_pairs,
+             self.training_data) = self.readTraining(training_file,
+                                                     training_data)
+                
 
 
-    def trainingDistance(self):
-        self.training_data = \
-            training_sample.addTrainingData(self.training_pairs,
-                                            self.data_model,
-                                            self.training_data)
+    def trainX(self, training_source=None, data) :
+        if training_source.__class__ is str:
+            self.readTraining(self, training_source)
+        elif isinstance(training_source, types.FunctionType) :
+            self.activeLearning(data_d, training_source)
+        elif training_source :
+            raise ValueError
+        else:
+            self.train()
 
+            
+
+
+        pass
+
+
+
+    def trainingDistance(self, training_pairs, training_data):
+        training_data = training_sample.addTrainingData(training_pairs,
+                                                        self.data_model,
+                                                        training_data)
+        return training_data
+        
     def findAlpha(self):
         self.alpha = crossvalidation.gridSearch(self.training_data,
                                                 core.trainModel,
@@ -276,7 +314,7 @@ class Dedupe:
         with open(file_name, 'w') as f:
             json.dump(self.training_pairs, f)
 
-    def readTraining(self, file_name):
+    def readTraining(self, file_name, training_pairs):
         with open(file_name, 'r') as f:
             training_pairs_raw = json.load(f)
 
@@ -286,5 +324,5 @@ class Dedupe:
                 training_pairs[int(label)].append((core.frozendict(pair[0]),
                                                    core.frozendict(pair[1])))
 
-        self.training_pairs = training_pairs
-        self.trainingDistance()
+        training_data = self.trainingDistance(training_pairs, training_pairs)
+        return training_pairs, training_data
