@@ -145,6 +145,9 @@ class Dedupe:
         self.predicates = None
 
     def initializeTraining(self, training_file=None) :
+        """
+        
+        """
         n_fields = len(self.data_model['fields'])
 
         field_dtype = [('names', 'a20', n_fields),
