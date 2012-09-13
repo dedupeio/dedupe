@@ -226,8 +226,7 @@ class Dedupe:
 
     def activeLearning(self,
                        data_d,
-                       labelingFunction,
-                       numTrainingPairs=30,
+                       labelingFunction
                        ):
 
         (self.training_data,
@@ -236,7 +235,6 @@ class Dedupe:
                                                                       700),
                                                            self.data_model,
                                                            labelingFunction,
-                                                           numTrainingPairs,
                                                            self.training_data)
         self.train()
 

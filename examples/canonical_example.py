@@ -55,6 +55,14 @@ def printPairs(pairs):
             print data_d[instance].values()
 
 
+import argparse
+
+parser = argparse.ArgumentParser(description='Run the deduper on a set of restaurant records')
+parser.add_argument('--active', type=bool, nargs = '?', default=False,
+                   help='set to true to use active learning')
+
+args = parser.parse_args()
+
 settings_file = 'restaurant_learned_settings.json'
 raw_data = 'examples/datasets/restaurant-nophone-training.csv'
 num_training_dupes = 200
@@ -83,15 +91,21 @@ else:
     deduper = dedupe.Dedupe(fields)
     deduper.num_iterations = num_iterations
 
-    deduper.training_pairs = \
-        dedupe.training_sample.randomTrainingPairs(data_d,
-                                                   duplicates_s,
-                                                   num_training_dupes,
-                                                   num_training_distinct)
+    if args.active :
+      print "Using active learning"
+      deduper.activeLearning(data_d, dedupe.training_sample.consoleLabel)
+    else :
+      print "Using a random sample of training pairs"
+      deduper.training_pairs = \
+          dedupe.training_sample.randomTrainingPairs(data_d,
+                                                     duplicates_s,
+                                                     num_training_dupes,
+                                                     num_training_distinct)
 
-    deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
-                                                            deduper.data_model,
-                                                            deduper.training_data)
+
+      deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
+                                                              deduper.data_model,
+                                                              deduper.training_data)
 
     deduper.train()
 
