@@ -41,7 +41,17 @@ def condensedDistance(dupes):
     return (i_to_id, condensed_distances)
 
 
-def cluster(dupes, threshold):
+def cluster(dupes, threshold=.5):
+    """
+    Takes in a list of duplicate pairs and clusters them in to a
+    list records that all refer to the same entity based on a given
+    threshold
+
+    Keyword arguments:
+    threshold -- number betweent 0 and 1 (default is .5). lowering the 
+                 number will increase precision, raising it will increase
+                 recall
+    """
     (i_to_id, condensed_distances) = condensedDistance(dupes)
     linkage = fastcluster.linkage(numpy.array(condensed_distances),
                                   method='centroid')

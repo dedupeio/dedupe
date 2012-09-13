@@ -109,8 +109,7 @@ print 'Evaluate Clustering'
 # clustered_dupes = deduper.duplicateClusters(threshold = .5)
 
 clustered_dupes = \
-    deduper.duplicateClusters(clustering_algorithm=dedupe.clustering.chaudhuri.cluster,
-                              sparseness_threshold=2)
+    deduper.duplicateClusters()
 
 confirm_dupes = set([])
 for dupe_set in clustered_dupes:
