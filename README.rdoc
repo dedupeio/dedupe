@@ -18,10 +18,6 @@ See our presentation at ChiPy: http://pyvideo.org/video/973/big-data-de-duping
   > python examples/active_canonical_example.py
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning) 
 
-== Compiling
-
-During setup, several c files need to be compiled. For some reason, the clang compiler fails to build correctly on OSX, so LLVM-GCC needs to be used. For more info, see issue #46[https://github.com/open-city/dedupe/issues/46]
-
 == Example datasets
 
 As we continue to refine this library, we have added several datasets to test against. These can all be executed from the examples/ directory. 
