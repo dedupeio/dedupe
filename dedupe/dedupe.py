@@ -165,6 +165,21 @@ class Dedupe:
 
 
     def trainX(self, data_d, training_source=None) :
+        """
+        Learn field weights and blocking predicate from file of labeled 
+        examples or round of interactive labeling
+
+        Keyword arguments:
+        data_d -- record_dictionary
+        training_source -- either a path to a file of labeled examples
+        
+
+
+
+        , where the key is a unique identifier 
+                  for a record and t
+
+        """
         if (training_source.__class__ is not str
               or not isinstance(training_source, types.FunctionType)):
             raise ValueError
