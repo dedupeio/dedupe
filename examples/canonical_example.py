@@ -89,7 +89,10 @@ else:
                                                    num_training_dupes,
                                                    num_training_distinct)
 
-    deduper.trainingDistance()
+    deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
+                                                            deduper.data_model,
+                                                            deduper.training_data)
+
     deduper.train()
 
 deduper.findDuplicates(data_d)

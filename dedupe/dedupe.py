@@ -157,15 +157,15 @@ class Dedupe:
         if training_file :
             (self.training_pairs,
              self.training_data) = self.readTraining(training_source,
-                                                     training_data)                    
+                                                     self.training_data)                    
                 
 
 
-    def trainX(self, training_source=None, data_d) :
-        
-        elif (training_source.__class__ is not str
-              or not isinstance(training_source, types.FunctionType):
+    def trainX(self, data_d, training_source=None) :
+        if (training_source.__class__ is not str
+              or not isinstance(training_source, types.FunctionType)):
             raise ValueError
+
         self.data_d = sampleDict(data_d, 700)
 
         if training_source.__class__ is str:
