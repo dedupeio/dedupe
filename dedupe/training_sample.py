@@ -97,8 +97,14 @@ def activeLearning(data_d,
     # pop the next most uncertain pair off of record distances
 
         record_distances = record_distances[:, uncertain_indices]
-        uncertain_pairs = (record_distances['pairs'])[0:1]
+        uncertain_pair_ids = (record_distances['pairs'])[0:1]
         record_distances = record_distances[1:]
+
+        uncertain_pairs = []
+        for pair in uncertain_pair_ids :
+            record_pair = [data_d[instance] for instance in pair]
+            record_pair = [tuple(record_pair)]
+            uncertain_pairs.append(record_pair)
 
         labeled_pairs = labelPairFunction(uncertain_pairs,
                                           data_d,
@@ -151,18 +157,15 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
     return training_data
 
 
-def consoleLabel(uncertain_pairs, data_d, data_model):
+def consoleLabel(uncertain_pairs, data_model):
     duplicates = []
     nonduplicates = []
 
     fields = [field for field in data_model['fields']
               if data_model['fields'][field]['type'] != 'Interaction']
 
-    for pair in uncertain_pairs:
+    for record_pair in uncertain_pairs:
         label = ''
-
-        record_pair = [data_d[instance] for instance in pair]
-        record_pair = tuple(record_pair)
 
         for pair in record_pair:
             for field in fields:
