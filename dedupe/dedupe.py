@@ -152,22 +152,36 @@ class Dedupe:
         training_dtype = [('label', 'i4'),
                           ('field_distances', field_dtype)]
 
-        training_data = numpy.zeros(0, dtype=training_dtype)
+        self.training_data = numpy.zeros(0, dtype=training_dtype)
 
         if training_file :
             (self.training_pairs,
-             self.training_data) = self.readTraining(training_file,
-                                                     training_data)
+             self.training_data) = self.readTraining(training_source,
+                                                     training_data)                    
                 
 
 
-    def trainX(self, training_source=None, data) :
-        if training_source.__class__ is str:
-            self.readTraining(self, training_source)
-        elif isinstance(training_source, types.FunctionType) :
-            self.activeLearning(data_d, training_source)
-        elif training_source :
+    def trainX(self, training_source=None, data_d) :
+        
+        elif (training_source.__class__ is not str
+              or not isinstance(training_source, types.FunctionType):
             raise ValueError
+        self.data_d = sampleDict(data_d, 700)
+
+        if training_source.__class__ is str:
+            if not hasattr(self, training_data):
+                self.initializeTraining(training_source)
+            else:
+                (self.training_pairs,
+                 self.training_data) = self.readTraining(training_source,
+                                                         training_data)  
+        elif isinstance(training_source, types.FunctionType) :
+            if not hasattr(self, training_data):
+                self.initializeTraining()
+            self.activeLearning(self.data_d,
+                                training_source,
+                                self.training_data)
+
         else:
             self.train()
 
@@ -178,11 +192,7 @@ class Dedupe:
 
 
 
-    def trainingDistance(self, training_pairs, training_data):
-        training_data = training_sample.addTrainingData(training_pairs,
-                                                        self.data_model,
-                                                        training_data)
-        return training_data
+
         
     def findAlpha(self):
         self.alpha = crossvalidation.gridSearch(self.training_data,
@@ -324,5 +334,10 @@ class Dedupe:
                 training_pairs[int(label)].append((core.frozendict(pair[0]),
                                                    core.frozendict(pair[1])))
 
-        training_data = self.trainingDistance(training_pairs, training_pairs)
+        training_data = training_sample.addTrainingData(training_pairs,
+                                                        self.data_model,
+                                                        training_data)
+
         return training_pairs, training_data
+
+
