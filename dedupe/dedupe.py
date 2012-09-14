@@ -29,7 +29,7 @@ class Dedupe:
     initializeTraining
     train
     blockingFunction
-    clusterDuplicates
+    duplicateClusters
     writeTraining
     writeSettings
     """
@@ -78,7 +78,7 @@ class Dedupe:
         if init.__class__ is dict and init:
             self._initializeSettings(init)
         elif init.__class__ is str and init:
-            self.readSettings(init)            
+            self._readSettings(init)            
         elif init:
             raise ValueError("Incorrect Input Type: must supply either "
                              "a field definition or a settings file."
@@ -96,11 +96,6 @@ class Dedupe:
                           ('field_distances', field_dtype)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
-
-    def loadData(self, data_d, sample_size=None):
-        self.record_distance = None
-        self.data_d = None
-        pass
             
     def _initializeSettings(self, fields):
         data_model = {}
@@ -160,7 +155,7 @@ class Dedupe:
 
         if training_file :
             (self.training_pairs,
-             self.training_data) = self.readTraining(training_source,
+             self.training_data) = self._readTraining(training_source,
                                                      self.training_data)                    
                 
 
@@ -243,7 +238,7 @@ class Dedupe:
             if not hasattr(self, 'training_data'):
                 self.initializeTraining(training_source)
             
-            self.training_pairs, self.training_data = self.readTraining(training_source,
+            self.training_pairs, self.training_data = self._readTraining(training_source,
                                                                         self.training_data)
 
         elif isinstance(training_source, types.FunctionType) :
@@ -264,6 +259,8 @@ class Dedupe:
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model,
                                           self.alpha)
+
+        _printLearnedWeights()
 
     def blockingFunction(self):
         """
@@ -295,31 +292,6 @@ class Dedupe:
         clusters = clustering_algorithm(self.dupes, cluster_threshold, **args)
 
         return clusters
-        
-    def _findAlpha(self):
-        pass
-
-    def _train(self):
-        self.findAlpha()
-        self.data_model = core.trainModel(self.training_data,
-                                          self.data_model,
-                                          self.alpha)
-        self.printLearnedWeights()
-
-
-    def _activeLearning(self,
-                        data_d,
-                        labelingFunction,
-                        numTrainingPairs=30,
-                        ):
-
-        (self.training_data,
-         self.training_pairs,
-         self.data_model) = training_sample.activeLearning(sampleDict(data_d,
-                                                                      700),
-                                                           self.data_model,
-                                                           labelingFunction,
-                                                           self.training_data)
 
     def _learnBlocking(self, data_d):
         confident_nonduplicates = blocking.semiSupervisedNonDuplicates(sampleDict(data_d, 700),
@@ -346,36 +318,7 @@ class Dedupe:
 
         return predicates
 
-    def mapBlocking(self, data_d, semi_supervised=True):
-        self.blocked_map = blocking.blockingIndex(data_d,
-                                                  self.predicates)
-
-    def identifyCandidates(self):
-        self.candidates = blocking.mergeBlocks(self.blocked_map)
-
-    def score(self, data_d, threshold=None):
-        self.dupes = core.scoreDuplicates(self.candidates,
-                                          data_d,
-                                          self.data_model,
-                                          threshold)
-
-    def findDuplicates(self,
-                       data_d,
-                       semi_supervised=True,
-                       threshold=None,
-                       ):
-
-
-
-        self.mapBlocking(data_d)
-        self.identifyCandidates()
-        self.printBlockingSummary(data_d)
-        print 'finding duplicates ...'
-        self.score(data_d, threshold)
-
-
-
-    def printLearnedWeights(self):
+    def _printLearnedWeights(self):
         print 'Learned Weights'
         for (k1, v1) in self.data_model.items():
             try:
@@ -383,14 +326,6 @@ class Dedupe:
                     print (k2, v2['weight'])
             except:
                 print (k1, v1)
-
-    def printBlockingSummary(self, data_d):
-        print 'Blocking reduced the number of comparisons by',
-        print int((1 - len(self.candidates) / float(0.5 * len(data_d) ** 2)) * 100),
-        print '%'
-        print "We'll make",
-        print len(self.candidates),
-        print 'comparisons.'
 
     def writeSettings(self, file_name):
         source_predicates = []
@@ -405,7 +340,7 @@ class Dedupe:
             json.dump({'data model': self.data_model,
                       'predicates': source_predicates}, f)
 
-    def readSettings(self, file_name):
+    def _readSettings(self, file_name):
         with open(file_name, 'r') as f:
             learned_settings = json.load(f)
 
@@ -420,7 +355,7 @@ class Dedupe:
         with open(file_name, 'w') as f:
             json.dump(self.training_pairs, f)
 
-    def readTraining(self, file_name, training_pairs):
+    def _readTraining(self, file_name, training_pairs):
         with open(file_name, 'r') as f:
             training_pairs_raw = json.load(f)
 

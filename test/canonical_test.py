@@ -54,7 +54,6 @@ def printPairs(pairs):
         for instance in tuple(pair):
             print data_d[instance].values()
 
-
 parser = argparse.ArgumentParser(description='Run the deduper on a set of restaurant records')
 parser.add_argument('--active', type=bool, nargs = '?', default=False,
                    help='set to true to use active learning')
