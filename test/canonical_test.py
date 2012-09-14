@@ -101,7 +101,7 @@ else:
                                                      num_training_dupes,
                                                      num_training_distinct)
 
-      deduper.data_d = dedupe.dedupe.sampleDict(data_d, 700)
+      deduper.data_d = dedupe.core.sampleDict(data_d, 700)
 
       deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
                                                               deduper.data_model,
@@ -116,11 +116,13 @@ else:
                                                   deduper.data_model,
                                                   deduper.alpha)
 
+      deduper._printLearnedWeights()
 
 
+print 'blocking...'
 blocker = deduper.blockingFunction()
 blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
-
+print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data)
 
 

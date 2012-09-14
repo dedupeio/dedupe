@@ -6,26 +6,13 @@ import affinegap
 import numpy
 import json
 
+def sampleDict(d, sample_size):
 
-def writeSettings(file_name, data_model, predicates):
-    source_predicates = [(predicate[0].__name__, predicate[1])
-                         for predicate in predicates]
-    with open(file_name, 'w') as f:
-        json.dump({'data model': data_model,
-                  'predicates': source_predicates}, f)
+    if len(d) <= sample_size:
+        return d
 
-
-def readSettings(file_name):
-    from predicates import *
-    with open(file_name, 'r') as f:
-        learned_settings = json.load(f)
-
-    data_model = learned_settings['data model']
-    predicates = [(eval(predicate[0]), predicate[1]) for predicate in
-                  learned_settings['predicates']]
-
-    return (data_model, predicates)
-
+    sample_keys = random.sample(d.keys(), sample_size)
+    return dict((k, d[k]) for k in d.keys() if k in sample_keys)
 
 # based on field type, calculate using the appropriate distance
 # function and return distance
@@ -87,6 +74,7 @@ def trainModel(training_data, data_model, alpha=.001):
 
 # assign a score of how likely a pair of records are duplicates
 
+# depricate this function
 def recordDistances(candidates, data_d, data_model):
 
   # The record array has two elements, the first element is an array

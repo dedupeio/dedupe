@@ -13,18 +13,9 @@ import numpy
 
 import types
 
-def sampleDict(d, sample_size):
-
-    if len(d) <= sample_size:
-        return d
-
-    sample_keys = random.sample(d.keys(), sample_size)
-    return dict((k, d[k]) for k in d.keys() if k in sample_keys)
-
-
 class Dedupe:
     """
-    Public methods
+    Public methods:
     __init__
     initializeTraining
     train
@@ -142,7 +133,11 @@ class Dedupe:
 
     def initializeTraining(self, training_file=None) :
         """
-        
+        Loads labeled examples from file, if passed.
+
+        Keyword arguments:
+        training_file -- path to a json file of labeled examples
+
         """
         n_fields = len(self.data_model['fields'])
 
@@ -158,8 +153,6 @@ class Dedupe:
              self.training_data) = self._readTraining(training_source,
                                                      self.training_data)                    
                 
-
-
     def train(self, data_d, training_source=None) :
         """
         Learn field weights and blocking predicate from file of
@@ -170,8 +163,6 @@ class Dedupe:
         training_source -- either a path to a file of labeled examples or
                            a labeling function
 
-                           
-        
 
         In the dictionary of records, the keys are unique identifiers
         for each record, the values are a dictionary where the keys
@@ -232,7 +223,7 @@ class Dedupe:
             and not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
-        self.data_d = sampleDict(data_d, 700)
+        self.data_d = core.sampleDict(data_d, 700)
 
         if training_source.__class__ is str:
             if not hasattr(self, 'training_data'):
@@ -278,24 +269,39 @@ class Dedupe:
         return bF
 
     def duplicateClusters(self,
-                          blocked_data,     
-                          clustering_algorithm=clustering.hierarchical.cluster,
+                          blocked_data,
                           pairwise_threshold = .5,
-                          cluster_threshold = .5,
-                          **args):
+                          cluster_threshold = .5):
+        """
+        Partitions blocked data and returns a list of clusters, where
+        each cluster is a tuple of record ids
+
+        Keyword arguments:
+        blocked_data --       Dictionary where the keys are blocking predicates 
+                              and the values are tuples of records covered by that 
+                              predicate.
+        pairwise_threshold -- Number between 0 and 1 (default is .5). We will only 
+                              consider as duplicates  ecord pairs as duplicates if 
+                              their estimated duplicate likelihood is greater than 
+                              the pairwise threshold. 
+        cluster_threshold --  Number between 0 and 1 (default is .5). Lowering the 
+                              number will increase precision, raising it will increase
+                              recall
+
+        """
 
         candidates = blocking.mergeBlocks(blocked_data)
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
                                           pairwise_threshold)
 
-        clusters = clustering_algorithm(self.dupes, cluster_threshold, **args)
+        clusters = clustering.hierarchical.cluster(self.dupes, cluster_threshold)
 
         return clusters
 
     def _learnBlocking(self, data_d):
-        confident_nonduplicates = blocking.semiSupervisedNonDuplicates(sampleDict(data_d, 700),
-                                                                           self.data_model)
+        confident_nonduplicates = blocking.semiSupervisedNonDuplicates(self.data_d,
+                                                                       self.data_model)
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
@@ -328,6 +334,13 @@ class Dedupe:
                 print (k1, v1)
 
     def writeSettings(self, file_name):
+        """
+        Write to a json settings file that contains the 
+        data model and predicates
+
+        Keyword arguments:
+        file_name -- path to a json file
+        """
         source_predicates = []
         for predicate_tuple in self.predicates:
             source_predicate = []
@@ -340,6 +353,17 @@ class Dedupe:
             json.dump({'data model': self.data_model,
                       'predicates': source_predicates}, f)
 
+    def writeTraining(self, file_name):
+        """
+        Write to a json file that contains labeled examples
+
+        Keyword arguments:
+        file_name -- path to a json file
+        """
+
+        with open(file_name, 'w') as f:
+            json.dump(self.training_pairs, f)
+
     def _readSettings(self, file_name):
         with open(file_name, 'r') as f:
             learned_settings = json.load(f)
@@ -350,10 +374,6 @@ class Dedupe:
             predicate_tuple = tuple([(eval(predicate[0]), predicate[1])
                                     for predicate in predicate_l])
             self.predicates.append(predicate_tuple)
-
-    def writeTraining(self, file_name):
-        with open(file_name, 'w') as f:
-            json.dump(self.training_pairs, f)
 
     def _readTraining(self, file_name, training_pairs):
         with open(file_name, 'r') as f:
@@ -370,5 +390,3 @@ class Dedupe:
                                                         self.training_data)
 
         return training_pairs, training_data
-
-
