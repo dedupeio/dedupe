@@ -8,8 +8,6 @@ import os
 import time
 import argparse
 
-
-
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
 

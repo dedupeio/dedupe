@@ -242,10 +242,10 @@ class Dedupe:
         if training_source.__class__ is str:
             if not hasattr(self, 'training_data'):
                 self.initializeTraining(training_source)
-            else:
-                (self.training_pairs,
-                 self.training_data) = self.readTraining(training_source,
-                                                         training_data)
+            
+            self.training_pairs, self.training_data = self.readTraining(training_source,
+                                                                        self.training_data)
+
         elif isinstance(training_source, types.FunctionType) :
             if not hasattr(self, 'training_data'):
                 self.initializeTraining()
@@ -256,8 +256,14 @@ class Dedupe:
                                                               training_source,
                                                               self.training_data)
 
+        self.alpha = crossvalidation.gridSearch(self.training_data,
+                                                core.trainModel,
+                                                self.data_model,
+                                                k=10)
 
-
+        self.data_model = core.trainModel(self.training_data,
+                                          self.data_model,
+                                          self.alpha)
 
     def blockingFunction(self):
         """
@@ -285,6 +291,7 @@ class Dedupe:
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
                                           pairwise_threshold)
+
         clusters = clustering_algorithm(self.dupes, cluster_threshold, **args)
 
         return clusters
@@ -425,7 +432,7 @@ class Dedupe:
 
         training_data = training_sample.addTrainingData(training_pairs,
                                                         self.data_model,
-                                                        training_data)
+                                                        self.training_data)
 
         return training_pairs, training_data
 
