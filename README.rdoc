@@ -15,22 +15,21 @@ See our presentation at ChiPy: http://pyvideo.org/video/973/big-data-de-duping
 
 == Usage
   > python setup.py install
-  > python examples/active_canonical_example.py
-  (use 'y', 'n' and 'u' keys to flag duplicates for active learning) 
+  > python examples/csv_example.py
+  (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 
-== Example datasets
+== Testing
 
-As we continue to refine this library, we have added several datasets to test against. These can all be executed from the examples/ directory. 
+  Unit tests of core dedupe functions
+  > python tests/test_dedupe.py
 
-The following use human input to flag duplicates:
+  Test using canonical dataset from Bilenko's research
+  
+  Using random sample data for training
+  > python tests/canonical_test.py
 
-* active_canonical_example.py - 864 rows. canonical restaurant dataset from Bilenko's research 
-* early_childhood.py - 3,720 rows. compilation of 9 datasets containing locations for early childhood education in Chicago
-* tech_locator.py - 852 rows. compilation of 2 lists of locations of technology resources in the City of Chicago. 
-
-The following do not use human input:
-
-* canonical_example.py - loads in canonical restaurant test data and trains based on provided known duplicates. outputs precision and recall values
+  Using active learning for training
+  > python tests/canonical_test.py --active True
 
 == Team
 

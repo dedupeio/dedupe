@@ -12,6 +12,7 @@ logfile
 *.*#
 *.json
 examples/output/*.*
+examples/markelReceipts.txt
 kernprof.py
 possible_classifiers
 .DS_Store
