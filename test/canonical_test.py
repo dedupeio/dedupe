@@ -6,6 +6,8 @@ import exampleIO
 import dedupe
 import os
 import time
+import argparse
+
 
 
 def canonicalImport(filename):
@@ -55,8 +57,6 @@ def printPairs(pairs):
             print data_d[instance].values()
 
 
-import argparse
-
 parser = argparse.ArgumentParser(description='Run the deduper on a set of restaurant records')
 parser.add_argument('--active', type=bool, nargs = '?', default=False,
                    help='set to true to use active learning')
@@ -64,7 +64,7 @@ parser.add_argument('--active', type=bool, nargs = '?', default=False,
 args = parser.parse_args()
 
 settings_file = 'restaurant_learned_settings.json'
-raw_data = 'examples/datasets/restaurant-nophone-training.csv'
+raw_data = 'test/datasets/restaurant-nophone-training.csv'
 num_training_dupes = 200
 num_training_distinct = 1600
 num_iterations = 10
@@ -92,24 +92,41 @@ else:
     deduper.num_iterations = num_iterations
 
     if args.active :
-      print "Using active learning..."
-      deduper.activeLearning(data_d, dedupe.training_sample.consoleLabel)
+        print "Using active learning..."
+        deduper.train(data_d, dedupe.training_sample.consoleLabel)
     else :
       print "Using a random sample of training pairs..."
+
+
       deduper.training_pairs = \
           dedupe.training_sample.randomTrainingPairs(data_d,
                                                      duplicates_s,
                                                      num_training_dupes,
                                                      num_training_distinct)
 
+      deduper.data_d = dedupe.dedupe.sampleDict(data_d, 700)
 
       deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
                                                               deduper.data_model,
                                                               deduper.training_data)
 
-      deduper.train()
+      deduper.alpha = dedupe.crossvalidation.gridSearch(deduper.training_data,
+                                                        dedupe.core.trainModel,
+                                                        deduper.data_model,
+                                                        k=10)
 
-deduper.findDuplicates(data_d)
+      deduper.data_model = dedupe.core.trainModel(deduper.training_data,
+                                                  deduper.data_model,
+                                                  deduper.alpha)
+
+
+
+blocker = deduper.blockingFunction()
+blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
+
+clustered_dupes = deduper.duplicateClusters(blocked_data)
+
+
 deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
@@ -119,11 +136,6 @@ found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
 evaluateDuplicates(found_dupes, duplicates_s)
 
 print 'Evaluate Clustering'
-
-# clustered_dupes = deduper.duplicateClusters(threshold = .5)
-
-clustered_dupes = \
-    deduper.duplicateClusters()
 
 confirm_dupes = set([])
 for dupe_set in clustered_dupes:

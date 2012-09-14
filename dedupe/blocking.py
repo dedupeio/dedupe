@@ -22,16 +22,12 @@ def createBlockingFunction(predicates) :
         
 
 
-def blockingIndex(data_d, predicates):
+def blockingIndex(data_d, blockingFunction):
     blocked_data = defaultdict(set)
-    for (key, instance) in data_d.items():
-        for predicate in predicates:
-            predicate_tuples = product(*[F(data_d[key][field])
-                                         for (F, field) in predicate]
-                                       )
-
-            for predicate_tuple in predicate_tuples:
-                blocked_data[str(predicate_tuple)].add(key)
+    for (key, instance) in data_d.iteritems():
+        predicate_keys = blockingFunction(instance) 
+        for predicate_key in predicate_keys :
+            blocked_data[predicate_key].add((key, instance))
 
     return blocked_data
 

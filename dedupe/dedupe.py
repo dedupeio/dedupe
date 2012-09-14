@@ -234,45 +234,41 @@ class Dedupe:
         for this file see the method writeTraining.
         """
         if (training_source.__class__ is not str
-              or not isinstance(training_source, types.FunctionType)):
+            and not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
         self.data_d = sampleDict(data_d, 700)
 
         if training_source.__class__ is str:
-            if not hasattr(self, training_data):
+            if not hasattr(self, 'training_data'):
                 self.initializeTraining(training_source)
             else:
                 (self.training_pairs,
                  self.training_data) = self.readTraining(training_source,
                                                          training_data)
         elif isinstance(training_source, types.FunctionType) :
-            if not hasattr(self, training_data):
+            if not hasattr(self, 'training_data'):
                 self.initializeTraining()
-            self._activeLearning(self.data_d,
-                                 training_source,
-                                 self.training_data)
-
-
-        self.alpha = crossvalidation.gridSearch(self.training_data,
-                                                core.trainModel,
-                                                self.data_model,
-                                                k=10)
-
-        self.data_model = core.trainModel(self.training_data,
-                                          self.data_model,
-                                          self.alpha)
+            (self.training_data,
+            self.training_pairs,
+            self.data_model) = training_sample.activeLearning(self.data_d,
+                                                              self.data_model,
+                                                              training_source,
+                                                              self.training_data)
 
 
 
-    def blockingFunction(a):
+
+    def blockingFunction(self):
         """
         Returns a function that takes in a record dictionary and
         returns a list of blocking keys for the record. We will
         learn the best blocking predicates if we don't have them already.
+
+        We'll allow for predicates to be passed
         """
         if not self.predicates:
-            self._learnBlocking(data_d)
+            self.predicates = self._learnBlocking(self.data_d)
 
         bF = blocking.createBlockingFunction(self.predicates)
 
@@ -282,15 +278,16 @@ class Dedupe:
                           blocked_data,     
                           clustering_algorithm=clustering.hierarchical.cluster,
                           pairwise_threshold = .5,
-                          cluster_threshold = pairwise_threshold,
+                          cluster_threshold = .5,
                           **args):
 
-        candidates = blocking.mergeBlocks(self.blocked_map)
+        candidates = blocking.mergeBlocks(blocked_data)
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
                                           pairwise_threshold)
-        return clustering_algorithm(self.dupes, **args)
-    
+        clusters = clustering_algorithm(self.dupes, cluster_threshold, **args)
+
+        return clusters
         
     def _findAlpha(self):
         pass
@@ -316,14 +313,12 @@ class Dedupe:
                                                            self.data_model,
                                                            labelingFunction,
                                                            self.training_data)
-        self.train()
 
-    def learnBlocking(self, data_d, semi_supervised=True):
-        if semi_supervised:
-            confident_nonduplicates = blocking.semiSupervisedNonDuplicates(sampleDict(data_d, 700),
+    def _learnBlocking(self, data_d):
+        confident_nonduplicates = blocking.semiSupervisedNonDuplicates(sampleDict(data_d, 700),
                                                                            self.data_model)
 
-            self.training_pairs[0].extend(confident_nonduplicates)
+        self.training_pairs[0].extend(confident_nonduplicates)
 
         predicate_functions = (wholeFieldPredicate,
                                tokenFieldPredicate,
@@ -340,7 +335,9 @@ class Dedupe:
                                     predicate_functions,
                                     self.data_model)
 
-        return blocker.trainBlocking()
+        predicates = blocker.trainBlocking()
+
+        return predicates
 
     def mapBlocking(self, data_d, semi_supervised=True):
         self.blocked_map = blocking.blockingIndex(data_d,

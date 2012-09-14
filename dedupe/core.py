@@ -119,6 +119,42 @@ def recordDistances(candidates, data_d, data_model):
 
     return record_distances
 
+def recordDistancesII(candidates, data_model):
+
+  # The record array has two elements, the first element is an array
+  # of floats that has length equal the number of fields. The second
+  # argument is a array of length 2 which stores the id of the
+  # considered elements in the pair.
+
+    fields = data_model['fields']
+
+    field_dtype = [('names', 'a20', len(fields)), ('values', 'f4',
+                   len(fields))]
+
+    record_dtype = [('pairs', [('pair1', 'i4'), ('pair2', 'i4')]),
+                    ('field_distances', field_dtype)]
+
+    distances = numpy.zeros(1, dtype=field_dtype)
+
+    record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
+
+    for (i, pair) in enumerate(candidates):
+        instance_1, instance_2 = pair
+        key_1, record_1 = instance_1
+        key_2, record_2 = instance_2
+
+        c_distances = calculateDistance(record_1,
+                                        record_2,
+                                        fields,
+                                        distances)
+
+        record_distances[i] = ((key_1, key_2),
+                               (c_distances['names'],
+                                c_distances['values']))
+
+    return record_distances
+
+
 
 def scorePairs(record_distances, data_model):
     fields = data_model['fields']
@@ -138,15 +174,16 @@ def scorePairs(record_distances, data_model):
 # identify all pairs above a set threshold as duplicates
 
 def scoreDuplicates(candidates,
-                    data_d,
                     data_model,
                     threshold=None,
                     ):
 
-    record_distances = recordDistances(candidates, data_d, data_model)
+    record_distances = recordDistancesII(candidates, data_model)
     duplicate_scores = scorePairs(record_distances, data_model)
 
-    scored_pairs = zip(candidates, duplicate_scores)
+    pair_ids = [pair[0] for pair in record_distances]
+
+    scored_pairs = zip(pair_ids, duplicate_scores)
     if threshold:
         return [pair for pair in scored_pairs if pair[1] > threshold]
     else:
