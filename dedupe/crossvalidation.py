@@ -18,7 +18,7 @@ def gridSearch(training_data,
 
     numpy.random.shuffle(training_data)
 
-    print 'using cross validation to find optimum alpha'
+    print 'using cross validation to find optimum alpha...'
     scores = []
 
     fields = training_data[0][1][0]
@@ -55,11 +55,12 @@ def gridSearch(training_data,
             all_score += score
             all_N += len(real_labels)
 
-        print alpha, float(all_score) / all_N
+        #print alpha, float(all_score) / all_N
         scores.append(float(all_score) / all_N)
 
     best_alpha = search_space[::-1][scores[::-1].index(max(scores))]
 
+    print 'optimum alpha: ', best_alpha
     return best_alpha
 
 

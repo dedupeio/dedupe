@@ -121,7 +121,10 @@ class ClusteringTest(unittest.TestCase):
 class BlockingTest(unittest.TestCase):
   def setUp(self):
     self.frozendict = dedupe.core.frozendict
-    deduper = dedupe.Dedupe()
+    fields =  { 'name' : {'type': 'String'}, 
+                'age'  : {'type': 'String'},
+              }
+    deduper = dedupe.Dedupe(fields)
     self.wholeFieldPredicate = dedupe.predicates.wholeFieldPredicate
     self.sameThreeCharStartPredicate = dedupe.predicates.sameThreeCharStartPredicate
     training_pairs = {
@@ -131,10 +134,6 @@ class BlockingTest(unittest.TestCase):
             (self.frozendict({"name": "Willy", "age": "35"}), self.frozendict({"name": "William", "age": "35"}))]
       }
     predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-              }
-    deduper.initializeSettings(fields)
     self.blocker = dedupe.blocking.Blocking(training_pairs, predicate_functions, deduper.data_model, 1, 1)
 
   def test_create_predicate_set(self):

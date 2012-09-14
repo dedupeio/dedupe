@@ -82,14 +82,14 @@ def findUncertainPairs(record_distances, data_model):
 def activeLearning(data_d,
                    data_model,
                    labelPairFunction,
-                   num_questions,
                    training_data
                    ):
     duplicates = []
     nonduplicates = []
+    finished = False
     pairs = blocking.allCandidates(data_d)
     record_distances = core.recordDistances(pairs, data_d, data_model)
-    for _ in range(num_questions):
+    while finished == False :
         print 'finding the next uncertain pair ...'
         uncertain_indices = findUncertainPairs(record_distances,
                                                data_model)
@@ -103,11 +103,10 @@ def activeLearning(data_d,
         uncertain_pairs = []
         for pair in uncertain_pair_ids :
             record_pair = [data_d[instance] for instance in pair]
-            record_pair = [tuple(record_pair)]
+            record_pair = tuple(record_pair)
             uncertain_pairs.append(record_pair)
 
-        labeled_pairs = labelPairFunction(uncertain_pairs,
-                                          data_d,
+        labeled_pairs, finished = labelPairFunction(uncertain_pairs,
                                           data_model)
 
         nonduplicates.extend(labeled_pairs[0])
@@ -116,8 +115,10 @@ def activeLearning(data_d,
         training_data = addTrainingData(labeled_pairs,
                                         data_model,
                                         training_data)
-
-        data_model = core.trainModel(training_data, data_model)
+        if len(training_data) > 0 :
+            data_model = core.trainModel(training_data, data_model)
+        else :
+            raise ValueError("No training pairs given")
 
     training_pairs = {0: nonduplicates, 1: duplicates}
 
@@ -160,6 +161,7 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
 def consoleLabel(uncertain_pairs, data_model):
     duplicates = []
     nonduplicates = []
+    finished = False
 
     fields = [field for field in data_model['fields']
               if data_model['fields'][field]['type'] != 'Interaction']
@@ -176,16 +178,20 @@ def consoleLabel(uncertain_pairs, data_model):
 
         valid_response = False
         while not valid_response:
-            label = raw_input('(y)es / (n)o / (u)nsure\n')
-            if label in ['y', 'n', 'u']:
+            label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
+            if label in ['y', 'n', 'u', 'f']:
                 valid_response = True
 
         if label == 'y':
             duplicates.append(record_pair)
         elif label == 'n':
             nonduplicates.append(record_pair)
+        elif label == 'f':
+            print 'Finished labeling'
+            finished = True
+            break
         elif label != 'u':
             print 'Nonvalid response'
             raise
 
-    return {0: nonduplicates, 1: duplicates}
+    return ({0: nonduplicates, 1: duplicates}, finished)
