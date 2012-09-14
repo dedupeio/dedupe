@@ -92,10 +92,10 @@ else:
     deduper.num_iterations = num_iterations
 
     if args.active :
-      print "Using active learning"
+      print "Using active learning..."
       deduper.activeLearning(data_d, dedupe.training_sample.consoleLabel)
     else :
-      print "Using a random sample of training pairs"
+      print "Using a random sample of training pairs..."
       deduper.training_pairs = \
           dedupe.training_sample.randomTrainingPairs(data_d,
                                                      duplicates_s,
@@ -107,7 +107,7 @@ else:
                                                               deduper.data_model,
                                                               deduper.training_data)
 
-    deduper.train()
+      deduper.train()
 
 deduper.findDuplicates(data_d)
 deduper.writeSettings(settings_file)
