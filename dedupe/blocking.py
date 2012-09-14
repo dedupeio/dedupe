@@ -6,17 +6,28 @@ from math import sqrt, log
 import core
 from random import sample
 
+def createBlockingFunction(predicates) :
 
-def blockingIndex(data_d, predicates):
-    blocked_data = defaultdict(set)
-    for (key, instance) in data_d.items():
+    def blockingFunction(instance) :
+        keys = []
         for predicate in predicates:
-            predicate_tuples = product(*[F(data_d[key][field])
+            key_tuples = product(*[F(instance[field])
                                          for (F, field) in predicate]
                                        )
+            keys.extend([str(key_tuple) for key_tuple in key_tuples])
 
-            for predicate_tuple in predicate_tuples:
-                blocked_data[str(predicate_tuple)].add(key)
+        return keys
+
+    return blockingFunction
+        
+
+
+def blockingIndex(data_d, blockingFunction):
+    blocked_data = defaultdict(set)
+    for (key, instance) in data_d.iteritems():
+        predicate_keys = blockingFunction(instance) 
+        for predicate_key in predicate_keys :
+            blocked_data[predicate_key].add((key, instance))
 
     return blocked_data
 

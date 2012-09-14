@@ -12,11 +12,11 @@ training_file = 'ecp_training.json'
 
 t0 = time.time()
 
+print 'importing data ...'
 (data_d, header) = exampleIO.readData(input_file)
 
-print 'importing data ...'
-
 if os.path.exists(settings_file):
+    print 'reading from ', settings_file
     deduper = dedupe.Dedupe(settings_file)
 else:
     fields = {'Site name': {'type': 'String'},
@@ -27,23 +27,23 @@ else:
     deduper = dedupe.Dedupe(fields)
 
     if os.path.exists(training_file):
-
-    # read in training json file
-
-        deduper.readTraining(training_file)
-        deduper.train()
+        # read in training json file
+        print 'reading labeled examples from ', training_file
+        deduper.train(data_d, training_file)
     else:
-
-    # get user input for active learning
-
-        deduper.activeLearning(data_d,
-                               dedupe.training_sample.consoleLabel)
+        print 'starting active labeling...'
+        print 'finding uncertain pairs...'
+        # get user input for active learning
+        deduper.train(data_d, dedupe.training_sample.consoleLabel)
         deduper.writeTraining(training_file)
 
-deduper.findDuplicates(data_d)
-deduper.writeSettings(settings_file)
 
-clustered_dupes = deduper.duplicateClusters(threshold=.5)
+print 'blocking...'
+blocker = deduper.blockingFunction()
+blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
+print 'clustering...'
+clustered_dupes = deduper.duplicateClusters(blocked_data)
+deduper.writeSettings(settings_file)
 
 print '# duplicate sets'
 print len(clustered_dupes)
