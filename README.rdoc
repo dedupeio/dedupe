@@ -4,8 +4,10 @@ A free python library for accurate and scaleable deduplication and entity-resolu
 Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Functions and their Application to Record Linkage and Clustering
 
 Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
-  
+
+Join our Goolge group for updates: https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication  
 See our presentation at ChiPy: http://pyvideo.org/video/973/big-data-de-duping
+
 == Python Dependencies
 
 * numpy (http://numpy.scipy.org/)
@@ -20,15 +22,15 @@ See our presentation at ChiPy: http://pyvideo.org/video/973/big-data-de-duping
 
 == Testing
 
-  Unit tests of core dedupe functions
+Unit tests of core dedupe functions
   > python tests/test_dedupe.py
 
-  Test using canonical dataset from Bilenko's research
+Test using canonical dataset from Bilenko's research
   
-  Using random sample data for training
+Using random sample data for training
   > python tests/canonical_test.py
 
-  Using active learning for training
+Using active learning for training
   > python tests/canonical_test.py --active True
 
 == Team
