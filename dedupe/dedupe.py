@@ -223,7 +223,9 @@ class Dedupe:
             and not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
-        self.data_d = core.sampleDict(data_d, 700)
+        data_d = core.sampleDict(data_d, 700) #we should consider changing this
+
+        self.data_d = dict([(key, core.frozendict(value)) for key, value in data_d.iteritems()])
 
         if training_source.__class__ is str:
             if not hasattr(self, 'training_data'):
