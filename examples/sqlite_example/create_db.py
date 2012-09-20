@@ -2,7 +2,7 @@ import sqlite3
 import csv
 from AsciiDammit import asciiDammit
 
-conn = sqlite3.connect("illinois_contributions_2.db")
+conn = sqlite3.connect("illinois_contributions.db")
 c = conn.cursor()
 
 print 'importing raw data from csv...'
@@ -89,6 +89,9 @@ c.execute('insert into contributions '
 c.execute("create index donor_idx ON contributions (donor_id)")
 c.execute("create index recipient_idx ON contributions (recipient_id)")
 
-c.close()
+print 'creating blocking table for storing dedupe results'
+c.execute("create table blocking_map (key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
 
+c.close()
+conn.close()
 print 'done'

@@ -60,7 +60,7 @@ parser.add_argument('--active', type=bool, nargs = '?', default=False,
 
 args = parser.parse_args()
 
-settings_file = 'restaurant_learned_settings.json'
+settings_file = 'canonical_learned_settings.json'
 raw_data = 'test/datasets/restaurant-nophone-training.csv'
 num_training_dupes = 200
 num_training_distinct = 1600

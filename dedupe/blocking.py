@@ -37,8 +37,10 @@ def mergeBlocks(blocked_data):
     for block in blocked_data.values():
         if len(block) > 1:
             block = sorted(block)
-            for pair in combinations(block, 2):
-                candidates.add(pair)
+            for pair_1, pair_2 in combinations(block, 2):
+
+                candidates.add((core.frozendict(pair_1),
+                                core.frozedict(pair_2)))
 
     return candidates
 
