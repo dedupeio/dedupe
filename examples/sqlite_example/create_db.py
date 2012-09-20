@@ -1,6 +1,8 @@
 import sqlite3
 import csv
-conn = sqlite3.connect("datasets/illinois_contributions.db")
+from AsciiDammit import asciiDammit
+
+conn = sqlite3.connect("illinois_contributions.db")
 c = conn.cursor()
 
 
@@ -22,19 +24,31 @@ c.execute("CREATE TABLE raw_table "
 
 conn.commit()
 
-with open('datasets/markelReceipts.txt', 'rb') as f:
+with open('markelReceipts.txt', 'rb') as f:
   contribution_reader = csv.reader(f, delimiter="\t")
   contribution_reader.next()
-  i = 0
   for row in contribution_reader :
-    c.execute('INSERT INTO raw_table VALUES '
+    try:
+      c.execute('INSERT INTO raw_table VALUES '
               '(?, ?, ?, ?, ?, ?, ?, '
               ' ?, ?, ?, ?, ?, ?, ?, '
               ' ?, ?, ?, ?, ?, ?, ?, '
               ' ?, ?, ?, ?, ?, ?, ?, ?)',
               row[0:29])
-    i += 1
-    if i > 11 : break
+    except sqlite3.ProgrammingError: 
+      try:
+        c.execute('INSERT INTO raw_table VALUES '
+              '(?, ?, ?, ?, ?, ?, ?, '
+              ' ?, ?, ?, ?, ?, ?, ?, '
+              ' ?, ?, ?, ?, ?, ?, ?, '
+              ' ?, ?, ?, ?, ?, ?, ?, ?)',
+              [asciiDammit(field) for field in row[0:29]])
+
+      except:
+        print "failed to import row"
+        print row
+        raise
+
 conn.commit()
 
 c.close()
