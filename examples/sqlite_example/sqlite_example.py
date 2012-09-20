@@ -35,8 +35,8 @@ def blocking_factory(cursor, row):
         d[col[0]] = column
     return (key, (donor_id, d))
 
-settings_file = 'campaign_contributions_settings.json'
-training_file = 'campaign_contributions_training.json'
+settings_file = 'sqlite_example_settings.json'
+training_file = 'sqlite_example_training.json'
 
 t0 = time.time()
 
