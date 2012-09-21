@@ -82,10 +82,17 @@ def findUncertainPairs(record_distances, data_model):
 def activeLearning(data_d,
                    data_model,
                    labelPairFunction,
-                   training_data
+                   training_data,
+                   training_pairs = None
                    ):
+
     duplicates = []
     nonduplicates = []
+
+    if training_pairs :
+        nonduplicates.extend(training_pairs[0])
+        duplicates.extend(training_pairs[1])
+
     finished = False
     pairs = blocking.allCandidates(data_d)
     record_distances = core.recordDistances(pairs, data_d, data_model)
