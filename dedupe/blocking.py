@@ -35,12 +35,11 @@ def blockingIndex(data_d, blockingFunction):
 def mergeBlocks(blocked_data):
     candidates = set()
     for block in blocked_data.values():
-        if len(block) > 1:
-            block = sorted(block)
-            for pair_1, pair_2 in combinations(block, 2):
-
-                candidates.add((core.frozendict(pair_1),
-                                core.frozedict(pair_2)))
+        block = sorted(block)
+        block = [(record_id, core.frozendict(record)) for
+                 record_id, record in block]
+        for pair in combinations(block, 2):
+            candidates.add(pair)
 
     return candidates
 

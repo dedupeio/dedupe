@@ -147,10 +147,11 @@ class Dedupe:
                           ('field_distances', field_dtype)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
+        self.training_pairs = None
 
         if training_file :
             (self.training_pairs,
-             self.training_data) = self._readTraining(training_source,
+             self.training_data) = self._readTraining(training_file,
                                                      self.training_data)                    
                 
     def train(self, data_d, training_source=None) :
@@ -242,7 +243,8 @@ class Dedupe:
             self.data_model) = training_sample.activeLearning(self.data_d,
                                                               self.data_model,
                                                               training_source,
-                                                              self.training_data)
+                                                              self.training_data,
+                                                              self.training_pairs)
 
         self.alpha = crossvalidation.gridSearch(self.training_data,
                                                 core.trainModel,

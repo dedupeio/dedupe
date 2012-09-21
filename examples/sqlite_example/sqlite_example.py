@@ -5,6 +5,7 @@ import re
 import sqlite3
 import dedupe
 import time
+from collections import defaultdict
 
 def dict_factory(cursor, row):
     d = {}
@@ -64,8 +65,7 @@ else:
     if os.path.exists(training_file):
         # read in training json file
         print 'reading labeled examples from ', training_file
-        deduper.train(data_d, training_file)
-    else:
+        deduper.initializeTraining(training_file)
         print 'starting active labeling...'
         print 'finding uncertain pairs...'
         # get user input for active learning
@@ -77,14 +77,17 @@ print 'blocking...'
 blocker = deduper.blockingFunction()
 deduper.writeSettings(settings_file)
 
+print 'creating blocking_map'
 write_cur = con.cursor()
+cur.execute("DELETE FROM blocking_map")
 cur.execute("SELECT * from donors")
 for donor_id, record in cur :
   keys = blocker(record)
   for key in keys :
     #print key, donor_id
     try :
-      write_cur.execute("INSERT OR IGNORE INTO blocking_map VALUES (?, ?) ", (key, donor_id))
+      write_cur.execute("INSERT OR IGNORE INTO blocking_map VALUES (?, ?) ",
+                        (key, donor_id))
     except :
       print key, donor_id
       raise
@@ -93,6 +96,7 @@ con.commit()
 cur.close()
 write_cur.close()
 
+print 'reading blocked data'
 con.row_factory = blocking_factory
 cur = con.cursor()
 cur.execute('select * from donors join '
@@ -100,7 +104,9 @@ cur.execute('select * from donors join '
   'join (select key, count(donor_id) num_candidates from blocking_map '
   'group by key having num_candidates > 1) '
   'as bucket using (key)) as candidates using (donor_id)')
-blocked_data = dict(cur.fetchall())
+blocked_data = defaultdict(list)
+for k, v in cur :
+    blocked_data[k].append(v)
 
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data)
