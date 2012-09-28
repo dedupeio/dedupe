@@ -94,7 +94,7 @@ else:
     else :
       print "Using a random sample of training pairs..."
 
-
+      deduper.initializeTraining()
       deduper.training_pairs = \
           dedupe.training_sample.randomTrainingPairs(data_d,
                                                      duplicates_s,
@@ -102,6 +102,7 @@ else:
                                                      num_training_distinct)
 
       deduper.data_d = dedupe.core.sampleDict(data_d, 700)
+
 
       deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
                                                               deduper.data_model,

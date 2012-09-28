@@ -78,15 +78,6 @@ class Dedupe:
             raise ValueError("No Input: must supply either "
                              "a field definition or a settings file."
                              )
-
-
-        n_fields = len(self.data_model['fields'])
-        field_dtype = [('names', 'a20', n_fields),
-                       ('values', 'f4', n_fields)]
-        training_dtype = [('label', 'i4'),
-                          ('field_distances', field_dtype)]
-
-        self.training_data = numpy.zeros(0, dtype=training_dtype)
             
     def _initializeSettings(self, fields):
         data_model = {}
@@ -229,6 +220,7 @@ class Dedupe:
         self.data_d = dict([(key, core.frozendict(value)) for key, value in data_d.iteritems()])
 
         if training_source.__class__ is str:
+            print 'reading training from file'
             if not hasattr(self, 'training_data'):
                 self.initializeTraining(training_source)
             
@@ -238,6 +230,7 @@ class Dedupe:
         elif isinstance(training_source, types.FunctionType) :
             if not hasattr(self, 'training_data'):
                 self.initializeTraining()
+            
             (self.training_data,
             self.training_pairs,
             self.data_model) = training_sample.activeLearning(self.data_d,
