@@ -16,7 +16,7 @@ def sampleDict(d, sample_size):
 
 # based on field type, calculate using the appropriate distance
 # function and return distance
-@profile
+#@profile
 def calculateDistance(instance_1,
                       instance_2,
                       fields,
@@ -63,8 +63,10 @@ def trainModel(training_data, data_model, alpha=.001):
     examples = numpy.array(examples, dtype='f4')
     (weight, bias) = lr.lr(labels, examples, alpha)
 
+    fields = sorted(data_model['fields'].keys())
+
     #weights = dict(zip(fields[0], weight))
-    for i, name in enumerate(sorted(data_model['fields'].keys())):
+    for i, name in enumerate(fields):
         data_model['fields'][name]['weight'] = float(weight[i])
 
     data_model['bias'] = bias
@@ -99,7 +101,7 @@ def buildRecordDistances(record_pairs, fields, record_distances) :
   distances = numpy.zeros(1, dtype=record_distances['field_distances'].dtype)
 
   field_distances = record_distances['field_distances']
-  sorted_fields = sorted(fields)
+  sorted_fields = sorted(fields.keys())
 
   for (i, record_pair) in enumerate(record_pairs):
         record_1, record_2 = record_pair
@@ -117,8 +119,9 @@ def buildRecordDistances(record_pairs, fields, record_distances) :
 
 def scorePairs(record_distances, data_model):
     fields = data_model['fields']
+    field_names = sorted(data_model['fields'].keys())
 
-    field_weights = [fields[name]['weight'] for name in fields]
+    field_weights = [fields[name]['weight'] for name in field_names]
     bias = data_model['bias']
 
     field_distances = record_distances['field_distances']['values']
