@@ -11,11 +11,11 @@ from cpython cimport array
 # http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
 
 cpdef float affineGapDistance(char *string1, char *string2,
-                              float matchWeight = -5,
-                              float mismatchWeight = 5,
-                              float gapWeight = 4,
-                              float spaceWeight = 1,
-                              float abbreviation_scale = .5):
+                              float matchWeight = 1,
+                              float mismatchWeight = 11,
+                              float gapWeight = 10,
+                              float spaceWeight = 7,
+                              float abbreviation_scale = .125):
 
   cdef int length1 = len(string1)
 
@@ -110,11 +110,11 @@ cpdef float affineGapDistance(char *string1, char *string2,
   return V_current.data.as_floats[length1]
 
 cpdef float normalizedAffineGapDistance(char *string1, char *string2,
-                                        float matchWeight = -5,
-                                        float mismatchWeight = 5,
-                                        float gapWeight = 4,
-                                        float spaceWeight = 1,
-                                        float abbreviation_scale = .5) :
+                                        float matchWeight = 1,
+                                        float mismatchWeight = 11,
+                                        float gapWeight = 10,
+                                        float spaceWeight = 7,
+                                        float abbreviation_scale = .125) :
   
     cdef float normalizer = len(string1) + len(string2)
 
