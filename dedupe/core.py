@@ -71,43 +71,7 @@ def trainModel(training_data, data_model, alpha=.001):
 
     return data_model
 
-
-# assign a score of how likely a pair of records are duplicates
-
-# depricate this function
-def recordDistances(candidates, data_d, data_model):
-
-  # The record array has two elements, the first element is an array
-  # of floats that has length equal the number of fields. The second
-  # argument is a array of length 2 which stores the id of the
-  # considered elements in the pair.
-
-    fields = data_model['fields']
-
-    field_dtype = [('names', 'a20', len(fields)), ('values', 'f4',
-                   len(fields))]
-
-    record_dtype = [('pairs', [('pair1', 'i4'), ('pair2', 'i4')]),
-                    ('field_distances', field_dtype)]
-
-    distances = numpy.zeros(1, dtype=field_dtype)
-
-    record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
-
-    for (i, pair) in enumerate(candidates):
-
-        c_distances = calculateDistance(data_d[pair[0]],
-                                        data_d[pair[1]],
-                                        fields,
-                                        distances)
-
-        record_distances[i] = ((pair[0], pair[1]),
-                               (c_distances['names'],
-                                c_distances['values']))
-
-    return record_distances
-
-def recordDistancesII(candidates, data_model):
+def recordDistances(candidates, data_model):
 
   # The record array has two elements, the first element is an array
   # of floats that has length equal the number of fields. The second
@@ -166,7 +130,7 @@ def scoreDuplicates(candidates,
                     threshold=None,
                     ):
 
-    record_distances = recordDistancesII(candidates, data_model)
+    record_distances = recordDistances(candidates, data_model)
     duplicate_scores = scorePairs(record_distances, data_model)
 
     pair_ids = [pair[0] for pair in record_distances]

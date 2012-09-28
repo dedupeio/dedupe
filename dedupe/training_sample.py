@@ -94,8 +94,8 @@ def activeLearning(data_d,
         duplicates.extend(training_pairs[1])
 
     finished = False
-    pairs = blocking.allCandidates(data_d)
-    record_distances = core.recordDistances(pairs, data_d, data_model)
+    candidates = blocking.allCandidates(data_d)
+    record_distances = core.recordDistances(candidates, data_model)
     while finished == False :
         print 'finding the next uncertain pair ...'
         uncertain_indices = findUncertainPairs(record_distances,
