@@ -16,18 +16,19 @@ def sampleDict(d, sample_size):
 
 # based on field type, calculate using the appropriate distance
 # function and return distance
+@profile
 def calculateDistance(instance_1,
                       instance_2,
                       fields,
+                      sorted_fields,
                       distances,
                       ):
 
     calculated = {}
 
-    for (i, name) in enumerate(fields):
+    for (i, name) in enumerate(sorted_fields):
         if fields[name]['type'] == 'String':
             distanceFunc = affinegap.normalizedAffineGapDistance
-            distances[0]['names'][i] = name
             distances[0]['values'][i] = calculated.setdefault(name,
                     distanceFunc(instance_1[name],
                                  instance_2[name],
@@ -46,7 +47,6 @@ def calculateDistance(instance_1,
                                          1, 11, 10, 7, .125,
                                          )
                                                               )
-            distances[0]['names'][i] = name
             distances[0]['values'][i] = interaction_term
 
     return distances
@@ -63,9 +63,9 @@ def trainModel(training_data, data_model, alpha=.001):
     examples = numpy.array(examples, dtype='f4')
     (weight, bias) = lr.lr(labels, examples, alpha)
 
-    weights = dict(zip(fields[0], weight))
-    for name in data_model['fields']:
-        data_model['fields'][name]['weight'] = float(weights[name])
+    #weights = dict(zip(fields[0], weight))
+    for i, name in enumerate(sorted(data_model['fields'].keys())):
+        data_model['fields'][name]['weight'] = float(weight[i])
 
     data_model['bias'] = bias
 
@@ -95,9 +95,11 @@ def recordDistances(candidates, data_model):
 
     return record_distances
 
-
 def buildRecordDistances(record_pairs, fields, record_distances) :
   distances = numpy.zeros(1, dtype=record_distances['field_distances'].dtype)
+
+  field_distances = record_distances['field_distances']
+  sorted_fields = sorted(fields)
 
   for (i, record_pair) in enumerate(record_pairs):
         record_1, record_2 = record_pair
@@ -105,10 +107,12 @@ def buildRecordDistances(record_pairs, fields, record_distances) :
         c_distances = calculateDistance(record_1,
                                         record_2,
                                         fields,
+                                        sorted_fields,
                                         distances)
 
-        record_distances['field_distances'][i] = (c_distances['names'], c_distances['values'])
+        field_distances[i] = c_distances
 
+  record_distances['field_distances'] = field_distances
   return record_distances
 
 def scorePairs(record_distances, data_model):

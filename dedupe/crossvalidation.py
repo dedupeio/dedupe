@@ -21,7 +21,7 @@ def gridSearch(training_data,
     print 'using cross validation to find optimum alpha...'
     scores = []
 
-    fields = training_data[0][1][0]
+    fields = sorted(original_data_model['fields'].keys())
 
     for alpha in search_space:
         all_score = 0

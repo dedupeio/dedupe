@@ -8,33 +8,6 @@ import blocking
 import core
 import numpy
 
-
-# create a set of training data
-
-def trainingDistances(training_pairs, data_model):
-    fields = data_model['fields']
-
-    field_dtype = [('names', 'a10', len(fields)), ('values', 'f4',
-                   len(fields))]
-
-    distances = numpy.zeros(1, dtype=field_dtype)
-
-    training_data = []
-
-    for (label, examples) in training_pairs.items():
-        for (i, pair) in enumerate(examples):
-
-            c_distances = core.calculateDistance(pair[0],
-                                                 pair[1],
-                                                 fields,
-                                                 distances)
-            c_distances = dict(zip(fields.keys(),
-                                   c_distances[0]['values']))
-            training_data.append((label, c_distances))
-
-    return training_data
-
-
 # create a random set of training pairs based on known duplicates
 
 def randomTrainingPairs(data_d,
