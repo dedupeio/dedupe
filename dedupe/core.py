@@ -75,7 +75,7 @@ def recordDistances(candidates, data_model):
 
   # The record array has two elements, the first element is an array
   # of floats that has length equal the number of fields. The second
-  # argument is a array of length 2 which stores the id of the
+  # argument is an array of length 2 which stores the id of the
   # considered elements in the pair.
 
     fields = data_model['fields']
@@ -86,27 +86,30 @@ def recordDistances(candidates, data_model):
     record_dtype = [('pairs', [('pair1', 'i4'), ('pair2', 'i4')]),
                     ('field_distances', field_dtype)]
 
-    distances = numpy.zeros(1, dtype=field_dtype)
-
     record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
+    
+    key_pairs, record_pairs = zip(*[zip(*candidate) for candidate in candidates])
+    
+    record_distances = buildRecordDistances(record_pairs, fields, record_distances)
+    record_distances['pairs'] = list(key_pairs)
 
-    for (i, pair) in enumerate(candidates):
-        instance_1, instance_2 = pair
-        key_1, record_1 = instance_1
-        key_2, record_2 = instance_2
+    return record_distances
+
+
+def buildRecordDistances(record_pairs, fields, record_distances) :
+  distances = numpy.zeros(1, dtype=record_distances['field_distances'].dtype)
+
+  for (i, record_pair) in enumerate(record_pairs):
+        record_1, record_2 = record_pair
 
         c_distances = calculateDistance(record_1,
                                         record_2,
                                         fields,
                                         distances)
 
-        record_distances[i] = ((key_1, key_2),
-                               (c_distances['names'],
-                                c_distances['values']))
+        record_distances['field_distances'][i] = (c_distances['names'], c_distances['values'])
 
-    return record_distances
-
-
+  return record_distances
 
 def scorePairs(record_distances, data_model):
     fields = data_model['fields']
