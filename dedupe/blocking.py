@@ -45,15 +45,16 @@ def mergeBlocks(blocked_data):
 
 
 def allCandidates(data_d):
-    return list(combinations(sorted(data_d.keys()), 2))
+    return list(combinations(data_d.iteritems(), 2))
+    #return list(combinations(sorted(data_d.keys()), 2))
 
 
 def semiSupervisedNonDuplicates(data_d, data_model,
                                 nonduplicate_confidence_threshold=.7):
 
     # this is an expensive call and we're making it multiple times
-    pairs = allCandidates(data_d)
-    record_distances = core.recordDistances(pairs, data_d, data_model)
+    candidates = allCandidates(data_d)
+    record_distances = core.recordDistances(candidates, data_model)
 
     confident_nondupes_ids = []
     scored_pairs = core.scorePairs(record_distances, data_model)
