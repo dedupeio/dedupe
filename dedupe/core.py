@@ -75,9 +75,7 @@ def recordDistances(candidates, data_model):
 def buildRecordDistances(record_pairs, fields, record_distances) :
   distances = numpy.zeros(1, dtype=record_distances['field_distances'].dtype)
   distances = distances['values'][0]
-
-
-
+  
   field_distances = record_distances['field_distances']['values']
   sorted_fields = sorted(fields.keys())
   field_types = [fields[field]['type'] for field in sorted_fields]
