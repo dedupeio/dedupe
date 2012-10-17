@@ -44,17 +44,29 @@ def mergeBlocks(blocked_data):
     return candidates
 
 
-def allCandidates(data_d):
-    return list(combinations(data_d.iteritems(), 2))
+#TODO: move this to core.py
+def allCandidates(data_d, key_groups=[]):
+    candidates = []
+    if key_groups:
+        for group in key_groups :
+            data_group = ((k, data_d[k]) for k in group if k in data_d)
+            candidates.extend(combinations(data_group, 2))
+    else:
+        candidates = list(combinations(data_d.iteritems(), 2))
+
+    return candidates
     #return list(combinations(sorted(data_d.keys()), 2))
 
-
-def semiSupervisedNonDuplicates(data_d, data_model,
+def semiSupervisedNonDuplicates(data_d, data_model, record_distances,
                                 nonduplicate_confidence_threshold=.7):
 
     # this is an expensive call and we're making it multiple times
-    candidates = allCandidates(data_d)
-    record_distances = core.recordDistances(candidates, data_model)
+    
+
+    if record_distances is None:
+        sample_data = core.sampleDict(data_d, 700)
+        candidates = allCandidates(sample_data)
+        record_distances = core.recordDistances(candidates, data_model)
 
     confident_nondupes_ids = []
     scored_pairs = core.scorePairs(record_distances, data_model)
@@ -147,12 +159,27 @@ class Blocking:
         coverage = defaultdict(list)
         for pair in pairs:
             for predicate in self.predicate_set:
-                keys1 = set(product(*[F(pair[0][field]) for (F,
-                            field) in predicate]))
-                keys2 = set(product(*[F(pair[1][field]) for (F,
-                            field) in predicate]))
-                if keys1 & keys2:
-                    coverage[predicate].append(pair)
+                field_predicates_1 = []
+                field_predicates_2 = []
+                non_empty_predicate = True
+                for F, field in predicate :
+                    
+                    field_predicate_1 = F(pair[0][field])
+                    field_predicate_2 = F(pair[1][field])
+
+                    if field_predicate_1 and field_predicate_2:
+                        field_predicates_1.append(field_predicate_1)
+                        field_predicates_2.append(field_predicate_2)
+                    else :
+                        non_empty_predicate = False
+                        break
+
+                if non_empty_predicate :
+                    keys1 = set(product(field_predicates_1))
+                    keys2 = set(product(field_predicates_2))
+
+                    if keys1 & keys2:
+                        coverage[predicate].append(pair)
 
         return coverage
 

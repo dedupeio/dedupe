@@ -121,6 +121,7 @@ class Dedupe:
         self.data_model = data_model
         self.alpha = 0
         self.predicates = None
+        self.record_distances = None
 
     def initializeTraining(self, training_file=None) :
         """
@@ -145,7 +146,7 @@ class Dedupe:
              self.training_data) = self._readTraining(training_file,
                                                      self.training_data)                    
                 
-    def train(self, data_d, training_source=None) :
+    def train(self, data_d, training_source=None, key_groups=[]) :
         """
         Learn field weights and blocking predicate from file of
         labeled examples or round of interactive labeling
@@ -211,11 +212,13 @@ class Dedupe:
         examples labeled in a previous session. If you need details
         for this file see the method writeTraining.
         """
+
         if (training_source.__class__ is not str
             and not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
-        data_d = core.sampleDict(data_d, 700) #we should consider changing this
+        # data_d = core.sampleDict(data_d, 700) #we should consider changing this
+        print "data_d length: ", len(data_d)
 
         self.data_d = dict([(key, core.frozendict(value)) for key, value in data_d.iteritems()])
 
@@ -233,11 +236,13 @@ class Dedupe:
             
             (self.training_data,
             self.training_pairs,
-            self.data_model) = training_sample.activeLearning(self.data_d,
+            self.data_model,
+            self.record_distances) = training_sample.activeLearning(self.data_d,
                                                               self.data_model,
                                                               training_source,
                                                               self.training_data,
-                                                              self.training_pairs)
+                                                              self.training_pairs,
+                                                              key_groups)
 
         self.alpha = crossvalidation.gridSearch(self.training_data,
                                                 core.trainModel,
@@ -298,7 +303,8 @@ class Dedupe:
 
     def _learnBlocking(self, data_d):
         confident_nonduplicates = blocking.semiSupervisedNonDuplicates(self.data_d,
-                                                                       self.data_model)
+                                                                       self.data_model,
+                                                                       self.record_distances)
 
         self.training_pairs[0].extend(confident_nonduplicates)
 

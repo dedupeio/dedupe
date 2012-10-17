@@ -56,7 +56,8 @@ def activeLearning(data_d,
                    data_model,
                    labelPairFunction,
                    training_data,
-                   training_pairs = None
+                   training_pairs = None,
+                   key_groups = []
                    ):
 
     duplicates = []
@@ -67,8 +68,13 @@ def activeLearning(data_d,
         duplicates.extend(training_pairs[1])
 
     finished = False
-    candidates = blocking.allCandidates(data_d)
+    candidates = blocking.allCandidates(data_d, key_groups)
+
+    import time
+    t_train = time.time()
     record_distances = core.recordDistances(candidates, data_model)
+    print 'calculated recordDistances in ', time.time() - t_train, 'seconds'
+    
     while finished == False :
         print 'finding the next uncertain pair ...'
         uncertain_indices = findUncertainPairs(record_distances,
@@ -102,7 +108,7 @@ def activeLearning(data_d,
 
     training_pairs = {0: nonduplicates, 1: duplicates}
 
-    return (training_data, training_pairs, data_model)
+    return (training_data, training_pairs, data_model, record_distances)
 
 
 # appends training data to the training data collection

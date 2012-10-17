@@ -36,17 +36,28 @@ def blocking_factory(cursor, row):
         d[col[0]] = column
     return (key, (donor_id, d))
 
+def get_sample(cur, size):
+  cur.execute("SELECT * FROM donors ORDER BY RANDOM() LIMIT ?", (size,))
+  return dict(cur.fetchall())
+
+
 settings_file = 'sqlite_example_settings.json'
 training_file = 'sqlite_example_training.json'
 
 t0 = time.time()
 
 print 'selecting random sample from donors table...'
-con = sqlite3.connect("illinois_contributions.db")
+con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
 con.row_factory = dict_factory
 cur = con.cursor()
-cur.execute("SELECT * FROM donors ORDER BY RANDOM() LIMIT 700")
-data_d = dict(cur.fetchall())
+
+data_d = {}
+key_groups = []
+num_sample_buckets = 3
+for i in range(num_sample_buckets):
+  data_sample = get_sample(cur, 700)
+  key_groups.append(data_sample.keys())
+  data_d.update(data_sample)
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
@@ -66,16 +77,20 @@ else:
         # read in training json file
         print 'reading labeled examples from ', training_file
         deduper.initializeTraining(training_file)
-        print 'starting active labeling...'
-        print 'finding uncertain pairs...'
-        # get user input for active learning
-        deduper.train(data_d, dedupe.training_sample.consoleLabel)
-        deduper.writeTraining(training_file)
 
+    print 'starting active labeling...'
+    print 'finding uncertain pairs...'
+    # get user input for active learning
+    deduper.train(data_d, dedupe.training_sample.consoleLabel, key_groups)
+    deduper.writeTraining(training_file)
 
 print 'blocking...'
+t_block = time.time()
 blocker = deduper.blockingFunction()
 deduper.writeSettings(settings_file)
+print 'blocked in ', time.time() - t_block, 'seconds'
+
+
 
 print 'creating blocking_map'
 write_cur = con.cursor()
@@ -95,6 +110,7 @@ for donor_id, record in cur :
 con.commit()
 cur.close()
 write_cur.close()
+raise
 
 print 'reading blocked data'
 con.row_factory = blocking_factory
