@@ -15,49 +15,6 @@ def sampleDict(d, sample_size):
     sample_keys = random.sample(d.keys(), sample_size)
     return dict((k, d[k]) for k in d.keys() if k in sample_keys)
 
-# based on field type, calculate using the appropriate distance
-# function and return distance
-#@profile
-def calculateDistance(instance_1,
-                      instance_2,
-                      fields,
-                      sorted_fields,
-                      distances,
-                      ):
-
-    # calculated = {}
-
-    for i, name in enumerate(sorted_fields):
-        if fields[name]['type'] == 'String':
-            distances[i] = stringDistance(instance_1[name],
-                                          instance_2[name]
-                                          )
-
-            ## distances['values'][i] = calculated.setdefault(name,
-            ##         stringDistance(instance_1[name],
-            ##                        instance_2[name],
-            ##                        1, 11, 10, 7, .125,
-            ##                        )
-            ##                                                   )
-
-        elif fields[name]['type'] == 'Interaction':
-            interaction_term = 1
-            for term in fields[name]['interaction-terms']:
-                if fields[term]['type'] == 'String':
-                    interaction_term *= stringDistance(instance_1[term],
-                                                       instance_2[term]
-                                                       )
-                    ## interaction_term *= calculated.setdefault(term,
-                    ##         stringDistance(instance_1[term],
-                    ##                        instance_2[term],
-                    ##                        1, 11, 10, 7, .125,
-                    ##                        )
-                    ##                                           )
-            distances[i] = interaction_term
-
-    return distances
-
-
 # using logistic regression, train weights for all fields in the data model
 
 def trainModel(training_data, data_model, alpha=.001):
@@ -79,6 +36,7 @@ def trainModel(training_data, data_model, alpha=.001):
 
     return data_model
 
+#@profile
 def recordDistances(candidates, data_model):
 
   # The record array has two elements, the first element is an array
@@ -113,6 +71,7 @@ def recordDistances(candidates, data_model):
 
     return record_distances
 
+#@profile
 def buildRecordDistances(record_pairs, fields, record_distances) :
   distances = numpy.zeros(1, dtype=record_distances['field_distances'].dtype)
   distances = distances['values'][0]
@@ -121,18 +80,38 @@ def buildRecordDistances(record_pairs, fields, record_distances) :
 
   field_distances = record_distances['field_distances']['values']
   sorted_fields = sorted(fields.keys())
+  field_types = [fields[field]['type'] for field in sorted_fields]
 
-  for (i, record_pair) in enumerate(record_pairs):
-        record_1, record_2 = record_pair
+  base_fields = []
+  interactions = []
+  if "Interaction" in field_types :  
+    for i, name in enumerate(sorted_fields) :
+      if fields[name]['type'] == "String" :
+        base_fields.append(name)
+      else :
+        terms = fields[name]['interaction-terms']
+        base_fields.append(terms[0])
+        terms = [sorted_fields.index(term) for term in terms[1:]]
+        interactions.append((i, terms))
+  else :
+    base_fields = sorted_fields
 
+  if interactions :
+    for (i, record_pair) in enumerate(record_pairs):
+      record_1, record_2 = record_pair
 
-        distances = calculateDistance(record_1,
-                                      record_2,
-                                      fields,
-                                      sorted_fields,
-                                      distances)
-        
-        field_distances[i] = distances
+      field_distances[i] = [stringDistance(record_1[name], record_2[name]) for name in base_fields]
+
+      for j, term_indices in interactions :
+        value = field_distances[i][j]
+        for k in term_indices :
+          value *= field_distances[i][k]
+        field_distances[i][j] = value
+  else :
+    for (i, record_pair) in enumerate(record_pairs):
+      record_1, record_2 = record_pair
+
+      field_distances[i] = [stringDistance(record_1[name], record_2[name]) for name in base_fields]
 
   record_distances['field_distances']['values'] = field_distances
   return record_distances

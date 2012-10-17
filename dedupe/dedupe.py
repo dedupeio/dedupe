@@ -102,7 +102,7 @@ class Dedupe:
                                  "that must include a type definition, "
                                  "ex. {'Phone': {type: 'String'}}"
                                  )
-            elif v['type'] == 'Interaction' and ('interaction_terms'
+            elif v['type'] == 'Interaction' and ('interaction-terms'
                                                  not in v):
                 raise ValueError("Interaction terms not set: "
                                  "Interaction types must include a "
