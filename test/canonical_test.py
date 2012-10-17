@@ -79,8 +79,8 @@ else:
               'address': {'type': 'String'},
               'city': {'type': 'String'},
               'cuisine': {'type': 'String'},
-              'name:city' : {'type': 'Interaction',
-                            'interaction-terms': ['name', 'city']}
+              # 'name:city' : {'type': 'Interaction',
+              #               'interaction-terms': ['name', 'city']}
               }
 
     deduper = dedupe.Dedupe(fields)
