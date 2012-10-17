@@ -70,9 +70,7 @@ num_iterations = 10
 
 t0 = time.time()
 
-print 'number of duplicates pairs'
-print len(duplicates_s)
-print ''
+print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
     deduper = dedupe.Dedupe(settings_file)
@@ -81,8 +79,8 @@ else:
               'address': {'type': 'String'},
               'city': {'type': 'String'},
               'cuisine': {'type': 'String'},
-              # 'name:city' : {'type': 'Interaction',
-              #               'interaction-terms': ['name', 'city']}
+              'name:city' : {'type': 'Interaction',
+                            'interaction-terms': ['name', 'city']}
               }
 
     deduper = dedupe.Dedupe(fields)
