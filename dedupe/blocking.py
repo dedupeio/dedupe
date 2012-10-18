@@ -4,7 +4,7 @@ from collections import defaultdict
 from itertools import product, chain, combinations
 from math import sqrt, log
 import core
-from random import sample, random, choice
+from random import sample, random, choice, shuffle
 
 def createBlockingFunction(predicates) :
 
@@ -58,32 +58,31 @@ def allCandidates(data_d, key_groups=[]):
     #return list(combinations(sorted(data_d.keys()), 2))
 
 def semiSupervisedNonDuplicates(data_d, data_model, 
-                                nonduplicate_confidence_threshold=.7):
+                                nonduplicate_confidence_threshold=.7,
+                                sample_size = 2000):
 
-
-    sample_size = 2000
 
     pair_combinations = list(combinations(data_d.iteritems(), 2))
+
+    if len(pair_combinations) <= sample_size :
+        return pair_combinations
+
+    shuffle(pair_combinations)
+    
     confident_distinct_pairs = []
     n_distinct_pairs = 0
-    seen = set()
-    while n_distinct_pairs < sample_size :
-        pair = choice(pair_combinations)
-        if pair in seen:
-            continue
-        seen.add(pair)
+    for pair in pair_combinations :
 
         pair_distance = core.recordDistances([pair], data_model)
         score = core.scorePairs(pair_distance, data_model)
 
 
-        if score < 1 - nonduplicate_confidence_threshold:
+        if score < (1 - nonduplicate_confidence_threshold):
             key_pair, value_pair = zip(*pair)
             confident_distinct_pairs.append(value_pair)
             n_distinct_pairs += 1
-
-
-    return confident_distinct_pairs
+            if n_distinct_pairs == sample_size :
+                return confident_distinct_pairs
 
 
 class Blocking:
@@ -105,6 +104,7 @@ class Blocking:
 
 
         self.training_dupes = (training_pairs[1])[:]
+        self.training_distinct = (training_pairs[0])[:]
 
         # We want to throw away the predicates that puts together too many
         # distinct pairs
