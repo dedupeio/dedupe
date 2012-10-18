@@ -110,7 +110,7 @@ for donor_id, record in cur :
 con.commit()
 cur.close()
 write_cur.close()
-raise
+
 
 print 'reading blocked data'
 con.row_factory = blocking_factory

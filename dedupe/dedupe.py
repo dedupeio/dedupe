@@ -247,7 +247,7 @@ class Dedupe:
         self.alpha = crossvalidation.gridSearch(self.training_data,
                                                 core.trainModel,
                                                 self.data_model,
-                                                k=10)
+                                                k=20)
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model,
