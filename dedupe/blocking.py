@@ -4,7 +4,7 @@ from collections import defaultdict
 from itertools import product, chain, combinations
 from math import sqrt, log
 import core
-from random import sample
+from random import sample, random, choice
 
 def createBlockingFunction(predicates) :
 
@@ -57,29 +57,33 @@ def allCandidates(data_d, key_groups=[]):
     return candidates
     #return list(combinations(sorted(data_d.keys()), 2))
 
-def semiSupervisedNonDuplicates(data_d, data_model, record_distances,
+def semiSupervisedNonDuplicates(data_d, data_model, 
                                 nonduplicate_confidence_threshold=.7):
 
-    # this is an expensive call and we're making it multiple times
-    
 
-    if record_distances is None:
-        sample_data = core.sampleDict(data_d, 1000)
-        candidates = allCandidates(sample_data)
-        record_distances = core.recordDistances(candidates, data_model)
+    sample_size = 2000
 
-    confident_nondupes_ids = []
-    scored_pairs = core.scorePairs(record_distances, data_model)
+    pair_combinations = list(combinations(data_d.iteritems(), 2))
+    confident_distinct_pairs = []
+    n_distinct_pairs = 0
+    seen = set()
+    while n_distinct_pairs < sample_size :
+        pair = choice(pair_combinations)
+        if pair in seen:
+            continue
+        seen.add(pair)
 
-    for (i, score) in enumerate(scored_pairs):
+        pair_distance = core.recordDistances([pair], data_model)
+        score = core.scorePairs(pair_distance, data_model)
+
+
         if score < 1 - nonduplicate_confidence_threshold:
-            confident_nondupes_ids.append(record_distances['pairs'][i])
+            key_pair, value_pair = zip(*pair)
+            confident_distinct_pairs.append(value_pair)
+            n_distinct_pairs += 1
 
-    confident_nondupes_pairs = [(data_d[pair[0]], data_d[pair[1]])
-                                for pair in
-                                confident_nondupes_ids]
 
-    return confident_nondupes_pairs
+    return confident_distinct_pairs
 
 
 class Blocking:
@@ -88,7 +92,7 @@ class Blocking:
                  training_pairs,
                  predicate_functions,
                  data_model,
-                 eta=0.9,
+                 eta=0.01,
                  epsilon=2,
                  ):
         self.epsilon = epsilon
@@ -99,20 +103,12 @@ class Blocking:
                        if data_model['fields'][field]['type']
                        != 'Interaction']
 
-        n_sample_distinct = 2000
-        if len(training_pairs[0]) <= n_sample_distinct:
-            self.training_distinct = (training_pairs[0])[:]
-        else:
-            self.training_distinct = sample((training_pairs[0])[:],
-                                            n_sample_distinct)
 
         self.training_dupes = (training_pairs[1])[:]
 
         # We want to throw away the predicates that puts together too many
         # distinct pairs
-        sample_size = len(self.training_dupes) \
-            + len(self.training_distinct)
-        self.coverage_threshold = eta * sample_size
+        self.coverage_threshold = eta * len(self.training_distinct)
 
     # Approximate learning of blocking following the ApproxRBSetCover from
     # page 102 of Bilenko
@@ -156,7 +152,7 @@ class Blocking:
             print 'No predicate found!'
             raise
 
-    @profile
+    #@profile
     def predicateCoverage(self, pairs):
         coverage = defaultdict(list)
         for instance_1, instance_2 in pairs:

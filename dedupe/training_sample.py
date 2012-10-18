@@ -108,7 +108,7 @@ def activeLearning(data_d,
 
     training_pairs = {0: nonduplicates, 1: duplicates}
 
-    return (training_data, training_pairs, data_model, record_distances)
+    return (training_data, training_pairs, data_model)
 
 
 # appends training data to the training data collection
