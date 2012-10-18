@@ -5,7 +5,10 @@ import re
 
 def wholeFieldPredicate(field):
     """return the whole field"""
-    return (field, )
+    if field:
+        return (field, )
+    else:
+        return ()
 
 
 def tokenFieldPredicate(field):
@@ -26,14 +29,13 @@ def nearIntegersPredicate(field):
 
 def commonFourGram(field):
     """return 4-grams"""
-    return tuple([field[pos:pos + 4] for pos in xrange(0, len(field),
-                 4)])
+    return tuple([field[pos:pos + 4] for pos in xrange((len(field) - 4 + 1))])
+
 
 
 def commonSixGram(field):
     """"return 6-grams"""
-    return tuple([field[pos:pos + 6] for pos in xrange(0, len(field),
-                 6)])
+    return tuple([field[pos:pos + 6] for pos in xrange((len(field) - 6 + 1))])
 
 
 def sameThreeCharStartPredicate(field):

@@ -64,7 +64,7 @@ def semiSupervisedNonDuplicates(data_d, data_model, record_distances,
     
 
     if record_distances is None:
-        sample_data = core.sampleDict(data_d, 700)
+        sample_data = core.sampleDict(data_d, 1000)
         candidates = allCandidates(sample_data)
         record_distances = core.recordDistances(candidates, data_model)
 
@@ -88,17 +88,18 @@ class Blocking:
                  training_pairs,
                  predicate_functions,
                  data_model,
-                 eta=1,
-                 epsilon=1,
+                 eta=0.9,
+                 epsilon=2,
                  ):
         self.epsilon = epsilon
         self.predicate_functions = predicate_functions
+        self._overlap = defaultdict(int)
 
         self.fields = [field for field in data_model['fields']
                        if data_model['fields'][field]['type']
                        != 'Interaction']
 
-        n_sample_distinct = 1000
+        n_sample_distinct = 2000
         if len(training_pairs[0]) <= n_sample_distinct:
             self.training_distinct = (training_pairs[0])[:]
         else:
@@ -155,31 +156,35 @@ class Blocking:
             print 'No predicate found!'
             raise
 
+    @profile
     def predicateCoverage(self, pairs):
         coverage = defaultdict(list)
-        for pair in pairs:
+        for instance_1, instance_2 in pairs:
             for predicate in self.predicate_set:
-                field_predicates_1 = []
-                field_predicates_2 = []
-                non_empty_predicate = True
                 for F, field in predicate :
-                    
-                    field_predicate_1 = F(pair[0][field])
-                    field_predicate_2 = F(pair[1][field])
+                    if self._overlap[(instance_1, instance_2, F, field)] == -1 :
+                        break
+                    elif self._overlap[(instance_1, instance_2, F, field)] == 1 :
+                        continue
 
-                    if field_predicate_1 and field_predicate_2:
-                        field_predicates_1.append(field_predicate_1)
-                        field_predicates_2.append(field_predicate_2)
-                    else :
-                        non_empty_predicate = False
+                    
+                    field_predicate_1 = F(instance_1[field])
+                    if not field_predicate_1 :
+                        self._overlap[(instance_1, instance_2, F, field)] = -1 
                         break
 
-                if non_empty_predicate :
-                    keys1 = set(product(field_predicates_1))
-                    keys2 = set(product(field_predicates_2))
+                    field_predicate_2 = F(instance_2[field])
 
-                    if keys1 & keys2:
-                        coverage[predicate].append(pair)
+
+
+                    if set(field_predicate_1) & set(field_predicate_2) :
+                        self._overlap[(instance_1, instance_2, F, field)] = 1 
+                    else:
+                        self._overlap[(instance_1, instance_2, F, field)] = -1
+                        break
+                    
+                else:
+                    coverage[predicate].append((instance_1, instance_2))
 
         return coverage
 
@@ -226,6 +231,7 @@ class Blocking:
                              < expected_dupe_cover]
 
         return self.predicateCoverage(training_distinct)
+
 
     def findOptimumBlocking(self,
                             training_dupes,
