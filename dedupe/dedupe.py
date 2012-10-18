@@ -305,6 +305,7 @@ class Dedupe:
                                                                        
 
         self.training_pairs[0].extend(confident_nonduplicates)
+        self.training_distinct = self.training_pairs[0]
 
         predicate_functions = (wholeFieldPredicate,
                                tokenFieldPredicate,
