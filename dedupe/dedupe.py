@@ -121,7 +121,6 @@ class Dedupe:
         self.data_model = data_model
         self.alpha = 0
         self.predicates = None
-        self.record_distances = None
 
     def initializeTraining(self, training_file=None) :
         """
@@ -236,8 +235,7 @@ class Dedupe:
             
             (self.training_data,
             self.training_pairs,
-            self.data_model,
-            self.record_distances) = training_sample.activeLearning(self.data_d,
+            self.data_model) = training_sample.activeLearning(self.data_d,
                                                               self.data_model,
                                                               training_source,
                                                               self.training_data,
@@ -303,8 +301,8 @@ class Dedupe:
 
     def _learnBlocking(self, data_d):
         confident_nonduplicates = blocking.semiSupervisedNonDuplicates(self.data_d,
-                                                                       self.data_model,
-                                                                       self.record_distances)
+                                                                       self.data_model)
+                                                                       
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
