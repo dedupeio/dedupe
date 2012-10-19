@@ -98,6 +98,8 @@ class Blocking:
         self.predicate_functions = predicate_functions
         self._overlap = defaultdict(int)
 
+        
+
         self.fields = [field for field in data_model['fields']
                        if data_model['fields'][field]['type']
                        != 'Interaction']
@@ -152,37 +154,42 @@ class Blocking:
             print 'No predicate found!'
             raise
 
+
+
     #@profile
     def predicateCoverage(self, pairs):
         coverage = defaultdict(list)
-        for instance_1, instance_2 in pairs:
+        lset = set
+        for pair in pairs:
             for predicate in self.predicate_set:
-                for F, field in predicate :
-                    if self._overlap[(instance_1, instance_2, F, field)] == -1 :
+
+                for basic_predicate in predicate :
+                    if self._overlap[(pair, basic_predicate)] == -1 :
                         break
-                    elif self._overlap[(instance_1, instance_2, F, field)] == 1 :
+                    if self._overlap[(pair, basic_predicate)] == 1 :
                         continue
 
-                    
-                    field_predicate_1 = F(instance_1[field])
+                    F, field = basic_predicate
+                    field_predicate_1 = F(pair[0][field])
                     if not field_predicate_1 :
-                        self._overlap[(instance_1, instance_2, F, field)] = -1 
+                        self._overlap[(pair, basic_predicate)] = -1 
                         break
 
-                    field_predicate_2 = F(instance_2[field])
+                    field_predicate_2 = F(pair[1][field])
 
 
-
-                    if set(field_predicate_1) & set(field_predicate_2) :
-                        self._overlap[(instance_1, instance_2, F, field)] = 1 
+                    if lset(field_predicate_1) & lset(field_predicate_2) :
+                        self._overlap[(pair, basic_predicate)] = 1 
                     else:
-                        self._overlap[(instance_1, instance_2, F, field)] = -1
+                        self._overlap[(pair, basic_predicate)] = -1
                         break
                     
                 else:
-                    coverage[predicate].append((instance_1, instance_2))
+                    coverage[predicate].append(pair)
+
 
         return coverage
+            
 
     def createPredicateSet(self, disjunctive):
 
@@ -215,6 +222,7 @@ class Blocking:
                                  found_distinct,
                                  training_distinct,
                                  ):
+
 
         # We don't want to penalize a blocker if it puts distinct
         # pairs together that look like they could be duplicates.

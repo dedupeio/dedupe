@@ -19,11 +19,9 @@ def sampleDict(d, sample_size):
 
 def trainModel(training_data, data_model, alpha=.001):
 
-    (labels, fields, examples) = zip(*[(l, f, e) for (l, (f, e))
-                                       in training_data])
+    labels = training_data['label']
+    examples = training_data['field_distances']['values']
 
-    labels = numpy.array(labels, dtype='i4')
-    examples = numpy.array(examples, dtype='f4')
     (weight, bias) = lr.lr(labels, examples, alpha)
 
     fields = sorted(data_model['fields'].keys())
