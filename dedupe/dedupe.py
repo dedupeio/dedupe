@@ -307,6 +307,11 @@ class Dedupe:
         self.training_pairs[0].extend(confident_nonduplicates)
         self.training_distinct = self.training_pairs[0]
 
+        # to perform TF-IDF blocking, we start by getting a list of starting tokens from tokenFieldPredicate
+        # tfidf_corpus = blocking.blockingIndex(self.training_pairs, tokenFieldPredicate)
+
+        # tfidfPredicate = createTfidfPredicate(idf_dictionary, threshold)
+
         predicate_functions = (wholeFieldPredicate,
                                tokenFieldPredicate,
                                commonIntegerPredicate,
