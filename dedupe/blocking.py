@@ -4,6 +4,7 @@ from collections import defaultdict
 from itertools import product, chain, combinations
 from math import sqrt, log
 import core
+import tfidf
 from random import sample, random, choice, shuffle
 
 def createBlockingFunction(predicates) :
@@ -91,14 +92,16 @@ class Blocking:
                  training_pairs,
                  predicate_functions,
                  data_model,
+                 tfidf_thresholds = [],
+                 df_index = {},
                  eta=0.01,
                  epsilon=2,
                  ):
         self.epsilon = epsilon
         self.predicate_functions = predicate_functions
+        self.df_index = df_index
+        self.tfidf_thresholds = tfidf_thresholds
         self._overlap = defaultdict(int)
-
-        
 
         self.fields = [field for field in data_model['fields']
                        if data_model['fields'][field]['type']
@@ -114,12 +117,38 @@ class Blocking:
 
     # Approximate learning of blocking following the ApproxRBSetCover from
     # page 102 of Bilenko
-    def trainBlocking(self, disjunctive=True):
+    def trainBlocking(self, disjunctive=False):
         self.predicate_set = self.createPredicateSet(disjunctive)
         n_predicates = len(self.predicate_set)
 
+        # TF-IDF coverage
+        if self.tfidf_thresholds :
+            tfidf_block_coverage = {}
+            for threshold in self.tfidf_thresholds :
+                for field in self.fields :
+                    coverage =  tfidf.coverage(threshold, 
+                                field, 
+                                self.training_dupes + self.training_distinct,
+                                self.df_index)
+                    
+                    for pair, value in coverage.iteritems():
+                        if value :
+                            self._overlap[(pair, (field, threshold))] = 1
+                        else :
+                            self._overlap[(pair, (field, threshold))] = -1
+
+                    self.predicate_set.append(((field, threshold),))
+
+        #print self.predicate_set
+        #print self._overlap
         found_dupes = self.predicateCoverage(self.training_dupes)
         found_distinct = self.predicateCoverage(self.training_distinct)
+
+        for k,v in found_dupes.iteritems() :
+            print k, len(v)
+
+        for k,v in found_distinct.iteritems() :
+            print k, len(v)
 
         # Only consider predicates that cover at least one duplicate pair
         self.predicate_set = found_dupes.keys()

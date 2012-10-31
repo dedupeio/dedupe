@@ -6,9 +6,10 @@ import random
 import core
 import training_sample
 import crossvalidation
-from predicates import *
+import predicates
 import blocking
 import clustering
+import tfidf
 import numpy
 
 import types
@@ -306,29 +307,34 @@ class Dedupe:
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
-        # to perform TF-IDF blocking, we start by getting a list of starting tokens from tokenFieldPredicate
-        # tfidf_corpus = blocking.blockingIndex(self.training_pairs, tokenFieldPredicate)
-
-        # tfidfPredicate = createTfidfPredicate(idf_dictionary, threshold)
-
-        predicate_functions = (wholeFieldPredicate,
-                               tokenFieldPredicate,
-                               commonIntegerPredicate,
-                               sameThreeCharStartPredicate,
-                               sameFiveCharStartPredicate,
-                               sameSevenCharStartPredicate,
-                               nearIntegersPredicate,
-                               commonFourGram,
-                               commonSixGram,
+        predicate_functions = (predicates.wholeFieldPredicate,
+                               predicates.tokenFieldPredicate,
+                               predicates.commonIntegerPredicate,
+                               predicates.sameThreeCharStartPredicate,
+                               predicates.sameFiveCharStartPredicate,
+                               predicates.sameSevenCharStartPredicate,
+                               predicates.nearIntegersPredicate,
+                               predicates.commonFourGram,
+                               predicates.commonSixGram,
                                )
+
+        tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
+        full_string_records = {}
+        for k, v in data_d.iteritems() :
+          full_string_records[k] = " ".join(v.values())
+
+        df_index = tfidf.documentFrequency(full_string_records)
 
         blocker = blocking.Blocking(self.training_pairs,
                                     predicate_functions,
-                                    self.data_model)
+                                    self.data_model,
+                                    tfidf_thresholds,
+                                    df_index
+                                    )
 
-        predicates = blocker.trainBlocking()
+        learned_predicates = blocker.trainBlocking()
 
-        return predicates
+        return learned_predicates
 
     def _printLearnedWeights(self):
         print 'Learned Weights'
