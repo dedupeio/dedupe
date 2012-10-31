@@ -159,10 +159,8 @@ class Blocking:
     #@profile
     def predicateCoverage(self, pairs):
         coverage = defaultdict(list)
-        lset = set
         for pair in pairs:
             for predicate in self.predicate_set:
-
                 for basic_predicate in predicate :
                     if self._overlap[(pair, basic_predicate)] == -1 :
                         break
@@ -177,8 +175,7 @@ class Blocking:
 
                     field_predicate_2 = F(pair[1][field])
 
-
-                    if lset(field_predicate_1) & lset(field_predicate_2) :
+                    if set(field_predicate_1) & set(field_predicate_2) :
                         self._overlap[(pair, basic_predicate)] = 1 
                     else:
                         self._overlap[(pair, basic_predicate)] = -1
