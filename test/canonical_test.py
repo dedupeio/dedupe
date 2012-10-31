@@ -99,7 +99,7 @@ else:
                                                      num_training_dupes,
                                                      num_training_distinct)
 
-      deduper.data_d = dedupe.core.sampleDict(data_d, 700)
+      deduper.data_d = data_d
 
 
       deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
@@ -129,7 +129,7 @@ deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
-                  if score > .40])
+                  if score > .95])
 
 evaluateDuplicates(found_dupes, duplicates_s)
 
