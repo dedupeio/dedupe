@@ -132,23 +132,22 @@ class Blocking:
                                 self.df_index)
                     
                     for pair, value in coverage.iteritems():
-                        if value :
-                            self._overlap[(pair, (field, threshold))] = 1
-                        else :
-                            self._overlap[(pair, (field, threshold))] = -1
+                        self._overlap[(pair, (field, threshold))] = value
+
 
                     self.predicate_set.append(((field, threshold),))
-
+                    
+    
         #print self.predicate_set
         #print self._overlap
         found_dupes = self.predicateCoverage(self.training_dupes)
         found_distinct = self.predicateCoverage(self.training_distinct)
 
-        for k,v in found_dupes.iteritems() :
-            print k, len(v)
+        ## for k,v in found_dupes.iteritems() :
+        ##     print k, len(v)
 
-        for k,v in found_distinct.iteritems() :
-            print k, len(v)
+        ## for k,v in found_distinct.iteritems() :
+        ##     print k, len(v)
 
         # Only consider predicates that cover at least one duplicate pair
         self.predicate_set = found_dupes.keys()
