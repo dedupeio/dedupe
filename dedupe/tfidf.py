@@ -4,37 +4,21 @@ import re
 import core
 
 def coverage(threshold, field, training_pairs, inverted_index) :
-  corpus = {}
-  inv_corpus = {}
-  doc_id = 0
-  docs = set([])
 
-  for pair in training_pairs:
-    for instance in pair:
-      docs.add(instance)
-  
-  for i, doc in enumerate(docs):      
-    corpus[i] = doc[field]
-    inv_corpus[doc] = i
+  docs = set(instance for pair in training_pairs for instance in pair)
+
+  corpus = dict((i, doc[field]) for i, doc in enumerate(docs))
+  id_lookup = dict((instance, i) for i, instance in enumerate(docs))
 
   blocked_data = createCanopies(corpus, inverted_index, threshold)
 
-
-  blocked_data_d = []
-  for block in blocked_data:
-    block_d = []
-    for doc_id in block:
-      block_d.append(corpus[doc_id])
-
-    blocked_data_d.append(block_d)
-
   coverage_dict = {}
+
   for pair in training_pairs:
-    id_pair = [inv_corpus[doc] for doc in pair]
-    for block in blocked_data:
-      if len(set(id_pair) & set(block)) == 2:
-        coverage_dict[pair] = 1
-        break
+    id_pair = set(id_lookup[instance] for instance in pair)
+    
+    if any(id_pair.issubset(block) for block in blocked_data) :
+      coverage_dict[pair] = 1
     else:
       coverage_dict[pair] = -1
 
