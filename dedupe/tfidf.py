@@ -5,6 +5,7 @@ import core
 
 def coverage(threshold, field, training_pairs, inverted_index) :
   corpus = {}
+  inv_corpus = {}
   doc_id = 0
   docs = set([])
 
@@ -14,8 +15,10 @@ def coverage(threshold, field, training_pairs, inverted_index) :
   
   for i, doc in enumerate(docs):      
     corpus[i] = doc[field]
+    inv_corpus[doc] = i
 
   blocked_data = createCanopies(corpus, inverted_index, threshold)
+
 
   blocked_data_d = []
   for block in blocked_data:
@@ -27,13 +30,13 @@ def coverage(threshold, field, training_pairs, inverted_index) :
 
   coverage_dict = {}
   for pair in training_pairs:
-    field_pair = set([instance[field] for instance in pair])
-    for block in blocked_data_d:
-      if field_pair & set(block):
-        coverage_dict[pair] = True
+    id_pair = [inv_corpus[doc] for doc in pair]
+    for block in blocked_data:
+      if len(set(id_pair) & set(block)) == 2:
+        coverage_dict[pair] = 1
         break
     else:
-      coverage_dict[pair] = False
+      coverage_dict[pair] = -1
 
   return coverage_dict
 
@@ -74,6 +77,9 @@ def createCanopies(corpus_original, df_index, threshold) :
   inverted_index = invertedIndex(corpus)
   while corpus :
     doc_id, center = corpus.popitem()
+    if not center :
+      continue
+    
     seen_set.add(doc_id)
     block = [doc_id]
     candidate_set = set([])
