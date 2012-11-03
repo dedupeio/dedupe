@@ -1,4 +1,3 @@
-python-dev>=0.1
 numpy>=1.4
 scipy>=0.10
 fastcluster>=1.1.6
