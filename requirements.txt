@@ -1,4 +1,3 @@
 numpy>=1.4
-scipy>=0.10
 fastcluster>=1.1.6
 hclust>=0.2.0
