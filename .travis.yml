@@ -3,6 +3,8 @@ python:
   - "2.7"
   - "2.6"
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+before_install:
+  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
 install: 
   - pip install -r requirements.txt
   - python setup.py install
