@@ -1,4 +1,6 @@
 language: python
+notifications:
+  email: false
 python:
   - "2.7"
   - "2.6"
@@ -10,3 +12,4 @@ install:
 #
 # command to run tests, e.g. python setup.py test
 script: echo '0'
+
