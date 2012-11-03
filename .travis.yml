@@ -2,19 +2,8 @@ language: python
 python:
   - "2.7"
   - "2.6"
-env:
-    NUMPY_VER=1.6.1
-before_install:
-before_install:
-    - mkdir builds
-    - pushd builds
-    - curl -O http://pypi.python.org/packages/source/n/numpy/numpy-${NUMPY_VER}.tar.gz
-    - tar zxf numpy-${NUMPY_VER}.tar.gz
-    - cd numpy-${NUMPY_VER}
-    - python setup.py install
-    - popd
-
 install: 
+  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
   - pip install -r requirements.txt
   - python setup.py install
 # command to run tests, e.g. python setup.py test
