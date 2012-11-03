@@ -2,11 +2,10 @@ language: python
 python:
   - "2.7"
   - "2.6"
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-before_install:
-  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
 install: 
-  - pip install -r requirements.txt
+  - sudo apt-get build-dep python-dev
+  - sudo apt-get build-dep python-numpy
+  - pip install -q numpy --use-mirrors 
   - python setup.py install
 # command to run tests, e.g. python setup.py test
 #script:  PLEASE CHANGE ME
