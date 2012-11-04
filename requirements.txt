@@ -1,2 +1,2 @@
-fastcluster>=1.1.6
+fastcluster>=1.1.7
 hcluster>=0.2.0
