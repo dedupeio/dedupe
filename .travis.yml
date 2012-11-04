@@ -9,5 +9,4 @@ install:
   - pip install -r requirements.txt
   - python setup.py install
 # command to run tests, e.g. python setup.py test
-script: echo '0'
-
+script: python test/test_dedupe.py
