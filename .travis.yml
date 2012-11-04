@@ -6,7 +6,7 @@ python:
   - "2.6"
 install:
   - pip install --use-mirrors -q numpy
-  - pip install -r requirements.txt
+  - pip install --use-mirros -r requirements.txt
   - python setup.py install
 # command to run tests, e.g. python setup.py test
 script: python test/test_dedupe.py
