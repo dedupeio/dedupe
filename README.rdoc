@@ -7,9 +7,9 @@ Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Fu
 
 Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
 
-* For more detail and overview, [read the wiki](https://github.com/open-city/dedupe/wiki)
-* [Join our Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication) for updates
-* See our [presentation at ChiPy](http://pyvideo.org/video/973/big-data-de-duping)
+* For more detail and overview, read the wiki: https://github.com/open-city/dedupe/wiki
+* Join our Google group for updates: https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication
+* See our presentation at ChiPy: http://pyvideo.org/video/973/big-data-de-duping
 
 == Python Dependencies
 
