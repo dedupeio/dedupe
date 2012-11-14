@@ -357,8 +357,18 @@ class Dedupe:
         for predicate_tuple in self.predicates:
             source_predicate = []
             for predicate in predicate_tuple:
+              if isinstance(predicate[0], types.FunctionType):
                 source_predicate.append((predicate[0].__name__,
-                                         predicate[1]))
+                                         predicate[1],
+                                         'simple'))
+              elif predicate[0].__class__ is tfidf.TfidfPredicate :
+                source_predicate.append((predicate[0].threshold,
+                                         predicate[1],
+                                         'tfidf'))
+              else:
+                print predicate[0].__class__
+                raise ValueError("Undefined predicate type")
+                
             source_predicates.append(source_predicate)
 
         with open(file_name, 'w') as f:

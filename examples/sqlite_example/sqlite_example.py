@@ -94,8 +94,11 @@ print 'blocked in ', time.time() - t_block, 'seconds'
 
 print 'creating blocking_map'
 write_cur = con.cursor()
+print 'deleting existing blocking map'
 cur.execute("DELETE FROM blocking_map")
+print 'selecting donor data'
 cur.execute("SELECT * from donors")
+
 for donor_id, record in cur :
   keys = blocker(record)
   for key in keys :

@@ -3,6 +3,11 @@ import math
 import re
 import core
 
+class TfidfPredicate:
+  def __init__(self, threshold) :
+    self.threshold = threshold
+
+
 def coverage(threshold, field, training_pairs, inverted_index) :
 
   docs = set(instance for pair in training_pairs for instance in pair)
