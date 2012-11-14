@@ -100,7 +100,7 @@ class Blocking:
         self.epsilon = epsilon
         self.predicate_functions = predicate_functions
         self.df_index = df_index
-        self.tfidf_thresholds = tfidf_thresholds
+        self.tfidf_thresholds = [tfidf.TfidfPredicate(threshold) for threshold in tfidf_thresholds]
         self._overlap = defaultdict(int)
 
         self.fields = [field for field in data_model['fields']
@@ -126,16 +126,16 @@ class Blocking:
             tfidf_block_coverage = {}
             for threshold in self.tfidf_thresholds :
                 for field in self.fields :
-                    coverage =  tfidf.coverage(threshold, 
+                    coverage =  tfidf.coverage(threshold.threshold, 
                                 field, 
                                 self.training_dupes + self.training_distinct,
                                 self.df_index)
                     
                     for pair, value in coverage.iteritems():
-                        self._overlap[(pair, (field, threshold))] = value
+                        self._overlap[(pair, (threshold, field))] = value
 
 
-                    self.predicate_set.append(((field, threshold),))
+                    self.predicate_set.append(((threshold, field),))
                     
     
         #print self.predicate_set
