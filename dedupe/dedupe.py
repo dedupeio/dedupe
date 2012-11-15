@@ -265,7 +265,7 @@ class Dedupe:
         if not self.predicates:
             self.predicates = self._learnBlocking(self.data_d)
 
-        bF = blocking.createBlockingFunction(self.predicates)
+        bF = blocking.Blocker(self.predicates, self.df_index)
 
         return bF
 
@@ -323,13 +323,13 @@ class Dedupe:
         for k, v in data_d.iteritems() :
           full_string_records[k] = " ".join(v.values())
 
-        df_index = tfidf.documentFrequency(full_string_records)
+        self.df_index = tfidf.documentFrequency(full_string_records)
 
         blocker = blocking.Blocking(self.training_pairs,
                                     predicate_functions,
                                     self.data_model,
                                     tfidf_thresholds,
-                                    df_index
+                                    self.df_index
                                     )
 
         learned_predicates = blocker.trainBlocking()
@@ -366,7 +366,6 @@ class Dedupe:
                                          predicate[1],
                                          'tfidf'))
               else:
-                print predicate[0].__class__
                 raise ValueError("Undefined predicate type")
                 
             source_predicates.append(source_predicate)
