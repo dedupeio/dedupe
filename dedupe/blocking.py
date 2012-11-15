@@ -6,6 +6,100 @@ from math import sqrt, log
 import core
 import tfidf
 from random import sample, random, choice, shuffle
+import types
+
+class Blocker: 
+    def __init__(self, predicates, df_index):
+        self.predicates = predicates
+        self.df_index = df_index
+        self.simple_predicates = []
+        self.tfidf_thresholds = []
+        self.mixed_predicates = []
+        self.tfidf_fields = set([])
+        self.inverted_index = defaultdict(lambda: defaultdict(set))
+        self.corpus_ids = set([])
+
+        for predicate in predicates:
+
+            if all(isinstance(pred[0], types.FunctionType)
+                    for pred in predicate) :
+                self.simple_predicates.append(predicate)
+            elif all(pred[0].__class__ is tfidf.TfidfPredicate 
+                     for pred in predicate) :
+                self.tfidf_thresholds.append(predicate)
+            elif all(isinstance(pred[0], types.FunctionType)
+                     or pred[0].__class__ is tfidf.TfidfPredicate
+                     for pred in predicate) :
+                self.mixed_predicates.append(predicate)
+            else:
+                print predicate[0].__class__
+                raise ValueError("Undefined predicate type")
+
+
+        for predicate in self.tfidf_thresholds :
+            for _, field in predicate :
+                self.tfidf_fields.add(field)
+
+        for predicate in self.mixed_predicates :
+            for pred, field in predicate :
+                if pred.__class__ is tfidf.TfidfPredicate :
+                    self.tfidf_fields.add(field)
+
+
+    def __call__(self, instance) :
+        record_id, record = instance 
+        keys = []
+        for predicate in self.simple_predicates:
+            key_tuples = product(*[F(record[field])
+                                         for (F, field) in predicate]
+                                       )
+            keys.extend([str(key_tuple) for key_tuple in key_tuples])
+
+            if (self.tfidf_thresholds):
+                for field in self.tfidf_fields :
+                    tokens = tfidf.getTokens(record[field])
+                    for token in set(tokens) :
+                      self.inverted_index[field][token].add(record_id)
+                      self.corpus_ids.add(record_id)
+
+        return keys
+
+    def createCanopies(self, select_function, threshold) :
+      blocked_data = []
+      seen_set = set([])
+ 
+      while self.corpus_ids :
+        doc_id = corpus_ids.pop()
+        center = select_function(doc_id)
+        if not center :
+          continue
+        
+        seen_set.add(doc_id)
+        block = [doc_id]
+        candidate_set = set([])
+        tokens = tfidf.getTokens(center)
+        center_dict = tfidfDict(center, self.df_index)
+
+        for token in tokens :
+          candidate_set.update(self.inverted_index[token])
+
+        candidate_set = candidate_set - seen_set
+        for doc_id in candidate_set :
+          candidate_dict = tfidf.tfidfDict(select_function(doc_id), self.df_index)
+          similarity = tfidf.cosineSimilarity(candidate_dict, center_dict)
+
+          if similarity > threshold :
+            block.append(doc_id)
+            seen_set.add(doc_id)
+            self.corpus_ids.remove(doc_id)
+
+        if len(block) > 1 :
+          blocked_data.append(block)
+
+      return blocked_data
+
+    def canopies(self, corpus, threshold):
+        return tfidf.createCanopies(corpus, self.inverted_index, threshold)
 
 def createBlockingFunction(predicates) :
 

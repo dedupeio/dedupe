@@ -53,7 +53,7 @@ cur = con.cursor()
 
 data_d = {}
 key_groups = []
-num_sample_buckets = 3
+num_sample_buckets = 1
 for i in range(num_sample_buckets):
   data_sample = get_sample(cur, 700)
   key_groups.append(data_sample.keys())
@@ -97,10 +97,10 @@ write_cur = con.cursor()
 print 'deleting existing blocking map'
 cur.execute("DELETE FROM blocking_map")
 print 'selecting donor data'
-cur.execute("SELECT * from donors")
+cur.execute("SELECT * from donors LIMIT 1000") # remove this limit after testing
 
 for donor_id, record in cur :
-  keys = blocker(record)
+  keys = blocker((donor_id, record))
   for key in keys :
     #print key, donor_id
     try :
@@ -109,6 +109,21 @@ for donor_id, record in cur :
     except :
       print key, donor_id
       raise
+
+
+# tfidf
+# cur.execute("SELECT * from donors LIMIT 1000")
+
+# for donor_id, record in cur :
+#   keys = blocker((donor_id, record))
+#   for key in keys :
+#     #print key, donor_id
+#     try :
+#       write_cur.execute("INSERT OR IGNORE INTO blocking_map VALUES (?, ?) ",
+#                         (key, donor_id))
+#     except :
+#       print key, donor_id
+#       raise
 
 con.commit()
 cur.close()
