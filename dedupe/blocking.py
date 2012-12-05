@@ -17,6 +17,8 @@ class Blocker:
         self.mixed_predicates = []
         self.tfidf_fields = set([])
         self.inverted_index = defaultdict(lambda: defaultdict(set))
+        self.shim_tfidf_thresholds = []
+
         self.corpus_ids = set([])
 
         for predicate in predicates:
@@ -27,6 +29,7 @@ class Blocker:
             elif all(pred[0].__class__ is tfidf.TfidfPredicate 
                      for pred in predicate) :
                 self.tfidf_thresholds.append(predicate)
+                self.shim_tfidf_thresholds.extend(predicate)
             elif all(isinstance(pred[0], types.FunctionType)
                      or pred[0].__class__ is tfidf.TfidfPredicate
                      for pred in predicate) :
@@ -137,10 +140,12 @@ def blockingIndex(data_d, blocker):
         for predicate_key in predicate_keys :
             blocked_data[predicate_key].add((key, instance))
 
-    for field in blocker.tfidf_fields :
+    print blocker.shim_tfidf_thresholds
+    for threshold, field in blocker.shim_tfidf_thresholds :
+        print threshold.threshold
         selector = lambda record_id : data_d[record_id][field]    
         # print field
-        blocks = blocker.createCanopies(selector, field, .5)
+        blocks = blocker.createCanopies(selector, field, threshold)
         # print blocks
         for block in blocks:
           key = 'ID:' + str(block[0])
