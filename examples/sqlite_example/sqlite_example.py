@@ -53,7 +53,7 @@ cur = con.cursor()
 
 data_d = {}
 key_groups = []
-num_sample_buckets = 1
+num_sample_buckets = 3
 for i in range(num_sample_buckets):
   data_sample = get_sample(cur, 700)
   key_groups.append(data_sample.keys())
@@ -88,8 +88,7 @@ print 'blocking...'
 t_block = time.time()
 blocker = deduper.blockingFunction()
 
-# TURN THIS ON LATER
-# deduper.writeSettings(settings_file)
+deduper.writeSettings(settings_file)
 print 'blocked in ', time.time() - t_block, 'seconds'
 
 print 'creating blocking_map'
@@ -97,7 +96,7 @@ write_cur = con.cursor()
 print 'deleting existing blocking map'
 cur.execute("DELETE FROM blocking_map")
 print 'selecting donor data'
-cur.execute("SELECT * from donors LIMIT 1000") # remove this limit after testing
+cur.execute("SELECT * from donors") # remove this limit after testing
 
 def createSelector(field, cur) :
 
