@@ -11,6 +11,7 @@ import blocking
 import clustering
 import tfidf
 import numpy
+import dedupe
 
 import types
 
@@ -353,12 +354,16 @@ class Dedupe:
         Keyword arguments:
         file_name -- path to a json file
         """
+
+        if not file_name.endswith('.json') :
+          raise ValueError("Settings file name must end with '.json'")
+
         source_predicates = []
         for predicate_tuple in self.predicates:
             source_predicate = []
             for predicate in predicate_tuple:
               if isinstance(predicate[0], types.FunctionType):
-                source_predicate.append((predicate[0].__name__,
+                source_predicate.append((predicate[0].__module__ + '.' + predicate[0].__name__,
                                          predicate[1],
                                          'simple'))
               elif predicate[0].__class__ is tfidf.TfidfPredicate :
@@ -373,6 +378,11 @@ class Dedupe:
         with open(file_name, 'w') as f:
             json.dump({'data model': self.data_model,
                       'predicates': source_predicates}, f)
+
+        # save df_index to its own file
+        df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
+        with open(df_index_file_name, 'w') as f:
+            json.dump(self.df_index, f)
 
     def writeTraining(self, file_name):
         """
@@ -392,9 +402,18 @@ class Dedupe:
         self.data_model = learned_settings['data model']
         self.predicates = []
         for predicate_l in learned_settings['predicates']:
-            predicate_tuple = tuple([(eval(predicate[0]), predicate[1])
-                                    for predicate in predicate_l])
-            self.predicates.append(predicate_tuple)
+          marshalled_predicate = []
+          for predicate in predicate_l :
+              if predicate[2] == 'simple' :
+                marshalled_predicate.append((eval(predicate[0]), predicate[1]))
+              elif predicate[2] == 'tfidf' : 
+                marshalled_predicate.append((tfidf.TfidfPredicate(predicate[0]),
+                                            predicate[1]))
+  
+          self.predicates.append(tuple(marshalled_predicate))
+        df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
+        with open(df_index_file_name, 'r') as f:
+            self.df_index = json.load(f)
 
     def _readTraining(self, file_name, training_pairs):
         with open(file_name, 'r') as f:
