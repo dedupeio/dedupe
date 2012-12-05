@@ -64,25 +64,37 @@ class Blocker:
 
         return keys
 
-    def createCanopies(self, select_function, threshold) :
+    def createCanopies(self, select_function, field, threshold) :
+      """
+      A function that returns 
+      a field value of a record with a particular doc_id, doc_id
+      is the only argument that must be accepted by select_function
+      """
+
       blocked_data = []
       seen_set = set([])
+      corpus_ids = self.corpus_ids.copy()
+
  
-      while self.corpus_ids :
+      while corpus_ids :
         doc_id = corpus_ids.pop()
         center = select_function(doc_id)
+        # print doc_id, center
         if not center :
           continue
         
         seen_set.add(doc_id)
+
+        # initialize the potential block with center
         block = [doc_id]
         candidate_set = set([])
         tokens = tfidf.getTokens(center)
-        center_dict = tfidfDict(center, self.df_index)
+        center_dict = tfidf.tfidfDict(center, self.df_index)
 
         for token in tokens :
-          candidate_set.update(self.inverted_index[token])
+          candidate_set.update(self.inverted_index[field][token])
 
+        # print candidate_set
         candidate_set = candidate_set - seen_set
         for doc_id in candidate_set :
           candidate_dict = tfidf.tfidfDict(select_function(doc_id), self.df_index)
@@ -91,7 +103,7 @@ class Blocker:
           if similarity > threshold :
             block.append(doc_id)
             seen_set.add(doc_id)
-            self.corpus_ids.remove(doc_id)
+            corpus_ids.remove(doc_id)
 
         if len(block) > 1 :
           blocked_data.append(block)

@@ -87,10 +87,10 @@ else:
 print 'blocking...'
 t_block = time.time()
 blocker = deduper.blockingFunction()
-deduper.writeSettings(settings_file)
+
+# TURN THIS ON LATER
+# deduper.writeSettings(settings_file)
 print 'blocked in ', time.time() - t_block, 'seconds'
-
-
 
 print 'creating blocking_map'
 write_cur = con.cursor()
@@ -98,6 +98,20 @@ print 'deleting existing blocking map'
 cur.execute("DELETE FROM blocking_map")
 print 'selecting donor data'
 cur.execute("SELECT * from donors LIMIT 1000") # remove this limit after testing
+
+def createSelector(field, cur) :
+
+    def selector(doc_id) :
+      sql = "SELECT %s FROM donors WHERE donor_id = %s" % (field, doc_id)
+      #print sql
+      cur.execute(sql)
+      field_value = cur.fetchone()
+      #print field_value
+
+      return field_value[1][field]
+
+    return selector
+
 
 for donor_id, record in cur :
   keys = blocker((donor_id, record))
@@ -110,24 +124,25 @@ for donor_id, record in cur :
       print key, donor_id
       raise
 
-
-# tfidf
-# cur.execute("SELECT * from donors LIMIT 1000")
-
-# for donor_id, record in cur :
-#   keys = blocker((donor_id, record))
-#   for key in keys :
-#     #print key, donor_id
-#     try :
-#       write_cur.execute("INSERT OR IGNORE INTO blocking_map VALUES (?, ?) ",
-#                         (key, donor_id))
-#     except :
-#       print key, donor_id
-#       raise
+for field in blocker.tfidf_fields :
+    selector = createSelector(field, cur)    
+    # print field
+    blocks = blocker.createCanopies(selector, field, .5)
+    # print blocks
+    for block in blocks:
+      key = 'ID:' + str(block[0])
+      for donor_id in block:
+        try :
+          write_cur.execute("INSERT OR IGNORE INTO blocking_map VALUES (?, ?) ",
+                            (key, donor_id))
+        except :
+          print key, donor_id
+          raise
 
 con.commit()
 cur.close()
 write_cur.close()
+
 
 
 print 'reading blocked data'
