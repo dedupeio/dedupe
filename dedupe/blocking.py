@@ -140,9 +140,7 @@ def blockingIndex(data_d, blocker):
         for predicate_key in predicate_keys :
             blocked_data[predicate_key].add((key, instance))
 
-    print blocker.shim_tfidf_thresholds
     for threshold, field in blocker.shim_tfidf_thresholds :
-        print threshold.threshold
         selector = lambda record_id : data_d[record_id][field]    
         # print field
         blocks = blocker.createCanopies(selector, field, threshold)
