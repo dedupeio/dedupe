@@ -129,12 +129,24 @@ def createBlockingFunction(predicates) :
         
 
 
-def blockingIndex(data_d, blockingFunction):
+def blockingIndex(data_d, blocker):
+
     blocked_data = defaultdict(set)
     for (key, instance) in data_d.iteritems():
-        predicate_keys = blockingFunction(instance) 
+        predicate_keys = blocker((key, instance)) 
         for predicate_key in predicate_keys :
             blocked_data[predicate_key].add((key, instance))
+
+    for field in blocker.tfidf_fields :
+        selector = lambda record_id : data_d[record_id][field]    
+        # print field
+        blocks = blocker.createCanopies(selector, field, .5)
+        # print blocks
+        for block in blocks:
+          key = 'ID:' + str(block[0])
+          for record_id in block:
+            blocked_data[key].add((record_id, data_d[record_id]))            
+
 
     return blocked_data
 

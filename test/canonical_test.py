@@ -121,6 +121,7 @@ else:
 print 'blocking...'
 blocker = deduper.blockingFunction()
 blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
+# print blocked_data
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data)
 
