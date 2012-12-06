@@ -6,6 +6,8 @@ import core
 class TfidfPredicate:
   def __init__(self, threshold) :
     self.threshold = threshold
+    self.__name__ = "TF-IDF:" + str(threshold)
+
 
 
 def coverage(threshold, field, training_pairs, inverted_index) :
