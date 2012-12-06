@@ -1,5 +1,4 @@
 = Dedupe Python Library
-
 A free python library for accurate and scaleable deduplication and entity-resolution. 
 
 Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Functions and their Application to Record Linkage and Clustering
