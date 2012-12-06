@@ -1,0 +1,16 @@
+branches:
+  only:
+    - master
+
+language: python
+notifications:
+  email: false
+python:
+  - "2.7"
+  - "2.6"
+install:
+  - pip install --use-mirrors -q numpy
+  - pip install --use-mirrors -r requirements.txt
+  - python setup.py install
+# command to run tests, e.g. python setup.py test
+script: python test/test_dedupe.py
