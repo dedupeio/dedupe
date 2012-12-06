@@ -130,7 +130,7 @@ deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
-                  if score > .95])
+                  if score > .80])
 
 evaluateDuplicates(found_dupes, duplicates_s)
 

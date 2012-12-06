@@ -22,48 +22,58 @@ class Blocker:
         self.corpus_ids = set([])
 
         for predicate in predicates:
-
-            if all(isinstance(pred[0], types.FunctionType)
-                    for pred in predicate) :
-                self.simple_predicates.append(predicate)
-            elif all(pred[0].__class__ is tfidf.TfidfPredicate 
-                     for pred in predicate) :
-                self.tfidf_thresholds.append(predicate)
-                self.shim_tfidf_thresholds.extend(predicate)
-            elif all(isinstance(pred[0], types.FunctionType)
-                     or pred[0].__class__ is tfidf.TfidfPredicate
-                     for pred in predicate) :
-                self.mixed_predicates.append(predicate)
-            else:
-                print predicate[0].__class__
-                raise ValueError("Undefined predicate type")
+            for pred in predicate :
+                if isinstance(pred[0], types.FunctionType) :
+                    self.simple_predicates.append(pred)
+                elif pred[0].__class__ is tfidf.TfidfPredicate :
+                    self.tfidf_thresholds.append(pred)
+                else:
+                    print pred[0].__class__
+                    raise ValueError("Undefined predicate type")
 
 
-        for predicate in self.tfidf_thresholds :
-            for _, field in predicate :
-                self.tfidf_fields.add(field)
+            ## if all(isinstance(pred[0], types.FunctionType)
+            ##         for pred in predicate) :
+            ##     self.simple_predicates.append(predicate)
+            ## elif all(pred[0].__class__ is tfidf.TfidfPredicate 
+            ##          for pred in predicate) :
+            ##     self.tfidf_thresholds.append(predicate)
+            ##     self.shim_tfidf_thresholds.extend(predicate)
+            ## elif all(isinstance(pred[0], types.FunctionType)
+            ##          or pred[0].__class__ is tfidf.TfidfPredicate
+            ##          for pred in predicate) :
+            ##     self.mixed_predicates.append(predicate)
+            ## else:
+            ##     print predicate[0].__class__
+            ##     raise ValueError("Undefined predicate type")
 
-        for predicate in self.mixed_predicates :
-            for pred, field in predicate :
-                if pred.__class__ is tfidf.TfidfPredicate :
-                    self.tfidf_fields.add(field)
+
+        ## for predicate in self.tfidf_thresholds :
+        ##     for _, field in predicate :
+        ##         self.tfidf_fields.add(field)
+
+        ## for predicate in self.mixed_predicates :
+        ##     for pred, field in predicate :
+        ##         if pred.__class__ is tfidf.TfidfPredicate :
+        ##             self.tfidf_fields.add(field)
 
 
     def __call__(self, instance) :
         record_id, record = instance 
-        keys = []
+        keys = {}
         for predicate in self.simple_predicates:
-            key_tuples = product(*[F(record[field])
-                                         for (F, field) in predicate]
-                                       )
-            keys.extend([str(key_tuple) for key_tuple in key_tuples])
+            F, field = predicate
+            key_tuples = F(record[field])
+            pred_id = F.__name__ + field
+            keys[pred_id] = ([str(key_tuple)
+                              for key_tuple
+                              in key_tuples])
 
-            if (self.tfidf_thresholds):
-                for field in self.tfidf_fields :
-                    tokens = tfidf.getTokens(record[field])
-                    for token in set(tokens) :
-                      self.inverted_index[field][token].add(record_id)
-                      self.corpus_ids.add(record_id)
+            for _, field in self.tfidf_thresholds :
+                tokens = tfidf.getTokens(record[field])
+                for token in set(tokens) :
+                    self.inverted_index[field][token].add(record_id)
+                    self.corpus_ids.add(record_id)
 
         return keys
 
@@ -116,42 +126,44 @@ class Blocker:
     def canopies(self, corpus, threshold):
         return tfidf.createCanopies(corpus, self.inverted_index, threshold)
 
-def createBlockingFunction(predicates) :
-
-    def blockingFunction(instance) :
-        keys = []
-        for predicate in predicates:
-            key_tuples = product(*[F(instance[field])
-                                         for (F, field) in predicate]
-                                       )
-            keys.extend([str(key_tuple) for key_tuple in key_tuples])
-
-        return keys
-
-    return blockingFunction
-        
-
-
 def blockingIndex(data_d, blocker):
 
-    blocked_data = defaultdict(set)
-    for (key, instance) in data_d.iteritems():
-        predicate_keys = blocker((key, instance)) 
-        for predicate_key in predicate_keys :
-            blocked_data[predicate_key].add((key, instance))
+    invert_blocks = defaultdict(lambda :defaultdict(tuple))
+    blocks = defaultdict(list)
 
-    for threshold, field in blocker.shim_tfidf_thresholds :
+    for (key, instance) in data_d.iteritems():
+        invert_blocks[key].update(blocker((key, instance)))
+
+    canopies = {}
+    for threshold, field in blocker.tfidf_thresholds :
         selector = lambda record_id : data_d[record_id][field]    
         # print field
-        blocks = blocker.createCanopies(selector, field, threshold)
+        canopy = blocker.createCanopies(selector, field, threshold)
         # print blocks
-        for block in blocks:
-          key = 'ID:' + str(block[0])
-          for record_id in block:
-            blocked_data[key].add((record_id, data_d[record_id]))            
+        canopies[threshold.__name__ + field] = canopy
 
+    for tf_predicate, canopy in canopies.iteritems() :
+        for block in canopy :
+            canopy_center = block[0]
+            for record_id in block :
+                invert_blocks[record_id][tf_predicate] = (canopy_center,)
 
-    return blocked_data
+    for predicate in blocker.predicates :
+        # Check to see if predicate is compound 
+        if len(predicate) > 1 :
+            pred_1_id = predicate[0][0].__name__ + predicate[0][1]
+            pred_2_id = predicate[1][0].__name__ + predicate[1][1]
+            for record_id in invert_blocks :
+                for key in product(invert_blocks[record_id][pred_1_id],
+                                   invert_blocks[record_id][pred_2_id]) :
+                    blocks[key].append((record_id, data_d[record_id]))
+        else :
+            pred_id = predicate[0][0].__name__ + predicate[0][1]
+            for record_id in invert_blocks :
+                for key in invert_blocks[record_id][pred_id] :
+                    blocks[key].append((record_id, data_d[record_id]))
+
+    return blocks
 
 
 def mergeBlocks(blocked_data):
@@ -238,7 +250,7 @@ class Blocking:
 
     # Approximate learning of blocking following the ApproxRBSetCover from
     # page 102 of Bilenko
-    def trainBlocking(self, disjunctive=False):
+    def trainBlocking(self, disjunctive=True):
         self.predicate_set = self.createPredicateSet(disjunctive)
         n_predicates = len(self.predicate_set)
 
