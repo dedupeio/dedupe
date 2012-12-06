@@ -1,4 +1,5 @@
 = Dedupe Python Library
+
 A free python library for accurate and scaleable deduplication and entity-resolution. 
 
 {<img src="https://travis-ci.org/open-city/dedupe.png" />}[https://travis-ci.org/open-city/dedupe]
