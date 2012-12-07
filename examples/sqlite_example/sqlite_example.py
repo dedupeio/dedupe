@@ -91,15 +91,18 @@ blocker = deduper.blockingFunction()
 deduper.writeSettings(settings_file)
 print 'blocked in ', time.time() - t_block, 'seconds'
 
-print 'creating blocking_map'
-write_cur = con.cursor()
 print 'deleting existing blocking map'
-cur.execute("DELETE FROM blocking_map")
-print 'selecting donor data'
-cur.execute("SELECT * from donors") # remove this limit after testing
+cur.execute("DROP TABLE IF EXISTS blocking_map")
+print 'creating blocking_map'
+cur.execute("CREATE TABLE blocking_map "
+            "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
+cur.execute("CREATE INDEX key_index ON blocking_map (key)")
+cur.execute("CREATE INDEX donor_id_index ON blocking_map (donor_id)")
+cur.execute("CREATE INDEX itx_index ON blocking_map (key, donor_id)")
 
-def createSelector(field, cur) :
+def createSelector(field, con) :
 
+    cur = con.cursor()
     def selector(doc_id) :
       sql = "SELECT %s FROM donors WHERE donor_id = %s" % (field, doc_id)
       #print sql
@@ -112,37 +115,52 @@ def createSelector(field, cur) :
     return selector
 
 
-for donor_id, record in cur :
-  keys = blocker((donor_id, record))
-  for key in keys :
-    #print key, donor_id
-    try :
-      write_cur.execute("INSERT OR IGNORE INTO blocking_map VALUES (?, ?) ",
-                        (key, donor_id))
-    except :
-      print key, donor_id
-      raise
+print 'creating inverted index'
+blocker.invertIndex(con.execute("SELECT * FROM donors"))
 
-for field in blocker.tfidf_fields :
-    selector = createSelector(field, cur)    
-    # print field
-    blocks = blocker.createCanopies(selector, field, .5)
-    # print blocks
-    for block in blocks:
-      key = 'ID:' + str(block[0])
-      for donor_id in block:
-        try :
-          write_cur.execute("INSERT OR IGNORE INTO blocking_map VALUES (?, ?) ",
-                            (key, donor_id))
-        except :
-          print key, donor_id
-          raise
+print 'creating canopies'
+blocker.canopies = {}
+for threshold, field in blocker.tfidf_thresholds :
+    selector = createSelector(field, con)
+    canopy = blocker.createCanopies(selector, field, threshold)
+    blocker.canopies[threshold.__name__ + field] = canopy
+
+print 'writing blocking map'
+def block_data() :
+    for donor_id, record in con.execute("SELECT * FROM donors") :
+        if donor_id % 10000 == 0 :
+            print donor_id
+        for key in blocker((donor_id, record)):
+            yield (str(key), donor_id)
+
+
+con.executemany("INSERT OR IGNORE INTO blocking_map VALUES (?, ?)",
+                block_data())
+
+
 
 con.commit()
-cur.close()
-write_cur.close()
 
 
+
+
+print 'writing largest blocks to file'
+
+
+
+with open('sqlite_example_block_sizes.txt', 'a') as f:
+    con.row_factory = None
+    f.write(time.asctime())
+    f.write('\n')
+    for row in con.execute("SELECT key, COUNT(donor_id) AS block_size "
+                           "FROM blocking_map GROUP BY key "
+                           "ORDER BY block_size DESC LIMIT 10") :
+
+        print row
+        f.write(str(row))
+        f.write('\n')
+    con.row_factory = dict_factory
+    
 
 print 'reading blocked data'
 con.row_factory = blocking_factory

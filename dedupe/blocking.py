@@ -32,50 +32,37 @@ class Blocker:
                     raise ValueError("Undefined predicate type")
 
 
-            ## if all(isinstance(pred[0], types.FunctionType)
-            ##         for pred in predicate) :
-            ##     self.simple_predicates.append(predicate)
-            ## elif all(pred[0].__class__ is tfidf.TfidfPredicate 
-            ##          for pred in predicate) :
-            ##     self.tfidf_thresholds.append(predicate)
-            ##     self.shim_tfidf_thresholds.extend(predicate)
-            ## elif all(isinstance(pred[0], types.FunctionType)
-            ##          or pred[0].__class__ is tfidf.TfidfPredicate
-            ##          for pred in predicate) :
-            ##     self.mixed_predicates.append(predicate)
-            ## else:
-            ##     print predicate[0].__class__
-            ##     raise ValueError("Undefined predicate type")
-
-
-        ## for predicate in self.tfidf_thresholds :
-        ##     for _, field in predicate :
-        ##         self.tfidf_fields.add(field)
-
-        ## for predicate in self.mixed_predicates :
-        ##     for pred, field in predicate :
-        ##         if pred.__class__ is tfidf.TfidfPredicate :
-        ##             self.tfidf_fields.add(field)
-
-
     def __call__(self, instance) :
         record_id, record = instance 
         keys = {}
-        for predicate in self.simple_predicates:
-            F, field = predicate
-            key_tuples = F(record[field])
-            pred_id = F.__name__ + field
-            keys[pred_id] = ([str(key_tuple)
-                              for key_tuple
-                              in key_tuples])
+        record_keys = []
+        for predicate in self.predicates:
+            predicate_keys = []
+            for F, field in predicate :
+                pred_id = F.__name__ + field
+                if isinstance(F, types.FunctionType) :
+                    predicate_keys.append([str(key) + pred_id
+                                           for key in F(record[field])])
+                elif F.__class__ is tfidf.TfidfPredicate :
+                    #print self.canopies
+                    #raise
+                    center = self.canopies[pred_id][record_id]
+                    if center is not None :
+                        key = str(center) + pred_id
+                        predicate_keys.append((key,))
 
+            record_keys.extend(product(*predicate_keys))
+
+        return record_keys
+
+    def invertIndex(self, data_d) :
+        for record_id, record in data_d :
             for _, field in self.tfidf_thresholds :
                 tokens = tfidf.getTokens(record[field])
                 for token in set(tokens) :
                     self.inverted_index[field][token].add(record_id)
                     self.corpus_ids.add(record_id)
 
-        return keys
 
     def createCanopies(self, select_function, field, threshold) :
       """
@@ -84,22 +71,22 @@ class Blocker:
       is the only argument that must be accepted by select_function
       """
 
-      blocked_data = []
+      blocked_data = defaultdict(lambda:None)
       seen_set = set([])
       corpus_ids = self.corpus_ids.copy()
 
  
       while corpus_ids :
-        doc_id = corpus_ids.pop()
-        center = select_function(doc_id)
+        center_id = corpus_ids.pop()
+        blocked_data[center_id] = center_id
+        center = select_function(center_id)
         # print doc_id, center
         if not center :
           continue
         
-        seen_set.add(doc_id)
+        seen_set.add(center_id)
 
         # initialize the potential block with center
-        block = [doc_id]
         candidate_set = set([])
         tokens = tfidf.getTokens(center)
         center_dict = tfidf.tfidfDict(center, self.df_index)
@@ -114,55 +101,31 @@ class Blocker:
           similarity = tfidf.cosineSimilarity(candidate_dict, center_dict)
 
           if similarity > threshold :
-            block.append(doc_id)
+            blocked_data[doc_id] = center_id
             seen_set.add(doc_id)
             corpus_ids.remove(doc_id)
 
-        if len(block) > 1 :
-          blocked_data.append(block)
-
       return blocked_data
 
-    def canopies(self, corpus, threshold):
-        return tfidf.createCanopies(corpus, self.inverted_index, threshold)
 
 def blockingIndex(data_d, blocker):
 
-    invert_blocks = defaultdict(lambda :defaultdict(tuple))
     blocks = defaultdict(list)
 
-    for (key, instance) in data_d.iteritems():
-        invert_blocks[key].update(blocker((key, instance)))
+    blocker.invertIndex(data_d.iteritems())
 
-    canopies = {}
+    blocker.canopies = {}
     for threshold, field in blocker.tfidf_thresholds :
         selector = lambda record_id : data_d[record_id][field]    
         # print field
         canopy = blocker.createCanopies(selector, field, threshold)
         # print blocks
-        canopies[threshold.__name__ + field] = canopy
+        blocker.canopies[threshold.__name__ + field] = canopy
 
-    for tf_predicate, canopy in canopies.iteritems() :
-        for block in canopy :
-            canopy_center = block[0]
-            for record_id in block :
-                invert_blocks[record_id][tf_predicate] = (canopy_center,)
-
-    for predicate in blocker.predicates :
-        # Check to see if predicate is compound 
-        if len(predicate) > 1 :
-            pred_1_id = predicate[0][0].__name__ + predicate[0][1]
-            pred_2_id = predicate[1][0].__name__ + predicate[1][1]
-            for record_id in invert_blocks :
-                for key in product(invert_blocks[record_id][pred_1_id],
-                                   invert_blocks[record_id][pred_2_id]) :
-                    blocks[key].append((record_id, data_d[record_id]))
-        else :
-            pred_id = predicate[0][0].__name__ + predicate[0][1]
-            for record_id in invert_blocks :
-                for key in invert_blocks[record_id][pred_id] :
-                    blocks[key].append((record_id, data_d[record_id]))
-
+    for record_id, record in data_d.iteritems() :
+        for key in blocker((record_id, record)):
+            blocks[key].append((record_id, record))
+    
     return blocks
 
 
@@ -228,7 +191,7 @@ class Blocking:
                  tfidf_thresholds = [],
                  df_index = {},
                  eta=0.01,
-                 epsilon=2,
+                 epsilon=5,
                  ):
         self.epsilon = epsilon
         self.predicate_functions = predicate_functions
@@ -263,7 +226,7 @@ class Blocking:
                                 field, 
                                 self.training_dupes + self.training_distinct,
                                 self.df_index)
-                    
+                   
                     for pair, value in coverage.iteritems():
                         self._overlap[(pair, (threshold, field))] = value
 

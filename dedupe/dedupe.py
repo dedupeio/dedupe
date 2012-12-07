@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import json
 import random
+import collections
 
 import core
 import training_sample
@@ -381,6 +382,9 @@ class Dedupe:
 
         # save df_index to its own file
         df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
+
+        print self.df_index['UNSEEN TOKEN']
+        self.df_index['UNSEEN TOKEN'] = self.df_index['UNSEEN TOKEN']
         with open(df_index_file_name, 'w') as f:
             json.dump(self.df_index, f)
 
@@ -411,9 +415,17 @@ class Dedupe:
                                             predicate[1]))
   
           self.predicates.append(tuple(marshalled_predicate))
+
         df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
+
         with open(df_index_file_name, 'r') as f:
-            self.df_index = json.load(f)
+            df_index = json.load(f)
+            unseen_value = df_index["UNSEEN TOKEN"]
+            self.df_index = collections.defaultdict(lambda : unseen_value)    
+            self.df_index.update(df_index)
+
+
+
 
     def _readTraining(self, file_name, training_pairs):
         with open(file_name, 'r') as f:

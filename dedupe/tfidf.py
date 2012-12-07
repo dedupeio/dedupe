@@ -118,7 +118,13 @@ def tfidfDict(doc, df_index) :
   tokens = getTokens(doc)
   doc_dict = {}
   for token in set(tokens) :
-    doc_dict[token] = tokens.count(token) * df_index[token]
+    try:
+      doc_dict[token] = tokens.count(token) * df_index[token]
+    except KeyError :
+      print token
+      print tokens
+      print df_index.__class__
+      raise
 
   return doc_dict
 

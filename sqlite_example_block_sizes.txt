@@ -1,0 +1,11 @@
+Fri Dec  7 00:16:29 2012
+(u"(u'53TF-IDF:0.8last_name',)", 55708)
+(u"(u'2TF-IDF:0.8last_name',)", 41972)
+(u"(u'1TF-IDF:0.8last_name',)", 27249)
+(u"(u'6TF-IDF:0.8last_name',)", 25993)
+(u"(u'16TF-IDF:0.8last_name',)", 25133)
+(u"(u'chicagotokenFieldPredicatecity', u'suisameThreeCharStartPredicateaddress_2')", 22521)
+(u"(u'40TF-IDF:0.8last_name',)", 12571)
+(u"(u'113TF-IDF:0.8last_name',)", 11949)
+(u"(u'700TF-IDF:0.8last_name',)", 9745)
+(u"(u'31TF-IDF:0.8last_name',)", 9718)
