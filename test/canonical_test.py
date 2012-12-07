@@ -63,7 +63,7 @@ args = parser.parse_args()
 settings_file = 'canonical_learned_settings.json'
 raw_data = 'test/datasets/restaurant-nophone-training.csv'
 num_training_dupes = 200
-num_training_distinct = 1600
+num_training_distinct = 2096
 num_iterations = 10
 
 (data_d, header, duplicates_s) = canonicalImport(raw_data)
@@ -119,7 +119,7 @@ else:
 
 
 print 'blocking...'
-blocker = deduper.blockingFunction()
+blocker = deduper.blockingFunction(eta=1, epsilon=1)
 blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
 # print blocked_data
 print 'clustering...'
@@ -130,7 +130,7 @@ deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
-                  if score > .80])
+                  if score > .90])
 
 evaluateDuplicates(found_dupes, duplicates_s)
 

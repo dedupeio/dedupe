@@ -86,7 +86,7 @@ else:
 
 print 'blocking...'
 t_block = time.time()
-blocker = deduper.blockingFunction()
+blocker = deduper.blockingFunction(eta=0.005, epsilon=5)
 
 deduper.writeSettings(settings_file)
 print 'blocked in ', time.time() - t_block, 'seconds'
@@ -116,18 +116,22 @@ def createSelector(field, con) :
 
 
 print 'creating inverted index'
-blocker.invertIndex(con.execute("SELECT * FROM donors"))
+blocker.invertIndex(con.execute("SELECT * FROM donors limit 10000"))
 
 print 'creating canopies'
 blocker.canopies = {}
+counter = 1
 for threshold, field in blocker.tfidf_thresholds :
+    print threshold.threshold, field
+    print str(counter) + "/" + str(len(blocker.tfidf_thresholds))
     selector = createSelector(field, con)
     canopy = blocker.createCanopies(selector, field, threshold)
     blocker.canopies[threshold.__name__ + field] = canopy
+    counter += 1
 
 print 'writing blocking map'
 def block_data() :
-    for donor_id, record in con.execute("SELECT * FROM donors") :
+    for donor_id, record in con.execute("SELECT * FROM donors limit 10000") :
         if donor_id % 10000 == 0 :
             print donor_id
         for key in blocker((donor_id, record)):

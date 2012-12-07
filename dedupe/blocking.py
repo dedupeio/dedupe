@@ -13,7 +13,7 @@ class Blocker:
         self.predicates = predicates
         self.df_index = df_index
         self.simple_predicates = []
-        self.tfidf_thresholds = []
+        self.tfidf_thresholds = set([])
         self.mixed_predicates = []
         self.tfidf_fields = set([])
         self.inverted_index = defaultdict(lambda: defaultdict(set))
@@ -23,13 +23,8 @@ class Blocker:
 
         for predicate in predicates:
             for pred in predicate :
-                if isinstance(pred[0], types.FunctionType) :
-                    self.simple_predicates.append(pred)
-                elif pred[0].__class__ is tfidf.TfidfPredicate :
-                    self.tfidf_thresholds.append(pred)
-                else:
-                    print pred[0].__class__
-                    raise ValueError("Undefined predicate type")
+                if pred[0].__class__ is tfidf.TfidfPredicate :
+                    self.tfidf_thresholds.add(pred)
 
 
     def __call__(self, instance) :
@@ -80,11 +75,13 @@ class Blocker:
         center_id = corpus_ids.pop()
         blocked_data[center_id] = center_id
         center = select_function(center_id)
+        seen_set.add(center_id)
+        print center_id
         # print doc_id, center
         if not center :
           continue
         
-        seen_set.add(center_id)
+
 
         # initialize the potential block with center
         candidate_set = set([])
@@ -98,12 +95,19 @@ class Blocker:
         candidate_set = candidate_set - seen_set
         for doc_id in candidate_set :
           candidate_dict = tfidf.tfidfDict(select_function(doc_id), self.df_index)
+
           similarity = tfidf.cosineSimilarity(candidate_dict, center_dict)
 
-          if similarity > threshold :
+          if similarity > threshold.threshold :
             blocked_data[doc_id] = center_id
             seen_set.add(doc_id)
             corpus_ids.remove(doc_id)
+
+            ## print threshold.threshold
+            ## print center_id, center, center_dict
+            ## print doc_id, candidate_dict
+            ## print similarity
+
 
       return blocked_data
 
@@ -210,6 +214,10 @@ class Blocking:
         # We want to throw away the predicates that puts together too many
         # distinct pairs
         self.coverage_threshold = eta * len(self.training_distinct)
+        print 'coverage.threshold'
+        print self.coverage_threshold
+
+                
 
     # Approximate learning of blocking following the ApproxRBSetCover from
     # page 102 of Bilenko
@@ -231,13 +239,22 @@ class Blocking:
                         self._overlap[(pair, (threshold, field))] = value
 
 
-                    self.predicate_set.append(((threshold, field),))
+
                     
     
         #print self.predicate_set
         #print self._overlap
         found_dupes = self.predicateCoverage(self.training_dupes)
-        found_distinct = self.predicateCoverage(self.training_distinct)
+        found_distinct, distinct_blocks = self.predicateCoverage(self.training_distinct,
+                                                return_blocks = True)
+
+        max_block_sizes = {}
+        for pred, blocking in distinct_blocks.iteritems() :
+            max_block_size = max(len(v) for v in blocking.values())
+            print max_block_size
+
+            max_block_sizes[pred] = max_block_size
+                
 
         ## for k,v in found_dupes.iteritems() :
         ##     print k, len(v)
@@ -253,16 +270,16 @@ class Blocking:
         [self.predicate_set.remove(predicate)
          for predicate
          in found_distinct
-         if len(found_distinct[predicate]) >= self.coverage_threshold]
+         if max_block_sizes[predicate] >= self.coverage_threshold]
 
         # Expected number of predicates that should cover a duplicate
         # pair
         expected_dupe_cover = sqrt(n_predicates
                                    / log(len(self.training_dupes)))
 
-        found_distinct = self.filterOutIndistinctPairs(expected_dupe_cover,
-                                                       found_distinct,
-                                                       self.training_distinct)
+        #found_distinct = self.filterOutIndistinctPairs(expected_dupe_cover,
+        #                                               found_distinct,
+        #                                               self.training_distinct)
 
         final_predicate_set = self.findOptimumBlocking(self.training_dupes,
                                                        self.predicate_set,
@@ -281,8 +298,9 @@ class Blocking:
 
 
     #@profile
-    def predicateCoverage(self, pairs):
+    def predicateCoverage(self, pairs, return_blocks=False):
         coverage = defaultdict(list)
+        blocks = defaultdict(lambda: defaultdict(set))
         for pair in pairs:
             for predicate in self.predicate_set:
                 for basic_predicate in predicate :
@@ -307,15 +325,25 @@ class Blocking:
                     
                 else:
                     coverage[predicate].append(pair)
+                    if return_blocks: 
+                        blocks[predicate][(field_predicate_1,
+                                           field_predicate_2)].update(pair)
 
+        if return_blocks :
+            return coverage, blocks
 
-        return coverage
+        else :
+            return coverage
             
 
     def createPredicateSet(self, disjunctive):
 
         # The set of simple predicates
         predicate_set = list(product(self.predicate_functions,
+                                     self.fields))
+
+
+        predicate_set.extend(product(self.tfidf_thresholds,
                                      self.fields))
 
         if disjunctive:
@@ -377,16 +405,18 @@ class Blocking:
             optimumCover = 0
             bestPredicate = None
             for predicate in predicate_set:
-                try:
-                    cover = (len(found_dupes[predicate])
-                             / float(len(found_distinct[predicate]))
-                             )
-                except ZeroDivisionError:
-                    cover = len(found_dupes[predicate])
-
-                if cover > optimumCover:
+                cover = (len(found_dupes[predicate])
+                         / (float(len(found_distinct[predicate]))
+                            + 0.5)
+                         )
+                if cover > optimumCover and cover > .8 :
                     optimumCover = cover
                     bestPredicate = predicate
+
+                    print bestPredicate
+                    print cover
+                    print len(found_dupes[bestPredicate])
+                    print len(found_distinct[bestPredicate])
 
             if not bestPredicate:
                 print 'Ran out of predicates'
