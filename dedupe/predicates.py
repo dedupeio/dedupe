@@ -24,7 +24,9 @@ def commonIntegerPredicate(field):
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
     ints = sorted([int(i) for i in re.findall("\d+", field)])
-    return tuple([(i - 1, i, i + 1) for i in ints])
+    near_ints = set([])
+    [near_ints.update((i - 1, i, i + 1)) for i in ints]
+    return tuple(near_ints)
 
 
 def commonFourGram(field):
