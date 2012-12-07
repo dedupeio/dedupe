@@ -256,7 +256,7 @@ class Dedupe:
 
         self._printLearnedWeights()
 
-    def blockingFunction(self):
+    def blockingFunction(self, eta=1, epsilon=1):
         """
         Returns a function that takes in a record dictionary and
         returns a list of blocking keys for the record. We will
@@ -265,7 +265,7 @@ class Dedupe:
         We'll allow for predicates to be passed
         """
         if not self.predicates:
-            self.predicates = self._learnBlocking(self.data_d)
+            self.predicates = self._learnBlocking(self.data_d, eta, epsilon)
 
         bF = blocking.Blocker(self.predicates, self.df_index)
 
@@ -302,7 +302,7 @@ class Dedupe:
 
         return clusters
 
-    def _learnBlocking(self, data_d):
+    def _learnBlocking(self, data_d, eta, epsilon):
         confident_nonduplicates = blocking.semiSupervisedNonDuplicates(self.data_d,
                                                                        self.data_model)
                                                                        
@@ -331,7 +331,9 @@ class Dedupe:
                                     predicate_functions,
                                     self.data_model,
                                     tfidf_thresholds,
-                                    self.df_index
+                                    self.df_index,
+                                    eta,
+                                    epsilon
                                     )
 
         learned_predicates = blocker.trainBlocking()
