@@ -409,7 +409,7 @@ class Blocking:
                          / (float(len(found_distinct[predicate]))
                             + 0.5)
                          )
-                if cover > optimumCover and cover > .8 :
+                if cover > optimumCover and cover > 1 :
                     optimumCover = cover
                     bestPredicate = predicate
 
