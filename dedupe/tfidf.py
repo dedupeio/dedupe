@@ -31,10 +31,13 @@ def coverage(threshold, field, training_pairs, inverted_index) :
 
   return coverage_dict
 
+
 def documentFrequency(corpus) : 
   num_docs = 0
   term_num_docs = collections.defaultdict(int)
   num_docs = len(corpus)
+  stop_word_threshold = num_docs * 1
+  stop_words = []
 
   for doc_id, doc in corpus.iteritems() :
     tokens = getTokens(doc)
@@ -42,12 +45,20 @@ def documentFrequency(corpus) :
       term_num_docs[token] += 1
 
   for term, count in term_num_docs.iteritems() :
-    term_num_docs[term] = math.log((num_docs + 0.5) / (float(count) + 0.5))
+    if count < stop_word_threshold :
+      term_num_docs[term] = math.log((num_docs + 0.5) / (float(count) + 0.5))
+    else:
+      term_num_docs[term] = 0
+      stop_words.append(term)
+
+  print 'stop words'
+  print stop_words
 
   term_num_docs_default = collections.defaultdict(lambda: math.log((num_docs + 0.5)/0.5))    # term : num_docs_containing_term
   term_num_docs_default.update(term_num_docs)
 
   return term_num_docs_default
+
 
 def invertedIndex(corpus):
   inverted_index = collections.defaultdict(list)
@@ -102,10 +113,14 @@ def cosineSimilarity(doc_dict_1, doc_dict_2) :
   for key in common_keys :
     dot_product += doc_dict_1[key] * doc_dict_2[key]
 
-  norm_1 = calculateNorm(doc_dict_1)
-  norm_2 = calculateNorm(doc_dict_2)
+  if dot_product == 0 :
+    return 0
 
-  return dot_product / (norm_1 * norm_2)
+  else:
+    norm_1 = calculateNorm(doc_dict_1)
+    norm_2 = calculateNorm(doc_dict_2)
+
+    return dot_product / (norm_1 * norm_2)
 
 def calculateNorm(doc_dict) :
   norm = 0
