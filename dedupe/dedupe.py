@@ -251,7 +251,7 @@ class Dedupe:
                                           self.data_model,
                                           self.alpha)
 
-        _printLearnedWeights()
+        self._printLearnedWeights()
 
     def blockingFunction(self):
         """
