@@ -70,7 +70,7 @@ def invertedIndex(corpus):
   return inverted_index
 
 def getTokens(str):
-  return re.findall(r"[\w'@#]+", str.lower())
+  return str.lower().split()
 
 def createCanopies(corpus_original, df_index, threshold) :
   blocked_data = []
@@ -107,11 +107,8 @@ def createCanopies(corpus_original, df_index, threshold) :
   return blocked_data
 
 def cosineSimilarity(doc_dict_1, doc_dict_2) :
-  dot_product = 0
-
   common_keys = set(doc_dict_1.keys()) & set(doc_dict_2.keys())
-  for key in common_keys :
-    dot_product += doc_dict_1[key] * doc_dict_2[key]
+  dot_product = sum(doc_dict_1[key] * doc_dict_2[key] for key in common_keys)
 
   if dot_product == 0 :
     return 0
@@ -123,25 +120,12 @@ def cosineSimilarity(doc_dict_1, doc_dict_2) :
     return dot_product / (norm_1 * norm_2)
 
 def calculateNorm(doc_dict) :
-  norm = 0
-  for value in doc_dict.values() :
-    norm += value*value
-
+  norm = sum(value*value for value in doc_dict.values())
   return math.sqrt(norm) 
 
 def tfidfDict(doc, df_index) :
   tokens = getTokens(doc)
-  doc_dict = {}
-  for token in set(tokens) :
-    try:
-      doc_dict[token] = tokens.count(token) * df_index[token]
-    except KeyError :
-      print token
-      print tokens
-      print df_index.__class__
-      raise
-
-  return doc_dict
+  return dict((token, tokens.count(token) * df_index[token]) for token in set(tokens))
 
 # testing basic TF-IDF
 # corpus = {1: "Forest is cool and stuff", 2: "Derek is cool and maybe other stuff"}

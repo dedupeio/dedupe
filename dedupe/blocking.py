@@ -53,11 +53,10 @@ class Blocker:
     def invertIndex(self, data_d) :
         for record_id, record in data_d :
             for _, field in self.tfidf_thresholds :
-                tokens = tfidf.getTokens(record[field])
+                tokens = tfidf.getTokens(record[str(field)])
                 for token in set(tokens) :
                     self.inverted_index[field][token].add(record_id)
                     self.corpus_ids.add(record_id)
-
 
     def createCanopies(self, select_function, field, threshold) :
       """
@@ -74,14 +73,13 @@ class Blocker:
       while corpus_ids :
         center_id = corpus_ids.pop()
         blocked_data[center_id] = center_id
-        center = select_function(center_id)
+        doc_id, center =  list(select_function([center_id]))[0]
+
         seen_set.add(center_id)
-        print center_id
+        #print "center_id", center_id
         # print doc_id, center
         if not center :
           continue
-        
-
 
         # initialize the potential block with center
         candidate_set = set([])
@@ -93,8 +91,9 @@ class Blocker:
 
         # print candidate_set
         candidate_set = candidate_set - seen_set
-        for doc_id in candidate_set :
-          candidate_dict = tfidf.tfidfDict(select_function(doc_id), self.df_index)
+        for doc_id, candidate_field in select_function(candidate_set) :
+          #print doc_id, candidate_field
+          candidate_dict = tfidf.tfidfDict(candidate_field, self.df_index)
 
           similarity = tfidf.cosineSimilarity(candidate_dict, center_dict)
 
@@ -251,7 +250,7 @@ class Blocking:
         max_block_sizes = {}
         for pred, blocking in distinct_blocks.iteritems() :
             max_block_size = max(len(v) for v in blocking.values())
-            print max_block_size
+            #print max_block_size
 
             max_block_sizes[pred] = max_block_size
                 
@@ -265,11 +264,12 @@ class Blocking:
         # Only consider predicates that cover at least one duplicate pair
         self.predicate_set = found_dupes.keys()
 
+
         # We want to throw away the predicates that puts together too
         # many distinct pairs
         [self.predicate_set.remove(predicate)
          for predicate
-         in found_distinct
+         in set(self.predicate_set).intersection(found_distinct.keys())
          if max_block_sizes[predicate] >= self.coverage_threshold]
 
         # Expected number of predicates that should cover a duplicate
@@ -295,9 +295,6 @@ class Blocking:
             print 'No predicate found!'
             raise
 
-
-
-    #@profile
     def predicateCoverage(self, pairs, return_blocks=False):
         coverage = defaultdict(list)
         blocks = defaultdict(lambda: defaultdict(set))
