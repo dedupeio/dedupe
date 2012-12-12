@@ -323,7 +323,11 @@ class Dedupe:
         tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
         full_string_records = {}
         for k, v in data_d.iteritems() :
-          full_string_records[k] = " ".join(v.values())
+          document = ''
+          for field in self.data_model['fields'].keys() :
+            document += v[field]
+            document += ' '
+          full_string_records[k] = document
 
         self.df_index = tfidf.documentFrequency(full_string_records)
 

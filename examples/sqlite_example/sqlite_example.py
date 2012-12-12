@@ -38,7 +38,7 @@ def blocking_factory(cursor, row):
 
 def get_sample(cur, size):
   cur.execute("SELECT * FROM donors ORDER BY RANDOM() LIMIT ?", (size,))
-  return dict(cur.fetchall())
+  return dict([(row['donor_id'], row) for row in cur])
 
 
 settings_file = 'sqlite_example_settings.json'
@@ -48,7 +48,7 @@ t0 = time.time()
 
 print 'selecting random sample from donors table...'
 con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
-con.row_factory = dict_factory
+con.row_factory = sqlite3.Row
 cur = con.cursor()
 
 data_d = {}
@@ -89,7 +89,7 @@ t_block = time.time()
 blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 
 deduper.writeSettings(settings_file)
-print 'blocked in ', time.time() - t_block, 'seconds'
+print 'blocked in', time.time() - t_block, 'seconds'
 
 print 'deleting existing blocking map'
 cur.execute("DROP TABLE IF EXISTS blocking_map")
@@ -101,89 +101,89 @@ cur.execute("CREATE INDEX donor_id_index ON blocking_map (donor_id)")
 cur.execute("CREATE INDEX itx_index ON blocking_map (key, donor_id)")
 
 def createSelector(field, con) :
-
     cur = con.cursor()
-    def selector(doc_id) :
-      sql = "SELECT %s FROM donors WHERE donor_id = %s" % (field, doc_id)
-      #print sql
-      cur.execute(sql)
-      field_value = cur.fetchone()
-      #print field_value
 
-      return field_value[1][field]
+    def selector(doc_ids) :
+
+      doc_ids = ', '.join([str(doc_id) for doc_id in doc_ids ])
+      sql = "SELECT donor_id, %s, address_1, address_2, last_name FROM donors WHERE donor_id IN (%s)" % (field, doc_ids)
+      #print sql
+      for row in cur.execute(sql) :
+        #print row
+        yield (row['donor_id'], row[str(field)])
 
     return selector
 
 
 print 'creating inverted index'
-blocker.invertIndex(con.execute("SELECT * FROM donors"))
+full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors"))
+blocker.invertIndex(full_data)
 
 print 'creating canopies'
 blocker.canopies = {}
 counter = 1
 for threshold, field in blocker.tfidf_thresholds :
-    print threshold.threshold, field
-    print str(counter) + "/" + str(len(blocker.tfidf_thresholds))
+    print (str(counter) + "/" + str(len(blocker.tfidf_thresholds))), threshold.threshold, field
     selector = createSelector(field, con)
     canopy = blocker.createCanopies(selector, field, threshold)
     blocker.canopies[threshold.__name__ + field] = canopy
     counter += 1
 
-print 'writing blocking map'
-def block_data() :
-    for donor_id, record in con.execute("SELECT * FROM donors") :
-        if donor_id % 10000 == 0 :
-            print donor_id
-        for key in blocker((donor_id, record)):
-            yield (str(key), donor_id)
+# print 'writing blocking map'
+# def block_data() :
+#     for donor_id, record in con.execute("SELECT * FROM donors LIMIT 1000") :
+#         if donor_id % 10000 == 0 :
+#             print donor_id
+#         for key in blocker((donor_id, record)):
+#             yield (str(key), donor_id)
 
 
-con.executemany("INSERT OR IGNORE INTO blocking_map VALUES (?, ?)",
-                block_data())
-
-
-
-con.commit()
+# con.executemany("INSERT OR IGNORE INTO blocking_map VALUES (?, ?)",
+#                 block_data())
 
 
 
-
-print 'writing largest blocks to file'
-
+# con.commit()
 
 
-with open('sqlite_example_block_sizes.txt', 'a') as f:
-    con.row_factory = None
-    f.write(time.asctime())
-    f.write('\n')
-    for row in con.execute("SELECT key, COUNT(donor_id) AS block_size "
-                           "FROM blocking_map GROUP BY key "
-                           "ORDER BY block_size DESC LIMIT 10") :
 
-        print row
-        f.write(str(row))
-        f.write('\n')
-    con.row_factory = dict_factory
+
+# print 'writing largest blocks to file'
+
+
+
+# with open('sqlite_example_block_sizes.txt', 'a') as f:
+#     con.row_factory = None
+#     f.write(time.asctime())
+#     f.write('\n')
+#     for row in con.execute("SELECT key, COUNT(donor_id) AS block_size "
+#                            "FROM blocking_map GROUP BY key "
+#                            "ORDER BY block_size DESC LIMIT 10") :
+
+#         print row
+#         f.write(str(row))
+#         f.write('\n')
+#     con.row_factory = dict_factory
     
 
-print 'reading blocked data'
-con.row_factory = blocking_factory
-cur = con.cursor()
-cur.execute('select * from donors join '
-  '(select key, donor_id from blocking_map '
-  'join (select key, count(donor_id) num_candidates from blocking_map '
-  'group by key having num_candidates > 1) '
-  'as bucket using (key)) as candidates using (donor_id)')
-blocked_data = defaultdict(list)
-for k, v in cur :
-    blocked_data[k].append(v)
+# print 'reading blocked data'
+# con.row_factory = blocking_factory
+# cur = con.cursor()
+# cur.execute('select * from donors join '
+#   '(select key, donor_id from blocking_map '
+#   'join (select key, count(donor_id) num_candidates from blocking_map '
+#   'group by key having num_candidates > 1) '
+#   'as bucket using (key)) as candidates using (donor_id)')
+# blocked_data = defaultdict(list)
+# for k, v in cur :
+#     blocked_data[k].append(v)
 
-print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data)
+# print 'clustering...'
+# clustered_dupes = deduper.duplicateClusters(blocked_data)
 
-print '# duplicate sets'
-print len(clustered_dupes)
+# print '# duplicate sets'
+# print len(clustered_dupes)
 
 cur.close()
 con.close()
-print 'ran in ', time.time() - t0, 'seconds'
+print 'ran in', time.time() - t0, 'seconds'
