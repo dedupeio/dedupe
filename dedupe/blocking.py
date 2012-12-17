@@ -17,7 +17,7 @@ class Blocker:
         self.tfidf_thresholds = set([])
         self.mixed_predicates = []
         self.tfidf_fields = set([])
-        self.inverted_index = defaultdict(lambda: defaultdict(lamnbda : {'occurences' : [], 'idf' : 0}))
+        self.inverted_index = defaultdict(lambda: defaultdict(lambda: {'occurences' : [], 'idf' : 0}))
         self.shim_tfidf_thresholds = []
         self.token_vector = defaultdict(dict)
 
