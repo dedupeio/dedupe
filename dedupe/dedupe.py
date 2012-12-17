@@ -389,7 +389,7 @@ class Dedupe:
         # save df_index to its own file
         df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
 
-        print self.df_index['UNSEEN TOKEN']
+        print 'unseen token: ', self.df_index['UNSEEN TOKEN']
         self.df_index['UNSEEN TOKEN'] = self.df_index['UNSEEN TOKEN']
         with open(df_index_file_name, 'w') as f:
             json.dump(self.df_index, f)

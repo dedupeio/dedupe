@@ -256,9 +256,7 @@ class Blocking:
         # We want to throw away the predicates that puts together too many
         # distinct pairs
         self.coverage_threshold = eta * len(self.training_distinct)
-        print 'coverage.threshold'
-        print self.coverage_threshold
-
+        print 'coverage threshold:', self.coverage_threshold
                 
 
     # Approximate learning of blocking following the ApproxRBSetCover from
@@ -329,7 +327,7 @@ class Blocking:
                                                        found_dupes,
                                                        found_distinct)
 
-        print 'Final predicate set'
+        print 'Final predicate set:'
         print final_predicate_set
 
         if final_predicate_set:
@@ -438,8 +436,7 @@ class Blocking:
         # Chvatal, 1979
         final_predicate_set = []
         n_training_dupes = len(training_dupes)
-        print 'Uncovered dupes'
-        print n_training_dupes
+        print 'Uncovered dupes: ', n_training_dupes
         while n_training_dupes >= self.epsilon:
 
             optimumCover = 0
@@ -454,12 +451,10 @@ class Blocking:
                     bestPredicate = predicate
 
                     print bestPredicate
-                    print cover
-                    print len(found_dupes[bestPredicate])
-                    print len(found_distinct[bestPredicate])
+                    print 'cover:', cover, 'found_dupes:', len(found_dupes[bestPredicate]), 'found_distinct:', len(found_distinct[bestPredicate]) 
 
             if not bestPredicate:
-                print 'Ran out of predicates'
+                print 'WARNING: Ran out of predicates'
                 break
 
             predicate_set.remove(bestPredicate)
