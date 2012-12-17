@@ -116,7 +116,7 @@ def createSelector(field, con) :
 
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
+full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors"))
 blocker.invertIndex(full_data)
 
 
