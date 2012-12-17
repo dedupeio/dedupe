@@ -7,6 +7,7 @@ import core
 import tfidf
 from random import sample, random, choice, shuffle
 import types
+import math
 
 class Blocker: 
     def __init__(self, predicates, df_index):
@@ -16,8 +17,9 @@ class Blocker:
         self.tfidf_thresholds = set([])
         self.mixed_predicates = []
         self.tfidf_fields = set([])
-        self.inverted_index = defaultdict(lambda: defaultdict(set))
+        self.inverted_index = defaultdict(lambda: defaultdict(lambda: {'idf':0, 'occurrences' : {}}))
         self.shim_tfidf_thresholds = []
+        self.token_vector = defaultdict(dict)
 
         self.corpus_ids = set([])
 
@@ -54,11 +56,40 @@ class Blocker:
         for record_id, record in data_d :
             for _, field in self.tfidf_thresholds :
                 tokens = tfidf.getTokens(record[str(field)])
-                for token in set(tokens) :
-                    self.inverted_index[field][token].add(record_id)
-                    self.corpus_ids.add(record_id)
+                tokens = dict((token, tokens.count(token)) for token in set(tokens))
+                for token, token_count in tokens.iteritems():
+                    self.inverted_index[field][token]['idf'] += 1
+                    self.inverted_index[field][token]['occurrences'].update({record_id: token_count})
+                
+                self.corpus_ids.add(record_id) # candidate for removal
+                self.token_vector[field][record_id] = tokens
 
-    def createCanopies(self, select_function, field, threshold) :
+        # ignore stop words in TFIDF canopy creation
+        num_docs = len(self.token_vector[field])
+
+        stop_word_threshold = num_docs * 0.1
+        for field in self.inverted_index:
+            for token in self.inverted_index[field]:
+                if (self.inverted_index[field][token]['idf'] > stop_word_threshold 
+                    or len(self.inverted_index[field][token]['occurrences']) < 2):
+                    self.inverted_index[field][token]['occurrences'] = []
+
+        # calculating inverted document frequency for each token in each field
+        
+        for field in self.inverted_index:
+            for token in self.inverted_index[field]:
+                self.inverted_index[field][token]['idf'] = math.log((num_docs + 0.5) / (float(self.inverted_index[field][token]['idf']) + 0.5))
+
+        for field in self.token_vector:
+            for record_id, tokens in self.token_vector[field].iteritems():
+                norm = 0.0
+                for token, count in tokens.iteritems():
+                    token_idf = self.inverted_index[field][token]['idf']
+                    norm += (count * token_idf) * (count * token_idf)
+                norm = math.sqrt(norm)
+                self.token_vector[field][record_id] = (tokens, norm)
+
+    def createCanopies(self, field, threshold) :
       """
       A function that returns 
       a field value of a record with a particular doc_id, doc_id
@@ -69,36 +100,48 @@ class Blocker:
       seen_set = set([])
       corpus_ids = self.corpus_ids.copy()
 
- 
+      token_vectors = self.token_vector[field]
       while corpus_ids :
         center_id = corpus_ids.pop()
-        blocked_data[center_id] = center_id
-        doc_id, center =  list(select_function([center_id]))[0]
+        blocked_data[center_id] = [center_id]
+
+        doc_id = center_id
+        center_vector, center_norm = token_vectors[center_id]
 
         seen_set.add(center_id)
+
+        if not center_norm :
+            continue    
         #print "center_id", center_id
         # print doc_id, center
-        if not center :
-          continue
+        # if not center :
+        #   continue
 
         # initialize the potential block with center
         candidate_set = set([])
-        tokens = tfidf.getTokens(center)
-        center_dict = tfidf.tfidfDict(center, self.df_index)
 
-        for token in tokens :
-          candidate_set.update(self.inverted_index[field][token])
+        for token in center_vector :
+          candidate_set.update(self.inverted_index[field][token]['occurrences'])
 
         # print candidate_set
         candidate_set = candidate_set - seen_set
-        for doc_id, candidate_field in select_function(candidate_set) :
+        for doc_id in candidate_set :
           #print doc_id, candidate_field
-          candidate_dict = tfidf.tfidfDict(candidate_field, self.df_index)
+          candidate_vector, candidate_norm = token_vectors[doc_id]
+          if not candidate_norm :
+            continue
 
-          similarity = tfidf.cosineSimilarity(candidate_dict, center_dict)
+          common_tokens = set(center_vector.keys()).intersection(candidate_vector.keys())
+
+          dot_product = 0 
+          for token in common_tokens :
+            token_idf = self.inverted_index[field][token]['idf']
+            dot_product += (center_vector[token] * token_idf) * (candidate_vector[token] * token_idf)
+
+          similarity = dot_product / (center_norm * candidate_norm)
 
           if similarity > threshold.threshold :
-            blocked_data[doc_id] = center_id
+            blocked_data[center_id].append(doc_id)
             seen_set.add(doc_id)
             corpus_ids.remove(doc_id)
 

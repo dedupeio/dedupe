@@ -119,63 +119,67 @@ print 'creating inverted index'
 full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 1000"))
 blocker.invertIndex(full_data)
 
+
+# print 'token vector', blocker.token_vector
+# print 'inverted index', blocker.inverted_index
+
 print 'creating canopies'
 blocker.canopies = {}
 counter = 1
 for threshold, field in blocker.tfidf_thresholds :
     print (str(counter) + "/" + str(len(blocker.tfidf_thresholds))), threshold.threshold, field
-    selector = createSelector(field, con)
-    canopy = blocker.createCanopies(selector, field, threshold)
+    # selector = createSelector(field, con)
+    canopy = blocker.createCanopies(field, threshold)
     blocker.canopies[threshold.__name__ + field] = canopy
     counter += 1
 
-print 'writing blocking map'
-def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 1000"))
-    for donor_id, record in full_data :
-        if donor_id % 10000 == 0 :
-            print donor_id
-        for key in blocker((donor_id, record)):
-            yield (str(key), donor_id)
+# print 'writing blocking map'
+# def block_data() :
+#     full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 1000"))
+#     for donor_id, record in full_data :
+#         if donor_id % 10000 == 0 :
+#             print donor_id
+#         for key in blocker((donor_id, record)):
+#             yield (str(key), donor_id)
 
 
-con.executemany("INSERT OR IGNORE INTO blocking_map VALUES (?, ?)",
-                block_data())
+# con.executemany("INSERT OR IGNORE INTO blocking_map VALUES (?, ?)",
+#                 block_data())
 
-con.commit()
+# con.commit()
 
-print 'writing largest blocks to file'
+# print 'writing largest blocks to file'
 
-with open('sqlite_example_block_sizes.txt', 'a') as f:
-    con.row_factory = None
-    f.write(time.asctime())
-    f.write('\n')
-    for row in con.execute("SELECT key, COUNT(donor_id) AS block_size "
-                           "FROM blocking_map GROUP BY key "
-                           "ORDER BY block_size DESC LIMIT 10") :
+# with open('sqlite_example_block_sizes.txt', 'a') as f:
+#     con.row_factory = None
+#     f.write(time.asctime())
+#     f.write('\n')
+#     for row in con.execute("SELECT key, COUNT(donor_id) AS block_size "
+#                            "FROM blocking_map GROUP BY key "
+#                            "ORDER BY block_size DESC LIMIT 10") :
 
-        print row
-        f.write(str(row))
-        f.write('\n')
-    con.row_factory = dict_factory
+#         print row
+#         f.write(str(row))
+#         f.write('\n')
+#     con.row_factory = dict_factory
 
-print 'reading blocked data'
-con.row_factory = blocking_factory
-cur = con.cursor()
-cur.execute('select * from donors join '
-  '(select key, donor_id from blocking_map '
-  'join (select key, count(donor_id) num_candidates from blocking_map '
-  'group by key having num_candidates > 1) '
-  'as bucket using (key)) as candidates using (donor_id)')
-blocked_data = defaultdict(list)
-for k, v in cur :
-    blocked_data[k].append(v)
+# print 'reading blocked data'
+# con.row_factory = blocking_factory
+# cur = con.cursor()
+# cur.execute('select * from donors join '
+#   '(select key, donor_id from blocking_map '
+#   'join (select key, count(donor_id) num_candidates from blocking_map '
+#   'group by key having num_candidates > 1) '
+#   'as bucket using (key)) as candidates using (donor_id)')
+# blocked_data = defaultdict(list)
+# for k, v in cur :
+#     blocked_data[k].append(v)
 
-print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data)
+# print 'clustering...'
+# clustered_dupes = deduper.duplicateClusters(blocked_data)
 
-print '# duplicate sets'
-print len(clustered_dupes)
+# print '# duplicate sets'
+# print len(clustered_dupes)
 
 cur.close()
 con.close()
