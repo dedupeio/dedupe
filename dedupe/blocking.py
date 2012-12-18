@@ -61,7 +61,7 @@ class Blocker:
         for record_id, record in data_d :
             self.corpus_ids.add(record_id) # candidate for removal
             for field in self.tfidf_fields :
-                tokens = record[str(field)].lower().replace(",", "").split()
+                tokens = record[field].lower().replace(",", "").split()
                 tokens = [(token, tokens.count(token)) for token in set(tokens)]
                 for token, _ in tokens:
                     self.inverted_index[field][token].append(record_id)
