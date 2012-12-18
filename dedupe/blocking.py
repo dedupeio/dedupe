@@ -17,7 +17,7 @@ class Blocker:
         self.tfidf_thresholds = set([])
         self.mixed_predicates = []
         self.tfidf_fields = set([])
-        self.inverted_index = defaultdict(lambda: defaultdict(lambda: {'occurences' : [], 'idf' : 0}))
+        self.inverted_index = defaultdict(lambda: defaultdict(lambda: {'occurrences' : [], 'idf' : 0}))
         self.shim_tfidf_thresholds = []
         self.token_vector = defaultdict(dict)
 
@@ -58,7 +58,7 @@ class Blocker:
                 tokens = tfidf.getTokens(record[str(field)])
                 tokens = dict((token, tokens.count(token)) for token in set(tokens))
                 for token, token_count in tokens.iteritems():
-                    self.inverted_index[field][token]['occurences'].append(record_id)
+                    self.inverted_index[field][token]['occurrences'].append(record_id)
                 
                 self.corpus_ids.add(record_id) # candidate for removal
                 self.token_vector[field][record_id] = tokens
@@ -70,13 +70,13 @@ class Blocker:
         singleton_idf = math.log((num_docs + 0.5) / (1.0 + 0.5))
         for field in self.inverted_index:
             for token in self.inverted_index[field] :
-                occurences = self.inverted_index[field][token]['occurences']
-                if len(occurences) == 1 :
+                occurrences = self.inverted_index[field][token]['occurrences']
+                if len(occurrences) == 1 :
                     self.inverted_index[field][token]['idf'] = singleton_idf
                     self.inverted_index[field][token]['occurrences'] = []
                 else : 
-                    self.inverted_index[field][token]['idf'] = math.log((num_docs + 0.5) / (len(occurences) + 0.5))
-                    if len(occurences) > stop_word_threshold :
+                    self.inverted_index[field][token]['idf'] = math.log((num_docs + 0.5) / (len(occurrences) + 0.5))
+                    if len(occurrences) > stop_word_threshold :
                         self.inverted_index[field][token]['occurrences'] = []
 
         for field in self.token_vector:
