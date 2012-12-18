@@ -27,6 +27,9 @@ class Blocker:
             for pred in predicate :
                 if pred[0].__class__ is tfidf.TfidfPredicate :
                     self.tfidf_thresholds.add(pred)
+                    self.tfidf_fields.add(pred[1])
+
+        
 
 
     def __call__(self, instance) :
@@ -38,8 +41,9 @@ class Blocker:
             for F, field in predicate :
                 pred_id = F.__name__ + field
                 if isinstance(F, types.FunctionType) :
+                    record_field = record[field].strip().lower()
                     predicate_keys.append([str(key) + pred_id
-                                           for key in F(record[field])])
+                                           for key in F(record_field)])
                 elif F.__class__ is tfidf.TfidfPredicate :
                     #print self.canopies
                     #raise
@@ -55,41 +59,44 @@ class Blocker:
     
     def invertIndex(self, data_d) :
         for record_id, record in data_d :
-            for _, field in self.tfidf_thresholds :
-                tokens = record[str(field)].lower().split()
+            self.corpus_ids.add(record_id) # candidate for removal
+            for field in self.tfidf_fields :
+                tokens = record[str(field)].lower().replace(",", "").split()
                 tokens = [(token, tokens.count(token)) for token in set(tokens)]
                 for token, _ in tokens:
                     self.inverted_index[field][token].append(record_id)
                 
-                self.corpus_ids.add(record_id) # candidate for removal
                 self.token_vector[field][record_id] = tokens
 
         # ignore stop words in TFIDF canopy creation
         num_docs = len(self.token_vector[field])
-        stop_word_threshold = num_docs * 0.05
 
-        singleton_idf = math.log((num_docs + 0.5) / (1.0 + 0.5))
+        stop_word_threshold = max(num_docs * 0.025, 1000)
+        print "Stop word threshold: ", stop_word_threshold
+
+        num_docs_log = math.log(num_docs + 0.5)
+        singleton_idf = num_docs_log - math.log(1.0 + 0.5)
+
         for field in self.inverted_index:
             for token, occurrences in self.inverted_index[field].iteritems() :
                 n_occurrences = len(occurrences)
-                if n_occurrences == 1 :
-                    self.inverted_index[field][token] = {'idf' : singleton_idf,
-                                                         'occurrences' : []}
-                else : 
-                    idf = math.log((num_docs + 0.5) / (n_occurrences + 0.5))
+                if n_occurrences < 2 :
+                    idf = singleton_idf
+                    occurrences = []
+                else :
+                    idf = num_docs_log - math.log(n_occurrences + 0.5)
                     if n_occurrences > stop_word_threshold :
                         occurrences = []
-                        print token
-                    self.inverted_index[field][token] = {'idf' : idf,
-                                                         'occurrences' : occurrences}
+                        print "Stop word: ", field, token, n_occurrences
+
+                self.inverted_index[field][token] = {'idf' : idf,
+                                                     'occurrences' : occurrences}
 
         for field in self.token_vector:
+            inverted_index = self.inverted_index[field]
             for record_id, tokens in self.token_vector[field].iteritems():
-                norm = 0.0
-                for token, count in tokens:
-                    token_idf = self.inverted_index[field][token]['idf']
-                    norm += (count * token_idf) * (count * token_idf)
-                norm = math.sqrt(norm)
+                norm = math.sqrt(sum((inverted_index[token]['idf'] * count)**2
+                                     for token, count in tokens))
                 self.token_vector[field][record_id] = (dict(tokens), norm)
 
     def createCanopies(self, field, threshold) :
