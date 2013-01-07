@@ -42,6 +42,8 @@ def recordDistances(candidates, data_model):
   # argument is an array of length 2 which stores the id of the
   # considered elements in the pair.
 
+
+
     fields = data_model['fields']
 
     field_dtype = [('names', 'a20', len(fields)), ('values', 'f4',
@@ -50,7 +52,6 @@ def recordDistances(candidates, data_model):
     record_dtype = [('pairs', [('pair1', 'i4'), ('pair2', 'i4')]),
                     ('field_distances', field_dtype)]
 
-    record_distances = numpy.zeros(len(candidates), dtype=record_dtype)
     
 
     key_pairs = []
@@ -62,6 +63,8 @@ def recordDistances(candidates, data_model):
       record_pairs.append((candidate_1[1],
                            candidate_2[1])))
       for candidate_1, candidate_2 in candidates]
+
+    record_distances = numpy.zeros(len(record_pairs), dtype=record_dtype)
 
 
     record_distances = buildRecordDistances(record_pairs, fields, record_distances)

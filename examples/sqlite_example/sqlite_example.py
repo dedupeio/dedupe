@@ -117,7 +117,7 @@ def createSelector(field, con) :
 
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors"))
+full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
 blocker.invertIndex(full_data)
 
 
@@ -139,7 +139,7 @@ del blocker.token_vector
 
 print 'writing blocking map'
 def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors"))
+    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
     for donor_id, record in full_data :
         if donor_id % 10000 == 0 :
             print donor_id
@@ -179,7 +179,6 @@ cur.execute('select * from donors join '
 block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from blocking_map group by key having num_candidates > 1'))
 
 
-
 def candidates_gen() :
     candidate_set = set([])
     for block_key in block_keys :
@@ -189,17 +188,12 @@ def candidates_gen() :
         for candidate_pair in new :
             yield candidate_pair
 
-for i, pair in enumerate(candidates_gen()):
-    if i % 10000 == 0 :
-        print i
+# for i, pair in enumerate(candidates_gen()):
+#     if i % 10000 == 0 :
+#         print i
     
-
-blocked_data = defaultdict(list)
-for k, v in cur :
-    blocked_data[k].append(v)
-
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data)
+clustered_dupes = deduper.duplicateClusters(candidates_gen())
 
 print '# duplicate sets'
 print len(clustered_dupes)
