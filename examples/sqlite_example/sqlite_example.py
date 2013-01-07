@@ -60,10 +60,12 @@ except:
 con_blocking = sqlite3.connect("examples/sqlite_example/blocking_map.db")
 cur_blocking = con_blocking.cursor()
 
-
 print 'creating blocking_map database'
 cur_blocking.execute("CREATE TABLE blocking_map "
             "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
+cur_blocking.execute("CREATE INDEX key_index ON blocking_map (key)")
+cur_blocking.execute("CREATE INDEX donor_id_index ON blocking_map (donor_id)")
+cur_blocking.execute("CREATE INDEX itx_index ON blocking_map (key, donor_id)")
 
 cur.execute("ATTACH DATABASE 'blocking_map.db' AS blocking_map;")
 
@@ -106,15 +108,6 @@ blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 
 deduper.writeSettings(settings_file)
 print 'blocked in', time.time() - t_block, 'seconds'
-
-# print 'deleting existing blocking map'
-# cur.execute("DROP TABLE IF EXISTS blocking_map")
-# print 'vacuuming database'
-# cur.execute("VACUUM")
-
-cur.execute("CREATE INDEX key_index ON blocking_map (key)")
-cur.execute("CREATE INDEX donor_id_index ON blocking_map (donor_id)")
-cur.execute("CREATE INDEX itx_index ON blocking_map (key, donor_id)")
 
 def createSelector(field, con) :
     cur = con.cursor()
