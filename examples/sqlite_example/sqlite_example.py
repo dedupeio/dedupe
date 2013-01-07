@@ -52,6 +52,21 @@ con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
 con.row_factory = sqlite3.Row
 cur = con.cursor()
 
+try:
+  os.remove('examples/sqlite_example/blocking_map.db')
+except:
+  raise
+
+con_blocking = sqlite3.connect("examples/sqlite_example/blocking_map.db")
+cur_blocking = con_blocking.cursor()
+
+
+print 'creating blocking_map database'
+cur_blocking.execute("CREATE TABLE blocking_map "
+            "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
+
+cur.execute("ATTACH DATABASE 'blocking_map.db' AS blocking_map;")
+
 data_d = {}
 key_groups = []
 num_sample_buckets = 3
@@ -92,11 +107,11 @@ blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 deduper.writeSettings(settings_file)
 print 'blocked in', time.time() - t_block, 'seconds'
 
-print 'deleting existing blocking map'
-cur.execute("DROP TABLE IF EXISTS blocking_map")
-print 'creating blocking_map'
-cur.execute("CREATE TABLE blocking_map "
-            "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
+# print 'deleting existing blocking map'
+# cur.execute("DROP TABLE IF EXISTS blocking_map")
+# print 'vacuuming database'
+# cur.execute("VACUUM")
+
 cur.execute("CREATE INDEX key_index ON blocking_map (key)")
 cur.execute("CREATE INDEX donor_id_index ON blocking_map (donor_id)")
 cur.execute("CREATE INDEX itx_index ON blocking_map (key, donor_id)")
@@ -117,7 +132,7 @@ def createSelector(field, con) :
 
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 10000"))
+full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
 blocker.invertIndex(full_data)
 
 # print 'token vector', blocker.token_vector
@@ -138,9 +153,9 @@ del blocker.token_vector
 
 print 'writing blocking map'
 def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 10000"))
+    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
     for donor_id, record in full_data :
-        if donor_id % 1000 == 0 :
+        if donor_id % 10000 == 0 :
             print donor_id
         for key in blocker((donor_id, record)):
             yield (str(key), donor_id)
@@ -181,18 +196,14 @@ block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as 
 def candidates_gen() :
     candidate_set = set([])
     for block_key in block_keys :
-        block = set(itertools.combinations((row['donor_id'] for row in con.execute('select donor_id from donors inner join blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2))
+        block = set(itertools.combinations((row['donor_id'] for row in con.execute('select * from donors inner join blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2))
         new = block - candidate_set
         candidate_set |= new
         for candidate_pair in new :
             yield candidate_pair
-
-# for i, pair in enumerate(candidates_gen()):
-#     if i % 10000 == 0 :
-#         print i
     
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(candidates_gen())
+clustered_dupes = deduper.duplicateClustersII(candidates_gen())
 
 print '# duplicate sets'
 print len(clustered_dupes)
