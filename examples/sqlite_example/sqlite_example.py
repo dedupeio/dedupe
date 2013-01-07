@@ -140,7 +140,7 @@ print 'writing blocking map'
 def block_data() :
     full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 10000"))
     for donor_id, record in full_data :
-        if donor_id % 10000 == 0 :
+        if donor_id % 1000 == 0 :
             print donor_id
         for key in blocker((donor_id, record)):
             yield (str(key), donor_id)
