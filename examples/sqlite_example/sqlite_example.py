@@ -117,9 +117,8 @@ def createSelector(field, con) :
 
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
+full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 10000"))
 blocker.invertIndex(full_data)
-
 
 # print 'token vector', blocker.token_vector
 # print 'inverted index', blocker.inverted_index
@@ -139,7 +138,7 @@ del blocker.token_vector
 
 print 'writing blocking map'
 def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
+    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 10000"))
     for donor_id, record in full_data :
         if donor_id % 10000 == 0 :
             print donor_id

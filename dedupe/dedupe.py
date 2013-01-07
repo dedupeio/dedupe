@@ -437,7 +437,7 @@ class Dedupe:
 
     def _readSettings(self, file_name):
         with open(file_name, 'r') as f:
-            learned_settings = json.load(f)
+            learned_settings = json.loads(f.read(), object_hook=self._decode_dict)
 
         self.data_model = learned_settings['data model']
         self.predicates = []
@@ -480,19 +480,19 @@ class Dedupe:
         return training_pairs, training_data
 
     # json encoding fix for unicode => string
-    def _decode_list(data):
+    def _decode_list(self, data):
         rv = []
         for item in data:
             if isinstance(item, unicode):
                 item = item.encode('utf-8')
             elif isinstance(item, list):
-                item = _decode_list(item)
+                item = self._decode_list(item)
             elif isinstance(item, dict):
-                item = _decode_dict(item)
+                item = self._decode_dict(item)
             rv.append(item)
         return rv
 
-    def _decode_dict(data):
+    def _decode_dict(self, data):
         rv = {}
         for key, value in data.iteritems():
             if isinstance(key, unicode):
@@ -500,8 +500,8 @@ class Dedupe:
             if isinstance(value, unicode):
                value = value.encode('utf-8')
             elif isinstance(value, list):
-               value = _decode_list(value)
+               value = self._decode_list(value)
             elif isinstance(value, dict):
-               value = _decode_dict(value)
+               value = self._decode_dict(value)
             rv[key] = value
         return rv
