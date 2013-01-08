@@ -17,6 +17,7 @@ t0 = time.time()
 print 'selecting random sample from donors table...'
 con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
 con.row_factory = sqlite3.Row
+con.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
 cur = con.cursor()
 
 
@@ -29,18 +30,18 @@ else:
 
 
 cur.execute('select * from donors join '
- '(select key, donor_id from blocking_map '
- 'join (select key, count(donor_id) num_candidates from blocking_map '
+ '(select key, donor_id from bm.blocking_map '
+ 'join (select key, count(donor_id) num_candidates from bm.blocking_map '
  'group by key having num_candidates > 1) '
  'as bucket using (key)) as candidates using (donor_id)')
 
-block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from blocking_map group by key having num_candidates > 1'))
+block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1'))
 
 
 def candidates_gen() :
     candidate_set = set([])
     for block_key in block_keys :
-        block = set(itertools.combinations(((row['donor_id'], row) for row in con.execute('select * from donors inner join blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2))
+        block = set(itertools.combinations(((row['donor_id'], row) for row in con.execute('select * from donors inner join bm.blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2))
         new = block - candidate_set
         candidate_set |= new
         for candidate_pair in new :
