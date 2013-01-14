@@ -5,7 +5,7 @@ import lr
 from affinegap import normalizedAffineGapDistance as stringDistance
 import numpy
 import json
-from itertools import izip
+import itertools
 
 def sampleDict(d, sample_size):
 
@@ -34,7 +34,7 @@ def trainModel(training_data, data_model, alpha=.001):
 
     return data_model
 
-#@profile
+
 def recordDistances(candidates, data_model):
 
   # The record array has two elements, the first element is an array
@@ -49,30 +49,31 @@ def recordDistances(candidates, data_model):
     field_dtype = [('names', 'a20', len(fields)), ('values', 'f4',
                    len(fields))]
 
-    record_dtype = [('pairs', [('pair1', 'i4'), ('pair2', 'i4')]),
+    record_dtype = [('pairs', 'i4', 2),
                     ('field_distances', field_dtype)]
 
-    
 
-    key_pairs = []
-    record_pairs = []
+    candidate_brother, candidate_sister = itertools.tee(candidates, 2)
+
+    key_pairs = [(candidate_1[0], candidate_2[0])
+                  for candidate_1, candidate_2
+                  in candidate_brother]
 
 
-    [(key_pairs.append((candidate_1[0],
-                        candidate_2[0])),
-      record_pairs.append((candidate_1[1],
-                           candidate_2[1])))
-      for candidate_1, candidate_2 in candidates]
+    record_pairs = ((candidate_1[1], candidate_2[1])
+                     for candidate_1, candidate_2
+                     in candidate_sister)
 
-    record_distances = numpy.zeros(len(record_pairs), dtype=record_dtype)
+
+    record_distances = numpy.zeros(len(key_pairs), dtype=record_dtype)
 
 
     record_distances = buildRecordDistances(record_pairs, fields, record_distances)
-    record_distances['pairs'] = list(key_pairs)
+    record_distances['pairs'] = key_pairs
 
     return record_distances
 
-#@profile
+
 def buildRecordDistances(record_pairs, fields, record_distances) :
   distances = numpy.zeros(1, dtype=record_distances['field_distances'].dtype)
   distances = distances['values'][0]
@@ -141,13 +142,16 @@ def scoreDuplicates(candidates,
     record_distances = recordDistances(candidates, data_model)
     duplicate_scores = scorePairs(record_distances, data_model)
 
-    pair_ids = [pair[0] for pair in record_distances]
+    score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
+    scored_pairs = numpy.zeros(len(duplicate_scores),
+                               dtype=score_dtype)
 
-    scored_pairs = zip(pair_ids, duplicate_scores)
-    if threshold:
-        return [pair for pair in scored_pairs if pair[1] > threshold]
-    else:
-        return scored_pairs
+    scored_pairs['pairs'] = record_distances['pairs']
+    scored_pairs['score'] = duplicate_scores
+
+    scored_pairs = scored_pairs[scored_pairs['score'] > threshold]
+
+    return scored_pairs
 
 
 # define a data type for hashable dictionaries

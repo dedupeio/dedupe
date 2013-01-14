@@ -4,21 +4,19 @@ import numpy
 import fastcluster
 import hcluster
 
-
 def condensedDistance(dupes):
 
-  # Convert the pairwise list of distances in dupes to "condensed
-  # distance matrix" required by the hierarchical clustering
-  # algorithms. Also return a dictionary that maps the distance matrix
-  # to the record_ids.
-  #
-  # The condensed distance matrix is described in the scipy
-  # documentation of scipy.cluster.hierarchy.linkage
-  # http://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+   # Convert the pairwise list of distances in dupes to "condensed
+   # distance matrix" required by the hierarchical clustering
+   # algorithms. Also return a dictionary that maps the distance matrix
+   # to the record_ids.
+   #
+   # The condensed distance matrix is described in the scipy
+   # documentation of scipy.cluster.hierarchy.linkage
+   # http://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
 
-    candidate_set = set([])
-    for (pair, _) in dupes:
-        candidate_set.update(pair)
+  
+    candidate_set = set(dupes['pairs'].flat)
 
     id_to_i = dict([(candidate_id, i) for (i, candidate_id) in
                    enumerate(sorted(list(candidate_set)))])
@@ -28,18 +26,20 @@ def condensedDistance(dupes):
     N = len(candidate_set)
     matrix_length = N * (N - 1) / 2
 
-    condensed_distances = [1] * matrix_length
+    condensed_distances = numpy.zeros(matrix_length)
 
-    for (pair, score) in dupes:
-        (i, j) = (id_to_i[pair[0]], id_to_i[pair[1]])
-        if i > j:
-            (i, j) = (j, i)
-        subN = (N - i) * (N - i - 1) / 2
-        index = matrix_length - subN + j - i - 1
-        condensed_distances[index] = 1 - score
+    v_identify = numpy.vectorize(lambda candidate : id_to_i[candidate])
+
+    id_1 = v_identify(dupes['pairs'][:,0])
+    id_2 = v_identify(dupes['pairs'][:,1])
+
+
+    step = (N - id_1) * (N - id_1 - 1) / 2
+    index = matrix_length - step + id_2 - id_1 -1
+
+    condensed_distances[index] = 1 - dupes['score']
 
     return (i_to_id, condensed_distances)
-
 
 def cluster(dupes, threshold=.5):
     """

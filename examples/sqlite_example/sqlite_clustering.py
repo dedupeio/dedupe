@@ -28,14 +28,7 @@ else:
   raise ValueError('Settings File Not Found')
 
 
-
-cur.execute('select * from donors join '
- '(select key, donor_id from bm.blocking_map '
- 'join (select key, count(donor_id) num_candidates from bm.blocking_map '
- 'group by key having num_candidates > 1) '
- 'as bucket using (key)) as candidates using (donor_id)')
-
-block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1'))
+block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 limit 100000'))
 
 
 def candidates_gen() :
