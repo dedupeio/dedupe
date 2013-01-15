@@ -53,32 +53,39 @@ def recordDistances(candidates, data_model):
                     ('field_distances', field_dtype)]
 
 
-    candidate_brother, candidate_sister = itertools.tee(candidates, 2)
+    candidates_1, candidates_2 = itertools.tee(candidates, 2)
 
-    key_pairs = [(candidate_1[0], candidate_2[0])
+    key_pairs = ((candidate_1[0], candidate_2[0])
                   for candidate_1, candidate_2
-                  in candidate_brother]
+                  in candidates_1)
 
 
     record_pairs = ((candidate_1[1], candidate_2[1])
                      for candidate_1, candidate_2
-                     in candidate_sister)
+                     in candidates_2)
 
 
-    record_distances = numpy.zeros(len(key_pairs), dtype=record_dtype)
 
 
-    record_distances = buildRecordDistances(record_pairs, fields, record_distances)
-    record_distances['pairs'] = key_pairs
+    field_distances, n_candidates = buildRecordDistances(record_pairs,
+                                                         fields)
+                                                         
+
+    record_distances = numpy.zeros(n_candidates, dtype=record_dtype)
+    
+    record_distances['pairs'] = list(key_pairs)
+    record_distances['field_distances']['values'] = field_distances[0:n_candidates]
 
     return record_distances
 
 
-def buildRecordDistances(record_pairs, fields, record_distances) :
-  distances = numpy.zeros(1, dtype=record_distances['field_distances'].dtype)
-  distances = distances['values'][0]
-  
-  field_distances = record_distances['field_distances']['values']
+
+def buildRecordDistances(record_pairs, fields) :
+
+  n_fields = len(fields)
+
+  field_distances = numpy.zeros((100000, n_fields)) 
+
   sorted_fields = sorted(fields.keys())
   field_types = [fields[field]['type'] for field in sorted_fields]
 
@@ -96,8 +103,15 @@ def buildRecordDistances(record_pairs, fields, record_distances) :
   else :
     base_fields = sorted_fields
 
+
+
+
+
   if interactions :
     for (i, record_pair) in enumerate(record_pairs):
+      if i % 100000 == 0 :
+        field_distances = numpy.concatenate((field_distances,
+                                               numpy.zeros((100000, n_fields))))
       record_1, record_2 = record_pair
 
       field_distances[i] = [stringDistance(record_1[name], record_2[name]) for name in base_fields]
@@ -108,13 +122,21 @@ def buildRecordDistances(record_pairs, fields, record_distances) :
           value *= field_distances[i][k]
         field_distances[i][j] = value
   else :
-    for (i, record_pair) in enumerate(record_pairs):
-      record_1, record_2 = record_pair
+    for i, record_pair in enumerate(record_pairs):
+        if i % 100000 == 0 :
+          field_distances = numpy.concatenate((field_distances,
+                                               numpy.zeros((100000, n_fields))))
+        record_1, record_2 = record_pair
 
-      field_distances[i] = [stringDistance(record_1[name], record_2[name]) for name in base_fields]
 
-  record_distances['field_distances']['values'] = field_distances
-  return record_distances
+        field_distances[i] = [stringDistance(record_1[name], record_2[name]) for name in base_fields]
+
+
+
+
+                                              
+
+  return (field_distances, i+1)
 
 def scorePairs(record_distances, data_model):
     fields = data_model['fields']
