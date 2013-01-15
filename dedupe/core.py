@@ -34,7 +34,6 @@ def trainModel(training_data, data_model, alpha=.001):
 
     return data_model
 
-
 def recordDistances(candidates, data_model):
 
   # The record array has two elements, the first element is an array
@@ -55,9 +54,10 @@ def recordDistances(candidates, data_model):
 
     candidates_1, candidates_2 = itertools.tee(candidates, 2)
 
-    key_pairs = ((candidate_1[0], candidate_2[0])
-                  for candidate_1, candidate_2
-                  in candidates_1)
+    key_pairs = (candidate[0]
+                 for candidate_pair in candidates_1
+                 for candidate in candidate_pair)
+
 
 
     record_pairs = ((candidate_1[1], candidate_2[1])
@@ -72,19 +72,14 @@ def recordDistances(candidates, data_model):
                                                          
 
     record_distances = numpy.zeros(n_candidates, dtype=record_dtype)
-    
-    record_distances['pairs'] = list(key_pairs)
+
+    record_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(n_candidates, 2)
     record_distances['field_distances']['values'] = field_distances[0:n_candidates]
 
     return record_distances
 
-
-
 def buildRecordDistances(record_pairs, fields) :
-
   n_fields = len(fields)
-
-  field_distances = numpy.zeros((100000, n_fields)) 
 
   sorted_fields = sorted(fields.keys())
   field_types = [fields[field]['type'] for field in sorted_fields]
@@ -108,6 +103,11 @@ def buildRecordDistances(record_pairs, fields) :
 
 
   if interactions :
+
+
+    field_distances = numpy.zeros((100000, n_fields)) 
+
+
     for (i, record_pair) in enumerate(record_pairs):
       if i % 100000 == 0 :
         field_distances = numpy.concatenate((field_distances,
@@ -122,18 +122,15 @@ def buildRecordDistances(record_pairs, fields) :
           value *= field_distances[i][k]
         field_distances[i][j] = value
   else :
-    for i, record_pair in enumerate(record_pairs):
-        if i % 100000 == 0 :
-          field_distances = numpy.concatenate((field_distances,
-                                               numpy.zeros((100000, n_fields))))
-        record_1, record_2 = record_pair
+    field_distances = numpy.fromiter((stringDistance(record_pair[0][name],
+                                                     record_pair[1][name])
+                                      for record_pair in record_pairs
+                                      for name in base_fields),
+                                     'f4')
+    field_distances = field_distances.reshape(len(field_distances)/n_fields,
+                                              n_fields)
 
-
-        field_distances[i] = [stringDistance(record_1[name], record_2[name]) for name in base_fields]
-
-
-
-
+  i = field_distances.shape[0] - 1
                                               
 
   return (field_distances, i+1)
