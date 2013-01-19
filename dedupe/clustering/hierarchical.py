@@ -47,8 +47,10 @@ def cluster(dupes, threshold=.5):
                  recall
     """
     (i_to_id, condensed_distances) = condensedDistance(dupes)
-    linkage = fastcluster.linkage(numpy.array(condensed_distances),
-                                  method='centroid')
+    linkage = fastcluster.linkage(condensed_distances,
+                                  method='centroid',
+                                  preserve_input=False)
+
     partition = hcluster.fcluster(linkage, threshold)
 
     clustering = {}
