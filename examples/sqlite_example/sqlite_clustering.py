@@ -30,7 +30,7 @@ else:
 
 block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 limit 10000'))
 
-
+# TODO: combine this with mergeBlocks
 def candidates_gen() :
     candidate_set = set([])
     for block_key in block_keys :
@@ -45,7 +45,7 @@ def candidates_gen() :
 
     
 print 'clustering...'
-clustered_dupes = deduper.duplicateClustersII(candidates_gen())
+clustered_dupes = deduper.duplicateClusters(candidates_gen())
 
 print '# duplicate sets'
 print len(clustered_dupes)

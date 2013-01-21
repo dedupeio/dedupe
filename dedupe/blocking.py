@@ -174,7 +174,7 @@ def blockingIndex(data_d, blocker):
     for threshold, field in blocker.tfidf_thresholds :
         selector = lambda record_id : data_d[record_id][field]    
         # print field
-        canopy = blocker.createCanopies(selector, field, threshold)
+        canopy = blocker.createCanopies(field, threshold)
         # print blocks
         blocker.canopies[threshold.__name__ + field] = canopy
 

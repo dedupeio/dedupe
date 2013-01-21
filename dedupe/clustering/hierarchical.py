@@ -30,7 +30,7 @@ def condensedDistance(dupes):
     step = (N - id_1) * (N - id_1 - 1) / 2
     index = matrix_length - step + id_2 - id_1 -1
 
-    condensed_distances = numpy.empty(matrix_length, 'f4')
+    condensed_distances = numpy.ones(matrix_length, 'f4')
     condensed_distances[index] = 1 - dupes['score']
 
     return (i_to_id, condensed_distances)

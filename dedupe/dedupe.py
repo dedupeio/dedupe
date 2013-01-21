@@ -135,8 +135,8 @@ class Dedupe:
         """
         n_fields = len(self.data_model['fields'])
 
-        field_dtype = [('names', 'a20', n_fields),
-                       ('values', 'f4', n_fields)]
+        # we are going to remove the 'values lookup as redundant
+        field_dtype = [('values', 'f4', n_fields)]
         training_dtype = [('label', 'i4'),
                           ('field_distances', field_dtype)]
 
@@ -272,37 +272,6 @@ class Dedupe:
         return bF
 
     def duplicateClusters(self,
-                          blocked_data,
-                          pairwise_threshold = .5,
-                          cluster_threshold = .5):
-        """
-        Partitions blocked data and returns a list of clusters, where
-        each cluster is a tuple of record ids
-
-        Keyword arguments:
-        blocked_data --       Dictionary where the keys are blocking predicates 
-                              and the values are tuples of records covered by that 
-                              predicate.
-        pairwise_threshold -- Number between 0 and 1 (default is .5). We will only 
-                              consider as duplicates  ecord pairs as duplicates if 
-                              their estimated duplicate likelihood is greater than 
-                              the pairwise threshold. 
-        cluster_threshold --  Number between 0 and 1 (default is .5). Lowering the 
-                              number will increase precision, raising it will increase
-                              recall
-
-        """
-
-        candidates = blocking.mergeBlocks(blocked_data)
-        self.dupes = core.scoreDuplicates(candidates, 
-                                          self.data_model,
-                                          pairwise_threshold)
-
-        clusters = clustering.hierarchical.cluster(self.dupes, cluster_threshold)
-
-        return clusters
-
-    def duplicateClustersII(self,
                           candidates,
                           pairwise_threshold = .5,
                           cluster_threshold = .5):

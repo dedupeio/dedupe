@@ -117,18 +117,16 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
 
     fields = data_model['fields']
 
-    field_dtype = training_data.dtype[1]
+    n_distinct_pairs, n_dupe_pairs = len(labeled_pairs[0]), len(labeled_pairs[1])
 
-    num_training_pairs = len(labeled_pairs[0]) + len(labeled_pairs[1])
-
-    new_training_data = numpy.zeros(num_training_pairs,
+    new_training_data = numpy.zeros(n_distinct_pairs + n_dupe_pairs,
                                     dtype=training_data.dtype)
 
-    examples = [record_pair for example in labeled_pairs.values() for record_pair in example]
-    new_training_data = core.buildRecordDistances(examples, fields, new_training_data) 
-
     labels = labeled_pairs.keys()
-    new_training_data['label'] = [labels[0]] * len(labeled_pairs[labels[0]]) + [labels[1]] * len(labeled_pairs[labels[1]])
+    examples = [record_pair for example in labeled_pairs.values() for record_pair in example]
+
+    new_training_data['label'] = [labels[0]] * n_distinct_pairs + [labels[1]] * n_dupe_pairs
+    new_training_data['field_distances']['values'] = core.buildRecordDistances(examples, fields)[0] 
 
     training_data = numpy.append(training_data, new_training_data)
 
