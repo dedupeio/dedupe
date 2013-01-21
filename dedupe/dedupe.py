@@ -269,6 +269,7 @@ class Dedupe:
 
         return bF
 
+    # @profile
     def duplicateClusters(self,
                           candidates,
                           pairwise_threshold = .5,

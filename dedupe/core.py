@@ -95,15 +95,8 @@ def buildRecordDistances(record_pairs, fields) :
   else :
     base_fields = sorted_fields
 
-
-
-
-
   if interactions :
-
-
     field_distances = numpy.zeros((100000, n_fields)) 
-
 
     for (i, record_pair) in enumerate(record_pairs):
       if i % 100000 == 0 :
@@ -127,8 +120,7 @@ def buildRecordDistances(record_pairs, fields) :
     field_distances = field_distances.reshape(len(field_distances)/n_fields,
                                               n_fields)
 
-  i = field_distances.shape[0] - 1
-                                              
+  i = field_distances.shape[0] - 1               
 
   return (field_distances, i+1)
 
@@ -149,22 +141,29 @@ def scorePairs(record_distances, data_model):
 
 
 # identify all pairs above a set threshold as duplicates
-
 # @profile
 def scoreDuplicates(candidates,
                     data_model,
                     threshold=None,
                     ):
 
-    record_distances = recordDistances(candidates, data_model)
-    duplicate_scores = scorePairs(record_distances, data_model)
-
     score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
-    scored_pairs = numpy.zeros(len(duplicate_scores),
-                               dtype=score_dtype)
+    scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
-    scored_pairs['pairs'] = record_distances['pairs']
-    scored_pairs['score'] = duplicate_scores
+    complete = False
+    chunk_size = 10000
+    i = 1
+    while not complete:
+      can_slice = itertools.islice(candidates, i*chunk_size)
+      record_distances = recordDistances(can_slice, data_model)
+
+      duplicate_scores = scorePairs(record_distances, data_model)
+      scored_pairs = numpy.append(scored_pairs, 
+                                  numpy.array(zip(record_distances['pairs'], duplicate_scores), dtype=score_dtype), 
+                                  axis=0)
+      i += 1
+      if len(record_distances) < chunk_size :
+        complete = True
 
     scored_pairs = scored_pairs[scored_pairs['score'] > threshold]
 
