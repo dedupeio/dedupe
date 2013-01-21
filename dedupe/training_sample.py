@@ -126,7 +126,7 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
     examples = [record_pair for example in labeled_pairs.values() for record_pair in example]
 
     new_training_data['label'] = [labels[0]] * n_distinct_pairs + [labels[1]] * n_dupe_pairs
-    new_training_data['field_distances']['values'] = core.buildRecordDistances(examples, fields)[0] 
+    new_training_data['field_distances'] = core.buildRecordDistances(examples, fields)[0] 
 
     training_data = numpy.append(training_data, new_training_data)
 

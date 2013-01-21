@@ -28,7 +28,7 @@ else:
   raise ValueError('Settings File Not Found')
 
 
-block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 limit 10000'))
+block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 limit 1000'))
 
 # TODO: combine this with mergeBlocks
 def candidates_gen() :

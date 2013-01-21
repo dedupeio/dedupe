@@ -6,6 +6,7 @@ from affinegap import normalizedAffineGapDistance as stringDistance
 import numpy
 import json
 import itertools
+import gc
 
 def sampleDict(d, sample_size):
 
@@ -20,7 +21,7 @@ def sampleDict(d, sample_size):
 def trainModel(training_data, data_model, alpha=.001):
 
     labels = training_data['label']
-    examples = training_data['field_distances']['values']
+    examples = training_data['field_distances']
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
@@ -44,12 +45,8 @@ def recordDistances(candidates, data_model):
 
 
     fields = data_model['fields']
-
-    field_dtype = [('names', 'a20', len(fields)), ('values', 'f4',
-                   len(fields))]
-
     record_dtype = [('pairs', 'i4', 2),
-                    ('field_distances', field_dtype)]
+                    ('field_distances', 'f4', len(fields))]
 
 
     candidates_1, candidates_2 = itertools.tee(candidates, 2)
@@ -74,7 +71,7 @@ def recordDistances(candidates, data_model):
     record_distances = numpy.zeros(n_candidates, dtype=record_dtype)
 
     record_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(n_candidates, 2)
-    record_distances['field_distances']['values'] = field_distances[0:n_candidates]
+    record_distances['field_distances'] = field_distances[0:n_candidates]
 
     return record_distances
 
@@ -142,7 +139,7 @@ def scorePairs(record_distances, data_model):
     field_weights = [fields[name]['weight'] for name in field_names]
     bias = data_model['bias']
 
-    field_distances = record_distances['field_distances']['values']
+    field_distances = record_distances['field_distances']
 
     scores = numpy.dot(field_distances, field_weights)
 
@@ -153,6 +150,7 @@ def scorePairs(record_distances, data_model):
 
 # identify all pairs above a set threshold as duplicates
 
+# @profile
 def scoreDuplicates(candidates,
                     data_model,
                     threshold=None,

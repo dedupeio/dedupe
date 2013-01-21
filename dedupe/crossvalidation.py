@@ -33,7 +33,7 @@ def gridSearch(training_data,
             bias = data_model['bias']
 
             real_labels = training_data['label']
-            valid_examples = training_data['field_distances']['values']
+            valid_examples = training_data['field_distances']
             valid_scores = numpy.dot(valid_examples, weight) + bias
 
 

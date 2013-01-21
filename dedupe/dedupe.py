@@ -135,10 +135,8 @@ class Dedupe:
         """
         n_fields = len(self.data_model['fields'])
 
-        # we are going to remove the 'values lookup as redundant
-        field_dtype = [('values', 'f4', n_fields)]
         training_dtype = [('label', 'i4'),
-                          ('field_distances', field_dtype)]
+                          ('field_distances', 'f4', n_fields)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = None
