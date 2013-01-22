@@ -1,8 +1,10 @@
 #!python
 #cython: boundscheck=False, wraparound=False
 
+import array
 from libc cimport limits
 from cpython cimport array
+
 
 # Calculate the affine gap distance between two strings 
 #
@@ -37,12 +39,12 @@ cpdef float affineGapDistance(char *string1, char *string2,
 
   # array.array is part of Cython 0.17 http://bit.ly/LDxyj3 . We are
   # using the development branch now.
-  cdef array.array[float] D = array.array('f')
+  cdef array.array D = array.array('f')
   array.resize(D, length1+1)
   array.zero(D)
 
-  cdef array.array[float] V_current = array.copy(D)
-  cdef array.array[float] V_previous = array.copy(V_current)
+  cdef array.array V_current = array.copy(D)
+  cdef array.array V_previous = array.copy(V_current)
 
   cdef char char1, char2
   cdef int i, j
