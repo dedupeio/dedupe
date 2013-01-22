@@ -6,7 +6,6 @@ from affinegap import normalizedAffineGapDistance as stringDistance
 import numpy
 import json
 import itertools
-import gc
 
 def sampleDict(d, sample_size):
 
@@ -141,7 +140,7 @@ def scorePairs(record_distances, data_model):
 
 
 # identify all pairs above a set threshold as duplicates
-# @profile
+#@profile
 def scoreDuplicates(candidates,
                     data_model,
                     threshold=None,
@@ -154,18 +153,31 @@ def scoreDuplicates(candidates,
     chunk_size = 10000
     i = 1
     while not complete:
-      can_slice = itertools.islice(candidates, i*chunk_size)
+      can_slice = itertools.islice(candidates, (i-1)*chunk_size, i*chunk_size)
       record_distances = recordDistances(can_slice, data_model)
 
+
       duplicate_scores = scorePairs(record_distances, data_model)
+      new_score_pairs = numpy.empty(len(duplicate_scores), dtype=score_dtype)
+      new_score_pairs['pairs'] = record_distances['pairs']
+      new_score_pairs['score'] = duplicate_scores
+
+      #numpy.array(zip(record_distances['pairs'], duplicate_scores), dtype=score_dtype, copy=True), 
       scored_pairs = numpy.append(scored_pairs, 
-                                  numpy.array(zip(record_distances['pairs'], duplicate_scores), dtype=score_dtype), 
+                                  new_score_pairs,
                                   axis=0)
       i += 1
       if len(record_distances) < chunk_size :
         complete = True
+        del candidates
+        print "num chunks", i
+
+      
 
     scored_pairs = scored_pairs[scored_pairs['score'] > threshold]
+    print scored_pairs
+    print scored_pairs['pairs']
+    print scored_pairs['score']
 
     return scored_pairs
 

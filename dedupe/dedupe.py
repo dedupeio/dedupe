@@ -269,7 +269,7 @@ class Dedupe:
 
         return bF
 
-    # @profile
+    #@profile
     def duplicateClusters(self,
                           candidates,
                           pairwise_threshold = .5,
@@ -295,6 +295,8 @@ class Dedupe:
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
                                           pairwise_threshold)
+
+        print self.dupes.nbytes
 
         clusters = clustering.hierarchical.cluster(self.dupes, cluster_threshold)
 
