@@ -32,16 +32,11 @@ block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as 
 
 # TODO: combine this with mergeBlocks
 def candidates_gen() :
-    candidate_set = set([])
     for block_key in block_keys :
-        block = set(itertools.combinations(((row['donor_id'], row) for row in con.execute('select * from donors inner join bm.blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2))
-        new = block - candidate_set
-        candidate_set |= new
-        for candidate_pair in new :
-            yield candidate_pair
+        block = itertools.combinations(((row['donor_id'], row) for row in con.execute('select * from donors inner join bm.blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2)
+        for candidate in block :
+          yield candidate
 
-# for i, pair in enumerate(candidates_gen()):
-#      print pair
 
     
 print 'clustering...'
