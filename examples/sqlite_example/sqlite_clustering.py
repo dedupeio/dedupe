@@ -7,8 +7,7 @@ import dedupe
 import time
 from collections import defaultdict
 import itertools
-import pylru
-import random
+
 
 
 
@@ -30,7 +29,7 @@ else:
   raise ValueError('Settings File Not Found')
 
 
-block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 and num_candidates < 1000 order by random() limit 10000'))
+block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 and num_candidates < 1000'))
 
 # TODO: combine this with mergeBlocks
 #@profile 
@@ -41,7 +40,8 @@ def candidates_gen() :
           print time.time() - t0, "seconds"
         block = itertools.combinations(((row['donor_id'], row) for row in con.execute('select * from donors inner join bm.blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2)
         for candidate in block :
-          yield candidate
+          cache.put(candidate, True)
+
             
 
 

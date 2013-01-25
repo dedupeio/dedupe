@@ -123,6 +123,7 @@ def buildRecordDistances(record_pairs, fields) :
 
   return (field_distances, i+1)
 
+
 def scorePairs(record_distances, data_model):
     fields = data_model['fields']
     field_names = sorted(data_model['fields'].keys())
@@ -158,13 +159,13 @@ def scoreDuplicates(candidates,
 
       
       record_distances = recordDistances(can_slice, data_model)
-
       duplicate_scores = scorePairs(record_distances, data_model)
+
 
       scored_pairs = numpy.append(scored_pairs,
                                   numpy.array(zip(record_distances['pairs'],
                                                   duplicate_scores),
-                                              dtype=score_dtype, copy=True), 
+                                              dtype=score_dtype)[duplicate_scores > threshold], 
                                   axis=0)
       i += 1
       if len(record_distances) < chunk_size :
@@ -175,10 +176,10 @@ def scoreDuplicates(candidates,
 
 
 
-    print scored_pairs.shape
-    scored_pairs = scored_pairs[scored_pairs['score'] > threshold]
+    print 'all scores', scored_pairs.shape
     scored_pairs = numpy.unique(scored_pairs)
-    print scored_pairs.shape
+    print 'unique scores', scored_pairs.shape
+
 
     return scored_pairs
 

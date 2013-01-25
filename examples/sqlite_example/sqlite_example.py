@@ -9,6 +9,7 @@ from collections import defaultdict
 import itertools
 
 
+
 def get_sample(cur, size):
   cur.execute("SELECT * FROM donors ORDER BY RANDOM() LIMIT ?", (size,))
   return dict([(row['donor_id'], row) for row in cur])
@@ -103,7 +104,7 @@ def createSelector(field, con) :
 
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
+full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors limit 100"))
 blocker.invertIndex(full_data)
 
 # print 'token vector', blocker.token_vector
@@ -124,7 +125,7 @@ del blocker.token_vector
 
 print 'writing blocking map'
 def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors LIMIT 100000"))
+    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors limit 100"))
     for donor_id, record in full_data :
         if donor_id % 10000 == 0 :
             print donor_id
