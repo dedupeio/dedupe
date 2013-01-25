@@ -51,6 +51,8 @@ class Blocker:
                     if center is not None :
                         key = str(center) + pred_id
                         predicate_keys.append((key,))
+                    else:
+                        continue
 
             record_keys.extend(product(*predicate_keys))
 

@@ -23,8 +23,8 @@ def condensedDistance(dupes):
     ids = candidate_set.searchsorted(dupes['pairs'])
     id_1 = ids[:,0]
     id_2 = ids[:,1]
-
-    N = len(candidate_set)
+    
+    N = len(numpy.union1d(id_1, id_2))
     matrix_length = N * (N - 1) / 2
 
     step = (N - id_1) * (N - id_1 - 1) / 2
