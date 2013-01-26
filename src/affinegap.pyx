@@ -1,10 +1,8 @@
 #!python
 #cython: boundscheck=False, wraparound=False
 
-import array
 from libc cimport limits
-from cpython cimport array
-
+from libc.stdlib cimport malloc, free
 
 # Calculate the affine gap distance between two strings 
 #
@@ -37,18 +35,14 @@ cpdef float affineGapDistance(char *string1, char *string2,
       string1, string2 = string2, string1
       length1, length2 = length2, length1
 
-  # array.array is part of Cython 0.17 http://bit.ly/LDxyj3 . We are
-  # using the development branch now.
-  cdef array.array D = array.array('f')
-  array.resize(D, length1+1)
-  array.zero(D)
-
-  cdef array.array V_current = array.copy(D)
-  cdef array.array V_previous = array.copy(V_current)
+  D = <double*> malloc(sizeof(double) * length1+1)
+  V_current = <double*> malloc(sizeof(double) * length1+1)
+  V_previous = <double*> malloc(sizeof(double) * length1+1)
 
   cdef char char1, char2
   cdef int i, j
-  cdef float e, g
+  cdef float e, g, distance
+
 
   # Set up Recurrence relations
   #
@@ -56,21 +50,21 @@ cpdef float affineGapDistance(char *string1, char *string2,
   # V(0,0) = 0
   # V(0,j) = gapWeight + spaceWeight * i
   # D(0,j) = Infinity
-  V_current.data.as_floats[0] = 0
+  V_current[0] = 0
   for j in range(1, length1 + 1) :
-    V_current.data.as_floats[j] = gapWeight + spaceWeight * j
-    D.data.as_floats[j] = limits.INT_MAX
+    V_current[j] = gapWeight + spaceWeight * j
+    D[j] = limits.INT_MAX
 
   for i in range(1, length2+1) :
     char2 = string2[i-1]
     # V_previous = V_current
     for _ in range(0, length1 + 1) :
-        V_previous.data.as_floats[_] = V_current.data.as_floats[_]
+        V_previous[_] = V_current[_]
 
     # Base conditions  
     # V(i,0) = gapWeight + spaceWeight * i
     # I(i,0) = Infinity 
-    V_current.data.as_floats[0] = gapWeight + spaceWeight * i
+    V_current[0] = gapWeight + spaceWeight * i
     I = limits.INT_MAX
   
     for j in range(1, length1 + 1) :
@@ -82,34 +76,40 @@ cpdef float affineGapDistance(char *string1, char *string2,
       # I(i,j) = min(I(i,j-1), V(i,j-1) + gapWeight) + spaceWeight
 
       if j <= length2 :
-        I = min(I, V_current.data.as_floats[j-1] + gapWeight) + spaceWeight
+        I = min(I, V_current[j-1] + gapWeight) + spaceWeight
       else :
         # Pay less for abbreviations
         # i.e. 'spago (los angeles) to 'spago'
-        I = (min(I, V_current.data.as_floats[j-1] + gapWeight * abbreviation_scale)
+        I = (min(I, V_current[j-1] + gapWeight * abbreviation_scale)
              + spaceWeight * abbreviation_scale)
         
       # D(i,j) is the edit distance if the ith character of string 2
       # was deleted from string 1
       #
       # D(i,j) = min((i-1,j), V(i-1,j) + gapWeight) + spaceWeight
-      D.data.as_floats[j] = min(D.data.as_floats[j], V_previous.data.as_floats[j] + gapWeight) + spaceWeight
+      D[j] = min(D[j], V_previous[j] + gapWeight) + spaceWeight
               
       # M(i,j) is the edit distance if the ith and jth characters
       # match or mismatch
       #
       # M(i,j) = V(i-1,j-1) + (matchWeight | misMatchWeight)  
       if char2 == char1 :
-        M = V_previous.data.as_floats[j-1] + matchWeight
+        M = V_previous[j-1] + matchWeight
       else:
-        M = V_previous.data.as_floats[j-1] + mismatchWeight
+        M = V_previous[j-1] + mismatchWeight
       
       # V(i,j) is the minimum edit distance 
       #  
       # V(i,j) = min(E(i,j), F(i,j), G(i,j))
-      V_current.data.as_floats[j] = min(I, D.data.as_floats[j], M)
+      V_current[j] = min(I, D[j], M)
 
-  return V_current.data.as_floats[length1]
+  distance = V_current[length1]
+
+  free(D)
+  free(V_current)
+  free(V_previous)
+
+  return distance
 
 cpdef float normalizedAffineGapDistance(char *string1, char *string2,
                                         float matchWeight = 1,
