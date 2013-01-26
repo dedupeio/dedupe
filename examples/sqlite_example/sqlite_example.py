@@ -88,23 +88,17 @@ blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 deduper.writeSettings(settings_file)
 print 'blocked in', time.time() - t_block, 'seconds'
 
-def createSelector(field, con) :
-    cur = con.cursor()
 
-    def selector(doc_ids) :
-
-      doc_ids = ', '.join([str(doc_id) for doc_id in doc_ids ])
-      sql = "SELECT donor_id, %s, address_1, address_2, last_name FROM donors WHERE donor_id IN (%s)" % (field, doc_ids)
-      #print sql
-      for row in cur.execute(sql) :
-        #print row
-        yield (row['donor_id'], row[str(field)])
-
-    return selector
+donor_select = "SELECT donor_id, LOWER(city) AS city, " \
+               "LOWER(first_name) AS first_name, " \
+               "LOWER(last_name) AS last_name, " \
+               "LOWER(zip) AS zip, LOWER(state) AS state, " \
+               "LOWER(address_1) AS address_1, " \
+               "LOWER(address_2) AS address_2 FROM donors"
 
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors limit 100"))
+full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
 blocker.invertIndex(full_data)
 
 # print 'token vector', blocker.token_vector
@@ -115,7 +109,6 @@ blocker.canopies = {}
 counter = 1
 for threshold, field in blocker.tfidf_thresholds :
     print (str(counter) + "/" + str(len(blocker.tfidf_thresholds))), threshold.threshold, field
-    # selector = createSelector(field, con)
     canopy = blocker.createCanopies(field, threshold)
     blocker.canopies[threshold.__name__ + field] = canopy
     counter += 1
@@ -125,7 +118,7 @@ del blocker.token_vector
 
 print 'writing blocking map'
 def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute("SELECT * FROM donors limit 100"))
+    full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
     for donor_id, record in full_data :
         if donor_id % 10000 == 0 :
             print donor_id

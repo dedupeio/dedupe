@@ -9,16 +9,10 @@ from collections import defaultdict
 import itertools
 
 
-class LowerRow(sqlite3.Row) :
-  def __getitem__(self, key):
-    return str(sqlite3.Row.__getitem__(self, key)).lower().strip()
-
-
 settings_file = 'sqlite_example_settings.json'
 
 t0 = time.time()
 
-print 'selecting random sample from donors table...'
 con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
 con.row_factory = sqlite3.Row
 con.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
@@ -32,21 +26,23 @@ else:
   raise ValueError('Settings File Not Found')
 
 
-block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 and num_candidates < 1000'))
+block_keys = (row['key'] for row in con.execute('select key, count(donor_id) as num_candidates from bm.blocking_map group by key having num_candidates > 1 and num_candidates < 1000 limit 10'))
 
-lower_con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
-lower_con.row_factory = LowerRow
-lower_con.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
-
+donor_select = "SELECT donor_id, LOWER(city) AS city, " \
+               "LOWER(first_name) AS first_name, " \
+               "LOWER(last_name) AS last_name, " \
+               "LOWER(zip) AS zip, LOWER(state) AS state, " \
+               "LOWER(address_1) AS address_1, " \
+               "LOWER(address_2) AS address_2 FROM donors"
 
 # TODO: combine this with mergeBlocks
 #@profile 
 def candidates_gen() :
     for i, block_key in enumerate(block_keys) :
-        if i % 1000 == 0 :
+        if i % 10000 == 0 :
           print i, "blocks"
           print time.time() - t0, "seconds"
-        block = itertools.combinations(((row['donor_id'], row) for row in lower_con.execute('select * from donors inner join bm.blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2)
+        block = itertools.combinations(((row['donor_id'], row) for row in con.execute(donor_select + ' inner join bm.blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2)
         for candidate in block :
           yield candidate
 
@@ -80,7 +76,6 @@ print len(clustered_dupes)
 
 cur.close()
 con.close()
-lower_con.close()
 print 'ran in', time.time() - t0, 'seconds'
 
 # select sum(amount), head_id from contributions inner join entity_map using (donor_id) group by head_id;
