@@ -35,13 +35,15 @@ cpdef float affineGapDistance(char *string1, char *string2,
       string1, string2 = string2, string1
       length1, length2 = length2, length1
 
-  D = <double*> malloc(sizeof(double) * length1+1)
-  V_current = <double*> malloc(sizeof(double) * length1+1)
-  V_previous = <double*> malloc(sizeof(double) * length1+1)
+  # Initialize C Arrays      
+  memory_size = sizeof(float) * (length1+1)
+  D = <float*> malloc(memory_size)
+  V_current = <float*> malloc(memory_size)
+  V_previous = <float*> malloc(memory_size)
 
   cdef char char1, char2
   cdef int i, j
-  cdef float e, g, distance
+  cdef float distance
 
 
   # Set up Recurrence relations
