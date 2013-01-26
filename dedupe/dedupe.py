@@ -296,8 +296,6 @@ class Dedupe:
                                           self.data_model,
                                           pairwise_threshold)
 
-        print self.dupes.nbytes
-
         clusters = clustering.hierarchical.cluster(self.dupes, cluster_threshold)
 
         return clusters

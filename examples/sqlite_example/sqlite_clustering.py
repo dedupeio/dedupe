@@ -40,7 +40,7 @@ def candidates_gen() :
           print time.time() - t0, "seconds"
         block = itertools.combinations(((row['donor_id'], row) for row in con.execute('select * from donors inner join bm.blocking_map using (donor_id) where key = ? order by donor_id', (block_key,))), 2)
         for candidate in block :
-          cache.put(candidate, True)
+          yield candidate
 
             
 

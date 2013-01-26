@@ -3,6 +3,9 @@
 import numpy
 import fastcluster
 import hcluster
+import networkx
+from networkx.algorithms.components.connected import connected_components
+import itertools
 
 def condensedDistance(dupes):
 
@@ -47,17 +50,40 @@ def cluster(dupes, threshold=.5):
                  number will increase precision, raising it will increase
                  recall
     """
-    (i_to_id, condensed_distances) = condensedDistance(dupes)
-    linkage = fastcluster.linkage(condensed_distances,
-                                  method='centroid',
-                                  preserve_input=False)
 
-    partition = hcluster.fcluster(linkage, threshold)
+    score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
+
+
+    dupe_graph = networkx.Graph()
+    dupe_graph.add_weighted_edges_from(((x[0], x[1], y) for x, y in dupes))
+    del dupes
+
+    dupe_sub_graphs = connected_components(dupe_graph)
 
     clustering = {}
+    cluster_id = 0
+    for sub_graph in dupe_sub_graphs :
+        if len(sub_graph) > 2 :
+            pair_gen = ((x[0:2], x[2]['weight'])
+                        for x
+                        in dupe_graph.edges_iter(sub_graph, data=True))
+                
+            pairs = numpy.fromiter(pair_gen, dtype=score_dtype)
 
-    for (i, cluster_id) in enumerate(partition):
-        clustering.setdefault(cluster_id, []).append(i_to_id[i])
+            (i_to_id, condensed_distances) = condensedDistance(pairs)
+            linkage = fastcluster.linkage(condensed_distances,
+                                          method='centroid',
+                                          preserve_input=False)
+
+            partition = hcluster.fcluster(linkage, threshold)
+
+            for (i, cluster_id) in enumerate(partition):
+                clustering.setdefault(cluster_id, []).append(i_to_id[i])
+                cluster_id += 1
+
+        else :
+            clustering[cluster_id] = sub_graph
+            cluster_id += 1
 
     clusters = [set(l) for l in clustering.values() if len(l) > 1]
 
