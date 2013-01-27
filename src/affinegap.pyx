@@ -36,10 +36,10 @@ cpdef float affineGapDistance(char *string1, char *string2,
       length1, length2 = length2, length1
 
   # Initialize C Arrays      
-  memory_size = sizeof(float) * (length1+1)
-  D = <float*> malloc(memory_size)
-  V_current = <float*> malloc(memory_size)
-  V_previous = <float*> malloc(memory_size)
+  cdef int memory_size = sizeof(float) * (length1+1)
+  cdef float *D = <float*> malloc(memory_size)
+  cdef float *V_current = <float*> malloc(memory_size)
+  cdef float *V_previous = <float*> malloc(memory_size)
 
   cdef char char1, char2
   cdef int i, j
