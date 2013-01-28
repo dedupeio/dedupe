@@ -16,6 +16,9 @@ t0 = time.time()
 print 'importing data ...'
 (data_d, header) = exampleIO.readData(input_file)
 
+# take a sample of data_d for training
+data_d_sample = dedupe.core.sampleDict(data_d, 700)
+
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
     deduper = dedupe.Dedupe(settings_file)
@@ -30,12 +33,12 @@ else:
     if os.path.exists(training_file):
         # read in training json file
         print 'reading labeled examples from ', training_file
-        deduper.train(data_d, training_file)
+        deduper.train(data_d_sample, training_file)
 
     print 'starting active labeling...'
     print 'finding uncertain pairs...'
     # get user input for active learning
-    deduper.train(data_d, dedupe.training_sample.consoleLabel)
+    deduper.train(data_d_sample, dedupe.training_sample.consoleLabel)
     deduper.writeTraining(training_file)
 
 
