@@ -60,19 +60,17 @@ parser.add_argument('--active', type=bool, nargs = '?', default=False,
 
 args = parser.parse_args()
 
-settings_file = 'restaurant_learned_settings.json'
+settings_file = 'canonical_learned_settings.json'
 raw_data = 'test/datasets/restaurant-nophone-training.csv'
 num_training_dupes = 200
-num_training_distinct = 1600
+num_training_distinct = 2096
 num_iterations = 10
 
 (data_d, header, duplicates_s) = canonicalImport(raw_data)
 
 t0 = time.time()
 
-print 'number of duplicates pairs'
-print len(duplicates_s)
-print ''
+print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
     deduper = dedupe.Dedupe(settings_file)
@@ -94,14 +92,15 @@ else:
     else :
       print "Using a random sample of training pairs..."
 
-
+      deduper.initializeTraining()
       deduper.training_pairs = \
           dedupe.training_sample.randomTrainingPairs(data_d,
                                                      duplicates_s,
                                                      num_training_dupes,
                                                      num_training_distinct)
 
-      deduper.data_d = dedupe.core.sampleDict(data_d, 700)
+      deduper.data_d = data_d
+
 
       deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
                                                               deduper.data_model,
@@ -120,8 +119,11 @@ else:
 
 
 print 'blocking...'
-blocker = deduper.blockingFunction()
+blocker = deduper.blockingFunction(eta=1, epsilon=1)
 blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
+# print blocked_data
+
+# print candidates
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data)
 
@@ -130,7 +132,7 @@ deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
-                  if score > .40])
+                  if score > .90])
 
 evaluateDuplicates(found_dupes, duplicates_s)
 

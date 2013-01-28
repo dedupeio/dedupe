@@ -7,8 +7,8 @@ import time
 
 input_file = 'examples/datasets/ECP_all_raw_input.csv'
 output_file = 'examples/output/ECP_dupes_list.csv'
-settings_file = 'ecp_learned_settings.json'
-training_file = 'ecp_training.json'
+settings_file = 'csv_example_learned_settings.json'
+training_file = 'csv_example_training.json'
 
 t0 = time.time()
 

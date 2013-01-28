@@ -2,14 +2,18 @@
 # -*- coding: utf-8 -*-
 import json
 import random
+import collections
+import itertools
 
 import core
 import training_sample
 import crossvalidation
-from predicates import *
+import predicates
 import blocking
 import clustering
+import tfidf
 import numpy
+import dedupe
 
 import types
 
@@ -78,15 +82,6 @@ class Dedupe:
             raise ValueError("No Input: must supply either "
                              "a field definition or a settings file."
                              )
-
-
-        n_fields = len(self.data_model['fields'])
-        field_dtype = [('names', 'a20', n_fields),
-                       ('values', 'f4', n_fields)]
-        training_dtype = [('label', 'i4'),
-                          ('field_distances', field_dtype)]
-
-        self.training_data = numpy.zeros(0, dtype=training_dtype)
             
     def _initializeSettings(self, fields):
         data_model = {}
@@ -111,7 +106,7 @@ class Dedupe:
                                  "that must include a type definition, "
                                  "ex. {'Phone': {type: 'String'}}"
                                  )
-            elif v['type'] == 'Interaction' and ('interaction_terms'
+            elif v['type'] == 'Interaction' and ('interaction-terms'
                                                  not in v):
                 raise ValueError("Interaction terms not set: "
                                  "Interaction types must include a "
@@ -141,19 +136,18 @@ class Dedupe:
         """
         n_fields = len(self.data_model['fields'])
 
-        field_dtype = [('names', 'a20', n_fields),
-                       ('values', 'f4', n_fields)]
         training_dtype = [('label', 'i4'),
-                          ('field_distances', field_dtype)]
+                          ('field_distances', 'f4', n_fields)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
+        self.training_pairs = None
 
         if training_file :
             (self.training_pairs,
-             self.training_data) = self._readTraining(training_source,
+             self.training_data) = self._readTraining(training_file,
                                                      self.training_data)                    
                 
-    def train(self, data_d, training_source=None) :
+    def train(self, data_d, training_source=None, key_groups=[]) :
         """
         Learn field weights and blocking predicate from file of
         labeled examples or round of interactive labeling
@@ -219,13 +213,18 @@ class Dedupe:
         examples labeled in a previous session. If you need details
         for this file see the method writeTraining.
         """
+
         if (training_source.__class__ is not str
             and not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
-        self.data_d = core.sampleDict(data_d, 700)
+        # data_d = core.sampleDict(data_d, 700) #we should consider changing this
+        print "data_d length: ", len(data_d)
+
+        self.data_d = dict([(key, core.frozendict(value)) for key, value in data_d.iteritems()])
 
         if training_source.__class__ is str:
+            print 'reading training from file'
             if not hasattr(self, 'training_data'):
                 self.initializeTraining(training_source)
             
@@ -235,17 +234,20 @@ class Dedupe:
         elif isinstance(training_source, types.FunctionType) :
             if not hasattr(self, 'training_data'):
                 self.initializeTraining()
+            
             (self.training_data,
             self.training_pairs,
             self.data_model) = training_sample.activeLearning(self.data_d,
                                                               self.data_model,
                                                               training_source,
-                                                              self.training_data)
+                                                              self.training_data,
+                                                              self.training_pairs,
+                                                              key_groups)
 
         self.alpha = crossvalidation.gridSearch(self.training_data,
                                                 core.trainModel,
                                                 self.data_model,
-                                                k=10)
+                                                k=20)
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model,
@@ -253,7 +255,7 @@ class Dedupe:
 
         self._printLearnedWeights()
 
-    def blockingFunction(self):
+    def blockingFunction(self, eta=1, epsilon=1):
         """
         Returns a function that takes in a record dictionary and
         returns a list of blocking keys for the record. We will
@@ -262,14 +264,15 @@ class Dedupe:
         We'll allow for predicates to be passed
         """
         if not self.predicates:
-            self.predicates = self._learnBlocking(self.data_d)
+            self.predicates = self._learnBlocking(self.data_d, eta, epsilon)
 
-        bF = blocking.createBlockingFunction(self.predicates)
+        bF = blocking.Blocker(self.predicates, self.df_index)
 
         return bF
 
+    #@profile
     def duplicateClusters(self,
-                          blocked_data,
+                          blocks,
                           pairwise_threshold = .5,
                           cluster_threshold = .5):
         """
@@ -290,7 +293,9 @@ class Dedupe:
 
         """
 
-        candidates = blocking.mergeBlocks(blocked_data)
+        candidates = (pair for block in blocks
+                      for pair in itertools.combinations(block, 2))
+        
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
                                           pairwise_threshold)
@@ -299,30 +304,47 @@ class Dedupe:
 
         return clusters
 
-    def _learnBlocking(self, data_d):
+    def _learnBlocking(self, data_d, eta, epsilon):
         confident_nonduplicates = blocking.semiSupervisedNonDuplicates(self.data_d,
                                                                        self.data_model)
+                                                                       
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
-        predicate_functions = (wholeFieldPredicate,
-                               tokenFieldPredicate,
-                               commonIntegerPredicate,
-                               sameThreeCharStartPredicate,
-                               sameFiveCharStartPredicate,
-                               sameSevenCharStartPredicate,
-                               nearIntegersPredicate,
-                               commonFourGram,
-                               commonSixGram,
+        predicate_functions = (predicates.wholeFieldPredicate,
+                               predicates.tokenFieldPredicate,
+                               predicates.commonIntegerPredicate,
+                               predicates.sameThreeCharStartPredicate,
+                               predicates.sameFiveCharStartPredicate,
+                               predicates.sameSevenCharStartPredicate,
+                               predicates.nearIntegersPredicate,
+                               predicates.commonFourGram,
+                               predicates.commonSixGram,
                                )
+
+        tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
+        full_string_records = {}
+        for k, v in data_d.iteritems() :
+          document = ''
+          for field in self.data_model['fields'].keys() :
+            document += v[field]
+            document += ' '
+          full_string_records[k] = document
+
+        self.df_index = tfidf.documentFrequency(full_string_records)
 
         blocker = blocking.Blocking(self.training_pairs,
                                     predicate_functions,
-                                    self.data_model)
+                                    self.data_model,
+                                    tfidf_thresholds,
+                                    self.df_index,
+                                    eta,
+                                    epsilon
+                                    )
 
-        predicates = blocker.trainBlocking()
+        learned_predicates = blocker.trainBlocking()
 
-        return predicates
+        return learned_predicates
 
     def _printLearnedWeights(self):
         print 'Learned Weights'
@@ -341,17 +363,38 @@ class Dedupe:
         Keyword arguments:
         file_name -- path to a json file
         """
+
+        if not file_name.endswith('.json') :
+          raise ValueError("Settings file name must end with '.json'")
+
         source_predicates = []
         for predicate_tuple in self.predicates:
             source_predicate = []
             for predicate in predicate_tuple:
-                source_predicate.append((predicate[0].__name__,
-                                         predicate[1]))
+              if isinstance(predicate[0], types.FunctionType):
+                source_predicate.append((predicate[0].__module__ + '.' + predicate[0].__name__,
+                                         predicate[1],
+                                         'simple'))
+              elif predicate[0].__class__ is tfidf.TfidfPredicate :
+                source_predicate.append((predicate[0].threshold,
+                                         predicate[1],
+                                         'tfidf'))
+              else:
+                raise ValueError("Undefined predicate type")
+                
             source_predicates.append(source_predicate)
 
         with open(file_name, 'w') as f:
             json.dump({'data model': self.data_model,
                       'predicates': source_predicates}, f)
+
+        # save df_index to its own file
+        df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
+
+        #print 'unseen token value:', self.df_index['UNSEEN TOKEN']
+        self.df_index['UNSEEN TOKEN'] = self.df_index['UNSEEN TOKEN']
+        with open(df_index_file_name, 'w') as f:
+            json.dump(self.df_index, f)
 
     def writeTraining(self, file_name):
         """
@@ -366,14 +409,31 @@ class Dedupe:
 
     def _readSettings(self, file_name):
         with open(file_name, 'r') as f:
-            learned_settings = json.load(f)
+            learned_settings = json.loads(f.read(), object_hook=self._decode_dict)
 
         self.data_model = learned_settings['data model']
         self.predicates = []
         for predicate_l in learned_settings['predicates']:
-            predicate_tuple = tuple([(eval(predicate[0]), predicate[1])
-                                    for predicate in predicate_l])
-            self.predicates.append(predicate_tuple)
+          marshalled_predicate = []
+          for predicate in predicate_l :
+              if predicate[2] == 'simple' :
+                marshalled_predicate.append((eval(predicate[0]), predicate[1]))
+              elif predicate[2] == 'tfidf' : 
+                marshalled_predicate.append((tfidf.TfidfPredicate(predicate[0]),
+                                            predicate[1]))
+  
+          self.predicates.append(tuple(marshalled_predicate))
+
+        df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
+
+        with open(df_index_file_name, 'r') as f:
+            df_index = json.load(f)
+            unseen_value = df_index["UNSEEN TOKEN"]
+            self.df_index = collections.defaultdict(lambda : unseen_value)    
+            self.df_index.update(df_index)
+
+
+
 
     def _readTraining(self, file_name, training_pairs):
         with open(file_name, 'r') as f:
@@ -390,3 +450,30 @@ class Dedupe:
                                                         self.training_data)
 
         return training_pairs, training_data
+
+    # json encoding fix for unicode => string
+    def _decode_list(self, data):
+        rv = []
+        for item in data:
+            if isinstance(item, unicode):
+                item = item.encode('utf-8')
+            elif isinstance(item, list):
+                item = self._decode_list(item)
+            elif isinstance(item, dict):
+                item = self._decode_dict(item)
+            rv.append(item)
+        return rv
+
+    def _decode_dict(self, data):
+        rv = {}
+        for key, value in data.iteritems():
+            if isinstance(key, unicode):
+               key = key.encode('utf-8')
+            if isinstance(value, unicode):
+               value = value.encode('utf-8')
+            elif isinstance(value, list):
+               value = self._decode_list(value)
+            elif isinstance(value, dict):
+               value = self._decode_dict(value)
+            rv[key] = value
+        return rv

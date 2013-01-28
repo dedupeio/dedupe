@@ -7,7 +7,6 @@ import numpy
 
 
 # http://code.activestate.com/recipes/521906-k-fold-cross-validation-partition/
-
 def gridSearch(training_data,
                trainer,
                original_data_model,
@@ -21,7 +20,7 @@ def gridSearch(training_data,
     print 'using cross validation to find optimum alpha...'
     scores = []
 
-    fields = training_data[0][1][0]
+    fields = sorted(original_data_model['fields'].keys())
 
     for alpha in search_space:
         all_score = 0
@@ -31,26 +30,19 @@ def gridSearch(training_data,
 
             weight = numpy.array([data_model['fields'][field]['weight']
                                  for field in fields])
-
-            (real_labels,
-             validation_distances) = zip(*[(label, distances)
-                                           for (label, distances)
-                                           in validation])
-
-            predicted_labels = []
             bias = data_model['bias']
-            for example in validation_distances:
-                prediction = bias + numpy.dot(weight, example[1])
-                if prediction > 0:
-                    predicted_labels.append(1)
-                else:
-                    predicted_labels.append(0)
 
-            score = 0
-            for (real_label, predicted_label) in zip(real_labels,
-                                                     predicted_labels):
-                if real_label == predicted_label:
-                    score += 1
+            real_labels = training_data['label']
+            valid_examples = training_data['field_distances']
+            valid_scores = numpy.dot(valid_examples, weight) + bias
+
+
+            predicted_labels = valid_scores > 0
+
+
+            score = numpy.sum(real_labels == predicted_labels)
+            
+
 
             all_score += score
             all_N += len(real_labels)
