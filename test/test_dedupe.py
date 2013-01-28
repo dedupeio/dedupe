@@ -136,7 +136,7 @@ class BlockingTest(unittest.TestCase):
             (self.frozendict({"name": "Willy", "age": "35"}), self.frozendict({"name": "William", "age": "35"}))]
       }
     predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
-    self.blocker = dedupe.blocking.Blocking(training_pairs, predicate_functions, deduper.data_model, 1, 1)
+    self.blocker = dedupe.blocking.Blocking(training_pairs, predicate_functions, deduper.data_model, [], {}, 1, 1)
 
   def test_create_predicate_set(self):
     self.blocker.predicate_functions = ('foo', 'bar') 
