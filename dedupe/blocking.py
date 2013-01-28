@@ -170,15 +170,16 @@ def blockingIndex(data_d, blocker):
 
     blocks = defaultdict(list)
 
-    blocker.invertIndex(data_d.iteritems())
+    if blocker.tfidf_thresholds:
+        blocker.invertIndex(data_d.iteritems())
 
-    blocker.canopies = {}
-    for threshold, field in blocker.tfidf_thresholds :
-        selector = lambda record_id : data_d[record_id][field]    
-        # print field
-        canopy = blocker.createCanopies(field, threshold)
-        # print blocks
-        blocker.canopies[threshold.__name__ + field] = canopy
+        blocker.canopies = {}
+        for threshold, field in blocker.tfidf_thresholds :
+            selector = lambda record_id : data_d[record_id][field]    
+            # print field
+            canopy = blocker.createCanopies(field, threshold)
+            # print blocks
+            blocker.canopies[threshold.__name__ + field] = canopy
 
     for record_id, record in data_d.iteritems() :
         for key in blocker((record_id, record)):
