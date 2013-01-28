@@ -13,7 +13,7 @@ logfile
 *.json
 examples/output/*.*
 markelReceipts.txt
-illinois_contributions.db
+*.db
 kernprof.py
 possible_classifiers
 .DS_Store

@@ -4,68 +4,234 @@ from collections import defaultdict
 from itertools import product, chain, combinations
 from math import sqrt, log
 import core
-from random import sample
+import tfidf
+from random import sample, random, choice, shuffle
+import types
+import math
 
-def createBlockingFunction(predicates) :
+class Blocker: 
+    def __init__(self, predicates, df_index):
+        self.predicates = predicates
+        self.df_index = df_index
+        self.simple_predicates = []
+        self.tfidf_thresholds = set([])
+        self.mixed_predicates = []
+        self.tfidf_fields = set([])
+        self.inverted_index = defaultdict(lambda: defaultdict(list))
+        self.shim_tfidf_thresholds = []
+        self.token_vector = defaultdict(dict)
 
-    def blockingFunction(instance) :
-        keys = []
+        self.corpus_ids = set([])
+
         for predicate in predicates:
-            key_tuples = product(*[F(instance[field])
-                                         for (F, field) in predicate]
-                                       )
-            keys.extend([str(key_tuple) for key_tuple in key_tuples])
+            for pred in predicate :
+                if pred[0].__class__ is tfidf.TfidfPredicate :
+                    self.tfidf_thresholds.add(pred)
+                    self.tfidf_fields.add(pred[1])
 
-        return keys
-
-    return blockingFunction
         
 
 
-def blockingIndex(data_d, blockingFunction):
-    blocked_data = defaultdict(set)
-    for (key, instance) in data_d.iteritems():
-        predicate_keys = blockingFunction(instance) 
-        for predicate_key in predicate_keys :
-            blocked_data[predicate_key].add((key, instance))
+    def __call__(self, instance) :
+        record_id, record = instance 
+        keys = {}
+        record_keys = []
+        for predicate in self.predicates:
+            predicate_keys = []
+            for F, field in predicate :
+                pred_id = F.__name__ + field
+                if isinstance(F, types.FunctionType) :
+                    record_field = record[field].strip().lower()
+                    predicate_keys.append([str(key) + pred_id
+                                           for key in F(record_field)])
+                elif F.__class__ is tfidf.TfidfPredicate :
+                    #print self.canopies
+                    #raise
+                    center = self.canopies[pred_id][record_id]
+                    if center is not None :
+                        key = str(center) + pred_id
+                        predicate_keys.append((key,))
+                    else:
+                        continue
 
-    return blocked_data
+            record_keys.extend(product(*predicate_keys))
+
+        return record_keys
+
+    
+    def invertIndex(self, data_d) :
+        for record_id, record in data_d :
+            self.corpus_ids.add(record_id) # candidate for removal
+            for field in self.tfidf_fields :
+                tokens = record[field].lower().replace(",", "").split()
+                tokens = [(token, tokens.count(token)) for token in set(tokens)]
+                for token, _ in tokens:
+                    self.inverted_index[field][token].append(record_id)
+                
+                self.token_vector[field][record_id] = tokens
+
+        # ignore stop words in TFIDF canopy creation
+        num_docs = len(self.token_vector[field])
+
+        stop_word_threshold = max(num_docs * 0.025, 1000)
+        print "Stop word threshold: ", stop_word_threshold
+
+        num_docs_log = math.log(num_docs + 0.5)
+        singleton_idf = num_docs_log - math.log(1.0 + 0.5)
+
+        for field in self.inverted_index:
+            for token, occurrences in self.inverted_index[field].iteritems() :
+                n_occurrences = len(occurrences)
+                if n_occurrences < 2 :
+                    idf = singleton_idf
+                    occurrences = []
+                else :
+                    idf = num_docs_log - math.log(n_occurrences + 0.5)
+                    if n_occurrences > stop_word_threshold :
+                        occurrences = []
+                        print "Stop word: ", field, token, n_occurrences
+
+                self.inverted_index[field][token] = {'idf' : idf,
+                                                     'occurrences' : occurrences}
+
+        for field in self.token_vector:
+            inverted_index = self.inverted_index[field]
+            for record_id, tokens in self.token_vector[field].iteritems():
+                norm = math.sqrt(sum((inverted_index[token]['idf'] * count)**2
+                                     for token, count in tokens))
+                self.token_vector[field][record_id] = (dict(tokens), norm)
+
+    def createCanopies(self, field, threshold) :
+      """
+      A function that returns 
+      a field value of a record with a particular doc_id, doc_id
+      is the only argument that must be accepted by select_function
+      """
+
+      blocked_data = defaultdict(lambda:None)
+      seen_set = set([])
+      corpus_ids = self.corpus_ids.copy()
+
+      token_vectors = self.token_vector[field]
+      while corpus_ids :
+        center_id = corpus_ids.pop()
+        blocked_data[center_id] = center_id
+
+        doc_id = center_id
+        center_vector, center_norm = token_vectors[center_id]
+
+        seen_set.add(center_id)
+
+        if not center_norm :
+            continue    
+        #print "center_id", center_id
+        # print doc_id, center
+        # if not center :
+        #   continue
+
+        # initialize the potential block with center
+        candidate_set = set([])
+
+        for token in center_vector :
+          candidate_set.update(self.inverted_index[field][token]['occurrences'])
+
+        # print candidate_set
+        candidate_set = candidate_set - seen_set
+        for doc_id in candidate_set :
+          #print doc_id, candidate_field
+          candidate_vector, candidate_norm = token_vectors[doc_id]
+          if not candidate_norm :
+            continue
+
+          common_tokens = set(center_vector.keys()).intersection(candidate_vector.keys())
+
+          dot_product = 0 
+          for token in common_tokens :
+            token_idf = self.inverted_index[field][token]['idf']
+            dot_product += (center_vector[token] * token_idf) * (candidate_vector[token] * token_idf)
+
+          similarity = dot_product / (center_norm * candidate_norm)
+
+          if similarity > threshold.threshold :
+            blocked_data[doc_id] = center_id
+            seen_set.add(doc_id)
+            corpus_ids.remove(doc_id)
+
+            ## print threshold.threshold
+            ## print center_id, center, center_dict
+            ## print doc_id, candidate_dict
+            ## print similarity
 
 
-def mergeBlocks(blocked_data):
-    candidates = set()
-    for block in blocked_data.values():
-        if len(block) > 1:
-            block = sorted(block)
-            for pair in combinations(block, 2):
-                candidates.add(pair)
+      return blocked_data
+
+
+def blockingIndex(data_d, blocker):
+
+    blocks = defaultdict(list)
+
+    if blocker.tfidf_thresholds:
+        blocker.invertIndex(data_d.iteritems())
+
+        blocker.canopies = {}
+        for threshold, field in blocker.tfidf_thresholds :
+            selector = lambda record_id : data_d[record_id][field]    
+            # print field
+            canopy = blocker.createCanopies(field, threshold)
+            # print blocks
+            blocker.canopies[threshold.__name__ + field] = canopy
+
+    for record_id, record in data_d.iteritems() :
+        for key in blocker((record_id, record)):
+            blocks[key].append((record_id, record))
+
+    for i, key in enumerate(blocks) :
+        yield blocks[key]
+
+
+
+
+
+
+#TODO: move this to core.py
+def allCandidates(data_d, key_groups=[]):
+    candidates = []
+    if key_groups:
+        for group in key_groups :
+            data_group = ((k, data_d[k]) for k in group if k in data_d)
+            candidates.extend(combinations(data_group, 2))
+    else:
+        candidates = list(combinations(data_d.iteritems(), 2))
 
     return candidates
+    #return list(combinations(sorted(data_d.keys()), 2))
+
+def semiSupervisedNonDuplicates(data_d, data_model, 
+                                nonduplicate_confidence_threshold=.7,
+                                sample_size = 2000):
 
 
-def allCandidates(data_d):
-    return list(combinations(sorted(data_d.keys()), 2))
+    pair_combinations = list(combinations(data_d.iteritems(), 2))
+
+    if len(pair_combinations) <= sample_size :
+        return pair_combinations
+
+    shuffle(pair_combinations)
+    
+    confident_distinct_pairs = []
+    n_distinct_pairs = 0
+    for pair in pair_combinations :
+
+        pair_distance = core.recordDistances([pair], data_model)
+        score = core.scorePairs(pair_distance, data_model)
 
 
-def semiSupervisedNonDuplicates(data_d, data_model,
-                                nonduplicate_confidence_threshold=.7):
-
-    # this is an expensive call and we're making it multiple times
-    pairs = allCandidates(data_d)
-    record_distances = core.recordDistances(pairs, data_d, data_model)
-
-    confident_nondupes_ids = []
-    scored_pairs = core.scorePairs(record_distances, data_model)
-
-    for (i, score) in enumerate(scored_pairs):
-        if score < 1 - nonduplicate_confidence_threshold:
-            confident_nondupes_ids.append(record_distances['pairs'][i])
-
-    confident_nondupes_pairs = [(data_d[pair[0]], data_d[pair[1]])
-                                for pair in
-                                confident_nondupes_ids]
-
-    return confident_nondupes_pairs
+        if score < (1 - nonduplicate_confidence_threshold):
+            key_pair, value_pair = zip(*pair)
+            confident_distinct_pairs.append(value_pair)
+            n_distinct_pairs += 1
+            if n_distinct_pairs == sample_size :
+                return confident_distinct_pairs
 
 
 class Blocking:
@@ -74,30 +240,30 @@ class Blocking:
                  training_pairs,
                  predicate_functions,
                  data_model,
-                 eta=1,
-                 epsilon=1,
+                 tfidf_thresholds = [],
+                 df_index = {},
+                 eta=0.01,
+                 epsilon=5,
                  ):
         self.epsilon = epsilon
         self.predicate_functions = predicate_functions
+        self.df_index = df_index
+        self.tfidf_thresholds = [tfidf.TfidfPredicate(threshold) for threshold in tfidf_thresholds]
+        self._overlap = defaultdict(int)
 
         self.fields = [field for field in data_model['fields']
                        if data_model['fields'][field]['type']
                        != 'Interaction']
 
-        n_sample_distinct = 1000
-        if len(training_pairs[0]) <= n_sample_distinct:
-            self.training_distinct = (training_pairs[0])[:]
-        else:
-            self.training_distinct = sample((training_pairs[0])[:],
-                                            n_sample_distinct)
 
         self.training_dupes = (training_pairs[1])[:]
+        self.training_distinct = (training_pairs[0])[:]
 
         # We want to throw away the predicates that puts together too many
         # distinct pairs
-        sample_size = len(self.training_dupes) \
-            + len(self.training_distinct)
-        self.coverage_threshold = eta * sample_size
+        self.coverage_threshold = eta * len(self.training_distinct)
+        print 'coverage threshold:', self.coverage_threshold
+                
 
     # Approximate learning of blocking following the ApproxRBSetCover from
     # page 102 of Bilenko
@@ -105,34 +271,69 @@ class Blocking:
         self.predicate_set = self.createPredicateSet(disjunctive)
         n_predicates = len(self.predicate_set)
 
+        # TF-IDF coverage
+        if self.tfidf_thresholds :
+            tfidf_block_coverage = {}
+            for threshold in self.tfidf_thresholds :
+                for field in self.fields :
+                    coverage =  tfidf.coverage(threshold.threshold, 
+                                field, 
+                                self.training_dupes + self.training_distinct,
+                                self.df_index)
+                   
+                    for pair, value in coverage.iteritems():
+                        self._overlap[(pair, (threshold, field))] = value
+
+
+
+                    
+    
+        #print self.predicate_set
+        #print self._overlap
         found_dupes = self.predicateCoverage(self.training_dupes)
-        found_distinct = self.predicateCoverage(self.training_distinct)
+        found_distinct, distinct_blocks = self.predicateCoverage(self.training_distinct,
+                                                return_blocks = True)
+
+        max_block_sizes = {}
+        for pred, blocking in distinct_blocks.iteritems() :
+            max_block_size = max(len(v) for v in blocking.values())
+            #print max_block_size
+
+            max_block_sizes[pred] = max_block_size
+                
+
+        ## for k,v in found_dupes.iteritems() :
+        ##     print k, len(v)
+
+        ## for k,v in found_distinct.iteritems() :
+        ##     print k, len(v)
 
         # Only consider predicates that cover at least one duplicate pair
         self.predicate_set = found_dupes.keys()
+
 
         # We want to throw away the predicates that puts together too
         # many distinct pairs
         [self.predicate_set.remove(predicate)
          for predicate
-         in found_distinct
-         if len(found_distinct[predicate]) >= self.coverage_threshold]
+         in set(self.predicate_set).intersection(found_distinct.keys())
+         if max_block_sizes[predicate] >= self.coverage_threshold]
 
         # Expected number of predicates that should cover a duplicate
         # pair
         expected_dupe_cover = sqrt(n_predicates
                                    / log(len(self.training_dupes)))
 
-        found_distinct = self.filterOutIndistinctPairs(expected_dupe_cover,
-                                                       found_distinct,
-                                                       self.training_distinct)
+        #found_distinct = self.filterOutIndistinctPairs(expected_dupe_cover,
+        #                                               found_distinct,
+        #                                               self.training_distinct)
 
         final_predicate_set = self.findOptimumBlocking(self.training_dupes,
                                                        self.predicate_set,
                                                        found_dupes,
                                                        found_distinct)
 
-        print 'Final predicate set'
+        print 'Final predicate set:'
         print final_predicate_set
 
         if final_predicate_set:
@@ -141,23 +342,52 @@ class Blocking:
             print 'No predicate found!'
             raise
 
-    def predicateCoverage(self, pairs):
+    def predicateCoverage(self, pairs, return_blocks=False):
         coverage = defaultdict(list)
+        blocks = defaultdict(lambda: defaultdict(set))
         for pair in pairs:
             for predicate in self.predicate_set:
-                keys1 = set(product(*[F(pair[0][field]) for (F,
-                            field) in predicate]))
-                keys2 = set(product(*[F(pair[1][field]) for (F,
-                            field) in predicate]))
-                if keys1 & keys2:
-                    coverage[predicate].append(pair)
+                for basic_predicate in predicate :
+                    if self._overlap[(pair, basic_predicate)] == -1 :
+                        break
+                    if self._overlap[(pair, basic_predicate)] == 1 :
+                        continue
 
-        return coverage
+                    F, field = basic_predicate
+                    field_predicate_1 = F(pair[0][field])
+                    if not field_predicate_1 :
+                        self._overlap[(pair, basic_predicate)] = -1 
+                        break
+
+                    field_predicate_2 = F(pair[1][field])
+
+                    if set(field_predicate_1) & set(field_predicate_2) :
+                        self._overlap[(pair, basic_predicate)] = 1 
+                    else:
+                        self._overlap[(pair, basic_predicate)] = -1
+                        break
+                    
+                else:
+                    coverage[predicate].append(pair)
+                    if return_blocks: 
+                        blocks[predicate][(field_predicate_1,
+                                           field_predicate_2)].update(pair)
+
+        if return_blocks :
+            return coverage, blocks
+
+        else :
+            return coverage
+            
 
     def createPredicateSet(self, disjunctive):
 
         # The set of simple predicates
         predicate_set = list(product(self.predicate_functions,
+                                     self.fields))
+
+
+        predicate_set.extend(product(self.tfidf_thresholds,
                                      self.fields))
 
         if disjunctive:
@@ -186,6 +416,7 @@ class Blocking:
                                  training_distinct,
                                  ):
 
+
         # We don't want to penalize a blocker if it puts distinct
         # pairs together that look like they could be duplicates.
         predicate_count = defaultdict(int)
@@ -197,6 +428,7 @@ class Blocking:
                              < expected_dupe_cover]
 
         return self.predicateCoverage(training_distinct)
+
 
     def findOptimumBlocking(self,
                             training_dupes,
@@ -210,26 +442,25 @@ class Blocking:
         # Chvatal, 1979
         final_predicate_set = []
         n_training_dupes = len(training_dupes)
-        print 'Uncovered dupes'
-        print n_training_dupes
+        print 'Uncovered dupes: ', n_training_dupes
         while n_training_dupes >= self.epsilon:
 
             optimumCover = 0
             bestPredicate = None
             for predicate in predicate_set:
-                try:
-                    cover = (len(found_dupes[predicate])
-                             / float(len(found_distinct[predicate]))
-                             )
-                except ZeroDivisionError:
-                    cover = len(found_dupes[predicate])
-
-                if cover > optimumCover:
+                cover = (len(found_dupes[predicate])
+                         / (float(len(found_distinct[predicate]))
+                            + 0.5)
+                         )
+                if cover > optimumCover and cover > 1 :
                     optimumCover = cover
                     bestPredicate = predicate
 
+                    print bestPredicate
+                    print 'cover:', cover, 'found_dupes:', len(found_dupes[bestPredicate]), 'found_distinct:', len(found_distinct[bestPredicate]) 
+
             if not bestPredicate:
-                print 'Ran out of predicates'
+                print 'WARNING: Ran out of predicates'
                 break
 
             predicate_set.remove(bestPredicate)

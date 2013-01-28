@@ -5,7 +5,10 @@ import re
 
 def wholeFieldPredicate(field):
     """return the whole field"""
-    return (field, )
+    if field:
+        return (field, )
+    else:
+        return ()
 
 
 def tokenFieldPredicate(field):
@@ -21,19 +24,20 @@ def commonIntegerPredicate(field):
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
     ints = sorted([int(i) for i in re.findall("\d+", field)])
-    return tuple([(i - 1, i, i + 1) for i in ints])
+    near_ints = set([])
+    [near_ints.update((i - 1, i, i + 1)) for i in ints]
+    return tuple(near_ints)
 
 
 def commonFourGram(field):
     """return 4-grams"""
-    return tuple([field[pos:pos + 4] for pos in xrange(0, len(field),
-                 4)])
+    return tuple([field[pos:pos + 4] for pos in xrange((len(field) - 4 + 1))])
+
 
 
 def commonSixGram(field):
     """"return 6-grams"""
-    return tuple([field[pos:pos + 6] for pos in xrange(0, len(field),
-                 6)])
+    return tuple([field[pos:pos + 6] for pos in xrange((len(field) - 6 + 1))])
 
 
 def sameThreeCharStartPredicate(field):

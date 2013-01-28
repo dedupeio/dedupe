@@ -7,24 +7,24 @@ class AffineGapTest(unittest.TestCase):
     self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
     
   def test_affine_gap_correctness(self):
-    assert self.affineGapDistance('a', 'b', -5, 5, 5, 1) == 5
-    assert self.affineGapDistance('ab', 'cd', -5, 5, 5, 1) == 10
-    assert self.affineGapDistance('ab', 'cde', -5, 5, 5, 1) == 13
-    assert self.affineGapDistance('a', 'cde', -5, 5, 5, 1) == 8.5
-    assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1) == 8
-    assert self.affineGapDistance('b', 'a', -5, 5, 5, 1) == 5
-    assert self.affineGapDistance('a', 'a', -5, 5, 5, 1) == -5
-    assert self.affineGapDistance('a', '', -5, 5, 5, 1) == 3
-    assert self.affineGapDistance('', '', -5, 5, 5, 1) == 0
-    assert self.affineGapDistance('aba', 'aaa', -5, 5, 5, 1) == -5
-    assert self.affineGapDistance('aaa', 'aba', -5, 5, 5, 1) == -5
-    assert self.affineGapDistance('aaa', 'aa', -5, 5, 5, 1) == -7
-    assert self.affineGapDistance('aaa', 'a', -5, 5, 5, 1) == -1.5
-    assert self.affineGapDistance('aaa', '', -5, 5, 5, 1) == 4
-    assert self.affineGapDistance('aaa', 'abba', -5, 5, 5, 1) == 1
+    assert self.affineGapDistance('a', 'b', -5, 5, 5, 1, 0.5) == 5
+    assert self.affineGapDistance('ab', 'cd', -5, 5, 5, 1, 0.5) == 10
+    assert self.affineGapDistance('ab', 'cde', -5, 5, 5, 1, 0.5) == 13
+    assert self.affineGapDistance('a', 'cde', -5, 5, 5, 1, 0.5) == 8.5
+    assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1, 0.5) == 8
+    assert self.affineGapDistance('b', 'a', -5, 5, 5, 1, 0.5) == 5
+    assert self.affineGapDistance('a', 'a', -5, 5, 5, 1, 0.5) == -5
+    assert self.affineGapDistance('a', '', -5, 5, 5, 1, 0.5) == 3
+    assert self.affineGapDistance('', '', -5, 5, 5, 1, 0.5) == 0
+    assert self.affineGapDistance('aba', 'aaa', -5, 5, 5, 1, 0.5) == -5
+    assert self.affineGapDistance('aaa', 'aba', -5, 5, 5, 1, 0.5) == -5
+    assert self.affineGapDistance('aaa', 'aa', -5, 5, 5, 1, 0.5) == -7
+    assert self.affineGapDistance('aaa', 'a', -5, 5, 5, 1, 0.5) == -1.5
+    assert self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5) == 4
+    assert self.affineGapDistance('aaa', 'abba', -5, 5, 5, 1, 0.5) == 1
     
   def test_normalized_affine_gap_correctness(self):
-    assert self.normalizedAffineGapDistance('', '', -5, 5, 5, 1) == 0
+    assert self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5) == 0
     
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
@@ -136,7 +136,7 @@ class BlockingTest(unittest.TestCase):
             (self.frozendict({"name": "Willy", "age": "35"}), self.frozendict({"name": "William", "age": "35"}))]
       }
     predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
-    self.blocker = dedupe.blocking.Blocking(training_pairs, predicate_functions, deduper.data_model, 1, 1)
+    self.blocker = dedupe.blocking.Blocking(training_pairs, predicate_functions, deduper.data_model, [], {}, 1, 1)
 
   def test_create_predicate_set(self):
     self.blocker.predicate_functions = ('foo', 'bar') 
@@ -173,9 +173,9 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.sameThreeCharStartPredicate(field) == ('123',)
     assert dedupe.predicates.sameFiveCharStartPredicate(field) == ('123 1',)
     assert dedupe.predicates.sameSevenCharStartPredicate(field) == ('123 16t',)
-    assert dedupe.predicates.nearIntegersPredicate(field) == ((15, 16, 17), (122, 123, 124))
-    assert dedupe.predicates.commonFourGram(field) == ('123 ', '16th', ' st')
-    assert dedupe.predicates.commonSixGram(field) == ('123 16', 'th st')
+    assert dedupe.predicates.nearIntegersPredicate(field) == (15, 16, 17, 122, 123, 124)
+    assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
+    assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
         
 if __name__ == "__main__":
     unittest.main()

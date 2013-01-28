@@ -8,33 +8,6 @@ import blocking
 import core
 import numpy
 
-
-# create a set of training data
-
-def trainingDistances(training_pairs, data_model):
-    fields = data_model['fields']
-
-    field_dtype = [('names', 'a10', len(fields)), ('values', 'f4',
-                   len(fields))]
-
-    distances = numpy.zeros(1, dtype=field_dtype)
-
-    training_data = []
-
-    for (label, examples) in training_pairs.items():
-        for (i, pair) in enumerate(examples):
-
-            c_distances = core.calculateDistance(pair[0],
-                                                 pair[1],
-                                                 fields,
-                                                 distances)
-            c_distances = dict(zip(fields.keys(),
-                                   c_distances[0]['values']))
-            training_data.append((label, c_distances))
-
-    return training_data
-
-
 # create a random set of training pairs based on known duplicates
 
 def randomTrainingPairs(data_d,
@@ -82,13 +55,26 @@ def findUncertainPairs(record_distances, data_model):
 def activeLearning(data_d,
                    data_model,
                    labelPairFunction,
-                   training_data
+                   training_data,
+                   training_pairs = None,
+                   key_groups = []
                    ):
+
     duplicates = []
     nonduplicates = []
+
+    if training_pairs :
+        nonduplicates.extend(training_pairs[0])
+        duplicates.extend(training_pairs[1])
+
     finished = False
-    pairs = blocking.allCandidates(data_d)
-    record_distances = core.recordDistances(pairs, data_d, data_model)
+    candidates = blocking.allCandidates(data_d, key_groups)
+
+    import time
+    t_train = time.time()
+    record_distances = core.recordDistances(candidates, data_model)
+    print 'calculated recordDistances in ', time.time() - t_train, 'seconds'
+    
     while finished == False :
         print 'finding the next uncertain pair ...'
         uncertain_indices = findUncertainPairs(record_distances,
@@ -131,27 +117,16 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
 
     fields = data_model['fields']
 
+    n_distinct_pairs, n_dupe_pairs = len(labeled_pairs[0]), len(labeled_pairs[1])
 
-    field_dtype = training_data.dtype[1]
-
-    distances = numpy.zeros(1, dtype=field_dtype)
-
-    num_training_pairs = len(labeled_pairs[0]) + len(labeled_pairs[1])
-
-    new_training_data = numpy.zeros(num_training_pairs,
+    new_training_data = numpy.zeros(n_distinct_pairs + n_dupe_pairs,
                                     dtype=training_data.dtype)
 
-    i = 0
-    for (label, examples) in labeled_pairs.items():
-        for pair in examples:
-            c_distances = core.calculateDistance(pair[0],
-                                                 pair[1],
-                                                 fields,
-                                                 distances)
+    labels = labeled_pairs.keys()
+    examples = [record_pair for example in labeled_pairs.values() for record_pair in example]
 
-            example = (label, c_distances)
-            new_training_data[i] = example
-            i += 1
+    new_training_data['label'] = [labels[0]] * n_distinct_pairs + [labels[1]] * n_dupe_pairs
+    new_training_data['field_distances'] = core.buildRecordDistances(examples, fields)[0] 
 
     training_data = numpy.append(training_data, new_training_data)
 

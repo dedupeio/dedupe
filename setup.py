@@ -11,5 +11,5 @@ setup(
                  Extension('dedupe.lr',
                            sources=['src/lr.c'],
                            include_dirs=[numpy.get_include()])],
-    install_requires=['numpy', 'fastcluster', 'hcluster'],
+    install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx'],
     )
