@@ -218,7 +218,7 @@ class Dedupe:
             and not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
-        # data_d = core.sampleDict(data_d, 700) #we should consider changing this
+        data_d = core.sampleDict(data_d, 700) #we should consider changing this
         print "data_d length: ", len(data_d)
 
         self.data_d = dict([(key, core.frozendict(value)) for key, value in data_d.iteritems()])

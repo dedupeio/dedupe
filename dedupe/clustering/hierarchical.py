@@ -75,11 +75,11 @@ def cluster(dupes, threshold=.5):
                                           method='centroid',
                                           preserve_input=False)
 
-            partition = hcluster.fcluster(linkage, threshold)
+            partition = hcluster.fcluster(linkage, threshold, criterion='distance')
 
-            for (i, cluster_id) in enumerate(partition):
-                clustering.setdefault(cluster_id, []).append(i_to_id[i])
-                cluster_id += 1
+            for (i, sub_cluster_id) in enumerate(partition):
+                clustering.setdefault(cluster_id + sub_cluster_id, []).append(i_to_id[i])
+            cluster_id += max(partition)
 
         else :
             clustering[cluster_id] = sub_graph
@@ -87,4 +87,5 @@ def cluster(dupes, threshold=.5):
 
     clusters = [set(l) for l in clustering.values() if len(l) > 1]
 
+    
     return clusters

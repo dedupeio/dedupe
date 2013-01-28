@@ -1,8 +1,10 @@
 import csv
 import re
 import dedupe.core
+from AsciiDammit import asciiDammit
 
 def preProcess(column) :
+  column = asciiDammit(column)
   column = re.sub('  +', ' ', column)
   column = re.sub('\n', ' ', column)
   column = column.strip().strip('"').strip("'").lower()

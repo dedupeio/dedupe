@@ -5,7 +5,8 @@ import exampleIO
 import dedupe
 import time
 
-input_file = 'examples/datasets/ECP_all_raw_input.csv'
+#input_file = 'examples/datasets/ECP_all_raw_input.csv'
+input_file = 'examples/datasets/ECP_all_normalized_input.csv'
 output_file = 'examples/output/ECP_dupes_list.csv'
 settings_file = 'csv_example_learned_settings.json'
 training_file = 'csv_example_training.json'
@@ -30,19 +31,19 @@ else:
         # read in training json file
         print 'reading labeled examples from ', training_file
         deduper.train(data_d, training_file)
-    else:
-        print 'starting active labeling...'
-        print 'finding uncertain pairs...'
-        # get user input for active learning
-        deduper.train(data_d, dedupe.training_sample.consoleLabel)
-        deduper.writeTraining(training_file)
+
+    print 'starting active labeling...'
+    print 'finding uncertain pairs...'
+    # get user input for active learning
+    deduper.train(data_d, dedupe.training_sample.consoleLabel)
+    deduper.writeTraining(training_file)
 
 
 print 'blocking...'
 blocker = deduper.blockingFunction()
 blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data)
+clustered_dupes = deduper.duplicateClusters(blocked_data, cluster_threshold=.5)
 deduper.writeSettings(settings_file)
 
 print '# duplicate sets'

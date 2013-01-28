@@ -102,7 +102,7 @@ def activeLearning(data_d,
                                         data_model,
                                         training_data)
         if len(training_data) > 0 :
-            data_model = core.trainModel(training_data, data_model)
+            data_model = core.trainModel(training_data, data_model, 1)
         else :
             raise ValueError("No training pairs given")
 
