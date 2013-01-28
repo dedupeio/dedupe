@@ -271,7 +271,7 @@ class Dedupe:
 
     #@profile
     def duplicateClusters(self,
-                          candidates,
+                          blocks,
                           pairwise_threshold = .5,
                           cluster_threshold = .5):
         """
@@ -291,6 +291,8 @@ class Dedupe:
                               recall
 
         """
+
+        candidates = (itertools.combinations(block, 2) for block in blocks)
 
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
