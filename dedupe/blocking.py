@@ -183,20 +183,13 @@ def blockingIndex(data_d, blocker):
     for record_id, record in data_d.iteritems() :
         for key in blocker((record_id, record)):
             blocks[key].append((record_id, record))
-    
-    return blocks
+
+    for i, key in enumerate(blocks) :
+        yield blocks[key]
 
 
-def mergeBlocks(blocked_data):
-    candidates = set()
-    for block in blocked_data.values():
-        block = sorted(block)
-        block = [(record_id, core.frozendict(record)) for
-                 record_id, record in block]
-        for pair in combinations(block, 2):
-            candidates.add(pair)
 
-    return candidates
+
 
 
 #TODO: move this to core.py

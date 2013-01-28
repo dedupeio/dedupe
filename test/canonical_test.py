@@ -123,10 +123,9 @@ blocker = deduper.blockingFunction(eta=1, epsilon=1)
 blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
 # print blocked_data
 
-candidates = dedupe.blocking.mergeBlocks(blocked_data)
 # print candidates
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(candidates)
+clustered_dupes = deduper.duplicateClusters(blocked_data)
 
 
 deduper.writeSettings(settings_file)

@@ -3,6 +3,7 @@
 import json
 import random
 import collections
+import itertools
 
 import core
 import training_sample
@@ -292,8 +293,9 @@ class Dedupe:
 
         """
 
-        candidates = (itertools.combinations(block, 2) for block in blocks)
-
+        candidates = (pair for block in blocks
+                      for pair in itertools.combinations(block, 2))
+        
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
                                           pairwise_threshold)
