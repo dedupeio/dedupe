@@ -26,15 +26,15 @@ Current solutions break easily, don’t scale, and require significant developer
 ## Testing
 
 Unit tests of core dedupe functions
-  > python tests/test_dedupe.py
+  > python test/test_dedupe.py
 
 Test using canonical dataset from Bilenko's research
   
 Using random sample data for training
-  > python tests/canonical_test.py
+  > python test/canonical_test.py
 
 Using active learning for training
-  > python tests/canonical_test.py --active True
+  > python test/canonical_test.py --active True
 
 ## Team
 
