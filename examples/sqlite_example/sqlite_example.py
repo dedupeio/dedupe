@@ -107,8 +107,18 @@ blocker.invertIndex(full_data)
 print 'creating canopies'
 blocker.canopies = {}
 counter = 1
+
+# pure hackery that we need to fix in blocker
+seen_preds = set([])
+tfidf_thresholds = []
 for threshold, field in blocker.tfidf_thresholds :
-    print (str(counter) + "/" + str(len(blocker.tfidf_thresholds))), threshold.threshold, field
+  if (threshold.threshold, field) not in seen_preds :
+    tfidf_thresholds.append((threshold, field))
+    seen_preds.add((threshold.threshold, field))
+    
+
+for threshold, field in tfidf_thresholds :
+    print (str(counter) + "/" + str(len(tfidf_thresholds))), threshold.threshold, field
     canopy = blocker.createCanopies(field, threshold)
     blocker.canopies[threshold.__name__ + field] = canopy
     counter += 1
@@ -119,17 +129,27 @@ del blocker.token_vector
 print 'writing blocking map'
 def block_data() :
     full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
-    for donor_id, record in full_data :
-        if donor_id % 10000 == 0 :
-            print donor_id
+    for i, (donor_id, record) in enumerate(full_data) :
+        if i % 10000 == 0 :
+            print i
         for key in blocker((donor_id, record)):
             yield (str(key), donor_id)
 
+con_write = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
+con_write.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
 
-con.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
-                block_data())
+block_data_gen = block_data()
 
-con.commit()
+wrote_rows = True
+
+while wrote_rows != -1 : 
+  block_slice =  itertools.islice(block_data_gen, 0, 10**5) 
+  wrote_rows = con_write.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
+                                     block_slice).rowcount
+
+  con_write.commit()
+
+con_write.close()
 
 print 'writing largest blocks to file'
 
