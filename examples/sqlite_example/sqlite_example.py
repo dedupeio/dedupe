@@ -33,18 +33,14 @@ try:
 except OSError:
   pass
 
-con_blocking = sqlite3.connect("examples/sqlite_example/blocking_map.db")
-cur_blocking = con_blocking.cursor()
 
-print 'creating blocking_map database'
-cur_blocking.execute("CREATE TABLE blocking_map "
-            "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
-cur_blocking.execute("CREATE INDEX key_index ON blocking_map (key)")
-cur_blocking.execute("CREATE INDEX donor_id_index ON blocking_map (donor_id)")
-cur_blocking.execute("CREATE INDEX itx_index ON blocking_map (key, donor_id)")
-con_blocking.commit()
-cur_blocking.close()
-con_blocking.close()
+with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking :
+
+  print 'creating blocking_map database'
+  con_blocking.execute("CREATE TABLE blocking_map "
+                       "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
+  con_blocking.commit()
+
 
 
 
@@ -135,21 +131,12 @@ def block_data() :
         for key in blocker((donor_id, record)):
             yield (str(key), donor_id)
 
-con_write = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
-con_write.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
+con.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
+                block_data())
 
-block_data_gen = block_data()
+con.commit()
 
-wrote_rows = True
 
-while wrote_rows != -1 : 
-  block_slice =  itertools.islice(block_data_gen, 0, 10**5) 
-  wrote_rows = con_write.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
-                                     block_slice).rowcount
-
-  con_write.commit()
-
-con_write.close()
 
 print 'writing largest blocks to file'
 
