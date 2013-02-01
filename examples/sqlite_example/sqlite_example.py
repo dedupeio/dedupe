@@ -13,7 +13,7 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(last_name) AS last_name, " \
                "LOWER(zip) AS zip, LOWER(state) AS state, " \
                "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors LIMIT 70000"
+               "LOWER(address_2) AS address_2 FROM donors LIMIT 70001"
 
 
 def get_sample(cur, size):
@@ -133,10 +133,21 @@ def block_data() :
         for key in blocker((donor_id, record)):
             yield (str(key), donor_id)
 
-con.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
-                block_data())
+block_data_gen = block_data()
 
-con.commit()
+wrote_rows = True
+
+while wrote_rows != -1 : 
+  con_write = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
+  con_write.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
+
+  block_slice =  itertools.islice(block_data_gen, 0, 10**5) 
+  wrote_rows = con_write.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
+                                     block_slice).rowcount
+
+  con_write.commit()
+  con_write.close()
+
 cur.close()
 con.close()
 print 'ran in', time.time() - t0, 'seconds'
