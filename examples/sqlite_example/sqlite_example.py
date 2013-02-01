@@ -13,7 +13,7 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(last_name) AS last_name, " \
                "LOWER(zip) AS zip, LOWER(state) AS state, " \
                "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors LIMIT 70001"
+               "LOWER(address_2) AS address_2 FROM donors"
 
 
 def get_sample(cur, size):
@@ -42,7 +42,7 @@ with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking 
 
   print 'creating blocking_map database'
   con_blocking.execute("CREATE TABLE blocking_map "
-                       "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
+                       "(key TEXT, donor_id INT)")
   con_blocking.commit()
 
 
@@ -50,6 +50,8 @@ con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
 con.row_factory = sqlite3.Row
 con.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
 con.execute("PRAGMA cache_size = 2000")
+con.execute("PRAGMA temp_store = 2")
+con.execute("PRAGMA synchronous = OFF")
 cur = con.cursor()
 
 print 'selecting random sample from donors table...'
@@ -133,20 +135,14 @@ def block_data() :
         for key in blocker((donor_id, record)):
             yield (str(key), donor_id)
 
-block_data_gen = block_data()
+con.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
+                block_data())
 
-wrote_rows = True
+con.commit()
 
-while wrote_rows != -1 : 
-  con_write = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
-  con_write.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
-
-  block_slice =  itertools.islice(block_data_gen, 0, 10**5) 
-  wrote_rows = con_write.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
-                                     block_slice).rowcount
-
-  con_write.commit()
-  con_write.close()
+with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking :
+  print 'creating blocking_map index'
+  con.execute("CREATE INDEX blocking_map_idx ON blocking_map (key)")
 
 cur.close()
 con.close()
