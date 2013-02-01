@@ -96,7 +96,7 @@ deduper.writeSettings(settings_file)
 print 'blocked in', time.time() - t_block, 'seconds'
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
+full_data = ((row['donor_id'], row) for row in con.execute(donor_select + " LIMIT 70000"))
 blocker.invertIndex(full_data)
 
 # print 'token vector', blocker.token_vector
@@ -128,22 +128,43 @@ del blocker.token_vector
 
 print 'writing blocking map'
 def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
+    full_data = ((row['donor_id'], row) for row in con.execute(donor_select + " LIMIT 70000"))
     for i, (donor_id, record) in enumerate(full_data) :
-        if i % 5000 == 0 :
-            print i, 'at', time.time() - t0, 'seconds'
-        for key in blocker((donor_id, record)):
-            yield (str(key), donor_id)
+        if i % 10000 == 0 :
+            print i
+        # should move this set code into blocker
+        for key in set(str(block_key) for block_key in blocker((donor_id, record))):
+            yield (key, donor_id)
 
-con.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
+
+con.executemany("INSERT INTO bm.blocking_map VALUES (?, ?)",
                 block_data())
 
 con.commit()
+cur.close()
+con.close()
+
 
 with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking :
   print 'creating blocking_map index'
-  con.execute("CREATE INDEX blocking_map_idx ON blocking_map (key)")
+  con_blocking.execute("CREATE INDEX blocking_map_idx ON blocking_map (key)")
+  con_blocking.commit()
 
-cur.close()
-con.close()
+
+  print 'writing largest blocks to file'
+
+  with open('sqlite_example_block_sizes.txt', 'a') as f:
+    con.row_factory = None
+    f.write(time.asctime())
+    f.write('\n')
+    for row in con_blocking.execute("SELECT key, COUNT(donor_id) AS block_size "
+                                    "FROM blocking_map GROUP BY key "
+                                    "ORDER BY block_size DESC LIMIT 10") :
+
+      print row
+      f.write(str(row))
+      f.write('\n')
+
+
+
 print 'ran in', time.time() - t0, 'seconds'
