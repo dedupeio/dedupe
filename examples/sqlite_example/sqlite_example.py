@@ -13,7 +13,7 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(last_name) AS last_name, " \
                "LOWER(zip) AS zip, LOWER(state) AS state, " \
                "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors"
+               "LOWER(address_2) AS address_2 FROM donors LIMIT 70000"
 
 
 def get_sample(cur, size):
@@ -96,7 +96,7 @@ deduper.writeSettings(settings_file)
 print 'blocked in', time.time() - t_block, 'seconds'
 
 print 'creating inverted index'
-full_data = ((row['donor_id'], row) for row in con.execute(donor_select + " LIMIT 70000"))
+full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
 blocker.invertIndex(full_data)
 
 # print 'token vector', blocker.token_vector
@@ -128,7 +128,7 @@ del blocker.token_vector
 
 print 'writing blocking map'
 def block_data() :
-    full_data = ((row['donor_id'], row) for row in con.execute(donor_select + " LIMIT 70000"))
+    full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
     for i, (donor_id, record) in enumerate(full_data) :
         if i % 10000 == 0 :
             print i
@@ -147,7 +147,7 @@ con.close()
 
 with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking :
   print 'creating blocking_map index'
-  con_blocking.execute("CREATE INDEX blocking_map_idx ON blocking_map (key)")
+  con_blocking.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (key,donor_id)")
   con_blocking.commit()
 
 

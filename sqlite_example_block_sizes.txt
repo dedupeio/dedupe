@@ -561,3 +561,14 @@ Thu Jan 31 14:41:00 2013
 (u"('local commonSixGramlast_name', '1091TF-IDF:0.8address_1')", 89)
 (u"('60525commonIntegerPredicatezip', '149nearIntegersPredicatelast_name')", 86)
 Fri Feb  1 10:43:39 2013
+Fri Feb  1 15:37:35 2013
+(u"('20commonIntegerPredicateaddress_1', 'dical commonSixGramlast_name')", 129)
+(u"('20commonIntegerPredicateaddress_1', 'edicalcommonSixGramlast_name')", 129)
+(u"('20commonIntegerPredicateaddress_1', 'medicacommonSixGramlast_name')", 129)
+(u"('20commonIntegerPredicateaddress_1', ' mediccommonSixGramlast_name')", 128)
+(u"('2commonIntegerPredicateaddress_1', 'linoiscommonSixGramlast_name')", 125)
+(u"('2commonIntegerPredicateaddress_1', 'llinoicommonSixGramlast_name')", 125)
+(u"('133commonIntegerPredicateaddress_1', 'illinocommonSixGramlast_name')", 124)
+(u"('2commonIntegerPredicateaddress_1', 'illinocommonSixGramlast_name')", 124)
+(u"('133commonIntegerPredicateaddress_1', 'linoiscommonSixGramlast_name')", 122)
+(u"('133commonIntegerPredicateaddress_1', 'llinoicommonSixGramlast_name')", 122)
