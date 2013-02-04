@@ -53,5 +53,7 @@ pragma_list = ['auto_vacuum',
 
 con = sqlite3.connect(":memory:")
 
-for p in pragma_list :
-  print p, ':', con.execute("PRAGMA %s" % (p,)).fetchone()
+for pragma in pragma_list :
+  setting = con.execute("PRAGMA %s" % (pragma,)).fetchone()
+  if setting:
+    print pragma, ':', setting
