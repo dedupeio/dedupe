@@ -13,7 +13,7 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(last_name) AS last_name, " \
                "LOWER(zip) AS zip, LOWER(state) AS state, " \
                "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors LIMIT 70000"
+               "LOWER(address_2) AS address_2 FROM donors"
 
 
 def get_sample(cur, size):
