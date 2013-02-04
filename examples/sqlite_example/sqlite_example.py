@@ -131,7 +131,7 @@ def block_data() :
     full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
     for i, (donor_id, record) in enumerate(full_data) :
         if i % 10000 == 0 :
-            print i
+            print i, ',', time.time() - t0, 'seconds'
         # should move this set code into blocker
         for key in set(str(block_key) for block_key in blocker((donor_id, record))):
             yield (key, donor_id)
@@ -146,9 +146,10 @@ con.close()
 
 
 with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking :
-  print 'creating blocking_map index'
-  con_blocking.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (key,donor_id)")
+  print 'creating blocking_map index', time.time() - t0, 'seconds'
+  con_blocking.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (key)")
   con_blocking.commit()
+  print 'created', time.time() - t0, 'seconds'
 
 
   print 'writing largest blocks to file'
