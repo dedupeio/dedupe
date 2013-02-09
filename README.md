@@ -20,6 +20,18 @@ Current solutions break easily, don’t scale, and require significant developer
 
 ## Usage
 ```bash
+sudo apt-get install build-essentials python-dev python-pip # Ubuntu/Debian
+sudo zypper install gcc gcc-c++ python-devel python-pip # OpenSUSE
+
+# If you don't want to install dedup and its dependencies system-wide, run these four:
+sudo pip install virtualenv virtualenvwrapper
+echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
+source ~/.bashrc
+mkvirtualenv dedup
+# in the future, to access/use this virtualenv and dedup, run `workon dedup`
+
+pip install numpy # Needs to be installed separately from fastcluster
+pip install -r requirements.txt
 python setup.py install
 python examples/csv_example.py
 ```
