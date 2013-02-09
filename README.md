@@ -19,22 +19,30 @@ Current solutions break easily, don’t scale, and require significant developer
 * [networkx](http://networkx.github.com/)
 
 ## Usage
-  > python setup.py install
-  > python examples/csv_example.py
+```bash
+python setup.py install
+python examples/csv_example.py
+```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 
 ## Testing
 
 Unit tests of core dedupe functions
-  > python test/test_dedupe.py
+```bash
+python test/test_dedupe.py
+```
 
 Test using canonical dataset from Bilenko's research
   
 Using random sample data for training
-  > python test/canonical_test.py
+```bash
+python test/canonical_test.py
+```
 
 Using active learning for training
-  > python test/canonical_test.py --active True
+```bash
+python test/canonical_test.py --active True
+```
 
 ## Team
 
