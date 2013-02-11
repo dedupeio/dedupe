@@ -13,17 +13,53 @@ Current solutions break easily, don’t scale, and require significant developer
 
 ## Python Dependencies
 
-* [numpy](http://numpy.scipy.org/)
+This library requires [numpy](http://numpy.scipy.org/), which can be complicated to install. If you are installing numpy for the first time, [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
+
+After numpy is set up, then install the following:
 * [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html)
 * [hcluster](http://code.google.com/p/scipy-cluster/)
 * [networkx](http://networkx.github.com/)
 
-## Usage
+## Installation
+
+Using pip:
+
 ```bash
+pip install numpy
+pip install -r requirements.txt
 python setup.py install
+```
+
+Using easy_install:
+
+```bash
+easy_install numpy
+easy_install fastcluster
+easy_install hcluster
+easy_install networkx
+python setup.py install
+```
+
+## Usage examples
+
+Dedupe is a library and not a stand-alone command line tool. To demonstrate its usage, we have come up with a few example recipes for different sized datasets.
+
+### CSV example (<10,000 rows)
+```bash
 python examples/csv_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
+  
+### sqlite example (10,000 - 1,000,000 rows)
+```bash
+python examples/sqlite_example/init_db.py
+python examples/sqlite_example/sqlite_example.py
+```
+  (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
+  
+```bash
+python examples/sqlite_example/sqlite_clustering.py
+```
 
 ## Testing
 
