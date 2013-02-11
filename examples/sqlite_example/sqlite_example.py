@@ -50,8 +50,6 @@ con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
 con.row_factory = sqlite3.Row
 con.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
 con.execute("PRAGMA cache_size = 2000")
-con.execute("PRAGMA temp_store = 2")
-con.execute("PRAGMA synchronous = OFF")
 cur = con.cursor()
 
 print 'selecting random sample from donors table...'
@@ -150,22 +148,5 @@ with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking 
   con_blocking.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (key)")
   con_blocking.commit()
   print 'created', time.time() - t0, 'seconds'
-
-
-  print 'writing largest blocks to file'
-
-  with open('sqlite_example_block_sizes.txt', 'a') as f:
-    con.row_factory = None
-    f.write(time.asctime())
-    f.write('\n')
-    for row in con_blocking.execute("SELECT key, COUNT(donor_id) AS block_size "
-                                    "FROM blocking_map GROUP BY key "
-                                    "ORDER BY block_size DESC LIMIT 10") :
-
-      print row
-      f.write(str(row))
-      f.write('\n')
-
-
 
 print 'ran in', time.time() - t0, 'seconds'
