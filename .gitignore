@@ -12,7 +12,7 @@ logfile
 *.*#
 *.json
 examples/output/*.*
-markelReceipts.txt
+examples/sqlite_example/*.txt*
 *.db
 kernprof.py
 possible_classifiers

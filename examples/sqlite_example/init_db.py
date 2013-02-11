@@ -1,6 +1,31 @@
 import sqlite3
 import csv
 from AsciiDammit import asciiDammit
+import os
+import urllib2
+import zipfile
+
+os.chdir('./examples/sqlite_example/')
+
+contributions_zip_file = 'Illinois-campaign-contributions.txt.zip'
+contributions_txt_file = 'Illinois-campaign-contributions.txt'
+
+if not os.path.exists(contributions_zip_file) :
+  print 'downloading', contributions_zip_file, '(~60mb) ...'
+  u = urllib2.urlopen('https://s3.amazonaws.com/dedupe-data/Illinois-campaign-contributions.txt.zip')
+  localFile = open(contributions_zip_file, 'w')
+  localFile.write(u.read())
+  localFile.close()
+
+if not os.path.exists(contributions_txt_file) :
+  zip_file = zipfile.ZipFile(contributions_zip_file, 'r')
+  print 'extracting %s' % contributions_zip_file
+  zip_file_contents = zip_file.namelist()
+  for f in zip_file_contents:
+    if ('.txt' in f):
+      zip_file.extract(f)
+  zip_file.close()
+
 
 conn = sqlite3.connect("illinois_contributions.db")
 c = conn.cursor()
@@ -28,7 +53,7 @@ c.execute("CREATE TABLE raw_table "
 
 conn.commit()
 
-with open('markelReceipts.txt', 'rb') as f:
+with open(contributions_txt_file, 'rb') as f:
   contribution_reader = csv.reader(f, delimiter="\t")
   contribution_reader.next()
   for row in contribution_reader :
@@ -89,32 +114,7 @@ c.execute('CREATE TABLE contributions '
           ' election_year TEXT, report_period_begin TEXT, '
           ' report_period_end TEXT, PRIMARY KEY(contribution_id))')
 
-## c.execute('INSERT INTO contributions '
-##           'SELECT reciept_id, donors.donor_id, committee_id, '
-##           '       report_type, date_recieved, loan_amount, amount, '
-##           '       receipt_type, employer, occupation, vendor_last_name , '
-##           '       vendor_first_name, vendor_address_1, vendor_address_2, '
-##           '       vendor_city, vendor_state, vendor_zip, description, '
-##           '       election_type, election_year, report_period_begin, '
-##           '       report_period_end '
-##           'FROM raw_table JOIN donors ON '
-##           'donors.first_name = raw_table.first_name AND '
-##           'donors.last_name = raw_table.last_name AND '
-##           'donors.address_1 = raw_table.address_1 AND '
-##           'donors.address_2 = raw_table.address_2 AND '
-##           'donors.city = raw_table.city AND '
-##           'donors.state = raw_table.state AND '
-##           'donors.zip = raw_table.zip')
-
-## c.execute("CREATE INDEX donor_idx ON contributions (donor_id)")
-## c.execute("CREATE INDEX recipient_idx ON contributions (recipient_id)")
-
 conn.commit()
-
-#c.execute("DROP TABLE raw_table")
-#c.execute("VACUUM")
-#conn.commit()
-
 
 c.close()
 conn.close()
