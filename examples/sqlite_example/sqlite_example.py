@@ -17,13 +17,7 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
 
 
 def get_sample(cur, size):
-  select = "SELECT donor_id, LOWER(city) AS city, " \
-               "LOWER(first_name) AS first_name, " \
-               "LOWER(last_name) AS last_name, " \
-               "LOWER(zip) AS zip, LOWER(state) AS state, " \
-               "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors"
-  cur.execute(select + " ORDER BY RANDOM() LIMIT ?", (size,))
+  cur.execute(donor_select + " ORDER BY RANDOM() LIMIT ?", (size,))
   return dict([(row['donor_id'], row) for row in cur])
 
 
