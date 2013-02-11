@@ -26,8 +26,6 @@ training_file = 'sqlite_example_training.json'
 
 t0 = time.time()
 
-
-
 try:
   os.remove('examples/sqlite_example/blocking_map.db')
 except OSError:
@@ -38,15 +36,14 @@ with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking 
 
   print 'creating blocking_map database'
   con_blocking.execute("CREATE TABLE blocking_map "
-                       "(key TEXT, donor_id INT, PRIMARY KEY(key,donor_id))")
+                       "(key TEXT, donor_id INT)")
   con_blocking.commit()
-
-
 
 
 con = sqlite3.connect("examples/sqlite_example/illinois_contributions.db")
 con.row_factory = sqlite3.Row
 con.execute("ATTACH DATABASE 'examples/sqlite_example/blocking_map.db' AS bm")
+con.execute("PRAGMA cache_size = 2000")
 cur = con.cursor()
 
 print 'selecting random sample from donors table...'
@@ -90,9 +87,6 @@ blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 deduper.writeSettings(settings_file)
 print 'blocked in', time.time() - t_block, 'seconds'
 
-
-
-
 print 'creating inverted index'
 full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
 blocker.invertIndex(full_data)
@@ -100,7 +94,7 @@ blocker.invertIndex(full_data)
 # print 'token vector', blocker.token_vector
 # print 'inverted index', blocker.inverted_index
 
-print 'creating canopies'
+print 'creating TF/IDF canopies'
 blocker.canopies = {}
 counter = 1
 
@@ -119,6 +113,8 @@ for threshold, field in tfidf_thresholds :
     blocker.canopies[threshold.__name__ + field] = canopy
     counter += 1
 
+print 'created canopies at', time.time() - t0, 'seconds'
+
 del blocker.inverted_index
 del blocker.token_vector
 
@@ -127,32 +123,24 @@ def block_data() :
     full_data = ((row['donor_id'], row) for row in con.execute(donor_select))
     for i, (donor_id, record) in enumerate(full_data) :
         if i % 10000 == 0 :
-            print i
-        for key in blocker((donor_id, record)):
-            yield (str(key), donor_id)
+            print i, ',', time.time() - t0, 'seconds'
+        # should move this set code into blocker
+        for key in set(str(block_key) for block_key in blocker((donor_id, record))):
+            yield (key, donor_id)
 
-con.executemany("INSERT OR IGNORE INTO bm.blocking_map VALUES (?, ?)",
+
+con.executemany("INSERT INTO bm.blocking_map VALUES (?, ?)",
                 block_data())
 
 con.commit()
-
-
-
-print 'writing largest blocks to file'
-
-with open('sqlite_example_block_sizes.txt', 'a') as f:
-    con.row_factory = None
-    f.write(time.asctime())
-    f.write('\n')
-    for row in con.execute("SELECT key, COUNT(donor_id) AS block_size "
-                           "FROM bm.blocking_map GROUP BY key "
-                           "ORDER BY block_size DESC LIMIT 10") :
-
-        print row
-        f.write(str(row))
-        f.write('\n')
-
-
 cur.close()
 con.close()
+
+
+with sqlite3.connect("examples/sqlite_example/blocking_map.db") as con_blocking :
+  print 'creating blocking_map index', time.time() - t0, 'seconds'
+  con_blocking.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (key)")
+  con_blocking.commit()
+  print 'created', time.time() - t0, 'seconds'
+
 print 'ran in', time.time() - t0, 'seconds'

@@ -116,15 +116,6 @@ conn.commit()
 #conn.commit()
 
 
-
-print 'creating blocking table for storing dedupe results'
-c.execute("CREATE TABLE blocking_map (key TEXT, donor_id INT, "
-          "PRIMARY KEY(key,donor_id))")
-
-conn.commit()
-
-
-
 c.close()
 conn.close()
 print 'done'

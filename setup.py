@@ -19,6 +19,7 @@ class NumpyExtension(Extension):
 
 setup(
     name='Dedupe',
+    url='https://github.com/open-city/dedupe',
     version='0.3',
     packages=['dedupe', 'dedupe.clustering'],
 
@@ -27,6 +28,5 @@ setup(
                            sources=['src/lr.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx'],
-
     long_description=open('README.md').read(),
     )
