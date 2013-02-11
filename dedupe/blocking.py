@@ -194,17 +194,13 @@ def blockingIndex(data_d, blocker):
 
 
 #TODO: move this to core.py
-def allCandidates(data_d, key_groups=[]):
+def allCandidates(data_samples, key_groups=[]):
     candidates = []
-    if key_groups:
-        for group in key_groups :
-            data_group = ((k, data_d[k]) for k in group if k in data_d)
-            candidates.extend(combinations(data_group, 2))
-    else:
-        candidates = list(combinations(data_d.iteritems(), 2))
+    print data_samples
+    for data_sample in data_samples :
+        candidates.extend(list(combinations(data_samples.iteritems(), 2)))
 
     return candidates
-    #return list(combinations(sorted(data_d.keys()), 2))
 
 def semiSupervisedNonDuplicates(data_d, data_model, 
                                 nonduplicate_confidence_threshold=.7,

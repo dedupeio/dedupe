@@ -5,7 +5,6 @@
 The following code demonstrates how to use dedupe with a flat (CSV) file. All operations are performed in memory, so it won't work for data sets that are larger than ~10,000 rows. 
 """
 
-
 import os
 import csv
 import re
@@ -55,41 +54,42 @@ if os.path.exists(settings_file):
     print 'reading from ', settings_file
     deduper = dedupe.Dedupe(settings_file)
 
-    # Alternately, we can initialize a dedupe instance by declaring a field definition for the data. This defines the fields that we want to compare and how to compare them.
+# Alternately, we can initialize a dedupe instance by declaring a field definition for the data. This defines the fields that we want to compare and how to compare them.
 
-    # A field definition is a dictionary where the keys are the fields that will be used for training a model and the values are the field specification.
+# A field definition is a dictionary where the keys are the fields that will be used for training a model and the values are the field specification.
 
-    # Field types include
-    # - String
+# Field types include
+# - String
 
-    #A 'String' type field must have as its key a name of a field as it appears in the data dictionary and a type declaration ex. {'Phone': {type: 'String'}}
+#A 'String' type field must have as its key a name of a field as it appears in the data dictionary and a type declaration ex. {'Phone': {type: 'String'}}
 else:
-    fields = {'Site name': {'type': 'String'},
-              'Address': {'type': 'String'},
-              'Zip': {'type': 'String'},
-              'Phone': {'type': 'String'},
-              }
-    deduper = dedupe.Dedupe(fields)
+  fields = {'Site name': {'type': 'String'},
+            'Address': {'type': 'String'},
+            'Zip': {'type': 'String'},
+            'Phone': {'type': 'String'},
+            }
+  deduper = dedupe.Dedupe(fields)
 
-    # Dedupe will learn to predict if two records are duplicates based upon their similarity. In this example, that similarity is a weighted combination of the field by field [string similarity](http://en.wikipedia.org/wiki/String_metric) between records. Dedupe learns these weights.
+  # Dedupe will learn to predict if two records are duplicates based upon their similarity. In this example, that similarity is a weighted combination of the field by field [string similarity](http://en.wikipedia.org/wiki/String_metric) between records. Dedupe learns these weights.
 
-    # Dedupe will ask a user to label pairs of records as duplicates or not. These labeled records are saved and can be reused for later training. To train dedupe with these examples, call deduper.train as shown.
-    if os.path.exists(training_file):
-        print 'reading labeled examples from ', training_file
-        deduper.train(data_d_sample, training_file)
+  # Dedupe will ask a user to label pairs of records as duplicates or not. These labeled records are saved and can be reused for later training. To train dedupe with these examples, call deduper.train as shown.
+  if os.path.exists(training_file) :
+    print 'reading labeled examples from ', training_file
+    deduper.train(data_d_sample, training_file)
 
     print 'starting active labeling...'
     print 'finding uncertain pairs...'
 
-    # Dedupe can actively learn, that means it will select the records it is most uncertain about and will ask the user to label it. It will then learn from that labeling, update, and ask for the next most uncertain pair.
+  # Dedupe can actively learn, that means it will select the records it is most uncertain about and will ask the user to label it. It will then learn from that labeling, update, and ask for the next most uncertain pair.
 
-    # To do this, train method requires that you pass it a function to do this labeling, in this case, consoleLabel.
+  # To do this, train method requires that you pass it a function to do this labeling, in this case, consoleLabel.
 
-    # For consoleLabel, use 'y', 'n' and 'u' keys to flag duplicates, 'f' when you are finished.
-    deduper.train(data_d_sample, dedupe.training_sample.consoleLabel)
+  # For consoleLabel, use 'y', 'n' and 'u' keys to flag duplicates, 'f' when you are finished.
+  else:
+      deduper.train(data_d_sample, dedupe.training_sample.consoleLabel)
 
-    # Save away our labeled training pairs to a JSON file.
-    deduper.writeTraining(training_file)
+      # Save away our labeled training pairs to a JSON file.
+      deduper.writeTraining(training_file)
 
 # Now that dedupe knows how to compare records, we use the same training data to block records in to groups. The goal is to reduce the total number of comparisons.
 

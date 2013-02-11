@@ -14,7 +14,7 @@ def sampleDict(d, sample_size):
         return d
 
     sample_keys = random.sample(d.keys(), sample_size)
-    return dict((k, d[k]) for k in d.keys() if k in sample_keys)
+    return [dict((k, d[k]) for k in d.keys() if k in sample_keys)]
 
 # using logistic regression, train weights for all fields in the data model
 
