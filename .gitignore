@@ -1,5 +1,6 @@
 libdistance-0.2.1
 build
+docs
 *.pyc
 logfile
 *.*~
@@ -12,6 +13,7 @@ logfile
 *.*#
 *.json
 examples/output/*.*
+examples/csv_example/csv_example_output.csv
 examples/sqlite_example/*.txt*
 *.db
 kernprof.py
