@@ -221,7 +221,8 @@ class Dedupe:
         # data_d = core.sampleDict(data_d, 700) #we should consider changing this
         print "data_d length: ", len(data_d)
 
-        self.data_d = dict([(key, core.frozendict(value)) for key, value in data_d.iteritems()])
+        self.data_d = [dict([(key, core.frozendict(value)) for key, value in data_sample.iteritems()])
+                        for data_sample in data_samples]
 
         if training_source.__class__ is str:
             print 'reading training from file'
