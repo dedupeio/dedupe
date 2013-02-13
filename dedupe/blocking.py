@@ -9,6 +9,9 @@ from random import sample, random, choice, shuffle
 import types
 import math
 
+
+
+
 class Blocker: 
     def __init__(self, predicates, df_index):
         self.predicates = predicates
@@ -20,16 +23,20 @@ class Blocker:
         self.inverted_index = defaultdict(lambda: defaultdict(list))
         self.shim_tfidf_thresholds = []
         self.token_vector = defaultdict(dict)
+        self.canopies = {}
 
         self.corpus_ids = set([])
 
+        seen_preds = set([])
         for predicate in predicates:
             for pred in predicate :
                 if pred[0].__class__ is tfidf.TfidfPredicate :
-                    self.tfidf_thresholds.add(pred)
-                    self.tfidf_fields.add(pred[1])
-
-        
+                    threshold, field = pred
+                    if (threshold.threshold, field) not in seen_preds :
+                        self.tfidf_thresholds.add(pred)
+                        self.tfidf_fields.add(field)
+                        seen_preds.add((threshold.threshold, field))
+                        
 
 
     def __call__(self, instance) :
@@ -56,7 +63,8 @@ class Blocker:
 
             record_keys.extend(product(*predicate_keys))
 
-        return record_keys
+        #return record_keys
+        return set([str(key) for key in record_keys])
 
     
     def invertIndex(self, data_d) :
@@ -102,6 +110,22 @@ class Blocker:
                 norm = math.sqrt(sum((inverted_index[token]['idf'] * count)**2
                                      for token, count in tokens))
                 self.token_vector[field][record_id] = (dict(tokens), norm)
+
+    def tfIdfBlocks(self, data) :
+        self.invertIndex(data)
+        
+
+        print 'creating TF/IDF canopies'
+
+        num_thresholds = len(self.tfidf_thresholds)
+
+        for i, (threshold, field) in enumerate(self.tfidf_thresholds) :
+            print (str(i) + "/" + str(num_thresholds)), threshold.threshold, field
+            canopy = self.createCanopies(field, threshold)
+            self.canopies[threshold.__name__ + field] = canopy
+
+        del self.inverted_index
+        del self.token_vector
 
     def createCanopies(self, field, threshold) :
       """
@@ -172,16 +196,7 @@ def blockingIndex(data_d, blocker):
 
     blocks = defaultdict(list)
 
-    if blocker.tfidf_fields:
-        blocker.invertIndex(data_d.iteritems())
-
-        blocker.canopies = {}
-        for threshold, field in blocker.tfidf_thresholds :
-            selector = lambda record_id : data_d[record_id][field]    
-            # print field
-            canopy = blocker.createCanopies(field, threshold)
-            # print blocks
-            blocker.canopies[threshold.__name__ + field] = canopy
+    blocker.tfIdfBlocks(data_d.iteritems())
 
     for record_id, record in data_d.iteritems() :
         for key in blocker((record_id, record)):
@@ -189,20 +204,6 @@ def blockingIndex(data_d, blocker):
 
     for i, key in enumerate(blocks) :
         yield blocks[key]
-
-
-
-
-
-
-#TODO: move this to core.py
-def allCandidates(data_samples, key_groups=[]):
-    candidates = []
-    print data_samples
-    for data_sample in data_samples :
-        candidates.extend(list(combinations(data_samples.iteritems(), 2)))
-
-    return candidates
 
 def semiSupervisedNonDuplicates(data_sample, data_model, 
                                 nonduplicate_confidence_threshold=.7,
