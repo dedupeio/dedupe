@@ -7,14 +7,34 @@ import numpy
 import json
 import itertools
 
+def randomPairs(n_records,sample_size, zero_indexed=True):
+  n = (n_records*(n_records-1))/2
 
-def sampleDict(d, sample_size):
+  if sample_size >= n :
+      random_indices = numpy.arange(n)
+      numpy.random.shuffle(random_indices)
+  else:
+      random_indices = numpy.array(random.sample(xrange(n), sample_size))
 
-    if len(d) <= sample_size:
-        return d
 
-    sample_keys = random.sample(d.keys(), sample_size)
-    return [dict((k, d[k]) for k in d.keys() if k in sample_keys)]
+  b = 1 - 2*n_records
+
+  x = numpy.trunc((-b - numpy.sqrt(b**2 - 8 * random_indices))/2)
+  y = random_indices + x*(b + x + 2)/2 + 1
+
+  if not zero_indexed :
+      x += 1
+      y += 1
+
+  return numpy.column_stack((x,y))
+
+def dataSample(d, sample_size):
+
+    random_pairs = randomPairs(len(d), sample_size)
+
+    return tuple(((k_1, d[k_1]), (k_2, d[k_2]))
+                 for k_1, k_2 in random_pairs)
+
 
 # using logistic regression, train weights for all fields in the data model
 

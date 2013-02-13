@@ -60,6 +60,8 @@ class Blocker:
 
     
     def invertIndex(self, data_d) :
+        if not self.tfidf_fields:
+            return None
         for record_id, record in data_d :
             self.corpus_ids.add(record_id) # candidate for removal
             for field in self.tfidf_fields :
@@ -170,7 +172,7 @@ def blockingIndex(data_d, blocker):
 
     blocks = defaultdict(list)
 
-    if blocker.tfidf_thresholds:
+    if blocker.tfidf_fields:
         blocker.invertIndex(data_d.iteritems())
 
         blocker.canopies = {}
@@ -202,21 +204,18 @@ def allCandidates(data_samples, key_groups=[]):
 
     return candidates
 
-def semiSupervisedNonDuplicates(data_d, data_model, 
+def semiSupervisedNonDuplicates(data_sample, data_model, 
                                 nonduplicate_confidence_threshold=.7,
                                 sample_size = 2000):
 
 
-    pair_combinations = list(combinations(data_d.iteritems(), 2))
 
-    if len(pair_combinations) <= sample_size :
-        return pair_combinations
+    if len(data_sample) <= sample_size :
+        return data_sample
 
-    shuffle(pair_combinations)
-    
     confident_distinct_pairs = []
     n_distinct_pairs = 0
-    for pair in pair_combinations :
+    for pair in data_sample :
 
         pair_distance = core.recordDistances([pair], data_model)
         score = core.scorePairs(pair_distance, data_model)

@@ -1,13 +1,14 @@
 """
-This is an example of working with very large data. There are about 700,000 unduplicated
-donors in this database of Illinois political campaign contributions.
+This is an example of working with very large data. There are about
+700,000 unduplicated donors in this database of Illinois political
+campaign contributions.
 
-While we might be able to keep these donor records in memory, we cannot possibly store all 
-the comparison pairs we will make. 
+While we might be able to keep these donor records in memory, we
+cannot possibly store all the comparison pairs we will make.
 
-Because of performance issues that we are still working through, this example is broken into
-two files, sqlite_blocking.py which blocks the data, sqlite_clustering.py which clusters the
-blocked data.
+Because of performance issues that we are still working through, this
+example is broken into two files, sqlite_blocking.py which blocks the
+data, sqlite_clustering.py which clusters the blocked data.
 """
 
 #!/usr/bin/python
@@ -25,7 +26,7 @@ os.chdir('./examples/sqlite_example/')
 settings_file = 'sqlite_example_settings.json'
 training_file = 'sqlite_example_training.json'
 
-# When we compare records, we don't care about differences in case. 
+# When we compare records, we don't care about differences in case.
 # Lowering the case in SQL is much faster than in Python.
 donor_select = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(first_name) AS first_name, " \
@@ -39,8 +40,28 @@ def get_sample(cur, size):
   """
   Returns a random sample of donors of size=size
   """
-  cur.execute(donor_select + " ORDER BY RANDOM() LIMIT ?", (size,))
-  return dict([(row['donor_id'], row) for row in cur])
+
+  dim = con.execute("SELECT MAX(donor_id) FROM donors").next()[0]
+
+  random_pairs = dedupe.core.randomPairs(dim, size, zero_indexed=False)
+
+
+  all_ids = [str(record_id) for pair in random_pairs for record_id in pair]
+
+  temp_d = {}
+
+  for row in con.execute(donor_select + " WHERE donor_id IN (%s)" % ','.join(
+    '?'*size*2), all_ids) :
+    temp_d[row['donor_id']] = row
+
+
+  for pair in random_pairs :
+    record_id_1, record_id_2 = pair
+    yield ((record_id_1, temp_d[record_id_1]),
+           (record_id_2, temp_d[record_id_2])
+           )
+    
+
 
 t0 = time.time()
 
@@ -66,13 +87,10 @@ con.execute("ATTACH DATABASE 'blocking_map.db' AS bm")
 con.execute("PRAGMA cache_size = 2000")
 cur = con.cursor()
 
+
 # Unlike csv_example.py, we select from the database to get a random sample for training. As the dataset grows, duplicate pairs become more rare. To account for this, we are taking a larger sample (3x 700 records) for training.
 print 'selecting random sample from donors table...'
-data_samples = []
-num_sample_buckets = 3
-for i in range(num_sample_buckets):
-  data_sample = get_sample(cur, 700)
-  data_samples.append(data_sample)
+data_samples = tuple(get_sample(cur, 750000))
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
@@ -93,7 +111,7 @@ else:
     if os.path.exists(training_file):
         # read in training json file
         print 'reading labeled examples from ', training_file
-        deduper.initializeTraining(training_file)
+        deduper.train(data_samples, training_file)
 
     print 'starting active labeling...'
     print 'finding uncertain pairs...'

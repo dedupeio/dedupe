@@ -45,8 +45,8 @@ def readData(filename) :
 print 'importing data ...'
 (data_d, header) = readData(input_file)
 
-# In order to train dedupe, we need to compare some records. We can't compare them all, because the number of possible combinations can be much too large (~0.5*N^2). We take a random subset of our original data to pass to our training.
-data_d_sample = dedupe.core.sampleDict(data_d, 700)
+# In order to train dedupe, we need to compare some records. We can't compare them all, because the number of possible combinations can be much too large (~0.5*N^2). We take a random sample of all possible pairs.
+data_sample = dedupe.core.dataSample(data_d, 150000)
 
 
 # If the settings files, which we mentioned above, exists, then we read it in. Passing in a settings file is one of the three ways to initialize a dedupe instance.
@@ -75,7 +75,7 @@ else:
   # Dedupe will ask a user to label pairs of records as duplicates or not. These labeled records are saved and can be reused for later training. To train dedupe with these examples, call deduper.train as shown.
   if os.path.exists(training_file) :
     print 'reading labeled examples from ', training_file
-    deduper.train(data_d_sample, training_file)
+    deduper.train(data_sample, training_file)
 
     print 'starting active labeling...'
     print 'finding uncertain pairs...'
@@ -86,7 +86,7 @@ else:
 
   # For consoleLabel, use 'y', 'n' and 'u' keys to flag duplicates, 'f' when you are finished.
   else:
-      deduper.train(data_d_sample, dedupe.training_sample.consoleLabel)
+      deduper.train(data_sample, dedupe.training_sample.consoleLabel)
 
       # Save away our labeled training pairs to a JSON file.
       deduper.writeTraining(training_file)

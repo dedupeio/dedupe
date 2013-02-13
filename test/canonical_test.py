@@ -7,6 +7,36 @@ import dedupe
 import os
 import time
 import argparse
+import random
+
+# create a random set of training pairs based on known duplicates
+
+def randomTrainingPairs(data_d,
+                        duplicates_s,
+                        n_training_dupes,
+                        n_training_distinct,
+                        ):
+
+    if n_training_dupes < len(duplicates_s):
+        duplicates = random.sample(duplicates_s, n_training_dupes)
+    else:
+        duplicates = duplicates_s
+
+    duplicates = [(data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
+                  for pair in duplicates]
+
+    all_pairs = list(combinations(data_d, 2))
+    all_nonduplicates = set(all_pairs) - set(duplicates_s)
+
+    nonduplicates = random.sample(all_nonduplicates, n_training_distinct)
+
+    nonduplicates = [(data_d[pair[0]], data_d[pair[1]])
+                     for pair in nonduplicates]
+
+    return {0: nonduplicates, 1: duplicates}
+
+
+
 
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
@@ -93,13 +123,12 @@ else:
       print "Using a random sample of training pairs..."
 
       deduper.initializeTraining()
-      deduper.training_pairs = \
-          dedupe.training_sample.randomTrainingPairs(data_d,
-                                                     duplicates_s,
-                                                     num_training_dupes,
-                                                     num_training_distinct)
+      deduper.training_pairs = randomTrainingPairs(data_d,
+                                                   duplicates_s,
+                                                   num_training_dupes,
+                                                   num_training_distinct)
 
-      deduper.data_d = data_d
+      deduper.data_sample = dedupe.core.dataSample(data_d, 1000000)
 
 
       deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
