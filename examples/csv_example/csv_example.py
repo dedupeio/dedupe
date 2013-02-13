@@ -46,7 +46,7 @@ print 'importing data ...'
 (data_d, header) = readData(input_file)
 
 # In order to train dedupe, we need to compare some records. We can't compare them all, because the number of possible combinations can be much too large (~0.5*N^2). We take a random sample of all possible pairs.
-data_sample = dedupe.core.dataSample(data_d, 150000)
+data_sample = dedupe.dataSample(data_d, 150000)
 
 
 # If the settings files, which we mentioned above, exists, then we read it in. Passing in a settings file is one of the three ways to initialize a dedupe instance.

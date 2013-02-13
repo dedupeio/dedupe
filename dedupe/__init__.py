@@ -20,3 +20,5 @@ import predicates
 import training_sample
 import crossvalidation
 from dedupe import Dedupe
+from dedupe import randomPairs
+from dedupe import dataSample

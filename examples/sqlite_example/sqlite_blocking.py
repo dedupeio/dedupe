@@ -36,14 +36,14 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(address_2) AS address_2 FROM donors"
 
 
-def get_sample(cur, size):
+def getSample(cur, size):
   """
   Returns a random sample of donors of size=size
   """
 
   dim = con.execute("SELECT MAX(donor_id) FROM donors").next()[0]
 
-  random_pairs = dedupe.core.randomPairs(dim, size, zero_indexed=False)
+  random_pairs = dedupe.randomPairs(dim, size, zero_indexed=False)
 
 
   all_ids = [str(record_id) for pair in random_pairs for record_id in pair]

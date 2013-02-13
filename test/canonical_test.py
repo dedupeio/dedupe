@@ -128,7 +128,7 @@ else:
                                                    num_training_dupes,
                                                    num_training_distinct)
 
-      deduper.data_sample = dedupe.core.dataSample(data_d, 1000000)
+      deduper.data_sample = dedupe.dataSample(data_d, 1000000)
 
 
       deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
