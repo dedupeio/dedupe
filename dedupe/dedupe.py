@@ -147,33 +147,38 @@ class Dedupe:
              self.training_data) = self._readTraining(training_file,
                                                      self.training_data)                    
                 
-    def train(self, data_d, training_source=None, key_groups=[]) :
+    def train(self, data_sample, training_source=None, key_groups=[]) :
         """
         Learn field weights and blocking predicate from file of
         labeled examples or round of interactive labeling
 
         Keyword arguments:
-        data_d -- a dictionary of records
+        data_sample -- a sample of record pairs
         training_source -- either a path to a file of labeled examples or
                            a labeling function
 
 
-        In the dictionary of records, the keys are unique identifiers
-        for each record, the values are a dictionary where the keys
-        are the names of the record field and values are the record
-        values.
+        In the sample of record_pairs, each element is a tuple of two
+        records. Each record is, in turn, a tuple of the record's key and
+        a record dictionary.
 
-        For Example,
-        {
-         854: {'city': 'san francisco',
-               'address': '300 de haro st.',
-               'name': "sally's cafe & bakery",
-               'cuisine': 'american'},
-         855: {'city': 'san francisco',
-               'address': '1328 18th st.',
-               'name': 'san francisco bbq',
-               'cuisine': 'thai'}
-         }
+        In in the record dictionary the keys are the names of the
+        record field and values are the record values.
+
+        For example, a data_sample with only one pair of records,
+
+        [
+          (
+           (854, {'city': 'san francisco',
+                  'address': '300 de haro st.',
+                  'name': "sally's cafe & bakery",
+                  'cuisine': 'american'}),
+           (855, {'city': 'san francisco',
+                 'address': '1328 18th st.',
+                 'name': 'san francisco bbq',
+                 'cuisine': 'thai'})
+           )
+         ]
 
         The labeling function will be used to do active learning. The
         function will be supplied a list of examples that the learner
@@ -214,14 +219,12 @@ class Dedupe:
         for this file see the method writeTraining.
         """
 
+        self.data_sample = data_sample
+
         if (training_source.__class__ is not str
             and not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
-        # data_d = core.sampleDict(data_d, 700) #we should consider changing this
-        print "data_d length: ", len(data_d)
-
-        self.data_d = dict([(key, core.frozendict(value)) for key, value in data_d.iteritems()])
 
         if training_source.__class__ is str:
             print 'reading training from file'
@@ -231,18 +234,24 @@ class Dedupe:
             self.training_pairs, self.training_data = self._readTraining(training_source,
                                                                         self.training_data)
 
+
         elif isinstance(training_source, types.FunctionType) :
             if not hasattr(self, 'training_data'):
                 self.initializeTraining()
             
             (self.training_data,
             self.training_pairs,
-            self.data_model) = training_sample.activeLearning(self.data_d,
+            self.data_model) = training_sample.activeLearning(self.data_sample,
                                                               self.data_model,
                                                               training_source,
                                                               self.training_data,
                                                               self.training_pairs,
                                                               key_groups)
+
+            
+
+
+
 
         self.alpha = crossvalidation.gridSearch(self.training_data,
                                                 core.trainModel,
@@ -264,7 +273,7 @@ class Dedupe:
         We'll allow for predicates to be passed
         """
         if not self.predicates:
-            self.predicates = self._learnBlocking(self.data_d, eta, epsilon)
+            self.predicates = self._learnBlocking(eta, epsilon)
 
         bF = blocking.Blocker(self.predicates, self.df_index)
 
@@ -304,12 +313,15 @@ class Dedupe:
 
         return clusters
 
-    def _learnBlocking(self, data_d, eta, epsilon):
-        confident_nonduplicates = blocking.semiSupervisedNonDuplicates(self.data_d,
+    def _learnBlocking(self, eta, epsilon):
+
+
+        confident_nonduplicates = blocking.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model)
                                                                        
 
         self.training_pairs[0].extend(confident_nonduplicates)
+
 
         predicate_functions = (predicates.wholeFieldPredicate,
                                predicates.tokenFieldPredicate,
@@ -324,12 +336,11 @@ class Dedupe:
 
         tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
         full_string_records = {}
-        for k, v in data_d.iteritems() :
-          document = ''
-          for field in self.data_model['fields'].keys() :
-            document += v[field]
-            document += ' '
-          full_string_records[k] = document
+        fields = self.data_model['fields'].keys()
+
+        for pair in self.data_sample[0:2000] :
+           for k, v in pair :
+             full_string_records[k] = ' '.join(v[field] for field in fields)
 
         self.df_index = tfidf.documentFrequency(full_string_records)
 
@@ -341,6 +352,7 @@ class Dedupe:
                                     eta,
                                     epsilon
                                     )
+
 
         learned_predicates = blocker.trainBlocking()
 
@@ -403,9 +415,13 @@ class Dedupe:
         Keyword arguments:
         file_name -- path to a json file
         """
-
+        d_training_pairs = {}
+        for label, pairs in self.training_pairs.iteritems() :
+            d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for
+                                       pair in pairs]
+        
         with open(file_name, 'w') as f:
-            json.dump(self.training_pairs, f)
+            json.dump(d_training_pairs, f)
 
     def _readSettings(self, file_name):
         with open(file_name, 'r') as f:
@@ -449,6 +465,7 @@ class Dedupe:
                                                         self.data_model,
                                                         self.training_data)
 
+
         return training_pairs, training_data
 
     # json encoding fix for unicode => string
@@ -477,3 +494,32 @@ class Dedupe:
                value = self._decode_dict(value)
             rv[key] = value
         return rv
+
+
+def randomPairs(n_records,sample_size, zero_indexed=True):
+  n = (n_records*(n_records-1))/2
+
+  if sample_size >= n :
+      random_indices = numpy.arange(n)
+      numpy.random.shuffle(random_indices)
+  else:
+      random_indices = numpy.array(random.sample(xrange(n), sample_size))
+
+
+  b = 1 - 2*n_records
+
+  x = numpy.trunc((-b - numpy.sqrt(b**2 - 8 * random_indices))/2)
+  y = random_indices + x*(b + x + 2)/2 + 1
+
+  if not zero_indexed :
+      x += 1
+      y += 1
+
+  return numpy.column_stack((x,y))
+
+def dataSample(d, sample_size):
+
+    random_pairs = randomPairs(len(d), sample_size)
+
+    return tuple(((k_1, d[k_1]), (k_2, d[k_2]))
+                 for k_1, k_2 in random_pairs)
