@@ -9,6 +9,9 @@ from random import sample, random, choice, shuffle
 import types
 import math
 
+
+
+
 class Blocker: 
     def __init__(self, predicates, df_index):
         self.predicates = predicates
@@ -20,16 +23,20 @@ class Blocker:
         self.inverted_index = defaultdict(lambda: defaultdict(list))
         self.shim_tfidf_thresholds = []
         self.token_vector = defaultdict(dict)
+        self.canopies = {}
 
         self.corpus_ids = set([])
 
+        seen_preds = set([])
         for predicate in predicates:
             for pred in predicate :
                 if pred[0].__class__ is tfidf.TfidfPredicate :
-                    self.tfidf_thresholds.add(pred)
-                    self.tfidf_fields.add(pred[1])
-
-        
+                    threshold, field = pred
+                    if (threshold.threshold, field) not in seen_preds :
+                        self.tfidf_thresholds.add(pred)
+                        self.tfidf_fields.add(field)
+                        seen_preds.add((threshold.threshold, field))
+                        
 
 
     def __call__(self, instance) :
@@ -56,10 +63,13 @@ class Blocker:
 
             record_keys.extend(product(*predicate_keys))
 
-        return record_keys
+        #return record_keys
+        return set([str(key) for key in record_keys])
 
     
     def invertIndex(self, data_d) :
+        if not self.tfidf_fields:
+            return None
         for record_id, record in data_d :
             self.corpus_ids.add(record_id) # candidate for removal
             for field in self.tfidf_fields :
@@ -100,6 +110,22 @@ class Blocker:
                 norm = math.sqrt(sum((inverted_index[token]['idf'] * count)**2
                                      for token, count in tokens))
                 self.token_vector[field][record_id] = (dict(tokens), norm)
+
+    def tfIdfBlocks(self, data) :
+        self.invertIndex(data)
+        
+
+        print 'creating TF/IDF canopies'
+
+        num_thresholds = len(self.tfidf_thresholds)
+
+        for i, (threshold, field) in enumerate(self.tfidf_thresholds) :
+            print (str(i) + "/" + str(num_thresholds)), threshold.threshold, field
+            canopy = self.createCanopies(field, threshold)
+            self.canopies[threshold.__name__ + field] = canopy
+
+        del self.inverted_index
+        del self.token_vector
 
     def createCanopies(self, field, threshold) :
       """
@@ -170,16 +196,7 @@ def blockingIndex(data_d, blocker):
 
     blocks = defaultdict(list)
 
-    if blocker.tfidf_thresholds:
-        blocker.invertIndex(data_d.iteritems())
-
-        blocker.canopies = {}
-        for threshold, field in blocker.tfidf_thresholds :
-            selector = lambda record_id : data_d[record_id][field]    
-            # print field
-            canopy = blocker.createCanopies(field, threshold)
-            # print blocks
-            blocker.canopies[threshold.__name__ + field] = canopy
+    blocker.tfIdfBlocks(data_d.iteritems())
 
     for record_id, record in data_d.iteritems() :
         for key in blocker((record_id, record)):
@@ -188,39 +205,18 @@ def blockingIndex(data_d, blocker):
     for i, key in enumerate(blocks) :
         yield blocks[key]
 
-
-
-
-
-
-#TODO: move this to core.py
-def allCandidates(data_d, key_groups=[]):
-    candidates = []
-    if key_groups:
-        for group in key_groups :
-            data_group = ((k, data_d[k]) for k in group if k in data_d)
-            candidates.extend(combinations(data_group, 2))
-    else:
-        candidates = list(combinations(data_d.iteritems(), 2))
-
-    return candidates
-    #return list(combinations(sorted(data_d.keys()), 2))
-
-def semiSupervisedNonDuplicates(data_d, data_model, 
+def semiSupervisedNonDuplicates(data_sample, data_model, 
                                 nonduplicate_confidence_threshold=.7,
                                 sample_size = 2000):
 
 
-    pair_combinations = list(combinations(data_d.iteritems(), 2))
 
-    if len(pair_combinations) <= sample_size :
-        return pair_combinations
+    if len(data_sample) <= sample_size :
+        return data_sample
 
-    shuffle(pair_combinations)
-    
     confident_distinct_pairs = []
     n_distinct_pairs = 0
-    for pair in pair_combinations :
+    for pair in data_sample :
 
         pair_distance = core.recordDistances([pair], data_model)
         score = core.scorePairs(pair_distance, data_model)
