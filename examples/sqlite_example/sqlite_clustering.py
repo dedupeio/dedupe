@@ -37,9 +37,9 @@ if os.path.exists(settings_file):
 else:
   raise ValueError('Settings File Not Found')
 
-# We grab all the block_keys that are associated with more than one
-# record associated with it. These associated records will make up a
-# block of records we will compare within.
+# We grab all the block_keys with more than one record associated with
+# it. These associated records will make up a block of records we will
+# compare within.
 blocking_key_sql = "SELECT key, COUNT(donor_id) AS num_candidates " \
                    "FROM bm.blocking_map GROUP BY key HAVING num_candidates > 1"
 
