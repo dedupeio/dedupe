@@ -12,6 +12,18 @@ data, sqlite_clustering.py which clusters the blocked data.
 """
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""
+This is an example of working with very large data. There are about
+700,000 unduplicated donors in this database of Illinois political
+campaign contributions.
+
+While we might be able to keep these donor records in memory, we
+cannot possibly store all the comparison pairs we will make.
+
+Because of performance issues that we are still working through, this
+example is broken into two files, sqlite_blocking.py which blocks the
+data, sqlite_clustering.py which clusters the blocked data.
+"""
 import os
 import re
 import sqlite3

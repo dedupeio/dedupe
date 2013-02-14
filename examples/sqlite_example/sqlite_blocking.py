@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 This is an example of working with very large data. There are about
 700,000 unduplicated donors in this database of Illinois political
@@ -10,9 +12,6 @@ Because of performance issues that we are still working through, this
 example is broken into two files, sqlite_blocking.py which blocks the
 data, sqlite_clustering.py which clusters the blocked data.
 """
-
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 import os
 import re
 import sqlite3
@@ -38,7 +37,7 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
 
 def getSample(con, size):
   """
-  Returns a random sample of pairs of donors of size=size
+  Returns a random sample of pairs of donors of a given size
   """
 
   dim = con.execute("SELECT MAX(donor_id) FROM donors").next()[0]
@@ -115,7 +114,6 @@ else:
     # training file. To do this can just load the existing labeled
     # pairs...
     if os.path.exists(training_file):
-        # read in training json file
         print 'reading labeled examples from ', training_file
         deduper.train(data_samples, training_file)
 
@@ -131,9 +129,9 @@ blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 deduper.writeSettings(settings_file)
 print 'blocked in', time.time() - t_block, 'seconds'
 
-# So the learning is done and we have our blocker. However we
-# we cannot block the data in memory. We have to pass
-# through all the data and create a blocking map.
+# So the learning is done and we have our blocker. However we cannot
+# block the data in memory. We have to pass through all the data and
+# create a blocking map table.
 #
 # First though, if we learned a tf-idf predicate, we have to create an
 # tfIDF blocks for the full data set.
@@ -151,7 +149,6 @@ def block_data() :
     for i, (donor_id, record) in enumerate(full_data) :
         if i % 10000 == 0 :
             print i, ',', time.time() - t0, 'seconds'
-        # should move this set code into blocker
         for key in blocker((donor_id, record)) :
             yield (key, donor_id)
 
@@ -162,7 +159,8 @@ con.commit()
 con.close()
 
 # Finally, we create an index on the blocking_key so that the group by
-# queries we will be making can happen in a reasonable time
+# queries we will be making in sqlite_clustering can happen in a
+# reasonable time
 with sqlite3.connect("blocking_map.db") as con_blocking :
   print 'creating blocking_map index', time.time() - t0, 'seconds'
   con_blocking.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (key)")
