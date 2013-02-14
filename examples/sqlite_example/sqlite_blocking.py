@@ -44,12 +44,11 @@ def getSample(con, size):
 
   random_pairs = dedupe.randomPairs(dim, size, zero_indexed=False)
 
-  all_ids = [str(record_id) for pair in random_pairs for record_id in pair]
+  all_ids = ', '.join(str(record_id) for pair in random_pairs for record_id in pair)
 
   temp_d = {}
 
-  for row in con.execute(donor_select + " WHERE donor_id IN (%s)" % ','.join(
-    '?'*size*2), all_ids) :
+  for row in con.execute(donor_select + " WHERE donor_id IN (%s)" % all_ids) :
     temp_d[row['donor_id']] = row
 
   return tuple((((record_id_1, temp_d[record_id_1]),
