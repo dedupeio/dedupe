@@ -55,7 +55,7 @@ python examples/csv_example.py
 ### sqlite example (10,000 - 1,000,000 rows)
 ```bash
 python examples/sqlite_example/init_db.py
-python examples/sqlite_example/sqlite_example.py
+python examples/sqlite_example/sqlite_blocking.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
   
@@ -65,7 +65,14 @@ python examples/sqlite_example/sqlite_clustering.py
 * [Annotated source code of sqlite_blocking](http://open-city.github.com/dedupe/doc/sqlite_blocking.html)
 * [Annotated source code of sqlite_clustering](http://open-city.github.com/dedupe/doc/sqlite_clustering.html)
 
+*Please note* We have been having performance with sqlite on some machines, particular in writing the 
+blocking map table. If sqlite_blocking.py doesn't complete within eight hours, it probably will take days to
+finish on your machine.
 
+We are not sure if this is A. a problem with how we are using sqlite, B. a problem with using sqlite 
+with this much data, C. a problem we will have with any database engine. We will implement a version
+using MySQL soon to try to narrow down the problem. In the meantime, if you are an sqlite guru, we could
+use your eyeballs.
 
 ## Testing
 
