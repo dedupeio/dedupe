@@ -149,7 +149,7 @@ else:
 
 print 'blocking...'
 blocker = deduper.blockingFunction(eta=1, epsilon=1)
-blocked_data = dedupe.blocking.blockingIndex(data_d, blocker)
+blocked_data = dedupe.blockData(data_d, blocker)
 # print blocked_data
 
 # print candidates

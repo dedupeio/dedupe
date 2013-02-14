@@ -22,3 +22,4 @@ import crossvalidation
 from dedupe import Dedupe
 from dedupe import randomPairs
 from dedupe import dataSample
+from blocking import blockingIndex as blockData
