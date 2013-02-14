@@ -48,7 +48,9 @@ Dedupe is a library and not a stand-alone command line tool. To demonstrate its 
 ```bash
 python examples/csv_example.py
 ```
-  (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
+  (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished)
+  
+* [Annotated source code of csv_example](http://open-city.github.com/dedupe/doc/csv_example.html)
   
 ### sqlite example (10,000 - 1,000,000 rows)
 ```bash
@@ -60,6 +62,10 @@ python examples/sqlite_example/sqlite_example.py
 ```bash
 python examples/sqlite_example/sqlite_clustering.py
 ```
+* [Annotated source code of sqlite_blocking](http://open-city.github.com/dedupe/doc/sqlite_blocking.html)
+* [Annotated source code of sqlite_clustering](http://open-city.github.com/dedupe/doc/sqlite_clustering.html)
+
+
 
 ## Testing
 
