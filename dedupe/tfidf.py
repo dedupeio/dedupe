@@ -3,9 +3,11 @@ import math
 import re
 import core
 
-class TfidfPredicate:
+class TfidfPredicate(float):
+  def __new__(self, threshold) :
+    return float.__new__(self, threshold)
+  
   def __init__(self, threshold) :
-    self.threshold = threshold
     self.__name__ = "TF-IDF:" + str(threshold)
 
 

@@ -275,7 +275,7 @@ class Dedupe:
         if not self.predicates:
             self.predicates = self._learnBlocking(eta, epsilon)
 
-        bF = blocking.Blocker(self.predicates, self.df_index)
+        bF = blocking.Blocker(self.predicates)
 
         return bF
 
@@ -283,7 +283,7 @@ class Dedupe:
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
-        blocked data.
+        blocked data. 
 
         Keyword arguments:
         blocks --        Sequence of tuples of records, where each
@@ -387,19 +387,17 @@ class Dedupe:
            for k, v in pair :
              full_string_records[k] = ' '.join(v[field] for field in fields)
 
-        self.df_index = tfidf.documentFrequency(full_string_records)
+        df_index = tfidf.documentFrequency(full_string_records)
 
-        blocker = blocking.Blocking(self.training_pairs,
-                                    predicate_functions,
-                                    self.data_model,
-                                    tfidf_thresholds,
-                                    self.df_index,
-                                    eta,
-                                    epsilon
-                                    )
+        learned_predicates = blocking.blockTraining(self.training_pairs,
+                                                    predicate_functions,
+                                                    self.data_model,
+                                                    tfidf_thresholds,
+                                                    df_index,
+                                                    eta,
+                                                    epsilon
+                                                    )
 
-
-        learned_predicates = blocker.trainBlocking()
 
         return learned_predicates
 
@@ -433,7 +431,7 @@ class Dedupe:
                                          predicate[1],
                                          'simple'))
               elif predicate[0].__class__ is tfidf.TfidfPredicate :
-                source_predicate.append((predicate[0].threshold,
+                source_predicate.append((predicate[0],
                                          predicate[1],
                                          'tfidf'))
               else:
@@ -445,13 +443,6 @@ class Dedupe:
             json.dump({'data model': self.data_model,
                       'predicates': source_predicates}, f)
 
-        # save df_index to its own file
-        df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
-
-        #print 'unseen token value:', self.df_index['UNSEEN TOKEN']
-        self.df_index['UNSEEN TOKEN'] = self.df_index['UNSEEN TOKEN']
-        with open(df_index_file_name, 'w') as f:
-            json.dump(self.df_index, f)
 
     def writeTraining(self, file_name):
         """
@@ -484,16 +475,6 @@ class Dedupe:
                                             predicate[1]))
   
           self.predicates.append(tuple(marshalled_predicate))
-
-        df_index_file_name = file_name.replace('.json', '') + '_df_index' + '.json'
-
-        with open(df_index_file_name, 'r') as f:
-            df_index = json.load(f)
-            unseen_value = df_index["UNSEEN TOKEN"]
-            self.df_index = collections.defaultdict(lambda : unseen_value)    
-            self.df_index.update(df_index)
-
-
 
 
     def _readTraining(self, file_name, training_pairs):
