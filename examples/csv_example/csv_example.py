@@ -118,11 +118,10 @@ else:
 
   # For consoleLabel, use 'y', 'n' and 'u' keys to flag duplicates,
   # 'f' when you are finished.
-  else:
-      deduper.train(data_sample, dedupe.training_sample.consoleLabel)
+  deduper.train(data_sample, dedupe.training_sample.consoleLabel)
 
-      # Save away our labeled training pairs to a JSON file.
-      deduper.writeTraining(training_file)
+  # Save away our labeled training pairs to a JSON file.
+  deduper.writeTraining(training_file)
 
 # Now that dedupe knows how to compare records, we use the same
 # training data to block records in to groups. The goal is to reduce
@@ -140,19 +139,19 @@ deduper.writeSettings(settings_file)
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 blocked_data = dedupe.blockData(data_d, blocker)
+blocked_data = tuple(blocked_data)
+
+
+# There is always a tradeoff between precision and recall. This function
+# tries to find the threshold that will maximize a weighted average of both.
+# When we set the recall weight to 2, we are saying we care twice as much
+# about recall as we do precision
+threshold = deduper.goodThreshold(blocked_data, recall_weight = 2)
 
 # duplicateClusters will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
-
-# pairwise_threshold -- Number between 0 and 1 (default is .5). We will only 
-#                       consider as duplicates  ecord pairs as duplicates if 
-#                       their estimated duplicate likelihood is greater than 
-#                       the pairwise threshold. 
-# cluster_threshold --  Number between 0 and 1 (default is .5). Lowering the 
-#                       number will increase precision, raising it will increase
-#                       recall
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, cluster_threshold=.5)
+clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
 
 # Now that we have our clustered duplicates, we write our original
 # data back out to a CSV with a new column called 'Cluster ID' which

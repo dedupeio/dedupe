@@ -149,19 +149,22 @@ else:
 
 print 'blocking...'
 blocker = deduper.blockingFunction(eta=1, epsilon=1)
-blocked_data = dedupe.blockData(data_d, blocker)
-# print blocked_data
+blocked_data = tuple(dedupe.blockData(data_d, blocker))
+
+alpha = deduper.goodThreshold(blocked_data, 2)
+
 
 # print candidates
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data)
+clustered_dupes = deduper.duplicateClusters(blocked_data,
+                                            threshold=alpha)
 
 
 deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
-                  if score > .90])
+                  if score > alpha])
 
 evaluateDuplicates(found_dupes, duplicates_s)
 

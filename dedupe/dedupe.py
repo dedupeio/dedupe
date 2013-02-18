@@ -279,26 +279,71 @@ class Dedupe:
 
         return bF
 
+    def goodThreshold(self, blocks, recall_weight=1.5):
+        """
+        Returns the threshold that maximizes the expected F score,
+        a weighted average of precision and recall for a sample of
+        blocked data.
+
+        Keyword arguments:
+        blocks --        Sequence of tuples of records, where each
+                         tuple is a set of records covered by a blocking
+                         predicate
+
+        recall_weight -- Sets the tradeoff between precision and
+                         recall. I.e. if you care twice as much about
+                         recall as you do precision, set recall_weight
+                         to 2.
+        """
+    
+
+        candidates = (pair for block in blocks
+                      for pair in itertools.combinations(block, 2))
+        
+        record_distances = core.recordDistances(candidates, self.data_model)
+        probability = core.scorePairs(record_distances, self.data_model)
+
+        probability.sort()
+        probability = probability[::-1]
+
+        expected_dupes = numpy.cumsum(probability)
+
+        recall = expected_dupes / expected_dupes[-1]
+        precision = expected_dupes / numpy.arange(1, len(expected_dupes)+1)
+
+        score = recall*precision/(recall + recall_weight**2*precision)
+
+        i = numpy.argmax(score)
+
+        print 'Maximum expected recall and precision' 
+        print 'recall', recall[i]
+        print 'precision', precision[i]
+        print 'With threshold', probability[i],
+
+        return probability[i]
+
     #@profile
     def duplicateClusters(self,
                           blocks,
-                          pairwise_threshold = .5,
-                          cluster_threshold = .5):
+                          threshold = .5) :
+
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
 
         Keyword arguments:
-        blocked_data --       Dictionary where the keys are blocking predicates 
-                              and the values are tuples of records covered by that 
-                              predicate.
-        pairwise_threshold -- Number between 0 and 1 (default is .5). We will only 
-                              consider as duplicates  ecord pairs as duplicates if 
-                              their estimated duplicate likelihood is greater than 
-                              the pairwise threshold. 
-        cluster_threshold --  Number between 0 and 1 (default is .5). Lowering the 
-                              number will increase precision, raising it will increase
-                              recall
+        blocks --     Sequence of tuples of records, where each
+                      tuple is a set of records covered by a blocking
+                      predicate
+                                          
+        threshold --  Number between 0 and 1 (default is .5). We will
+                      only consider as duplicates record pairs as
+                      duplicates if their estimated duplicate likelihood is
+                      greater than the threshold.
+
+                      Lowering the number will increase recall, raising it
+                      will increase precision
+                              
 
         """
 
@@ -307,9 +352,9 @@ class Dedupe:
         
         self.dupes = core.scoreDuplicates(candidates, 
                                           self.data_model,
-                                          pairwise_threshold)
+                                          threshold)
 
-        clusters = clustering.hierarchical.cluster(self.dupes, cluster_threshold)
+        clusters = clustering.hierarchical.cluster(self.dupes, threshold)
 
         return clusters
 
