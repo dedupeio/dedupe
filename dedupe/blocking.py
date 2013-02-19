@@ -54,11 +54,12 @@ class Blocker:
 
     
 
-    def tfIdfBlocks(self, data) :
+    def tfIdfBlocks(self, data, df_index=None) :
         if self.tfidf_fields:
             (inverted_index,
              token_vector,
-             corpus_ids) = invertIndex(data, self.tfidf_fields)
+             corpus_ids) = invertIndex(data, self.tfidf_fields, df_index)
+
 
         self.canopies = {}
         
@@ -76,8 +77,8 @@ class Blocker:
             self.canopies[threshold.__name__ + field] = canopy
 
 
-
-def invertIndex(data_d, tfidf_fields) :
+# TODO: Split this into subfunctions
+def invertIndex(data_d, tfidf_fields, df_index=None) :
 
     inverted_index = defaultdict(lambda: defaultdict(list))
     token_vector = defaultdict(dict)
@@ -103,20 +104,28 @@ def invertIndex(data_d, tfidf_fields) :
     num_docs_log = math.log(num_docs + 0.5)
     singleton_idf = num_docs_log - math.log(1.0 + 0.5)
 
-    for field in inverted_index:
-        for token, occurrences in inverted_index[field].iteritems() :
-            n_occurrences = len(occurrences)
-            if n_occurrences < 2 :
-                idf = singleton_idf
-                occurrences = []
-            else :
-                idf = num_docs_log - math.log(n_occurrences + 0.5)
-                if n_occurrences > stop_word_threshold :
-                    occurrences = []
-                    logging.info("Stop word: %s, %s, %d" % (field, token, n_occurrences))
+    if df_index :
+        for field in inverted_index:
+            for token, occurrences in inverted_index[field].iteritems() :
+                inverted_index[field][token] = {'idf' : df_index[token],
+                                                'occurrences' : occurrences}
 
-            inverted_index[field][token] = {'idf' : idf,
-                                            'occurrences' : occurrences}
+    else :
+        for field in inverted_index:
+            for token, occurrences in inverted_index[field].iteritems() :
+                n_occurrences = len(occurrences)
+                if n_occurrences < 2 :
+                    idf = singleton_idf
+                    occurrences = []
+                else :
+                    idf = num_docs_log - math.log(n_occurrences + 0.5)
+                    if n_occurrences > stop_word_threshold :
+                        occurrences = []
+                        logging.info("Stop word: %s, %s, %d" % (field, token, n_occurrences))
+
+                inverted_index[field][token] = {'idf' : idf,
+                                                'occurrences' : occurrences}
+        
 
     for field in token_vector:
         field_inverted_index = inverted_index[field]
@@ -443,7 +452,7 @@ def canopyOverlap(tfidf_predicates,
     
 
     blocker = Blocker(tfidf_predicates)
-    blocker.tfIdfBlocks(enumerated_docs)
+    blocker.tfIdfBlocks(enumerated_docs, df_index)
 
     for threshold, field in blocker.tfidf_predicates :
         canopy_group = threshold.__name__ + field
