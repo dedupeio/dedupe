@@ -91,10 +91,11 @@ def readData(filename):
     data_d = {}
     with open(filename) as f:
         reader = csv.DictReader(f, delimiter=',', quotechar='"')
-        for (i, row) in enumerate(reader):
+        for row in reader:
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
-            data_d[i] = dedupe.core.frozendict(clean_row)
+            row_id = row['Id']
+            data_d[row_id] = dedupe.core.frozendict(clean_row)
 
     return (data_d, reader.fieldnames)
 
@@ -240,19 +241,19 @@ for (cluster_id, cluster) in enumerate(clustered_dupes):
     for record_id in cluster:
         cluster_membership[record_id] = cluster_id
 
-f_input = open(input_file)
-reader = csv.reader(f_input)
-reader.next()
+with open(input_file) as f_input :
+    reader = csv.reader(f_input)
+    reader.next()
 
-with open(output_file, 'w') as f:
-    writer = csv.writer(f)
-    heading_row = header
-    heading_row.insert(0, 'Cluster ID')
-    writer.writerow(heading_row)
+    with open(output_file, 'w') as f:
+        writer = csv.writer(f)
+        heading_row = header
+        heading_row.insert(0, 'Cluster ID')
+        writer.writerow(heading_row)
 
-    for (i, row) in enumerate(reader):
-        cluster_id = cluster_membership[i]
-        row.insert(0, cluster_id)
-        writer.writerow(row)
+        for (i, row) in enumerate(reader):
+            cluster_id = cluster_membership[i]
+            row.insert(0, cluster_id)
+            writer.writerow(row)
 
-f_input.close()
+
