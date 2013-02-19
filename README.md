@@ -46,7 +46,7 @@ Dedupe is a library and not a stand-alone command line tool. To demonstrate its 
 
 ### CSV example (<10,000 rows)
 ```bash
-python examples/csv_example.py
+python examples/csv_examples/csv_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished)
   
