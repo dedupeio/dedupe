@@ -50,6 +50,7 @@ def cluster(dupes, threshold=.5):
                  number will increase precision, raising it will increase
                  recall
     """
+    threshold = 1 - threshold
 
     score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
 

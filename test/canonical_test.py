@@ -131,7 +131,7 @@ else:
       deduper.data_sample = dedupe.dataSample(data_d, 1000000)
 
 
-      deduper.training_data = dedupe.training_sample.addTrainingData(deduper.training_pairs,
+      deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
                                                               deduper.data_model,
                                                               deduper.training_data)
 
@@ -144,7 +144,7 @@ else:
                                                   deduper.data_model,
                                                   deduper.alpha)
 
-      deduper._printLearnedWeights()
+      deduper._logLearnedWeights()
 
 
 print 'blocking...'

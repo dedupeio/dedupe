@@ -317,9 +317,9 @@ class Dedupe:
         i = numpy.argmax(score)
 
         logging.info('Maximum expected recall and precision')
-        logging.info('recall: %f' % recall[i])
-        logging.info('precision: %f' % precision[i])
-        logging.info('With threshold: %f' % probability[i])
+        logging.info('recall: %2.3f' % recall[i])
+        logging.info('precision: %2.3f' % precision[i])
+        logging.info('With threshold: %2.3f' % probability[i])
 
         return probability[i]
 

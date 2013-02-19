@@ -68,7 +68,7 @@ class Blocker:
         num_thresholds = len(self.tfidf_predicates)
 
         for i, (threshold, field) in enumerate(self.tfidf_predicates, 1) :
-            print '%d/%d field %f %s' % (i, num_thresholds, threshold, field)
+            print '%i/%i field %2.2f %s' % (i, num_thresholds, threshold, field)
             canopy = createCanopies(field,
                                     threshold,
                                     corpus_ids,

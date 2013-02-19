@@ -42,9 +42,9 @@ class ClusteringTest(unittest.TestCase):
             
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.hierarchical.cluster
-    assert hierarchical(self.dupes, 0) == []
+    assert hierarchical(self.dupes, 1) == []
     assert hierarchical(self.dupes, 0.5) == [set([1, 2, 3]), set([4,5])]
-    assert hierarchical(self.dupes, 1) == [set([1, 2, 3, 4, 5])]
+    assert hierarchical(self.dupes, 0) == [set([1, 2, 3, 4, 5])]
 
 
   def test_chaudhuri_neighbor_list(self):
