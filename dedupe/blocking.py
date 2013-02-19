@@ -53,57 +53,13 @@ class Blocker:
         return set([str(key) for key in record_keys])
 
     
-    def invertIndex(self, data_d) :
-        if not self.tfidf_fields:
-            return None
-
-        self.inverted_index = defaultdict(lambda: defaultdict(list))
-        self.token_vector = defaultdict(dict)
-        self.corpus_ids = set([])
-
-        for record_id, record in data_d :
-            self.corpus_ids.add(record_id) # candidate for removal
-            for field in self.tfidf_fields :
-                tokens = record[field].lower().replace(",", "").split()
-                tokens = [(token, tokens.count(token)) for token in set(tokens)]
-                for token, _ in tokens:
-                    self.inverted_index[field][token].append(record_id)
-                
-                self.token_vector[field][record_id] = tokens
-
-        # ignore stop words in TFIDF canopy creation
-        num_docs = len(self.token_vector[field])
-
-        stop_word_threshold = max(num_docs * 0.025, 1000)
-        logging.info("Stop word threshold: %d" % stop_word_threshold)
-
-        num_docs_log = math.log(num_docs + 0.5)
-        singleton_idf = num_docs_log - math.log(1.0 + 0.5)
-
-        for field in self.inverted_index:
-            for token, occurrences in self.inverted_index[field].iteritems() :
-                n_occurrences = len(occurrences)
-                if n_occurrences < 2 :
-                    idf = singleton_idf
-                    occurrences = []
-                else :
-                    idf = num_docs_log - math.log(n_occurrences + 0.5)
-                    if n_occurrences > stop_word_threshold :
-                        occurrences = []
-                        logging.info("Stop word: %s, %s, %d" % (field, token, n_occurrences))
-
-                self.inverted_index[field][token] = {'idf' : idf,
-                                                     'occurrences' : occurrences}
-
-        for field in self.token_vector:
-            inverted_index = self.inverted_index[field]
-            for record_id, tokens in self.token_vector[field].iteritems():
-                norm = math.sqrt(sum((inverted_index[token]['idf'] * count)**2
-                                     for token, count in tokens))
-                self.token_vector[field][record_id] = (dict(tokens), norm)
 
     def tfIdfBlocks(self, data) :
-        self.invertIndex(data)
+        if self.tfidf_fields:
+            (inverted_index,
+             token_vector,
+             corpus_ids) = invertIndex(data, self.tfidf_fields)
+
         self.canopies = {}
         
         print 'creating TF/IDF canopies'
@@ -111,64 +67,125 @@ class Blocker:
         num_thresholds = len(self.tfidf_predicates)
 
         for i, (threshold, field) in enumerate(self.tfidf_predicates, 1) :
-            print (str(i) + "/" + str(num_thresholds)), threshold, field
-            canopy = self.createCanopies(field, threshold)
+            print '%d/%d field %f %s' % (i, num_thresholds, threshold, field)
+            canopy = createCanopies(field,
+                                    threshold,
+                                    corpus_ids,
+                                    token_vector,
+                                    inverted_index)
             self.canopies[threshold.__name__ + field] = canopy
 
 
-    def createCanopies(self, field, threshold) :
-      """
-      A function that returns a field value of a record with a
-      particular doc_id, doc_id is the only argument that must be
-      accepted by select_function
-      """
 
-      canopies = defaultdict(lambda:None)
-      seen_set = set([])
-      corpus_ids = self.corpus_ids.copy()
+def invertIndex(data_d, tfidf_fields) :
 
-      token_vectors = self.token_vector[field]
-      while corpus_ids :
-        center_id = corpus_ids.pop()
-        canopies[center_id] = center_id
+    inverted_index = defaultdict(lambda: defaultdict(list))
+    token_vector = defaultdict(dict)
+    corpus_ids = set([])
 
-        doc_id = center_id
-        center_vector, center_norm = token_vectors[center_id]
+    for record_id, record in data_d :
+        corpus_ids.add(record_id) # candidate for removal
+        for field in tfidf_fields :
+            tokens = record[field].lower().replace(",", "").split()
+            tokens = [(token, tokens.count(token))
+                      for token in set(tokens)]
+            for token, _ in tokens:
+                inverted_index[field][token].append(record_id)
 
-        seen_set.add(center_id)
+            token_vector[field][record_id] = tokens
 
-        if not center_norm :
-            continue    
+    # ignore stop words in TFIDF canopy creation
+    num_docs = len(token_vector[field])
 
-        # initialize the potential block with center
-        candidate_set = set([])
+    stop_word_threshold = max(num_docs * 0.025, 1000)
+    logging.info("Stop word threshold: %d" % stop_word_threshold)
 
-        for token in center_vector :
-          candidate_set.update(self.inverted_index[field][token]['occurrences'])
+    num_docs_log = math.log(num_docs + 0.5)
+    singleton_idf = num_docs_log - math.log(1.0 + 0.5)
 
-        candidate_set = candidate_set - seen_set
-        for doc_id in candidate_set :
-          candidate_vector, candidate_norm = token_vectors[doc_id]
-          if not candidate_norm :
-            continue
+    for field in inverted_index:
+        for token, occurrences in inverted_index[field].iteritems() :
+            n_occurrences = len(occurrences)
+            if n_occurrences < 2 :
+                idf = singleton_idf
+                occurrences = []
+            else :
+                idf = num_docs_log - math.log(n_occurrences + 0.5)
+                if n_occurrences > stop_word_threshold :
+                    occurrences = []
+                    logging.info("Stop word: %s, %s, %d" % (field, token, n_occurrences))
 
-          common_tokens = set(center_vector.keys()).intersection(candidate_vector.keys())
+            inverted_index[field][token] = {'idf' : idf,
+                                            'occurrences' : occurrences}
 
-          dot_product = 0 
-          for token in common_tokens :
-            token_idf = self.inverted_index[field][token]['idf']
-            dot_product += (center_vector[token] * token_idf) * (candidate_vector[token] * token_idf)
+    for field in token_vector:
+        field_inverted_index = inverted_index[field]
+        for record_id, tokens in token_vector[field].iteritems():
+            norm = math.sqrt(sum((field_inverted_index[token]['idf'] * count)**2
+                                 for token, count in tokens))
+            token_vector[field][record_id] = (dict(tokens), norm)
 
-          similarity = dot_product / (center_norm * candidate_norm)
-
-          if similarity > threshold :
-            canopies[doc_id] = center_id
-            seen_set.add(doc_id)
-            corpus_ids.remove(doc_id)
+    return inverted_index, token_vector, corpus_ids
 
 
 
-      return canopies
+def createCanopies(field,
+                   threshold,
+                   corpus_ids,
+                   token_vector,
+                   inverted_index) :
+  """
+  A function that returns a field value of a record with a
+  particular doc_id, doc_id is the only argument that must be
+  accepted by select_function
+  """
+
+  canopies = defaultdict(lambda:None)
+  seen_set = set([])
+  corpus_ids = corpus_ids.copy()
+
+  token_vectors = token_vector[field]
+  while corpus_ids :
+    center_id = corpus_ids.pop()
+    canopies[center_id] = center_id
+
+    doc_id = center_id
+    center_vector, center_norm = token_vectors[center_id]
+
+    seen_set.add(center_id)
+
+    if not center_norm :
+        continue    
+
+    # initialize the potential block with center
+    candidate_set = set([])
+
+    for token in center_vector :
+      candidate_set.update(inverted_index[field][token]['occurrences'])
+
+    candidate_set = candidate_set - seen_set
+    for doc_id in candidate_set :
+      candidate_vector, candidate_norm = token_vectors[doc_id]
+      if not candidate_norm :
+        continue
+
+      common_tokens = set(center_vector.keys()).intersection(candidate_vector.keys())
+
+      dot_product = 0 
+      for token in common_tokens :
+        token_idf = inverted_index[field][token]['idf']
+        dot_product += (center_vector[token] * token_idf) * (candidate_vector[token] * token_idf)
+        
+      cosine_similarity = dot_product / (center_norm * candidate_norm)
+
+      if cosine_similarity > threshold :
+        canopies[doc_id] = center_id
+        seen_set.add(doc_id)
+        corpus_ids.remove(doc_id)
+
+
+
+  return canopies
 
 
 
@@ -260,7 +277,7 @@ def _initializeTraining(training_pairs,
     predicate_set = disjunctivePredicates(predicate_functions + tfidf_predicates)
 
     if tfidf_predicates :
-        _overlap = canopyOverlap(tfidf_predicates,
+        _overlap = canopyOverlap(predicate_set,
                                  training_dupes + training_distinct,
                                  df_index) 
     else:
@@ -418,13 +435,29 @@ def canopyOverlap(tfidf_predicates,
                   df_index) :
 
     overlap = defaultdict(lambda:None)
-    for threshold, field in tfidf_predicates :
-        coverage =  tfidf.coverage(threshold, 
-                                   field, 
-                                   record_pairs,
-                                   df_index)
 
-        for pair, value in coverage.iteritems():
-            overlap[(pair, (threshold, field))] = value
+    docs = list(set(instance for pair in record_pairs for instance in pair))
+    enumerated_docs = zip(xrange(len(docs)), docs)
+
+    id_lookup = dict(zip(docs, xrange(len(docs))))
+    
+
+    blocker = Blocker(tfidf_predicates)
+    blocker.tfIdfBlocks(enumerated_docs)
+
+    for threshold, field in blocker.tfidf_predicates :
+        canopy_group = threshold.__name__ + field
+        for record_1, record_2 in record_pairs :
+            id_1 = id_lookup[record_1]
+            id_2 = id_lookup[record_2]
+
+            canopy_id_1 = blocker.canopies[canopy_group][id_1]
+            canopy_id_2 = blocker.canopies[canopy_group][id_2]
+
+            if canopy_id_1 == canopy_id_2 :
+                overlap[((record_1, record_2), (threshold, field))] = 1
+            else:
+                overlap[((record_1, record_2), (threshold, field))] = -1
+            
 
     return overlap
