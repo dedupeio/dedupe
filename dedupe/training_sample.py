@@ -6,6 +6,7 @@ from itertools import combinations
 import blocking
 import core
 import numpy
+import logging
 
 
 # based on the data model and training we have so far, returns the n
@@ -47,20 +48,15 @@ def activeLearning(candidates,
     import time
     t_train = time.time()
     record_distances = core.recordDistances(candidates, data_model)
-    print 'calculated recordDistances in ', time.time() - t_train, 'seconds'
+    logging.info('calculated recordDistances in %s seconds' % str(time.time() - t_train))
 
     seen_indices = set()
     
     while finished == False :
-        print 'finding the next uncertain pair ...'
+        logging.info('finding the next uncertain pair ...')
         uncertain_indices = findUncertainPairs(record_distances,
                                                data_model)
 
-        # pop the next most uncertain pair off of record distances
-
-        ## record_distances = record_distances[:, uncertain_indices]
-        ## uncertain_pair_ids = (record_distances['pairs'])[0:1]
-        ## record_distances = record_distances[1:]
 
         for uncertain_index in uncertain_indices :
             if uncertain_index not in seen_indices :

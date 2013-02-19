@@ -8,6 +8,7 @@ import tfidf
 from random import sample, random, choice, shuffle
 import types
 import math
+import logging
 
 
 
@@ -74,7 +75,7 @@ class Blocker:
         num_docs = len(self.token_vector[field])
 
         stop_word_threshold = max(num_docs * 0.025, 1000)
-        print "Stop word threshold: ", stop_word_threshold
+        logging.info("Stop word threshold: %d" % stop_word_threshold)
 
         num_docs_log = math.log(num_docs + 0.5)
         singleton_idf = num_docs_log - math.log(1.0 + 0.5)
@@ -89,7 +90,7 @@ class Blocker:
                     idf = num_docs_log - math.log(n_occurrences + 0.5)
                     if n_occurrences > stop_word_threshold :
                         occurrences = []
-                        print "Stop word: ", field, token, n_occurrences
+                        logging.info("Stop word: %s, %s, %d" % (field, token, n_occurrences))
 
                 self.inverted_index[field][token] = {'idf' : idf,
                                                      'occurrences' : occurrences}
@@ -226,13 +227,13 @@ def blockTraining(training_pairs,
                                               epsilon,
                                               _overlap)
 
-    print 'Final predicate set:'
-    print final_predicate_set
+    logging.info('Final predicate set:')
+    logging.info(final_predicate_set)
 
     if final_predicate_set:
         return final_predicate_set
     else:
-        print 'No predicate found!'
+        logging.warning('No predicate found!')
         raise
 
 
@@ -320,7 +321,7 @@ def findOptimumBlocking(training_dupes,
     # Chvatal, 1979
     final_predicate_set = []
     n_training_dupes = len(training_dupes)
-    print 'Uncovered dupes: ', n_training_dupes
+    logging.info('Uncovered dupes: %d' % n_training_dupes)
     while n_training_dupes >= epsilon:
 
         optimumCover = 0
@@ -334,11 +335,15 @@ def findOptimumBlocking(training_dupes,
                 optimumCover = cover
                 bestPredicate = predicate
 
-                print bestPredicate
-                print 'cover:', cover, 'found_dupes:', len(found_dupes[bestPredicate]), 'found_distinct:', len(found_distinct[bestPredicate]) 
+                logging.info(bestPredicate)
+                logging.info('cover: %d, found_dupes: %d, found_distinct: %d' %
+                             (cover,
+                              len(found_dupes[bestPredicate]),
+                              len(found_distinct[bestPredicate])
+                              ))
 
         if not bestPredicate:
-            print 'WARNING: Ran out of predicates'
+            logging.warning('Ran out of predicates')
             break
 
         predicate_set.remove(bestPredicate)

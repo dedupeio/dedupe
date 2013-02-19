@@ -6,6 +6,7 @@ from affinegap import normalizedAffineGapDistance as stringDistance
 import numpy
 import json
 import itertools
+import logging
 
 def randomPairs(n_records,sample_size, zero_indexed=True):
   n = (n_records*(n_records-1))/2
@@ -190,15 +191,15 @@ def scoreDuplicates(candidates,
       i += 1
       if len(record_distances) < chunk_size :
         complete = True
-        print "num chunks", i
+        logging.info("num chunks %d" % i)
 
 
 
 
 
-    print 'all scores', scored_pairs.shape
+    logging.info('all scores %d' % scored_pairs.shape)
     scored_pairs = numpy.unique(scored_pairs)
-    print 'unique scores', scored_pairs.shape
+    logging.info('unique scores %d' % scored_pairs.shape)
 
 
     return scored_pairs

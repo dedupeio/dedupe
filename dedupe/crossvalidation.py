@@ -4,6 +4,7 @@ import core
 from random import shuffle
 import copy
 import numpy
+import logging
 
 
 # http://code.activestate.com/recipes/521906-k-fold-cross-validation-partition/
@@ -17,7 +18,7 @@ def gridSearch(training_data,
 
     numpy.random.shuffle(training_data)
 
-    print 'using cross validation to find optimum alpha...'
+    logging.info('using cross validation to find optimum alpha...')
     scores = []
 
     fields = sorted(original_data_model['fields'].keys())
@@ -47,12 +48,11 @@ def gridSearch(training_data,
             all_score += score
             all_N += len(real_labels)
 
-        #print alpha, float(all_score) / all_N
         scores.append(float(all_score) / all_N)
 
     best_alpha = search_space[::-1][scores[::-1].index(max(scores))]
 
-    print 'optimum alpha: ', best_alpha
+    logging.info('optimum alpha: %f' % best_alpha)
     return best_alpha
 
 

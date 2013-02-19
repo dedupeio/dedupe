@@ -4,6 +4,7 @@ import json
 import random
 import collections
 import itertools
+import logging
 
 import core
 import training_sample
@@ -227,7 +228,7 @@ class Dedupe:
 
 
         if training_source.__class__ is str:
-            print 'reading training from file'
+            logging.info('reading training from file')
             if not hasattr(self, 'training_data'):
                 self.initializeTraining(training_source)
             
@@ -315,10 +316,10 @@ class Dedupe:
 
         i = numpy.argmax(score)
 
-        print 'Maximum expected recall and precision' 
-        print 'recall', recall[i]
-        print 'precision', precision[i]
-        print 'With threshold', probability[i],
+        logging.info('Maximum expected recall and precision')
+        logging.info('recall: %f' % recall[i])
+        logging.info('precision: %f' % precision[i])
+        logging.info('With threshold: %f' % probability[i])
 
         return probability[i]
 
@@ -402,13 +403,13 @@ class Dedupe:
         return learned_predicates
 
     def _printLearnedWeights(self):
-        print 'Learned Weights'
+        logging.info('Learned Weights')
         for (k1, v1) in self.data_model.items():
             try:
                 for (k2, v2) in v1.items():
-                    print (k2, v2['weight'])
+                    logging.info((k2, v2['weight']))
             except:
-                print (k1, v1)
+                logging.info((k1, v1))
 
     def writeSettings(self, file_name):
         """
