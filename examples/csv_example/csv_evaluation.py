@@ -17,16 +17,19 @@ def evaluateDuplicates(found_dupes, true_dupes):
     print 'recall'
     print len(true_positives) / float(len(true_dupes))
 
-def dupePairs(filename) :
+def dupePairs(filename, rowname) :
     dupe_d = collections.defaultdict(list)
 
-    with open(manual_clusters) as f:
+    with open(filename) as f:
         reader = csv.DictReader(f, delimiter=',', quotechar='"')
         for row in reader:
-            dupe_d[row['True Id']].append(row['Id'])
+            dupe_d[row[rowname]].append(row['Id'])
+
+    if 'x' in dupe_d :
+        del dupe_d['x']
 
     dupe_s = set([])
-    for (unique_id, cluster) in dupes_d.iteritems():
+    for (unique_id, cluster) in dupe_d.iteritems():
         if len(cluster) > 1:
             for pair in itertools.combinations(cluster, 2):
                 dupe_s.add(frozenset(pair))
@@ -38,20 +41,8 @@ os.chdir('./examples/csv_example/')
 manual_clusters = 'csv_example_input_with_true_ids.csv'
 dedupe_clusters = 'csv_example_output.csv'
 
-true_dupes = dupePairs(manual_clusters)
-test_dupes = dupePairs(dedupe_clusters)
+true_dupes = dupePairs(manual_clusters, 'True Id')
+test_dupes = dupePairs(dedupe_clusters, 'Cluster ID')
 
 evaluateDuplicates(test_dupes, true_dupes)
 
-
-
-
-confirm_dupes = set([])
-for dupe_set in clustered_dupes:
-    if len(dupe_set) == 2:
-        confirm_dupes.add(frozenset(dupe_set))
-    else:
-        for pair in combinations(dupe_set, 2):
-            confirm_dupes.add(frozenset(pair))
-
-evaluateDuplicates(confirm_dupes, duplicates_s)

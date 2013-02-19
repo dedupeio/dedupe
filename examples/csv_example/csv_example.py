@@ -76,9 +76,9 @@ def preProcess(column):
 def readData(filename):
     """
     We read in the data from a CSV file and as we do, we `preProcess`
-    it. The output is a dictionary of records, where the key is a unique
-    record ID (created with `enumerate()`) and each value is a `frozendict`
-    (basically a hashable dictionary) of the row fields.
+    it. The output is a dictionary of records, where the key is a
+    unique record ID and each value is a `frozendict` (basically a
+    hashable dictionary) of the row fields.
 
     **Currently, dedupe depends upon records' unique ids being integers
     with no integers skipped. The smallest valued unique id must be 0 or
@@ -94,7 +94,7 @@ def readData(filename):
         for row in reader:
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
-            row_id = row['Id']
+            row_id = int(row['Id'])
             data_d[row_id] = dedupe.core.frozendict(clean_row)
 
     return (data_d, reader.fieldnames)
