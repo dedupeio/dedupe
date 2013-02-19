@@ -3,7 +3,7 @@ A free python library for accurate and scaleable deduplication and entity-resolu
 
 [<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)
 
-Based on Mikhail Yuryevich Bilenko's Ph. D dissertation: Learnable Similarity Functions and their Application to Record Linkage and Clustering
+Based on Mikhail Yuryevich Bilenko's Ph.D dissertation: [*Learnable Similarity Functions and their Application to Record Linkage and Clustering*](http://www.cs.utexas.edu/~ml/papers/marlin-dissertation-06.pdf).
 
 Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
 
@@ -46,7 +46,7 @@ Dedupe is a library and not a stand-alone command line tool. To demonstrate its 
 
 ### CSV example (<10,000 rows)
 ```bash
-python examples/csv_example.py
+python examples/csv_example/csv_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished)
   
