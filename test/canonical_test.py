@@ -118,7 +118,7 @@ else:
 
     if args.active :
         print "Using active learning..."
-        deduper.train(data_d, dedupe.training_sample.consoleLabel)
+        deduper.train(data_d, dedupe.training.consoleLabel)
     else :
       print "Using a random sample of training pairs..."
 

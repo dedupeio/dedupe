@@ -17,7 +17,7 @@ import clustering
 import core
 import lr
 import predicates
-import training_sample
+import training
 import crossvalidation
 from dedupe import Dedupe
 from dedupe import randomPairs

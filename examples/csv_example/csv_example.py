@@ -138,7 +138,7 @@ else:
 
   # For consoleLabel, use 'y', 'n' and 'u' keys to flag duplicates,
   # 'f' when you are finished.
-  deduper.train(data_sample, dedupe.training_sample.consoleLabel)
+  deduper.train(data_sample, dedupe.training.consoleLabel)
 
   # Save away our labeled training pairs to a JSON file.
   deduper.writeTraining(training_file)

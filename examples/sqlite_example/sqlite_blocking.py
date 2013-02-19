@@ -119,7 +119,7 @@ else:
     print 'starting active labeling...'
     print 'finding uncertain pairs...'
     # ... and then call training with our interactive function
-    deduper.train(data_samples, dedupe.training_sample.consoleLabel)
+    deduper.train(data_samples, dedupe.training.consoleLabel)
     deduper.writeTraining(training_file)
 
 print 'blocking...'

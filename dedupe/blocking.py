@@ -118,9 +118,9 @@ class Blocker:
 
     def createCanopies(self, field, threshold) :
       """
-      A function that returns 
-      a field value of a record with a particular doc_id, doc_id
-      is the only argument that must be accepted by select_function
+      A function that returns a field value of a record with a
+      particular doc_id, doc_id is the only argument that must be
+      accepted by select_function
       """
 
       canopies = defaultdict(lambda:None)
@@ -233,8 +233,8 @@ def blockTraining(training_pairs,
     if final_predicate_set:
         return final_predicate_set
     else:
-        logging.warning('No predicate found!')
-        raise
+        raise ValueError("No predicate found!")
+
 
 
 def _initializeTraining(training_pairs,
@@ -411,30 +411,6 @@ def blockingIndex(data_d, blocker):
 
     for i, key in enumerate(blocks) :
         yield blocks[key]
-
-def semiSupervisedNonDuplicates(data_sample, data_model, 
-                                nonduplicate_confidence_threshold=.7,
-                                sample_size = 2000):
-
-
-
-    if len(data_sample) <= sample_size :
-        return data_sample
-
-    confident_distinct_pairs = []
-    n_distinct_pairs = 0
-    for pair in data_sample :
-
-        pair_distance = core.recordDistances([pair], data_model)
-        score = core.scorePairs(pair_distance, data_model)
-
-
-        if score < (1 - nonduplicate_confidence_threshold):
-            key_pair, value_pair = zip(*pair)
-            confident_distinct_pairs.append(value_pair)
-            n_distinct_pairs += 1
-            if n_distinct_pairs == sample_size :
-                return confident_distinct_pairs
 
 
 def canopyOverlap(tfidf_predicates,
