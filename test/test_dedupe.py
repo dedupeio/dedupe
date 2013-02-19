@@ -125,43 +125,51 @@ class BlockingTest(unittest.TestCase):
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
               }
-    deduper = dedupe.Dedupe(fields)
+    self.deduper = dedupe.Dedupe(fields)
     self.wholeFieldPredicate = dedupe.predicates.wholeFieldPredicate
     self.sameThreeCharStartPredicate = dedupe.predicates.sameThreeCharStartPredicate
-    training_pairs = {
-        0: [(self.frozendict({"name": "Bob", "age": "50"}), self.frozendict({"name": "Charlie", "age": "75"})),
-            (self.frozendict({"name": "Meredith", "age": "40"}), self.frozendict({"name": "Sue", "age": "10"}))], 
-        1: [(self.frozendict({"name": "Jimmy", "age": "20"}), self.frozendict({"name": "Jimbo", "age": "21"})),
-            (self.frozendict({"name": "Willy", "age": "35"}), self.frozendict({"name": "William", "age": "35"}))]
+    self.training_pairs = {
+        0: [(self.frozendict({"name": "Bob", "age": "50"}),
+             self.frozendict({"name": "Charlie", "age": "75"})),
+            (self.frozendict({"name": "Meredith", "age": "40"}),
+             self.frozendict({"name": "Sue", "age": "10"}))], 
+        1: [(self.frozendict({"name": "Jimmy", "age": "20"}),
+             self.frozendict({"name": "Jimbo", "age": "21"})),
+            (self.frozendict({"name": "Willy", "age": "35"}),
+             self.frozendict({"name": "William", "age": "35"}))]
       }
-    predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
-    self.blocker = dedupe.blocking.Blocking(training_pairs, predicate_functions, deduper.data_model, [], {}, 1, 1)
+    self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
+    
+  def test_initializer(self) :
+    (training_dupes,
+     training_distinct,
+     predicate_set,
+     _overlap) =  dedupe.blocking._initializeTraining(self.training_pairs,
+                                                      self.deduper.data_model,
+                                                      self.predicate_functions,
+                                                      [],
+                                                      {})
 
-  def test_create_predicate_set(self):
-    self.blocker.predicate_functions = ('foo', 'bar') 
-    assert self.blocker.createPredicateSet(disjunctive = True) ==  [(('foo', 'age'),), 
-                                                                    (('foo', 'name'),), 
-                                                                    (('bar', 'age'),), 
-                                                                    (('bar', 'name'),), 
-                                                                    (('foo', 'age'), ('foo', 'name')), 
-                                                                    (('foo', 'age'), ('bar', 'name')), 
-                                                                    (('foo', 'name'), ('bar', 'age')), 
-                                                                    (('bar', 'age'), ('bar', 'name'))]
-
-    assert self.blocker.createPredicateSet(disjunctive = False) ==  [(('foo', 'age'),), 
-                                                                    (('foo', 'name'),), 
-                                                                    (('bar', 'age'),), 
-                                                                    (('bar', 'name'),)]
-
-  def test_predicate_coverage(self):
-    pairs = [(self.frozendict({"name": "Jimmy", "age": "20"}), self.frozendict({"name": "Jimbo", "age": "21"}))]
-    self.blocker.predicate_set = self.blocker.createPredicateSet(disjunctive = False)
-    assert self.blocker.predicateCoverage(pairs) == {((self.sameThreeCharStartPredicate, 'name'),): 
-                                                        [(self.frozendict({'age': '20', 'name': 'Jimmy'}), 
-                                                          self.frozendict({'age': '21', 'name': 'Jimbo'}))]}
-
-  def test_train_blocking(self):
-      assert self.blocker.trainBlocking(disjunctive = False) == [((self.sameThreeCharStartPredicate, 'name'),)]
+    assert training_dupes == [(self.frozendict({'age': '20', 'name': 'Jimmy'}),
+                               self.frozendict({'age': '21', 'name': 'Jimbo'})),
+                              (self.frozendict({'age': '35', 'name': 'Willy'}),
+                               self.frozendict({'age': '35', 'name': 'William'}))]
+    assert training_distinct == [(self.frozendict({'age': '50', 'name': 'Bob'}),
+                                  self.frozendict({'age': '75', 'name': 'Charlie'})),
+                                 (self.frozendict({'age': '40', 'name': 'Meredith'}),
+                                  self.frozendict({'age': '10', 'name': 'Sue'}))]
+    assert predicate_set == [((self.wholeFieldPredicate, 'age'),),
+                             ((self.wholeFieldPredicate, 'name'),),
+                             ((self.sameThreeCharStartPredicate, 'age'),),
+                             ((self.sameThreeCharStartPredicate, 'name'),),
+                             ((self.wholeFieldPredicate, 'age'),
+                              (self.wholeFieldPredicate, 'name')),
+                             ((self.wholeFieldPredicate, 'age'),
+                              (self.sameThreeCharStartPredicate, 'name')),
+                             ((self.wholeFieldPredicate, 'name'),
+                              (self.sameThreeCharStartPredicate, 'age')),
+                             ((self.sameThreeCharStartPredicate, 'age'),
+                              (self.sameThreeCharStartPredicate, 'name'))]
 
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
