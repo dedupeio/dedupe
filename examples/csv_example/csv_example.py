@@ -97,11 +97,11 @@ def readData(filename):
             row_id = int(row['Id'])
             data_d[row_id] = dedupe.core.frozendict(clean_row)
 
-    return (data_d, reader.fieldnames)
+    return data_d
 
 
 print 'importing data ...'
-(data_d, header) = readData(input_file)
+data_d  = readData(input_file)
 
 # ## Teaching Dedupe to Compare Records
 
@@ -243,18 +243,19 @@ for (cluster_id, cluster) in enumerate(clustered_dupes):
 
 with open(output_file, 'w') as f:
     writer = csv.writer(f)
-    heading_row = header
-    heading_row.insert(0, 'Cluster ID')
-    writer.writerow(heading_row)
 
     with open(input_file) as f_input :
         reader = csv.reader(f_input)
-        reader.next()
+
+        heading_row = reader.next()
+        heading_row.insert(0, 'Cluster ID')
+        writer.writerow(heading_row)
 
         for row in reader:
             row_id = int(row[0])
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
+            
 
 
