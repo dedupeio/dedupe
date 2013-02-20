@@ -227,14 +227,13 @@ threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
 
+print '# duplicate sets', len(clustered_dupes)
+
 # ## Writing Results
 
 # Now that we have our clustered duplicates, we write our original
 # data back out to a CSV with a new column called 'Cluster ID' which
 # indicates which records refer to each other.
-
-print '# duplicate sets', len(clustered_dupes)
-orig_data = {}
 
 cluster_membership = collections.defaultdict(lambda : 'x')
 for (cluster_id, cluster) in enumerate(clustered_dupes):
