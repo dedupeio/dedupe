@@ -207,6 +207,9 @@ def scoreDuplicates(candidates,
 
 # define a data type for hashable dictionaries
 
+import collections
+
+# From http://code.activestate.com/recipes/414283-frozen-dictionaries/
 class frozendict(dict):
 
     def _blocked_attribute(obj):
@@ -232,5 +235,4 @@ class frozendict(dict):
             h = self._cached_hash = hash(tuple(sorted(self.items())))
             return h
 
-    def __repr__(self):
-        return 'frozendict(%s)' % dict.__repr__(self)
+
