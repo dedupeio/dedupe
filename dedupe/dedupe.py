@@ -347,6 +347,9 @@ class Dedupe:
                               
 
         """
+        # Setting the cluster threshold this ways is not principled,
+        # but seems to reliably help performance
+        cluster_threshold = threshold * 0.7
 
         candidates = (pair for block in blocks
                       for pair in itertools.combinations(block, 2))
@@ -355,7 +358,8 @@ class Dedupe:
                                           self.data_model,
                                           threshold)
 
-        clusters = clustering.hierarchical.cluster(self.dupes, threshold)
+
+        clusters = clustering.hierarchical.cluster(self.dupes, cluster_threshold)
 
         return clusters
 
