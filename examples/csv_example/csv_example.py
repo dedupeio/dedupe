@@ -90,7 +90,7 @@ def readData(filename):
 
     data_d = {}
     with open(filename) as f:
-        reader = csv.DictReader(f, delimiter=',', quotechar='"')
+        reader = csv.DictReader(f)
         for row in reader:
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
@@ -253,7 +253,7 @@ with open(output_file, 'w') as f:
         reader.next()
 
         for row in reader:
-            row_id = row['Id']
+            row_id = int(row[0])
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
