@@ -92,8 +92,7 @@ def readData(filename):
     with open(filename) as f:
         reader = csv.DictReader(f)
         for row in reader:
-            clean_row = [(k, preProcess(v)) for (k, v) in
-                         row.iteritems()]
+            clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
             row_id = int(row['Id'])
             data_d[row_id] = dedupe.core.frozendict(clean_row)
 
@@ -101,7 +100,7 @@ def readData(filename):
 
 
 print 'importing data ...'
-data_d  = readData(input_file)
+data_d = readData(input_file)
 
 # ## Teaching Dedupe to Compare Records
 

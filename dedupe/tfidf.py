@@ -42,9 +42,3 @@ def documentFrequency(corpus) :
 def getTokens(str):
   return str.lower().split()
 
-
-
-def tfidfDict(doc, df_index) :
-  tokens = getTokens(doc)
-  return dict((token, tokens.count(token) * df_index[token]) for token in set(tokens))
-

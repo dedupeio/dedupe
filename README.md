@@ -74,6 +74,37 @@ with this much data, C. a problem we will have with any database engine. We will
 using MySQL soon to try to narrow down the problem. In the meantime, if you are an sqlite guru, we could
 use your eyeballs.
 
+### mysql example (10,000 - 1,000,000 rows)
+To follow this example you need to 
+
+* Create a MySQL database called 'contributions'
+* Copy `examples/mysql_example/mysql.cnf_LOCAL` to `examples/mysql_example/mysql.cnf`
+* Update `examples/mysql_example/mysql.cnf` with your MySQL username and password
+
+Once that's all done you can run the example:
+
+```bash
+python examples/mysql_example/init_db.py
+python examples/mysql_example/mysql_blocking.py
+```
+  (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
+  
+```bash
+python examples/mysql_example/mysql_clustering.py
+```
+* [Annotated source code of mysql_blocking](http://open-city.github.com/dedupe/doc/mysql_blocking.html)
+* [Annotated source code of mysql_clustering](http://open-city.github.com/dedupe/doc/mysql_clustering.html)
+
+*Please note*: We have been having performance with sqlite on some machines, particular in writing the 
+blocking map table. If sqlite_blocking.py doesn't complete within eight hours, it probably will take days to
+finish on your machine.
+
+We are not sure if this is A. a problem with how we are using sqlite, B. a problem with using sqlite 
+with this much data, C. a problem we will have with any database engine. We will implement a version
+using MySQL soon to try to narrow down the problem. In the meantime, if you are an sqlite guru, we could
+use your eyeballs.
+
+
 ## Testing
 
 Unit tests of core dedupe functions
