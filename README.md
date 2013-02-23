@@ -74,7 +74,7 @@ with this much data, C. a problem we will have with any database engine. We will
 using MySQL soon to try to narrow down the problem. In the meantime, if you are an sqlite guru, we could
 use your eyeballs.
 
-### mysql example (10,000 - 1,000,000 rows)
+### mysql_example (10,000 - 1,000,000 rows)
 To follow this example you need to 
 
 * Create a MySQL database called 'contributions'
