@@ -151,7 +151,7 @@ print 'blocking...'
 blocker = deduper.blockingFunction(eta=1, epsilon=1)
 blocked_data = tuple(dedupe.blockData(data_d, blocker))
 
-alpha = deduper.goodThreshold(blocked_data, 2)
+alpha = deduper.goodThreshold(blocked_data)
 
 
 # print candidates

@@ -22,4 +22,4 @@ import crossvalidation
 from api import Dedupe
 from core import randomPairs
 from convenience import dataSample
-from convenience import blockingIndex as blockData
+from convenience import blockData
