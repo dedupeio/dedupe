@@ -122,7 +122,7 @@ else:
     else :
       print "Using a random sample of training pairs..."
 
-      deduper.initializeTraining()
+      deduper._initializeTraining()
       deduper.training_pairs = randomTrainingPairs(data_d,
                                                    duplicates_s,
                                                    num_training_dupes,

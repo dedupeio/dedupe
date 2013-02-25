@@ -12,7 +12,7 @@ import dedupe.tfidf as tfidf
 
 
 class Blocker:
-
+    '''Takes in a record and returns all blocks that record belongs to'''
     def __init__(self, predicates):
         self.predicates = predicates
 
@@ -37,8 +37,8 @@ class Blocker:
                 pred_id = F.__name__ + field
                 if isinstance(F, types.FunctionType):
                     record_field = record[field].strip().lower()
-                    predicate_keys.append([str(key) + pred_id
-                            for key in F(record_field)])
+                    block_keys = [str(key) + pred_id for key in F(record_field)]
+                    predicate_keys.append(block_keys)
                 elif F.__class__ is tfidf.TfidfPredicate:
                     center = self.canopies[pred_id][record_id]
                     if center is not None:
@@ -49,11 +49,10 @@ class Blocker:
 
             record_keys.extend(product(*predicate_keys))
 
-        # return record_keys
-
         return set([str(key) for key in record_keys])
 
     def tfIdfBlocks(self, data, df_index=None):
+        '''Creates TF/IDF canopy of a given set of data'''
         if self.tfidf_fields:
 
             (inverted_index, token_vector, corpus_ids) = \
@@ -61,14 +60,17 @@ class Blocker:
 
         self.canopies = {}
 
-        print 'creating TF/IDF canopies'
+        logging.info('creating TF/IDF canopies')
 
         num_thresholds = len(self.tfidf_predicates)
 
-        for (i, (threshold, field)) in enumerate(self.tfidf_predicates,
-                1):
-            print '%i/%i field %2.2f %s' % (i, num_thresholds,
-                    threshold, field)
+        for (i, (threshold, field)) in enumerate(self.tfidf_predicates, 1):
+            logging.info('%(i)i/%(num_thresholds)i field %(threshold)2.2f %(field)s',
+                         {'i': i, 
+                          'num_thresholds': num_thresholds, 
+                          'threshold': threshold, 
+                          'field': field})
+
             canopy = createCanopies(field, threshold, corpus_ids,
                                     token_vector, inverted_index)
             self.canopies[threshold.__name__ + field] = canopy
@@ -86,8 +88,7 @@ def invertIndex(data_d, tfidf_fields, df_index=None):
         corpus_ids.add(record_id)  # candidate for removal
         for field in tfidf_fields:
             tokens = record[field].lower().replace(',', '').split()
-            tokens = [(token, tokens.count(token)) for token in
-                      set(tokens)]
+            tokens = [(token, tokens.count(token)) for token in set(tokens)]
             for (token, _) in tokens:
                 inverted_index[field][token].append(record_id)
 
@@ -109,7 +110,7 @@ def invertIndex(data_d, tfidf_fields, df_index=None):
             for (token, occurrences) in \
                 inverted_index[field].iteritems():
                 inverted_index[field][token] = {'idf': df_index[token],
-                        'occurrences': occurrences}
+                                                'occurrences': occurrences}
     else:
 
         for field in inverted_index:
@@ -128,27 +129,24 @@ def invertIndex(data_d, tfidf_fields, df_index=None):
                                       'token' : token,
                                       'occurences' : n_occurrences})
 
-                inverted_index[field][token] = {'idf': idf,
-                        'occurrences': occurrences}
+                inverted_index[field][token] = {'idf': idf, 
+                                                'occurrences': occurrences}
 
     for field in token_vector:
         field_inverted_index = inverted_index[field]
         for (record_id, tokens) in token_vector[field].iteritems():
-            norm = math.sqrt(sum((field_inverted_index[token]['idf']
-                             * count) ** 2 for (token, count) in
-                             tokens))
+            norm = math.sqrt(sum((field_inverted_index[token]['idf'] * count)**2 
+                                  for (token, count) in tokens))
             token_vector[field][record_id] = (dict(tokens), norm)
 
     return (inverted_index, token_vector, corpus_ids)
 
 
-def createCanopies(
-    field,
-    threshold,
-    corpus_ids,
-    token_vector,
-    inverted_index,
-    ):
+def createCanopies(field,
+                   threshold,
+                   corpus_ids,
+                   token_vector,
+                   inverted_index):
     """
     A function that returns a field value of a record with a
     particular doc_id, doc_id is the only argument that must be
@@ -172,13 +170,12 @@ def createCanopies(
         if not center_norm:
             continue
 
-    # initialize the potential block with center
+        # initialize the potential block with center
 
         candidate_set = set([])
 
         for token in center_vector:
-            candidate_set.update(inverted_index[field][token]['occurrences'
-                                 ])
+            candidate_set.update(inverted_index[field][token]['occurrences'])
 
         candidate_set = candidate_set - seen_set
         for doc_id in candidate_set:
@@ -186,17 +183,14 @@ def createCanopies(
             if not candidate_norm:
                 continue
 
-            common_tokens = \
-                set(center_vector.keys()).intersection(candidate_vector.keys())
+            common_tokens = set(center_vector.keys()).intersection(candidate_vector.keys())
 
             dot_product = 0
             for token in common_tokens:
                 token_idf = inverted_index[field][token]['idf']
-                dot_product += center_vector[token] * token_idf \
-                    * (candidate_vector[token] * token_idf)
+                dot_product += center_vector[token] * token_idf * (candidate_vector[token] * token_idf)
 
-            cosine_similarity = dot_product / (center_norm
-                    * candidate_norm)
+            cosine_similarity = dot_product / (center_norm * candidate_norm)
 
             if cosine_similarity > threshold:
                 canopies[doc_id] = center_id
@@ -206,52 +200,54 @@ def createCanopies(
     return canopies
 
 
-def blockTraining(
-    training_pairs,
-    predicate_functions,
-    data_model,
-    tfidf_thresholds=None,
-    df_index=None,
-    eta=.1,
-    epsilon=.1,
-    ):
-
-    (training_dupes, training_distinct, predicate_set, _overlap) = \
-        _initializeTraining(training_pairs, data_model,
-                            predicate_functions, tfidf_thresholds,
-                            df_index)
+def blockTraining(training_pairs,
+                  predicate_functions,
+                  data_model,
+                  tfidf_thresholds=None,
+                  df_index=None,
+                  eta=.1,
+                  epsilon=.1):
+    '''Takes in a set of training pairs and predicates and tries to find a good set of blocking rules.'''
+    
+    (training_dupes, 
+     training_distinct, 
+     predicate_set, 
+     _overlap) = _initializeTraining(training_pairs, 
+                                     data_model,
+                                     predicate_functions, 
+                                     tfidf_thresholds,
+                                     df_index)
 
     coverage_threshold = eta * len(training_distinct)
 
     n_predicates = len(predicate_set)
 
-    (found_dupes, _overlap) = predicateCoverage(predicate_set,
-            training_dupes, _overlap)
+    (found_dupes, _overlap) = predicateCoverage(predicate_set, training_dupes, _overlap)
 
     # Only consider predicates that cover at least one duplicate pair
 
     predicate_set = found_dupes.keys()
 
-    (found_distinct, distinct_blocks, _overlap) = \
-        predicateCoverage(predicate_set, training_distinct, _overlap,
-                          return_blocks=True)
+    (found_distinct, 
+     distinct_blocks, 
+     _overlap) = predicateCoverage(predicate_set, 
+                                   training_distinct, 
+                                   _overlap,
+                                   return_blocks=True)
 
     # We want to throw away the predicates that puts together too
     # many distinct pairs
 
     for (pred, blocking) in distinct_blocks.iteritems():
-        if any(len(record_ids) >= coverage_threshold for record_ids in
-               blocking.values()):
+        if any(len(record_ids) >= coverage_threshold for record_ids in blocking.values()):
             predicate_set.remove(pred)
 
-    final_predicate_set = findOptimumBlocking(
-        training_dupes,
-        predicate_set,
-        found_dupes,
-        found_distinct,
-        epsilon,
-        _overlap,
-        )
+    final_predicate_set = findOptimumBlocking(training_dupes,
+                                              predicate_set,
+                                              found_dupes,
+                                              found_distinct,
+                                              epsilon,
+                                              _overlap)
 
     logging.info('Final predicate set:')
     logging.info(final_predicate_set)
@@ -262,13 +258,11 @@ def blockTraining(
         raise ValueError('No predicate found!')
 
 
-def _initializeTraining(
-    training_pairs,
-    data_model,
-    predicate_functions,
-    tfidf_thresholds,
-    df_index,
-    ):
+def _initializeTraining(training_pairs,
+                        data_model,
+                        predicate_functions,
+                        tfidf_thresholds,
+                        df_index):
 
     training_dupes = (training_pairs[1])[:]
     training_distinct = (training_pairs[0])[:]
@@ -286,20 +280,19 @@ def _initializeTraining(
             + tfidf_predicates)
 
     if tfidf_predicates:
-        _overlap = canopyOverlap(predicate_set, training_dupes
-                                 + training_distinct, df_index)
+        _overlap = canopyOverlap(predicate_set, 
+                                 training_dupes + training_distinct, 
+                                 df_index)
     else:
         _overlap = defaultdict(lambda : None)
 
     return (training_dupes, training_distinct, predicate_set, _overlap)
 
 
-def predicateCoverage(
-    predicate_set,
-    pairs,
-    _overlap,
-    return_blocks=False,
-    ):
+def predicateCoverage(predicate_set,
+                      pairs,
+                      _overlap,
+                      return_blocks=False):
     coverage = defaultdict(list)
     blocks = defaultdict(lambda : defaultdict(set))
     for pair in pairs:
@@ -327,25 +320,20 @@ def predicateCoverage(
 
                 coverage[predicate].append(pair)
                 if return_blocks:
-
-                    blocks[predicate][(field_predicate_1,
-                            field_predicate_2)].update(pair)
+                    blocks[predicate][(field_predicate_1, field_predicate_2)].update(pair)
 
     if return_blocks:
         return (coverage, blocks, _overlap)
     else:
-
         return (coverage, _overlap)
 
 
-def findOptimumBlocking(
-    training_dupes,
-    predicate_set,
-    found_dupes,
-    found_distinct,
-    epsilon,
-    _overlap,
-    ):
+def findOptimumBlocking(training_dupes,
+                        predicate_set,
+                        found_dupes,
+                        found_distinct,
+                        epsilon,
+                        _overlap):
 
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
@@ -360,8 +348,7 @@ def findOptimumBlocking(
         optimum_cover = 0
         best_predicate = None
         for predicate in predicate_set:
-            cover = len(found_dupes[predicate]) \
-                / (float(len(found_distinct[predicate])) + 0.5)
+            cover = len(found_dupes[predicate]) / (float(len(found_distinct[predicate])) + 0.5)
             if cover > optimum_cover and cover > 1:
                 optimum_cover = cover
                 best_predicate = predicate
@@ -379,10 +366,10 @@ def findOptimumBlocking(
 
         predicate_set.remove(best_predicate)
         n_training_dupes -= len(found_dupes[best_predicate])
-        [training_dupes.remove(pair) for pair in
-         found_dupes[best_predicate]]
-        (found_dupes, _overlap) = predicateCoverage(predicate_set,
-                training_dupes, _overlap)
+        
+        [training_dupes.remove(pair) for pair in found_dupes[best_predicate]]
+        
+        (found_dupes, _overlap) = predicateCoverage(predicate_set, training_dupes, _overlap)
 
         final_predicate_set.append(best_predicate)
 
@@ -395,44 +382,19 @@ def disjunctivePredicates(predicate_set):
 
     # filter out disjunctive predicates that operate on same field
 
-    disjunctive_predicates = [predicate for predicate in
-                              disjunctive_predicates if predicate[0][1]
-                              != predicate[1][1]]
+    disjunctive_predicates = [predicate for predicate in disjunctive_predicates 
+                              if predicate[0][1] != predicate[1][1]]
 
     predicate_set = [(predicate, ) for predicate in predicate_set]
     predicate_set.extend(disjunctive_predicates)
 
     return predicate_set
 
-
-def filterOutIndistinctPairs(
-    self,
-    expected_dupe_cover,
-    found_distinct,
-    training_distinct,
-    ):
-
-    # We don't want to penalize a blocker if it puts distinct
-    # pairs together that look like they could be duplicates.
-
-    predicate_count = defaultdict(int)
-    for pair in chain(*found_distinct.values()):
-        predicate_count[pair] += 1
-
-    training_distinct = [pair for pair in training_distinct
-                         if predicate_count[pair] < expected_dupe_cover]
-
-    return self.predicateCoverage(training_distinct)
-
-
-
-
 def canopyOverlap(tfidf_predicates, record_pairs, df_index):
 
     overlap = defaultdict(lambda : None)
 
-    docs = list(set(instance for pair in record_pairs for instance in
-                pair))
+    docs = list(set(instance for pair in record_pairs for instance in pair))
     enumerated_docs = zip(xrange(len(docs)), docs)
 
     id_lookup = dict(zip(docs, xrange(len(docs))))

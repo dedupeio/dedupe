@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import core
 from random import shuffle
 import copy
@@ -8,13 +9,13 @@ import logging
 
 
 # http://code.activestate.com/recipes/521906-k-fold-cross-validation-partition/
+
 def gridSearch(training_data,
                trainer,
                original_data_model,
                k=10,
                search_space=[.0001, .001, .01, .1, 1],
-               randomize=True,
-               ):
+               randomize=True):
 
     numpy.random.shuffle(training_data)
 
@@ -37,13 +38,9 @@ def gridSearch(training_data,
             valid_examples = training_data['field_distances']
             valid_scores = numpy.dot(valid_examples, weight) + bias
 
-
             predicted_labels = valid_scores > 0
 
-
             score = numpy.sum(real_labels == predicted_labels)
-            
-
 
             all_score += score
             all_N += len(real_labels)
@@ -61,8 +58,7 @@ def kFolds(training_data, k):
     slices = [training_data[i::k] for i in xrange(k)]
     for i in xrange(k):
         validation = slices[i]
-        training = [datum for s in slices if s is not validation
-                    for datum in s]
+        training = [datum for s in slices if s is not validation for datum in s]
         validation = numpy.array(validation, train_dtype)
         training = numpy.array(training, train_dtype)
 

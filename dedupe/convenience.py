@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 """
 Convenience functions for in memory deduplication
 """
@@ -9,7 +10,7 @@ import dedupe.core
 
 
 def dataSample(data, sample_size):
-    "Randomly sample pairs of records from a data dictionary"""
+    '''Randomly sample pairs of records from a data dictionary'''
 
     random_pairs = dedupe.core.randomPairs(len(data), sample_size)
 
@@ -28,4 +29,4 @@ def blockData(data_d, blocker):
             blocks[key].append((record_id, record))
 
     for block in blocks.values():
-        yield block 
+        yield block
