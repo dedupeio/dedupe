@@ -65,8 +65,8 @@ t0 = time.time()
 # `examples/mysql_example/mysql.cnf` and put fill in your mysql
 # database information examples/mysql_example/mysql.cnf
 con = MySQLdb.connect(db='contributions',
-                       read_default_file = os.path.abspath('.') + '/mysql.cnf',
-                       cursorclass=MySQLdb.cursors.DictCursor)
+                      read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+                      cursorclass=MySQLdb.cursors.DictCursor)
 
 c = con.cursor()
 
@@ -165,6 +165,7 @@ while not done :
 # Finally, we create an index on the blocking_key so that the group by
 # queries we will be making in mysql_clustering can happen in a
 # reasonable time
+print 'creating blocking map index. this will probably take a while ...'
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
 print 'created', time.time() - t0, 'seconds'
 

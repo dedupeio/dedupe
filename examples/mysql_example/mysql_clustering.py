@@ -28,8 +28,8 @@ settings_file = 'mysql_example_settings.json'
 t0 = time.time()
 
 con = MySQLdb.connect(db='contributions',
-                       read_default_file = os.path.abspath('.') + '/mysql.cnf',
-                       cursorclass=MySQLdb.cursors.DictCursor)
+                      read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+                      cursorclass=MySQLdb.cursors.DictCursor)
 
 c = con.cursor()
 

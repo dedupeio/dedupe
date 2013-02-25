@@ -5,7 +5,7 @@ import os
 import urllib2
 import zipfile
 
-os.chdir('./examples/sqlite_example/')
+os.chdir('./examples/mysql_example/')
 
 contributions_zip_file = 'Illinois-campaign-contributions.txt.zip'
 contributions_txt_file = 'Illinois-campaign-contributions.txt'
@@ -26,9 +26,9 @@ if not os.path.exists(contributions_txt_file) :
       zip_file.extract(f)
   zip_file.close()
 
-conn = MySQLdb.connect(read_default_file = os.path.abspath('.') + '/mysql.cnf',
-                       db='contributions'
-                       )
+conn = MySQLdb.connect(read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+                       local_infile = 1,
+                       db='contributions')
 c = conn.cursor()
 
 print 'importing raw data from csv...'
@@ -68,7 +68,7 @@ c.execute("LOAD DATA LOCAL INFILE %s INTO TABLE raw_table "
           " election_year, "
           " report_period_begin, report_period_end, "
           " committee_name, committee_id, @dummy)",
-          os.path.abspath('.') + '/' + contributions_txt_file)
+          (os.path.abspath('.') + '/' + contributions_txt_file))
 
 c.execute("ALTER TABLE raw_table ADD PRIMARY KEY(reciept_id)")
 conn.commit()

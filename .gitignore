@@ -14,7 +14,7 @@ logfile
 *.json
 examples/output/*.*
 examples/csv_example/csv_example_output.csv
-examples/sqlite_example/*.txt*
+examples/mysql_example/*.txt*
 *.db
 kernprof.py
 possible_classifiers
