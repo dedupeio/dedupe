@@ -19,7 +19,7 @@ import lr
 import predicates
 import training
 import crossvalidation
-from dedupe import Dedupe
-from dedupe import randomPairs
-from dedupe import dataSample
-from blocking import blockingIndex as blockData
+from api import Dedupe
+from core import randomPairs
+from convenience import dataSample
+from convenience import blockingIndex as blockData

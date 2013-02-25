@@ -1,24 +1,29 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""
+dedupe provides the main user interface for the library the
+Dedupe class
+"""
+
 import json
-import random
-import collections
 import itertools
 import logging
-
-import core
-import training
-import crossvalidation
-import predicates
-import blocking
-import clustering
-import tfidf
-import numpy
-import dedupe
-
 import types
 
+import numpy
+
+import dedupe
+import dedupe.core as core
+import dedupe.training as training
+import dedupe.crossvalidation as crossvalidation
+import dedupe.predicates as predicates
+import dedupe.blocking as blocking
+import dedupe.clustering as clustering
+import dedupe.tfidf as tfidf
+
+
 class Dedupe:
+
     """
     Public methods:
     __init__
@@ -29,6 +34,7 @@ class Dedupe:
     writeTraining
     writeSettings
     """
+
     def __init__(self, init=None):
         """
         Load or initialize a data model
@@ -52,7 +58,7 @@ class Dedupe:
         an 'Interaction' type field should have as its keys the names
         of the fields involved in the interaction, and must include
         a type declaration and a sequence of the interacting fields
-        as they appear in the data dictionary
+        as they appear in the data dictionar
 
         ex. {'name:city' : {'type': 'Interaction',
                             'interaction-terms': ['name', 'city']}}
@@ -71,63 +77,31 @@ class Dedupe:
         file see the method writeSettings.
          
         """
+
         if init.__class__ is dict and init:
-            self._initializeSettings(init)
+            self.data_model = _initializeDataModel(init)
+            self.predicates = None
         elif init.__class__ is str and init:
-            self._readSettings(init)            
+            (self.data_model,
+             self.predicates) = self._readSettings(init)
         elif init:
-            raise ValueError("Incorrect Input Type: must supply either "
-                             "a field definition or a settings file."
+            raise ValueError('Incorrect Input Type: must supply either a '
+                             'field definition or a settings file.'
                              )
         else:
-            raise ValueError("No Input: must supply either "
-                             "a field definition or a settings file."
+
+            raise ValueError('No Input: must supply either a field '
+                             'definition or a settings file.'
                              )
-            
-    def _initializeSettings(self, fields):
-        data_model = {}
-        data_model['fields'] = {}
 
-        for (k, v) in fields.iteritems():
-            if v.__class__ is not dict:
-                raise ValueError("Incorrect field specification: "
-                                 "field specifications are dictionaries "
-                                 "that must include a type definition, "
-                                 "ex. {'Phone': {type: 'String'}}"
-                                 )
-            elif 'type' not in v:
-                raise ValueError("Incorrect field specification: "
-                                 "field specifications are dictionaries "
-                                 "that must include a type definition, "
-                                 "ex. {'Phone': {type: 'String'}}"
-                                 )
-            elif v['type'] not in ['String', 'Interaction']:
-                raise ValueError("Incorrect field specification: "
-                                 "field specifications are dictionaries "
-                                 "that must include a type definition, "
-                                 "ex. {'Phone': {type: 'String'}}"
-                                 )
-            elif v['type'] == 'Interaction' and ('interaction-terms'
-                                                 not in v):
-                raise ValueError("Interaction terms not set: "
-                                 "Interaction types must include a "
-                                 "type declaration and a sequence of "
-                                 "the interacting fields as they appear "
-                                 "in the data dictionary. ex. {'name:city' "
-                                 ": {'type': 'Interaction', "
-                                 "'interaction-terms': ['name', 'city']}}"
-                                 )
-                
-            
-            v.update({'weight': 0})
-            data_model['fields'][k] = v
 
-        data_model['bias'] = 0
-        self.data_model = data_model
-        self.alpha = 0
-        self.predicates = None
+        self.training_data = None
+        self.training_pairs = None
+        self.data_sample = None
+        self.dupes = None
 
-    def initializeTraining(self, training_file=None) :
+
+    def initializeTraining(self, training_file=None):
         """
         Loads labeled examples from file, if passed.
 
@@ -135,20 +109,26 @@ class Dedupe:
         training_file -- path to a json file of labeled examples
 
         """
+
         n_fields = len(self.data_model['fields'])
 
-        training_dtype = [('label', 'i4'),
-                          ('field_distances', 'f4', n_fields)]
+        training_dtype = [('label', 'i4'), ('field_distances', 'f4',
+                          n_fields)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = None
 
-        if training_file :
-            (self.training_pairs,
-             self.training_data) = self._readTraining(training_file,
-                                                     self.training_data)                    
-                
-    def train(self, data_sample, training_source=None, key_groups=[]) :
+        if training_file:
+
+
+            (self.training_pairs, self.training_data) = \
+                self._readTraining(training_file, self.training_data)
+
+    def train(
+        self,
+        data_sample,
+        training_source=None
+        ):
         """
         Learn field weights and blocking predicate from file of
         labeled examples or round of interactive labeling
@@ -222,46 +202,38 @@ class Dedupe:
 
         self.data_sample = data_sample
 
-        if (training_source.__class__ is not str
-            and not isinstance(training_source, types.FunctionType)):
+        if training_source.__class__ is not str \
+            and not isinstance(training_source, types.FunctionType):
             raise ValueError
-
 
         if training_source.__class__ is str:
             logging.info('reading training from file')
-            if not hasattr(self, 'training_data'):
+            if self.training_data is None :
                 self.initializeTraining(training_source)
-            
-            self.training_pairs, self.training_data = self._readTraining(training_source,
-                                                                        self.training_data)
 
+            (self.training_pairs, self.training_data) = \
+                self._readTraining(training_source,
+                                   self.training_data)
 
-        elif isinstance(training_source, types.FunctionType) :
-            if not hasattr(self, 'training_data'):
+        elif isinstance(training_source, types.FunctionType):
+
+            if self.training_data is None :
                 self.initializeTraining()
-            
-            (self.training_data,
-            self.training_pairs,
-            self.data_model) = training.activeLearning(self.data_sample,
-                                                              self.data_model,
-                                                              training_source,
-                                                              self.training_data,
-                                                              self.training_pairs,
-                                                              key_groups)
 
-            
+            (self.training_data, self.training_pairs,
+             self.data_model) = training.activeLearning(
+                self.data_sample,
+                self.data_model,
+                training_source,
+                self.training_data,
+                self.training_pairs)
 
 
-
-
-        self.alpha = crossvalidation.gridSearch(self.training_data,
-                                                core.trainModel,
-                                                self.data_model,
-                                                k=20)
+        alpha = crossvalidation.gridSearch(self.training_data,
+                core.trainModel, self.data_model, k=20)
 
         self.data_model = core.trainModel(self.training_data,
-                                          self.data_model,
-                                          self.alpha)
+                self.data_model, alpha)
 
         self._logLearnedWeights()
 
@@ -273,12 +245,13 @@ class Dedupe:
 
         We'll allow for predicates to be passed
         """
+
         if not self.predicates:
             self.predicates = self._learnBlocking(eta, epsilon)
 
-        bF = blocking.Blocker(self.predicates)
+        blocker = blocking.Blocker(self.predicates)
 
-        return bF
+        return blocker
 
     def goodThreshold(self, blocks, recall_weight=1.5):
         """
@@ -296,12 +269,12 @@ class Dedupe:
                          recall as you do precision, set recall_weight
                          to 2.
         """
-    
 
-        candidates = (pair for block in blocks
-                      for pair in itertools.combinations(block, 2))
-        
-        record_distances = core.recordDistances(candidates, self.data_model)
+        candidates = (pair for block in blocks for pair in
+            itertools.combinations(block, 2))
+
+        record_distances = core.recordDistances(candidates,
+                self.data_model)
         probability = core.scorePairs(record_distances, self.data_model)
 
         probability.sort()
@@ -310,24 +283,22 @@ class Dedupe:
         expected_dupes = numpy.cumsum(probability)
 
         recall = expected_dupes / expected_dupes[-1]
-        precision = expected_dupes / numpy.arange(1, len(expected_dupes)+1)
+        precision = expected_dupes / numpy.arange(1,
+                len(expected_dupes) + 1)
 
-        score = recall*precision/(recall + recall_weight**2*precision)
+        score = recall * precision / (recall + recall_weight ** 2
+                * precision)
 
         i = numpy.argmax(score)
 
         logging.info('Maximum expected recall and precision')
-        logging.info('recall: %2.3f' % recall[i])
-        logging.info('precision: %2.3f' % precision[i])
-        logging.info('With threshold: %2.3f' % probability[i])
+        logging.info('recall: %2.3f', recall[i])
+        logging.info('precision: %2.3f', precision[i])
+        logging.info('With threshold: %2.3f', probability[i])
 
         return probability[i]
 
-    #@profile
-    def duplicateClusters(self,
-                          blocks,
-                          threshold = .5) :
-
+    def duplicateClusters(self, blocks, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -347,72 +318,77 @@ class Dedupe:
                               
 
         """
+
         # Setting the cluster threshold this ways is not principled,
         # but seems to reliably help performance
+
         cluster_threshold = threshold * 0.7
 
-        candidates = (pair for block in blocks
-                      for pair in itertools.combinations(block, 2))
-        
-        self.dupes = core.scoreDuplicates(candidates, 
-                                          self.data_model,
-                                          threshold)
+        candidates = (pair for block in blocks for pair in
+            itertools.combinations(block, 2))
 
+        self.dupes = core.scoreDuplicates(candidates, self.data_model,
+                threshold)
 
-        clusters = clustering.hierarchical.cluster(self.dupes, cluster_threshold)
+        clusters = clustering.hierarchical.cluster(self.dupes,
+                cluster_threshold)
 
         return clusters
 
     def _learnBlocking(self, eta, epsilon):
+        """Learn a good blocking of the data"""
 
-
-        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                              self.data_model)
-                                                                       
+        confident_nonduplicates = \
+            training.semiSupervisedNonDuplicates(self.data_sample,
+                self.data_model)
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
-
-        predicate_functions = (predicates.wholeFieldPredicate,
-                               predicates.tokenFieldPredicate,
-                               predicates.commonIntegerPredicate,
-                               predicates.sameThreeCharStartPredicate,
-                               predicates.sameFiveCharStartPredicate,
-                               predicates.sameSevenCharStartPredicate,
-                               predicates.nearIntegersPredicate,
-                               predicates.commonFourGram,
-                               predicates.commonSixGram,
-                               )
+        predicate_functions = (
+            predicates.wholeFieldPredicate,
+            predicates.tokenFieldPredicate,
+            predicates.commonIntegerPredicate,
+            predicates.sameThreeCharStartPredicate,
+            predicates.sameFiveCharStartPredicate,
+            predicates.sameSevenCharStartPredicate,
+            predicates.nearIntegersPredicate,
+            predicates.commonFourGram,
+            predicates.commonSixGram,
+            )
 
         tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
         full_string_records = {}
         fields = self.data_model['fields'].keys()
 
-        for pair in self.data_sample[0:2000] :
-           for k, v in pair :
-             full_string_records[k] = ' '.join(v[field] for field in fields)
+        for pair in self.data_sample[0:2000]:
+            for (k, v) in pair:
+                full_string_records[k] = ' '.join(v[field] for field in
+                        fields)
 
         df_index = tfidf.documentFrequency(full_string_records)
 
-        learned_predicates = blocking.blockTraining(self.training_pairs,
-                                                    predicate_functions,
-                                                    self.data_model,
-                                                    tfidf_thresholds,
-                                                    df_index,
-                                                    eta,
-                                                    epsilon
-                                                    )
-
+        learned_predicates = dedupe.blocking.blockTraining(
+            self.training_pairs,
+            predicate_functions,
+            self.data_model,
+            tfidf_thresholds,
+            df_index,
+            eta,
+            epsilon,
+            )
 
         return learned_predicates
 
     def _logLearnedWeights(self):
+        """
+        Log learned weights and bias terms
+        """
         logging.info('Learned Weights')
         for (k1, v1) in self.data_model.items():
             try:
                 for (k2, v2) in v1.items():
                     logging.info((k2, v2['weight']))
-            except:
+            except AttributeError:
                 logging.info((k1, v1))
 
     def writeSettings(self, file_name):
@@ -424,30 +400,28 @@ class Dedupe:
         file_name -- path to a json file
         """
 
-        if not file_name.endswith('.json') :
-          raise ValueError("Settings file name must end with '.json'")
+        if not file_name.endswith('.json'):
+            raise ValueError("Settings file name must end with '.json'")
 
         source_predicates = []
         for predicate_tuple in self.predicates:
             source_predicate = []
             for predicate in predicate_tuple:
-              if isinstance(predicate[0], types.FunctionType):
-                source_predicate.append((predicate[0].__module__ + '.' + predicate[0].__name__,
-                                         predicate[1],
-                                         'simple'))
-              elif predicate[0].__class__ is tfidf.TfidfPredicate :
-                source_predicate.append((predicate[0],
-                                         predicate[1],
-                                         'tfidf'))
-              else:
-                raise ValueError("Undefined predicate type")
-                
+                if isinstance(predicate[0], types.FunctionType):
+                    source_predicate.append((predicate[0].__module__
+                            + '.' + predicate[0].__name__,
+                            predicate[1], 'simple'))
+                elif predicate[0].__class__ is tfidf.TfidfPredicate:
+                    source_predicate.append((predicate[0],
+                            predicate[1], 'tfidf'))
+                else:
+                    raise ValueError('Undefined predicate type')
+
             source_predicates.append(source_predicate)
 
         with open(file_name, 'w') as f:
             json.dump({'data model': self.data_model,
                       'predicates': source_predicates}, f)
-
 
     def writeTraining(self, file_name):
         """
@@ -456,33 +430,39 @@ class Dedupe:
         Keyword arguments:
         file_name -- path to a json file
         """
+
         d_training_pairs = {}
-        for label, pairs in self.training_pairs.iteritems() :
-            d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for
-                                       pair in pairs]
-        
+        for (label, pairs) in self.training_pairs.iteritems():
+            d_training_pairs[label] = [(dict(pair[0]), dict(pair[1]))
+                    for pair in pairs]
+
         with open(file_name, 'w') as f:
             json.dump(d_training_pairs, f)
 
     def _readSettings(self, file_name):
+        """Read weights and predicates from file"""
         with open(file_name, 'r') as f:
-            learned_settings = json.loads(f.read(), object_hook=self._decode_dict)
+            learned_settings = json.loads(f.read(),
+                    object_hook=self._decode_dict)
 
-        self.data_model = learned_settings['data model']
-        self.predicates = []
+        data_model = learned_settings['data model']
+        saved_predicates = []
         for predicate_l in learned_settings['predicates']:
-          marshalled_predicate = []
-          for predicate in predicate_l :
-              if predicate[2] == 'simple' :
-                marshalled_predicate.append((eval(predicate[0]), predicate[1]))
-              elif predicate[2] == 'tfidf' : 
-                marshalled_predicate.append((tfidf.TfidfPredicate(predicate[0]),
-                                            predicate[1]))
-  
-          self.predicates.append(tuple(marshalled_predicate))
+            marshalled_predicate = []
+            for predicate in predicate_l:
+                if predicate[2] == 'simple':
+                    marshalled_predicate.append((eval(predicate[0]),
+                            predicate[1]))
+                elif predicate[2] == 'tfidf':
+                    marshalled_predicate.append((tfidf.TfidfPredicate(predicate[0]),
+                            predicate[1]))
 
+            saved_predicates.append(tuple(marshalled_predicate))
+
+        return data_model, saved_predicates
 
     def _readTraining(self, file_name, training_pairs):
+        """Read training pairs from a file"""
         with open(file_name, 'r') as f:
             training_pairs_raw = json.load(f)
 
@@ -490,17 +470,17 @@ class Dedupe:
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
                 training_pairs[int(label)].append((core.frozendict(pair[0]),
-                                                   core.frozendict(pair[1])))
+                        core.frozendict(pair[1])))
 
         training_data = training.addTrainingData(training_pairs,
-                                                        self.data_model,
-                                                        self.training_data)
+                self.data_model, self.training_data)
 
-
-        return training_pairs, training_data
+        return (training_pairs, training_data)
 
     # json encoding fix for unicode => string
+
     def _decode_list(self, data):
+        """Encode strings as utf-8"""
         rv = []
         for item in data:
             if isinstance(item, unicode):
@@ -513,44 +493,62 @@ class Dedupe:
         return rv
 
     def _decode_dict(self, data):
+        """Encode strings as utf-8"""
         rv = {}
-        for key, value in data.iteritems():
+        for (key, value) in data.iteritems():
             if isinstance(key, unicode):
-               key = key.encode('utf-8')
+                key = key.encode('utf-8')
             if isinstance(value, unicode):
-               value = value.encode('utf-8')
+                value = value.encode('utf-8')
             elif isinstance(value, list):
-               value = self._decode_list(value)
+                value = self._decode_list(value)
             elif isinstance(value, dict):
-               value = self._decode_dict(value)
+                value = self._decode_dict(value)
             rv[key] = value
         return rv
 
+def _initializeDataModel(fields):
+    """Initialize a data_model with a field definition"""
+    data_model = {}
+    data_model['fields'] = {}
 
-def randomPairs(n_records,sample_size, zero_indexed=True):
-  n = (n_records*(n_records-1))/2
+    for (k, v) in fields.iteritems():
+        if v.__class__ is not dict:
+            raise ValueError("Incorrect field specification: field "
+                             "specifications are dictionaries that must "
+                             "include a type definition, ex. "
+                             "{'Phone': {type: 'String'}}"
+                             )
+        elif 'type' not in v:
 
-  if sample_size >= n :
-      random_indices = numpy.arange(n)
-      numpy.random.shuffle(random_indices)
-  else:
-      random_indices = numpy.array(random.sample(xrange(n), sample_size))
+            raise ValueError("Incorrect field specification: field "
+                             "specifications are dictionaries that must "
+                             "include a type definition, ex. "
+                             "{'Phone': {type: 'String'}}"
+                             )
+        elif v['type'] not in ['String', 'Interaction']:
+
+            raise ValueError("Incorrect field specification: field "
+                             "specifications are dictionaries that must "
+                             "include a type definition, ex. "
+                             "{'Phone': {type: 'String'}}"
+                             )
+        elif v['type'] == 'Interaction' and 'interaction-terms' \
+            not in v:
+
+            raise ValueError("Interaction terms not set: Interaction "
+                             "types must include a type declaration and "
+                             "a sequence of the interacting fields as "
+                             "they appear in the data dictionary. ex. "
+                             "{'name:city' : {'type': 'Interaction', "
+                             "'interaction-terms': ['name', 'city']}}"
+                             )
+
+        v.update({'weight': 0})
+        data_model['fields'][k] = v
+
+    data_model['bias'] = 0
+    return data_model
+        
 
 
-  b = 1 - 2*n_records
-
-  x = numpy.trunc((-b - numpy.sqrt(b**2 - 8 * random_indices))/2)
-  y = random_indices + x*(b + x + 2)/2 + 1
-
-  if not zero_indexed :
-      x += 1
-      y += 1
-
-  return numpy.column_stack((x,y))
-
-def dataSample(d, sample_size):
-
-    random_pairs = randomPairs(len(d), sample_size)
-
-    return tuple(((k_1, d[k_1]), (k_2, d[k_2]))
-                 for k_1, k_2 in random_pairs)
