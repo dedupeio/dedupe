@@ -80,6 +80,7 @@ To follow this example you need to
 * Create a MySQL database called 'contributions'
 * Copy `examples/mysql_example/mysql.cnf_LOCAL` to `examples/mysql_example/mysql.cnf`
 * Update `examples/mysql_example/mysql.cnf` with your MySQL username and password
+* `easy_install MySQL-python` or `pip install MySQL-python`
 
 Once that's all done you can run the example:
 

@@ -1,3 +1,3 @@
 [client]
-user = your_mysql_password
+user = your_mysql_user
 password = your_mysql_password
