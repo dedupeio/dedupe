@@ -1,9 +1,10 @@
-import MySQLdb
 import csv
-from AsciiDammit import asciiDammit
 import os
 import urllib2
 import zipfile
+
+import MySQLdb
+from AsciiDammit import asciiDammit
 
 os.chdir('./examples/mysql_example/')
 
@@ -39,9 +40,9 @@ c.execute("DROP TABLE IF EXISTS contributions")
 
 
 c.execute("CREATE TABLE raw_table "
-          "(reciept_id INT, last_name TEXT, first_name TEXT, "
-          " address_1 TEXT, address_2 TEXT, city TEXT, state TEXT, "
-          " zip TEXT, report_type TEXT, date_recieved TEXT, "
+          "(reciept_id INT, last_name varchar(70), first_name varchar(35), "
+          " address_1 varchar(35), address_2 varchar(36), city varchar(20), state varchar(15), "
+          " zip varchar(11), report_type TEXT, date_recieved TEXT, "
           " loan_amount TEXT, amount TEXT, receipt_type TEXT, "
           " employer TEXT, occupation TEXT, vendor_last_name TEXT, "
           " vendor_first_name TEXT, vendor_address_1 TEXT, "
@@ -75,9 +76,9 @@ conn.commit()
 
 print 'creating donors table...'
 c.execute("CREATE TABLE donors "
-          "(donor_id INTEGER PRIMARY KEY AUTO_INCREMENT, first_name TEXT, "
-          " last_name TEXT, address_1 TEXT, address_2 TEXT, "
-          " city TEXT, state TEXT, zip TEXT)")
+          "(donor_id INTEGER PRIMARY KEY AUTO_INCREMENT, last_name varchar(70), first_name varchar(35), "
+          " address_1 varchar(35), address_2 varchar(36), city varchar(20), state varchar(15), "
+          " zip varchar(11))")
 c.execute("INSERT INTO donors "
           "(first_name, last_name, address_1,"
           " address_2, city, state, zip) "

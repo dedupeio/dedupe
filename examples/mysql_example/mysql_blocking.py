@@ -13,14 +13,27 @@ example is broken into two files, mysql_blocking.py which blocks the
 data, mysql_clustering.py which clusters the blocked data.
 """
 import os
-import re
-import MySQLdb
-import MySQLdb.cursors
-import dedupe
-from collections import defaultdict
 import itertools
 import time
-import os
+import logging
+import optparse
+
+import MySQLdb
+import MySQLdb.cursors
+
+import dedupe
+
+optp = optparse.OptionParser()
+optp.add_option('-v', '--verbose', dest='verbose', action='count',
+                help='Increase verbosity (specify multiple times for more)'
+                )
+(opts, args) = optp.parse_args()
+log_level = logging.WARNING 
+if opts.verbose == 1:
+    log_level = logging.INFO
+elif opts.verbose >= 2:
+    log_level = logging.DEBUG
+logging.basicConfig(level=log_level)
 
 
 os.chdir('./examples/mysql_example/')
@@ -37,29 +50,34 @@ donor_select = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(address_2) AS address_2 FROM donors"
 
 
-def getSample(c, size):
+def getSample(c, sample_size, id_column, table):
   """
-  Returns a random sample of pairs of donors of a given size
+  Returns a random sample of pairs of donors of a given size from a MySQL table.
+  Depending on your database engine, you will need to come up with a similar function.
+
+  id_column must contain unique, sequential itegers starting at 0 or 1
   """
 
-  c.execute("SELECT MAX(donor_id) FROM donors")
-  dim = c.fetchone().values()[0]
+  c.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
+  num_records = c.fetchone().values()[0]
 
-  random_pairs = dedupe.randomPairs(dim, size, zero_indexed=False)
+  random_pairs = dedupe.randomPairs(num_records, sample_size, zero_indexed=False)
 
   temp_d = {}
+
   c.execute(donor_select) 
   for row in c.fetchall() :
-    temp_d[int(row['donor_id'])] = dedupe.core.frozendict(row)
+    temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
-  return tuple((((record_id_1, temp_d[record_id_1]),
-                 (record_id_2, temp_d[record_id_2]))
-                for record_id_1, record_id_2
-                in random_pairs))
+  def random_pair_generator():
+    for record_id_1, record_id_2 in random_pairs:
+      yield ((record_id_1, temp_d[record_id_1]),
+             (record_id_2, temp_d[record_id_2]))
+  
+  return tuple(record_pairs for pair in random_pair_generator())
 
 
-
-t0 = time.time()
+start_time = time.time()
 
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
 # `examples/mysql_example/mysql.cnf` and put fill in your mysql
@@ -70,27 +88,26 @@ con = MySQLdb.connect(db='contributions',
 
 c = con.cursor()
 
+# To run blocking on such a large set of data, we create a separate table
+# that contains blocking keys and record ids
 print 'creating blocking_map database'
 c.execute("DROP TABLE IF EXISTS blocking_map")
 c.execute("CREATE TABLE blocking_map "
           "(block_key VARCHAR(200), donor_id INTEGER)")
 
 
-
-
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
     deduper = dedupe.Dedupe(settings_file)
 else:
-    # Unlike csv_example.py, we select from the database to get a random
-    # sample for training. As the dataset grows, duplicate pairs become
-    # more rare. We need positive examples to train dedupe, so we have to
-    # signficantly increase the size of the sample
+    # As the dataset grows, duplicate pairs become more rare. 
+    # We need positive examples to train dedupe, so we have to
+    # signficantly increase the size of the sample compared to csv_example.py
     print 'selecting random sample from donors table...'
-    data_sample = getSample(c, 750000)
+    data_sample = getSample(c, 750000, 'donor_id', 'donors')
 
 
-  
+    # Define the fields dedupe will pay attention to
     fields = {'first_name': {'type': 'String'},
               'last_name': {'type': 'String'},
               'address_1': {'type': 'String'},
@@ -115,10 +132,8 @@ else:
     deduper.writeTraining(training_file)
 
 print 'blocking...'
-t_block = time.time()
 blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 deduper.writeSettings(settings_file)
-print 'blocked in', time.time() - t_block, 'seconds'
 
 # So the learning is done and we have our blocker. However we cannot
 # block the data in memory. We have to pass through all the data and
@@ -133,7 +148,7 @@ blocker.tfIdfBlocks(full_data)
 
 
 # Finally, we are ready to block the data. We'll do this by creating
-# a generator that yields a (block_key, donor_id) tuples. We guarantee
+# a generator that yields a (block_key, donor_id) tuples. Dedupe guarantees
 # that these tuples will be unique
 print 'writing blocking map'
 def block_data() :
@@ -147,6 +162,9 @@ def block_data() :
 
 b_data = block_data()
 
+# MySQL, by default, has a hard limit on the size of a data object 
+# that can be passed to it. To get around this, we chunk the blocked data
+# in to groups of 10,000 blocks
 step = 10000
 done = False
 while not done :
@@ -156,8 +174,6 @@ while not done :
                                    chunk)
   if records_written < step :
     done = True
-
-
 
   con.commit()
 
