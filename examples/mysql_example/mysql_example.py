@@ -9,17 +9,18 @@ With such a large set of input data, we cannot store all the comparisons
 we need to make in memory. Instead, we will read the pairs on demand
 from the MySQL database.
 
-__Note:__ You will need to run `python examples/mysql_example/mysql_init_db.py` 
-before running this script. See the annotated source for 
-[mysql_init_db.py](http://open-city.github.com/dedupe/doc/mysql_init_db.html)
+__Note:__ You will need to run `python
+examples/mysql_example/mysql_init_db.py` before running this script.
 
-For smaller datasets (<10,000), see our [csv_example](http://open-city.github.com/dedupe/doc/csv_example.html)
+For smaller datasets (<10,000), see our
+[csv_example](http://open-city.github.com/dedupe/doc/csv_example.html)
 """
 import os
 import itertools
 import time
 import logging
 import optparse
+import locale
 
 import MySQLdb
 import MySQLdb.cursors
@@ -28,8 +29,9 @@ import dedupe
 
 # ## Logging
 
-# Dedupe uses Python logging to show or suppress verbose output. Added for convenience.
-# To enable verbose logging, run `python examples/mysql_example/mysql_example.py -v`
+# Dedupe uses Python logging to show or suppress verbose output. Added
+# for convenience.  To enable verbose output, run `python
+# examples/mysql_example/mysql_example.py -v`
 
 optp = optparse.OptionParser()
 optp.add_option('-v', '--verbose', dest='verbose', action='count',
@@ -45,9 +47,10 @@ logging.basicConfig(level=log_level)
 
 # ## Setup
 
-# Create a select function that pulls in our campaign donor info.
-# When we compare records, we don't care about differences in casing,
-# so we lower the case (doing this in SQL is much faster than in Python).
+# We'll be using variations on this select statement to pull in
+# campaign donor info.  When we compare records, we don't care about
+# differences in casing, so we lower the case (doing this in database
+# is much faster than in Python).
 DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(first_name) AS first_name, " \
                "LOWER(last_name) AS last_name, " \
@@ -65,7 +68,8 @@ def getSample(c, sample_size, id_column, table):
   c.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
   num_records = c.fetchone().values()[0]
 
-  # dedupe expects the id column to contain unique, sequential itegers starting at 0 or 1
+  # dedupe expects the id column to contain unique, sequential itegers
+  # starting at 0 or 1
   random_pairs = dedupe.randomPairs(num_records, sample_size, zero_indexed=False)
 
   temp_d = {}
@@ -81,7 +85,8 @@ def getSample(c, sample_size, id_column, table):
   
   return tuple(record_pairs for pair in random_pair_generator())
 
-# Switch to our working directory and set up our settings and training file locations
+# Switch to our working directory and set up our settings and training
+# file locations
 os.chdir('./examples/mysql_example/')
 settings_file = 'mysql_example_settings.json'
 training_file = 'mysql_example_training.json'
@@ -91,8 +96,8 @@ start_time = time.time()
 # ## Create a database connection
 
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
-# `examples/mysql_example/mysql.cnf` and fill in your mysql
-# database information in `examples/mysql_example/mysql.cnf`
+# `examples/mysql_example/mysql.cnf` and fill in your mysql database
+# information in `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
                       read_default_file = os.path.abspath('.') + '/mysql.cnf', 
                       cursorclass=MySQLdb.cursors.DictCursor)
@@ -106,10 +111,9 @@ if os.path.exists(settings_file):
     deduper = dedupe.Dedupe(settings_file)
 else:
 
-    # Select a large sample of duplicate pairs.
-    # As the dataset grows, duplicate pairs become relatively more
-    # rare so we have to take a fairly large sample compared to
-    # `csv_example.py`
+    # Select a large sample of duplicate pairs.  As the dataset grows,
+    # duplicate pairs become relatively more rare so we have to take a
+    # fairly large sample compared to `csv_example.py`
     print 'selecting random sample from donors table...'
     data_sample = getSample(c, 750000, 'donor_id', 'donors')
 
@@ -129,7 +133,9 @@ else:
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
-    # __Note:__ if you want to train from scratch, delete the training_file
+    #
+    # __Note:__ if you want to train from
+    # scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
         deduper.train(data_sample, training_file)
@@ -137,9 +143,7 @@ else:
     # ## Active learning
 
     print 'starting active labeling...'
-    print 'finding uncertain pairs...'
-    
-    # Starts the trainin loop. Dedupe will find the next pair of records
+    # Starts the training loop. Dedupe will find the next pair of records
     # it is least certain about and ask you to label them as duplicates
     # or not.
 
@@ -147,21 +151,41 @@ else:
     # press 'f' when you are finished
     deduper.train(data_sample, dedupe.training.consoleLabel)
 
-    # When finished, save our training away to disk
+    # When finished, save our labeled, training pairs to disk
     deduper.writeTraining(training_file)
 
 # ## Blocking
 
 print 'blocking...'
-# Initialize our blocker, which determines our field weights and blocking 
-# predicates based on our training data
-blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
+# If we didn'te read saved blocking rules from a settings file, then
+# we will try to find good blocking rules now. In either case we'll
+# initialize our blocker
+
+# Notice our two arguments here
+# #####ppc
+# Limits the Proportion of Pairs Covered that we allow a
+# predicate to cover.If a predicate puts together a fraction
+# of possible pairs greater than the ppc, that predicate will
+# be removed from consideration.
+# As the size of the data increases, the user will generally
+# want to reduce ppc.
+#
+# ######uncovered_dupes
+# The number of true dupes pairs in our training
+# data that we can accept will not be put into any
+# block. If true true duplicates are never in the
+# same block, we will never compare them, and may
+# never declare them to be duplicates.
+#
+# However, requiring that we cover every single
+# true dupe pair may mean that we have to use
+# blocks that put together many, many distinct pairs
+# that we'll have to expensively, compare as well.
+blocker = deduper.blockingFunction(ppc=0.001, uncovered_dupes=5)
 
 # Save our weights and predicates to disk.
-# If the settings file exists, we will skip all the training and learning
 deduper.writeSettings(settings_file)
 
-# Iterate through all our input data and create a blocking map.
 # To run blocking on such a large set of data, we create a separate table
 # that contains blocking keys and record ids
 print 'creating blocking_map database'
@@ -170,18 +194,17 @@ c.execute("CREATE TABLE blocking_map "
           "(block_key VARCHAR(200), donor_id INTEGER)")
 
 
-# We are using [TF/IDF](http://en.wikipedia.org/wiki/Tf%E2%80%93idf) as a 
-# potential predicate. 
-# If dedupe learned a TF-IDF blocking rule, we create go through the extra
-# step of creating TF-IDF canopies.
+# If dedupe learned a TF-IDF blocking rule, we have to take a pass
+# through the data and create TF-IDF canopies. This can take up to an
+# hour
 print 'creating inverted index'
 c.execute(DONOR_SELECT + " LIMIT 10000")
 full_data = ((row['donor_id'], row) for row in c.fetchall())
 blocker.tfIdfBlocks(full_data)
 
 
-# Next, we write our blocking map table by creating a generator that 
-# yields unique `(block_key, donor_id)` tuples.
+# Now we are ready to write our blocking map table by creating a
+# generator that yields unique `(block_key, donor_id)` tuples.
 print 'writing blocking map'
 def block_data() :
     c.execute(DONOR_SELECT + " LIMIT 10000")
@@ -200,7 +223,6 @@ step = 10000
 done = False
 while not done :
   chunk = itertools.islice(b_data, step)
-  # This takes the generator and writes into into our table
   records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
                                    chunk)
   if records_written < step :
@@ -237,13 +259,14 @@ def candidates_gen(block_keys) :
 blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
                    "FROM blocking_map GROUP BY block_key HAVING num_candidates > 1"
 
-# Using a random sample of blocks we find our clustering threshold that maximizes
-# the weighted average of our precision and recall
+# Using a random sample of blocks we find our clustering threshold
+# that maximizes the weighted average of our precision and recall
 c.execute(blocking_key_sql + " ORDER BY RAND() LIMIT 1000")
 sampled_block_keys = block_keys = (row['block_key'] for row in c.fetchall())
 threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys))
 
-# With our found threshold, and candidates generator, perform the clustering operation
+# With our found threshold, and candidates generator, perform the
+# clustering operation
 c.execute(blocking_key_sql)
 block_keys = (row['block_key'] for row in c.fetchall())
 
@@ -253,13 +276,14 @@ clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
 
 # ## Writing out results
 
-# We now have a sequence of tuples of donor ids that dedupe believes all 
-# refer to the same entity. We write this out onto an entity map table
+# We now have a sequence of tuples of donor ids that dedupe believes
+# all refer to the same entity. We write this out onto an entity map
+# table
 c.execute("DROP TABLE IF EXISTS entity_map")
 
 print 'creating entity_map database'
 c.execute("CREATE TABLE entity_map "
-          "(donor_id INTEGER, head_id INTEGER, PRIMARY KEY(donor_id))")
+          "(donor_id INTEGER, canon_id INTEGER, PRIMARY KEY(donor_id))")
 
 for cluster in clustered_dupes :
     cluster_head = str(cluster.pop())
@@ -271,12 +295,57 @@ for cluster in clustered_dupes :
 
 con.commit()
 
-c.execute("CREATE INDEX head_index ON entity_map (head_id)")
+c.execute("CREATE INDEX head_index ON entity_map (canon_id)")
 con.commit()
 
 # Print out the number of duplicates found
 print '# duplicate sets'
 print len(clustered_dupes)
+
+# ## Payoff
+
+# With all this done, we can now begin to ask interesting questions
+# of the data
+#
+# For example, let's see who the top 10 donors are.
+#
+
+# for pretty printing numbers
+locale.setlocale(locale.LC_ALL, '')
+
+c.execute("SELECT donors.first_name AS first_name, "
+          "       donors.last_name AS last_name, "
+          "       donation_totals.totals AS totals "
+          "FROM donors INNER JOIN "
+          "(SELECT canon_id, "
+          "        SUM(contributions.amount) AS totals "
+          " FROM contributions INNER JOIN entity_map "
+          " USING (donor_id) "
+          " GROUP BY canon_id) AS donation_totals "
+          " WHERE donors.donor_id = donation_totals.canon_id "
+          "ORDER BY totals DESC "
+          "LIMIT 10")
+
+print "Top Donors (deduped)"
+for row in c.fetchall() :
+    row['totals'] = locale.currency(row['totals'], grouping=True)
+    print '%(totals)20s: %(last_name)s %(first_name)s' % row
+
+c.execute("SELECT donors.first_name AS first_name, "
+          "       donors.last_name AS last_name, "
+          "       SUM(contributions.amount) AS totals "
+          "FROM donors INNER JOIN contributions "
+          "USING (donor_id) "
+          "GROUP BY (donor_id) "
+          "ORDER BY totals DESC "
+          "LIMIT 10")
+
+print "Top Donors (raw)"
+for row in c.fetchall() :
+    row['totals'] = locale.currency(row['totals'], grouping=True)
+    print '%(totals)20s: %(last_name)s %(first_name)s' % row
+
+
 
 # Close our database connection
 c.close()

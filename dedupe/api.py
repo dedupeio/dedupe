@@ -220,15 +220,38 @@ class Dedupe:
 
         self._logLearnedWeights()
 
-    def blockingFunction(self, eta=1, epsilon=1):
+    def blockingFunction(self, ppc=1, uncovered_dupes=1):
         """
         Returns a function that takes in a record dictionary and
         returns a list of blocking keys for the record. We will
         learn the best blocking predicates if we don't have them already.
+
+        Keyword arguments:
+        ppc -- Limits the Proportion of Pairs Covered that we allow a
+               predicate to cover. If a predicate puts together a fraction
+               of possible pairs greater than the ppc, that predicate will
+               be removed from consideration.
+
+               As the size of the data increases, the user will generally
+               want to reduce ppc.
+
+               ppc should be a value between 0.0 and 1.0
+
+        uncovered_dupes -- The number of true dupes pairs in our training
+                           data that we can accept will not be put into any
+                           block. If true true duplicates are never in the
+                           same block, we will never compare them, and may
+                           never declare them to be duplicates.
+
+                           However, requiring that we cover every single
+                           true dupe pair may mean that we have to use
+                           blocks that put together many, many distinct pairs
+                           that we'll have to expensively, compare as well.
+
         """
 
         if not self.predicates:
-            self.predicates = self._learnBlocking(eta, epsilon)
+            self.predicates = self._learnBlocking(ppc, uncovered_dupes)
 
         blocker = blocking.Blocker(self.predicates)
 
