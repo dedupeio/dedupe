@@ -96,8 +96,6 @@ training_file = 'mysql_example_training.json'
 
 start_time = time.time()
 
-# ## Create a database connection
-
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
 # `examples/mysql_example/mysql.cnf` and fill in your mysql database
 # information in `examples/mysql_example/mysql.cnf`
