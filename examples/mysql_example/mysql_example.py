@@ -51,7 +51,7 @@ logging.basicConfig(level=log_level)
 # campaign donor info.  When we compare records, we don't care about
 # differences in casing, so we lower the case (doing this in the
 # database is much faster than in Python).
-DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " 
+DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " \
                "LOWER(first_name) AS first_name, " \
                "LOWER(last_name) AS last_name, " \
                "LOWER(zip) AS zip, LOWER(state) AS state, " \
@@ -59,31 +59,33 @@ DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, "
                "LOWER(address_2) AS address_2 FROM donors"
 
 
-def getSample(c, sample_size, id_column, table):
-  '''
-  Returns a random sample of a given size of records pairs from a given
-  MySQL table.
-  '''
+def getSample(cur, sample_size, id_column, table):
+    '''
+    Returns a random sample of a given size of records pairs from a given
+    MySQL table.
+    '''
 
-  c.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
-  num_records = c.fetchone().values()[0]
+    cur.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
+    num_records = cur.fetchone().values()[0]
 
-  # dedupe expects the id column to contain unique, sequential integers
-  # starting at 0 or 1
-  random_pairs = dedupe.randomPairs(num_records, sample_size, zero_indexed=False)
+    # dedupe expects the id column to contain unique, sequential integers
+    # starting at 0 or 1
+    random_pairs = dedupe.randomPairs(num_records,
+                                      sample_size,
+                                      zero_indexed=False)
 
-  temp_d = {}
+    temp_d = {}
 
-  c.execute(DONOR_SELECT) 
-  for row in c.fetchall() :
-    temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
+    cur.execute(DONOR_SELECT) 
+    for row in cur.fetchall() :
+        temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
-  def random_pair_generator():
-    for record_id_1, record_id_2 in random_pairs:
-      yield ((record_id_1, temp_d[record_id_1]),
-             (record_id_2, temp_d[record_id_2]))
-  
-  return tuple(record_pairs for pair in random_pair_generator())
+    def random_pair_generator():
+        for record_id_1, record_id_2 in random_pairs:
+            yield ((record_id_1, temp_d[record_id_1]),
+                   (record_id_2, temp_d[record_id_2]))
+
+    return tuple(pair for pair in random_pair_generator())
 
 # Switch to our working directory and set up our settings and training
 # file locations
@@ -218,13 +220,13 @@ b_data = block_data()
 step = 10000
 done = False
 while not done :
-  chunk = itertools.islice(b_data, step)
-  records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
-                                   chunk)
-  if records_written < step :
-    done = True
+    chunk = itertools.islice(b_data, step)
+    records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
+                                     chunk)
+    if records_written < step :
+        done = True
 
-  con.commit()
+    con.commit()
 
 
 # Create an index on the blocking key for faster clustering
@@ -244,8 +246,8 @@ block_select = (DONOR_SELECT +
 def candidates_gen(block_keys) :
     for i, block_key in enumerate(block_keys) :
         if i % 10000 == 0 :
-          print i, "blocks"
-          print time.time() - start_time, "seconds"
+            print i, "blocks"
+            print time.time() - start_time, "seconds"
 
         c.execute(block_select, (block_key,))
         yield ((row['donor_id'], row) for row in c.fetchall())
@@ -253,7 +255,9 @@ def candidates_gen(block_keys) :
 # Grab all the block keys with more than one record.
 # These records will make up a block of records we will cluster.
 blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
-                   "FROM blocking_map GROUP BY block_key HAVING num_candidates > 1"
+                   "FROM blocking_map " \
+                   "GROUP BY block_key " \
+                   "HAVING num_candidates > 1"
 
 # Using a random sample of blocks we find our clustering threshold
 # that maximizes the weighted average of our precision and recall
