@@ -15,14 +15,12 @@ Tables created:
 * contributions - contribution amounts tied to donor and recipients tables
 """
 
-import csv
 import os
 import urllib2
 import zipfile
 import warnings
 
 import MySQLdb
-from AsciiDammit import asciiDammit
 
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
 
@@ -32,20 +30,20 @@ contributions_zip_file = 'Illinois-campaign-contributions.txt.zip'
 contributions_txt_file = 'Illinois-campaign-contributions.txt'
 
 if not os.path.exists(contributions_zip_file) :
-  print 'downloading', contributions_zip_file, '(~60mb) ...'
-  u = urllib2.urlopen('https://s3.amazonaws.com/dedupe-data/Illinois-campaign-contributions.txt.zip')
-  localFile = open(contributions_zip_file, 'w')
-  localFile.write(u.read())
-  localFile.close()
+    print 'downloading', contributions_zip_file, '(~60mb) ...'
+    u = urllib2.urlopen('https://s3.amazonaws.com/dedupe-data/Illinois-campaign-contributions.txt.zip')
+    localFile = open(contributions_zip_file, 'w')
+    localFile.write(u.read())
+    localFile.close()
 
 if not os.path.exists(contributions_txt_file) :
-  zip_file = zipfile.ZipFile(contributions_zip_file, 'r')
-  print 'extracting %s' % contributions_zip_file
-  zip_file_contents = zip_file.namelist()
-  for f in zip_file_contents:
-    if ('.txt' in f):
-      zip_file.extract(f)
-  zip_file.close()
+    zip_file = zipfile.ZipFile(contributions_zip_file, 'r')
+    print 'extracting %s' % contributions_zip_file
+    zip_file_contents = zip_file.namelist()
+    for f in zip_file_contents:
+        if ('.txt' in f):
+            zip_file.extract(f)
+    zip_file.close()
 
 conn = MySQLdb.connect(read_default_file = os.path.abspath('.') + '/mysql.cnf', 
                        local_infile = 1,
