@@ -33,6 +33,16 @@ logging.basicConfig(level=log_level)
 
 
 
+# When we compare records, we don't care about differences in case.
+# Lowering the case in SQL is much faster than in Python.
+DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " \
+               "LOWER(first_name) AS first_name, " \
+               "LOWER(last_name) AS last_name, " \
+               "LOWER(zip) AS zip, LOWER(state) AS state, " \
+               "LOWER(address_1) AS address_1, " \
+               "LOWER(address_2) AS address_2 FROM donors"
+
+
 def getSample(c, sample_size, id_column, table):
   """
   Returns a random sample of pairs of donors of a given size from a MySQL table.
@@ -48,7 +58,7 @@ def getSample(c, sample_size, id_column, table):
 
   temp_d = {}
 
-  c.execute(donor_select) 
+  c.execute(DONOR_SELECT) 
   for row in c.fetchall() :
     temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
@@ -134,28 +144,18 @@ c.execute("CREATE TABLE blocking_map "
 
 # First though, if we learned a tf-idf predicate, we have to create an
 # tfIDF blocks for the full data set.
-#
-# When we compare records, we don't care about differences in case.
-# Lowering the case in SQL is much faster than in Python.
-donor_select = "SELECT donor_id, LOWER(city) AS city, " \
-               "LOWER(first_name) AS first_name, " \
-               "LOWER(last_name) AS last_name, " \
-               "LOWER(zip) AS zip, LOWER(state) AS state, " \
-               "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors"
-
 print 'creating inverted index'
-c.execute(donor_select + " LIMIT 10000")
+c.execute(DONOR_SELECT + " LIMIT 10000")
 full_data = ((row['donor_id'], row) for row in c.fetchall())
 blocker.tfIdfBlocks(full_data)
 
 
 # Finally, we are ready to block the data. We'll do this by creating
-# a generator that yields a (block_key, donor_id) tuples. Dedupe guarantees
+# a generator that yields `(block_key, donor_id)` tuples. Dedupe guarantees
 # that these tuples will be unique
 print 'writing blocking map'
 def block_data() :
-    c.execute(donor_select + " LIMIT 10000")
+    c.execute(DONOR_SELECT + " LIMIT 10000")
     full_data = ((row['donor_id'], row) for row in c.fetchall())
     for i, (donor_id, record) in enumerate(full_data) :
         if i % 10000 == 0 :
@@ -181,8 +181,8 @@ while not done :
   con.commit()
 
 
-# We create an index on the blocking_key so that the group by
-# queries we will be making to cluster the data can  happen in a
+# We create an index on the blocking key so that the 'group by
+# queries' we will be making to cluster the data can  happen in a
 # reasonable time
 print 'creating blocking map index. this will probably take a while ...'
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
@@ -191,7 +191,7 @@ print 'created', time.time() - start_time, 'seconds'
 
 # This grabs a block of records for comparison. We rely on the
 # ordering of the donor_ids
-block_select = (donor_select + 
+block_select = (DONOR_SELECT + 
                 " INNER JOIN blocking_map USING (donor_id) " 
                 "WHERE block_key = %s ORDER BY donor_id")
 
@@ -205,7 +205,6 @@ def candidates_gen(block_keys) :
 
         c.execute(block_select, (block_key,))
         yield ((row['donor_id'], row) for row in c.fetchall())
-
 
 # We grab all the block_keys with more than one record associated with
 # it. These associated records will make up a block of records we will
@@ -226,7 +225,7 @@ print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
                                             threshold)
 
-# duplicateClusters gives us sequence of tuples of donor_ids that
+# `duplicateClusters` gives us sequence of tuples of donor_ids that
 # Dedupe believes all refer to the same entity. We write this out
 # onto an entity map tbale
 c.execute("DROP TABLE IF EXISTS entity_map")
