@@ -156,7 +156,7 @@ full_data = ((row['donor_id'], row) for row in c.fetchall())
 blocker.tfIdfBlocks(full_data)
 
 
-# Finally, we are ready to block the data. We'll do this by creating
+# Now, we are ready to block the data. We'll do this by creating
 # a generator that yields `(block_key, donor_id)` tuples. Dedupe guarantees
 # that these tuples will be unique
 print 'writing blocking map'
