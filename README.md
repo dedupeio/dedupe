@@ -44,15 +44,15 @@ python setup.py install
 
 Dedupe is a library and not a stand-alone command line tool. To demonstrate its usage, we have come up with a few example recipes for different sized datasets.
 
-### CSV example (<10,000 rows)
+### [CSV example](http://open-city.github.com/dedupe/doc/csv_example.html) (<10,000 rows)
 ```bash
 python examples/csv_example/csv_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished)
   
-* [Annotated source code of csv_example](http://open-city.github.com/dedupe/doc/csv_example.html)
+For details, see the [annotated source code for csv_example.py](http://open-city.github.com/dedupe/doc/csv_example.html).
 
-### mysql_example (10,000 - 1,000,000 rows)
+### [MySQL example](http://open-city.github.com/dedupe/doc/mysql_example.html) (10,000 - 1,000,000+ rows)
 To follow this example you need to 
 
 * Create a MySQL database called 'contributions'
@@ -68,7 +68,7 @@ python examples/mysql_example/mysql_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 
-* [Annotated source code of mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html)
+For more details, see the [annotated source code of mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html).
 
 
 ## Testing
