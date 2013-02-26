@@ -64,13 +64,12 @@ Once that's all done you can run the example:
 
 ```bash
 python examples/mysql_example/init_db.py
-python examples/mysql_example/mysql_blocking.py
+python examples/mysql_example/mysql_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
-  
-```bash
-python examples/mysql_example/mysql_clustering.py
 ```
+* [Annotated source code of mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html)
+
 
 ## Testing
 
