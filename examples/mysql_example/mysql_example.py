@@ -9,8 +9,9 @@ With such a large set of input data, we cannot store all the comparisons
 we need to make in memory. Instead, we will read the pairs on demand
 from the MySQL database.
 
-__Note:__ You will need to run `python
-examples/mysql_example/mysql_init_db.py` before running this script.
+__Note:__ You will need to run `python examples/mysql_example/mysql_init_db.py` 
+before running this script. See the annotates source for 
+[mysql_init_db](http://open-city.github.com/dedupe/doc/mysql_init_db.html)
 
 For smaller datasets (<10,000), see our
 [csv_example](http://open-city.github.com/dedupe/doc/csv_example.html)
