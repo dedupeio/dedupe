@@ -49,9 +49,9 @@ logging.basicConfig(level=log_level)
 
 # We'll be using variations on this select statement to pull in
 # campaign donor info.  When we compare records, we don't care about
-# differences in casing, so we lower the case (doing this in database
-# is much faster than in Python).
-DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " \
+# differences in casing, so we lower the case (doing this in the
+# database is much faster than in Python).
+DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " 
                "LOWER(first_name) AS first_name, " \
                "LOWER(last_name) AS last_name, " \
                "LOWER(zip) AS zip, LOWER(state) AS state, " \
@@ -68,7 +68,7 @@ def getSample(c, sample_size, id_column, table):
   c.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
   num_records = c.fetchone().values()[0]
 
-  # dedupe expects the id column to contain unique, sequential itegers
+  # dedupe expects the id column to contain unique, sequential integers
   # starting at 0 or 1
   random_pairs = dedupe.randomPairs(num_records, sample_size, zero_indexed=False)
 
@@ -157,30 +157,26 @@ else:
 # ## Blocking
 
 print 'blocking...'
-# If we didn'te read saved blocking rules from a settings file, then
+# If we didn't read saved blocking rules from a settings file, then
 # we will try to find good blocking rules now. In either case we'll
 # initialize our blocker
 
 # Notice our two arguments here
-# #####ppc
-# Limits the Proportion of Pairs Covered that we allow a
-# predicate to cover.If a predicate puts together a fraction
-# of possible pairs greater than the ppc, that predicate will
-# be removed from consideration.
-# As the size of the data increases, the user will generally
-# want to reduce ppc.
 #
-# ######uncovered_dupes
-# The number of true dupes pairs in our training
-# data that we can accept will not be put into any
-# block. If true true duplicates are never in the
-# same block, we will never compare them, and may
-# never declare them to be duplicates.
+# `ppc` limits the Proportion of Pairs Covered that we allow a
+# predicate to cover. If a predicate puts together a fraction of
+# possible pairs greater than the ppc, that predicate will be removed
+# from consideration. As the size of the data increases, the user
+# will generally want to reduce ppc.
 #
-# However, requiring that we cover every single
-# true dupe pair may mean that we have to use
-# blocks that put together many, many distinct pairs
-# that we'll have to expensively, compare as well.
+# `uncovered_dupes` is the number of true dupes pairs in our training
+# data that we are willing to accept will never be put into any
+# block. If true duplicates are never in the same block, we will never
+# compare them, and may never declare them to be duplicates.
+#
+# However, requiring that we cover every single true dupe pair may
+# mean that we have to use blocks that put together many, many
+# distinct pairs that we'll have to expensively, compare as well.
 blocker = deduper.blockingFunction(ppc=0.001, uncovered_dupes=5)
 
 # Save our weights and predicates to disk.
@@ -331,6 +327,8 @@ for row in c.fetchall() :
     row['totals'] = locale.currency(row['totals'], grouping=True)
     print '%(totals)20s: %(last_name)s %(first_name)s' % row
 
+# Compare this to what we would have gotten if we hadn't done any
+# deduplication
 c.execute("SELECT donors.first_name AS first_name, "
           "       donors.last_name AS last_name, "
           "       SUM(contributions.amount) AS totals "
