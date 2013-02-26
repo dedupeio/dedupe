@@ -5,8 +5,9 @@ This is an example of working with very large data. There are about
 700,000 unduplicated donors in this database of Illinois political
 campaign contributions.
 
-While we might be able to keep these donor records in memory, we
-cannot possibly store all the comparison pairs we will make.
+While can these donor records in memory, we cannot store all the
+comparisons we will plan to make. We will have to read the pairs on
+demand, from disk
 """
 import os
 import itertools
@@ -31,7 +32,7 @@ elif opts.verbose >= 2:
     log_level = logging.DEBUG
 logging.basicConfig(level=log_level)
 
-
+# ### Setup
 
 # When we compare records, we don't care about differences in case.
 # Lowering the case in SQL is much faster than in Python.
@@ -81,14 +82,14 @@ start_time = time.time()
 
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
 # `examples/mysql_example/mysql.cnf` and fill in your mysql
-# database information `examples/mysql_example/mysql.cnf`
+# database information in `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
                       read_default_file = os.path.abspath('.') + '/mysql.cnf', 
                       cursorclass=MySQLdb.cursors.DictCursor)
 
 c = con.cursor()
 
-
+# ### Learn or read how to compare records and good blocking rules
 
 
 if os.path.exists(settings_file):
@@ -130,6 +131,8 @@ else:
 print 'blocking...'
 blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 deduper.writeSettings(settings_file)
+
+# ### Blocking on disk
 
 # So the learning is done and we have our blocker. However we cannot
 # block the data in memory. We have to pass through all the data and
@@ -191,6 +194,7 @@ print 'creating blocking map index. this will probably take a while ...'
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
 print 'created', time.time() - start_time, 'seconds'
 
+# ### Clustering from disk
 
 # This grabs a block of records for comparison. We rely on the
 # ordering of the donor ids
@@ -227,6 +231,8 @@ block_keys = (row['block_key'] for row in c.fetchall())
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
                                             threshold)
+
+# ### Writing out results
 
 # `duplicateClusters` gives us sequence of tuples of donor ids that
 # Dedupe believes all refer to the same entity. We write this out
