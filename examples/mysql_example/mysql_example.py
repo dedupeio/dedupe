@@ -65,7 +65,7 @@ def getSample(cur, sample_size, id_column, table):
     MySQL table.
     '''
 
-    cur.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
+    cur.execute("SELECT MAX(%s) FROM %s" % (id_column, table))
     num_records = cur.fetchone().values()[0]
 
     # Dedupe expects the id column to contain unique, sequential
@@ -196,7 +196,7 @@ c.execute("CREATE TABLE blocking_map "
 # through the data and create TF-IDF canopies. This can take up to an
 # hour
 print 'creating inverted index'
-c.execute(DONOR_SELECT + " LIMIT 10000")
+c.execute(DONOR_SELECT)
 full_data = ((row['donor_id'], row) for row in c.fetchall())
 blocker.tfIdfBlocks(full_data)
 
@@ -205,7 +205,7 @@ blocker.tfIdfBlocks(full_data)
 # generator that yields unique `(block_key, donor_id)` tuples.
 print 'writing blocking map'
 def block_data() :
-    c.execute(DONOR_SELECT + " LIMIT 10000")
+    c.execute(DONOR_SELECT)
     full_data = ((row['donor_id'], row) for row in c.fetchall())
     for i, (donor_id, record) in enumerate(full_data) :
         if i % 10000 == 0 :
