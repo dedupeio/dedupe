@@ -1,14 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 """
-This code demonstrates how to use dedupe with a comma separated values (CSV)
-file. All operations are performed in memory, so will run very quickly on datasets
-up to ~10,000 rows.
+This code demonstrates how to use dedupe with a comma separated values
+(CSV) file. All operations are performed in memory, so will run very
+quickly on datasets up to ~10,000 rows.
 
-We start with a CSV file containing our messy data. In this example, it is
-listings of early childhood education centers in Chicago compiled
-from several different sources. 
+We start with a CSV file containing our messy data. In this example,
+it is listings of early childhood education centers in Chicago
+compiled from several different sources.
 
 The output will be a CSV with our clustered results.
 
