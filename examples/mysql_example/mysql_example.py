@@ -7,10 +7,6 @@ campaign contributions.
 
 While we might be able to keep these donor records in memory, we
 cannot possibly store all the comparison pairs we will make.
-
-Because of performance issues that we are still working through, this
-example is broken into two files, mysql_blocking.py which blocks the
-data, mysql_clustering.py which clusters the blocked data.
 """
 import os
 import itertools
@@ -35,19 +31,6 @@ elif opts.verbose >= 2:
     log_level = logging.DEBUG
 logging.basicConfig(level=log_level)
 
-
-os.chdir('./examples/mysql_example/')
-settings_file = 'mysql_example_settings.json'
-training_file = 'mysql_example_training.json'
-
-# When we compare records, we don't care about differences in case.
-# Lowering the case in SQL is much faster than in Python.
-donor_select = "SELECT donor_id, LOWER(city) AS city, " \
-               "LOWER(first_name) AS first_name, " \
-               "LOWER(last_name) AS last_name, " \
-               "LOWER(zip) AS zip, LOWER(state) AS state, " \
-               "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors"
 
 
 def getSample(c, sample_size, id_column, table):
@@ -76,11 +59,16 @@ def getSample(c, sample_size, id_column, table):
   
   return tuple(record_pairs for pair in random_pair_generator())
 
+os.chdir('./examples/mysql_example/')
+settings_file = 'mysql_example_settings.json'
+training_file = 'mysql_example_training.json'
+
+
 
 start_time = time.time()
 
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
-# `examples/mysql_example/mysql.cnf` and put fill in your mysql
+# `examples/mysql_example/mysql.cnf` and fill in your mysql
 # database information examples/mysql_example/mysql.cnf
 con = MySQLdb.connect(db='contributions',
                       read_default_file = os.path.abspath('.') + '/mysql.cnf', 
@@ -88,12 +76,7 @@ con = MySQLdb.connect(db='contributions',
 
 c = con.cursor()
 
-# To run blocking on such a large set of data, we create a separate table
-# that contains blocking keys and record ids
-print 'creating blocking_map database'
-c.execute("DROP TABLE IF EXISTS blocking_map")
-c.execute("CREATE TABLE blocking_map "
-          "(block_key VARCHAR(200), donor_id INTEGER)")
+
 
 
 if os.path.exists(settings_file):
@@ -102,7 +85,7 @@ if os.path.exists(settings_file):
 else:
     # As the dataset grows, duplicate pairs become more rare. 
     # We need positive examples to train dedupe, so we have to
-    # signficantly increase the size of the sample compared to csv_example.py
+    # signficantly increase the size of the sample compared to `csv_example.py`
     print 'selecting random sample from donors table...'
     data_sample = getSample(c, 750000, 'donor_id', 'donors')
 
@@ -138,11 +121,31 @@ deduper.writeSettings(settings_file)
 # So the learning is done and we have our blocker. However we cannot
 # block the data in memory. We have to pass through all the data and
 # create a blocking map table.
-#
+
+# To run blocking on such a large set of data, we create a separate table
+# that contains blocking keys and record ids
+print 'creating blocking_map database'
+c.execute("DROP TABLE IF EXISTS blocking_map")
+c.execute("CREATE TABLE blocking_map "
+          "(block_key VARCHAR(200), donor_id INTEGER)")
+
+
+
+
 # First though, if we learned a tf-idf predicate, we have to create an
 # tfIDF blocks for the full data set.
+#
+# When we compare records, we don't care about differences in case.
+# Lowering the case in SQL is much faster than in Python.
+donor_select = "SELECT donor_id, LOWER(city) AS city, " \
+               "LOWER(first_name) AS first_name, " \
+               "LOWER(last_name) AS last_name, " \
+               "LOWER(zip) AS zip, LOWER(state) AS state, " \
+               "LOWER(address_1) AS address_1, " \
+               "LOWER(address_2) AS address_2 FROM donors"
+
 print 'creating inverted index'
-c.execute(donor_select)
+c.execute(donor_select + " LIMIT 10000")
 full_data = ((row['donor_id'], row) for row in c.fetchall())
 blocker.tfIdfBlocks(full_data)
 
@@ -152,7 +155,7 @@ blocker.tfIdfBlocks(full_data)
 # that these tuples will be unique
 print 'writing blocking map'
 def block_data() :
-    c.execute(donor_select)
+    c.execute(donor_select + " LIMIT 10000")
     full_data = ((row['donor_id'], row) for row in c.fetchall())
     for i, (donor_id, record) in enumerate(full_data) :
         if i % 10000 == 0 :
@@ -188,14 +191,9 @@ print 'created', time.time() - start_time, 'seconds'
 
 # This grabs a block of records for comparison. We rely on the
 # ordering of the donor_ids
-donor_select = "SELECT donor_id, LOWER(city) AS city, " \
-               "LOWER(first_name) AS first_name, " \
-               "LOWER(last_name) AS last_name, " \
-               "LOWER(zip) AS zip, LOWER(state) AS state, " \
-               "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors " \
-               "INNER JOIN blocking_map USING (donor_id) " \
-               "WHERE block_key = %s ORDER BY donor_id"
+block_select = (donor_select + 
+                " INNER JOIN blocking_map USING (donor_id) " 
+                "WHERE block_key = %s ORDER BY donor_id")
 
 
 # This generator yields blocks of data
@@ -205,7 +203,7 @@ def candidates_gen(block_keys) :
           print i, "blocks"
           print time.time() - start_time, "seconds"
 
-        c.execute(donor_select, (block_key,))
+        c.execute(block_select, (block_key,))
         yield ((row['donor_id'], row) for row in c.fetchall())
 
 
