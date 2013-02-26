@@ -2,27 +2,34 @@
 # -*- coding: utf-8 -*-
 
 """
-The following code demonstrates how to use dedupe with a flat (CSV)
-file. All operations are performed in memory, so it won't work for
-data sets that are larger than ~10,000 rows.
+This code demonstrates how to use dedupe with a comma separated values (CSV)
+file. All operations are performed in memory, so will run very quickly on datasets
+up to ~10,000 rows.
+
+We start with a CSV file containing our messy data. In this example, it is
+listings of early childhood education centers in Chicago compiled
+from several different sources. 
+
+The output will be a CSV with our clustered results.
+
+For larger datasets, see our [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html)
 """
 
 import os
 import csv
 import re
 import collections
-import AsciiDammit
 import logging
 import optparse
 
+import AsciiDammit
+
 import dedupe
 
-# We will setup csv_example.py so that the user can run in a more
-# verbose mode by calling `python examples/csv_example/csv_example.py
-# -v`
-#
-# This optparse and logging optparse business is not necessary for
-# dedupe
+# ## Logging
+
+# Dedupe uses Python logging to show or suppress verbose output. Added for convenience.
+# To enable verbose logging, run `python examples/csv_example/csv_example.py -v`
 
 optp = optparse.OptionParser()
 optp.add_option('-v', '--verbose', dest='verbose', action='count',
@@ -37,33 +44,21 @@ elif opts.verbose >= 2:
 logging.basicConfig(level=log_level)
 
 
-# ## Setting up the Data
+# ## Setup
 
-# We start with a csv file with our messy data. In this example, it is
-# listings of early childhood education centers in Chicago compiled
-# from several different sources. The output file will also be a csv,
-# but with our clustered results.
-
+# Switch to our working directory and set up our input and out put paths,
+# as well as our settings and training file locations
 os.chdir('./examples/csv_example/')
 input_file = 'csv_example_messy_input.csv'
 output_file = 'csv_example_output.csv'
-
-# We can save a settings file to initialize a dedupe instance without
-# having to retrain
-
 settings_file = 'csv_example_learned_settings.json'
-
-# We can also save the examples the users labels if we want to add on
-# to them later for more training
-
 training_file = 'csv_example_training.json'
 
 
 def preProcess(column):
     """
-    Our goal here is to find meaningful duplicates, so things like
-    casing, extra spaces, quotes and new lines can be
-    ignored. `preProcess` removes these.
+    Do a little bit of data cleaning with the help of [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) 
+    and Regex. Things like casing, extra spaces, quotes and new lines can be ignored.
     """
 
     column = AsciiDammit.asciiDammit(column)
@@ -75,17 +70,14 @@ def preProcess(column):
 
 def readData(filename):
     """
-    We read in the data from a CSV file and as we do, we `preProcess`
-    it. The output is a dictionary of records, where the key is a
-    unique record ID and each value is a `frozendict` (basically a
-    hashable dictionary) of the row fields.
+    Read in our data from a CSV file and create a dictionary of records, 
+    where the key is a unique record ID and each value is a 
+    [frozendict](http://code.activestate.com/recipes/414283-frozen-dictionaries/) 
+    (hashable dictionary) of the row fields.
 
     **Currently, dedupe depends upon records' unique ids being integers
     with no integers skipped. The smallest valued unique id must be 0 or
-    1.**
-
-    **This all is due to how we generate random samples of pairs, and this
-    requirement will likely be relaxed in the future.**
+    1. Expect this requirement will likely be relaxed in the future.**
     """
 
     data_d = {}
@@ -102,116 +94,71 @@ def readData(filename):
 print 'importing data ...'
 data_d = readData(input_file)
 
-# ## Teaching Dedupe to Compare Records
-
-# ### Using what we learned before
-# If the settings files, which we mentioned above, exists, then we
-# read it in. Passing in a settings file is one of the three ways to
-# initialize a dedupe instance. We won't need to do any learning.
+# ## Training
 
 if os.path.exists(settings_file):
     print 'reading from', settings_file
     deduper = dedupe.Dedupe(settings_file)
 
-# ### Learning anew
 else:
-
-    
-    # In order to train dedupe, we need to compare some records. We can't
-    # compare them all, because the number of possible combinations can be
-    # much too large (~0.5*N^2). We take a random sample of all possible
-    # pairs.
-
+    # To train dedupe, we feed it a random sample of records.
     data_sample = dedupe.dataSample(data_d, 150000)
 
-    # We can initialize a dedupe instance by declaring a field
-    # definition for the data. This defines the fields that we want to
-    # compare and what type of field it is so that dedupe know how to
-    # compare them.
-
+    # Define the fields dedupe will pay attention to
     fields = {
         'Site name': {'type': 'String'},
         'Address': {'type': 'String'},
         'Zip': {'type': 'String'},
         'Phone': {'type': 'String'},
         }
+
+    # Create a new deduper object and pass our data model to it.
     deduper = dedupe.Dedupe(fields)
 
-    # Dedupe will learn to predict if two records are duplicates based
-    # upon their similarity. In this example, that similarity is a
-    # weighted combination of the field by field [string
-    # similarity](http://en.wikipedia.org/wiki/String_metric) between
-    # records. Dedupe learns these weights.
-
-    # #### Learning from saved, labeled examples
-
-    # Dedupe will ask a user to label pairs of records as duplicates or
-    # not. These labeled records can be saved and reused for later
-    # training. To train dedupe with these examples, call `deduper.train`
-    # as shown.
-
+    # If we have training data saved from a previous run of dedupe,
+    # look for it an load it in.
+    # __Note:__ if you want to train from scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
         deduper.train(data_sample, training_file)
 
-    # #### Actively learning
+    # ## Active learning
 
-    # Dedupe can actively learn, that means it will select the records
-    # it is most uncertain about and will ask the user to label it. It
-    # will then learn from that labeling, update, and ask for the next
-    # most uncertain pair.
+    # Starts the trainin loop. Dedupe will find the next pair of records
+    # it is least certain about and ask you to label them as duplicates
+    # or not.
 
-    # To do this, train method requires that you pass it a function to
-    # do this labeling, in this case, `consoleLabel`.
-
-    # For `consoleLabel`, use 'y', 'n' and 'u' keys to flag duplicates,
-    # 'f' when you are finished.
-
+    # use 'y', 'n' and 'u' keys to flag duplicates
+    # press 'f' when you are finished
     print 'starting active labeling...'
     deduper.train(data_sample, dedupe.training.consoleLabel)
 
-    # Save away our labeled training pairs to a JSON file.
-
+    # When finished, save our training away to disk
     deduper.writeTraining(training_file)
 
-# ## Teaching Dedupe How to Block Records
-
-# Now that dedupe knows how to compare records, we use the same
-# training data to block records in to groups. The goal is to reduce
-# the total number of comparisons.
-
-# `blockingFunction` learns the blocking rules, if not already defined
-# in `settings_file` and returns a function. That function will take a
-# record and return all the blocks it will fit in to.
+# ## Blocking
 
 print 'blocking...'
+# Initialize our blocker, which determines our field weights and blocking 
+# predicates based on our training data
 blocker = deduper.blockingFunction()
 
-# Save our settings file, which includes learned weights and blocking
-# rules.
-
+# Save our weights and predicates to disk.
+# If the settings file exists, we will skip all the training and learning
 deduper.writeSettings(settings_file)
 
-# ## Blocking the Data
-
-# `blockingIndex` loads all the original data in to memory and places
+# Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
 blocked_data = dedupe.blockData(data_d, blocker)
 
-# `dedupe.blockData` returns a generator, because we typically would
-# not want to keep all the pairs we want to compare in memory. In this
-# example though, the data is small enough that we can handle it. We
-# store the block of data in a tuple, which we'll use as a sample to
-# learn a good threshold
-
+# Satore all of our blocked data in to memory
 blocked_data = tuple(blocked_data)
 
-# ## Identifying Duplicates
+# ## Clustering
 
-# There is always a tradeoff between precision and recall. This function
-# tries to find the threshold that will maximize a weighted average of both.
+# Find the threshold that will maximize a weighted average of our precision and recall. 
 # When we set the recall weight to 2, we are saying we care twice as much
 # about recall as we do precision.
 #
@@ -230,9 +177,8 @@ print '# duplicate sets', len(clustered_dupes)
 
 # ## Writing Results
 
-# Now that we have our clustered duplicates, we write our original
-# data back out to a CSV with a new column called 'Cluster ID' which
-# indicates which records refer to each other.
+# Write our original data back out to a CSV with a new column called 
+# 'Cluster ID' which indicates which records refer to each other.
 
 cluster_membership = collections.defaultdict(lambda : 'x')
 for (cluster_id, cluster) in enumerate(clustered_dupes):
@@ -255,6 +201,3 @@ with open(output_file, 'w') as f:
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
-            
-
-

@@ -63,12 +63,12 @@ To follow this example you need to
 Once that's all done you can run the example:
 
 ```bash
-python examples/mysql_example/init_db.py
+python examples/mysql_example/mysql_init_db.py
 python examples/mysql_example/mysql_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 
-For more details, see the [annotated source code of mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html).
+For more details, see the annotated source code for [mysql_init_db](http://open-city.github.com/dedupe/doc/mysql_init_db.html) and [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html).
 
 
 ## Testing

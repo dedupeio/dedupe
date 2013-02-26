@@ -8,6 +8,12 @@ campaign contributions.
 With such a large set of input data, we cannot store all the comparisons 
 we need to make in memory. Instead, we will read the pairs on demand
 from the MySQL database.
+
+__Note:__ You will need to run `python examples/mysql_example/mysql_init_db.py` 
+before running this script. See the annotated source for 
+[mysql_init_db.py](http://open-city.github.com/dedupe/doc/mysql_init_db.html)
+
+For smaller datasets (<10,000), see our [csv_example](http://open-city.github.com/dedupe/doc/csv_example.html)
 """
 import os
 import itertools
@@ -20,9 +26,10 @@ import MySQLdb.cursors
 
 import dedupe
 
-# ### Logging
+# ## Logging
 
 # Dedupe uses Python logging to show or suppress verbose output. Added for convenience.
+# To enable verbose logging, run `python examples/mysql_example/mysql_example.py -v`
 
 optp = optparse.OptionParser()
 optp.add_option('-v', '--verbose', dest='verbose', action='count',
@@ -36,7 +43,7 @@ elif opts.verbose >= 2:
     log_level = logging.DEBUG
 logging.basicConfig(level=log_level)
 
-# ### Setup
+# ## Setup
 
 # Create a select function that pulls in our campaign donor info.
 # When we compare records, we don't care about differences in casing,
@@ -74,16 +81,14 @@ def getSample(c, sample_size, id_column, table):
   
   return tuple(record_pairs for pair in random_pair_generator())
 
-# Switch to our working directory and set up our settings and training
-# file locations
+# Switch to our working directory and set up our settings and training file locations
 os.chdir('./examples/mysql_example/')
 settings_file = 'mysql_example_settings.json'
 training_file = 'mysql_example_training.json'
 
-# keep track of our execution time
 start_time = time.time()
 
-# ### Create our database connection
+# ## Create a database connection
 
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
 # `examples/mysql_example/mysql.cnf` and fill in your mysql
@@ -94,7 +99,7 @@ con = MySQLdb.connect(db='contributions',
 
 c = con.cursor()
 
-# ### Data model setup and training
+# ## Training
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
@@ -124,10 +129,12 @@ else:
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
-    # If you want to train from scratch, delete the training_file
+    # __Note:__ if you want to train from scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
         deduper.train(data_sample, training_file)
+
+    # ## Active learning
 
     print 'starting active labeling...'
     print 'finding uncertain pairs...'
@@ -135,6 +142,7 @@ else:
     # Starts the trainin loop. Dedupe will find the next pair of records
     # it is least certain about and ask you to label them as duplicates
     # or not.
+
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
     deduper.train(data_sample, dedupe.training.consoleLabel)
@@ -142,16 +150,16 @@ else:
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
 
+# ## Blocking
+
 print 'blocking...'
-# Initialize our blocker, which determine our field weights and blocking 
+# Initialize our blocker, which determines our field weights and blocking 
 # predicates based on our training data
 blocker = deduper.blockingFunction(eta=0.001, epsilon=5)
 
 # Save our weights and predicates to disk.
 # If the settings file exists, we will skip all the training and learning
 deduper.writeSettings(settings_file)
-
-# ### Blocking on disk
 
 # Iterate through all our input data and create a blocking map.
 # To run blocking on such a large set of data, we create a separate table
@@ -160,8 +168,6 @@ print 'creating blocking_map database'
 c.execute("DROP TABLE IF EXISTS blocking_map")
 c.execute("CREATE TABLE blocking_map "
           "(block_key VARCHAR(200), donor_id INTEGER)")
-
-
 
 
 # We are using [TF/IDF](http://en.wikipedia.org/wiki/Tf%E2%80%93idf) as a 
@@ -208,7 +214,7 @@ print 'creating blocking map index. this will probably take a while ...'
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
 print 'created', time.time() - start_time, 'seconds'
 
-# ### Clustering
+# ## Clustering
 
 # Grabs a block of records for comparison.
 block_select = (DONOR_SELECT + 
@@ -231,7 +237,8 @@ def candidates_gen(block_keys) :
 blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
                    "FROM blocking_map GROUP BY block_key HAVING num_candidates > 1"
 
-# Using a random sample of blocks we use goodThreshold find our clustering threshold
+# Using a random sample of blocks we find our clustering threshold that maximizes
+# the weighted average of our precision and recall
 c.execute(blocking_key_sql + " ORDER BY RAND() LIMIT 1000")
 sampled_block_keys = block_keys = (row['block_key'] for row in c.fetchall())
 threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys))
@@ -244,7 +251,7 @@ print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
                                             threshold)
 
-# ### Writing out results
+# ## Writing out results
 
 # We now have a sequence of tuples of donor ids that dedupe believes all 
 # refer to the same entity. We write this out onto an entity map table
@@ -275,5 +282,4 @@ print len(clustered_dupes)
 c.close()
 con.close()
 
-# Print our run time
 print 'ran in', time.time() - start_time, 'seconds'

@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-You will need to run this script first before execuing
-[mysql_example.py](http://open-city.github.com/dedupe/doc/mysql_example.html).
-
 This is a setup script for mysql_example.
 It downloads a zip file of Illinois campaign contributions and loads them in to a MySQL
 database named 'contributions'.
+
+__Note:__ You will need to run this script first before execuing
+[mysql_example.py](http://open-city.github.com/dedupe/doc/mysql_example.html).
 
 Tables created:
 * raw_table - raw import of entire CSV file
@@ -19,8 +19,11 @@ import csv
 import os
 import urllib2
 import zipfile
+import time
 
 import MySQLdb
+
+start_time = time.time()
 
 # Switch to our working directory
 os.chdir('./examples/mysql_example/')
@@ -96,13 +99,7 @@ c.execute("LOAD DATA LOCAL INFILE %s INTO TABLE raw_table "
 # Create our indexes. This is necessary for populating our contribution table
 print 'creating raw_table indexes...'
 c.execute("ALTER TABLE raw_table ADD PRIMARY KEY(reciept_id)")
-c.execute("CREATE INDEX raw_table_first_name on raw_table (first_name)")
-c.execute("CREATE INDEX raw_table_last_name on raw_table (last_name)")
-c.execute("CREATE INDEX raw_table_address_1 on raw_table (address_1)")
-c.execute("CREATE INDEX raw_table_address_2 on raw_table (address_2)")
-c.execute("CREATE INDEX raw_table_city on raw_table (city)")
-c.execute("CREATE INDEX raw_table_state on raw_table (state)")
-c.execute("CREATE INDEX raw_table_zip on raw_table (zip)")
+# c.execute("CREATE INDEX raw_table_name_address_idx on raw_table (first_name, last_name, address_1, address_2, city, state, zip)")
 
 conn.commit()
 
@@ -121,13 +118,7 @@ c.execute("INSERT INTO donors "
           "FROM raw_table")
 
 print 'creating donors indexes...'
-c.execute("CREATE INDEX donors_first_name on donors (first_name)")
-c.execute("CREATE INDEX donors_last_name on donors (last_name)")
-c.execute("CREATE INDEX donors_address_1 on donors (address_1)")
-c.execute("CREATE INDEX donors_address_2 on donors (address_2)")
-c.execute("CREATE INDEX donors_city on donors (city)")
-c.execute("CREATE INDEX donors_state on donors (state)")
-c.execute("CREATE INDEX donors_zip on donors (zip)")
+# c.execute("CREATE INDEX donors_name_address_idx on donors (first_name, last_name, address_1, address_2, city, state, zip)")
 
 conn.commit()
 
@@ -139,7 +130,6 @@ c.execute("CREATE TABLE recipients "
 c.execute("INSERT IGNORE INTO recipients "
           "SELECT DISTINCT committee_id, committee_name FROM raw_table")
 conn.commit()
-
 
 print 'creating contributions table'
 c.execute('CREATE TABLE contributions '
@@ -153,30 +143,31 @@ c.execute('CREATE TABLE contributions '
           ' election_year TEXT, report_period_begin TEXT, '
           ' report_period_end TEXT)')
 
-c.execute('INSERT INTO contributions '
-'SELECT reciept_id, donors.donor_id, committee_id, '
-' report_type, date_recieved, loan_amount, amount, '
-' receipt_type, employer, occupation, vendor_last_name , '
-' vendor_first_name, vendor_address_1, vendor_address_2, '
-' vendor_city, vendor_state, vendor_zip, description, '
-' election_type, election_year, report_period_begin, '
-' report_period_end '
-'FROM raw_table JOIN donors ON '
-'donors.first_name = raw_table.first_name AND '
-'donors.last_name = raw_table.last_name AND '
-'donors.address_1 = raw_table.address_1 AND '
-'donors.address_2 = raw_table.address_2 AND '
-'donors.city = raw_table.city AND '
-'donors.state = raw_table.state AND '
-'donors.zip = raw_table.zip')
+# c.execute('INSERT INTO contributions '
+# 'SELECT reciept_id, donors.donor_id, committee_id, '
+# ' report_type, date_recieved, loan_amount, amount, '
+# ' receipt_type, employer, occupation, vendor_last_name , '
+# ' vendor_first_name, vendor_address_1, vendor_address_2, '
+# ' vendor_city, vendor_state, vendor_zip, description, '
+# ' election_type, election_year, report_period_begin, '
+# ' report_period_end '
+# 'FROM raw_table JOIN donors ON '
+# 'CONCAT(donors.first_name, donors.last_name'
+#        'donors.address_1, donors.address_2,'
+#        'donors.city, donors.state, donors.zip) ='
+# 'CONCAT(raw_table.first_name, raw_table.last_name'
+#        'raw_table.address_1, raw_table.address_2,'
+#        'raw_table.city, raw_table.state, raw_table.zip)')
 
-c.execute("ALTER TABLE contributions ADD PRIMARY KEY(contribution_id)")
-c.execute("CREATE INDEX donor_idx ON contributions (donor_id)")
-c.execute("CREATE INDEX recipient_idx ON contributions (recipient_id)")
+# c.execute("ALTER TABLE contributions ADD PRIMARY KEY(contribution_id)")
+# c.execute("CREATE INDEX donor_idx ON contributions (donor_id)")
+# c.execute("CREATE INDEX recipient_idx ON contributions (recipient_id)")
 
 
-conn.commit()
+# conn.commit()
 
 c.close()
 conn.close()
 print 'done'
+
+print 'ran in', time.time() - start_time, 'seconds'
