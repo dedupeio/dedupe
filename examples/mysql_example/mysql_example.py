@@ -68,15 +68,15 @@ def getSample(cur, sample_size, id_column, table):
     cur.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
     num_records = cur.fetchone().values()[0]
 
-    # dedupe expects the id column to contain unique, sequential integers
-    # starting at 0 or 1
+    # Dedupe expects the id column to contain unique, sequential
+    # integers starting at 0 or 1
     random_pairs = dedupe.randomPairs(num_records,
                                       sample_size,
                                       zero_indexed=False)
 
     temp_d = {}
 
-    cur.execute(DONOR_SELECT) 
+    cur.execute(DONOR_SELECT)
     for row in cur.fetchall() :
         temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
@@ -308,10 +308,8 @@ print len(clustered_dupes)
 # of the data
 #
 # For example, let's see who the top 10 donors are.
-#
 
-# for pretty printing numbers
-locale.setlocale(locale.LC_ALL, '')
+locale.setlocale(locale.LC_ALL, '') # for pretty printing numbers
 
 c.execute("SELECT donors.first_name AS first_name, "
           "       donors.last_name AS last_name, "
