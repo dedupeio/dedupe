@@ -45,10 +45,12 @@ DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " \
 
 def getSample(c, sample_size, id_column, table):
   """
-  Returns a random sample of pairs of donors of a given size from a MySQL table.
-  Depending on your database engine, you will need to come up with a similar function.
+  Returns a random sample of pairs of donors of a given size from a
+  MySQL table.  Depending on your database engine, you will need to
+  come up with a similar function.
 
-  id_column must contain unique, sequential itegers starting at 0 or 1
+  The id column must contain unique, sequential itegers starting at 0
+  or 1
   """
 
   c.execute("SELECT MAX(%s) FROM %s" , (id_column, table))
@@ -79,7 +81,7 @@ start_time = time.time()
 
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
 # `examples/mysql_example/mysql.cnf` and fill in your mysql
-# database information examples/mysql_example/mysql.cnf
+# database information `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
                       read_default_file = os.path.abspath('.') + '/mysql.cnf', 
                       cursorclass=MySQLdb.cursors.DictCursor)
@@ -93,9 +95,10 @@ if os.path.exists(settings_file):
     print 'reading from ', settings_file
     deduper = dedupe.Dedupe(settings_file)
 else:
-    # As the dataset grows, duplicate pairs become more rare. 
-    # We need positive examples to train dedupe, so we have to
-    # signficantly increase the size of the sample compared to `csv_example.py`
+    # As the dataset grows, duplicate pairs become relatively more
+    # rare.  We need positive examples to train dedupe, so we have to
+    # signficantly increase the size of the sample compared to
+    # `csv_example.py`
     print 'selecting random sample from donors table...'
     data_sample = getSample(c, 750000, 'donor_id', 'donors')
 
@@ -142,8 +145,8 @@ c.execute("CREATE TABLE blocking_map "
 
 
 
-# First though, if we learned a tf-idf predicate, we have to create an
-# tfIDF blocks for the full data set.
+# First though, if we learned a TF-IDF blocking rule, we have to
+# create an TF-IDF canopies for the full data set.
 print 'creating inverted index'
 c.execute(DONOR_SELECT + " LIMIT 10000")
 full_data = ((row['donor_id'], row) for row in c.fetchall())
@@ -181,8 +184,8 @@ while not done :
   con.commit()
 
 
-# We create an index on the blocking key so that the 'group by
-# queries' we will be making to cluster the data can  happen in a
+# We create an index on the blocking key so that the `GROUP BY`
+# queries we will be making to cluster the data can  happen in a
 # reasonable time
 print 'creating blocking map index. this will probably take a while ...'
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
@@ -190,7 +193,7 @@ print 'created', time.time() - start_time, 'seconds'
 
 
 # This grabs a block of records for comparison. We rely on the
-# ordering of the donor_ids
+# ordering of the donor ids
 block_select = (DONOR_SELECT + 
                 " INNER JOIN blocking_map USING (donor_id) " 
                 "WHERE block_key = %s ORDER BY donor_id")
@@ -206,7 +209,7 @@ def candidates_gen(block_keys) :
         c.execute(block_select, (block_key,))
         yield ((row['donor_id'], row) for row in c.fetchall())
 
-# We grab all the block_keys with more than one record associated with
+# We grab all the block keys with more than one record associated with
 # it. These associated records will make up a block of records we will
 # compare within.
 blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
@@ -225,9 +228,9 @@ print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
                                             threshold)
 
-# `duplicateClusters` gives us sequence of tuples of donor_ids that
+# `duplicateClusters` gives us sequence of tuples of donor ids that
 # Dedupe believes all refer to the same entity. We write this out
-# onto an entity map tbale
+# onto an entity map table
 c.execute("DROP TABLE IF EXISTS entity_map")
 
 print 'creating entity_map database'
