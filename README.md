@@ -68,34 +68,7 @@ python examples/mysql_example/mysql_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 
-For more details on how to use a datbase with Dedupe see [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html). 
-
-With dedupe, we can see who the top donors really are.
-
-    Top Donors (deduped)
-      $34,540,309.96: Democrat Party Of Illinois 
-      $12,565,657.42: Illinois Republican State Senate Campaign Committee  
-      $11,914,155.54: American Resort Development Assoc.  
-      $11,767,289.57: SEIU Illinois Council PAC  
-      $10,907,369.99: Madigan James
-      $10,823,884.65: Jones Jr. George
-      $10,140,682.54: Republican Governors Assoc. - IL PAC  
-       $8,614,992.16: Illinois Insurance Political Committee 
-       $8,236,345.93: House Republican Organization 
-       $8,087,728.90: IL State Medical Society  
-
-    Top Donors (raw)
-      $14,319,194.47: Democratic Party of Illinois  
-      $13,020,132.76: Democratic Party of Illinois  
-       $9,027,432.54: Republican Governors Association 
-       $7,897,829.31: RGA Illinois 2010 PAC 
-       $6,675,000.00: Madigan Michael Friends of  
-       $6,009,164.47: Cohen Scott
-       $5,570,839.00: Gidwitz, Ronald
-       $5,562,800.00: Citizens for Emil Jones  
-       $5,324,649.63: Wood, Paul
-       $5,132,563.83: SEIU Healthcare IL IN 
-
+For more details on how to use a database with Dedupe see [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html). 
 
 
 ## Testing
