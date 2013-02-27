@@ -7,7 +7,7 @@ Based on Mikhail Yuryevich Bilenko's Ph.D. dissertation: [*Learnable Similarity 
 
 Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
 
-#### How dedupe works
+#### How it works
 * [Overview](https://github.com/open-city/dedupe/wiki/Home)
 * [Matching records](https://github.com/open-city/dedupe/wiki/Matching)
 * [Making smart comparisons](https://github.com/open-city/dedupe/wiki/Blocking)
@@ -18,7 +18,7 @@ Current solutions break easily, don’t scale, and require significant developer
 * [Dedupe Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
 * [ChiPy presentation](http://pyvideo.org/video/973/big-data-de-duping)
 
-## Installation and Dependencies
+## Installation and dependencies
 
 Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to install. If you are installing numpy for the first time, [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
 
