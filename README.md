@@ -4,7 +4,7 @@ Deduplication, entity resolution, record linkage, author disambiguation, and oth
 
 As different research communities encountered this problem, they each gave it a new name but, ultimately, its all about trying to figure out what records are referring to the same thing.
 
-__Dedupe is an open source python library that quickly de-duplicates large sets of data.__
+__Dedupe is an open source python library that quickly de-duplicates large sets of data.__ And you don’t need a powerful server to use it - we built it to run on a modern day laptop.
 
 #### Features
  * __machine learning__ - reads in human labeled data to automatically create optimum weights and blocking rules
