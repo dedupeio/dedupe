@@ -1,5 +1,6 @@
+# Thanks To
 
+* Jon Markel for the Illinois campaign contributions data used in the mysql_example, which he got from 
+  the [Illinois State Board of Elections](http://www.elections.il.gov/)
 
-Thanks to Jon Markel for the Illinois Campaign Contributions data used in the sqlite_example, which he got from the Illinois Board of Elections
-
-Thanks to Daniel Mullner for his wonderful fastcluster library and the many changes he made at our request
+* [Daniel Müllner](http://math.stanford.edu/~muellner/) for his wonderful [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html) library and the many changes he made at our request
