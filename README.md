@@ -6,13 +6,11 @@ As different research communities encountered this problem, they each gave it a 
 
 __Dedupe is an open source python library that quickly de-duplicates large sets of data.__
 
-Features:
+#### Features
  * machine learning - reads in human labeled data to automatically create optimum weights and blocking rules
  * built as a library - so it can be integrated in to your applications or import scripts
  * extensible - supports adding custom data types, string comparators and blocking rules
  * open source - anyone can use or modify it
-
-[<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)
 
 #### How it works
 * [Overview](https://github.com/open-city/dedupe/wiki/Home)
@@ -84,6 +82,8 @@ For more details on how to use a database with Dedupe see [mysql_example](http:/
 
 
 ## Testing
+
+[<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)
 
 Unit tests of core dedupe functions
 ```bash
