@@ -84,7 +84,7 @@ With dedupe, we can see who the top donors really are.
        $8,236,345.93: House Republican Organization 
        $8,087,728.90: IL State Medical Society  
 
-Top Donors (raw)
+    Top Donors (raw)
       $14,319,194.47: Democratic Party of Illinois  
       $13,020,132.76: Democratic Party of Illinois  
        $9,027,432.54: Republican Governors Association 
