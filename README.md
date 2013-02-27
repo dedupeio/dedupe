@@ -1,11 +1,18 @@
 # Dedupe Python Library
-A free python library for accurate and scaleable deduplication and entity-resolution. 
+
+Deduplication, entity resolution, record linkage, author disambiguation, and others ...
+
+As different research communities encountered this problem, they each gave it a new name but, ultimately, its all about trying to figure out what records are referring to the same thing.
+
+__Dedupe is an open source python library that quickly de-duplicates large sets of data.__
+
+Features:
+ * machine learning - reads in human labeled data to automatically create optimum weights and blocking rules
+ * built as a library - so it can be integrated in to your applications or import scripts
+ * extensible - supports adding custom data types, string comparators and blocking rules
+ * open source - anyone can use or modify it
 
 [<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)
-
-Based on Mikhail Yuryevich Bilenko's Ph.D. dissertation: [*Learnable Similarity Functions and their Application to Record Linkage and Clustering*](http://www.cs.utexas.edu/~ml/papers/marlin-dissertation-06.pdf).
-
-Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
 
 #### How it works
 * [Overview](https://github.com/open-city/dedupe/wiki/Home)
@@ -99,6 +106,10 @@ python test/canonical_test.py --active True
 
 * [Forest Gregg](mailto:fgregg@gmail.com)
 * [Derek Eder](mailto:derek.eder@gmail.com)
+
+## Credits
+
+Dedupe is based on Mikhail Yuryevich Bilenko's Ph.D. dissertation: [*Learnable Similarity Functions and their Application to Record Linkage and Clustering*](http://www.cs.utexas.edu/~ml/papers/marlin-dissertation-06.pdf).
 
 ## Errors / Bugs
 
