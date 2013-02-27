@@ -129,3 +129,8 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 Copyright (c) 2013 Forest Gregg and Derek Eder. Released under the MIT License.
 
 [See LICENSE for details](https://github.com/open-city/dedupe/wiki/License)
+
+## Citing Dedupe
+If you use Dedupe in an academic work, please give this citation:
+
+Gregg, Forest, and Derek Eder. 2013. Dedupe. https://github.com/open-city/dedupe.
