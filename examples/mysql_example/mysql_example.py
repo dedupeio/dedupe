@@ -262,7 +262,7 @@ blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
 # that maximizes the weighted average of our precision and recall
 c.execute(blocking_key_sql + " ORDER BY RAND() LIMIT 1000")
 sampled_block_keys = block_keys = (row['block_key'] for row in c.fetchall())
-threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys))
+threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys), 1)
 
 # With our found threshold, and candidates generator, perform the
 # clustering operation
