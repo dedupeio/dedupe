@@ -7,10 +7,10 @@ As different research communities encountered this problem, they each gave it a 
 __Dedupe is an open source python library that quickly de-duplicates large sets of data.__
 
 #### Features
- * machine learning - reads in human labeled data to automatically create optimum weights and blocking rules
- * built as a library - so it can be integrated in to your applications or import scripts
- * extensible - supports adding custom data types, string comparators and blocking rules
- * open source - anyone can use or modify it
+ * __machine learning__ - reads in human labeled data to automatically create optimum weights and blocking rules
+ * __built as a library__ - so it can be integrated in to your applications or import scripts
+ * __extensible__ - supports adding custom data types, string comparators and blocking rules
+ * __open source__ - anyone can use or modify it
 
 #### How it works
 * [Overview](https://github.com/open-city/dedupe/wiki/Home)
