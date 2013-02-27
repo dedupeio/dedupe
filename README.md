@@ -7,20 +7,25 @@ Based on Mikhail Yuryevich Bilenko's Ph.D. dissertation: [*Learnable Similarity 
 
 Current solutions break easily, don’t scale, and require significant developer time. Our solution is robust, can handle a large volume of data, and can be trained by anyone.
 
-* For more detail and overview, [read the wiki](https://github.com/open-city/dedupe/wiki)
-* [Join our Google group for updates](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
-* [See our presentation at ChiPy](http://pyvideo.org/video/973/big-data-de-duping)
+#### How dedupe works
+* [Overview](https://github.com/open-city/dedupe/wiki/Home)
+* [Matching records](https://github.com/open-city/dedupe/wiki/Matching)
+* [Making smart comparisons](https://github.com/open-city/dedupe/wiki/Blocking)
+* [Grouping duplicates](https://github.com/open-city/dedupe/wiki/Clustering)
+* [Choosing a good threshold](https://github.com/open-city/dedupe/wiki/Precision-Recall)
 
-## Python Dependencies
+#### Community
+* [Dedupe Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
+* [ChiPy presentation](http://pyvideo.org/video/973/big-data-de-duping)
 
-This library requires [numpy](http://numpy.scipy.org/), which can be complicated to install. If you are installing numpy for the first time, [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
+## Installation and Dependencies
+
+Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to install. If you are installing numpy for the first time, [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
 
 After numpy is set up, then install the following:
 * [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html)
 * [hcluster](http://code.google.com/p/scipy-cluster/)
 * [networkx](http://networkx.github.com/)
-
-## Installation
 
 Using pip:
 
@@ -78,7 +83,7 @@ Unit tests of core dedupe functions
 python test/test_dedupe.py
 ```
 
-Test using canonical dataset from Bilenko's research
+#### Test using canonical dataset from Bilenko's research
   
 Using random sample data for training
 ```bash
@@ -109,6 +114,6 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 ## Copyright
 
-Copyright (c) 2012 Forest Gregg and Derek Eder of Open City. Released under the MIT License.
+Copyright (c) 2013 Forest Gregg and Derek Eder. Released under the MIT License.
 
 [See LICENSE for details](https://github.com/open-city/dedupe/wiki/License)
