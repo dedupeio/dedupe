@@ -14,10 +14,10 @@ __Dedupe is an open source python library that quickly de-duplicates large sets 
 
 #### How it works
 * [Overview](https://github.com/open-city/dedupe/wiki/Home)
-* [Matching records](https://github.com/open-city/dedupe/wiki/Matching)
-* [Making smart comparisons](https://github.com/open-city/dedupe/wiki/Blocking)
-* [Grouping duplicates](https://github.com/open-city/dedupe/wiki/Clustering)
-* [Choosing a good threshold](https://github.com/open-city/dedupe/wiki/Precision-Recall)
+* [Matching records](https://github.com/open-city/dedupe/wiki/Matching-records)
+* [Making smart comparisons](https://github.com/open-city/dedupe/wiki/Making-smart-comparisons)
+* [Grouping duplicates](https://github.com/open-city/dedupe/wiki/Grouping-duplicates)
+* [Choosing a good threshold](https://github.com/open-city/dedupe/wiki/Choosing-a-good-threshold)
 
 #### Community
 * [Dedupe Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
