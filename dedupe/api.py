@@ -396,8 +396,13 @@ class Dedupe:
 
     def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
-            data_model = pickle.load(f)
-            predicates = pickle.load(f)
+            try:
+                data_model = pickle.load(f)
+                predicates = pickle.load(f)
+            except KeyError :
+                raise ValueError("The settings file doesn't seem to be in "
+                                 "right format. You may want to delete the "
+                                 "settings file and try again")
 
         return data_model, predicates
 
@@ -457,15 +462,25 @@ def _initializeDataModel(fields):
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] not in ['String']:
+        elif v['type'] not in ['String', 'Custom']:
 
             raise ValueError("Incorrect field specification: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif 'comparator' not in v :
-            v['comparator'] = normalizedAffineGapDistance
+        elif v['type'] == 'String' :
+             if 'comparator' in v :
+                 raise ValueError("Custom comparators can only be defined "
+                                  "for fields of type 'Custom'")
+             else :
+                 v['comparator'] = normalizedAffineGapDistance
+
+        if v['type'] == 'Custom' and 'comparator' not in v :
+            raise ValueError("For 'Custom' field types you must define "
+                             "a 'comparator' fucntion in the field "
+                             "definition. ")
+        
             
     
 

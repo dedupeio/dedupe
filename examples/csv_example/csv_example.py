@@ -50,7 +50,7 @@ logging.basicConfig(level=log_level)
 os.chdir('./examples/csv_example/')
 input_file = 'csv_example_messy_input.csv'
 output_file = 'csv_example_output.csv'
-settings_file = 'csv_example_learned_settings.json'
+settings_file = 'csv_example_learned_settings'
 training_file = 'csv_example_training.json'
 
 
@@ -120,7 +120,7 @@ else:
     fields = {
         'Site name': {'type': 'String'},
         'Address': {'type': 'String'},
-        'Zip': {'type': 'String', 'comparator' : sameOrNotComparator},
+        'Zip': {'type': 'Custom', 'comparator' : sameOrNotComparator},
         'Phone': {'type': 'String'},
         }
 
