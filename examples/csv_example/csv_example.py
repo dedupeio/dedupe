@@ -136,7 +136,7 @@ else:
 
     # ## Active learning
 
-    # Starts the trainin loop. Dedupe will find the next pair of records
+    # Starts the training loop. Dedupe will find the next pair of records
     # it is least certain about and ask you to label them as duplicates
     # or not.
 
@@ -151,12 +151,13 @@ else:
 # ## Blocking
 
 print 'blocking...'
-# Initialize our blocker, which determines our field weights and blocking 
-# predicates based on our training data
+# Initialize our blocker. We'll learn our blocking rules if we haven't
+# loaded them from a saved settings file.
 blocker = deduper.blockingFunction()
 
-# Save our weights and predicates to disk.
-# If the settings file exists, we will skip all the training and learning
+# Save our weights and predicates to disk.  If the settings file
+# exists, we will skip all the training and learning next time we run
+# this file.
 deduper.writeSettings(settings_file)
 
 # Load all the original data in to memory and place
@@ -165,7 +166,7 @@ deduper.writeSettings(settings_file)
 
 blocked_data = dedupe.blockData(data_d, blocker)
 
-# Satore all of our blocked data in to memory
+# Store all of our blocked data in to memory
 blocked_data = tuple(blocked_data)
 
 # ## Clustering
