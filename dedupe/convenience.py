@@ -28,5 +28,7 @@ def blockData(data_d, blocker):
         for key in blocker((record_id, record)):
             blocks[key].append((record_id, record))
 
-    for block in blocks.values():
-        yield block
+    return tuple(block for block in blocks.values())
+        
+
+        

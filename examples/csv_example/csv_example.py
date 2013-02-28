@@ -166,9 +166,6 @@ deduper.writeSettings(settings_file)
 
 blocked_data = dedupe.blockData(data_d, blocker)
 
-# Store all of our blocked data in to memory
-blocked_data = tuple(blocked_data)
-
 # ## Clustering
 
 # Find the threshold that will maximize a weighted average of our precision and recall. 
