@@ -6,8 +6,28 @@ import exampleIO
 import dedupe
 import os
 import time
-import argparse
 import random
+import optparse
+import logging
+
+optp = optparse.OptionParser()
+optp.add_option('-v', '--verbose', dest='verbose', action='count',
+                help='Increase verbosity (specify multiple times for more)'
+                )
+(opts, args) = optp.parse_args()
+log_level = logging.WARNING 
+if opts.verbose == 1:
+    log_level = logging.INFO
+elif opts.verbose >= 2:
+    log_level = logging.DEBUG
+logging.basicConfig(level=log_level)
+
+
+def example_comparator(field_1, field_2) :
+    if field_1 == field_2 :
+        return 1
+    else:
+        return 0
 
 # create a random set of training pairs based on known duplicates
 
@@ -84,11 +104,6 @@ def printPairs(pairs):
         for instance in tuple(pair):
             print data_d[instance].values()
 
-parser = argparse.ArgumentParser(description='Run the deduper on a set of restaurant records')
-parser.add_argument('--active', type=bool, nargs = '?', default=False,
-                   help='set to true to use active learning')
-
-args = parser.parse_args()
 
 settings_file = 'canonical_learned_settings.json'
 raw_data = 'test/datasets/restaurant-nophone-training.csv'
@@ -107,48 +122,42 @@ if os.path.exists(settings_file):
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
-              'city': {'type': 'String'},
               'cuisine': {'type': 'String'},
-              # 'name:city' : {'type': 'Interaction',
-              #               'interaction-terms': ['name', 'city']}
+              'city' : {'type' : 'String'}
               }
 
     deduper = dedupe.Dedupe(fields)
     deduper.num_iterations = num_iterations
 
-    if args.active :
-        print "Using active learning..."
-        deduper.train(data_d, dedupe.training.consoleLabel)
-    else :
-      print "Using a random sample of training pairs..."
+    print "Using a random sample of training pairs..."
 
-      deduper._initializeTraining()
-      deduper.training_pairs = randomTrainingPairs(data_d,
-                                                   duplicates_s,
-                                                   num_training_dupes,
-                                                   num_training_distinct)
-
-      deduper.data_sample = dedupe.dataSample(data_d, 1000000)
+    deduper._initializeTraining()
+    deduper.training_pairs = randomTrainingPairs(data_d,
+                                                 duplicates_s,
+                                                 num_training_dupes,
+                                                 num_training_distinct)
+    
+    deduper.data_sample = dedupe.dataSample(data_d, 1000000)
 
 
-      deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
-                                                              deduper.data_model,
-                                                              deduper.training_data)
+    deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
+                                                            deduper.data_model,
+                                                            deduper.training_data)
 
-      deduper.alpha = dedupe.crossvalidation.gridSearch(deduper.training_data,
-                                                        dedupe.core.trainModel,
-                                                        deduper.data_model,
-                                                        k=10)
+    deduper.alpha = dedupe.crossvalidation.gridSearch(deduper.training_data,
+                                                      dedupe.core.trainModel,
+                                                      deduper.data_model,
+                                                      k=10)
 
-      deduper.data_model = dedupe.core.trainModel(deduper.training_data,
-                                                  deduper.data_model,
-                                                  deduper.alpha)
+    deduper.data_model = dedupe.core.trainModel(deduper.training_data,
+                                                deduper.data_model,
+                                                deduper.alpha)
 
-      deduper._logLearnedWeights()
+    deduper._logLearnedWeights()
 
 
 print 'blocking...'
-blocker = deduper.blockingFunction(eta=1, epsilon=1)
+blocker = deduper.blockingFunction(ppc=1, uncovered_dupes=1)
 blocked_data = tuple(dedupe.blockData(data_d, blocker))
 
 alpha = deduper.goodThreshold(blocked_data)

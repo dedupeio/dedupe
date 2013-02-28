@@ -71,64 +71,31 @@ def fieldDistances(candidates, data_model):
     record_pairs = ((candidate_1[1], candidate_2[1]) 
                     for (candidate_1, candidate_2) in candidates_2)
 
-    (field_distances, n_candidates) = buildFieldDistances(record_pairs, fields)
+    _field_distances = buildFieldDistances(record_pairs, fields)
 
-    field_distances = numpy.zeros(n_candidates, dtype=record_dtype)
+    field_distances = numpy.zeros(_field_distances.shape[0],
+                                  dtype=record_dtype)
 
     field_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(-1, 2)
-    field_distances['distances'] = field_distances[0:n_candidates]
+    field_distances['distances'] = _field_distances
 
     return field_distances
 
 
 def buildFieldDistances(record_pairs, fields):
-    n_fields = len(fields)
 
-    sorted_fields = sorted(fields.keys())
-    field_types = [fields[field]['type'] for field in sorted_fields]
+    field_comparators = [(field, v['comparator'])
+                         for field, v in fields.items()]
 
-    base_fields = []
-    interactions = []
-    if 'Interaction' in field_types:
-        for (i, name) in enumerate(sorted_fields):
-            if fields[name]['type'] == 'String':
-                base_fields.append(name)
-            else:
-                terms = fields[name]['interaction-terms']
-                base_fields.append(terms[0])
-                terms = [sorted_fields.index(term) for term in terms[1:]]
-                interactions.append((i, terms))
-    else:
-        base_fields = sorted_fields
+    
+    field_distances = numpy.fromiter((compare(record_pair[0][field],
+                                              record_pair[1][field]) 
+                                      for record_pair in record_pairs 
+                                      for field, compare in field_comparators), 
+                                     'f4')
+    field_distances = field_distances.reshape(-1,len(fields))
 
-    if interactions:
-        field_distances = numpy.zeros((100000, n_fields))
-
-        for (i, record_pair) in enumerate(record_pairs):
-            if i % 100000 == 0:
-                field_distances = numpy.concatenate((field_distances, 
-                                                     numpy.zeros((100000, n_fields))))
-            (record_1, record_2) = record_pair
-
-            field_distances[i] = [stringDistance(record_1[name], record_2[name]) 
-                                  for name in base_fields]
-
-            for (j, term_indices) in interactions:
-                value = field_distances[i][j]
-                for k in term_indices:
-                    value *= field_distances[i][k]
-                field_distances[i][j] = value
-    else:
-        field_distances = numpy.fromiter((stringDistance(record_pair[0][name], record_pair[1][name]) 
-                                          for record_pair in record_pairs 
-                                          for name in base_fields), 
-                                         'f4')
-        field_distances = field_distances.reshape(-1, n_fields)
-
-    i = field_distances.shape[0] - 1
-
-    return (field_distances, i + 1)
-
+    return field_distances
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']

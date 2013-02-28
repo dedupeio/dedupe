@@ -96,7 +96,7 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
                                     dtype=training_data.dtype)
 
     new_training_data['label'] = [0] * len(labeled_pairs[0]) + [1] * len(labeled_pairs[1])
-    (new_training_data['distances'], _) = core.buildFieldDistances(examples, fields)
+    new_training_data['distances'] = core.buildFieldDistances(examples, fields)
 
     training_data = numpy.append(training_data, new_training_data)
 
