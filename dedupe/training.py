@@ -10,15 +10,15 @@ import numpy
 import logging
 
 
-def findUncertainPairs(record_distances, data_model):
+def findUncertainPairs(field_distances, data_model):
     """
-    Given a set of record distances and a data model return the
+    Given a set of field distances and a data model return the
     indices of the record pairs in order of uncertainty. For example,
     the first indices corresponds to the record pair where we have the
     least certainty whether the pair are duplicates or distinct.
     """
 
-    probability = core.scorePairs(record_distances, data_model)
+    probability = core.scorePairs(field_distances, data_model)
 
     uncertainties = (probability * numpy.log2(probability) 
                      + (1 - probability) * numpy.log2(1 - probability))
@@ -48,15 +48,15 @@ def activeLearning(candidates,
 
     import time
     t_train = time.time()
-    record_distances = core.recordDistances(candidates, data_model)
-    logging.info('calculated recordDistances in %s seconds',
+    field_distances = core.fieldDistances(candidates, data_model)
+    logging.info('calculated fieldDistances in %s seconds',
                  str(time.time() - t_train))
 
     seen_indices = set()
 
     while finished == False:
         logging.info('finding the next uncertain pair ...')
-        uncertain_indices = findUncertainPairs(record_distances, data_model)
+        uncertain_indices = findUncertainPairs(field_distances, data_model)
 
         for uncertain_index in uncertain_indices:
             if uncertain_index not in seen_indices:
@@ -64,7 +64,7 @@ def activeLearning(candidates,
                 break
 
         uncertain_pairs = [(candidates[uncertain_index][0][1],
-                           candidates[uncertain_index][1][1])]
+                            candidates[uncertain_index][1][1])]
 
         (labeled_pairs, finished) = labelPairFunction(uncertain_pairs, data_model)
 
@@ -96,7 +96,7 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
                                     dtype=training_data.dtype)
 
     new_training_data['label'] = [0] * len(labeled_pairs[0]) + [1] * len(labeled_pairs[1])
-    (new_training_data['field_distances'], _) = core.buildRecordDistances(examples, fields)
+    (new_training_data['distances'], _) = core.buildFieldDistances(examples, fields)
 
     training_data = numpy.append(training_data, new_training_data)
 
@@ -155,7 +155,7 @@ def semiSupervisedNonDuplicates(data_sample,
     n_distinct_pairs = 0
     for pair in data_sample:
 
-        pair_distance = core.recordDistances([pair], data_model)
+        pair_distance = core.fieldDistances([pair], data_model)
         score = core.scorePairs(pair_distance, data_model)
 
         if score < 1 - nonduplicate_confidence_threshold:

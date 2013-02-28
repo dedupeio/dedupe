@@ -45,7 +45,7 @@ def dataSample(d, sample_size):
 def trainModel(training_data, data_model, alpha=.001):
     '''Use logistic regression to train weights for all fields in the data model'''
     labels = training_data['label']
-    examples = training_data['field_distances']
+    examples = training_data['distances']
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
@@ -59,9 +59,9 @@ def trainModel(training_data, data_model, alpha=.001):
     return data_model
 
 
-def recordDistances(candidates, data_model):
+def fieldDistances(candidates, data_model):
     fields = data_model['fields']
-    record_dtype = [('pairs', 'i4', 2), ('field_distances', 'f4', (len(fields), ))]
+    record_dtype = [('pairs', 'i4', 2), ('distances', 'f4', (len(fields), ))]
 
     (candidates_1, candidates_2) = itertools.tee(candidates, 2)
 
@@ -71,17 +71,17 @@ def recordDistances(candidates, data_model):
     record_pairs = ((candidate_1[1], candidate_2[1]) 
                     for (candidate_1, candidate_2) in candidates_2)
 
-    (field_distances, n_candidates) = buildRecordDistances(record_pairs, fields)
+    (field_distances, n_candidates) = buildFieldDistances(record_pairs, fields)
 
-    record_distances = numpy.zeros(n_candidates, dtype=record_dtype)
+    field_distances = numpy.zeros(n_candidates, dtype=record_dtype)
 
-    record_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(-1, 2)
-    record_distances['field_distances'] = field_distances[0:n_candidates]
+    field_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(-1, 2)
+    field_distances['distances'] = field_distances[0:n_candidates]
 
-    return record_distances
+    return field_distances
 
 
-def buildRecordDistances(record_pairs, fields):
+def buildFieldDistances(record_pairs, fields):
     n_fields = len(fields)
 
     sorted_fields = sorted(fields.keys())
@@ -130,16 +130,16 @@ def buildRecordDistances(record_pairs, fields):
     return (field_distances, i + 1)
 
 
-def scorePairs(record_distances, data_model):
+def scorePairs(field_distances, data_model):
     fields = data_model['fields']
     field_names = sorted(data_model['fields'].keys())
 
     field_weights = [fields[name]['weight'] for name in field_names]
     bias = data_model['bias']
 
-    field_distances = record_distances['field_distances']
+    distances = field_distances['distances']
 
-    scores = numpy.dot(field_distances, field_weights)
+    scores = numpy.dot(distances, field_weights)
 
     scores = numpy.exp(scores + bias) / (1 + numpy.exp(scores + bias))
 
@@ -158,16 +158,16 @@ def scoreDuplicates(candidates, data_model, threshold=None):
 
         can_slice = list(itertools.islice(candidates, 0, chunk_size))
 
-        record_distances = recordDistances(can_slice, data_model)
-        duplicate_scores = scorePairs(record_distances, data_model)
+        field_distances = fieldDistances(can_slice, data_model)
+        duplicate_scores = scorePairs(field_distances, data_model)
 
         scored_pairs = numpy.append(scored_pairs,
-                                    numpy.array(zip(record_distances['pairs'],
+                                    numpy.array(zip(field_distances['pairs'],
                                                     duplicate_scores),
                                                 dtype=score_dtype)[duplicate_scores > threshold], 
                                     axis=0)
         i += 1
-        if len(record_distances) < chunk_size:
+        if len(field_distances) < chunk_size:
             complete = True
             logging.info('num chunks %d' % i)
 

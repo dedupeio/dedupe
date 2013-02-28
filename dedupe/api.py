@@ -101,7 +101,7 @@ class Dedupe:
 
         n_fields = len(self.data_model['fields'])
 
-        training_dtype = [('label', 'i4'), ('field_distances', 'f4', n_fields)]
+        training_dtype = [('label', 'i4'), ('distances', 'f4', n_fields)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = None
@@ -276,8 +276,8 @@ class Dedupe:
 
         candidates = (pair for block in blocks for pair in itertools.combinations(block, 2))
 
-        record_distances = core.recordDistances(candidates, self.data_model)
-        probability = core.scorePairs(record_distances, self.data_model)
+        field_distances = core.fieldDistances(candidates, self.data_model)
+        probability = core.scorePairs(field_distances, self.data_model)
 
         probability.sort()
         probability = probability[::-1]
