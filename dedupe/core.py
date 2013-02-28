@@ -45,7 +45,7 @@ def dataSample(d, sample_size):
 def trainModel(training_data, data_model, alpha=.001):
     '''Use logistic regression to train weights for all fields in the data model'''
     labels = training_data['label']
-    examples = training_data['field_distances']
+    examples = training_data['distances']
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
@@ -59,9 +59,9 @@ def trainModel(training_data, data_model, alpha=.001):
     return data_model
 
 
-def recordDistances(candidates, data_model):
+def fieldDistances(candidates, data_model):
     fields = data_model['fields']
-    record_dtype = [('pairs', 'i4', 2), ('field_distances', 'f4', (len(fields), ))]
+    record_dtype = [('pairs', 'i4', 2), ('distances', 'f4', (len(fields), ))]
 
     (candidates_1, candidates_2) = itertools.tee(candidates, 2)
 
@@ -71,75 +71,42 @@ def recordDistances(candidates, data_model):
     record_pairs = ((candidate_1[1], candidate_2[1]) 
                     for (candidate_1, candidate_2) in candidates_2)
 
-    (field_distances, n_candidates) = buildRecordDistances(record_pairs, fields)
+    _field_distances = buildFieldDistances(record_pairs, fields)
 
-    record_distances = numpy.zeros(n_candidates, dtype=record_dtype)
+    field_distances = numpy.zeros(_field_distances.shape[0],
+                                  dtype=record_dtype)
 
-    record_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(-1, 2)
-    record_distances['field_distances'] = field_distances[0:n_candidates]
+    field_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(-1, 2)
+    field_distances['distances'] = _field_distances
 
-    return record_distances
-
-
-def buildRecordDistances(record_pairs, fields):
-    n_fields = len(fields)
-
-    sorted_fields = sorted(fields.keys())
-    field_types = [fields[field]['type'] for field in sorted_fields]
-
-    base_fields = []
-    interactions = []
-    if 'Interaction' in field_types:
-        for (i, name) in enumerate(sorted_fields):
-            if fields[name]['type'] == 'String':
-                base_fields.append(name)
-            else:
-                terms = fields[name]['interaction-terms']
-                base_fields.append(terms[0])
-                terms = [sorted_fields.index(term) for term in terms[1:]]
-                interactions.append((i, terms))
-    else:
-        base_fields = sorted_fields
-
-    if interactions:
-        field_distances = numpy.zeros((100000, n_fields))
-
-        for (i, record_pair) in enumerate(record_pairs):
-            if i % 100000 == 0:
-                field_distances = numpy.concatenate((field_distances, 
-                                                     numpy.zeros((100000, n_fields))))
-            (record_1, record_2) = record_pair
-
-            field_distances[i] = [stringDistance(record_1[name], record_2[name]) 
-                                  for name in base_fields]
-
-            for (j, term_indices) in interactions:
-                value = field_distances[i][j]
-                for k in term_indices:
-                    value *= field_distances[i][k]
-                field_distances[i][j] = value
-    else:
-        field_distances = numpy.fromiter((stringDistance(record_pair[0][name], record_pair[1][name]) 
-                                          for record_pair in record_pairs 
-                                          for name in base_fields), 
-                                         'f4')
-        field_distances = field_distances.reshape(-1, n_fields)
-
-    i = field_distances.shape[0] - 1
-
-    return (field_distances, i + 1)
+    return field_distances
 
 
-def scorePairs(record_distances, data_model):
+def buildFieldDistances(record_pairs, fields):
+
+    field_comparators = [(field, v['comparator'])
+                         for field, v in fields.items()]
+
+    
+    field_distances = numpy.fromiter((compare(record_pair[0][field],
+                                              record_pair[1][field]) 
+                                      for record_pair in record_pairs 
+                                      for field, compare in field_comparators), 
+                                     'f4')
+    field_distances = field_distances.reshape(-1,len(fields))
+
+    return field_distances
+
+def scorePairs(field_distances, data_model):
     fields = data_model['fields']
     field_names = sorted(data_model['fields'].keys())
 
     field_weights = [fields[name]['weight'] for name in field_names]
     bias = data_model['bias']
 
-    field_distances = record_distances['field_distances']
+    distances = field_distances['distances']
 
-    scores = numpy.dot(field_distances, field_weights)
+    scores = numpy.dot(distances, field_weights)
 
     scores = numpy.exp(scores + bias) / (1 + numpy.exp(scores + bias))
 
@@ -158,16 +125,16 @@ def scoreDuplicates(candidates, data_model, threshold=None):
 
         can_slice = list(itertools.islice(candidates, 0, chunk_size))
 
-        record_distances = recordDistances(can_slice, data_model)
-        duplicate_scores = scorePairs(record_distances, data_model)
+        field_distances = fieldDistances(can_slice, data_model)
+        duplicate_scores = scorePairs(field_distances, data_model)
 
         scored_pairs = numpy.append(scored_pairs,
-                                    numpy.array(zip(record_distances['pairs'],
+                                    numpy.array(zip(field_distances['pairs'],
                                                     duplicate_scores),
                                                 dtype=score_dtype)[duplicate_scores > threshold], 
                                     axis=0)
         i += 1
-        if len(record_distances) < chunk_size:
+        if len(field_distances) < chunk_size:
             complete = True
             logging.info('num chunks %d' % i)
 

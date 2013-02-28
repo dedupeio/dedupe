@@ -91,7 +91,7 @@ def getSample(cur, sample_size, id_column, table):
 # Switch to our working directory and set up our settings and training
 # file locations
 os.chdir('./examples/mysql_example/')
-settings_file = 'mysql_example_settings.json'
+settings_file = 'mysql_example_settings'
 training_file = 'mysql_example_training.json'
 
 start_time = time.time()
