@@ -55,7 +55,7 @@ training_file = 'csv_example_training.json'
 
 
 # Dedupe can take custom field comparison functions, here's one
-# We'll use for zipcodes
+# we'll use for zipcodes
 def sameOrNotComparator(field_1, field_2) :
     if field_1 == field_2 :
         return 1
