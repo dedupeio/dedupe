@@ -81,8 +81,8 @@ python examples/mysql_example/mysql_example.py
 
 For more details on how to use a database with Dedupe see [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html). 
 
-We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your (reported run time 
-for the MySQL example)[https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times].
+We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
+[reported run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
 ## Testing
 
