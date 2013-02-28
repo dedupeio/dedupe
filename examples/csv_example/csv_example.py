@@ -54,6 +54,16 @@ settings_file = 'csv_example_learned_settings.json'
 training_file = 'csv_example_training.json'
 
 
+# Dedupe can take custom field comparison functions, here's one
+# We'll use for zipcodes
+def sameOrNotComparator(field_1, field_2) :
+    if field_1 == field_2 :
+        return 1
+    else:
+        return 0
+
+
+
 def preProcess(column):
     """
     Do a little bit of data cleaning with the help of [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) 
@@ -104,10 +114,13 @@ else:
     data_sample = dedupe.dataSample(data_d, 150000)
 
     # Define the fields dedupe will pay attention to
+    #
+    # Notice how we are telling dedupe to use a custom field comparator
+    # for the 'Zip' field. 
     fields = {
         'Site name': {'type': 'String'},
         'Address': {'type': 'String'},
-        'Zip': {'type': 'String'},
+        'Zip': {'type': 'String', 'comparator' : sameOrNotComparator},
         'Phone': {'type': 'String'},
         }
 

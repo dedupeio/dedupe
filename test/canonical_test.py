@@ -23,12 +23,6 @@ elif opts.verbose >= 2:
 logging.basicConfig(level=log_level)
 
 
-def example_comparator(field_1, field_2) :
-    if field_1 == field_2 :
-        return 1
-    else:
-        return 0
-
 # create a random set of training pairs based on known duplicates
 
 def randomTrainingPairs(data_d,
@@ -54,8 +48,6 @@ def randomTrainingPairs(data_d,
                      for pair in nonduplicates]
 
     return {0: nonduplicates, 1: duplicates}
-
-
 
 
 def canonicalImport(filename):
