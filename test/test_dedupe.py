@@ -69,11 +69,16 @@ class BlockingTest(unittest.TestCase):
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
   def test_initializer(self) :
+
+    fields = [k for k,v in self.deduper.data_model['fields'].items()
+              if v['type'] != 'Missing Data'] 
+
+    
     (training_dupes,
      training_distinct,
      predicate_set,
      _overlap) =  dedupe.blocking._initializeTraining(self.training_pairs,
-                                                      self.deduper.data_model,
+                                                      fields,
                                                       self.predicate_functions,
                                                       [],
                                                       {})
@@ -86,6 +91,7 @@ class BlockingTest(unittest.TestCase):
                                   self.frozendict({'age': '75', 'name': 'Charlie'})),
                                  (self.frozendict({'age': '40', 'name': 'Meredith'}),
                                   self.frozendict({'age': '10', 'name': 'Sue'}))]
+
     assert predicate_set == [((self.wholeFieldPredicate, 'age'),),
                              ((self.wholeFieldPredicate, 'name'),),
                              ((self.sameThreeCharStartPredicate, 'age'),),
