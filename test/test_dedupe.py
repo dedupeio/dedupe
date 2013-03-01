@@ -1,5 +1,6 @@
 import dedupe
 import unittest
+import numpy
 
 class AffineGapTest(unittest.TestCase):
   def setUp(self):
@@ -14,17 +15,17 @@ class AffineGapTest(unittest.TestCase):
     assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1, 0.5) == 8
     assert self.affineGapDistance('b', 'a', -5, 5, 5, 1, 0.5) == 5
     assert self.affineGapDistance('a', 'a', -5, 5, 5, 1, 0.5) == -5
-    assert self.affineGapDistance('a', '', -5, 5, 5, 1, 0.5) == 3
-    assert self.affineGapDistance('', '', -5, 5, 5, 1, 0.5) == 0
+    assert numpy.isnan(self.affineGapDistance('a', '', -5, 5, 5, 1, 0.5))
+    assert numpy.isnan(self.affineGapDistance('', '', -5, 5, 5, 1, 0.5))
     assert self.affineGapDistance('aba', 'aaa', -5, 5, 5, 1, 0.5) == -5
     assert self.affineGapDistance('aaa', 'aba', -5, 5, 5, 1, 0.5) == -5
     assert self.affineGapDistance('aaa', 'aa', -5, 5, 5, 1, 0.5) == -7
     assert self.affineGapDistance('aaa', 'a', -5, 5, 5, 1, 0.5) == -1.5
-    assert self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5) == 4
+    assert numpy.isnan(self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5))
     assert self.affineGapDistance('aaa', 'abba', -5, 5, 5, 1, 0.5) == 1
     
   def test_normalized_affine_gap_correctness(self):
-    assert self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5) == 0
+    assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
     
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
