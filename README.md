@@ -26,7 +26,9 @@ __Dedupe is an open source python library that quickly de-duplicates large sets 
 
 ## Installation and dependencies
 
-Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to install. If you are installing numpy for the first time, [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
+Dedupe requires [numpy](http://numpy.scipy.org/) version 1.6, which can be complicated to install. 
+If you are installing numpy for the first time, 
+[follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
 
 After numpy is set up, then install the following:
 * [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html)
@@ -36,7 +38,7 @@ After numpy is set up, then install the following:
 Using pip:
 
 ```bash
-pip install numpy
+pip install numpy==1.6.2
 pip install -r requirements.txt
 python setup.py install
 ```
@@ -44,7 +46,7 @@ python setup.py install
 Using easy_install:
 
 ```bash
-easy_install numpy
+easy_install numpy==1.6.2
 easy_install fastcluster
 easy_install hcluster
 easy_install networkx
