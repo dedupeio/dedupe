@@ -23,6 +23,11 @@ import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.affinegap import normalizedAffineGapDistance
 
+try:
+    from collections import OrderedDict
+except ImportError :
+    from core import OrderedDict
+
 
 class Dedupe:
 
@@ -351,7 +356,9 @@ class Dedupe:
 
         tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
         full_string_records = {}
-        fields = self.data_model['fields'].keys()
+        
+        fields = [k for k,v in self.data_model['fields'].items()
+                  if v['type'] != 'Missing Data'] 
 
         for pair in self.data_sample[0:2000]:
             for (k, v) in pair:
@@ -361,7 +368,7 @@ class Dedupe:
 
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_functions,
-                                                           self.data_model,
+                                                           fields,
                                                            tfidf_thresholds,
                                                            df_index,
                                                            eta,
@@ -446,7 +453,7 @@ class Dedupe:
 def _initializeDataModel(fields):
     """Initialize a data_model with a field definition"""
     data_model = {}
-    data_model['fields'] = {}
+    data_model['fields'] = OrderedDict()
 
     for (k, v) in fields.iteritems():
         if v.__class__ is not dict:
@@ -486,6 +493,17 @@ def _initializeDataModel(fields):
 
         v.update({'weight': 0})
         data_model['fields'][k] = v
+
+
+    for k, v in data_model['fields'].items() :
+        if 'Has Missing' in v :
+             if v['Has Missing'] :
+                 data_model['fields'][k + ': not_missing'] = {'weight' : 0,
+                                                              'type'   : 'Missing Data'}
+        else :
+            data_model['fields'][k].update({'Has Missing' : False})
+         
+
 
     data_model['bias'] = 0
     return data_model

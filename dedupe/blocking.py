@@ -202,7 +202,7 @@ def createCanopies(field,
 
 def blockTraining(training_pairs,
                   predicate_functions,
-                  data_model,
+                  fields,
                   tfidf_thresholds=None,
                   df_index=None,
                   eta=.1,
@@ -213,7 +213,7 @@ def blockTraining(training_pairs,
      training_distinct, 
      predicate_set, 
      _overlap) = _initializeTraining(training_pairs, 
-                                     data_model,
+                                     fields,
                                      predicate_functions, 
                                      tfidf_thresholds,
                                      df_index)
@@ -259,16 +259,13 @@ def blockTraining(training_pairs,
 
 
 def _initializeTraining(training_pairs,
-                        data_model,
+                        fields,
                         predicate_functions,
                         tfidf_thresholds,
                         df_index):
 
     training_dupes = (training_pairs[1])[:]
     training_distinct = (training_pairs[0])[:]
-
-    fields = [field for field in data_model['fields']
-              if data_model['fields'][field]['type'] != 'Interaction']
 
     predicate_functions = list(product(predicate_functions, fields))
 

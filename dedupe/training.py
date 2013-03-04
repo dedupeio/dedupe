@@ -37,6 +37,10 @@ def activeLearning(candidates,
     finished.
     """
 
+    fields = [field for field in data_model['fields']
+              if data_model['fields'][field]['type'] != 'Missing Data']
+
+
     duplicates = []
     nonduplicates = []
 
@@ -66,7 +70,7 @@ def activeLearning(candidates,
         uncertain_pairs = [(candidates[uncertain_index][0][1],
                             candidates[uncertain_index][1][1])]
 
-        (labeled_pairs, finished) = labelPairFunction(uncertain_pairs, data_model)
+        (labeled_pairs, finished) = labelPairFunction(uncertain_pairs, fields)
 
         nonduplicates.extend(labeled_pairs[0])
         duplicates.extend(labeled_pairs[1])
@@ -100,17 +104,16 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
 
     training_data = numpy.append(training_data, new_training_data)
 
+
     return training_data
 
 
-def consoleLabel(uncertain_pairs, data_model):
+def consoleLabel(uncertain_pairs, fields):
     '''Command line interface for presenting and labeling training pairs by the user'''
     duplicates = []
     nonduplicates = []
     finished = False
 
-    fields = [field for field in data_model['fields']
-              if data_model['fields'][field]['type'] != 'Interaction']
 
     for record_pair in uncertain_pairs:
         label = ''
