@@ -3,6 +3,11 @@
 
 from libc cimport limits
 from libc.stdlib cimport malloc, free
+import numpy as np
+cimport numpy as np
+
+cdef double NAN = <double> np.nan
+
 
 # Calculate the affine gap distance between two strings 
 #
@@ -18,6 +23,11 @@ cpdef float affineGapDistance(char *string1, char *string2,
                               float abbreviation_scale = .125):
 
   cdef int length1 = len(string1)
+  cdef int length2 = len(string2)
+
+  if length1 == 0 or length2 == 0 :
+    return NAN
+
 
   if (string1 == string2 and
       matchWeight == min(matchWeight,
@@ -25,10 +35,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
                          gapWeight)):
       return matchWeight * length1
 
-  cdef int length2 = len(string2)
 
-  if length1 == 0 or length2 == 0 :
-    return (gapWeight + spaceWeight * (length1 + length2)) * abbreviation_scale
 
 
   if length1 < length2 :
@@ -119,11 +126,14 @@ cpdef float normalizedAffineGapDistance(char *string1, char *string2,
                                         float gapWeight = 10,
                                         float spaceWeight = 7,
                                         float abbreviation_scale = .125) :
-  
-    cdef float normalizer = len(string1) + len(string2)
 
-    if normalizer == 0 :
-      return 0
+    cdef int length1 = len(string1)
+    cdef int length2 = len(string2)
+
+    if length1 == 0 or length2 == 0 :
+        return NAN
+
+    cdef float normalizer = len(string1) + len(string2)
 
     cdef float distance = affineGapDistance(string1, string2,
                                             matchWeight,
