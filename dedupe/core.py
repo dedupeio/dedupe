@@ -91,7 +91,7 @@ def buildFieldDistances(record_pairs, fields):
 
     missing_field_indices = [i for i, (field, v) 
                              in enumerate(fields.items())
-                             if 'Missing' in v and v['Missing']]
+                             if 'Has Missing' in v and v['Has Missing']]
 
     
     field_distances = numpy.fromiter((compare(record_pair[0][field],

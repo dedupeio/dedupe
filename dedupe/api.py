@@ -496,12 +496,12 @@ def _initializeDataModel(fields):
 
 
     for k, v in data_model['fields'].items() :
-        if 'Missing' in v :
-             if v['Missing'] :
+        if 'Has Missing' in v :
+             if v['Has Missing'] :
                  data_model['fields'][k + ': not_missing'] = {'weight' : 0,
                                                               'type'   : 'Missing Data'}
         else :
-            data_model['fields'][k].update({'Missing' : False})
+            data_model['fields'][k].update({'Has Missing' : False})
          
 
 

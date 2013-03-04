@@ -120,8 +120,8 @@ else:
     fields = {
         'Site name': {'type': 'String'},
         'Address': {'type': 'String'},
-        'Zip': {'type': 'String', 'Missing':True},
-        'Phone': {'type': 'String', 'Missing':True},
+        'Zip': {'type': 'String', 'Has Missing':True},
+        'Phone': {'type': 'String', 'Has Missing':True},
         }
 
     # Create a new deduper object and pass our data model to it.
