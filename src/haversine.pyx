@@ -5,10 +5,19 @@ from libc cimport limits
 from libc.stdlib cimport malloc, free
 import math
 
+## Equivalent to 3.1415927 / 180
+cdef float PI_RATIO = 0.017453293
 
+cpdef float deg2rad(float deg):
+    cdef float rad = deg * PI_RATIO
+    return rad
+    
 cpdef float haversine(float lon1, float lat1, float lon2, float lat2):
-
-    rlon1, rlat1, rlon2, rlat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+    cdef float rlon1 = deg2rad(lon1)
+    cdef float rlon2 = deg2rad(lon2)
+    cdef float rlat1 = deg2rad(lat1)
+    cdef float rlat2 = deg2rad(lat2)
+    
     cdef float dlon = rlon2 - rlon1
     cdef float dlat = rlat2 - rlat1
 
@@ -19,9 +28,9 @@ cpdef float haversine(float lon1, float lat1, float lon2, float lat2):
     cdef float km = 6371 * c
     return km
 
-cpdef split_string(char *valstr, delim):
-    out = [float(val) for val in valstr.split(delim)]
-    return out[0], out[1]
+cpdef split_string(char *valstr, char *delim):
+    lat, lng = valstr.split(delim)
+    return float(lat), float(lng)
 
 cpdef float compareLatLong(char *latlong1, char *latlong2, delim='**'):
     lat1, long1 = split_string(latlong1, delim)
