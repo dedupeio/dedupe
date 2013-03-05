@@ -25,10 +25,12 @@ class NumpyExtension(Extension):
 
 setup(
     name='Dedupe',
-    url='https://github.com/open-city/dedupe',
+    url='https://github.com/markhuberty/dedupe',
     version='0.3',
     packages=['dedupe'],
     ext_modules=[Extension('dedupe.affinegap', ['src/affinegap.c']),
+                 Extension('dedupe.jaccard', ['src/jaccard.c']),
+                 Extension('dedupe.haversine', ['src/haversine.c']),
                  NumpyExtension('dedupe.lr', sources=['src/lr.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php'
         ,
