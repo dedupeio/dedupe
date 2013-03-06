@@ -27,8 +27,9 @@ import dedupe
 
 # ## Logging
 
-# Dedupe uses Python logging to show or suppress verbose output. Added for convenience.
-# To enable verbose logging, run `python examples/csv_example/csv_example.py -v`
+# Dedupe uses Python logging to show or suppress verbose output. Added
+# for convenience.  To enable verbose logging, run `python
+# examples/csv_example/csv_example.py -v`
 
 optp = optparse.OptionParser()
 optp.add_option('-v', '--verbose', dest='verbose', action='count',
@@ -47,7 +48,7 @@ logging.basicConfig(level=log_level)
 
 # Switch to our working directory and set up our input and out put paths,
 # as well as our settings and training file locations
-os.chdir('./examples/patstat_example/')
+os.chdir('./examples/patent_example/')
 input_file = 'patent_data_example.csv'
 output_file = 'patent_example_output.csv'
 settings_file = 'patent_example_learned_settings.json'
@@ -56,8 +57,10 @@ training_file = 'patent_example_training.json'
 
 def preProcess(column):
     """
-    Do a little bit of data cleaning with the help of [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) 
-    and Regex. Things like casing, extra spaces, quotes and new lines can be ignored.
+    Do a little bit of data cleaning with the help of
+    [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) and
+    Regex. Things like casing, extra spaces, quotes and new lines can
+    be ignored.
     """
 
     column = AsciiDammit.asciiDammit(column)
@@ -92,8 +95,8 @@ def readData(filename, set_delim='**'):
             row['LatLong'] = (float(row['Lat']), float(row['Lng']))
             del row['Lat']
             del row['Lng']
-            row['Class'] = set(row['Class'].split(set_delim))
-            row['Coauthor'] = set(row['Coauthor'].split(set_delim))
+            row['Class'] = frozenset(row['Class'].split(set_delim))
+            row['Coauthor'] = frozenset(row['Coauthor'].split(set_delim))
                 
             clean_row = [(k, v) for (k, v) in row.items()]
             
@@ -118,7 +121,7 @@ else:
     # Define the fields dedupe will pay attention to
     fields = {
         'Name': {'type': 'String'},
-        'LatLong': {'type': 'Custom', 'comparator': dedupe.distance.compareLatLong},
+        'LatLong': {'type': 'Custom', 'comparator': dedupe.distance.compareLatLong, 'Has Missing':True},
         'Class': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard},
         'Coauthor': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard},
         }
