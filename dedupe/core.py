@@ -6,22 +6,36 @@ import random
 import json
 import itertools
 import logging
+from itertools import count
 
 import numpy
 
 import lr
 from affinegap import normalizedAffineGapDistance as stringDistance
 
-
 def randomPairs(n_records, sample_size, zero_indexed=True):
-    '''Return random combinations of indicies for a square matrix of size n records'''
+    '''Return random combinations of indicies for a square matrix of
+    size n records'''
+
+    if n_records < 2 :
+        raise ValueError("Needs at least two records")
     n = n_records * (n_records - 1) / 2
 
     if sample_size >= n:
         random_indices = numpy.arange(n)
         numpy.random.shuffle(random_indices)
     else:
-        random_indices = numpy.array(random.sample(xrange(n), sample_size))
+        try:
+            random_indices = numpy.array(random.sample(xrange(n), sample_size))
+        except OverflowError:
+            # If the population is very large relative to the sample
+            # size than we'll get very few duplicates by chance
+            logging.warning("There may be duplicates in the sample")
+            sample = numpy.array([random.sample(xrange(n_records), 2)
+                                  for _ in xrange(sample_size)])
+            return numpy.sort(sample, axis=1)
+
+
 
     b = 1 - 2 * n_records
 
