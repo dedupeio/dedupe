@@ -2,6 +2,8 @@ import dedupe
 import unittest
 import numpy
 
+
+
 class AffineGapTest(unittest.TestCase):
   def setUp(self):
     self.affineGapDistance = dedupe.affinegap.affineGapDistance
@@ -120,3 +122,9 @@ class PredicatesTest(unittest.TestCase):
         
 if __name__ == "__main__":
     unittest.main()
+
+class CoreTest(unittest.TestCase):
+  def random_pair_test(self) :
+    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+    assert dedupe.core.randomPairs(10, 10).any()
+    assert dedupe.core.randomPairs(10*1000000000, 10).any()
