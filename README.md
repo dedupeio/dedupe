@@ -23,10 +23,13 @@ __Dedupe is an open source python library that quickly de-duplicates large sets 
 #### Community
 * [Dedupe Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
 * [ChiPy presentation](http://pyvideo.org/video/973/big-data-de-duping)
+* IRC channel, #dedupe on irc.freenode.net
 
 ## Installation and dependencies
 
-Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to install. If you are installing numpy for the first time, [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
+Dedupe requires [numpy](http://numpy.scipy.org/) version 1.6, which can be complicated to install. 
+If you are installing numpy for the first time, 
+[follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
 
 After numpy is set up, then install the following:
 * [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html)
@@ -36,7 +39,7 @@ After numpy is set up, then install the following:
 Using pip:
 
 ```bash
-pip install numpy
+pip install numpy==1.6.2
 pip install -r requirements.txt
 python setup.py install
 ```
@@ -44,7 +47,7 @@ python setup.py install
 Using easy_install:
 
 ```bash
-easy_install numpy
+easy_install numpy==1.6.2
 easy_install fastcluster
 easy_install hcluster
 easy_install networkx
@@ -81,6 +84,8 @@ python examples/mysql_example/mysql_example.py
 
 For more details on how to use a database with Dedupe see [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html). 
 
+We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
+[reported run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
 ## Testing
 

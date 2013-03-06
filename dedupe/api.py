@@ -9,6 +9,7 @@ import json
 import itertools
 import logging
 import types
+import pickle
 
 import numpy
 
@@ -20,6 +21,12 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
+from dedupe.affinegap import normalizedAffineGapDistance
+
+try:
+    from collections import OrderedDict
+except ImportError :
+    from core import OrderedDict
 
 
 class Dedupe:
@@ -101,7 +108,7 @@ class Dedupe:
 
         n_fields = len(self.data_model['fields'])
 
-        training_dtype = [('label', 'i4'), ('field_distances', 'f4', n_fields)]
+        training_dtype = [('label', 'i4'), ('distances', 'f4', n_fields)]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = None
@@ -276,8 +283,8 @@ class Dedupe:
 
         candidates = (pair for block in blocks for pair in itertools.combinations(block, 2))
 
-        record_distances = core.recordDistances(candidates, self.data_model)
-        probability = core.scorePairs(record_distances, self.data_model)
+        field_distances = core.fieldDistances(candidates, self.data_model)
+        probability = core.scorePairs(field_distances, self.data_model)
 
         probability.sort()
         probability = probability[::-1]
@@ -349,7 +356,9 @@ class Dedupe:
 
         tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
         full_string_records = {}
-        fields = self.data_model['fields'].keys()
+        
+        fields = [k for k,v in self.data_model['fields'].items()
+                  if v['type'] != 'Missing Data'] 
 
         for pair in self.data_sample[0:2000]:
             for (k, v) in pair:
@@ -359,7 +368,7 @@ class Dedupe:
 
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_functions,
-                                                           self.data_model,
+                                                           fields,
                                                            tfidf_thresholds,
                                                            df_index,
                                                            eta,
@@ -381,36 +390,30 @@ class Dedupe:
 
     def writeSettings(self, file_name):
         """
-        Write to a json settings file that contains the 
+        Write a settings file that contains the 
         data model and predicates
 
         Keyword arguments:
-        file_name -- path to a json file
+        file_name -- path to file
         """
 
-        if not file_name.endswith('.json'):
-            raise ValueError("Settings file name must end with '.json'")
-
-        source_predicates = []
-        for predicate_tuple in self.predicates:
-            source_predicate = []
-            for predicate in predicate_tuple:
-                if isinstance(predicate[0], types.FunctionType):
-                    source_predicate.append((predicate[0].__module__ + '.' + predicate[0].__name__,
-                                             predicate[1], 
-                                             'simple'))
-                elif predicate[0].__class__ is tfidf.TfidfPredicate:
-                    source_predicate.append((predicate[0],
-                                             predicate[1], 
-                                             'tfidf'))
-                else:
-                    raise ValueError('Undefined predicate type')
-
-            source_predicates.append(source_predicate)
-
         with open(file_name, 'w') as f:
-            json.dump({'data model': self.data_model,
-                      'predicates': source_predicates}, f)
+            pickle.dump(self.data_model, f)
+            pickle.dump(self.predicates, f)
+
+    def _readSettings(self, file_name):
+        with open(file_name, 'rb') as f:
+            try:
+                data_model = pickle.load(f)
+                predicates = pickle.load(f)
+            except KeyError :
+                raise ValueError("The settings file doesn't seem to be in "
+                                 "right format. You may want to delete the "
+                                 "settings file and try again")
+
+        return data_model, predicates
+
+
 
     def writeTraining(self, file_name):
         """
@@ -424,27 +427,10 @@ class Dedupe:
         for (label, pairs) in self.training_pairs.iteritems():
             d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for pair in pairs]
 
-        with open(file_name, 'w') as f:
+        with open(file_name, 'wb') as f:
             json.dump(d_training_pairs, f)
 
-    def _readSettings(self, file_name):
-        """Read weights and predicates from file"""
-        with open(file_name, 'r') as f:
-            learned_settings = json.loads(f.read(), object_hook=self._decode_dict)
 
-        data_model = learned_settings['data model']
-        saved_predicates = []
-        for predicate_l in learned_settings['predicates']:
-            marshalled_predicate = []
-            for predicate in predicate_l:
-                if predicate[2] == 'simple':
-                    marshalled_predicate.append((eval(predicate[0]), predicate[1]))
-                elif predicate[2] == 'tfidf':
-                    marshalled_predicate.append((tfidf.TfidfPredicate(predicate[0]), predicate[1]))
-
-            saved_predicates.append(tuple(marshalled_predicate))
-
-        return data_model, saved_predicates
 
     def _readTraining(self, file_name, training_pairs):
         """Read training pairs from a file"""
@@ -454,46 +440,20 @@ class Dedupe:
         training_pairs = {0: [], 1: []}
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
-                training_pairs[int(label)].append((core.frozendict(pair[0]), core.frozendict(pair[1])))
+                training_pairs[int(label)].append((core.frozendict(pair[0]),
+                                                   core.frozendict(pair[1])))
 
-        training_data = training.addTrainingData(training_pairs, self.data_model, self.training_data)
+        training_data = training.addTrainingData(training_pairs,
+                                                 self.data_model,
+                                                 self.training_data)
 
         return (training_pairs, training_data)
 
-    # json encoding fix for unicode => string
-
-    def _decode_list(self, data):
-        """Encode strings as utf-8"""
-        rv = []
-        for item in data:
-            if isinstance(item, unicode):
-                item = item.encode('utf-8')
-            elif isinstance(item, list):
-                item = self._decode_list(item)
-            elif isinstance(item, dict):
-                item = self._decode_dict(item)
-            rv.append(item)
-        return rv
-
-    def _decode_dict(self, data):
-        """Encode strings as utf-8"""
-        rv = {}
-        for (key, value) in data.iteritems():
-            if isinstance(key, unicode):
-                key = key.encode('utf-8')
-            if isinstance(value, unicode):
-                value = value.encode('utf-8')
-            elif isinstance(value, list):
-                value = self._decode_list(value)
-            elif isinstance(value, dict):
-                value = self._decode_dict(value)
-            rv[key] = value
-        return rv
 
 def _initializeDataModel(fields):
     """Initialize a data_model with a field definition"""
     data_model = {}
-    data_model['fields'] = {}
+    data_model['fields'] = OrderedDict()
 
     for (k, v) in fields.iteritems():
         if v.__class__ is not dict:
@@ -509,26 +469,41 @@ def _initializeDataModel(fields):
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] not in ['String', 'Interaction']:
+        elif v['type'] not in ['String', 'Custom']:
 
             raise ValueError("Incorrect field specification: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] == 'Interaction':
+        elif v['type'] == 'String' :
+             if 'comparator' in v :
+                 raise ValueError("Custom comparators can only be defined "
+                                  "for fields of type 'Custom'")
+             else :
+                 v['comparator'] = normalizedAffineGapDistance
 
-            raise ValueError("Note: Interaction terms are not supported yet. "
-                             "Interaction terms not set: Interaction "
-                             "types must include a type declaration and "
-                             "a sequence of the interacting fields as "
-                             "they appear in the data dictionary. ex. "
-                             "{'name:city' : {'type': 'Interaction', "
-                             "'interaction-terms': ['name', 'city']}}"
-                             )
+        if v['type'] == 'Custom' and 'comparator' not in v :
+            raise ValueError("For 'Custom' field types you must define "
+                             "a 'comparator' fucntion in the field "
+                             "definition. ")
+        
+            
+    
 
         v.update({'weight': 0})
         data_model['fields'][k] = v
+
+
+    for k, v in data_model['fields'].items() :
+        if 'Has Missing' in v :
+             if v['Has Missing'] :
+                 data_model['fields'][k + ': not_missing'] = {'weight' : 0,
+                                                              'type'   : 'Missing Data'}
+        else :
+            data_model['fields'][k].update({'Has Missing' : False})
+         
+
 
     data_model['bias'] = 0
     return data_model

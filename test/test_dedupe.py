@@ -1,5 +1,8 @@
 import dedupe
 import unittest
+import numpy
+
+
 
 class AffineGapTest(unittest.TestCase):
   def setUp(self):
@@ -14,17 +17,17 @@ class AffineGapTest(unittest.TestCase):
     assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1, 0.5) == 8
     assert self.affineGapDistance('b', 'a', -5, 5, 5, 1, 0.5) == 5
     assert self.affineGapDistance('a', 'a', -5, 5, 5, 1, 0.5) == -5
-    assert self.affineGapDistance('a', '', -5, 5, 5, 1, 0.5) == 3
-    assert self.affineGapDistance('', '', -5, 5, 5, 1, 0.5) == 0
+    assert numpy.isnan(self.affineGapDistance('a', '', -5, 5, 5, 1, 0.5))
+    assert numpy.isnan(self.affineGapDistance('', '', -5, 5, 5, 1, 0.5))
     assert self.affineGapDistance('aba', 'aaa', -5, 5, 5, 1, 0.5) == -5
     assert self.affineGapDistance('aaa', 'aba', -5, 5, 5, 1, 0.5) == -5
     assert self.affineGapDistance('aaa', 'aa', -5, 5, 5, 1, 0.5) == -7
     assert self.affineGapDistance('aaa', 'a', -5, 5, 5, 1, 0.5) == -1.5
-    assert self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5) == 4
+    assert numpy.isnan(self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5))
     assert self.affineGapDistance('aaa', 'abba', -5, 5, 5, 1, 0.5) == 1
     
   def test_normalized_affine_gap_correctness(self):
-    assert self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5) == 0
+    assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
     
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
@@ -68,11 +71,16 @@ class BlockingTest(unittest.TestCase):
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
   def test_initializer(self) :
+
+    fields = [k for k,v in self.deduper.data_model['fields'].items()
+              if v['type'] != 'Missing Data'] 
+
+    
     (training_dupes,
      training_distinct,
      predicate_set,
      _overlap) =  dedupe.blocking._initializeTraining(self.training_pairs,
-                                                      self.deduper.data_model,
+                                                      fields,
                                                       self.predicate_functions,
                                                       [],
                                                       {})
@@ -85,6 +93,7 @@ class BlockingTest(unittest.TestCase):
                                   self.frozendict({'age': '75', 'name': 'Charlie'})),
                                  (self.frozendict({'age': '40', 'name': 'Meredith'}),
                                   self.frozendict({'age': '10', 'name': 'Sue'}))]
+
     assert predicate_set == [((self.wholeFieldPredicate, 'age'),),
                              ((self.wholeFieldPredicate, 'name'),),
                              ((self.sameThreeCharStartPredicate, 'age'),),
@@ -113,3 +122,9 @@ class PredicatesTest(unittest.TestCase):
         
 if __name__ == "__main__":
     unittest.main()
+
+class CoreTest(unittest.TestCase):
+  def random_pair_test(self) :
+    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+    assert dedupe.core.randomPairs(10, 10).any()
+    assert dedupe.core.randomPairs(10*1000000000, 10).any()

@@ -50,8 +50,18 @@ logging.basicConfig(level=log_level)
 os.chdir('./examples/csv_example/')
 input_file = 'csv_example_messy_input.csv'
 output_file = 'csv_example_output.csv'
-settings_file = 'csv_example_learned_settings.json'
+settings_file = 'csv_example_learned_settings'
 training_file = 'csv_example_training.json'
+
+
+# Dedupe can take custom field comparison functions, here's one
+# we'll use for zipcodes
+def sameOrNotComparator(field_1, field_2) :
+    if field_1 == field_2 :
+        return 1
+    else:
+        return 0
+
 
 
 def preProcess(column):
@@ -104,11 +114,14 @@ else:
     data_sample = dedupe.dataSample(data_d, 150000)
 
     # Define the fields dedupe will pay attention to
+    #
+    # Notice how we are telling dedupe to use a custom field comparator
+    # for the 'Zip' field. 
     fields = {
         'Site name': {'type': 'String'},
         'Address': {'type': 'String'},
-        'Zip': {'type': 'String'},
-        'Phone': {'type': 'String'},
+        'Zip': {'type': 'String', 'Has Missing':True},
+        'Phone': {'type': 'String', 'Has Missing':True},
         }
 
     # Create a new deduper object and pass our data model to it.
@@ -123,7 +136,7 @@ else:
 
     # ## Active learning
 
-    # Starts the trainin loop. Dedupe will find the next pair of records
+    # Starts the training loop. Dedupe will find the next pair of records
     # it is least certain about and ask you to label them as duplicates
     # or not.
 
@@ -138,12 +151,13 @@ else:
 # ## Blocking
 
 print 'blocking...'
-# Initialize our blocker, which determines our field weights and blocking 
-# predicates based on our training data
+# Initialize our blocker. We'll learn our blocking rules if we haven't
+# loaded them from a saved settings file.
 blocker = deduper.blockingFunction()
 
-# Save our weights and predicates to disk.
-# If the settings file exists, we will skip all the training and learning
+# Save our weights and predicates to disk.  If the settings file
+# exists, we will skip all the training and learning next time we run
+# this file.
 deduper.writeSettings(settings_file)
 
 # Load all the original data in to memory and place
@@ -151,9 +165,6 @@ deduper.writeSettings(settings_file)
 # larger data, memory will be a limiting factor.
 
 blocked_data = dedupe.blockData(data_d, blocker)
-
-# Satore all of our blocked data in to memory
-blocked_data = tuple(blocked_data)
 
 # ## Clustering
 
