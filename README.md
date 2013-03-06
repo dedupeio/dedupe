@@ -27,6 +27,7 @@ __Dedupe is an open source python library that quickly de-duplicates large sets 
 
 ## Installation and dependencies
 
+
 Dedupe requires [numpy](http://numpy.scipy.org/) version 1.6, which can be complicated to install. 
 If you are installing numpy for the first time, 
 [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html).
@@ -39,6 +40,8 @@ After numpy is set up, then install the following:
 Using pip:
 
 ```bash
+git clone git://github.com/open-city/dedupe.git
+cd dedupe
 pip install numpy==1.6.2
 pip install -r requirements.txt
 python setup.py install
@@ -47,6 +50,8 @@ python setup.py install
 Using easy_install:
 
 ```bash
+git clone git://github.com/open-city/dedupe.git
+cd dedupe
 easy_install numpy==1.6.2
 easy_install fastcluster
 easy_install hcluster
@@ -64,7 +69,7 @@ python examples/csv_example/csv_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished)
   
-For details, see the [annotated source code for csv_example.py](http://open-city.github.com/dedupe/doc/csv_example.html).
+**To see how you might use dedupe with smallish data, see the [annotated source code for csv_example.py](http://open-city.github.com/dedupe/doc/csv_example.html).**
 
 ### [MySQL example](http://open-city.github.com/dedupe/doc/mysql_example.html) (10,000 - 1,000,000+ rows)
 To follow this example you need to 
@@ -82,10 +87,10 @@ python examples/mysql_example/mysql_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 
-For more details on how to use a database with Dedupe see [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html). 
+**To see how you might use dedupe with bigish data, see the [annotated source code for mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html).** 
 
 We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
-[reported run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
+[run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
 ## Testing
 
