@@ -12,7 +12,8 @@ __all__ = ['affinegap',
            'distance'
            ]
 
-import affinegap
+#from distance import affinegap
+from distance import affinegap
 import distance 
 import blocking
 import clustering

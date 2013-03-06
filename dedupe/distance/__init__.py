@@ -1,9 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-__all__ = ['haversine',
-           'jaccard'
-           ]
-
+import affinegap
 from haversine import compareLatLong
 from jaccard import compareJaccard

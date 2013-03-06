@@ -22,15 +22,14 @@ class NumpyExtension(Extension):
 
         return self._include_dirs + [get_include()]
 
-
 setup(
     name='Dedupe',
     url='https://github.com/open-city/dedupe',
     version='0.3',
     packages=['dedupe', 'dedupe.distance'],
-    ext_modules=[Extension('dedupe.affinegap', ['src/affinegap.c']),
+    ext_modules=[Extension('dedupe.distance.affinegap', ['src/affinegap.c']),
                  Extension('dedupe.distance.jaccard', ['src/jaccard.c']),
-                 Extension('dedupe.distance.haversine', ['src/haversine.c']),
+                 Extension('dedupe.distance.haversine', ['src/haversine.c'], libraries=['m']),
                  NumpyExtension('dedupe.lr', sources=['src/lr.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php'
         ,

@@ -3,8 +3,14 @@
 
 from libc cimport limits
 from libc.stdlib cimport malloc, free
-import math
+from libc.math cimport sin, cos, asin, sqrt
 
+# cdef extern from 'math.h':
+#     double sin(double x)
+#     double cos(double x)
+#     double asin(double x)
+#     double sqrt(double x)
+    
 ## Equivalent to 3.1415927 / 180
 cdef float PI_RATIO = 0.017453293
 
@@ -21,19 +27,14 @@ cpdef float haversine(float lon1, float lat1, float lon2, float lat2):
     cdef float dlon = rlon2 - rlon1
     cdef float dlat = rlat2 - rlat1
 
-    cdef float a = math.sin(dlat/2)**2 + math.cos(rlat1) * math.cos(rlat2) * math.sin(dlon/2)**2
+    cdef float a = sin(dlat/2)**2 + cos(rlat1) * cos(rlat2) * sin(dlon/2)**2
 
-    cdef float c = 2 * math.asin(math.sqrt(a))
-    # cdef float c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    cdef float c = 2 * asin(sqrt(a))
     cdef float km = 6371 * c
     return km
 
-cpdef split_string(char *valstr, char *delim):
-    lat, lng = valstr.split(delim)
-    return float(lat), float(lng)
-
-cpdef float compareLatLong(char *latlong1, char *latlong2, delim='**'):
-    lat1, long1 = split_string(latlong1, delim)
-    lat2, long2 = split_string(latlong2, delim)
+cpdef float compareLatLong(latlong1, latlong2):
+    lat1, long1 = latlong1
+    lat2, long2 = latlong2
     dist = haversine(long1, lat1, long2, lat2)
     return dist
