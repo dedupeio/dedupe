@@ -1,8 +1,6 @@
 #!python
 #cython: boundscheck=False, wraparound=False
 
-from libc cimport limits
-from libc.stdlib cimport malloc, free
 
 def split_class(char *class_str, delim):
     out = set(class_str.split(delim))

@@ -21,7 +21,7 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
-from dedupe.affinegap import normalizedAffineGapDistance
+from dedupe.distance.affinegap import normalizedAffineGapDistance
 
 try:
     from collections import OrderedDict
