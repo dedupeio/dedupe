@@ -102,12 +102,12 @@ def buildFieldDistances(record_pairs, fields):
                          for field, v in fields.items()
                          if v['type'] != 'Missing Data']
 
-
+    
     missing_field_indices = [i for i, (field, v) 
                              in enumerate(fields.items())
                              if 'Has Missing' in v and v['Has Missing']]
 
-    
+    # import ipdb; ipdb.set_trace();
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 

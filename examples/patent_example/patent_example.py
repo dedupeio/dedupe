@@ -89,11 +89,11 @@ def readData(filename, set_delim='**'):
         for idx, row in enumerate(reader):
             for k in row:
                 row[k] = preProcess(row[k])
-            row['LatLong'] = (float(row['Lat']), float(row['Lng']))
+            row['LatLong'] = str(row['Lat']) + '**' + str(row['Lng'])
             del row['Lat']
             del row['Lng']
-            row['Class'] = set(row['Class'].split(set_delim))
-            row['Coauthor'] = set(row['Coauthor'].split(set_delim))
+            #row['Class'] = set(row['Class'].split(set_delim))
+            #row['Coauthor'] = set(row['Coauthor'].split(set_delim))
                 
             clean_row = [(k, v) for (k, v) in row.items()]
             
@@ -118,9 +118,12 @@ else:
     # Define the fields dedupe will pay attention to
     fields = {
         'Name': {'type': 'String'},
-        'LatLong': {'type': 'Custom', 'comparator': dedupe.distance.compareLatLong},
-        'Class': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard},
-        'Coauthor': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard},
+        'LatLong': {'type': 'Custom', 'comparator': dedupe.distance.compareLatLong,
+                    'Has Missing': True},
+        'Class': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard,
+                  'Has Missing': True},
+        'Coauthor': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard,
+                     'Has Missing': True},
         }
 
     # Create a new deduper object and pass our data model to it.
@@ -136,7 +139,6 @@ else:
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
         deduper.train(data_sample, training_file)
-
     # ## Active learning
 
     # Starts the trainin loop. Dedupe will find the next pair of records
@@ -211,8 +213,8 @@ with open(output_file, 'w') as f:
         heading_row.insert(0, 'Cluster ID')
         writer.writerow(heading_row)
 
-        for row in reader:
-            row_id = int(row[0])
+        for idx, row in enumerate(reader):
+            row_id = idx
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
