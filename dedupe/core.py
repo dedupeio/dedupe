@@ -11,7 +11,7 @@ from itertools import count
 import numpy
 
 import lr
-from affinegap import normalizedAffineGapDistance as stringDistance
+from dedupe.affinegap import normalizedAffineGapDistance as stringDistance
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     '''Return random combinations of indicies for a square matrix of

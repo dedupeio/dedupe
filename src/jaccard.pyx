@@ -1,8 +1,6 @@
 #!python
 #cython: boundscheck=False, wraparound=False
 
-from libc cimport limits
-from libc.stdlib cimport malloc, free
 
 cpdef float jaccard(sl, sr):
     set_union = sl.union(sr)
