@@ -20,6 +20,7 @@ import re
 import collections
 import logging
 import optparse
+import time
 
 import AsciiDammit
 
@@ -158,11 +159,14 @@ else:
     deduper.writeTraining(training_file)
 
 # ## Blocking
-
+time_start = time.time()
 print 'blocking...'
 # Initialize our blocker, which determines our field weights and blocking 
 # predicates based on our training data
-blocker = deduper.blockingFunction()
+blocker = deduper.blockingFunction(ppc=0.001, uncovered_dupes=5)
+
+time_block_weights = time.time()
+print 'Learned blocking weights in', time_block_weights - time_start, 'seconds'
 
 # Save our weights and predicates to disk.
 # If the settings file exists, we will skip all the training and learning
@@ -174,19 +178,28 @@ deduper.writeSettings(settings_file)
 
 blocked_data = dedupe.blockData(data_d, blocker)
 
+## Save the weights and predicates
+time_block = time.time()
+print 'Blocking rules learned in', time_block - time_block_weights, 'seconds'
+print 'Writing out settings'
+deduper.writeSettings(settings_file)
+
 # Satore all of our blocked data in to memory
 blocked_data = tuple(blocked_data)
 
 # ## Clustering
 
 # Find the threshold that will maximize a weighted average of our precision and recall. 
-# When we set the recall weight to 2, we are saying we care twice as much
-# about recall as we do precision.
+# When we set the recall weight to 1, we are trying to balance recall and precision
 #
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
+subset = random.sample(range(len(blocked_data)), 1000)
+threshold_data = [blocked_data[i] for i in subset]
+threshold_data = tuple(threshold_data)
 
-threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
+print 'Computing threshold'
+threshold = deduper.goodThreshold(threshold_data, recall_weight=1)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
@@ -222,3 +235,5 @@ with open(output_file, 'w') as f:
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
+
+print 'Dedupe complete, ran in ', time.time() - start_time, 'seconds'
