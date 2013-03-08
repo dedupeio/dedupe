@@ -49,7 +49,7 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory and set up our input and out put paths,
 # as well as our settings and training file locations
 os.chdir('./examples/patent_example/')
-input_file = 'patent_data_example.csv'
+input_file = 'patstat_dedupe_input.csv'
 output_file = 'patent_example_output.csv'
 settings_file = 'patent_example_learned_settings.json'
 training_file = 'patent_example_training.json'
@@ -95,8 +95,8 @@ def readData(filename, set_delim='**'):
             row['LatLong'] = str(row['Lat']) + '**' + str(row['Lng'])
             del row['Lat']
             del row['Lng']
-            row['Class'] = frozenset(row['Class'].split(set_delim))
-            row['Coauthor'] = frozenset(row['Coauthor'].split(set_delim))
+            #row['Class'] = frozenset(row['Class'].split(set_delim))
+            #row['Coauthor'] = frozenset(row['Coauthor'].split(set_delim))
 
                 
             clean_row = [(k, v) for (k, v) in row.items()]
