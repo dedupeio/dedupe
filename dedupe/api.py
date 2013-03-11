@@ -96,6 +96,8 @@ class Dedupe:
         self.training_pairs = None
         self.data_sample = None
         self.dupes = None
+        self.training_encoder = training_serializer._to_json
+        self.training_decoder = training_serializer.decoder
 
 
     def _initializeTraining(self, training_file=None):
@@ -415,7 +417,6 @@ class Dedupe:
         return data_model, predicates
 
 
-
     def writeTraining(self, file_name):
         """
         Write to a json file that contains labeled examples
@@ -429,14 +430,14 @@ class Dedupe:
             d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for pair in pairs]
 
         with open(file_name, 'wb') as f:
-            json.dump(d_training_pairs, f, default=training_serializer._to_json)
+            json.dump(d_training_pairs, f, default=self.training_encoder)
 
 
 
     def _readTraining(self, file_name, training_pairs):
         """Read training pairs from a file"""
         with open(file_name, 'r') as f:
-            training_pairs_raw = json.load(f, cls=training_serializer.decoder)
+            training_pairs_raw = json.load(f, cls=self.training_decoder)
 
         training_pairs = {0: [], 1: []}
         for (label, examples) in training_pairs_raw.iteritems():
