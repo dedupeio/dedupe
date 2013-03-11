@@ -5,7 +5,12 @@ dedupe provides the main user interface for the library the
 Dedupe class
 """
 
-import json
+try:
+    from json.scanner import py_make_scanner
+    import json
+except ImportError:
+    from simplejson.scanner import py_make_scanner
+    import simplejson as json
 import itertools
 import logging
 import types
@@ -23,6 +28,8 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.distance.affinegap import normalizedAffineGapDistance
+from dedupe.distance.haversine import compareLatLong
+from dedupe.distance.jaccard import compareJaccard
 
 try:
     from collections import OrderedDict
@@ -97,7 +104,7 @@ class Dedupe:
         self.data_sample = None
         self.dupes = None
         self.training_encoder = training_serializer._to_json
-        self.training_decoder = training_serializer.decoder
+        self.training_decoder = training_serializer.dedupe_decoder
 
 
     def _initializeTraining(self, training_file=None):
@@ -456,34 +463,50 @@ def _initializeDataModel(fields):
     """Initialize a data_model with a field definition"""
     data_model = {}
     data_model['fields'] = OrderedDict()
-
     for (k, v) in fields.iteritems():
         if v.__class__ is not dict:
-            raise ValueError("Incorrect field specification: field "
+            raise ValueError("foo Incorrect field specification: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
         elif 'type' not in v:
 
-            raise ValueError("Incorrect field specification: field "
+            raise ValueError("Missing field type: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] not in ['String', 'Custom']:
+        elif v['type'] not in ['String', 'LatLong', 'Set', 'Custom']:
 
-            raise ValueError("Incorrect field specification: field "
+            raise ValueError("Invalid field type: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
+        elif v['type'] == 'LatLong' :
+             if 'comparator' in v :
+                 raise ValueError("Custom comparators can only be defined "
+                                  "for fields of type 'Custom'")
+             else :
+                 v['comparator'] = compareLatLong
+
+        elif v['type'] == 'Set' :
+             if 'comparator' in v :
+                 raise ValueError("Custom comparators can only be defined "
+                                  "for fields of type 'Custom'")
+             else :
+                 v['comparator'] = compareJaccard
+
+
         elif v['type'] == 'String' :
              if 'comparator' in v :
                  raise ValueError("Custom comparators can only be defined "
                                   "for fields of type 'Custom'")
              else :
                  v['comparator'] = normalizedAffineGapDistance
+
+
 
         if v['type'] == 'Custom' and 'comparator' not in v :
             raise ValueError("For 'Custom' field types you must define "

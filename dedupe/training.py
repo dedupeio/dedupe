@@ -48,6 +48,17 @@ def activeLearning(candidates,
         nonduplicates.extend(training_pairs[0])
         duplicates.extend(training_pairs[1])
 
+
+
+    if training_data.shape[0] == 0 :
+        exact_match = (candidates[0][0][1], candidates[0][0][1])
+        training_data = addTrainingData({1:[exact_match],
+                                         0:[]},
+                                        data_model,
+                                        training_data)
+
+    data_model = core.trainModel(training_data, data_model, 1)
+
     finished = False
 
     import time
@@ -76,7 +87,9 @@ def activeLearning(candidates,
         duplicates.extend(labeled_pairs[1])
 
         training_data = addTrainingData(labeled_pairs, data_model, training_data)
+
         if len(training_data) > 0:
+
             data_model = core.trainModel(training_data, data_model, 1)
         else:
             raise ValueError('No training pairs given')

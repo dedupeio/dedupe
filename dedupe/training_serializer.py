@@ -1,4 +1,12 @@
-import json
+try:
+    from json.scanner import py_make_scanner
+    import json
+except ImportError:
+    from simplejson.scanner import py_make_scanner
+    import simplejson as json
+
+    
+
 
 def _to_json(python_object):                                             
     if isinstance(python_object, frozenset):                                
@@ -12,14 +20,14 @@ def _from_json(json_object):
             return frozenset(json_object['__value__'])
     return json_object
 
-class decoder(json.JSONDecoder):
+class dedupe_decoder(json.JSONDecoder):
 
     def __init__(self, **kwargs):
         json.JSONDecoder.__init__(self, object_hook=_from_json, **kwargs)
         # Use the custom JSONArray
         self.parse_array = self.JSONArray
         # Use the python implemenation of the scanner
-        self.scan_once = json.scanner.py_make_scanner(self) 
+        self.scan_once = py_make_scanner(self) 
 
     def JSONArray(self, s_and_end, scan_once, **kwargs):
         values, end = json.decoder.JSONArray(s_and_end, scan_once, **kwargs)

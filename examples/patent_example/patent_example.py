@@ -121,9 +121,9 @@ else:
     # Define the fields dedupe will pay attention to
     fields = {
         'Name': {'type': 'String'},
-        'LatLong': {'type': 'Custom', 'comparator': dedupe.distance.compareLatLong, 'Has Missing':True},
-        'Class': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard},
-        'Coauthor': {'type': 'Custom', 'comparator': dedupe.distance.compareJaccard},
+        'LatLong': {'type': 'LatLong', 'Has Missing':True},
+        'Class': {'type': 'Set'},
+        'Coauthor': {'type': 'Set'},
         }
 
     # Create a new deduper object and pass our data model to it.
