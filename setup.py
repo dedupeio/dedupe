@@ -1,7 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from distutils.core import setup, Extension
+try:
+    from setuptools import setup, Extension
+except ImportError :
+    raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
 
 # from Michael Hoffman's http://www.ebi.ac.uk/~hoffman/software/sunflower/
@@ -30,8 +33,7 @@ setup(
     packages=['dedupe'],
     ext_modules=[NumpyExtension('dedupe.affinegap', ['src/affinegap.c']),
                  NumpyExtension('dedupe.lr', sources=['src/lr.c'])],
-    license='The MIT License: http://www.opensource.org/licenses/mit-license.php'
-        ,
+    license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx'],
     long_description=open('README.md').read(),
     )
