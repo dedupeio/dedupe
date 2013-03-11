@@ -16,6 +16,7 @@ import numpy
 import dedupe
 import dedupe.core as core
 import dedupe.training as training
+import dedupe.training_serializer as training_serializer
 import dedupe.crossvalidation as crossvalidation
 import dedupe.predicates as predicates
 import dedupe.blocking as blocking
@@ -428,14 +429,14 @@ class Dedupe:
             d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for pair in pairs]
 
         with open(file_name, 'wb') as f:
-            json.dump(d_training_pairs, f)
+            json.dump(d_training_pairs, f, default=training_serializer._to_json)
 
 
 
     def _readTraining(self, file_name, training_pairs):
         """Read training pairs from a file"""
         with open(file_name, 'r') as f:
-            training_pairs_raw = json.load(f)
+            training_pairs_raw = json.load(f, cls=training_serializer.decoder)
 
         training_pairs = {0: [], 1: []}
         for (label, examples) in training_pairs_raw.iteritems():
@@ -488,9 +489,6 @@ def _initializeDataModel(fields):
                              "a 'comparator' fucntion in the field "
                              "definition. ")
         
-            
-    
-
         v.update({'weight': 0})
         data_model['fields'][k] = v
 
