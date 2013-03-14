@@ -255,7 +255,7 @@ def blockTraining(training_pairs,
     if final_predicate_set:
         return final_predicate_set
     else:
-        raise ValueError('No predicate found!')
+        raise ValueError('No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data')
 
 
 def _initializeTraining(training_pairs,
