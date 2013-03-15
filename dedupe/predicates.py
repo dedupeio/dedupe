@@ -75,20 +75,21 @@ def sameSevenCharStartPredicate(field):
 def commonSetPredicate(field_set):
     if len(field_set) == 0:
         return ()
-    return(str(field))
+    return(str(field_set))
 
 def commonSetElementPredicate(field_set):
     """return set as individual elements"""
     if len(field_set) < 1:
         return ()
 
-    return tuple(str(f) for f in field)
+    return tuple(str(f) for f in field_set)
 
 def roundToBase(x, base):
     """Given a float and a base, return the spanning values to the nearest base"""
-    base_ceil = float(base * math.ceil(float(x) / base))
-    base_floor = float(base * math.floor(float(x) / base))
-    return base_floor, base_ceil
+    base_log = int(-1 * math.log10(base))
+    base_ceil = round(float(base * math.ceil(float(x) / base)), base_log)
+    base_floor = round(float(base * math.floor(float(x) / base)), base_log)
+    return [base_floor, base_ceil]
 
 def checkEqual(iter):
     if len(set(iter)) > 1:
@@ -126,5 +127,5 @@ def latLongGridPredicate(field, base=0.1):
     if checkEqual(long_grid):
         long_grid = expandGrid(long_grid, base)
     
-    grid = (lat_grid, long_grid)
+    grid = (tuple(lat_grid), tuple(long_grid))
     return str(grid)
