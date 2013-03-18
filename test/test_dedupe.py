@@ -2,6 +2,30 @@ import dedupe
 import unittest
 import numpy
 
+class DedupeClassTest(unittest.TestCase):
+  def test_initialize(self) :
+    fields =  { 'name' : {'type': 'String'}, 
+                'age'  : {'type': 'String'},
+            }
+    deduper = dedupe.Dedupe(fields)
+
+    string_predicates = (dedupe.predicates.wholeFieldPredicate,
+                         dedupe.predicates.tokenFieldPredicate,
+                         dedupe.predicates.commonIntegerPredicate,
+                         dedupe.predicates.sameThreeCharStartPredicate,
+                         dedupe.predicates.sameFiveCharStartPredicate,
+                         dedupe.predicates.sameSevenCharStartPredicate,
+                         dedupe.predicates.nearIntegersPredicate,
+                         dedupe.predicates.commonFourGram,
+                         dedupe.predicates.commonSixGram)
+
+    tfidf_string_predicates = tuple([dedupe.tfidf.TfidfPredicate(threshold)
+                                     for threshold
+                                     in [0.2, 0.4, 0.6, 0.8]])
+
+    assert deduper.blocker_types == {'String' : string_predicates + tfidf_string_predicates}
+
+  
 
 
 class AffineGapTest(unittest.TestCase):
@@ -75,14 +99,13 @@ class BlockingTest(unittest.TestCase):
     fields = [k for k,v in self.deduper.data_model['fields'].items()
               if v['type'] != 'Missing Data'] 
 
+    predicate_set = dedupe.api.predicateGenerator(self.deduper.blocker_types,
+                                                  self.deduper.data_model)
     
     (training_dupes,
      training_distinct,
-     predicate_set,
      _overlap) =  dedupe.blocking._initializeTraining(self.training_pairs,
-                                                      fields,
-                                                      self.predicate_functions,
-                                                      [],
+                                                      predicate_set,
                                                       {})
 
     assert training_dupes == [(self.frozendict({'age': '20', 'name': 'Jimmy'}),
@@ -94,19 +117,7 @@ class BlockingTest(unittest.TestCase):
                                  (self.frozendict({'age': '40', 'name': 'Meredith'}),
                                   self.frozendict({'age': '10', 'name': 'Sue'}))]
 
-    assert predicate_set == [((self.wholeFieldPredicate, 'age'),),
-                             ((self.wholeFieldPredicate, 'name'),),
-                             ((self.sameThreeCharStartPredicate, 'age'),),
-                             ((self.sameThreeCharStartPredicate, 'name'),),
-                             ((self.wholeFieldPredicate, 'age'),
-                              (self.wholeFieldPredicate, 'name')),
-                             ((self.wholeFieldPredicate, 'age'),
-                              (self.sameThreeCharStartPredicate, 'name')),
-                             ((self.wholeFieldPredicate, 'name'),
-                              (self.sameThreeCharStartPredicate, 'age')),
-                             ((self.sameThreeCharStartPredicate, 'age'),
-                              (self.sameThreeCharStartPredicate, 'name'))]
-
+ 
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'

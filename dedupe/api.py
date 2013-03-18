@@ -106,6 +106,23 @@ class Dedupe:
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
 
+        string_predicates = (predicates.wholeFieldPredicate,
+                             predicates.tokenFieldPredicate,
+                             predicates.commonIntegerPredicate,
+                             predicates.sameThreeCharStartPredicate,
+                             predicates.sameFiveCharStartPredicate,
+                             predicates.sameSevenCharStartPredicate,
+                             predicates.nearIntegersPredicate,
+                             predicates.commonFourGram,
+                             predicates.commonSixGram)
+
+        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
+                                         for threshold
+                                         in [0.2, 0.4, 0.6, 0.8]])
+
+        self.blocker_types = {'String' : (string_predicates
+                                          + tfidf_string_predicates)}
+
 
     def _initializeTraining(self, training_file=None):
         """
@@ -351,35 +368,23 @@ class Dedupe:
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model)
-
         self.training_pairs[0].extend(confident_nonduplicates)
 
-        predicate_functions = (predicates.wholeFieldPredicate,
-                               predicates.tokenFieldPredicate,
-                               predicates.commonIntegerPredicate,
-                               predicates.sameThreeCharStartPredicate,
-                               predicates.sameFiveCharStartPredicate,
-                               predicates.sameSevenCharStartPredicate,
-                               predicates.nearIntegersPredicate,
-                               predicates.commonFourGram,
-                               predicates.commonSixGram)
 
-        tfidf_thresholds = [0.2, 0.4, 0.6, 0.8]
+        predicate_set = predicateGenerator(self.blocker_types, self.data_model)
+
+        # pull this into separate function
         full_string_records = {}
-        
         fields = [k for k,v in self.data_model['fields'].items()
                   if v['type'] != 'Missing Data'] 
-
         for pair in self.data_sample[0:2000]:
             for (k, v) in pair:
                 full_string_records[k] = ' '.join(v[field] for field in fields)
-
         df_index = tfidf.documentFrequency(full_string_records)
 
+        
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
-                                                           predicate_functions,
-                                                           fields,
-                                                           tfidf_thresholds,
+                                                           predicate_set,
                                                            df_index,
                                                            eta,
                                                            epsilon)
@@ -529,3 +534,29 @@ def _initializeDataModel(fields):
 
     data_model['bias'] = 0
     return data_model
+
+def predicateGenerator(blocker_types, data_model) :
+    predicate_set = []
+    for record_type, predicate_functions in blocker_types.items() :
+        fields = [field_name for field_name, details
+                  in data_model['fields'].items()
+                  if details['type'] == record_type]
+        predicate_set.extend(list(itertools.product(predicate_functions, fields)))
+        predicate_set = disjunctivePredicates(predicate_set)
+
+    return predicate_set
+
+
+def disjunctivePredicates(predicate_set):
+
+    disjunctive_predicates = list(itertools.combinations(predicate_set, 2))
+
+    # filter out disjunctive predicates that operate on same field
+
+    disjunctive_predicates = [predicate for predicate in disjunctive_predicates 
+                              if predicate[0][1] != predicate[1][1]]
+
+    predicate_set = [(predicate, ) for predicate in predicate_set]
+    predicate_set.extend(disjunctive_predicates)
+
+    return predicate_set
