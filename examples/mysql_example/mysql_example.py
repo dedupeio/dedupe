@@ -322,13 +322,18 @@ print len(clustered_dupes)
 
 locale.setlocale(locale.LC_ALL, '') # for pretty printing numbers
 
+# Create a temporary table so each group and unmatched record has a unique id
+c.execute("CREATE TEMPORARY TABLE e_map "
+          "SELECT IFNULL(canon_id, donor_id) AS canon_id, donor_id "
+          "FROM entity_map "
+          "RIGHT JOIN donors USING(donor_id)")
+
+
 c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) AS name, "
           "donation_totals.totals AS totals "
           "FROM donors INNER JOIN "
           "(SELECT canon_id, SUM(amount) AS totals "
-          " FROM contributions INNER JOIN "
-          " (SELECT IFNULL(canon_id, donor_id) AS canon_id, donor_id "
-          "  FROM entity_map RIGHT JOIN donors USING(donor_id)) AS e_map "
+          " FROM contributions INNER JOIN e_map "
           " USING (donor_id) "
           " GROUP BY (canon_id) "
           " ORDER BY totals "
