@@ -108,7 +108,7 @@ class Dedupe:
 
         n_fields = len(self.data_model['fields'])
 
-        training_dtype = [('label', 'i4'), ('distances', 'f4', n_fields)]
+        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = None
