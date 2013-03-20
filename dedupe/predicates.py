@@ -72,7 +72,7 @@ def sameSevenCharStartPredicate(field):
 
     return (field[:7], )
 
-def commonSetPredicate(field_set):
+def wholeSetPredicate(field_set):
     if len(field_set) == 0:
         return ()
     return(str(field_set))

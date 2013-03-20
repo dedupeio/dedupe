@@ -373,10 +373,11 @@ class Dedupe:
 
         predicate_set = predicateGenerator(self.blocker_types, self.data_model)
 
+
         # pull this into separate function
         full_string_records = {}
         fields = [k for k,v in self.data_model['fields'].items()
-                  if v['type'] != 'Missing Data'] 
+                  if v['type'] == 'String'] 
         for pair in self.data_sample[0:2000]:
             for (k, v) in pair:
                 full_string_records[k] = ' '.join(v[field] for field in fields)
@@ -542,7 +543,7 @@ def predicateGenerator(blocker_types, data_model) :
                   in data_model['fields'].items()
                   if details['type'] == record_type]
         predicate_set.extend(list(itertools.product(predicate_functions, fields)))
-        predicate_set = disjunctivePredicates(predicate_set)
+    predicate_set = disjunctivePredicates(predicate_set)
 
     return predicate_set
 

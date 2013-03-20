@@ -49,15 +49,15 @@ def activeLearning(candidates,
         duplicates.extend(training_pairs[1])
 
 
-
     if training_data.shape[0] == 0 :
         exact_match = (candidates[0][0][1], candidates[0][0][1])
-        training_data = addTrainingData({1:[exact_match],
+        training_data = addTrainingData({1:[exact_match]*2,
                                          0:[]},
                                         data_model,
                                         training_data)
 
     data_model = core.trainModel(training_data, data_model, 1)
+
 
     finished = False
 

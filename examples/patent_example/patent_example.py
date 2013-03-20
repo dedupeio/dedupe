@@ -120,7 +120,7 @@ else:
 
     # Define the fields dedupe will pay attention to
     fields = {
-        'Name': {'type': 'String'},
+        'Name': {'type': 'String', 'Has Missing':True},
         'LatLong': {'type': 'LatLong', 'Has Missing':True},
         'Class': {'type': 'Set'},
         'Coauthor': {'type': 'Set'},
@@ -142,7 +142,7 @@ else:
 
     # ## Active learning
 
-    # Starts the trainin loop. Dedupe will find the next pair of records
+    # Starts the training loop. Dedupe will find the next pair of records
     # it is least certain about and ask you to label them as duplicates
     # or not.
 
@@ -155,6 +155,13 @@ else:
     deduper.writeTraining(training_file)
 
 # ## Blocking
+
+
+deduper.blocker_types.update({'Set': (dedupe.predicates.wholeSetPredicate,
+                                      dedupe.predicates.commonSetElementPredicate),
+                              'LatLong' : (dedupe.predicates.latLongGridPredicate,)})
+
+
 
 print 'blocking...'
 # Initialize our blocker, which determines our field weights and blocking 
