@@ -36,7 +36,7 @@ class Blocker:
             for (F, field) in predicate:
                 pred_id = F.__name__ + field
                 if isinstance(F, types.FunctionType):
-                    record_field = record[field].strip().lower()
+                    record_field = record[field]
                     block_keys = [str(key) + pred_id for key in F(record_field)]
                     predicate_keys.append(block_keys)
                 elif F.__class__ is tfidf.TfidfPredicate:
@@ -316,6 +316,7 @@ def findOptimumBlocking(training_dupes,
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
     # Chvatal, 1979
+    print found_dupes
 
     final_predicate_set = []
     n_training_dupes = len(training_dupes)
@@ -327,7 +328,7 @@ def findOptimumBlocking(training_dupes,
         best_predicate = None
         for predicate in predicate_set:
             cover = len(found_dupes[predicate]) / (float(len(found_distinct[predicate])) + 0.5)
-            if cover > optimum_cover and cover > 1:
+            if cover > optimum_cover:
                 optimum_cover = cover
                 best_predicate = predicate
 

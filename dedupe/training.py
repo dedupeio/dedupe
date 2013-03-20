@@ -8,7 +8,7 @@ import blocking
 import core
 import numpy
 import logging
-
+import random
 
 def findUncertainPairs(field_distances, data_model):
     """
@@ -20,10 +20,24 @@ def findUncertainPairs(field_distances, data_model):
 
     probability = core.scorePairs(field_distances, data_model)
 
-    uncertainties = (probability * numpy.log2(probability) 
-                     + (1 - probability) * numpy.log2(1 - probability))
+    pp = .05
+    p_max = (2 - pp)/2
+    print p_max
 
-    return numpy.argsort(uncertainties)
+    informativity = numpy.copy(probability)
+    informativity[probability < p_max] /= p_max
+    informativity[probability >= p_max] = (1 - probability[probability >= p_max])/(1-p_max)
+
+    print informativity
+    print probability
+
+
+    #uncertainties = (probability * numpy.log2(probability) 
+    #                 + (1 - probability) * numpy.log2(1 - probability))
+
+    print numpy.argsort(informativity)
+
+    return numpy.argsort(-informativity)
 
 
 def activeLearning(candidates,
@@ -50,7 +64,8 @@ def activeLearning(candidates,
 
 
     if training_data.shape[0] == 0 :
-        exact_match = (candidates[0][0][1], candidates[0][0][1])
+        rand_int = random.randint(0, len(candidates))
+        exact_match = (candidates[rand_int][0][1], candidates[rand_int][0][1])
         training_data = addTrainingData({1:[exact_match]*2,
                                          0:[]},
                                         data_model,
@@ -90,7 +105,7 @@ def activeLearning(candidates,
 
         if len(training_data) > 0:
 
-            data_model = core.trainModel(training_data, data_model, 1)
+            data_model = core.trainModel(training_data, data_model, .1)
         else:
             raise ValueError('No training pairs given')
 

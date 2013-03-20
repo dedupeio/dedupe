@@ -96,7 +96,9 @@ def readData(filename, set_delim='**'):
             del row['Lat']
             del row['Lng']
             row['Class'] = frozenset(row['Class'].split(set_delim))
-            row['Coauthor'] = frozenset(row['Coauthor'].split(set_delim))
+            row['Coauthor'] = frozenset([author for author
+                                         in row['Coauthor'].split(set_delim)
+                                         if author != 'none'])
                 
             clean_row = [(k, v) for (k, v) in row.items()]
             
@@ -190,7 +192,7 @@ blocked_data = tuple(blocked_data)
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
+threshold = deduper.goodThreshold(blocked_data, recall_weight=1)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
@@ -222,7 +224,7 @@ with open(output_file, 'w') as f:
         writer.writerow(heading_row)
 
         for row in reader:
-            row_id = int(row[0])
+            row_id = int(row[11])
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
