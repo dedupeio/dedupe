@@ -1,8 +1,8 @@
 #!python
 #cython: boundscheck=False, wraparound=False, profile=True
 
-from libc.math cimport sqrt
-import numpy as np
+from libc.math cimport sqrt, log10, pow
+# import numpy as np
 cimport numpy as np
 
 def calculateDocumentFrequency(iterable_list):
@@ -14,8 +14,8 @@ def calculateDocumentFrequency(iterable_list):
     This assumes that the iterables are unique sets, so the
     frequency of any given term in a document is not > 1.
     """
-    n_docs = len(iterable_list)
-    tf_dict = {}
+    cdef float n_docs = len(iterable_list)
+    cdef tf_dict = {}
     for i in iterable_list:
         ## Pick up non-string iterables only
         if hasattr(i, '__iter__'):
@@ -30,24 +30,29 @@ def calculateDocumentFrequency(iterable_list):
             else:
                 tf_dict[i] = 1
 
-    idf_dict = {}
-    for t in tf_dict:
-        idf = np.log10(float(n_docs) / tf_dict[t])
+    cdef idf_dict = {}
+    cdef float idf
+    for t, v in tf_dict.iteritems():
+        idf = log10(n_docs / v)
         idf_dict[t] = idf
                        
     return idf_dict
 
-cpdef float sum_dict_subset(s, d):
-    out = 0
+def sum_dict_subset(s, dict d):
+    cdef float out = 0
+    cdef float val
     for k in s:
-        out += d[k] ** 2
+        val = pow(d[k], 2)
+        out += val
     return out
 
-cpdef float sum_dict_set_intersect(s1, s2, d):
-    out = 0
+def sum_dict_set_intersect(s1, s2, dict d):
+    cdef float out = 0
+    cdef float val
     for k in s1:
         if k in s2:
-            out += d[k] ** 2
+            val = pow(d[k], 2)
+            out += val
     return out
     
 
