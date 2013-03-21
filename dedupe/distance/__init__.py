@@ -4,3 +4,4 @@
 import affinegap
 from haversine import compareLatLong
 from jaccard import compareJaccard
+from cosine import createCosineSimilarity

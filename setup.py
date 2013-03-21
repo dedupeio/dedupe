@@ -30,6 +30,7 @@ setup(
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
                  Extension('dedupe.distance.jaccard', ['src/jaccard.c']),
                  NumpyExtension('dedupe.distance.haversine', ['src/haversine.c'], libraries=['m']),
+                 NumpyExtension('dedupe.distance.cosine', ['src/cosine.c'], libraries=['m']),
                  NumpyExtension('dedupe.lr', sources=['src/lr.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx'],
