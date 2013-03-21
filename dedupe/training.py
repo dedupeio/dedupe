@@ -8,6 +8,7 @@ import blocking
 import core
 import numpy
 import logging
+from getch import *
 
 
 def findUncertainPairs(field_distances, data_model):
@@ -127,7 +128,8 @@ def consoleLabel(uncertain_pairs, fields):
 
         valid_response = False
         while not valid_response:
-            label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
+            print '(y)es / (n)o / (u)nsure / (f)inished'
+            label = getch()
             if label in ['y', 'n', 'u', 'f']:
                 valid_response = True
 
