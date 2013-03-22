@@ -51,9 +51,9 @@ logging.basicConfig(level=log_level)
 # as well as our settings and training file locations
 os.chdir('./examples/patent_example/')
 input_file = 'patstat_dedupe_input.csv'
-output_file = 'patent_example_output.csv'
-settings_file = 'patent_example_learned_settings.json'
-training_file = 'patent_example_training.json'
+output_file = 'patstat_output.csv'
+settings_file = 'patstat_settings.json'
+training_file = 'patstat_training.json'
 
 
 def preProcess(column):
@@ -154,8 +154,8 @@ else:
 
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
-    print 'starting active labeling...'
-    deduper.train(data_sample, dedupe.training.consoleLabel)
+t    print 'starting active labeling...'
+ [B]   deduper.train(data_sample, dedupe.training.consoleLabel)
 
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
