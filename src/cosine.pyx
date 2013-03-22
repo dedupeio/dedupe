@@ -54,7 +54,6 @@ def sum_dict_set_intersect(s1, s2, dict d):
             val = pow(d[k], 2)
             out += val
     return out
-    
 
 def createCosineSimilarity(iterable_list):
     """
@@ -77,3 +76,23 @@ def createCosineSimilarity(iterable_list):
             return numer / denom
 
     return cosine
+
+class CosineSimilarity:
+    """
+    Defines a class version of the closure. The pure closure
+    version is slightly faster but can't be saved (pickled) in settings file.
+    """
+    def __init__(self, iterable_list):
+        self.iterable_list = iterable_list
+        self.dfd = calculateDocumentFrequency(self.iterable_list)
+
+    def __call__(self, s1, s2):
+        cdef float numer = sum_dict_set_intersect(s1, s2, self.dfd)
+        cdef float denom_a = sqrt(sum_dict_subset(s1, self.dfd))
+        cdef float denom_b = sqrt(sum_dict_subset(s2, self.dfd))
+        cdef float denom = denom_a * denom_b
+        
+        if denom == 0:
+            return 0.0
+        else:
+            return numer / denom

@@ -1,5 +1,5 @@
 import unittest
-from dedupe.distance.cosine import createCosineSimilarity
+from dedupe.distance.cosine import createCosineSimilarity, CosineSimilarity
 import numpy
 
 class TestCosine(unittest.TestCase):
@@ -38,5 +38,29 @@ class TestCosine(unittest.TestCase):
         cosine_sim = cosine(self.ilist[0], self.ilist[0])
         self.assertAlmostEqual(cosine_sim, 1, places=5)
 
+class TestCosineClass(unittest.TestCase):
+    def setUp(self):
+        self.ilist = [('a', 'b', 'c'),
+                      ('b', 'c', 'd'),
+                      ('d', 'e', 'f')
+                      ]
+
+    def test_cosine(self):
+        cosine = CosineSimilarity(self.ilist)
+        cosine_sim = cosine(self.ilist[0],
+                            self.ilist[1])
+        self.assertAlmostEqual(cosine_sim, 0.378, places=3)
+
+    def test_cosine_na(self):
+        cosine = CosineSimilarity(self.ilist)
+        cosine_sim = cosine(self.ilist[0], ())
+        self.assertAlmostEqual(cosine_sim, 0, places=5)
+        
+    def test_cosine_identical(self):
+        cosine = CosineSimilarity(self.ilist)
+        cosine_sim = cosine(self.ilist[0], self.ilist[0])
+        self.assertAlmostEqual(cosine_sim, 1, places=5)
+
+    
 if __name__ == '__main__':
     unittest.main()
