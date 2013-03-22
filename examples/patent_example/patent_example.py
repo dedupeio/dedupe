@@ -91,9 +91,9 @@ def readData(filename, set_delim='**'):
     with open(filename) as f:
         reader = csv.DictReader(f)
         for idx, row in enumerate(reader):
-            for k in row:
-                row[k] = preProcess(row[k])
-            row['LatLong'] = str(row['Lat']) + '**' + str(row['Lng'])
+            # for k in row:
+            #     row[k] = preProcess(row[k])
+            row['LatLong'] = (float(row['Lat']), float(row['Lng']))
             del row['Lat']
             del row['Lng']
             row['Class'] = frozenset(row['Class'].split(set_delim))
@@ -154,8 +154,8 @@ else:
 
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
-t    print 'starting active labeling...'
- [B]   deduper.train(data_sample, dedupe.training.consoleLabel)
+    print 'starting active labeling...'
+    deduper.train(data_sample, dedupe.training.consoleLabel)
 
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
