@@ -316,7 +316,7 @@ def findOptimumBlocking(training_dupes,
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
     # Chvatal, 1979
-    print found_dupes
+    # print found_dupes
 
     final_predicate_set = []
     n_training_dupes = len(training_dupes)

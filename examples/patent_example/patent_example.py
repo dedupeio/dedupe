@@ -103,12 +103,18 @@ def readData(filename, set_delim='**'):
             clean_row = [(k, v) for (k, v) in row.items()]
             
             data_d[idx] = dedupe.core.frozendict(clean_row)
-
+            
     return data_d
 
 
 print 'importing data ...'
 data_d = readData(input_file)
+
+## Build the comparators
+coauthors = [row['Coauthor'] for idx, row in data_d.items()]
+classes = [row['Class'] for idx, row in data_d.items()]
+class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
+coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
 # ## Training
 
@@ -119,13 +125,12 @@ if os.path.exists(settings_file):
 else:
     # To train dedupe, we feed it a random sample of records.
     data_sample = dedupe.dataSample(data_d, 150000)
-
     # Define the fields dedupe will pay attention to
     fields = {
         'Name': {'type': 'String', 'Has Missing':True},
         'LatLong': {'type': 'LatLong', 'Has Missing':True},
-        'Class': {'type': 'Set'},
-        'Coauthor': {'type': 'Set'},
+        'Class': {'type': 'Custom', 'comparator':class_comparator},
+        'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator},
         }
 
     # Create a new deduper object and pass our data model to it.
@@ -159,7 +164,7 @@ else:
 # ## Blocking
 
 
-deduper.blocker_types.update({'Set': (dedupe.predicates.wholeSetPredicate,
+deduper.blocker_types.update({'Custom': (dedupe.predicates.wholeSetPredicate,
                                       dedupe.predicates.commonSetElementPredicate),
                               'LatLong' : (dedupe.predicates.latLongGridPredicate,)})
 
@@ -173,6 +178,10 @@ blocker = deduper.blockingFunction()
 # Save our weights and predicates to disk.
 # If the settings file exists, we will skip all the training and learning
 deduper.writeSettings(settings_file)
+
+## Generate the tfidf canopy as needed
+
+blocker.tfIdfBlocks(full_data)
 
 # Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
@@ -223,8 +232,8 @@ with open(output_file, 'w') as f:
         heading_row.insert(0, 'Cluster ID')
         writer.writerow(heading_row)
 
-        for row in reader:
-            row_id = int(row[11])
+        for idx, row in enumerate(reader):
+            row_id = int(idx)
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
