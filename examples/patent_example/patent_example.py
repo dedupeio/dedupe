@@ -180,8 +180,10 @@ print 'Learned blocking weights in', time_block_weights - time_start, 'seconds'
 deduper.writeSettings(settings_file)
 
 ## Generate the tfidf canopy as needed
-
+print 'generating tfidf index'
+full_data = ((k, data_d[k]) for k in data_d)
 blocker.tfIdfBlocks(full_data)
+del full_data
 
 # Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
@@ -211,7 +213,7 @@ threshold_data = tuple(threshold_data)
 
 print 'Computing threshold'
 threshold = deduper.goodThreshold(threshold_data, recall_weight=1)
-
+del threshold_data
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
