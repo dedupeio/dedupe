@@ -30,16 +30,13 @@ cdef float haversine(float lon1, float lat1, float lon2, float lat2):
     cdef float km = 6371 * c
     return km
 
-def split_latlong(latlong, delim):
-    lat, lng = latlong.split(delim)
-    return float(lat), float(lng)
-
-cpdef float compareLatLong(char *latlong1, char *latlong2, delim='**'):
-    lat1, long1 = split_latlong(latlong1, delim)
-    lat2, long2 = split_latlong(latlong2, delim)
-    dist = haversine(long1, lat1, long2, lat2)
+cpdef float compareLatLong(tuple latlong1, tuple latlong2):
+    cdef float lat1, long1, lat2, long2
+    lat1, long1 = latlong1
+    lat2, long2 = latlong2
 
     if (lat1 == 0.0 and long1 == 0.0) or (lat2 == 0.0 and long2 == 0.0) :
         return NAN
 
+    cdef float dist = haversine(long1, lat1, long2, lat2)
     return dist
