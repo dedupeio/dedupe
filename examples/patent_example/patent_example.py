@@ -113,8 +113,8 @@ data_d = readData(input_file)
 ## Build the comparators
 coauthors = [row['Coauthor'] for idx, row in data_d.items()]
 classes = [row['Class'] for idx, row in data_d.items()]
-class_comparator = dedupe.distance.cosine.createCosineSimilarity(classes)
-coauthor_comparator = dedupe.distance.cosine.createCosineSimilarity(coauthors)
+class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
+coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
 # ## Training
 
@@ -179,6 +179,10 @@ blocker = deduper.blockingFunction()
 # If the settings file exists, we will skip all the training and learning
 deduper.writeSettings(settings_file)
 
+## Generate the tfidf canopy as needed
+
+blocker.tfIdfBlocks(full_data)
+
 # Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
@@ -228,8 +232,8 @@ with open(output_file, 'w') as f:
         heading_row.insert(0, 'Cluster ID')
         writer.writerow(heading_row)
 
-        for row in reader:
-            row_id = int(row[11])
+        for idx, row in enumerate(reader):
+            row_id = int(idx)
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
