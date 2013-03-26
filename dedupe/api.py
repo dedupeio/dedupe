@@ -469,9 +469,12 @@ def _initializeDataModel(fields):
     """Initialize a data_model with a field definition"""
     data_model = {}
     data_model['fields'] = OrderedDict()
+
+    interaction_terms = {}
+
     for (k, v) in fields.iteritems():
         if v.__class__ is not dict:
-            raise ValueError("foo Incorrect field specification: field "
+            raise ValueError("Incorrect field specification: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
@@ -483,7 +486,11 @@ def _initializeDataModel(fields):
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] not in ['String', 'LatLong', 'Set', 'Custom']:
+        elif v['type'] not in ['String',
+                               'LatLong',
+                               'Set',
+                               'Custom',
+                               'Interaction']:
 
             raise ValueError("Invalid field type: field "
                              "specifications are dictionaries that must "
@@ -491,36 +498,54 @@ def _initializeDataModel(fields):
                              "{'Phone': {type: 'String'}}"
                              )
         elif v['type'] == 'LatLong' :
-             if 'comparator' in v :
-                 raise ValueError("Custom comparators can only be defined "
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
                                   "for fields of type 'Custom'")
-             else :
-                 v['comparator'] = compareLatLong
+            else :
+                v['comparator'] = compareLatLong
 
         elif v['type'] == 'Set' :
-             if 'comparator' in v :
-                 raise ValueError("Custom comparators can only be defined "
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
                                   "for fields of type 'Custom'")
-             else :
-                 v['comparator'] = compareJaccard
+            else :
+                v['comparator'] = compareJaccard
 
 
         elif v['type'] == 'String' :
-             if 'comparator' in v :
-                 raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-             else :
-                 v['comparator'] = normalizedAffineGapDistance
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
+                                 "for fields of type 'Custom'")
+            else :
+                v['comparator'] = normalizedAffineGapDistance
 
-
-
-        if v['type'] == 'Custom' and 'comparator' not in v :
+        elif v['type'] == 'Custom' and 'comparator' not in v :
             raise ValueError("For 'Custom' field types you must define "
                              "a 'comparator' fucntion in the field "
                              "definition. ")
+
+        elif v['type'] == 'Interaction' :
+            if 'Interaction Fields' in v :
+                 for field in v['Interaction Fields'] :
+                     if 'Has Missing' in fields[field] :
+                         v.update({'Has Missing' : True})
+                         break
+            else :
+                raise ValueError('No "Interaction Fields" defined')
+
+            v.update({'weight': 0})
+            interaction_terms[k] = v
+            # We want the interaction terms to be at the end of of the
+            # ordered dict so we'll add them after we finish
+            # processing all the other fields
+            continue
+            
         
-        v.update({'weight': 0})
+
         data_model['fields'][k] = v
+
+
+    data_model['fields'].update(interaction_terms)
 
 
     for k, v in data_model['fields'].items() :

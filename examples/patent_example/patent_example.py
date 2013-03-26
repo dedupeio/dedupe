@@ -20,10 +20,16 @@ import re
 import collections
 import logging
 import optparse
+import math
+import sys
 
 import AsciiDammit
 
 import dedupe
+
+# Allow for unpickling of user-defined comparator
+from dedupe.distance import cosine
+sys.modules['cosine'] = cosine
 
 # ## Logging
 
@@ -49,7 +55,7 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory and set up our input and out put paths,
 # as well as our settings and training file locations
 os.chdir('./examples/patent_example/')
-input_file = 'patent_data_example.csv'
+input_file = 'patent_data_example_nc.csv'
 output_file = 'patent_example_output.csv'
 settings_file = 'patent_example_learned_settings.json'
 training_file = 'patent_example_training.json'
@@ -116,6 +122,12 @@ classes = [row['Class'] for idx, row in data_d.items()]
 class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
 coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
+def idf(i, j) :
+    i = int(i)
+    j = int(j)
+    max_i = max([i,j])
+    return math.log(len(data_d)/int(max_i))
+
 # ## Training
 
 if os.path.exists(settings_file):
@@ -124,13 +136,16 @@ if os.path.exists(settings_file):
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 150000)
+    data_sample = dedupe.dataSample(data_d, 600000)
     # Define the fields dedupe will pay attention to
     fields = {
         'Name': {'type': 'String', 'Has Missing':True},
         'LatLong': {'type': 'LatLong', 'Has Missing':True},
         'Class': {'type': 'Custom', 'comparator':class_comparator},
         'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator},
+        'Name Count' :{'type' : 'Custom', 'comparator' : idf },
+        'Name Count-Coauthor' : {'type' : 'Interaction',
+                                 'Interaction Fields' : ['Name Count', 'Coauthor']},
         }
 
     # Create a new deduper object and pass our data model to it.
@@ -178,10 +193,6 @@ blocker = deduper.blockingFunction()
 # Save our weights and predicates to disk.
 # If the settings file exists, we will skip all the training and learning
 deduper.writeSettings(settings_file)
-
-## Generate the tfidf canopy as needed
-
-blocker.tfIdfBlocks(full_data)
 
 # Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
@@ -233,7 +244,7 @@ with open(output_file, 'w') as f:
         writer.writerow(heading_row)
 
         for idx, row in enumerate(reader):
-            row_id = int(idx)
+            row_id = idx
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)

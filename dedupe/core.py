@@ -100,14 +100,25 @@ def buildFieldDistances(record_pairs, fields):
 
     field_comparators = [(field, v['comparator'])
                          for field, v in fields.items()
-                         if v['type'] != 'Missing Data']
+                         if v['type'] not in ('Missing Data',
+                                              'Interaction')]
 
 
     missing_field_indices = [i for i, (field, v) 
                              in enumerate(fields.items())
                              if 'Has Missing' in v and v['Has Missing']]
 
+    field_names = fields.keys()
+
+    interactions = []
+    for field in field_names :
+        if fields[field]['type'] == 'Interaction' :
+            interaction_indices = []
+            for interaction_field in fields[field]['Interaction Fields'] :
+                interaction_indices.append(field_names.index(interaction_field))
+            interactions.append(interaction_indices)
     
+                               
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 
@@ -115,13 +126,32 @@ def buildFieldDistances(record_pairs, fields):
                                      'f4')
     field_distances = field_distances.reshape(-1,len(field_comparators))
 
+    interaction_distances = numpy.empty((field_distances.shape[0],
+                                         len(interactions)))
+
+    for i, interaction in enumerate(interactions) :
+        a = numpy.prod(field_distances[...,interaction], axis=1)
+        interaction_distances[...,i] = a
+       
+    field_distances = numpy.concatenate((field_distances,
+                                         interaction_distances),
+                                        axis=1)
+
+        
+
     missing_data = numpy.isnan(field_distances)
 
     field_distances[missing_data] = 0
 
-    return numpy.concatenate((field_distances,
-                              1-missing_data[:,missing_field_indices]),
-                             axis=1)
+    missing_indicators = 1-missing_data[:,missing_field_indices]
+
+    
+
+    field_distances = numpy.concatenate((field_distances,
+                                         1-missing_data[:,missing_field_indices]),
+                                        axis=1)
+
+    return field_distances
 
 
 def scorePairs(field_distances, data_model):

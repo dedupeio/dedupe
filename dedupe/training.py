@@ -20,7 +20,7 @@ def findUncertainPairs(field_distances, data_model):
 
     probability = core.scorePairs(field_distances, data_model)
 
-    pp = .05
+    pp = .50
     p_max = (2 - pp)/2
     print p_max
 
@@ -28,14 +28,12 @@ def findUncertainPairs(field_distances, data_model):
     informativity[probability < p_max] /= p_max
     informativity[probability >= p_max] = (1 - probability[probability >= p_max])/(1-p_max)
 
-    print informativity
-    print probability
 
 
     #uncertainties = (probability * numpy.log2(probability) 
     #                 + (1 - probability) * numpy.log2(1 - probability))
 
-    print numpy.argsort(informativity)
+
 
     return numpy.argsort(-informativity)
 
@@ -52,7 +50,8 @@ def activeLearning(candidates,
     """
 
     fields = [field for field in data_model['fields']
-              if data_model['fields'][field]['type'] != 'Missing Data']
+              if data_model['fields'][field]['type'] not in ('Missing Data',
+                                                             'Interaction')]
 
 
     duplicates = []

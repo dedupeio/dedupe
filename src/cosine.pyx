@@ -33,12 +33,16 @@ def calculateDocumentFrequency(iterable_list):
     cdef idf_dict = {}
     cdef float idf
     for t, v in tf_dict.iteritems():
-        idf = log10(n_docs / v)
+        if v > n_docs * 0.05 :
+            print t , v
+            idf = 0
+        else :
+            idf = log10(n_docs / v)
         idf_dict[t] = idf
                        
     return idf_dict
 
-def sum_dict_subset(s, dict d):
+def sum_dict_subset(frozenset s, dict d):
     cdef float out = 0
     cdef float val
     for k in s:
@@ -46,13 +50,12 @@ def sum_dict_subset(s, dict d):
         out += val
     return out
 
-def sum_dict_set_intersect(s1, s2, dict d):
+def sum_dict_set_intersect(frozenset s1, frozenset s2, dict d):
     cdef float out = 0
     cdef float val
-    for k in s1:
-        if k in s2:
-            val = pow(d[k], 2)
-            out += val
+    for k in s1.intersection(s2):
+        val = pow(d[k], 2)
+        out += val
     return out
 
 def createCosineSimilarity(iterable_list):
@@ -77,11 +80,12 @@ def createCosineSimilarity(iterable_list):
 
     return cosine
 
-class CosineSimilarity:
+class CosineSimilarity :
     """
     Defines a class version of the closure. The pure closure
     version is slightly faster but can't be saved (pickled) in settings file.
     """
+
     def __init__(self, iterable_list):
         self.iterable_list = iterable_list
         self.dfd = calculateDocumentFrequency(self.iterable_list)
@@ -96,3 +100,6 @@ class CosineSimilarity:
             return 0.0
         else:
             return numer / denom
+
+
+
