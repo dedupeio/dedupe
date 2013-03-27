@@ -98,6 +98,8 @@ def readData(filename, set_delim='**'):
         for idx, row in enumerate(reader):
             for k in row:
                 row[k] = preProcess(row[k])
+            if row['Address'] == row['Locality'] :
+                row['Address'] = ''
             row['LatLong'] = (float(row['Lat']), float(row['Lng']))
             del row['Lat']
             del row['Lng']
@@ -141,11 +143,14 @@ else:
     fields = {
         'Name': {'type': 'String', 'Has Missing':True},
         'LatLong': {'type': 'LatLong', 'Has Missing':True},
+        'Address': {'type': 'String', 'Has Missing':True},
         'Class': {'type': 'Custom', 'comparator':class_comparator},
         'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator},
         'Name Count' :{'type' : 'Custom', 'comparator' : idf },
         'Name Count-Coauthor' : {'type' : 'Interaction',
                                  'Interaction Fields' : ['Name Count', 'Coauthor']},
+        'Name Count-Class' : {'type' : 'Interaction',
+                              'Interaction Fields' : ['Name Count', 'Class']},
         }
 
     # Create a new deduper object and pass our data model to it.
