@@ -25,6 +25,7 @@ import time
 import AsciiDammit
 
 import dedupe
+from dedupe.distance import cosine
 
 # ## Logging
 
@@ -207,6 +208,7 @@ blocked_data = tuple(blocked_data)
 #
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
+import random
 subset = random.sample(range(len(blocked_data)), 1000)
 threshold_data = [blocked_data[i] for i in subset]
 threshold_data = tuple(threshold_data)
