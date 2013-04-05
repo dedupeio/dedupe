@@ -1,7 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from distutils.core import setup, Extension
+try:
+    from setuptools import setup, Extension
+except ImportError :
+    raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
 
 # from Michael Hoffman's http://www.ebi.ac.uk/~hoffman/software/sunflower/

@@ -70,7 +70,8 @@ c.execute("CREATE TABLE raw_table "
           " vendor_zip VARCHAR(10), description VARCHAR(90), "
           " election_type VARCHAR(10), election_year VARCHAR(10), "
           " report_period_begin VARCHAR(10), report_period_end VARCHAR(33), "
-          " committee_name VARCHAR(70), committee_id VARCHAR(37))")
+          " committee_name VARCHAR(70), committee_id VARCHAR(37)) "
+          "CHARACTER SET utf8 COLLATE utf8_unicode_ci")
 
 
 conn.commit()
@@ -98,15 +99,17 @@ c.execute("CREATE TABLE donors "
           " last_name VARCHAR(70), first_name VARCHAR(35), "
           " address_1 VARCHAR(35), address_2 VARCHAR(36), "
           " city VARCHAR(20), state VARCHAR(15), "
-          " zip VARCHAR(11))")
+          " zip VARCHAR(11)) "
+          "CHARACTER SET utf8 COLLATE utf8_unicode_ci")
 c.execute("INSERT INTO donors "
           "(first_name, last_name, address_1,"
           " address_2, city, state, zip) "
           "SELECT DISTINCT "
-          "first_name, last_name, address_1, "
-          "address_2, city, state, zip "
+          "TRIM(first_name), TRIM(last_name), TRIM(address_1), "
+          "TRIM(address_2), TRIM(city), TRIM(state), TRIM(zip) "
           "FROM raw_table")
 conn.commit()
+
 
 print 'creating indexes on donors table'
 c.execute("CREATE INDEX donors_donor_info ON donors "
@@ -118,7 +121,8 @@ conn.commit()
 
 print 'creating recipients table...'
 c.execute("CREATE TABLE recipients "
-          "(recipient_id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(70))")
+          "(recipient_id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(70)) "
+          "CHARACTER SET utf8 COLLATE utf8_unicode_ci")
 
 c.execute("INSERT IGNORE INTO recipients "
           "SELECT DISTINCT committee_id, committee_name FROM raw_table")
@@ -127,7 +131,7 @@ conn.commit()
 print 'creating contributions table'
 c.execute("CREATE TABLE contributions "
           "(contribution_id INT, donor_id INT, recipient_id INT, "
-          " report_type VARCHAR(24), date_recieved VARCHAR(10), "
+          " report_type VARCHAR(24), date_recieved DATE, "
           " loan_amount VARCHAR(12), amount VARCHAR(23), "
           " receipt_type VARCHAR(23), employer VARCHAR(70), "
           " occupation VARCHAR(40), vendor_last_name VARCHAR(70), "
@@ -136,25 +140,28 @@ c.execute("CREATE TABLE contributions "
           " vendor_city VARCHAR(20), vendor_state VARCHAR(10), "
           " vendor_zip VARCHAR(10), description VARCHAR(90), "
           " election_type VARCHAR(10), election_year VARCHAR(10), "
-          " report_period_begin VARCHAR(10), report_period_end VARCHAR(33))")
+          " report_period_begin DATE, report_period_end DATE) "
+          "CHARACTER SET utf8 COLLATE utf8_unicode_ci")
 
 
 c.execute("INSERT INTO contributions "
           "SELECT reciept_id, donors.donor_id, committee_id, "
-          " report_type, date_recieved, loan_amount, amount, "
+          " report_type, STR_TO_DATE(date_recieved, '%m/%d/%Y'), "
+          " loan_amount, amount, "
           " receipt_type, employer, occupation, vendor_last_name , "
           " vendor_first_name, vendor_address_1, vendor_address_2, "
           " vendor_city, vendor_state, vendor_zip, description, "
-          " election_type, election_year, report_period_begin, "
-          " report_period_end "
+          " election_type, election_year, "
+          " STR_TO_DATE(report_period_begin, '%m/%d/%Y'), "
+          " STR_TO_DATE(report_period_end, '%m/%d/%Y') "
           "FROM raw_table JOIN donors ON "
-          "donors.first_name = raw_table.first_name AND "
-          "donors.last_name = raw_table.last_name AND "
-          "donors.address_1 = raw_table.address_1 AND "
-          "donors.address_2 = raw_table.address_2 AND "
-          "donors.city = raw_table.city AND "
-          "donors.state = raw_table.state AND "
-          "donors.zip = raw_table.zip")
+          "donors.first_name = TRIM(raw_table.first_name) AND "
+          "donors.last_name = TRIM(raw_table.last_name) AND "
+          "donors.address_1 = TRIM(raw_table.address_1) AND "
+          "donors.address_2 = TRIM(raw_table.address_2) AND "
+          "donors.city = TRIM(raw_table.city) AND "
+          "donors.state = TRIM(raw_table.state) AND "
+          "donors.zip = TRIM(raw_table.zip)")
 conn.commit()
 
 print 'creating indexes on contributions'
@@ -164,6 +171,21 @@ c.execute("CREATE INDEX recipient_idx ON contributions (recipient_id)")
 
 
 conn.commit()
+
+print 'nullifying empty strings in donors'
+c.execute("UPDATE donors "
+          "SET "
+          "first_name = CASE first_name WHEN '' THEN NULL ELSE first_name END, "
+          "last_name = CASE last_name WHEN '' THEN NULL ELSE last_name END, "
+          "address_1 = CASE address_1 WHEN '' THEN NULL ELSE address_1 END, "
+          "address_2 = CASE address_2 WHEN '' THEN NULL ELSE address_2 END, "
+          "city = CASE city WHEN '' THEN NULL ELSE city END, "
+          "state = CASE state WHEN '' THEN NULL ELSE state END, "
+          "zip = CASE zip WHEN '' THEN NULL ELSE zip END")
+
+
+conn.commit()
+
 
 c.close()
 conn.close()

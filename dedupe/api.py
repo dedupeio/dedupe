@@ -135,7 +135,7 @@ class Dedupe:
 
         n_fields = len(self.data_model['fields'])
 
-        training_dtype = [('label', 'i4'), ('distances', 'f4', n_fields)]
+        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = None
@@ -367,7 +367,9 @@ class Dedupe:
         """Learn a good blocking of the data"""
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model)
+                                                                       self.data_model,
+                                                                       sample_size=32000)
+
         self.training_pairs[0].extend(confident_nonduplicates)
 
 
@@ -378,15 +380,13 @@ class Dedupe:
         full_string_records = {}
         fields = [k for k,v in self.data_model['fields'].items()
                   if v['type'] == 'String'] 
-        for pair in self.data_sample[0:2000]:
-            for (k, v) in pair:
-                full_string_records[k] = ' '.join(v[field] for field in fields)
-        df_index = tfidf.documentFrequency(full_string_records)
 
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
-                                                           df_index,
+                                                           predicate_functions,
+                                                           fields,
+                                                           tfidf_thresholds,
                                                            eta,
                                                            epsilon)
 
