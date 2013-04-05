@@ -341,7 +341,7 @@ class Dedupe:
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model,
-                                                                       sample_size=4000)
+                                                                       sample_size=32000)
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
@@ -361,17 +361,16 @@ class Dedupe:
         fields = [k for k,v in self.data_model['fields'].items()
                   if v['type'] != 'Missing Data'] 
 
-        for pair in self.data_sample[0:4000]:
-            for (k, v) in pair:
-                full_string_records[k] = ' '.join(v[field] for field in fields)
+        ## for pair in self.data_sample[0:32000]:
+        ##     for (k, v) in pair:
+        ##         full_string_records[k] = ' '.join(v[field] for field in fields)
 
-        df_index = tfidf.documentFrequency(full_string_records)
+        ## df_index = tfidf.documentFrequency(full_string_records)
 
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_functions,
                                                            fields,
                                                            tfidf_thresholds,
-                                                           df_index,
                                                            eta,
                                                            epsilon)
 

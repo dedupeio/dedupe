@@ -99,7 +99,7 @@ def invertIndex(data_d, tfidf_fields, df_index=None):
 
     num_docs = len(token_vector.values()[0])
 
-    stop_word_threshold = max(num_docs * 0.025, 1000)
+    stop_word_threshold = max(num_docs * 0.025, 100)
     logging.info('Stop word threshold: %(stop_thresh)d',
                  {'stop_thresh' :stop_word_threshold})
 
@@ -210,7 +210,6 @@ def blockTraining(training_pairs,
                   predicate_functions,
                   fields,
                   tfidf_thresholds=None,
-                  df_index=None,
                   eta=.1,
                   epsilon=.1):
     '''Takes in a set of training pairs and predicates and tries to find a good set of blocking rules.'''
@@ -221,8 +220,8 @@ def blockTraining(training_pairs,
      _overlap) = _initializeTraining(training_pairs, 
                                      fields,
                                      predicate_functions, 
-                                     tfidf_thresholds,
-                                     df_index)
+                                     tfidf_thresholds)
+
 
     coverage_threshold = eta * len(training_distinct)
     logging.info("coverage threshold: %s", coverage_threshold)
@@ -275,8 +274,8 @@ def blockTraining(training_pairs,
 def _initializeTraining(training_pairs,
                         fields,
                         predicate_functions,
-                        tfidf_thresholds,
-                        df_index):
+                        tfidf_thresholds) :
+
 
     training_dupes = (training_pairs[1])[:]
     training_distinct = (training_pairs[0])[:]
@@ -292,61 +291,32 @@ def _initializeTraining(training_pairs,
 
     if tfidf_predicates:
         _overlap = canopyOverlap(predicate_set, 
-                                 training_dupes + training_distinct, 
-                                 df_index)
+                                 training_dupes + training_distinct)
+
     else:
-        _overlap = (defaultdict(set),
-                    defaultdict(lambda : defaultdict(set)),
-                    set([]),
-                    set([]))
+        _overlap = Overlap()
+
+    _overlap = simplePredicateOverlap(predicate_functions,
+                                      training_dupes + training_distinct,
+                                      _overlap)
 
     return (training_dupes, training_distinct, predicate_set, _overlap)
 
+    
+        
 
+#@profile
 def predicateCoverage(predicate_set,
                       pairs,
                       _overlap,
                       return_blocks=False):
-    pairs = set(pairs)
     coverage = defaultdict(list)
     predicate_blocks = {}
 
-    field_predicates = {}
-
-    overlapping, blocks, overlapping_set, disjoint = _overlap
-
-    basic_predicates = set([])
-    for predicate in predicate_set :
-        basic_predicates.update(predicate)
-
-  
-    for basic_predicate in basic_predicates :
-        (F, field) = basic_predicate
-        for pair in pairs :
-            if (pair, basic_predicate) in disjoint or (pair, basic_predicate) in overlapping_set :
-                continue
-        
-
-            field_predicate_1 = F(pair[0][field])
-
-            if field_predicate_1:
-                field_predicate_2 = F(pair[1][field])
-
-                if field_predicate_2 and set(field_predicate_2) & set(field_predicate_1) :
-                    overlapping[basic_predicate].add(pair)
-                    overlapping_set.add((pair, basic_predicate))
-
-                    if return_blocks :
-                        for field_pred in set(field_predicate_2) & set(field_predicate_1) :               
-                            blocks[basic_predicate][field_pred].add(pair)
-
-                else:
-                    disjoint.add((pair, basic_predicate))
-            else:
-                disjoint.add((pair, basic_predicate))
+    pairs = set(pairs)
 
     _overlapping = defaultdict(set)
-    for basic_predicate, covered_pairs in overlapping.iteritems() :
+    for basic_predicate, covered_pairs in _overlap.overlapping.iteritems() :
         _overlapping[basic_predicate] = pairs.intersection(covered_pairs)
 
     for predicate in predicate_set :
@@ -357,19 +327,22 @@ def predicateCoverage(predicate_set,
 
     if return_blocks :
         _blocks = defaultdict(lambda : defaultdict(set))
-        for basic_predicate in blocks :
-            for block_key, block_group in blocks[basic_predicate].iteritems() :
-                _blocks[basic_predicate][block_key] = pairs.intersection(block_group)
+        for basic_predicate in _overlap.blocks :
+            for block_key, block_group in _overlap.blocks[basic_predicate].iteritems() :
+
+                block_group = pairs.intersection(block_group)
+                if block_group :
+                    _blocks[basic_predicate][block_key] = block_group
         for predicate in predicate_set :
-            block_groups = list(product(*(_blocks[basic_predicate].values()
-                                          for basic_predicate
-                                          in predicate)))
+            block_groups = product(*(_blocks[basic_predicate].values()
+                                     for basic_predicate
+                                     in predicate))
+
 
             block_groups = (set.intersection(*block_group)
                             for block_group in block_groups)
             predicate_blocks[predicate] = block_groups
 
-    _overlap = (overlapping, blocks, overlapping_set, disjoint)
 
     if return_blocks:
         return (coverage, predicate_blocks, _overlap)
@@ -441,27 +414,50 @@ def disjunctivePredicates(predicate_set):
 
     return predicate_set
 
-def canopyOverlap(tfidf_predicates, record_pairs, df_index):
+class Overlap() :
+    def __init__(self) :
+        self.overlapping = defaultdict(set)
+        self.blocks = defaultdict(lambda : defaultdict(set))
+    
+def simplePredicateOverlap(predicates,
+                           pairs,
+                           overlap) :
 
-    overlapping = defaultdict(set)
-    overlapping_set = set([])
-    disjoint = set([])
-    blocks = defaultdict(lambda : defaultdict(set))
+    for basic_predicate in predicates :
+        (F, field) = basic_predicate        
+        for pair in pairs :
+            field_predicate_1 = F(pair[0][field])
+
+            if field_predicate_1:
+                field_predicate_2 = F(pair[1][field])
+
+                if field_predicate_2 :
+                    field_preds = set(field_predicate_2) & set(field_predicate_1)
+                    if field_preds :
+                        overlap.overlapping[basic_predicate].add(pair)
+
+                    for field_pred in field_preds :
+                        overlap.blocks[basic_predicate][field_pred].add(pair)
+
+    return overlap
+
+
+
+def canopyOverlap(tfidf_predicates, record_pairs) :
+
+    overlap = Overlap()
 
     docs = list(set(chain(*record_pairs)))
     enumerated_docs = zip(docs, docs)
 
     blocker = Blocker(tfidf_predicates)
-    blocker.tfIdfBlocks(enumerated_docs, df_index)
+    blocker.tfIdfBlocks(enumerated_docs)
 
     for (threshold, field) in blocker.tfidf_predicates:
         canopy = blocker.canopies[threshold.__name__ + field]
         for record_1, record_2 in record_pairs :
             if canopy[record_1] == canopy[record_2]:
-                overlapping[(threshold, field)].add((record_1, record_2))
-                overlapping_set.add(((record_1, record_2), (threshold, field)))
-                blocks[(threshold, field)][canopy[record_1]].add((record_1, record_2))
-            else:
-                disjoint.add(((record_1, record_2), (threshold, field)))
+                overlap.overlapping[(threshold, field)].add((record_1, record_2))
+                overlap.blocks[(threshold, field)][canopy[record_1]].add((record_1, record_2))
 
-    return overlapping, blocks, overlapping_set, disjoint
+    return overlap
