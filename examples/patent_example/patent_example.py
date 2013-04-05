@@ -21,12 +21,13 @@ import collections
 import logging
 import optparse
 import time
+import sys
 
 import AsciiDammit
 
 import dedupe
 from dedupe.distance import cosine
-
+sys.modules['cosine'] = cosine
 # ## Logging
 
 # Dedupe uses Python logging to show or suppress verbose output. Added
@@ -51,7 +52,7 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory and set up our input and out put paths,
 # as well as our settings and training file locations
 os.chdir('./examples/patent_example/')
-input_file = 'patstat_dedupe_input.csv'
+input_file = 'patstat_dedupe_input_consolidated.csv'
 output_file = 'patstat_output.csv'
 settings_file = 'patstat_settings.json'
 training_file = 'patstat_training.json'
@@ -125,7 +126,7 @@ if os.path.exists(settings_file):
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 150000)
+    data_sample = dedupe.dataSample(data_d, 600000)
     # Define the fields dedupe will pay attention to
     fields = {
         'Name': {'type': 'String', 'Has Missing':True},
@@ -171,7 +172,7 @@ time_start = time.time()
 print 'blocking...'
 # Initialize our blocker, which determines our field weights and blocking 
 # predicates based on our training data
-blocker = deduper.blockingFunction(ppc=0.001, uncovered_dupes=5)
+blocker = deduper.blockingFunction(ppc=0.01, uncovered_dupes=5)
 
 time_block_weights = time.time()
 print 'Learned blocking weights in', time_block_weights - time_start, 'seconds'
@@ -187,10 +188,30 @@ blocker.tfIdfBlocks(full_data)
 del full_data
 
 # Load all the original data in to memory and place
-# them in to blocks. Each record can be blocked in many ways, so for
-# larger data, memory will be a limiting factor.
+# them in to blocks. Return only the block_id: unique_id keys
+def return_block_map(d, b):
+    block_map = collections.defaultdict(list)
+    for record_id, record in d.iteritems():
+        for block_id in b((record_id, record)):
+            block_map[block_id].append(record_id)
+    return block_map
 
-blocked_data = dedupe.blockData(data_d, blocker)
+import numpy as np
+def compute_block_summary(block):
+    block_count = len(block)
+    block_len = [len(v) for k,v in block.iteritems()]
+    max_block_len = np.max(block_len)
+    median_block_len = np.median(block_len)
+    print 'Number of blocks: %s' % block_count
+    print 'Maximum block length: %s' % max_block_len
+    print 'Median block length: %s' % median_block_len
+    return 0
+
+blocking_map = return_block_map(data_d, blocker)
+compute_block_summary(blocking_map)
+
+## Print some blocking summary statistics
+keys_to_block = [k for k in blocking_map if len(blocking_map[k]) > 1]
 
 ## Save the weights and predicates
 time_block = time.time()
@@ -199,7 +220,7 @@ print 'Writing out settings'
 deduper.writeSettings(settings_file)
 
 # Satore all of our blocked data in to memory
-blocked_data = tuple(blocked_data)
+# blocked_data = tuple(blocked_data)
 
 # ## Clustering
 
@@ -209,19 +230,45 @@ blocked_data = tuple(blocked_data)
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 import random
-subset = random.sample(range(len(blocked_data)), 1000)
-threshold_data = [blocked_data[i] for i in subset]
-threshold_data = tuple(threshold_data)
+def return_threshold_data(block_map, d, n_samples=1000):
+    """
+    This needs to return n_samples tuple blocks
+    """
+    subset = random.sample(range(len(block_map.keys())), n_samples)
+    threshold_data_ids = [block_map[block_map.keys()[i]] for i in subset]
+    threshold_data = []
+    for id_list in threshold_data_ids:
+        record_list = [(id, d[id]) for id in id_list]
+        threshold_data.append(tuple(record_list))
+    return tuple(threshold_data)
+
+threshold_data = return_threshold_data(blocking_map, data_d)
 
 print 'Computing threshold'
-threshold = deduper.goodThreshold(threshold_data, recall_weight=1)
+threshold = deduper.goodThreshold(threshold_data, recall_weight=2)
 del threshold_data
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
+def candidates_gen(block_map, block_keys, d) :
+    start_time = time.time()
+    for i, block_key in enumerate(block_keys):
+        if i % 1000 == 0 :
+            print i, "blocks"
+            print time.time() - start_time, "seconds"
+            if i > 0:
+                print (time.time() - start_time) / i, "seconds per block"
+            
+        yield ((id, d[id]) for id in block_map[block_key])
+
+                                                    
 
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
+## Loop over each block separately and dedupe
+
+clustered_dupes = deduper.duplicateClusters(candidates_gen(blocking_map, keys_to_block, data_d),
+                                            threshold
+                                            )
 
 print '# duplicate sets', len(clustered_dupes)
 
@@ -239,7 +286,7 @@ for (cluster_id, cluster) in enumerate(clustered_dupes):
 with open(output_file, 'w') as f:
     writer = csv.writer(f)
 
-    with open(input_file) as f_input :
+    with open(input_file, 'rt') as f_input :
         reader = csv.reader(f_input)
 
         heading_row = reader.next()
@@ -248,7 +295,10 @@ with open(output_file, 'w') as f:
 
         for idx, row in enumerate(reader):
             row_id = int(idx)
-            cluster_id = cluster_membership[row_id]
+            if row_id in cluster_membership:
+                cluster_id = cluster_membership[row_id]
+            else:
+                cluster_id = 'x'
             row.insert(0, cluster_id)
             writer.writerow(row)
 
