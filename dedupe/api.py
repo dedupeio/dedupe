@@ -340,7 +340,8 @@ class Dedupe:
         """Learn a good blocking of the data"""
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model)
+                                                                       self.data_model,
+                                                                       sample_size=4000)
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
@@ -360,7 +361,7 @@ class Dedupe:
         fields = [k for k,v in self.data_model['fields'].items()
                   if v['type'] != 'Missing Data'] 
 
-        for pair in self.data_sample[0:2000]:
+        for pair in self.data_sample[0:4000]:
             for (k, v) in pair:
                 full_string_records[k] = ' '.join(v[field] for field in fields)
 
