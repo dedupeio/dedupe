@@ -24,6 +24,11 @@ class Blocker:
         self.canopies = {}
 
     def __call__(self, instance):
+        if self.tfidf_predicates and not self.canopies :
+            raise ValueError("No canopies defined, but tf-idf predicate "
+                             "learned. Did you run the tfIdfBlocks method "
+                             "of the blocker?")
+
         (record_id, record) = instance
 
         record_keys = []
@@ -47,7 +52,7 @@ class Blocker:
 
         return set([str(key) for key in record_keys])
 
-    def tfIdfBlocks(self, data, df_index=None):
+    def tfIdfBlocks(self, data):
         '''Creates TF/IDF canopy of a given set of data'''
         
         if not self.tfidf_predicates:
@@ -57,7 +62,7 @@ class Blocker:
         for predicate, field in self.tfidf_predicates :
             tfidf_fields.add(field)
 
-        vectors = tfidf.invertIndex(data, tfidf_fields, df_index)
+        vectors = tfidf.invertIndex(data, tfidf_fields)
         inverted_index, token_vector, corpus_ids = vectors
 
 
