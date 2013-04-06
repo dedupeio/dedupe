@@ -378,15 +378,14 @@ class Dedupe:
 
         # pull this into separate function
         full_string_records = {}
+
         fields = [k for k,v in self.data_model['fields'].items()
                   if v['type'] == 'String'] 
 
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
-                                                           predicate_functions,
                                                            fields,
-                                                           tfidf_thresholds,
                                                            eta,
                                                            epsilon)
 
