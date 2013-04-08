@@ -73,13 +73,14 @@ input_df.Name.fillna('', inplace=True)
 
 # input_df = input_df[:30000]
 
-rounds = [1,2,3]
-recall_weights = [1,2,1]
-ppcs = [0.001, 0.001, 0.001]
-dupes = [10,5,5]
+rounds = [2,3]
+recall_weights = [2,1]
+ppcs = [0.001, 0.001]
+dupes = [10, 5,1]
 
 ## Start the by-round labeling
 for idx, r in enumerate(rounds):
+
     r_recall_wt = recall_weights[idx]
     r_ppc = ppcs[idx]
     r_uncovered_dupes = dupes[idx]
@@ -247,13 +248,13 @@ for idx, r in enumerate(rounds):
     for df_idx in input_df.index:
         if df_idx in cluster_membership:
             orig_cluster = cluster_membership[df_idx]
-            if orig_cluster in cluster_map:
-                r_cluster_index.append(cluster_map[orig_cluster])
+            if orig_cluster in clustered_cluster_map:
+                r_cluster_index.append(clustered_cluster_map[orig_cluster])
             else:
-                cluster_map[orig_cluster] = cluster_counter
+                clustered_cluster_map[orig_cluster] = cluster_counter
                 r_cluster_index.append(cluster_counter)
                 cluster_counter += 1
-                print cluster_counter
+                # print cluster_counter
         else:
             if df_idx in excluded_cluster_map:
                 r_cluster_index.append(excluded_cluster_map[df_idx])
