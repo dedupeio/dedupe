@@ -135,7 +135,7 @@ class Dedupe:
 
         n_fields = len(self.data_model['fields'])
 
-        training_dtype = [('label', 'i4'), ('distances', 'f4', n_fields)]
+        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = None
@@ -367,7 +367,9 @@ class Dedupe:
         """Learn a good blocking of the data"""
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model)
+                                                                       self.data_model,
+                                                                       sample_size=32000)
+
         self.training_pairs[0].extend(confident_nonduplicates)
 
 
@@ -376,17 +378,14 @@ class Dedupe:
 
         # pull this into separate function
         full_string_records = {}
+
         fields = [k for k,v in self.data_model['fields'].items()
                   if v['type'] == 'String'] 
-        for pair in self.data_sample[0:2000]:
-            for (k, v) in pair:
-                full_string_records[k] = ' '.join(v[field] for field in fields)
-        df_index = tfidf.documentFrequency(full_string_records)
 
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
-                                                           df_index,
+                                                           fields,
                                                            eta,
                                                            epsilon)
 
@@ -469,9 +468,12 @@ def _initializeDataModel(fields):
     """Initialize a data_model with a field definition"""
     data_model = {}
     data_model['fields'] = OrderedDict()
+
+    interaction_terms = {}
+
     for (k, v) in fields.iteritems():
         if v.__class__ is not dict:
-            raise ValueError("foo Incorrect field specification: field "
+            raise ValueError("Incorrect field specification: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
@@ -483,7 +485,11 @@ def _initializeDataModel(fields):
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] not in ['String', 'LatLong', 'Set', 'Custom']:
+        elif v['type'] not in ['String',
+                               'LatLong',
+                               'Set',
+                               'Custom',
+                               'Interaction']:
 
             raise ValueError("Invalid field type: field "
                              "specifications are dictionaries that must "
@@ -491,36 +497,54 @@ def _initializeDataModel(fields):
                              "{'Phone': {type: 'String'}}"
                              )
         elif v['type'] == 'LatLong' :
-             if 'comparator' in v :
-                 raise ValueError("Custom comparators can only be defined "
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
                                   "for fields of type 'Custom'")
-             else :
-                 v['comparator'] = compareLatLong
+            else :
+                v['comparator'] = compareLatLong
 
         elif v['type'] == 'Set' :
-             if 'comparator' in v :
-                 raise ValueError("Custom comparators can only be defined "
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
                                   "for fields of type 'Custom'")
-             else :
-                 v['comparator'] = compareJaccard
+            else :
+                v['comparator'] = compareJaccard
 
 
         elif v['type'] == 'String' :
-             if 'comparator' in v :
-                 raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-             else :
-                 v['comparator'] = normalizedAffineGapDistance
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
+                                 "for fields of type 'Custom'")
+            else :
+                v['comparator'] = normalizedAffineGapDistance
 
-
-
-        if v['type'] == 'Custom' and 'comparator' not in v :
+        elif v['type'] == 'Custom' and 'comparator' not in v :
             raise ValueError("For 'Custom' field types you must define "
                              "a 'comparator' fucntion in the field "
                              "definition. ")
+
+        elif v['type'] == 'Interaction' :
+            if 'Interaction Fields' in v :
+                 for field in v['Interaction Fields'] :
+                     if 'Has Missing' in fields[field] :
+                         v.update({'Has Missing' : True})
+                         break
+            else :
+                raise ValueError('No "Interaction Fields" defined')
+
+            v.update({'weight': 0})
+            interaction_terms[k] = v
+            # We want the interaction terms to be at the end of of the
+            # ordered dict so we'll add them after we finish
+            # processing all the other fields
+            continue
+            
         
-        v.update({'weight': 0})
+
         data_model['fields'][k] = v
+
+
+    data_model['fields'].update(interaction_terms)
 
 
     for k, v in data_model['fields'].items() :

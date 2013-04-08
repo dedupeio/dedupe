@@ -99,8 +99,8 @@ def printPairs(pairs):
 
 settings_file = 'canonical_learned_settings.json'
 raw_data = 'test/datasets/restaurant-nophone-training.csv'
-num_training_dupes = 200
-num_training_distinct = 2096
+num_training_dupes = 400
+num_training_distinct = 2000
 num_iterations = 10
 
 (data_d, header, duplicates_s) = canonicalImport(raw_data)
@@ -149,10 +149,10 @@ else:
 
 
 print 'blocking...'
-blocker = deduper.blockingFunction(ppc=1, uncovered_dupes=1)
+blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
 blocked_data = tuple(dedupe.blockData(data_d, blocker))
 
-alpha = deduper.goodThreshold(blocked_data)
+alpha = deduper.goodThreshold(blocked_data, 2)
 
 
 # print candidates

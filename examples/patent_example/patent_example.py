@@ -24,14 +24,14 @@ import time
 import sys
 import pandas as pd
 import patent_util
-
+import math
 import AsciiDammit
 
 import dedupe
 from dedupe.distance import cosine
 sys.modules['cosine'] = cosine
-# ## Logging
 
+# ## Logging
 # Dedupe uses Python logging to show or suppress verbose output. Added
 # for convenience.  To enable verbose logging, run `python
 # examples/csv_example/csv_example.py -v`
@@ -117,8 +117,13 @@ for idx, r in enumerate(rounds):
     class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
     coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
-# ## Training
+def idf(i, j) :
+    i = int(i)
+    j = int(j)
+    max_i = max([i,j])
+    return math.log(len(data_d)/int(max_i))
 
+# ## Training
     if os.path.exists(r_settings_file):
         print 'reading from', settings_file
         deduper = dedupe.Dedupe(r_settings_file)
@@ -130,8 +135,14 @@ for idx, r in enumerate(rounds):
         fields = {
             'Name': {'type': 'String', 'Has Missing':True},
             'LatLong': {'type': 'LatLong', 'Has Missing':True},
+            'Address': {'type': 'String', 'Has Missing':True},
             'Class': {'type': 'Custom', 'comparator':class_comparator},
             'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator},
+            'Name Count' :{'type' : 'Custom', 'comparator' : idf },
+            'Name Count-Coauthor' : {'type' : 'Interaction',
+                                     'Interaction Fields' : ['Name Count', 'Coauthor']},
+            'Name Count-Class' : {'type' : 'Interaction',
+                                  'Interaction Fields' : ['Name Count', 'Class']},
             }
 
         # Create a new deduper object and pass our data model to it.

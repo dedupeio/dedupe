@@ -48,16 +48,26 @@ logging.basicConfig(level=log_level)
 
 # ## Setup
 
-# We'll be using variations on this select statement to pull in
-# campaign donor info.  When we compare records, we don't care about
-# differences in casing, so we lower the case (doing this in the
-# database is much faster than in Python).
-DONOR_SELECT = "SELECT donor_id, LOWER(city) AS city, " \
-               "LOWER(first_name) AS first_name, " \
-               "LOWER(last_name) AS last_name, " \
-               "LOWER(zip) AS zip, LOWER(state) AS state, " \
-               "LOWER(address_1) AS address_1, " \
-               "LOWER(address_2) AS address_2 FROM donors"
+# We'll be using variations on this following select statement to pull
+# in campaign donor info.
+#
+# We are concatenating the first_name and last_name into a single name
+# field and the address_1 and address_2 into a single address field. In
+# this data, there is a lot of inconsitency of how these fields, so it
+# is better to create these composite fields
+#
+# If a field is NULL, then we'll have MySQL return an empty string and
+# if it's not null then we'll lower case the field
+#
+# Doing this preprocessing in MySQL is much faster than than in
+# Python.
+DONOR_SELECT = "SELECT donor_id, " \
+               "IFNULL(LOWER(city), '') AS city, " \
+               "LOWER(CONCAT_WS(' ', first_name, last_name)) AS name, " \
+               "IFNULL(LOWER(zip),'') AS zip, " \
+               "IFNULL(LOWER(state),'') AS state, " \
+               "LOWER(CONCAT_WS(' ', address_1, address_2)) AS address " \
+               "FROM donors"
 
 
 def getSample(cur, sample_size, id_column, table):
@@ -120,13 +130,15 @@ else:
 
 
     # Define the fields dedupe will pay attention to
-    fields = {'first_name': {'type': 'String'},
-              'last_name': {'type': 'String'},
-              'address_1': {'type': 'String'},
-              'address_2': {'type': 'String'},
-              'city': {'type': 'String'},
+    #
+    # The address, city, and zip fields are often missing, so we'll
+    # tell dedupe that, and we'll learn a model that take that into
+    # account
+    fields = {'name': {'type': 'String'},
+              'address': {'type': 'String', 'Has Missing' : True},
+              'city': {'type': 'String', 'Has Missing' : True},
               'state': {'type': 'String'},
-              'zip': {'type': 'String'},
+              'zip': {'type': 'String', 'Has Missing' : True},
               }
 
     # Create a new deduper object and pass our data model to it.
@@ -262,7 +274,7 @@ blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
 # that maximizes the weighted average of our precision and recall
 c.execute(blocking_key_sql + " ORDER BY RAND() LIMIT 1000")
 sampled_block_keys = block_keys = (row['block_key'] for row in c.fetchall())
-threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys), 1)
+threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys), .5)
 
 # With our found threshold, and candidates generator, perform the
 # clustering operation
@@ -310,29 +322,35 @@ print len(clustered_dupes)
 
 locale.setlocale(locale.LC_ALL, '') # for pretty printing numbers
 
-c.execute("SELECT donors.first_name AS first_name, "
-          "       donors.last_name AS last_name, "
-          "       donation_totals.totals AS totals "
+# Create a temporary table so each group and unmatched record has a unique id
+c.execute("CREATE TEMPORARY TABLE e_map "
+          "SELECT IFNULL(canon_id, donor_id) AS canon_id, donor_id "
+          "FROM entity_map "
+          "RIGHT JOIN donors USING(donor_id)")
+
+
+c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) AS name, "
+          "donation_totals.totals AS totals "
           "FROM donors INNER JOIN "
-          "(SELECT canon_id, "
-          "        SUM(contributions.amount) AS totals "
-          " FROM contributions INNER JOIN entity_map "
+          "(SELECT canon_id, SUM(amount) AS totals "
+          " FROM contributions INNER JOIN e_map "
           " USING (donor_id) "
-          " GROUP BY canon_id) AS donation_totals "
-          " WHERE donors.donor_id = donation_totals.canon_id "
-          "ORDER BY totals DESC "
-          "LIMIT 10")
+          " GROUP BY (canon_id) "
+          " ORDER BY totals "
+          " DESC LIMIT 10) "
+          "AS donation_totals "
+          "WHERE donors.donor_id = donation_totals.canon_id")
+
 
 print "Top Donors (deduped)"
 for row in c.fetchall() :
     row['totals'] = locale.currency(row['totals'], grouping=True)
-    print '%(totals)20s: %(last_name)s %(first_name)s' % row
+    print '%(totals)20s: %(name)s' % row
 
 # Compare this to what we would have gotten if we hadn't done any
 # deduplication
-c.execute("SELECT donors.first_name AS first_name, "
-          "       donors.last_name AS last_name, "
-          "       SUM(contributions.amount) AS totals "
+c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) as name, "
+          "SUM(contributions.amount) AS totals "
           "FROM donors INNER JOIN contributions "
           "USING (donor_id) "
           "GROUP BY (donor_id) "
@@ -342,7 +360,7 @@ c.execute("SELECT donors.first_name AS first_name, "
 print "Top Donors (raw)"
 for row in c.fetchall() :
     row['totals'] = locale.currency(row['totals'], grouping=True)
-    print '%(totals)20s: %(last_name)s %(first_name)s' % row
+    print '%(totals)20s: %(name)s' % row
 
 
 
