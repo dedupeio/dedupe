@@ -73,9 +73,9 @@ input_df.Name.fillna('', inplace=True)
 
 # input_df = input_df[:30000]
 
-rounds = [2,3]
-recall_weights = [2,1]
-ppcs = [0.001, 0.001]
+rounds = [1, 2,3]
+recall_weights = [1, 1.5,1]
+ppcs = [0.001, 0.001, 0.001]
 dupes = [10, 5,1]
 
 ## Start the by-round labeling
@@ -117,12 +117,6 @@ for idx, r in enumerate(rounds):
     class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
     coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
-def idf(i, j) :
-    i = int(i)
-    j = int(j)
-    max_i = max([i,j])
-    return math.log(len(data_d)/int(max_i))
-
 # ## Training
     if os.path.exists(r_settings_file):
         print 'reading from', settings_file
@@ -138,11 +132,12 @@ def idf(i, j) :
             'Address': {'type': 'String', 'Has Missing':True},
             'Class': {'type': 'Custom', 'comparator':class_comparator},
             'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator},
-            'Name Count' :{'type' : 'Custom', 'comparator' : idf },
-            'Name Count-Coauthor' : {'type' : 'Interaction',
-                                     'Interaction Fields' : ['Name Count', 'Coauthor']},
-            'Name Count-Class' : {'type' : 'Interaction',
-                                  'Interaction Fields' : ['Name Count', 'Class']},
+            'Class_Count_Class': {'type': 'Interaction',
+                                  'Interaction Fields': ['Class_Count', 'Class']
+                                  },
+            'Coauthor_Count_Coauthor': {'type': 'Interaction',
+                                        'Interaction Fields': ['Coauthor_Count', 'Coauthor']
+                                        }
             }
 
         # Create a new deduper object and pass our data model to it.
@@ -183,7 +178,16 @@ def idf(i, j) :
     print 'blocking...'
     # Initialize our blocker, which determines our field weights and blocking 
     # predicates based on our training data
-    blocker = deduper.blockingFunction(ppc=r_ppc, uncovered_dupes=r_uncovered_dupes)
+    
+    blocker = blockingSettingsWrapper(r_ppc,
+                                      r_uncovered_dupes
+                                      )
+
+    if not blocker:
+        print 'No valid blocking settings found'
+        print 'Starting ppc value: %s' % r_ppc
+        print 'Starting uncovered_dupes value: %s' % r_uncovered_dupes
+        break
 
     time_block_weights = time.time()
     print 'Learned blocking weights in', time_block_weights - time_start, 'seconds'

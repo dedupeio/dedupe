@@ -97,6 +97,8 @@ def readDataFrame(df, set_delim='**'):
             name = ''
         row_out['Class'] = frozenset(classes)
         row_out['Coauthor'] = frozenset(coauthors)
+        row_out['Coauthor_Count'] = len(coauthors)
+        row_out['Class_Count'] = len(classes)
         row_out['LatLong'] = (float(dfrow['Lat']), float(dfrow['Lng']))
         row_out['Name'] = name
         row_tuple = [(k, v) for (k, v) in row_out.items()]
@@ -226,3 +228,26 @@ def consolidate(df, key, agg_dict):
     grouped = df.groupby(key)
     records = grouped.agg(agg_dict)
     return records
+
+def idf(i, j) :
+    i = int(i)
+    j = int(j)
+    max_i = max([i,j])
+    return math.log(len(data_d)/int(max_i))
+
+def blockingSettingsWrapper(ppc, uncovered_dupes, dedupe_instance, maxtries=10):
+    blockerError = True
+    try_count = 0
+    while blockerError:
+        if try_count > maxtries or uncovered_dupes < 1 or ppc > 0.5:
+            blocker = None
+            break
+        try: 
+            blocker = deduper.blockingFunction(ppc, uncovered_dupes)
+            blockerError = False
+        except ValueError:
+            ppc += ppc / 2
+            uncovered_dupes -= 1
+            try_count += 1
+            
+    return blocker
