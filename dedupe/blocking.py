@@ -150,6 +150,21 @@ def findOptimumBlocking(uncovered_dupes,
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
     # Chvatal, 1979
+    #
+    # We would like to optimize the ratio of the probability of of a
+    # predicate covering a duplicate pair versus the probability of
+    # covering a distinct pair. If we have a uniform prior belief
+    # about those probabilities, we can estimate these probabilities as
+    #
+    # (predicate_covered_dupe_pairs + 1) / (all_dupe_pairs + 2)
+    #
+    # (predicate_covered_distinct_pairs + 1) / (all_distinct_pairs + 2)
+    #
+    # When we are trying to find the best predicate among a set of
+    # predicates, the denominators factor out and our coverage
+    # estimator becomes
+    #
+    # (predicate_covered_dupe_pairs + 1)/ (predicate_covered_distinct_pairs + 1)
 
     dupe_coverage = coverage.predicateCoverage(predicate_set,
                                                uncovered_dupes)
@@ -164,7 +179,7 @@ def findOptimumBlocking(uncovered_dupes,
         for predicate in dupe_coverage :
             dupes = len(dupe_coverage[predicate])
             distinct = len(distinct_coverage[predicate])
-            cover = dupes/(distinct + 2)
+            cover = (dupes + 1.0)/(distinct + 1.0)
             if cover > best_cover:
                 best_cover = cover
                 best_predicate = predicate
@@ -184,14 +199,14 @@ def findOptimumBlocking(uncovered_dupes,
                                                    uncovered_dupes)
 
 
-        logging.info([(pred.__name__, field)
+        logging.debug([(pred.__name__, field)
                       for pred, field in best_predicate])
         logging.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
                       'found_distinct: %(found_distinct)d, '
                       'uncovered dupes: %(uncovered)d',
                       {'cover' : best_cover,
                        'found_dupes' : best_dupes,
-                        'found_distinct' : best_distinct,
+                       'found_distinct' : best_distinct,
                        'uncovered' : len(uncovered_dupes)
                        })
 
