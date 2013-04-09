@@ -3,16 +3,6 @@
 
 import re
 
-
-def wholeFieldPredicate(field):
-    """return the whole field"""
-
-    if field:
-        return (field, )
-    else:
-        return ()
-
-
 def tokenFieldPredicate(field):
     """returns the tokens"""
 
@@ -21,17 +11,15 @@ def tokenFieldPredicate(field):
 
 def commonIntegerPredicate(field):
     """"return any integers"""
-
     return tuple(re.findall("\d+", field))
 
 
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
-
     ints = sorted([int(i) for i in re.findall("\d+", field)])
     near_ints = set([])
     [near_ints.update((i - 1, i, i + 1)) for i in ints]
-    1
+    return tuple(near_ints)
 
 def ngrams(field, n):
     """ngrams returns all unique, contiguous sequences of n characters
@@ -55,24 +43,30 @@ def commonSixGram(field):
     """"return 6-grams"""
     return ngrams(field, 6)
 
-def initials(field, n):
+def initials(field, n=None):
     """predicate which returns first a tuple containing
     the first n chars of a field if and only if the
     field contains at least n characters, or an empty
     tuple otherwise.
     
     :param field: the string 
-    :type n: int
+    :type n: int, default None
     
     usage:
     >>> initials("dedupe", 7)
     ()
     >>> initials("deduplication", 7)
-    ('dedupli', )    
+    ('dedupli', )
+    >>> initials("noslice")
+    ('noslice', )
     """
-    return (field[:n], ) if len(field) > n-1 else () 
+    return (field[:n], ) if not n or len(field) > n-1 else () 
 
 # Consider deprecating in favor of initials
+def wholeFieldPredicate(field):
+    """return the whole field"""
+    return initials(field)
+
 def sameThreeCharStartPredicate(field):
     """return first three characters"""
     return initials(field, 3)
