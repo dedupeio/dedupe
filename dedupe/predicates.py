@@ -5,14 +5,11 @@ import re
 
 def tokenFieldPredicate(field):
     """returns the tokens"""
-
     return tuple(field.split())
-
 
 def commonIntegerPredicate(field):
     """"return any integers"""
     return tuple(re.findall("\d+", field))
-
 
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
@@ -62,10 +59,11 @@ def initials(field, n=None):
     """
     return (field[:n], ) if not n or len(field) > n-1 else () 
 
-# Consider deprecating in favor of initials
 def wholeFieldPredicate(field):
-    """return the whole field"""
-    return initials(field)
+    """return the whole field
+    consider replacing with initials(field)
+    """
+    return (field, ) if field else ()
 
 def sameThreeCharStartPredicate(field):
     """return first three characters"""
