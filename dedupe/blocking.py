@@ -84,7 +84,6 @@ class Blocker:
 
 def blockTraining(training_pairs,
                   predicate_set,
-                  fields,
                   eta=.1,
                   epsilon=.1):
     '''
@@ -97,27 +96,16 @@ def blockTraining(training_pairs,
     training_dupes = (training_pairs[1])[:]
     training_distinct = (training_pairs[0])[:]
 
-    coverage = Coverage()
-
-    basic_preds, tfidf_preds = predicateTypes(predicate_set)
-
-    logging.info("Calculating coverage of simple predicates")
-    coverage.simplePredicateOverlap(basic_preds,
-                                    training_dupes + training_distinct)
-
-    logging.info("Calculating coverage of tf-idf predicates")
-    coverage.canopyOverlap(tfidf_preds,
-                           training_dupes + training_distinct)
-
+    coverage = Coverage(predicate_set,
+                        training_dupes + training_distinct)
 
     coverage_threshold = eta * len(training_distinct)
     logging.info("coverage threshold: %s", coverage_threshold)
 
     # Only consider predicates that cover at least one duplicate pair
-    found_dupes = coverage.predicateCoverage(predicate_set,
-                                             training_dupes)
-    predicate_set = found_dupes.keys()
-
+    dupe_coverage = coverage.predicateCoverage(predicate_set,
+                                               training_dupes)
+    predicate_set = dupe_coverage.keys()
 
     # We want to throw away the predicates that puts together too
     # many distinct pairs
@@ -134,19 +122,18 @@ def blockTraining(training_pairs,
     logging.info("After removing liberal predicates, %s predicates",
                  len(predicate_set))
 
-
-    found_distinct = coverage.predicateCoverage(predicate_set, 
-                                                training_distinct) 
+    distinct_coverage = coverage.predicateCoverage(predicate_set, 
+                                                   training_distinct)
 
     final_predicate_set = findOptimumBlocking(training_dupes,
                                               predicate_set,
-                                              found_dupes,
-                                              found_distinct,
+                                              distinct_coverage,
                                               epsilon,
                                               coverage)
 
     logging.info('Final predicate set:')
-    logging.info(final_predicate_set)
+    for predicate in final_predicate_set :
+        logging.info([(pred.__name__, field) for pred, field in predicate])
 
     if final_predicate_set:
         return final_predicate_set
@@ -154,66 +141,86 @@ def blockTraining(training_pairs,
         raise ValueError('No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data')
 
 
-def findOptimumBlocking(training_dupes,
+def findOptimumBlocking(uncovered_dupes,
                         predicate_set,
-                        found_dupes,
-                        found_distinct,
+                        distinct_coverage,
                         epsilon,
                         coverage):
 
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
     # Chvatal, 1979
-    # print found_dupes
+
+    dupe_coverage = coverage.predicateCoverage(predicate_set,
+                                               uncovered_dupes)
+    
+    uncovered_dupes = set(uncovered_dupes)
 
     final_predicate_set = []
-    while len(training_dupes) > epsilon:
+    while len(uncovered_dupes) > epsilon:
 
-        optimum_cover = 0
+        best_cover = 0
         best_predicate = None
-        for predicate in predicate_set:
-            cover = len(found_dupes[predicate]) / (float(len(found_distinct[predicate])) + 0.5)
-            if cover > optimum_cover:
-                optimum_cover = cover
+        for predicate in dupe_coverage :
+            dupes = len(dupe_coverage[predicate])
+            distinct = len(distinct_coverage[predicate])
+            cover = dupes/(distinct + 2)
+            if cover > best_cover:
+                best_cover = cover
                 best_predicate = predicate
-
-                logging.debug(best_predicate)
-                logging.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
-                              'found_distinct: %(found_distinct)d',
-                              {'cover' : cover,
-                               'found_dupes' : len(found_dupes[best_predicate]),
-                               'found_distinct' : len(found_distinct[best_predicate])})
-
+                best_distinct = distinct
+                best_dupes = dupes
 
 
         if not best_predicate:
             logging.warning('Ran out of predicates')
             break
 
-        logging.info(best_predicate)
-        logging.info('cover: %(cover)f, found_dupes: %(found_dupes)d, '
-                     'found_distinct: %(found_distinct)d',
-                     {'cover' : cover,
-                      'found_dupes' : len(found_dupes[best_predicate]),
-                      'found_distinct' : len(found_distinct[best_predicate])
-                      })
-
-        [training_dupes.remove(pair) for pair in found_dupes[best_predicate]]
-
-        predicate_set.remove(best_predicate)
-        found_dupes  = coverage.predicateCoverage(predicate_set,
-                                                  training_dupes)
-
         final_predicate_set.append(best_predicate)
+        predicate_set.remove(best_predicate)
+        
+        uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
+        dupe_coverage = coverage.predicateCoverage(predicate_set,
+                                                   uncovered_dupes)
+
+
+        logging.info([(pred.__name__, field)
+                      for pred, field in best_predicate])
+        logging.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
+                      'found_distinct: %(found_distinct)d, '
+                      'uncovered dupes: %(uncovered)d',
+                      {'cover' : best_cover,
+                       'found_dupes' : best_dupes,
+                        'found_distinct' : best_distinct,
+                       'uncovered' : len(uncovered_dupes)
+                       })
+
+
+
 
     return final_predicate_set
 
 
 
 class Coverage() :
-    def __init__(self) :
+    def __init__(self, predicate_set, pairs) :
         self.overlapping = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
+
+        basic_preds, tfidf_preds = predicateTypes(predicate_set)
+
+        logging.info("Calculating coverage of simple predicates")
+        self.simplePredicateOverlap(basic_preds, pairs)
+
+        logging.info("Calculating coverage of tf-idf predicates")
+        self.canopyOverlap(tfidf_preds, pairs)
+
+        for predicate in predicate_set :
+            covered_pairs = set.intersection(*(self.overlapping[basic_predicate]
+                                               for basic_predicate
+                                               in predicate))
+            self.overlapping[predicate] = covered_pairs
+
 
     def simplePredicateOverlap(self,
                                 basic_predicates,
@@ -259,19 +266,12 @@ class Coverage() :
     def predicateCoverage(self,
                           predicate_set,
                           pairs) :
-    
-        overlapping = defaultdict(set)
-        coverage = defaultdict(list)
 
+        coverage = defaultdict(set)
         pairs = set(pairs)
 
-        for basic_predicate, covered_pairs in self.overlapping.iteritems() :
-            overlapping[basic_predicate] = pairs.intersection(covered_pairs)
-
         for predicate in predicate_set :
-            covered_pairs = set.intersection(*(overlapping[basic_predicate]
-                                               for basic_predicate
-                                               in predicate))
+            covered_pairs = pairs.intersection(self.overlapping[predicate])
             if covered_pairs :
                 coverage[predicate] = covered_pairs
 
