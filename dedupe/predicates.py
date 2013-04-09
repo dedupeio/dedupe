@@ -40,7 +40,7 @@ def commonSixGram(field):
     """"return 6-grams"""
     return ngrams(field, 6)
 
-def initials(field, n=None):
+def initials(field, n):
     """predicate which returns first a tuple containing
     the first n chars of a field if and only if the
     field contains at least n characters, or an empty
@@ -57,12 +57,10 @@ def initials(field, n=None):
     >>> initials("noslice")
     ('noslice', )
     """
-    return (field[:n], ) if n is not None or len(field) > n-1 else () 
+    return (field[:n], ) if len(field) > n-1 else () 
 
 def wholeFieldPredicate(field):
-    """return the whole field
-    consider replacing with initials(field)
-    """
+    """return the whole field"""
     return (field, ) if field else ()
 
 def sameThreeCharStartPredicate(field):
