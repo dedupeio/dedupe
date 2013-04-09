@@ -57,7 +57,7 @@ def initials(field, n=None):
     >>> initials("noslice")
     ('noslice', )
     """
-    return (field[:n], ) if not n or len(field) > n-1 else () 
+    return (field[:n], ) if n is not None or len(field) > n-1 else () 
 
 def wholeFieldPredicate(field):
     """return the whole field
