@@ -31,43 +31,56 @@ def nearIntegersPredicate(field):
     ints = sorted([int(i) for i in re.findall("\d+", field)])
     near_ints = set([])
     [near_ints.update((i - 1, i, i + 1)) for i in ints]
-    return tuple(near_ints)
+    1
 
-
+def ngrams(field, n):
+    """ngrams returns all unique, contiguous sequences of n characters
+    of a given field.
+        
+    :param field: the string to be 
+    :param n: the number of characters to be included in each gram
+    
+    usage:
+    >>> from dedupe.dedupe.predicated import ngrams
+    >>> ngrams("deduplicate", 3)
+    ('ded', 'edu', 'dup', 'upl', 'pli', 'lic', 'ica', 'cat', 'ate')
+    """
+    return tuple([field[pos:pos + n] for pos in xrange(len(field) - n + 1)])
+    
 def commonFourGram(field):
     """return 4-grams"""
-
-    return tuple([field[pos:pos + 4] for pos in xrange(len(field) - 4 + 1)])
-
+    return ngrams(field, 4)
 
 def commonSixGram(field):
     """"return 6-grams"""
+    return ngrams(field, 6)
 
-    return tuple([field[pos:pos + 6] for pos in xrange(len(field) - 6 + 1)])
+def initials(field, n):
+    """predicate which returns first a tuple containing
+    the first n chars of a field if and only if the
+    field contains at least n characters, or an empty
+    tuple otherwise.
+    
+    :param field: the string 
+    :type n: int
+    
+    usage:
+    >>> initials("dedupe", 7)
+    ()
+    >>> initials("deduplication", 7)
+    ('dedupli', )    
+    """
+    return (field[:n], ) if len(field) > n-1 else () 
 
-
+# Consider deprecating in favor of initials
 def sameThreeCharStartPredicate(field):
     """return first three characters"""
-
-    if len(field) < 3:
-        return ()
-
-    return (field[:3], )
-
+    return initials(field, 3)
 
 def sameFiveCharStartPredicate(field):
     """return first five characters"""
-
-    if len(field) < 5:
-        return ()
-
-    return (field[:5], )
-
+    return initials(field, 5)
 
 def sameSevenCharStartPredicate(field):
-    """return first seven charactesr"""
-
-    if len(field) < 7:
-        return ()
-
-    return (field[:7], )
+    """return first seven characters"""
+    return initials(field, 7)
