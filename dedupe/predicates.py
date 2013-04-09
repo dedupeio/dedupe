@@ -5,7 +5,7 @@ import re
 
 def tokenFieldPredicate(field):
     """returns the tokens"""
-    return tuple(field.split())
+    return tuple(re.split('\W+', field))
 
 def commonIntegerPredicate(field):
     """"return any integers"""
@@ -54,8 +54,6 @@ def initials(field, n):
     ()
     >>> initials("deduplication", 7)
     ('dedupli', )
-    >>> initials("noslice")
-    ('noslice', )
     """
     return (field[:n], ) if len(field) > n-1 else () 
 
