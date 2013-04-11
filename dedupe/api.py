@@ -41,20 +41,22 @@ class Dedupe:
 
     """
     Public methods:
-    __init__
-    train
-    blockingFunction
-    goodThreshold
-    duplicateClusters
-    writeTraining
-    writeSettings
+    * __init__
+    * train
+    * blockingFunction
+    * goodThreshold
+    * duplicateClusters
+    * writeTraining
+    * writeSettings
     """
+
+    # === Dedupe.__init__ ===
 
     def __init__(self, init=None):
         """
         Load or initialize a data model.
 
-        ### Example usage
+        #### Example usage
 
             # initialize from a settings file
             deduper = dedupe.Dedupe('my_learned_settings')
@@ -72,12 +74,12 @@ class Dedupe:
             deduper = dedupe.Dedupe(fields)
 
         
-        ### Keyword arguments
+        #### Keyword arguments
         
         `init`
         A field definition or a file location for a settings file.
 
-        ### Additional detail
+        #### Additional detail
         A field definition is a dictionary where the keys are the fields
         that will be used for training a model and the values are the
         field specification
