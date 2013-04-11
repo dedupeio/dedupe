@@ -143,11 +143,11 @@ class Dedupe:
         if training_file:
             (self.training_pairs, self.training_data) = self._readTraining(training_file, self.training_data)
 
+    # === Dedupe.train ===
     def train(self,
               data_sample,
               training_source=None):
         """
-        === Dedupe.train ===
         Learn field weights from file of labeled examples or round of 
         interactive labeling
 
