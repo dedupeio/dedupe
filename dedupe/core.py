@@ -14,8 +14,10 @@ import lr
 from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
-    '''Return random combinations of indicies for a square matrix of
-    size n records'''
+    """
+    Return random combinations of indicies for a square matrix of size
+    n records
+    """
 
     if n_records < 2 :
         raise ValueError("Needs at least two records")
@@ -57,7 +59,10 @@ def dataSample(d, sample_size):
 
 
 def trainModel(training_data, data_model, alpha=.001):
-    '''Use logistic regression to train weights for all fields in the data model'''
+    """
+    Use logistic regression to train weights for all fields in the data model
+    """
+    
     labels = training_data['label']
     examples = training_data['distances']
 
