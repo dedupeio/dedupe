@@ -97,8 +97,8 @@ def readDataFrame(df, set_delim='**'):
             name = ''
         row_out['Class'] = frozenset(classes)
         row_out['Coauthor'] = frozenset(coauthors)
-        row_out['Coauthor_Count'] = len(coauthors)
-        row_out['Class_Count'] = len(classes)
+        # row_out['Coauthor_Count'] = len(coauthors)
+        # row_out['Class_Count'] = len(classes)
         row_out['LatLong'] = (float(dfrow['Lat']), float(dfrow['Lng']))
         row_out['Name'] = name
         row_tuple = [(k, v) for (k, v) in row_out.items()]
@@ -130,9 +130,11 @@ def compute_block_summary(block):
     block_len = [len(v) for k,v in block.iteritems()]
     max_block_len = np.max(block_len)
     median_block_len = np.median(block_len)
+    mean_block_len = np.mean(block_len)
     print 'Number of blocks: %s' % block_count
     print 'Maximum block length: %s' % max_block_len
     print 'Median block length: %s' % median_block_len
+    print 'Mean block length %s' % mean_block_len
     return 0
 
 
@@ -229,12 +231,6 @@ def consolidate(df, key, agg_dict):
     records = grouped.agg(agg_dict)
     return records
 
-def idf(i, j) :
-    i = int(i)
-    j = int(j)
-    max_i = max([i,j])
-    return math.log(len(data_d)/int(max_i))
-
 def blockingSettingsWrapper(ppc, uncovered_dupes, dedupe_instance, maxtries=10):
     blockerError = True
     try_count = 0
@@ -243,11 +239,11 @@ def blockingSettingsWrapper(ppc, uncovered_dupes, dedupe_instance, maxtries=10):
             blocker = None
             break
         try: 
-            blocker = deduper.blockingFunction(ppc, uncovered_dupes)
+            blocker = dedupe_instance.blockingFunction(ppc, uncovered_dupes)
             blockerError = False
         except ValueError:
             ppc += ppc / 2
             uncovered_dupes -= 1
             try_count += 1
-            
-    return blocker
+        
+    return (blocker, ppc, uncovered_dupes)

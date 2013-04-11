@@ -31,6 +31,13 @@ import dedupe
 from dedupe.distance import cosine
 sys.modules['cosine'] = cosine
 
+def idf(i, j) :
+    i = int(i)
+    j = int(j)
+    max_i = max([i,j])
+    return math.log(len(data_d)/int(max_i))
+
+
 # ## Logging
 # Dedupe uses Python logging to show or suppress verbose output. Added
 # for convenience.  To enable verbose logging, run `python
@@ -56,9 +63,9 @@ logging.basicConfig(level=log_level)
 # And the output filepaths
 os.chdir('./examples/patent_example/')
 input_file = 'patstat_dedupe_input_consolidated.csv'
-output_file_root = 'patstat_output_'
-settings_file_root = 'patstat_settings_'
-training_file_root = 'patstat_training_'
+output_file_root = 'patstat_output_10April2013_'
+settings_file_root = 'patstat_settings_10April2013_'
+training_file_root = 'patstat_training_10April2013_'
 
 
 
@@ -73,10 +80,11 @@ input_df.Name.fillna('', inplace=True)
 
 # input_df = input_df[:30000]
 
-rounds = [1, 2,3]
-recall_weights = [1, 1.5,1]
+rounds = [1, 2, 3]
+recall_weights = [1, 2, 1]
 ppcs = [0.001, 0.001, 0.001]
-dupes = [10, 5,1]
+dupes = [10, 5, 1]
+#dupes = [10, 5, 1]
 
 ## Start the by-round labeling
 for idx, r in enumerate(rounds):
@@ -119,7 +127,7 @@ for idx, r in enumerate(rounds):
 
 # ## Training
     if os.path.exists(r_settings_file):
-        print 'reading from', settings_file
+        print 'reading from', r_settings_file
         deduper = dedupe.Dedupe(r_settings_file)
 
     else:
@@ -129,15 +137,16 @@ for idx, r in enumerate(rounds):
         fields = {
             'Name': {'type': 'String', 'Has Missing':True},
             'LatLong': {'type': 'LatLong', 'Has Missing':True},
-            'Address': {'type': 'String', 'Has Missing':True},
             'Class': {'type': 'Custom', 'comparator':class_comparator},
-            'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator},
-            'Class_Count_Class': {'type': 'Interaction',
-                                  'Interaction Fields': ['Class_Count', 'Class']
-                                  },
-            'Coauthor_Count_Coauthor': {'type': 'Interaction',
-                                        'Interaction Fields': ['Coauthor_Count', 'Coauthor']
-                                        }
+            'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator}# ,
+            # 'Class_Count': {'type': 'Custom', 'comparator': idf},
+            # 'Coauthor_Count': {'type': 'Custom', 'comparator': idf},
+            # 'Class_Count_Class': {'type': 'Interaction',
+            #                       'Interaction Fields': ['Class_Count', 'Class']
+            #                       },
+            # 'Coauthor_Count_Coauthor': {'type': 'Interaction',
+            #                             'Interaction Fields': ['Coauthor_Count', 'Coauthor']
+            #                             }
             }
 
         # Create a new deduper object and pass our data model to it.
@@ -151,7 +160,7 @@ for idx, r in enumerate(rounds):
         #  1: [[{field:val dict of record 1}, {field_val dict of record 2}], ...(more match pairs)]
         # }
         if os.path.exists(r_training_file):
-            print 'reading labeled examples from ', training_file
+            print 'reading labeled examples from ', r_training_file
             deduper.train(data_sample, r_training_file)
 
         # ## Active learning
@@ -178,15 +187,18 @@ for idx, r in enumerate(rounds):
     print 'blocking...'
     # Initialize our blocker, which determines our field weights and blocking 
     # predicates based on our training data
-    
-    blocker = blockingSettingsWrapper(r_ppc,
-                                      r_uncovered_dupes
-                                      )
+    #blocker = deduper.blockingFunction(r_ppc, r_uncovered_dupes)
+    blocker, ppc_final, ucd_final = patent_util.blockingSettingsWrapper(r_ppc,
+                                                                        r_uncovered_dupes,
+                                                                        deduper
+                                                                        )
 
     if not blocker:
         print 'No valid blocking settings found'
         print 'Starting ppc value: %s' % r_ppc
         print 'Starting uncovered_dupes value: %s' % r_uncovered_dupes
+        print 'Ending ppc value: %s' % ppc_final
+        print 'Ending uncovered_dupes value: %s' % ucd_final
         break
 
     time_block_weights = time.time()
@@ -290,5 +302,5 @@ for idx, r in enumerate(rounds):
 
     print 'Round %s completed' % r
     # END DEDUPE LOOP
-    
+
 print 'Dedupe complete, ran in ', time.time() - start_time, 'seconds'

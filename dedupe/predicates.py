@@ -73,13 +73,23 @@ def sameSevenCharStartPredicate(field):
     return (field[:7], )
 
 def wholeSetPredicate(field_set):
-    if len(field_set) == 0:
+    try:
+        set_len = len(field_set)
+    except TypeError:
+        return tuple([field_set])
+    
+    if set_len == 0:
         return ()
-    return(str(field_set))
+    return(tuple(field_set))
 
 def commonSetElementPredicate(field_set):
     """return set as individual elements"""
-    if len(field_set) < 1:
+    try:
+        set_len = len(field_set)
+    except TypeError:
+        return tuple([field_set])
+    
+    if set_len < 1:
         return ()
 
     return tuple(str(f) for f in field_set)
