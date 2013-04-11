@@ -243,6 +243,7 @@ class Dedupe:
                                                         self.training_pairs)
 
 
+
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
                                            self.data_model, 
@@ -376,16 +377,9 @@ class Dedupe:
         predicate_set = predicateGenerator(self.blocker_types, self.data_model)
 
 
-        # pull this into separate function
-        full_string_records = {}
-
-        fields = [k for k,v in self.data_model['fields'].items()
-                  if v['type'] == 'String'] 
-
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
-                                                           fields,
                                                            eta,
                                                            epsilon)
 

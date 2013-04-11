@@ -13,11 +13,11 @@ import logging
 def gridSearch(training_data,
                trainer,
                original_data_model,
-               k=10,
-               search_space=[.0001, .001, .01, .1, 1],
+               k=3,
+               search_space=[.000001, .00001, .0001, .001, .01, .1, 1],
                randomize=True):
 
-    numpy.random.shuffle(training_data)
+    training_data = training_data[numpy.random.permutation(training_data.size)]
 
     logging.info('using cross validation to find optimum alpha...')
     scores = []
@@ -34,18 +34,47 @@ def gridSearch(training_data,
                                  for field in fields])
             bias = data_model['bias']
 
-            real_labels = training_data['label']
-            valid_examples = training_data['distances']
-            valid_scores = numpy.dot(valid_examples, weight) + bias
+            labels = validation['label']
+            predictions = numpy.dot(validation['distances'], weight) + bias
 
-            predicted_labels = valid_scores > 0
+            true_dupes = numpy.sum(labels == 1)
 
-            score = numpy.sum(real_labels == predicted_labels)
+            if true_dupes == 0 :
+                logging.warning("not real positives, change size of folds")
+                continue
+
+            true_predicted_dupes = numpy.sum(predictions[labels == 1] > 0)
+
+            recall = true_predicted_dupes/float(true_dupes)
+
+            logging.debug("%d duplicates in validation set", true_dupes)
+            logging.debug("%d true predicted dupes in training set",
+                          true_predicted_dupes)
+            logging.debug("Recall %f", recall)
+
+            if recall == 0 :
+                score = 0
+
+            else:
+                
+                precision = true_predicted_dupes/float(numpy.sum(predictions > 0))
+                logging.debug("%d predicted duplicates", numpy.sum(predictions > 0))
+                logging.debug("Precision %f", precision)
+
+                if recall + precision == 0 :
+                    score = 0
+
+                else :
+                    score = 2 * recall * precision / (recall + precision)
+
+            logging.debug("F-Score %f", score)
 
             all_score += score
-            all_N += len(real_labels)
 
-        scores.append(float(all_score) / all_N)
+        average_score = all_score/k
+        logging.debug("Average Score: %f", average_score)
+
+        scores.append(average_score)
 
     best_alpha = search_space[::-1][scores[::-1].index(max(scores))]
 

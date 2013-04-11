@@ -3,7 +3,7 @@
 from collections import defaultdict
 import math
 import logging
-
+import re
 
 class TfidfPredicate(float):
     def __new__(self, threshold):
@@ -22,8 +22,10 @@ def invertIndex(data, tfidf_fields, df_index=None):
     for (record_id, record) in data:
         corpus_ids.add(record_id)  # candidate for removal
         for field in tfidf_fields:
-            tokens = record[field].lower().replace(',', '').split()
-            tokens = [(token, tokens.count(token)) for token in set(tokens)]
+            tokens = re.split('\W+', record[field].lower())
+            tokens = [(token, tokens.count(token))
+                      for token in set(tokens)
+                      if token]
             for (token, _) in tokens:
                 inverted_index[field][token].append(record_id)
 
