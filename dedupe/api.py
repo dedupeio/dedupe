@@ -147,6 +147,7 @@ class Dedupe:
               data_sample,
               training_source=None):
         """
+        === Dedupe.train ===
         Learn field weights from file of labeled examples or round of 
         interactive labeling
 
