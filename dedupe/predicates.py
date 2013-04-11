@@ -4,6 +4,9 @@
 import re
 import math
 
+words = re.compile("[\w']+")
+integers = re.compile("\d+")
+
 def wholeFieldPredicate(field):
     """return the whole field"""
 
@@ -14,15 +17,15 @@ def wholeFieldPredicate(field):
 
 def tokenFieldPredicate(field):
     """returns the tokens"""
-    return tuple(re.split('\W+', field))
+    return tuple(words.findall(field))
 
 def commonIntegerPredicate(field):
     """return any integers"""
-    return tuple(re.findall("\d+", field))
+    return tuple(integers.findall(field))
 
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
-    ints = sorted([int(i) for i in re.findall("\d+", field)])
+    ints = sorted([int(i) for i in integers.findall(field)])
     near_ints = set([])
     [near_ints.update((i - 1, i, i + 1)) for i in ints]
     return tuple(near_ints)
