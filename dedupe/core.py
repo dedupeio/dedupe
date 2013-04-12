@@ -68,9 +68,7 @@ def trainModel(training_data, data_model, alpha=.001):
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
-    fields = sorted(data_model['fields'].keys())
-
-    for (i, name) in enumerate(fields):
+    for i, name in enumerate(data_model['fields']) :
         data_model['fields'][name]['weight'] = float(weight[i])
 
     data_model['bias'] = bias
@@ -114,9 +112,9 @@ def buildFieldDistances(record_pairs, fields):
                              if 'Has Missing' in v and v['Has Missing']]
 
     field_names = fields.keys()
-
+  
     interactions = []
-    for field in field_names :
+    for field in fields :
         if fields[field]['type'] == 'Interaction' :
             interaction_indices = []
             for interaction_field in fields[field]['Interaction Fields'] :
@@ -161,9 +159,8 @@ def buildFieldDistances(record_pairs, fields):
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
-    field_names = sorted(data_model['fields'].keys())
 
-    field_weights = [fields[name]['weight'] for name in field_names]
+    field_weights = [fields[name]['weight'] for name in fields]
     bias = data_model['bias']
 
     distances = field_distances['distances']

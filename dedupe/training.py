@@ -10,7 +10,7 @@ import numpy
 import logging
 import random
 
-def findUncertainPairs(field_distances, data_model):
+def findUncertainPairs(field_distances, data_model, bias=0.5):
     """
     Given a set of field distances and a data model return the
     indices of the record pairs in order of uncertainty. For example,
@@ -20,13 +20,15 @@ def findUncertainPairs(field_distances, data_model):
 
     probability = core.scorePairs(field_distances, data_model)
 
+    p_max = (1.0 - bias)
+    print p_max
 
-    uncertainties = (probability * numpy.log2(probability) 
-                     + (1 - probability) * numpy.log2(1 - probability))
+    informativity = numpy.copy(probability)
+    informativity[probability < p_max] /= p_max
+    informativity[probability >= p_max] = (1 - probability[probability >= p_max])/(1-p_max)
 
 
-
-    return numpy.argsort(uncertainties)
+    return numpy.argsort(-informativity)
 
 
 def activeLearning(candidates,
@@ -61,7 +63,7 @@ def activeLearning(candidates,
                                         data_model,
                                         training_data)
 
-    data_model = core.trainModel(training_data, data_model, 1)
+    data_model = core.trainModel(training_data, data_model, .1)
 
 
     finished = False
@@ -76,7 +78,10 @@ def activeLearning(candidates,
 
     while finished == False:
         logging.info('finding the next uncertain pair ...')
-        uncertain_indices = findUncertainPairs(field_distances, data_model)
+        uncertain_indices = findUncertainPairs(field_distances,
+                                               data_model,
+                                               (len(duplicates)/
+                                                (len(nonduplicates)+1.0)))
 
         for uncertain_index in uncertain_indices:
             if uncertain_index not in seen_indices:
@@ -119,6 +124,7 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
 
     new_training_data['label'] = [0] * len(labeled_pairs[0]) + [1] * len(labeled_pairs[1])
     new_training_data['distances'] = core.buildFieldDistances(examples, fields)
+
 
     training_data = numpy.append(training_data, new_training_data)
 
