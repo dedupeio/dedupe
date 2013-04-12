@@ -9,7 +9,7 @@ import pandas as pd
 import collections
 import time
 import operator
-
+import Levenshtein
 
 def preProcess(column):
     """
@@ -247,3 +247,31 @@ def blockingSettingsWrapper(ppc, uncovered_dupes, dedupe_instance, maxtries=10):
             try_count += 1
         
     return (blocker, ppc, uncovered_dupes)
+
+
+def subset_nth_quantile(g, n):
+    """
+    given a grouped object, returns the indices corresponding
+    to the largest n group sizes
+    """
+    g_size = g.size()
+    g_size.sort()
+    idx_out = g_size.index[-n:]
+    return idx_out
+
+def find_potential_matches(df1, df2, f1, f2, threshold):
+    Given comparable fields in two DataFrames, returns
+    the indices of df2 whose field is within threshold of the field
+    in df1
+    df2_idx = {}
+    for idx in df1.index:
+        for jdx in df2.index:
+            if jdx not in df2_idx:
+                l = Levenshtein.ratio(df1.ix[idx][f1],
+                                      df2.ix[jdx][f2]
+                                      )
+                if l >=threshold:
+                    df2_idx[jdx] = 1
+    return df2_idx.keys()
+
+
