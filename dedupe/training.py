@@ -175,19 +175,33 @@ def semiSupervisedNonDuplicates(data_sample,
                                 nonduplicate_confidence_threshold=.7,
                                 sample_size=2000):
 
-    if len(data_sample) <= sample_size:
-        return data_sample
+    confidence = 1 - nonduplicate_confidence_threshold
 
-    confident_distinct_pairs = []
-    n_distinct_pairs = 0
-    for pair in data_sample:
+    # Nearly all possible combinations of pairs will not be
+    # duplicates. With high probability there will be N distinct pairs
+    # within a sample of size 2N
+    if len(data_sample) > 2 * sample_size :
+        data_sample = random.sample(data_sample, sample_size * 2)
 
-        pair_distance = core.fieldDistances([pair], data_model)
-        score = core.scorePairs(pair_distance, data_model)
+    scores = core.scoreDuplicates(data_sample,
+                                  data_model,
+                                  threshold=0)
 
-        if score < 1 - nonduplicate_confidence_threshold:
-            (key_pair, value_pair) = zip(*pair)
-            confident_distinct_pairs.append(value_pair)
-            n_distinct_pairs += 1
-            if n_distinct_pairs == sample_size:
-                return confident_distinct_pairs
+
+    indices = numpy.where(scores['score'] < confidence)[0]
+
+    if len(indices) > sample_size :
+        indices = numpy.random.choice(indices,
+                                      sample_size,
+                                      replace=False)
+
+    non_dupes = [(data_sample[i][0][1],
+                  data_sample[i][1][1])
+                 for i in indices]
+
+    if len(non_dupes) < sample_size :
+        logging.warning("Only %d confidently distinct pairs for block training",
+                        len(non_dupes))
+
+    return non_dupes
+

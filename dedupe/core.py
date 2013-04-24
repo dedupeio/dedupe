@@ -51,12 +51,6 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
     return numpy.column_stack((x, y))
 
 
-def dataSample(d, sample_size):
-
-    random_pairs = randomPairs(len(d), sample_size)
-
-    return tuple(((k_1, d[k_1]), (k_2, d[k_2])) for (k_1, k_2) in random_pairs)
-
 
 def trainModel(training_data, data_model, alpha=.001):
     """
