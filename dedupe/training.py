@@ -3,7 +3,7 @@
 
 # provides functions for selecting a sample of training data
 
-from itertools import combinations
+from itertools import combinations, islice
 import blocking
 import core
 import numpy
@@ -57,7 +57,7 @@ def activeLearning(candidates,
 
     if training_data.shape[0] == 0 :
         rand_int = random.randint(0, len(candidates))
-        exact_match = (candidates[rand_int][0][1], candidates[rand_int][0][1])
+        exact_match = candidates[rand_int]
         training_data = addTrainingData({1:[exact_match]*2,
                                          0:[]},
                                         data_model,
@@ -88,8 +88,7 @@ def activeLearning(candidates,
                 seen_indices.add(uncertain_index)
                 break
 
-        uncertain_pairs = [(candidates[uncertain_index][0][1],
-                            candidates[uncertain_index][1][1])]
+        uncertain_pairs = [candidates[uncertain_index]]
 
         (labeled_pairs, finished) = labelPairFunction(uncertain_pairs, fields)
 
@@ -123,7 +122,7 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
                                     dtype=training_data.dtype)
 
     new_training_data['label'] = [0] * len(labeled_pairs[0]) + [1] * len(labeled_pairs[1])
-    new_training_data['distances'] = core.buildFieldDistances(examples, fields)
+    new_training_data['distances'] = core.fieldDistances(examples, data_model)
 
 
     training_data = numpy.append(training_data, new_training_data)
@@ -177,31 +176,27 @@ def semiSupervisedNonDuplicates(data_sample,
 
     confidence = 1 - nonduplicate_confidence_threshold
 
-    # Nearly all possible combinations of pairs will not be
-    # duplicates. With high probability there will be N distinct pairs
-    # within a sample of size 2N
-    if len(data_sample) > 2 * sample_size :
-        data_sample = random.sample(data_sample, sample_size * 2)
+    def distinctPairs() :
+        data_slice = data_sample[0:sample_size]
+        pair_distance = core.fieldDistances(data_slice, data_model)
+        scores = core.scorePairs(pair_distance, data_model)
 
-    scores = core.scoreDuplicates(data_sample,
-                                  data_model,
-                                  threshold=0)
+        sample_n = 0
+        for score, pair in zip(scores, data_sample) :
+            if score < confidence :
+                yield pair
+                sample_n += 1
 
+        if sample_n < sample_size and len(data_sample) > sample_size :
+            for pair in data_sample[sample_size:] :
+                pair_distance = core.fieldDistances([pair], data_model)
+                score = core.scorePairs(pair_distance, data_model)
+                
+                if score < confidence :
+                    yield (pair)
 
-    indices = numpy.where(scores['score'] < confidence)[0]
+    return islice(distinctPairs(), 0, sample_size)
 
-    if len(indices) > sample_size :
-        indices = numpy.random.choice(indices,
-                                      sample_size,
-                                      replace=False)
+    
 
-    non_dupes = [(data_sample[i][0][1],
-                  data_sample[i][1][1])
-                 for i in indices]
-
-    if len(non_dupes) < sample_size :
-        logging.warning("Only %d confidently distinct pairs for block training",
-                        len(non_dupes))
-
-    return non_dupes
 

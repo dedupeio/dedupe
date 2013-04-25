@@ -334,7 +334,9 @@ class Dedupe:
                          to 2.
         """
 
-        candidates = (pair for block in blocks for pair in itertools.combinations(block, 2))
+        blocked_records = (block.values() for block in blocks)
+
+        candidates = core.blockedPairs(blocked_records)
 
         field_distances = core.fieldDistances(candidates, self.data_model)
         probability = core.scorePairs(field_distances, self.data_model)
@@ -383,8 +385,19 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        candidates = (pair for block in blocks for pair in itertools.combinations(block, 2))
-        self.dupes = core.scoreDuplicates(candidates, self.data_model, threshold)
+        
+        blocked_keys, blocked_records = core.split((block.keys(),
+                                                    block.values())
+                                                   for block in blocks)
+
+
+        candidate_keys = core.blockedPairs(blocked_keys)
+        candidate_records = core.blockedPairs(blocked_records)
+        
+        self.dupes = core.scoreDuplicates(candidate_keys,
+                                          candidate_records,
+                                          self.data_model,
+                                          threshold)
         clusters = clustering.cluster(self.dupes, cluster_threshold)
 
         return clusters
