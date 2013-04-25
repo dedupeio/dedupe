@@ -62,11 +62,11 @@ logging.basicConfig(level=log_level)
 # Set the input file
 # And the output filepaths
 os.chdir('./examples/patent_example/')
-input_file = 'patstat_dedupe_input_consolidated.csv'
-output_file_root = 'patstat_output_12April2013_'
-settings_file_root = 'patstat_settings_12April2013_'
-training_file_root = 'patstat_training_12April2013_'
-patent_file = '/mnt/db_master/patstat_raw/disambig_input_data/nl_test_data.csv'
+input_file = '../../../psClean/data/dedupe_input/person_records/dedupe_input_de.csv'
+output_file_root = 'patstat_output_de_20April2013_'
+settings_file_root = 'patstat_settings_de_20April2013_'
+training_file_root = 'patstat_training_de_20April2013_'
+patent_file = '../../../psClean/data/dedupe_input/person_patent/de_person_patent_map.csv'
 
 
 
@@ -81,8 +81,8 @@ input_df.Name.fillna('', inplace=True)
 # input_df = input_df[:30000]
 
 rounds = [1, 2]
-recall_weights = [1, 2.5]
-ppcs = [0.001, 0.001]
+recall_weights = [1, 2]
+ppcs = [0.0001, 0.001]
 dupes = [5, 5]
 twostage = [False, True]
 #dupes = [10, 5, 1]
@@ -168,8 +168,8 @@ for idx, r in enumerate(rounds):
 
     else:
         # To train dedupe, we feed it a random sample of records.
-        data_sample = dedupe.dataSample(data_d, 600000)
-        # Define the fields dedupe will pay attention to
+        data_sample = dedupe.dataSample(data_d, 3000000)
+          # Define the fields dedupe will pay attention to
         fields = {
             'Name': {'type': 'String', 'Has Missing':True},
             'LatLong': {'type': 'LatLong', 'Has Missing':True},
@@ -211,7 +211,7 @@ for idx, r in enumerate(rounds):
         deduper.train(data_sample, dedupe.training.consoleLabel)
 
         # When finished, save our training away to disk
-        deduper.writeTraining(r_training_file)
+        #deduper.writeTraining(r_training_file)
 
 # ## Blocking
     deduper.blocker_types.update({'Custom': (dedupe.predicates.wholeSetPredicate,
@@ -242,7 +242,7 @@ for idx, r in enumerate(rounds):
 
     # Save our weights and predicates to disk.
     # If the settings file exists, we will skip all the training and learning
-    deduper.writeSettings(r_settings_file)
+    #deduper.writeSettings(r_settings_file)
 
     # Generate the tfidf canopy as needed
     print 'generating tfidf index'
@@ -262,7 +262,7 @@ for idx, r in enumerate(rounds):
     time_block = time.time()
     print 'Blocking rules learned in', time_block - time_block_weights, 'seconds'
     print 'Writing out settings'
-    deduper.writeSettings(r_settings_file)
+    #deduper.writeSettings(r_settings_file)
 
     # ## Clustering
 

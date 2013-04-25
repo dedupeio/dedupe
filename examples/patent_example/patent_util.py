@@ -257,18 +257,30 @@ def subset_nth_quantile(g, n):
     g_size = g.size()
     g_size.sort()
     idx_out = g_size.index[-n:]
+    g_tot = np.sum(g_size)
+    g_sub = np.sum(g_size.ix[idx_out])
+    print 'ratio = %f' % (float(g_sub) / g_tot)
     return idx_out
 
-def find_potential_matches(df1, df2, f1, f2, threshold):
+def find_potential_matches(s1, s2, threshold):
+    """
     Given comparable fields in two DataFrames, returns
     the indices of df2 whose field is within threshold of the field
     in df1
+    """
     df2_idx = {}
-    for idx in df1.index:
-        for jdx in df2.index:
+    for count, s in enumerate(s1.drop_duplicates()):
+        if count > 0:
+            print len(df2_idx)
+            iter_time = time.time() - start_time
+            print 'Computed inventor matches in %f seconds' % np.round(iter_time, 3)
+
+        start_time = time.time()
+        print 'Matching top inventor %s' % count
+        for jdx in s2.index:
             if jdx not in df2_idx:
-                l = Levenshtein.ratio(df1.ix[idx][f1],
-                                      df2.ix[jdx][f2]
+                l = Levenshtein.ratio(s,
+                                      s2.ix[jdx]
                                       )
                 if l >=threshold:
                     df2_idx[jdx] = 1

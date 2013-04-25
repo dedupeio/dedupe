@@ -63,9 +63,9 @@ logging.basicConfig(level=log_level)
 # And the output filepaths
 os.chdir('./examples/patent_example/')
 input_file = 'patstat_dedupe_input_consolidated.csv'
-output_file_root = 'patstat_output_10April2013_'
-settings_file_root = 'patstat_settings_10April2013_'
-training_file_root = 'patstat_training_10April2013_'
+output_file_root = 'patstat_output_11April2013_'
+settings_file_root = 'patstat_settings_11April2013_'
+training_file_root = 'patstat_training_11April2013_'
 
 
 
@@ -81,7 +81,7 @@ input_df.Name.fillna('', inplace=True)
 # input_df = input_df[:30000]
 
 rounds = [1, 2, 3]
-recall_weights = [1, 2, 1]
+recall_weights = [1, 3, 1]
 ppcs = [0.001, 0.001, 0.001]
 dupes = [10, 5, 1]
 #dupes = [10, 5, 1]

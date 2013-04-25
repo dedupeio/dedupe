@@ -23,20 +23,17 @@ import optparse
 import time
 import sys
 import pandas as pd
-import patent_util
 import math
+sys.path.append('/home/markhuberty/Documents/dedupe/examples/patent_example')
+
+## Load up local libraries
+import patent_util
 import AsciiDammit
 
+# Finally load dedupe 
 import dedupe
 from dedupe.distance import cosine
 sys.modules['cosine'] = cosine
-
-def idf(i, j) :
-    i = int(i)
-    j = int(j)
-    max_i = max([i,j])
-    return math.log(len(data_d)/int(max_i))
-
 
 # ## Logging
 # Dedupe uses Python logging to show or suppress verbose output. Added
@@ -61,12 +58,17 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory
 # Set the input file
 # And the output filepaths
+input_file_dir = os.path.expanduser('~/Documents/psClean/data/dedupe_input/person_records')
+patent_file_dir = os.path.expanduser('~/Documents/psClean/data/dedupe_input/person_patent')
+this_date = datetime.datetime.now().strftime('%Y-%m-%d')
+country = 'dk'
 os.chdir('./examples/patent_example/')
-input_file = 'patstat_dedupe_input_consolidated.csv'
-output_file_root = 'patstat_output_12April2013_'
-settings_file_root = 'patstat_settings_12April2013_'
-training_file_root = 'patstat_training_12April2013_'
-patent_file = '/mnt/db_master/patstat_raw/disambig_input_data/nl_test_data.csv'
+
+input_file = input_file_dir + '/' + 'dedupe_input_' + country + '.csv'
+output_file_root = 'patstat_output_' + this_date + '_'
+settings_file_root = 'patstat_settings_' + country + '_' + this_date + '_'
+training_file_root = 'patstat_training_' + country + '_' + this_date + '_'
+patent_file = patent_file_dir + '/' + country + '_person_patent_map.csv'
 
 
 
