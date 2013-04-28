@@ -216,10 +216,16 @@ class Dedupe:
                                                         self.training_pairs)
 
 
+        n_folds = min(max(2,
+                          numpy.sum(self.training_data['label'])/3),
+                      20)
+
+        print n_folds
+
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
                                            self.data_model, 
-                                           k=20)
+                                           k=n_folds)
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model, 
