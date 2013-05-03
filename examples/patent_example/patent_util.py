@@ -1,3 +1,7 @@
+## patent_util.py
+## Author: Mark Huberty
+## Provides utility functions for the patent_example
+
 import re
 import random
 import AsciiDammit
@@ -26,41 +30,6 @@ def preProcess(column):
     return column
 
 
-def readData(filename, set_delim='**'):
-    """
-    Read in our data from a CSV file and create a dictionary of records, 
-    where the key is a unique record ID and each value is a 
-    [frozendict](http://code.activestate.com/recipes/414283-frozen-dictionaries/) 
-    (hashable dictionary) of the row fields.
-
-    Remap columns for the following cases:
-    - Lat and Long are mapped into a single LatLong tuple
-    - Class and Coauthor are stored as delimited strings but mapped into sets
-
-    **Currently, dedupe depends upon records' unique ids being integers
-    with no integers skipped. The smallest valued unique id must be 0 or
-    1. Expect this requirement will likely be relaxed in the future.**
-    """
-
-    data_d = {}
-    with open(filename) as f:
-        reader = csv.DictReader(f)
-        for idx, row in enumerate(reader):
-            # for k in row:
-            #     row[k] = preProcess(row[k])
-            row['LatLong'] = (float(row['Lat']), float(row['Lng']))
-            del row['Lat']
-            del row['Lng']
-            row['Class'] = frozenset(row['Class'].split(set_delim))
-            row['Coauthor'] = frozenset([author for author
-                                         in row['Coauthor'].split(set_delim)
-                                         if author != 'none'])
-            clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
-            
-            data_d[idx] = dedupe.core.frozendict(clean_row)
-            
-    return data_d
-
 
 def readDataFrame(df, set_delim='**'):
     """
@@ -74,9 +43,6 @@ def readDataFrame(df, set_delim='**'):
     - Lat and Long are mapped into a single LatLong tuple
     - Class and Coauthor are stored as delimited strings but mapped into sets
 
-    Assumes the index in the dataframe is already set to a continuous-integer
-    unique row ID.
-    
     **Currently, dedupe depends upon records' unique ids being integers
     with no integers skipped. The smallest valued unique id must be 0 or
     1. Expect this requirement will likely be relaxed in the future.**
@@ -156,6 +122,9 @@ def return_threshold_data(block_map, d, n_samples=1000):
 def candidates_gen(block_map, block_keys, d) :
     """
     Builds a record generator by block ID for deduping.
+    block_map: the output from return_block_map
+    block_keys: the block IDs to be returned in the generator; useful for subsetting blocks
+    d: the data dict as used by dedupe, with keys as record IDs
     """
     start_time = time.time()
     for i, block_key in enumerate(block_keys):
@@ -167,29 +136,21 @@ def candidates_gen(block_map, block_keys, d) :
             
         yield ((id, d[id]) for id in block_map[block_key])
 
-def consolidate_deduped_data():
-    """
-    Given results of a de-duping, consolidates to a
-    unique record set. 
-    """
 
-
-def check_convergence(orig_record_count, record_count, convergence_threshold):
-    """
-    Test for convergence, defined as less than threshold change
-    in record count
-    """
-    record_ratio = float(record_count) / orig_record_count
-    if record_ratio < convergence_threshold:
-        return True
-    else:
-        return False
-
-    
+# Consolidate functions
+# These are used for the two-stage disambiguation process
+# Each takes a pandas Series object and returns a scalar 
 def consolidate_unique(x):
+    """
+    Returns the first value in the series
+    """
     return x.values[0]
 
 def consolidate_geo(x):
+    """
+    For x as a lat or long series, returns the
+    most frequent non-zero value
+    """
     geo_counts = {}
     for g in x.values:
         g = float(g)
@@ -227,11 +188,24 @@ def consolidate_set(x, delim='**', maxlen=100):
     return out
 
 def consolidate(df, key, agg_dict):
+    """
+    Aggregates a pandas dataframe into a set of unique rows specified by
+    the key. Aggregation method should be specified by column in agg_dict,
+    which takes a column_name:function format.
+
+    Used in the _twostage method to consolidate the data based on the
+    unique record IDs assigned from the first stage of disambiguation
+    """
     grouped = df.groupby(key)
     records = grouped.agg(agg_dict)
     return records
 
 def blockingSettingsWrapper(ppc, uncovered_dupes, dedupe_instance, maxtries=10):
+    """
+    Wrapper around the dedupe blocker to tun the ppc / uncovered values in case
+    no valid blocking can be found. Assumes that the ppc is set too tightly, or the uncovered_dupes
+    too broadly, for effect.
+    """
     blockerError = True
     try_count = 0
     while blockerError:
