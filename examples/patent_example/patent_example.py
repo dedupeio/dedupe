@@ -31,12 +31,6 @@ import dedupe
 from dedupe.distance import cosine
 sys.modules['cosine'] = cosine
 
-def idf(i, j) :
-    i = int(i)
-    j = int(j)
-    max_i = max([i,j])
-    return math.log(len(data_d)/int(max_i))
-
 
 # ## Logging
 # Dedupe uses Python logging to show or suppress verbose output. Added
@@ -61,11 +55,10 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory
 # Set the input file
 # And the output filepaths
-os.chdir('./examples/patent_example/')
-input_file = 'patstat_dedupe_input_consolidated.csv'
-output_file_root = 'patstat_output_11April2013_'
-settings_file_root = 'patstat_settings_11April2013_'
-training_file_root = 'patstat_training_11April2013_'
+input_file = 'patstat_input.csv'
+output_file_root = 'patstat_output_'
+settings_file_root = 'patstat_settings_'
+training_file_root = 'patstat_training_'
 
 
 
@@ -79,9 +72,8 @@ input_df.Lng.fillna('0.0', inplace=True)
 input_df.Name.fillna('', inplace=True)
 
 # input_df = input_df[:30000]
-
-rounds = [1, 2, 3]
-recall_weights = [1, 3, 1]
+rounds = [1,2]
+recall_weights = [1, 2]
 ppcs = [0.001, 0.001, 0.001]
 dupes = [10, 5, 1]
 #dupes = [10, 5, 1]
@@ -154,11 +146,6 @@ for idx, r in enumerate(rounds):
 
         # If we have training data saved from a previous run of dedupe,
         # look for it an load it in.
-        # __Note:__ if you want to train from scratch, delete the training_file
-        # The json file is of the form:
-        # {0: [[{field:val dict of record 1}, {field:val dict of record 2}], ...(more nonmatch pairs)]
-        #  1: [[{field:val dict of record 1}, {field_val dict of record 2}], ...(more match pairs)]
-        # }
         if os.path.exists(r_training_file):
             print 'reading labeled examples from ', r_training_file
             deduper.train(data_sample, r_training_file)
@@ -244,12 +231,7 @@ for idx, r in enumerate(rounds):
 
     # `duplicateClusters` will return sets of record IDs that dedupe
     # believes are all referring to the same entity.
-
-                                                    
-
     print 'clustering...'
-    # Loop over each block separately and dedupe
-
     clustered_dupes = deduper.duplicateClusters(patent_util.candidates_gen(blocking_map,
                                                                            keys_to_block,
                                                                            data_d
@@ -268,6 +250,8 @@ for idx, r in enumerate(rounds):
             cluster_membership[record_id] = cluster_id
 
     # Then write it into the data frame as a sequential index for later use
+    # Since the unique_id has to be sequential, we have to maintain a map
+    # between the original ids and the new Id, so we can re-assign as necessary.
     r_cluster_index = []
     cluster_counter = 0
     clustered_cluster_map = {}
@@ -302,5 +286,3 @@ for idx, r in enumerate(rounds):
 
     print 'Round %s completed' % r
     # END DEDUPE LOOP
-
-print 'Dedupe complete, ran in ', time.time() - start_time, 'seconds'
