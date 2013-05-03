@@ -92,9 +92,8 @@ def getSample(cur, sample_size, id_column, table):
         temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
     def random_pair_generator():
-        for record_id_1, record_id_2 in random_pairs:
-            yield ((record_id_1, temp_d[record_id_1]),
-                   (record_id_2, temp_d[record_id_2]))
+        for k1, k2 in random_pairs:
+            yield (temp_d[k1], temp_d[k2])
 
     return tuple(pair for pair in random_pair_generator())
 
@@ -261,7 +260,10 @@ def candidates_gen(block_keys) :
             print time.time() - start_time, "seconds"
 
         c.execute(block_select, (block_key,))
-        yield ((row['donor_id'], row) for row in c.fetchall())
+        records = {}
+        for row in c.fetchall() :
+            records.update({row['donor_id'] : row})
+        yield records
 
 # Grab all the block keys with more than one record.
 # These records will make up a block of records we will cluster.

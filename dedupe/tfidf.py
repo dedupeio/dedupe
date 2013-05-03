@@ -5,13 +5,14 @@ import math
 import logging
 import re
 
+words = re.compile("[\w']+")
+
 class TfidfPredicate(float):
     def __new__(self, threshold):
         return float.__new__(self, threshold)
 
     def __init__(self, threshold):
         self.__name__ = 'TF-IDF:' + str(threshold)
-
 
 def invertIndex(data, tfidf_fields, df_index=None):
 
@@ -22,7 +23,7 @@ def invertIndex(data, tfidf_fields, df_index=None):
     for (record_id, record) in data:
         corpus_ids.add(record_id)  # candidate for removal
         for field in tfidf_fields:
-            tokens = re.split('\W+', record[field].lower())
+            tokens = words.findall(record[field].lower())
             tokens = [(token, tokens.count(token))
                       for token in set(tokens)
                       if token]
