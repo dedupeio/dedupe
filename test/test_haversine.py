@@ -4,8 +4,8 @@ import numpy
 
 class TestHaversine(unittest.TestCase):
     def setUp(self):
-        self.sfo = (37.619105,-122.375236)
-        self.ord = (41.981649, -87.906670)
+        self.sfo = ('37.619105**-122.375236')
+        self.ord = ('41.981649**-87.906670')
 
     def test_haversine_equal(self):
         km_dist_val = compareLatLong(self.sfo, self.ord)
