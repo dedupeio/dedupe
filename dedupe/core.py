@@ -78,7 +78,7 @@ def fieldDistances(record_pairs, data_model):
                          if v['type'] not in ('Missing Data',
                                               'Interaction')]
 
-
+    
     missing_field_indices = [i for i, (field, v) 
                              in enumerate(fields.items())
                              if 'Has Missing' in v and v['Has Missing']]
@@ -93,7 +93,6 @@ def fieldDistances(record_pairs, data_model):
                 interaction_indices.append(field_names.index(interaction_field))
             interactions.append(interaction_indices)
     
-                               
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 

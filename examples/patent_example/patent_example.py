@@ -20,19 +20,19 @@ import re
 import collections
 import logging
 import optparse
-import math
+import time
 import sys
-
+import pandas as pd
+import patent_util
+import math
 import AsciiDammit
 
 import dedupe
-
-# Allow for unpickling of user-defined comparator
 from dedupe.distance import cosine
 sys.modules['cosine'] = cosine
 
-# ## Logging
 
+# ## Logging
 # Dedupe uses Python logging to show or suppress verbose output. Added
 # for convenience.  To enable verbose logging, run `python
 # examples/csv_example/csv_example.py -v`
@@ -52,204 +52,237 @@ logging.basicConfig(level=log_level)
 
 # ## Setup
 
-# Switch to our working directory and set up our input and out put paths,
-# as well as our settings and training file locations
-os.chdir('./examples/patent_example/')
-input_file = 'patent_data_example_nc.csv'
-output_file = 'patent_example_output.csv'
-settings_file = 'patent_example_learned_settings.json'
-training_file = 'patent_example_training.json'
+# Switch to our working directory
+# Set the input file
+# And the output filepaths
+input_file = 'patstat_input.csv'
+output_file_root = 'patstat_output_'
+settings_file_root = 'patstat_settings_'
+training_file_root = 'patstat_training_'
 
 
-def preProcess(column):
-    """
-    Do a little bit of data cleaning with the help of
-    [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) and
-    Regex. Things like casing, extra spaces, quotes and new lines can
-    be ignored.
-    """
-
-    column = AsciiDammit.asciiDammit(column)
-    column = re.sub('  +', ' ', column)
-    column = re.sub('\n', ' ', column)
-    column = column.strip().strip('"').strip("'").lower().strip()
-    return column
-
-
-def readData(filename, set_delim='**'):
-    """
-    Read in our data from a CSV file and create a dictionary of records, 
-    where the key is a unique record ID and each value is a 
-    [frozendict](http://code.activestate.com/recipes/414283-frozen-dictionaries/) 
-    (hashable dictionary) of the row fields.
-
-    Remap columns for the following cases:
-    - Lat and Long are mapped into a single LatLong tuple
-    - Class and Coauthor are stored as delimited strings but mapped into sets
-
-    **Currently, dedupe depends upon records' unique ids being integers
-    with no integers skipped. The smallest valued unique id must be 0 or
-    1. Expect this requirement will likely be relaxed in the future.**
-    """
-
-    data_d = {}
-    with open(filename) as f:
-        reader = csv.DictReader(f)
-        for idx, row in enumerate(reader):
-            for k in row:
-                row[k] = preProcess(row[k])
-            if row['Address'] == row['Locality'] :
-                row['Address'] = ''
-            row['LatLong'] = (float(row['Lat']), float(row['Lng']))
-            del row['Lat']
-            del row['Lng']
-            row['Class'] = frozenset(row['Class'].split(set_delim))
-            row['Coauthor'] = frozenset([author for author
-                                         in row['Coauthor'].split(set_delim)
-                                         if author != 'none'])
-                
-            clean_row = [(k, v) for (k, v) in row.items()]
-            
-            data_d[idx] = dedupe.core.frozendict(clean_row)
-            
-    return data_d
 
 
 print 'importing data ...'
-data_d = readData(input_file)
+input_df = pd.read_csv(input_file)
+input_df.Class.fillna('', inplace=True)
+input_df.Coauthor.fillna('', inplace=True)
+input_df.Lat.fillna('0.0', inplace=True)
+input_df.Lng.fillna('0.0', inplace=True)
+input_df.Name.fillna('', inplace=True)
+
+# input_df = input_df[:30000]
+rounds = [1,2]
+recall_weights = [1, 2]
+ppcs = [0.001, 0.001, 0.001]
+dupes = [10, 5, 1]
+#dupes = [10, 5, 1]
+
+## Start the by-round labeling
+for idx, r in enumerate(rounds):
+
+    r_recall_wt = recall_weights[idx]
+    r_ppc = ppcs[idx]
+    r_uncovered_dupes = dupes[idx]
+
+    r_settings_file = settings_file_root + str(r) + '.json'
+    r_output_file = output_file_root + str(r) + '.csv'
+    r_training_file = training_file_root + str(r) + '.json'
+
+    # If this is the first round, take the native input
+    # If the nth round, consolidate data on the nth index
+    # and read in the resulting dataframe.
+    if idx == 0:
+        data_d = patent_util.readDataFrame(input_df)
+    else:
+        cluster_agg_dict = {'Name': patent_util.consolidate_unique,
+                            'Lat': patent_util.consolidate_geo,
+                            'Lng': patent_util.consolidate_geo,
+                            'Class': patent_util.consolidate_set,
+                            'Coauthor': patent_util.consolidate_set
+                            }
+        #input_file.set_index(cluster_name)
+        consolidated_input = patent_util.consolidate(input_df,
+                                                     cluster_name,
+                                                     cluster_agg_dict
+                                                     )
+        data_d = patent_util.readDataFrame(consolidated_input)
+        del consolidated_input
+        input_df.set_index(cluster_name, inplace=True)
+        
 
 ## Build the comparators
-coauthors = [row['Coauthor'] for idx, row in data_d.items()]
-classes = [row['Class'] for idx, row in data_d.items()]
-class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
-coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
-
-def idf(i, j) :
-    i = int(i)
-    j = int(j)
-    max_i = max([i,j])
-    return math.log(len(data_d)/int(max_i))
+    coauthors = [row['Coauthor'] for cidx, row in data_d.items()]
+    classes = [row['Class'] for cidx, row in data_d.items()]
+    class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
+    coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
 # ## Training
+    if os.path.exists(r_settings_file):
+        print 'reading from', r_settings_file
+        deduper = dedupe.Dedupe(r_settings_file)
 
-if os.path.exists(settings_file):
-    print 'reading from', settings_file
-    deduper = dedupe.Dedupe(settings_file)
+    else:
+        # To train dedupe, we feed it a random sample of records.
+        data_sample = dedupe.dataSample(data_d, 600000)
+        # Define the fields dedupe will pay attention to
+        fields = {
+            'Name': {'type': 'String', 'Has Missing':True},
+            'LatLong': {'type': 'LatLong', 'Has Missing':True},
+            'Class': {'type': 'Custom', 'comparator':class_comparator},
+            'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator}# ,
+            # 'Class_Count': {'type': 'Custom', 'comparator': idf},
+            # 'Coauthor_Count': {'type': 'Custom', 'comparator': idf},
+            # 'Class_Count_Class': {'type': 'Interaction',
+            #                       'Interaction Fields': ['Class_Count', 'Class']
+            #                       },
+            # 'Coauthor_Count_Coauthor': {'type': 'Interaction',
+            #                             'Interaction Fields': ['Coauthor_Count', 'Coauthor']
+            #                             }
+            }
 
-else:
-    # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 600000)
-    # Define the fields dedupe will pay attention to
-    fields = {
-        'Name': {'type': 'String', 'Has Missing':True},
-        'LatLong': {'type': 'LatLong', 'Has Missing':True},
-        'Address': {'type': 'String', 'Has Missing':True},
-        'Class': {'type': 'Custom', 'comparator':class_comparator},
-        'Coauthor': {'type': 'Custom', 'comparator': coauthor_comparator},
-        'Name Count' :{'type' : 'Custom', 'comparator' : idf },
-        'Name Count-Coauthor' : {'type' : 'Interaction',
-                                 'Interaction Fields' : ['Name Count', 'Coauthor']},
-        'Name Count-Class' : {'type' : 'Interaction',
-                              'Interaction Fields' : ['Name Count', 'Class']},
-        }
+        # Create a new deduper object and pass our data model to it.
+        deduper = dedupe.Dedupe(fields)
 
-    # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields)
+        # If we have training data saved from a previous run of dedupe,
+        # look for it an load it in.
+        if os.path.exists(r_training_file):
+            print 'reading labeled examples from ', r_training_file
+            deduper.train(data_sample, r_training_file)
 
-    # If we have training data saved from a previous run of dedupe,
-    # look for it an load it in.
-    # __Note:__ if you want to train from scratch, delete the training_file
-    ## The json file is of the form:
-    ## {0: [[{field:val dict of record 1}, {field:val dict of record 2}], ...(more nonmatch pairs)]
-    ##  1: [[{field:val dict of record 1}, {field_val dict of record 2}], ...(more match pairs)]
-    ## }
-    if os.path.exists(training_file):
-        print 'reading labeled examples from ', training_file
-        deduper.train(data_sample, training_file)
+        # ## Active learning
 
-    # ## Active learning
+        # Starts the training loop. Dedupe will find the next pair of records
+        # it is least certain about and ask you to label them as duplicates
+        # or not.
 
-    # Starts the training loop. Dedupe will find the next pair of records
-    # it is least certain about and ask you to label them as duplicates
-    # or not.
+        # use 'y', 'n' and 'u' keys to flag duplicates
+        # press 'f' when you are finished
+        print 'starting active labeling...'
+        deduper.train(data_sample, dedupe.training.consoleLabel)
 
-    # use 'y', 'n' and 'u' keys to flag duplicates
-    # press 'f' when you are finished
-    print 'starting active labeling...'
-    deduper.train(data_sample, dedupe.training.consoleLabel)
-
-    # When finished, save our training away to disk
-    deduper.writeTraining(training_file)
+        # When finished, save our training away to disk
+        deduper.writeTraining(r_training_file)
 
 # ## Blocking
+    deduper.blocker_types.update({'Custom': (dedupe.predicates.wholeSetPredicate,
+                                             dedupe.predicates.commonSetElementPredicate),
+                                  'LatLong' : (dedupe.predicates.latLongGridPredicate,)
+                                  }
+                                 )
+    time_start = time.time()
+    print 'blocking...'
+    # Initialize our blocker, which determines our field weights and blocking 
+    # predicates based on our training data
+    #blocker = deduper.blockingFunction(r_ppc, r_uncovered_dupes)
+    blocker, ppc_final, ucd_final = patent_util.blockingSettingsWrapper(r_ppc,
+                                                                        r_uncovered_dupes,
+                                                                        deduper
+                                                                        )
 
+    if not blocker:
+        print 'No valid blocking settings found'
+        print 'Starting ppc value: %s' % r_ppc
+        print 'Starting uncovered_dupes value: %s' % r_uncovered_dupes
+        print 'Ending ppc value: %s' % ppc_final
+        print 'Ending uncovered_dupes value: %s' % ucd_final
+        break
 
-deduper.blocker_types.update({'Custom': (dedupe.predicates.wholeSetPredicate,
-                                      dedupe.predicates.commonSetElementPredicate),
-                              'LatLong' : (dedupe.predicates.latLongGridPredicate,)})
+    time_block_weights = time.time()
+    print 'Learned blocking weights in', time_block_weights - time_start, 'seconds'
 
+    # Save our weights and predicates to disk.
+    # If the settings file exists, we will skip all the training and learning
+    deduper.writeSettings(r_settings_file)
 
+    # Generate the tfidf canopy as needed
+    print 'generating tfidf index'
+    full_data = ((k, data_d[k]) for k in data_d)
+    blocker.tfIdfBlocks(full_data)
+    del full_data
 
-print 'blocking...'
-# Initialize our blocker, which determines our field weights and blocking 
-# predicates based on our training data
-blocker = deduper.blockingFunction()
+    # Load all the original data in to memory and place
+    # them in to blocks. Return only the block_id: unique_id keys
 
-# Save our weights and predicates to disk.
-# If the settings file exists, we will skip all the training and learning
-deduper.writeSettings(settings_file)
+    blocking_map = patent_util.return_block_map(data_d, blocker)
 
-# Load all the original data in to memory and place
-# them in to blocks. Each record can be blocked in many ways, so for
-# larger data, memory will be a limiting factor.
+    keys_to_block = [k for k in blocking_map if len(blocking_map[k]) > 1]
+    print '# Blocks to be clustered: %s' % len(keys_to_block)
+    
+    # Save the weights and predicates
+    time_block = time.time()
+    print 'Blocking rules learned in', time_block - time_block_weights, 'seconds'
+    print 'Writing out settings'
+    deduper.writeSettings(r_settings_file)
 
-blocked_data = dedupe.blockData(data_d, blocker)
+    # ## Clustering
 
-# Satore all of our blocked data in to memory
-blocked_data = tuple(blocked_data)
+    # Find the threshold that will maximize a weighted average of our precision and recall. 
+    # When we set the recall weight to 1, we are trying to balance recall and precision
+    #
+    # If we had more data, we would not pass in all the blocked data into
+    # this function but a representative sample.
+    
+    threshold_data = patent_util.return_threshold_data(blocking_map, data_d)
 
-# ## Clustering
+    print 'Computing threshold'
+    threshold = deduper.goodThreshold(threshold_data, recall_weight=r_recall_wt)
+    del threshold_data
 
-# Find the threshold that will maximize a weighted average of our precision and recall. 
-# When we set the recall weight to 2, we are saying we care twice as much
-# about recall as we do precision.
-#
-# If we had more data, we would not pass in all the blocked data into
-# this function but a representative sample.
+    # `duplicateClusters` will return sets of record IDs that dedupe
+    # believes are all referring to the same entity.
+    print 'clustering...'
+    clustered_dupes = deduper.duplicateClusters(patent_util.candidates_gen(blocking_map,
+                                                                           keys_to_block,
+                                                                           data_d
+                                                                           ),
+                                                threshold
+                                                ) 
 
-threshold = deduper.goodThreshold(blocked_data, recall_weight=1)
+    print '# duplicate sets', len(clustered_dupes)
 
-# `duplicateClusters` will return sets of record IDs that dedupe
-# believes are all referring to the same entity.
+    # Extract the new cluster membership 
+    ccount = 0
+    cluster_membership = collections.defaultdict(lambda : 'x')
+    for (cluster_id, cluster) in enumerate(clustered_dupes):
+        ccount += len(cluster)
+        for record_id in cluster:
+            cluster_membership[record_id] = cluster_id
 
-print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
+    # Then write it into the data frame as a sequential index for later use
+    # Since the unique_id has to be sequential, we have to maintain a map
+    # between the original ids and the new Id, so we can re-assign as necessary.
+    r_cluster_index = []
+    cluster_counter = 0
+    clustered_cluster_map = {}
+    excluded_cluster_map = {}
+    for df_idx in input_df.index:
+        if df_idx in cluster_membership:
+            orig_cluster = cluster_membership[df_idx]
+            if orig_cluster in clustered_cluster_map:
+                r_cluster_index.append(clustered_cluster_map[orig_cluster])
+            else:
+                clustered_cluster_map[orig_cluster] = cluster_counter
+                r_cluster_index.append(cluster_counter)
+                cluster_counter += 1
+                # print cluster_counter
+        else:
+            if df_idx in excluded_cluster_map:
+                r_cluster_index.append(excluded_cluster_map[df_idx])
+            else:
+                excluded_cluster_map[df_idx] = cluster_counter
+                r_cluster_index.append(cluster_counter)
+                cluster_counter += 1
 
-print '# duplicate sets', len(clustered_dupes)
+    cluster_name = 'cluster_id_r' + str(r)
+    input_df[cluster_name] = r_cluster_index
 
-# ## Writing Results
+    # Write out the data frame
+    input_df.to_csv(r_output_file)
 
-# Write our original data back out to a CSV with a new column called 
-# 'Cluster ID' which indicates which records refer to each other.
+    # Then reindex and consolidate
+    if idx > 0:
+        input_df.reset_index(inplace=True)
 
-cluster_membership = collections.defaultdict(lambda : 'x')
-for (cluster_id, cluster) in enumerate(clustered_dupes):
-    for record_id in cluster:
-        cluster_membership[record_id] = cluster_id
-
-
-with open(output_file, 'w') as f:
-    writer = csv.writer(f)
-
-    with open(input_file) as f_input :
-        reader = csv.reader(f_input)
-
-        heading_row = reader.next()
-        heading_row.insert(0, 'Cluster ID')
-        writer.writerow(heading_row)
-
-        for idx, row in enumerate(reader):
-            row_id = idx
-            cluster_id = cluster_membership[row_id]
-            row.insert(0, cluster_id)
-            writer.writerow(row)
+    print 'Round %s completed' % r
+    # END DEDUPE LOOP
