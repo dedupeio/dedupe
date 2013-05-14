@@ -6,7 +6,7 @@ The calling of the core.scoreDuplicates function has been parallelized. Clusteri
 
 examples/csv_example/duplicate.py has been added - it basically makes the test dataset 4 times bigger by duplicating it, taking care of the repeating sequential IDs.
 
-Here is a sample run on my Intel i5-2500K quad-core desktop with 4GB RAM, running Ubuntu 11.10, 32 bit. 8 processes are run by pool. This was done on the bigger dataset, named custom_big.csv, generated with duplicate.py.
+Here is a sample run on my Intel i5-2500K quad-core desktop with 4GB RAM, running Ubuntu 11.10, 32 bit. 8 processes are run by pool. This was done on the bigger dataset, named custom_big.csv, generated with duplicate.py. (Active learning etc. was already done beforehand. Pre-generated settings and csv_example_training.json files used.)
 
 <pre>
 $ time python ex*/csv*/duplicate.py
