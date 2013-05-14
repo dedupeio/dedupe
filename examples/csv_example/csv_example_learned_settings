@@ -16,14 +16,14 @@ sS'type'
 p8
 S'String'
 p9
-sS'weight'
-p10
-F-0.8223453164100647
 sS'comparator'
-p11
+p10
 cdedupe.affinegap
 normalizedAffineGapDistance
+p11
+sS'weight'
 p12
+F-0.8223453164100647
 saa(lp13
 S'Address'
 p14
@@ -34,9 +34,9 @@ I00
 sg8
 g9
 sg10
+g11
+sg12
 F-0.21172745525836945
-sg11
-g12
 saa(lp17
 S'Zip'
 p18
@@ -46,9 +46,9 @@ I01
 sg8
 g9
 sg10
+g11
+sg12
 F0.7778016328811646
-sg11
-g12
 saa(lp20
 S'Site name'
 p21
@@ -58,9 +58,9 @@ I00
 sg8
 g9
 sg10
+g11
+sg12
 F-0.6047906875610352
-sg11
-g12
 saa(lp23
 S'Phone: not_missing'
 p24
@@ -68,7 +68,7 @@ a(dp25
 g8
 S'Missing Data'
 p26
-sg10
+sg12
 F-0.2498602718114853
 saa(lp27
 S'Zip: not_missing'
@@ -76,7 +76,7 @@ p28
 a(dp29
 g8
 g26
-sg10
+sg12
 F0.10626878589391708
 saatp30
 Rp31

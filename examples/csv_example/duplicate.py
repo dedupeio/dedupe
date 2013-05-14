@@ -25,7 +25,7 @@ with open(input_file) as f, open(output_file, 'w') as w:
 	for row in reader:
 		writer.writerow(row)
 
-        for i in range(1, 11):
+        for i in range(1, 3):
                 f.seek(0)
                 reader.next()
 

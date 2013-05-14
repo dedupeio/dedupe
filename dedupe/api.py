@@ -347,9 +347,9 @@ class Dedupe:
 
             pool = Pool(processes=processes,)
             f = lambda A, n=3: [A[i:i+n] for i in range(0, len(A), n)]
-
+	    chunks = 1000
             start = time.time()
-            self.dupes = itertools.chain.from_iterable(pool.map(_mapScoreDuplicates, f(list(candidates), 100)))
+            self.dupes = itertools.chain.from_iterable(pool.map(_mapScoreDuplicates, f(list(candidates), chunks)))
             elapsed = (time.time() - start)
             print "Parallel scoreDuplicates with ", processes, " processes takes : ",elapsed
         else:
