@@ -180,8 +180,10 @@ threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
-print 'clustering...'
+print 'clustering in serial mode...'
 clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
+print 'clustering in parallel mode...'
+clustered_dupes = deduper.duplicateClusters(blocked_data, threshold, True, 8)
 
 print '# duplicate sets', len(clustered_dupes)
 

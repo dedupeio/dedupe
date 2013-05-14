@@ -171,7 +171,8 @@ class frozendict(dict):
     A data type for hashable dictionaries
     From http://code.activestate.com/recipes/414283-frozen-dictionaries/
     '''
-
+    # Temporarily "unfreezing" to work around issue with parallel processing...
+    '''
     def _blocked_attribute(obj):
         raise AttributeError('A frozendict cannot be modified.')
 
@@ -179,6 +180,7 @@ class frozendict(dict):
 
     __delitem__ = __setitem__ = clear = _blocked_attribute
     pop = popitem = setdefault = update = _blocked_attribute
+    '''
 
     def __new__(cls, *args):
         new = dict.__new__(cls)

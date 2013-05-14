@@ -10,6 +10,8 @@ import itertools
 import logging
 import types
 import pickle
+import time
+from multiprocessing import Pool
 
 import numpy
 
@@ -311,7 +313,7 @@ class Dedupe:
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, threshold=.5):
+    def duplicateClusters(self, blocks, threshold=.5, parallel=False, processes = 8):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -335,9 +337,27 @@ class Dedupe:
         # Setting the cluster threshold this ways is not principled,
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
-
         candidates = (pair for block in blocks for pair in itertools.combinations(block, 2))
-        self.dupes = core.scoreDuplicates(candidates, self.data_model, threshold)
+
+        if parallel == True:
+            global globalThreshold
+            globalThreshold = threshold
+            global globalDataModel
+            globalDataModel = self.data_model
+
+            pool = Pool(processes=processes,)
+            f = lambda A, n=3: [A[i:i+n] for i in range(0, len(A), n)]
+
+            start = time.time()
+            self.dupes = itertools.chain.from_iterable(pool.map(_mapScoreDuplicates, f(list(candidates), 100)))
+            elapsed = (time.time() - start)
+            print "Parallel scoreDuplicates with ", processes, " processes takes : ",elapsed
+        else:
+            start = time.time()
+            self.dupes = core.scoreDuplicates(candidates, self.data_model, threshold)
+            elapsed = (time.time() - start)
+            print "Serial scoreDuplicates takes : ",elapsed
+
         clusters = clustering.cluster(self.dupes, cluster_threshold)
 
         return clusters
@@ -513,3 +533,6 @@ def _initializeDataModel(fields):
 
     data_model['bias'] = 0
     return data_model
+
+def _mapScoreDuplicates(candidates):
+        return core.scoreDuplicates(candidates, globalDataModel, globalThreshold)

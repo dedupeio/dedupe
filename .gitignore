@@ -11,7 +11,6 @@ logfile
 *.html
 .#*
 *.*#
-*.json
 examples/output/*.*
 examples/csv_example/csv_example_output.csv
 examples/mysql_example/*.txt*
