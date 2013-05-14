@@ -9,7 +9,7 @@ examples/csv_example/duplicate.py has been added - it basically makes the test d
 Here is a sample run on my Intel i5-2500K quad-core desktop with 4GB RAM, running Ubuntu 11.10, 32 bit. 8 processes are run by pool. This was done on the bigger dataset, named custom_big.csv, generated with duplicate.py. (Active learning etc. was already done beforehand. Pre-generated settings and csv_example_training.json files used.)
 
 <pre>
-$ time python ex*/csv*/duplicate.py
+$ time python examples/csv_example/duplicate.py
 
 real	0m0.627s
 user	0m0.612s
@@ -33,7 +33,7 @@ sys	0m1.716s
 
 Sample run on the same environment with the original csv dataset:
 <pre>
-$ python examp*/csv*/csv_example.py
+$ python examples/csv_example/csv_example.py
 importing data ...
 reading from csv_example_learned_settings
 blocking...
