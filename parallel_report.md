@@ -32,7 +32,7 @@ sys	0m1.716s
 </pre>
 
 Sample run on the same environment with the original csv dataset:
-<pr>
+<pre>
 $ python examp*/csv*/csv_example.py
 importing data ...
 reading from csv_example_learned_settings
