@@ -48,7 +48,7 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory and set up our input and out put paths,
 # as well as our settings and training file locations
 os.chdir('./examples/csv_example/')
-input_file = 'csv_example_messy_input.csv'
+input_file = 'custom_big.csv'
 output_file = 'csv_example_output.csv'
 settings_file = 'csv_example_learned_settings'
 training_file = 'csv_example_training.json'
@@ -180,8 +180,10 @@ threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
-print 'clustering...'
+print 'clustering in serial mode...'
 clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
+print 'clustering in parallel mode...'
+clustered_dupes = deduper.duplicateClusters(blocked_data, threshold, True, 8)
 
 print '# duplicate sets', len(clustered_dupes)
 
