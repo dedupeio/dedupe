@@ -70,42 +70,6 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
-  def test_initializer(self) :
-
-    fields = [k for k,v in self.deduper.data_model['fields'].items()
-              if v['type'] != 'Missing Data'] 
-
-    
-    (training_dupes,
-     training_distinct,
-     predicate_set,
-     _overlap) =  dedupe.blocking._initializeTraining(self.training_pairs,
-                                                      fields,
-                                                      self.predicate_functions,
-                                                      [],
-                                                      {})
-
-    assert training_dupes == [(self.frozendict({'age': '20', 'name': 'Jimmy'}),
-                               self.frozendict({'age': '21', 'name': 'Jimbo'})),
-                              (self.frozendict({'age': '35', 'name': 'Willy'}),
-                               self.frozendict({'age': '35', 'name': 'William'}))]
-    assert training_distinct == [(self.frozendict({'age': '50', 'name': 'Bob'}),
-                                  self.frozendict({'age': '75', 'name': 'Charlie'})),
-                                 (self.frozendict({'age': '40', 'name': 'Meredith'}),
-                                  self.frozendict({'age': '10', 'name': 'Sue'}))]
-
-    assert predicate_set == [((self.wholeFieldPredicate, 'age'),),
-                             ((self.wholeFieldPredicate, 'name'),),
-                             ((self.sameThreeCharStartPredicate, 'age'),),
-                             ((self.sameThreeCharStartPredicate, 'name'),),
-                             ((self.wholeFieldPredicate, 'age'),
-                              (self.wholeFieldPredicate, 'name')),
-                             ((self.wholeFieldPredicate, 'age'),
-                              (self.sameThreeCharStartPredicate, 'name')),
-                             ((self.wholeFieldPredicate, 'name'),
-                              (self.sameThreeCharStartPredicate, 'age')),
-                             ((self.sameThreeCharStartPredicate, 'age'),
-                              (self.sameThreeCharStartPredicate, 'name'))]
 
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
