@@ -1,36 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-This code demonstrates how to use dedupe with a comma separated values
-(CSV) file. All operations are performed in memory, so will run very
-quickly on datasets up to ~10,000 rows.
-
-We start with a CSV file containing our messy data. In this example,
-it is listings of early childhood education centers in Chicago
-compiled from several different sources.
-
-The output will be a CSV with our clustered results.
-
-For larger datasets, see our [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html)
+This code demonstrates how to use dedupe with to disambiguate authors and 
+how to use dedupe with the pandas library.
 """
 
 import os
-import csv
-import re
 import collections
 import logging
 import optparse
 import time
 import sys
-import pandas as pd
-import patent_util
-import math
-import examples.shared.AsciiDammit as AsciiDammit
+import random
 
+import pandas as pd
 
 import dedupe
 from dedupe.distance import cosine
 sys.modules['cosine'] = cosine
+
+import patent_util
+import examples.shared.AsciiDammit as AsciiDammit
 
 
 # ## Logging
@@ -63,8 +53,6 @@ settings_file_root = 'patstat_settings_'
 training_file_root = 'patstat_training_'
 
 
-
-
 print 'importing data ...'
 input_df = pd.read_csv(input_file)
 input_df.Class.fillna('', inplace=True)
@@ -78,7 +66,6 @@ rounds = [1,2]
 recall_weights = [1, 2]
 ppcs = [0.001, 0.001, 0.001]
 dupes = [10, 5, 1]
-#dupes = [10, 5, 1]
 
 ## Start the by-round labeling
 for idx, r in enumerate(rounds):
@@ -113,13 +100,13 @@ for idx, r in enumerate(rounds):
         input_df.set_index(cluster_name, inplace=True)
         
 
-## Build the comparators
+    ## Build the comparators
     coauthors = [row['Coauthor'] for cidx, row in data_d.items()]
     classes = [row['Class'] for cidx, row in data_d.items()]
     class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
     coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
-# ## Training
+    # ## Training
     if os.path.exists(r_settings_file):
         print 'reading from', r_settings_file
         deduper = dedupe.Dedupe(r_settings_file)
@@ -166,7 +153,7 @@ for idx, r in enumerate(rounds):
         # When finished, save our training away to disk
         deduper.writeTraining(r_training_file)
 
-# ## Blocking
+    # ## Blocking
     deduper.blocker_types.update({'Custom': (dedupe.predicates.wholeSetPredicate,
                                              dedupe.predicates.commonSetElementPredicate),
                                   'LatLong' : (dedupe.predicates.latLongGridPredicate,)
@@ -201,15 +188,15 @@ for idx, r in enumerate(rounds):
     print 'generating tfidf index'
     full_data = ((k, data_d[k]) for k in data_d)
     blocker.tfIdfBlocks(full_data)
-    del full_data
 
     # Load all the original data in to memory and place
-    # them in to blocks. Return only the block_id: unique_id keys
+    # them in to blocks. 
 
-    blocking_map = patent_util.return_block_map(data_d, blocker)
+    blocked_data = dedupe.blockData(data_d, blocker)
 
-    keys_to_block = [k for k in blocking_map if len(blocking_map[k]) > 1]
-    print '# Blocks to be clustered: %s' % len(keys_to_block)
+    patent_util.compute_block_summary(blocked_data)
+
+    print '# Blocks to be clustered: %s' % len(blocked_data)
     
     # Save the weights and predicates
     time_block = time.time()
@@ -219,27 +206,28 @@ for idx, r in enumerate(rounds):
 
     # ## Clustering
 
-    # Find the threshold that will maximize a weighted average of our precision and recall. 
-    # When we set the recall weight to 1, we are trying to balance recall and precision
+    # Find the threshold that will maximize a weighted average of our
+    # precision and recall.  When we set the recall weight to 1, we
+    # are trying to balance recall and precision
     #
     # If we had more data, we would not pass in all the blocked data into
     # this function but a representative sample.
     
-    threshold_data = patent_util.return_threshold_data(blocking_map, data_d)
+    blocked_data = dedupe.blockData(data_d, blocker)
+
+    blocked_data_sample = random.sample(blocked_data, 1000)
 
     print 'Computing threshold'
-    threshold = deduper.goodThreshold(threshold_data, recall_weight=r_recall_wt)
-    del threshold_data
+    threshold = deduper.goodThreshold(blocked_data_sample, 
+                                      recall_weight=r_recall_wt)
+
 
     # `duplicateClusters` will return sets of record IDs that dedupe
     # believes are all referring to the same entity.
     print 'clustering...'
-    clustered_dupes = deduper.duplicateClusters(patent_util.candidates_gen(blocking_map,
-                                                                           keys_to_block,
-                                                                           data_d
-                                                                           ),
-                                                threshold
-                                                ) 
+    clustered_dupes = deduper.duplicateClusters(blocked_data,
+                                                threshold)
+
 
     print '# duplicate sets', len(clustered_dupes)
 

@@ -80,28 +80,13 @@ def readDataFrame(df, set_delim='**'):
             
     return data_d
 
-def return_block_map(d, b):
-    """
-    For data d and a blocker b, return a
-    block:[record_id] map as a dict
-    """
-    block_map = collections.defaultdict(list)
-    for record_id, record in d.iteritems():
-        for block_id in b((record_id, record)):
-            block_map[block_id].append(record_id)
-
-    print 'Blocking done'
-    compute_block_summary(block_map)
-    return block_map
-
-
-def compute_block_summary(block):
+def compute_block_summary(blocks):
     """
     Given a block map as returned from return_block_map,
     compute some summary statistics
     """
-    block_count = len(block)
-    block_len = [len(v) for k,v in block.iteritems()]
+    block_count = len(blocks)
+    block_len = [len(block) for block in blocks]
     max_block_len = np.max(block_len)
     median_block_len = np.median(block_len)
     mean_block_len = np.mean(block_len)
@@ -112,38 +97,7 @@ def compute_block_summary(block):
     return 0
 
 
-def return_threshold_data(block_map, d, n_samples=1000):
-    """
-    Given a block map and a corresponding data object, return
-    n_samples random blocks as a list of tuples of form
-    (record_id, record)
-    """
-    try :
-        subset = random.sample(range(len(block_map.keys())), n_samples)
-    except ValueError :
-        subset = range(len(block_map.keys()))
-    threshold_data_ids = [block_map[block_map.keys()[i]] for i in subset]
-    for i, id_list in enumerate(threshold_data_ids):
-        yield dict((id, d[id]) for id in id_list)
 
-
-
-def candidates_gen(block_map, block_keys, d) :
-    """
-    Builds a record generator by block ID for deduping.
-    block_map: the output from return_block_map
-    block_keys: the block IDs to be returned in the generator; useful for subsetting blocks
-    d: the data dict as used by dedupe, with keys as record IDs
-    """
-    start_time = time.time()
-    for i, block_key in enumerate(block_keys):
-        if i % 1000 == 0 :
-            print i, "blocks"
-            print time.time() - start_time, "seconds"
-            if i > 0:
-                print (time.time() - start_time) / i, "seconds per block"
-            
-        yield dict((id, d[id]) for id in block_map[block_key])
 
 
 # Consolidate functions
