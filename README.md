@@ -43,7 +43,10 @@ Using pip:
 git clone git://github.com/open-city/dedupe.git
 cd dedupe
 pip install "numpy>=1.6"
+# for python 2.7
 pip install -r requirements.txt
+# OR for python 2.6
+pip install -r py26_requirements.txt
 python setup.py install
 ```
 

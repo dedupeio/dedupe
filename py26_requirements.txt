@@ -1,2 +1,2 @@
--r base_requirements.txt
+-r requirements.txt
 simplejson
