@@ -55,6 +55,7 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory
 # Set the input file
 # And the output filepaths
+os.chdir('./examples/patent_example')
 input_file = 'patstat_input.csv'
 output_file_root = 'patstat_output_'
 settings_file_root = 'patstat_settings_'

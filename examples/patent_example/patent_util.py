@@ -110,13 +110,14 @@ def return_threshold_data(block_map, d, n_samples=1000):
     n_samples random blocks as a list of tuples of form
     (record_id, record)
     """
-    subset = random.sample(range(len(block_map.keys())), n_samples)
+    try :
+        subset = random.sample(range(len(block_map.keys())), n_samples)
+    except ValueError :
+        subset = range(len(block_map.keys()))
     threshold_data_ids = [block_map[block_map.keys()[i]] for i in subset]
-    threshold_data = []
-    for id_list in threshold_data_ids:
-        record_list = [(id, d[id]) for id in id_list]
-        threshold_data.append(tuple(record_list))
-    return tuple(threshold_data)
+    for i, id_list in enumerate(threshold_data_ids):
+        yield dict((id, d[id]) for id in id_list)
+
 
 
 def candidates_gen(block_map, block_keys, d) :
@@ -134,7 +135,7 @@ def candidates_gen(block_map, block_keys, d) :
             if i > 0:
                 print (time.time() - start_time) / i, "seconds per block"
             
-        yield ((id, d[id]) for id in block_map[block_key])
+        yield dict((id, d[id]) for id in block_map[block_key])
 
 
 # Consolidate functions

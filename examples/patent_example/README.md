@@ -62,7 +62,7 @@ python -u patent_example.py
 # To check the precision-recall relative to the provided reference
 # data:
 
-python compute_precision_recall patstat_output_2.csv patstat_reference.csv
+python compute_precision_recall.py patstat_output_2.csv patstat_reference.csv
 
 ```
 
