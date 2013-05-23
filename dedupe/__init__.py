@@ -9,9 +9,12 @@ __all__ = ['affinegap',
            'training_sample',
            'crossvalidation',
            'dedupe',
+           'distance'
            ]
 
-import affinegap
+#from distance import affinegap
+from distance import affinegap
+import distance 
 import blocking
 import clustering
 import core
