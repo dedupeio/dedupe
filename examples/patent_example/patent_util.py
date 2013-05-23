@@ -4,7 +4,7 @@
 
 import re
 import random
-import AsciiDammit
+import examples.shared.AsciiDammit as AsciiDammit
 import csv
 import collections
 import dedupe

@@ -21,7 +21,7 @@ import collections
 import logging
 import optparse
 
-import AsciiDammit
+import examples.shared.AsciiDammit as AsciiDammit
 
 import dedupe
 

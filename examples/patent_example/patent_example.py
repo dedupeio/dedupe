@@ -25,7 +25,8 @@ import sys
 import pandas as pd
 import patent_util
 import math
-import AsciiDammit
+import examples.shared.AsciiDammit as AsciiDammit
+
 
 import dedupe
 from dedupe.distance import cosine
