@@ -101,21 +101,11 @@ class BlockingTest(unittest.TestCase):
 
     predicate_set = dedupe.api.predicateGenerator(self.deduper.blocker_types,
                                                   self.deduper.data_model)
-    
-    (training_dupes,
-     training_distinct,
-     _overlap) =  dedupe.blocking._initializeTraining(self.training_pairs,
-                                                      predicate_set,
-                                                      {})
 
-    assert training_dupes == [(self.frozendict({'age': '20', 'name': 'Jimmy'}),
-                               self.frozendict({'age': '21', 'name': 'Jimbo'})),
-                              (self.frozendict({'age': '35', 'name': 'Willy'}),
-                               self.frozendict({'age': '35', 'name': 'William'}))]
-    assert training_distinct == [(self.frozendict({'age': '50', 'name': 'Bob'}),
-                                  self.frozendict({'age': '75', 'name': 'Charlie'})),
-                                 (self.frozendict({'age': '40', 'name': 'Meredith'}),
-                                  self.frozendict({'age': '10', 'name': 'Sue'}))]
+    assert [((dedupe.predicates.nearIntegersPredicate, 'age'),)] == dedupe.blocking.blockTraining(self.training_pairs,
+                                                                                                        predicate_set)
+
+
 
  
 class PredicatesTest(unittest.TestCase):
