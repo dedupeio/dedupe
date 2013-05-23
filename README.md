@@ -56,8 +56,8 @@ Using easy_install:
 git clone git://github.com/open-city/dedupe.git
 cd dedupe
 easy_install "numpy>=1.6"
-easy_install fastcluster
-easy_install hcluster
+easy_install "fastcluster>=1.1.8"
+easy_install "hcluster>=0.2.0"
 easy_install networkx
 python setup.py install
 ```
