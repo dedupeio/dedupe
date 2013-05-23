@@ -4,16 +4,16 @@
 
 import re
 import random
-import examples.shared.AsciiDammit as AsciiDammit
-import csv
-import collections
-import dedupe
-import numpy as np
-import pandas as pd
-import collections
 import time
 import operator
+
+import numpy as np
+import pandas as pd
+
+import dedupe
 from dedupe.distance.affinegap import normalizedAffineGapDistance
+
+import examples.shared.AsciiDammit as AsciiDammit
 
 def Levenshtein(s1, s2) :
     return normalizedAffineGapDistance(s1, s2, 
