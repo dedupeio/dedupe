@@ -13,7 +13,15 @@ import pandas as pd
 import collections
 import time
 import operator
-import Levenshtein
+from dedupe.distance.affinegap import normalizedAffineGapDistance
+
+def Levenshtein(s1, s2) :
+    return normalizedAffineGapDistance(s1, s2, 
+                                       matchWeight = 0, 
+                                       mismatchWeight = 1, 
+                                       gapWeight = 1, 
+                                       spaceWeight = 1, 
+                                       abbreviation_scale = 0.125)
 
 def preProcess(column):
     """
@@ -254,9 +262,7 @@ def find_potential_matches(s1, s2, threshold):
         print 'Matching top inventor %s' % count
         for jdx in s2.index:
             if jdx not in df2_idx:
-                l = Levenshtein.ratio(s,
-                                      s2.ix[jdx]
-                                      )
+                l = Levenshtein(s, s2.ix[jdx])
                 if l >=threshold:
                     df2_idx[jdx] = 1
     return df2_idx.keys()
