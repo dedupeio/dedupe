@@ -130,7 +130,7 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 [Report it here](https://github.com/open-city/dedupe/issues)
 
 
-## Note on Patches/Pull Requests
+## Note on Patches/Pull Requests 
  
 * Fork the project.
 * Make your feature addition or bug fix.
@@ -148,3 +148,5 @@ If you use Dedupe in an academic work, please give this citation:
 Gregg, Forest, and Derek Eder. 2013. Dedupe. https://github.com/open-city/dedupe.
 
 [![githalytics.com alpha](https://cruel-carlota.pagodabox.com/861a8f3ec74c8928e0baad77640ab042 "githalytics.com")](http://githalytics.com/open-city/dedupe)
+
+
