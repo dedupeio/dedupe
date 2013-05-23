@@ -14,7 +14,7 @@ def gridSearch(training_data,
                trainer,
                original_data_model,
                k=3,
-               search_space=[.000001, .00001, .0001, .001, .01, .1, 1],
+               search_space=[.00001, .0001, .001, .01, .1, 1],
                randomize=True):
 
     training_data = training_data[numpy.random.permutation(training_data.size)]
@@ -31,7 +31,7 @@ def gridSearch(training_data,
             data_model = trainer(training, original_data_model, alpha)
 
             weight = numpy.array([data_model['fields'][field]['weight']
-                                 for field in fields])
+                                  for field in fields])
             bias = data_model['bias']
 
             labels = validation['label']
@@ -47,27 +47,13 @@ def gridSearch(training_data,
 
             recall = true_predicted_dupes/float(true_dupes)
 
-            logging.debug("%d duplicates in validation set", true_dupes)
-            logging.debug("%d true predicted dupes in training set",
-                          true_predicted_dupes)
-            logging.debug("Recall %f", recall)
-
             if recall == 0 :
                 score = 0
 
             else:
-                
                 precision = true_predicted_dupes/float(numpy.sum(predictions > 0))
-                logging.debug("%d predicted duplicates", numpy.sum(predictions > 0))
-                logging.debug("Precision %f", precision)
+                score = 2 * recall * precision / (recall + precision)
 
-                if recall + precision == 0 :
-                    score = 0
-
-                else :
-                    score = 2 * recall * precision / (recall + precision)
-
-            logging.debug("F-Score %f", score)
 
             all_score += score
 

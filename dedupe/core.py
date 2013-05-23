@@ -11,11 +11,13 @@ from itertools import count
 import numpy
 
 import lr
-from affinegap import normalizedAffineGapDistance as stringDistance
+from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
-    '''Return random combinations of indicies for a square matrix of
-    size n records'''
+    """
+    Return random combinations of indices for a square matrix of size
+    n records
+    """
 
     if n_records < 2 :
         raise ValueError("Needs at least two records")
@@ -51,15 +53,16 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
 
 
 def trainModel(training_data, data_model, alpha=.001):
-    '''Use logistic regression to train weights for all fields in the data model'''
+    """
+    Use logistic regression to train weights for all fields in the data model
+    """
+    
     labels = training_data['label']
     examples = training_data['distances']
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
-    fields = sorted(data_model['fields'].keys())
-
-    for (i, name) in enumerate(fields):
+    for i, name in enumerate(data_model['fields']) :
         data_model['fields'][name]['weight'] = float(weight[i])
 
     data_model['bias'] = bias
@@ -67,40 +70,28 @@ def trainModel(training_data, data_model, alpha=.001):
     return data_model
 
 
-def fieldDistances(candidates, data_model):
+def fieldDistances(record_pairs, data_model):
     fields = data_model['fields']
-    record_dtype = [('pairs', 'i4', 2), ('distances', 'f4', (len(fields), ))]
-
-    (candidates_1, candidates_2) = itertools.tee(candidates, 2)
-
-    key_pairs = (candidate[0] for candidate_pair in candidates_1
-                 for candidate in candidate_pair)
-
-    record_pairs = ((candidate_1[1], candidate_2[1]) 
-                    for (candidate_1, candidate_2) in candidates_2)
-
-    _field_distances = buildFieldDistances(record_pairs, fields)
-
-    field_distances = numpy.zeros(_field_distances.shape[0],
-                                  dtype=record_dtype)
-
-    field_distances['pairs'] = numpy.fromiter(key_pairs, 'i4').reshape(-1, 2)
-    field_distances['distances'] = _field_distances
-
-    return field_distances
-
-
-def buildFieldDistances(record_pairs, fields):
 
     field_comparators = [(field, v['comparator'])
                          for field, v in fields.items()
-                         if v['type'] != 'Missing Data']
+                         if v['type'] not in ('Missing Data',
+                                              'Interaction')]
 
-
+    
     missing_field_indices = [i for i, (field, v) 
                              in enumerate(fields.items())
                              if 'Has Missing' in v and v['Has Missing']]
 
+    field_names = fields.keys()
+  
+    interactions = []
+    for field in fields :
+        if fields[field]['type'] == 'Interaction' :
+            interaction_indices = []
+            for interaction_field in fields[field]['Interaction Fields'] :
+                interaction_indices.append(field_names.index(interaction_field))
+            interactions.append(interaction_indices)
     
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
@@ -109,32 +100,48 @@ def buildFieldDistances(record_pairs, fields):
                                      'f4')
     field_distances = field_distances.reshape(-1,len(field_comparators))
 
+    interaction_distances = numpy.empty((field_distances.shape[0],
+                                         len(interactions)))
+
+    for i, interaction in enumerate(interactions) :
+        a = numpy.prod(field_distances[...,interaction], axis=1)
+        interaction_distances[...,i] = a
+       
+    field_distances = numpy.concatenate((field_distances,
+                                         interaction_distances),
+                                        axis=1)
+
+        
+
     missing_data = numpy.isnan(field_distances)
 
     field_distances[missing_data] = 0
 
-    return numpy.concatenate((field_distances,
-                              1-missing_data[:,missing_field_indices]),
-                             axis=1)
+    missing_indicators = 1-missing_data[:,missing_field_indices]
+
+    
+
+    field_distances = numpy.concatenate((field_distances,
+                                         1-missing_data[:,missing_field_indices]),
+                                        axis=1)
+
+    return field_distances
 
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
-    field_names = sorted(data_model['fields'].keys())
 
-    field_weights = [fields[name]['weight'] for name in field_names]
+    field_weights = [fields[name]['weight'] for name in fields]
     bias = data_model['bias']
 
-    distances = field_distances['distances']
-
-    scores = numpy.dot(distances, field_weights)
+    scores = numpy.dot(field_distances, field_weights)
 
     scores = numpy.exp(scores + bias) / (1 + numpy.exp(scores + bias))
 
     return scores
 
 
-def scoreDuplicates(candidates, data_model, threshold=None):
+def scoreDuplicates(ids, records, data_model, threshold=None):
 
     score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
     scored_pairs = numpy.zeros(0, dtype=score_dtype)
@@ -143,14 +150,14 @@ def scoreDuplicates(candidates, data_model, threshold=None):
     chunk_size = 5000
     i = 1
     while not complete:
-
-        can_slice = list(itertools.islice(candidates, 0, chunk_size))
+        id_slice = list(itertools.islice(ids, 0, chunk_size))
+        can_slice = list(itertools.islice(records, 0, chunk_size))
 
         field_distances = fieldDistances(can_slice, data_model)
         duplicate_scores = scorePairs(field_distances, data_model)
 
         scored_pairs = numpy.append(scored_pairs,
-                                    numpy.array(zip(field_distances['pairs'],
+                                    numpy.array(zip(id_slice,
                                                     duplicate_scores),
                                                 dtype=score_dtype)[duplicate_scores > threshold], 
                                     axis=0)
@@ -164,6 +171,27 @@ def scoreDuplicates(candidates, data_model, threshold=None):
     logging.info('unique scores %d' % scored_pairs.shape)
 
     return scored_pairs
+
+def blockedPairs(blocks) :
+    for block in blocks :
+
+        block_pairs = itertools.combinations(block, 2)
+
+        for pair in block_pairs :
+            yield pair
+
+def split(iterable):
+    it = iter(iterable)
+    q = [collections.deque([x]) for x in it.next()] 
+    def proj(qi):
+        while True:
+            if not qi:
+                for qj, xj in zip(q, it.next()):
+                    qj.append(xj)
+            yield qi.popleft()
+    for qi in q:
+        yield proj(qi)
+
 
 
 class frozendict(dict):
