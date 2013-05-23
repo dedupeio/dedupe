@@ -94,18 +94,6 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
-  def test_learnBlocking(self) :
-
-    fields = [k for k,v in self.deduper.data_model['fields'].items()
-              if v['type'] != 'Missing Data'] 
-
-    predicate_set = dedupe.api.predicateGenerator(self.deduper.blocker_types,
-                                                  self.deduper.data_model)
-
-    final_set = dedupe.blocking.blockTraining(self.training_pairs,
-                                              predicate_set)
-    print final_set 
-    assert final_set == [((dedupe.predicates.nearIntegersPredicate, 'age'),)]
 
 
  
