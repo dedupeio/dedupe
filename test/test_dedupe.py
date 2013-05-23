@@ -102,8 +102,10 @@ class BlockingTest(unittest.TestCase):
     predicate_set = dedupe.api.predicateGenerator(self.deduper.blocker_types,
                                                   self.deduper.data_model)
 
-    assert [((dedupe.predicates.nearIntegersPredicate, 'age'),)] == dedupe.blocking.blockTraining(self.training_pairs,
-                                                                                                        predicate_set)
+    final_set = dedupe.blocking.blockTraining(self.training_pairs,
+                                              predicate_set)
+    print final_set 
+    assert final_set == [((dedupe.predicates.nearIntegersPredicate, 'age'),)]
 
 
  
