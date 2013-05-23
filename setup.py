@@ -28,7 +28,7 @@ class NumpyExtension(Extension):
 setup(
     name='Dedupe',
     url='https://github.com/open-city/dedupe',
-    version='0.3',
+    version='0.4',
     packages=['dedupe', 'dedupe.distance'],
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
                  Extension('dedupe.distance.jaccard', ['src/jaccard.c']),
