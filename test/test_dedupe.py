@@ -2,6 +2,30 @@ import dedupe
 import unittest
 import numpy
 
+class DedupeClassTest(unittest.TestCase):
+  def test_initialize(self) :
+    fields =  { 'name' : {'type': 'String'}, 
+                'age'  : {'type': 'String'},
+            }
+    deduper = dedupe.Dedupe(fields)
+
+    string_predicates = (dedupe.predicates.wholeFieldPredicate,
+                         dedupe.predicates.tokenFieldPredicate,
+                         dedupe.predicates.commonIntegerPredicate,
+                         dedupe.predicates.sameThreeCharStartPredicate,
+                         dedupe.predicates.sameFiveCharStartPredicate,
+                         dedupe.predicates.sameSevenCharStartPredicate,
+                         dedupe.predicates.nearIntegersPredicate,
+                         dedupe.predicates.commonFourGram,
+                         dedupe.predicates.commonSixGram)
+
+    tfidf_string_predicates = tuple([dedupe.tfidf.TfidfPredicate(threshold)
+                                     for threshold
+                                     in [0.2, 0.4, 0.6, 0.8]])
+
+    assert deduper.blocker_types == {'String' : string_predicates + tfidf_string_predicates}
+
+  
 
 
 class AffineGapTest(unittest.TestCase):
@@ -70,7 +94,19 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
+  def test_learnBlocking(self) :
 
+    fields = [k for k,v in self.deduper.data_model['fields'].items()
+              if v['type'] != 'Missing Data'] 
+
+    predicate_set = dedupe.api.predicateGenerator(self.deduper.blocker_types,
+                                                  self.deduper.data_model)
+
+    assert [((dedupe.predicates.nearIntegersPredicate, 'age'),)] == dedupe.blocking.blockTraining(self.training_pairs,
+                                                                                                        predicate_set)
+
+
+ 
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
