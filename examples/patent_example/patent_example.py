@@ -67,6 +67,15 @@ recall_weights = [1, 2]
 ppcs = [0.001, 0.001, 0.001]
 dupes = [10, 5, 1]
 
+data_d = patent_util.readDataFrame(input_df)
+
+## Build the comparators
+coauthors = [row['Coauthor'] for cidx, row in data_d.items()]
+classes = [row['Class'] for cidx, row in data_d.items()]
+class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
+coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
+
+
 ## Start the by-round labeling
 for idx, r in enumerate(rounds):
 
@@ -81,9 +90,7 @@ for idx, r in enumerate(rounds):
     # If this is the first round, take the native input
     # If the nth round, consolidate data on the nth index
     # and read in the resulting dataframe.
-    if idx == 0:
-        data_d = patent_util.readDataFrame(input_df)
-    else:
+    if idx > 1 :
         cluster_agg_dict = {'Name': patent_util.consolidate_unique,
                             'Lat': patent_util.consolidate_geo,
                             'Lng': patent_util.consolidate_geo,
@@ -100,11 +107,6 @@ for idx, r in enumerate(rounds):
         input_df.set_index(cluster_name, inplace=True)
         
 
-    ## Build the comparators
-    coauthors = [row['Coauthor'] for cidx, row in data_d.items()]
-    classes = [row['Class'] for cidx, row in data_d.items()]
-    class_comparator = dedupe.distance.cosine.CosineSimilarity(classes)
-    coauthor_comparator = dedupe.distance.cosine.CosineSimilarity(coauthors)
 
     # ## Training
     if os.path.exists(r_settings_file):
