@@ -139,6 +139,13 @@ for idx, r in enumerate(rounds):
             print 'reading labeled examples from ', r_training_file
             deduper.train(data_sample, r_training_file)
 
+
+        # ## Blocking
+        deduper.blocker_types.update({'Custom': (dedupe.predicates.wholeSetPredicate,
+                                                 dedupe.predicates.commonSetElementPredicate) })
+
+
+
         # ## Active learning
 
         # Starts the training loop. Dedupe will find the next pair of records
@@ -153,12 +160,6 @@ for idx, r in enumerate(rounds):
         # When finished, save our training away to disk
         deduper.writeTraining(r_training_file)
 
-    # ## Blocking
-    deduper.blocker_types.update({'Custom': (dedupe.predicates.wholeSetPredicate,
-                                             dedupe.predicates.commonSetElementPredicate),
-                                  'LatLong' : (dedupe.predicates.latLongGridPredicate,)
-                                  }
-                                 )
     time_start = time.time()
     print 'blocking...'
     # Initialize our blocker, which determines our field weights and blocking 
