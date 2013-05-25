@@ -44,7 +44,7 @@ class Dedupe:
     writeSettings
     """
 
-    def __init__(self, init=None):
+    def __init__(self, init=None, processes=8):
         """
         Load or initialize a data model
 
@@ -93,6 +93,7 @@ class Dedupe:
                              )
 
 
+        self.processes = processes
         self.training_data = None
         self.training_pairs = None
         self.data_sample = None
@@ -313,7 +314,7 @@ class Dedupe:
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, threshold=.5, parallel=False, processes = 8):
+    def duplicateClusters(self, blocks, threshold=.5, parallel=False):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -345,13 +346,12 @@ class Dedupe:
             global globalDataModel
             globalDataModel = self.data_model
 
-            pool = Pool(processes=processes,)
-            f = lambda A, n=3: [A[i:i+n] for i in range(0, len(A), n)]
-	    chunks = 1000
+            pool = Pool(processes=self.processes,)
+
             start = time.time()
-            self.dupes = itertools.chain.from_iterable(pool.map(_mapScoreDuplicates, f(list(candidates), chunks)))
+            self.dupes = itertools.chain.from_iterable(pool.imap(_mapScoreDuplicates, self._splitEvery(100, candidates)))
             elapsed = (time.time() - start)
-            print "Parallel scoreDuplicates with ", processes, " processes takes : ",elapsed
+            print "Parallel scoreDuplicates with", self.processes, "processes takes :",elapsed
         else:
             start = time.time()
             self.dupes = core.scoreDuplicates(candidates, self.data_model, threshold)
@@ -361,6 +361,13 @@ class Dedupe:
         clusters = clustering.cluster(self.dupes, cluster_threshold)
 
         return clusters
+
+    def _splitEvery(self, n, iterable):
+        i = iter(iterable)
+        piece = list(itertools.islice(i, n))
+        while piece:
+            yield piece
+            piece = list(itertools.islice(i, n))
 
     def _learnBlocking(self, eta, epsilon):
         """Learn a good blocking of the data"""

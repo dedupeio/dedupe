@@ -103,11 +103,15 @@ def readData(filename):
 print 'importing data ...'
 data_d = readData(input_file)
 
+# If number of cores = 4, set the number of processes
+# to something between 5-8 perhaps.
+PROCESSES = 8
+
 # ## Training
 
 if os.path.exists(settings_file):
     print 'reading from', settings_file
-    deduper = dedupe.Dedupe(settings_file)
+    deduper = dedupe.Dedupe(settings_file, PROCESSES)
 
 else:
     # To train dedupe, we feed it a random sample of records.
@@ -125,7 +129,7 @@ else:
         }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, PROCESSES)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -183,7 +187,7 @@ threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
 print 'clustering in serial mode...'
 clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
 print 'clustering in parallel mode...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, threshold, True, 8)
+clustered_dupes = deduper.duplicateClusters(blocked_data, threshold, True)
 
 print '# duplicate sets', len(clustered_dupes)
 
