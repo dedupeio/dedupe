@@ -63,7 +63,7 @@ class Blocker:
             tfidf_fields.add(field)
 
         vectors = tfidf.invertIndex(data, tfidf_fields)
-        inverted_index, token_vector, corpus_ids = vectors
+        inverted_index, token_vector = vectors
 
 
         logging.info('creating TF/IDF canopies')
@@ -77,7 +77,7 @@ class Blocker:
                           'threshold': threshold, 
                           'field': field})
 
-            canopy = tfidf.createCanopies(field, threshold, corpus_ids,
+            canopy = tfidf.createCanopies(field, threshold,
                                           token_vector, inverted_index)
             self.canopies[threshold.__name__ + field] = canopy
 
