@@ -1,17 +1,25 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+
 import collections
 import random
 import json
 import itertools
 import logging
-from itertools import count
+from itertools import count, izip_longest, chain, izip, repeat
+from multiprocessing import Pool
 
 import numpy
 
 import lr
 from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
+    args = [iter(iterable)] * n
+    return izip_longest(fillvalue=fillvalue, *args)
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
@@ -96,7 +104,8 @@ def fieldDistances(record_pairs, data_model):
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 
-                                      for field, compare in field_comparators), 
+                                      for field, compare in field_comparators
+                                      if record_pair), 
                                      'f4')
     field_distances = field_distances.reshape(-1,len(field_comparators))
 
@@ -127,6 +136,10 @@ def fieldDistances(record_pairs, data_model):
 
     return field_distances
 
+def _fieldDistances(args) :
+    record_pairs, data_model = args
+    return fieldDistances(record_pairs, data_model)
+    
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
@@ -140,31 +153,39 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
+def _scorePairs(args) :
+    field_distance_chunk, data_model = args
+    return scorePairs(field_distance_chunk, data_model)
 
-def scoreDuplicates(ids, records, data_model, threshold=None):
+
+
+def scoreDuplicates(ids, records, data_model, threshold=None, num_processes=1):
+    pool = Pool(processes=num_processes)
 
     score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
-    scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
-    complete = False
-    chunk_size = 5000
-    i = 1
-    while not complete:
-        id_slice = list(itertools.islice(ids, 0, chunk_size))
-        can_slice = list(itertools.islice(records, 0, chunk_size))
+    chunk_size = 10000
+    
+    record_chunks = grouper(records, chunk_size)
 
-        field_distances = fieldDistances(can_slice, data_model)
-        duplicate_scores = scorePairs(field_distances, data_model)
+    field_distances = pool.imap(_fieldDistances, 
+                                izip(record_chunks, 
+                                     repeat(data_model)))
 
-        scored_pairs = numpy.append(scored_pairs,
-                                    numpy.array(zip(id_slice,
-                                                    duplicate_scores),
-                                                dtype=score_dtype)[duplicate_scores > threshold], 
-                                    axis=0)
-        i += 1
-        if len(field_distances) < chunk_size:
-            complete = True
-            logging.info('num chunks %d' % i)
+    dupe_scores = pool.imap(_scorePairs,
+                            izip(field_distances, 
+                                 repeat(data_model)))
+
+
+    dupe_scores = chain.from_iterable(dupe_scores)  
+
+    scored_pairs = ((pair_id, score) 
+                    for pair_id, score in izip(ids, dupe_scores) 
+                    if score > threshold)
+
+    scored_pairs =  numpy.fromiter(scored_pairs,
+                                   dtype=score_dtype)
+
 
     logging.info('all scores %d' % scored_pairs.shape)
     scored_pairs = numpy.unique(scored_pairs)
@@ -192,21 +213,14 @@ def split(iterable):
     for qi in q:
         yield proj(qi)
 
-
-
 class frozendict(dict):
-    '''
-    A data type for hashable dictionaries
-    From http://code.activestate.com/recipes/414283-frozen-dictionaries/
-    '''
-
     def _blocked_attribute(obj):
-        raise AttributeError('A frozendict cannot be modified.')
+        raise AttributeError, "A frozendict cannot be modified."
 
-    _blocked_attribute = property(_blocked_attribute)
+#    _blocked_attribute = property(_blocked_attribute)
 
-    __delitem__ = __setitem__ = clear = _blocked_attribute
-    pop = popitem = setdefault = update = _blocked_attribute
+#    __delitem__ = __setitem__ = clear = _blocked_attribute
+#    pop = popitem = setdefault = update = _blocked_attribute
 
     def __new__(cls, *args):
         new = dict.__new__(cls)
@@ -222,6 +236,10 @@ class frozendict(dict):
         except AttributeError:
             h = self._cached_hash = hash(tuple(sorted(self.items())))
             return h
+
+    def __repr__(self):
+        return "frozendict(%s)" % dict.__repr__(self)
+
 
 ## {{{ http://code.activestate.com/recipes/576693/ (r9)
 # Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
