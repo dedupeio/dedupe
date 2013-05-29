@@ -15,17 +15,48 @@ class TfidfPredicate(float):
     def __init__(self, threshold):
         self.__name__ = 'TF-IDF:' + str(threshold)
 
+    def __repr__(self) :
+        return self.__name__
+
+
+def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
+    for field in token_vectors :
+        singletons = set([])
+        stop_words = set([])
+        for atom in inverted_index[field].atoms() :
+            df = inverted_index[field].getDF(atom)
+            if df < 2 :
+                singletons.add(atom)
+            elif df > stop_word_threshold :
+                stop_words.add(atom)
+                
+
+        wv = mk.WeightVectors(inverted_index[field])
+        ii = mk.InvertedIndex()
+        for record_id, vector in token_vectors[field].iteritems() :
+            w_vector = wv[vector]
+            w_vector.name = vector.name
+            for atom in w_vector :
+                if atom in singletons or atom in stop_words :
+                    del w_vector[atom]
+            token_vectors[field][record_id] = w_vector
+            ii.add(w_vector)
+
+        inverted_index[field] = ii
+
+    return token_vectors, inverted_index
+
 def invertIndex(data, tfidf_fields, df_index=None):
 
-    tokenfactory = mk.AtomFactory("tokens")
-    
+    tokenfactory = mk.AtomFactory("tokens")  
     inverted_index = {}
+
     for field in tfidf_fields :
         inverted_index[field] = mk.InvertedIndex()
 
     token_vector = defaultdict(dict)
 
-    for (record_id, record) in data:
+    for record_id, record in data:
         for field in tfidf_fields:
             tokens = words.findall(record[field].lower())
             av = mk.AtomVector(name=record_id)
@@ -35,8 +66,54 @@ def invertIndex(data, tfidf_fields, df_index=None):
 
             token_vector[field][record_id] = av
 
+    num_docs = inverted_index.values()[0].getN()
+
+    stop_word_threshold = max(num_docs * 0.025, 500)
+    logging.info('Stop word threshold: %(stop_thresh)d',
+                 {'stop_thresh' :stop_word_threshold})
+
+
+    token_vectors, inverted_index = weightVectors(inverted_index, 
+                                                  token_vector,
+                                                  stop_word_threshold)
+    
 
     return (inverted_index, token_vector)
+
+#@profile
+def makeCanopy(inverted_index, token_vector, threshold) :
+    canopies = {}
+    seen = set([])
+    corpus_ids = set(token_vector.keys())
+
+    while corpus_ids:
+        center_id = corpus_ids.pop()
+        canopies[center_id] = center_id
+        center_vector = token_vector[center_id]
+        
+        seen.add(center_vector)
+
+        #center_norm = center_vector.CosineLen()
+
+        candidates = set((vector
+                          for token in center_vector 
+                          for vector in inverted_index.getii(token)))
+
+        candidates = candidates - seen
+
+        for candidate_vector in candidates :
+
+            similarity = candidate_vector * center_vector         
+
+            if similarity and similarity > threshold :
+                candidate_id = candidate_vector.name
+                canopies[candidate_id] = center_id
+                seen.add(candidate_vector)
+                corpus_ids.remove(candidate_id)
+
+    return canopies
+
+    
 
 def createCanopies(field,
                    threshold,
@@ -48,43 +125,7 @@ def createCanopies(field,
     accepted by select_function
     """
 
-    canopies = defaultdict(lambda : None)
-    seen_set = set([])
-
     field_inverted_index = inverted_index[field]
-
     token_vectors = token_vector[field]
-    corpus_ids = token_vectors.keys()
 
-    weight_vector = mk.WeightVectors(field_inverted_index, cache=True)
-
-    while corpus_ids:
-        center_id = corpus_ids.pop()
-        canopies[center_id] = center_id
-
-        center_vector = token_vectors[center_id]
-        center_norm = center_vector.CosineLen()
-
-        seen_set.add(center_vector)
-
-        candidate_set = set()
-
-        for token in center_vector :
-            for doc in field_inverted_index.getii(token) :
-                candidate_set.add(doc)
-
-        candidate_set = candidate_set - seen_set
-
-        w_center_vector = weight_vector[center_vector]
-
-        for candidate_vector in candidate_set:
-            w_candidate_vector = weight_vector[candidate_vector]
-
-            similarity = (w_candidate_vector * w_center_vector)         
-
-            if similarity > threshold :
-                canopies[candidate_vector.name] = center_id
-                seen_set.add(candidate_vector)
-                corpus_ids.remove(candidate_vector.name)
-
-    return canopies
+    return makeCanopy(field_inverted_index, token_vectors, threshold)

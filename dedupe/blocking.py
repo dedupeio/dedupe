@@ -263,17 +263,18 @@ class Coverage() :
 
         # uniquify records
         docs = list(set(itertools.chain(*record_pairs)))
+        id_records = list(itertools.izip(itertools.count(), docs))
+        record_ids = dict(itertools.izip(docs, itertools.count()))
 
-        self_identified = itertools.izip(docs, docs)
 
         blocker = Blocker()
         blocker.tfidf_predicates = tfidf_predicates
-        blocker.tfIdfBlocks(self_identified)
+        blocker.tfIdfBlocks(id_records)
 
         for (threshold, field) in blocker.tfidf_predicates:
             canopy = blocker.canopies[threshold.__name__ + field]
             for record_1, record_2 in record_pairs :
-                if canopy[record_1] == canopy[record_2]:
+                if canopy[record_ids[record_1]] == canopy[record_ids[record_2]]:
                     self.overlapping[(threshold, field)].add((record_1, record_2))
                     self.blocks[(threshold, field)][canopy[record_1]].add((record_1, record_2))
 
