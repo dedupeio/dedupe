@@ -87,18 +87,13 @@ def readData(filename):
     where the key is a unique record ID and each value is a 
     [frozendict](http://code.activestate.com/recipes/414283-frozen-dictionaries/) 
     (hashable dictionary) of the row fields.
-
-    **Currently, dedupe depends upon records' unique ids being integers
-    with no integers skipped. The smallest valued unique id must be 0 or
-    1. Expect this requirement will likely be relaxed in the future.**
     """
 
     data_d = {}
     with open(filename) as f:
         reader = csv.DictReader(f)
-        for row in reader:
+        for row_id,row in enumerate(reader):
             clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
-            row_id = int(row['Id'])
             data_d[row_id] = dedupe.core.frozendict(clean_row)
 
     return data_d
@@ -212,8 +207,7 @@ with open(output_file, 'w') as f:
         heading_row.insert(0, 'Cluster ID')
         writer.writerow(heading_row)
 
-        for row in reader:
-            row_id = int(row[0])
+        for row_id,row in enumerate(reader):
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
