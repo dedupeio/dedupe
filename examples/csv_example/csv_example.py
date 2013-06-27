@@ -92,9 +92,11 @@ def readData(filename):
     data_d = {}
     with open(filename) as f:
         reader = csv.DictReader(f)
-        for row_id,row in enumerate(reader):
+        row_id = 0
+        for row in reader:
             clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
             data_d[row_id] = dedupe.core.frozendict(clean_row)
+            row_id += 1
 
     return data_d
 
