@@ -203,7 +203,9 @@ with open(output_file, 'w') as f:
         heading_row.insert(0, 'Cluster ID')
         writer.writerow(heading_row)
 
-        for row_id,row in enumerate(reader):
+        row_id = 0
+        for row in reader:
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
+            row_id += 1
