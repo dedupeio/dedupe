@@ -48,10 +48,10 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory and set up our input and out put paths,
 # as well as our settings and training file locations
 os.chdir('./examples/csv_example/')
-input_file = 'csv_example_messy_input.csv'
-output_file = 'csv_example_output.csv'
-settings_file = 'csv_example_learned_settings'
-training_file = 'csv_example_training.json'
+input_files = ['CPS_Early_Childhood_Portal_scrape.csv','chapin_dfss_providers_2011_070212.csv']
+output_files = ['CPS_Early_Childhoos_Output.csv','chapin_Output.csv']
+settings_file = 'csv_example_data_matching_learned_settings'
+training_file = 'csv_example_data_matching_training.json'
 
 
 # Dedupe can take custom field comparison functions, here's one
@@ -77,7 +77,7 @@ def preProcess(column):
     return column
 
 
-def readData(filename):
+def readData(filenames):
     """
     Read in our data from a CSV file and create a dictionary of records, 
     where the key is a unique record ID and each value is a 
@@ -86,19 +86,21 @@ def readData(filename):
     """
 
     data_d = {}
-    with open(filename) as f:
-        reader = csv.DictReader(f)
-        row_id = 0
-        for row in reader:
-            clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
-            data_d[row_id] = dedupe.core.frozendict(clean_row)
-            row_id += 1
+    row_id = 0
+    for filename in filenames:
+        with open(filename) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
+                clean_row.append(('dataSet',filename))
+                data_d[row_id] = dedupe.core.frozendict(clean_row)
+                row_id += 1
 
     return data_d
 
 
 print 'importing data ...'
-data_d = readData(input_file)
+data_d = readData(input_files)
 
 # ## Training
 
@@ -192,20 +194,22 @@ for (cluster_id, cluster) in enumerate(clustered_dupes):
     for record_id in cluster:
         cluster_membership[record_id] = cluster_id
 
+writer_coll = {}
+for filename in output_files:
+        f = open(filename,'w')
+        writer_coll[filename] = csv.writer(f)
 
-with open(output_file, 'w') as f:
-    writer = csv.writer(f)
-
-    with open(input_file) as f_input :
-        reader = csv.reader(f_input)
+row_id=0
+for i in range(len(input_files)):
+    with open(input_files[i]) as f:
+        reader = csv.reader(f)
 
         heading_row = reader.next()
         heading_row.insert(0, 'Cluster ID')
-        writer.writerow(heading_row)
+        writer_coll[output_files[i]].writerow(heading_row)
 
-        row_id=0
         for row in reader:
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
-            writer.writerow(row)
+            writer_coll[output_files[i]].writerow(row)
             row_id += 1
