@@ -13,10 +13,10 @@ import dedupe.core
 def dataSample(data, sample_size):
     '''Randomly sample pairs of records from a data dictionary'''
 
+    data_list = data.values()
+    random_pairs = dedupe.core.randomPairs(len(data_list), sample_size)
 
-    random_pairs = dedupe.core.randomPairs(len(data), sample_size)
-
-    return tuple((data[k1], data[k2]) for k1, k2 in random_pairs)
+    return tuple((data_list[k1], data_list[k2]) for k1, k2 in random_pairs)
 
 
 def blockData(data_d, blocker):
