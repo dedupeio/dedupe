@@ -273,7 +273,7 @@ class Dedupe:
                           numpy.sum(self.training_data['label'])/3),
                       20)
 
-        print n_folds
+        logging.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
