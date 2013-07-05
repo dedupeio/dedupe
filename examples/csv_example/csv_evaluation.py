@@ -23,10 +23,8 @@ def dupePairs(filename, rowname) :
 
     with open(filename) as f:
         reader = csv.DictReader(f, delimiter=',', quotechar='"')
-        row_id = 0
         for row in reader:
-            dupe_d[row[rowname]].append(row_id)
-            row_id += 1
+            dupe_d[row[rowname]].append(row['Id'])
 
     if 'x' in dupe_d :
         del dupe_d['x']
