@@ -20,6 +20,8 @@ class TfidfPredicate(float):
 
 
 def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
+
+
     for field in token_vectors :
         singletons = set([])
         stop_words = set([])
@@ -30,9 +32,10 @@ def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
             elif df > stop_word_threshold :
                 stop_words.add(atom)
                 
+        
 
         wv = mk.WeightVectors(inverted_index[field])
-        ii = mk.InvertedIndex()
+        ii = defaultdict(set)
         for record_id, vector in token_vectors[field].iteritems() :
             w_vector = wv[vector]
             w_vector.name = vector.name
@@ -40,7 +43,10 @@ def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
                 if atom in singletons or atom in stop_words :
                     del w_vector[atom]
             token_vectors[field][record_id] = w_vector
-            ii.add(w_vector)
+            for token in w_vector :
+                ii[token].add(w_vector)
+            
+            
 
         inverted_index[field] = ii
 
@@ -82,9 +88,10 @@ def invertIndex(data, tfidf_fields, df_index=None):
 
 #@profile
 def makeCanopy(inverted_index, token_vector, threshold) :
-    canopies = {}
+    canopies = defaultdict(lambda:None)
     seen = set([])
     corpus_ids = set(token_vector.keys())
+
 
     while corpus_ids:
         center_id = corpus_ids.pop()
@@ -93,11 +100,11 @@ def makeCanopy(inverted_index, token_vector, threshold) :
         
         seen.add(center_vector)
 
-        #center_norm = center_vector.CosineLen()
-
-        candidates = set((vector
-                          for token in center_vector 
-                          for vector in inverted_index.getii(token)))
+        if not center_vector :
+            continue
+     
+        candidates = set.union(*(inverted_index[token] 
+                                 for token in center_vector))
 
         candidates = candidates - seen
 
@@ -105,7 +112,7 @@ def makeCanopy(inverted_index, token_vector, threshold) :
 
             similarity = candidate_vector * center_vector         
 
-            if similarity and similarity > threshold :
+            if similarity > threshold :
                 candidate_id = candidate_vector.name
                 canopies[candidate_id] = center_id
                 seen.add(candidate_vector)

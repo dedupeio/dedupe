@@ -274,9 +274,11 @@ class Coverage() :
         for (threshold, field) in blocker.tfidf_predicates:
             canopy = blocker.canopies[threshold.__name__ + field]
             for record_1, record_2 in record_pairs :
-                if canopy[record_ids[record_1]] == canopy[record_ids[record_2]]:
+                id_1 = record_ids[record_1]
+                id_2 = record_ids[record_2]
+                if canopy[id_1] == canopy[id_2]:
                     self.overlapping[(threshold, field)].add((record_1, record_2))
-                    self.blocks[(threshold, field)][canopy[record_1]].add((record_1, record_2))
+                    self.blocks[(threshold, field)][canopy[id_1]].add((record_1, record_2))
 
 
     def predicateCoverage(self,
