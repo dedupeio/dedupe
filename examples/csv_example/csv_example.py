@@ -20,6 +20,7 @@ import re
 import collections
 import logging
 import optparse
+from numpy import nan
 
 import AsciiDammit
 
@@ -57,10 +58,13 @@ training_file = 'csv_example_training.json'
 # Dedupe can take custom field comparison functions, here's one
 # we'll use for zipcodes
 def sameOrNotComparator(field_1, field_2) :
-    if field_1 == field_2 :
-        return 1
-    else:
-        return 0
+    if field_1 and field_2 :
+        if field_1 == field_2 :
+            return 1
+        else:
+            return 0
+    else :
+        return nan
 
 
 
@@ -120,8 +124,10 @@ else:
     fields = {
         'Site name': {'type': 'String'},
         'Address': {'type': 'String'},
-        'Zip': {'type': 'String', 'Has Missing':True},
-        'Phone': {'type': 'String', 'Has Missing':True},
+        'Zip': {'type': 'Custom', 
+                'comparator' : sameOrNotComparator, 
+                'Has Missing' : True},
+        'Phone': {'type': 'String', 'Has Missing' : True},
         }
 
     # Create a new deduper object and pass our data model to it.
