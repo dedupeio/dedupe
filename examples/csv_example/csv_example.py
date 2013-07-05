@@ -88,11 +88,10 @@ def readData(filename):
     data_d = {}
     with open(filename) as f:
         reader = csv.DictReader(f)
-        row_id = 0
         for row in reader:
             clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
+            row_id = int(row['Id'])
             data_d[row_id] = dedupe.core.frozendict(clean_row)
-            row_id += 1
 
     return data_d
 
@@ -203,9 +202,8 @@ with open(output_file, 'w') as f:
         heading_row.insert(0, 'Cluster ID')
         writer.writerow(heading_row)
 
-        row_id = 0
         for row in reader:
+            row_id = int(row[0])
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)
-            row_id += 1
