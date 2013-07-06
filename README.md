@@ -98,7 +98,7 @@ We are trying to figure out a range of typical runtimes for diferent hardware. P
 [run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
 ## Documentation
-[The documentation for the dedupe library is on our wiki].(https://github.com/open-city/dedupe/wiki/API-documentation)
+[The documentation for the dedupe library is on our wiki](https://github.com/open-city/dedupe/wiki/API-documentation).
 
 ## Testing
 
