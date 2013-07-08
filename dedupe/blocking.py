@@ -77,7 +77,7 @@ class Blocker:
                           'threshold': threshold, 
                           'field': field})
 
-            canopy = tfidf.createCanopies(field, threshold, corpus_ids,
+            canopy = tfidf.createCanopies(field, data, threshold, corpus_ids,
                                           token_vector, inverted_index)
             self.canopies[threshold.__name__ + field] = canopy
 

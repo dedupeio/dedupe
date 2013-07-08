@@ -178,7 +178,7 @@ def blockedPairs(blocks) :
         block_pairs = itertools.combinations(block, 2)
 
         for pair in block_pairs :
-            if (pair[0]['dataset'] != pair[1]['dataset'])
+            if (pair[0]['dataset'] != pair[1]['dataset']):
                 yield pair
 
 def split(iterable):
