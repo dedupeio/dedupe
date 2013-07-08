@@ -116,11 +116,11 @@ def createCanopies(field,
                             in center_vector.keys()
                             if field_inverted_index[token]['idf'] > 0)
 
-        candidate_set = set.union(*(field_inverted_index[token]['occurrences']
-                                    for token in center_tokens))
+        candidate_set = set((doc_id for token in center_tokens 
+                                    for doc_id in field_inverted_index[token]['occurrences']
+                                    if data[doc_id][‘dataset’] == 1))
 
         candidate_set = candidate_set - seen_set
-
 
         token_idfs = dict([(token, field_inverted_index[token]['idf']**2)
                            for token in center_tokens])
