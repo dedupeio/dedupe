@@ -86,15 +86,14 @@ def readData(filenames):
     """
 
     data_d = {}
-    row_id = 0
     for filename in filenames:
         with open(filename) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
                 clean_row.append(('dataSet',filename))
+                row_id = int(row['Id'])
                 data_d[row_id] = dedupe.core.frozendict(clean_row)
-                row_id += 1
 
     return data_d
 
@@ -199,7 +198,6 @@ for filename in output_files:
         f = open(filename,'w')
         writer_coll[filename] = csv.writer(f)
 
-row_id=0
 for i in range(len(input_files)):
     with open(input_files[i]) as f:
         reader = csv.reader(f)
@@ -209,7 +207,7 @@ for i in range(len(input_files)):
         writer_coll[output_files[i]].writerow(heading_row)
 
         for row in reader:
+            row_id = int(row[0])
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer_coll[output_files[i]].writerow(row)
-            row_id += 1
