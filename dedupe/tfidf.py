@@ -21,7 +21,8 @@ def invertIndex(data, tfidf_fields, df_index=None):
     corpus_ids = set([])
 
     for (record_id, record) in data:
-        corpus_ids.add(record_id)  # candidate for removal
+        if record['dataset'] == 0:
+            corpus_ids.add(record_id)  # candidate for removal
         for field in tfidf_fields:
             tokens = words.findall(record[field].lower())
             tokens = [(token, tokens.count(token))
