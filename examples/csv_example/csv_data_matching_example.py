@@ -86,12 +86,12 @@ def readData(filenames):
     """
 
     data_d = {}
-    for filename in filenames:
+    for fileno,filename in enumerate(filenames):
         with open(filename) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
-                clean_row.append(('dataSet',filename))
+                clean_row.append(('dataSet',fileno))
                 row_id = int(row['Id'])
                 data_d[row_id] = dedupe.core.frozendict(clean_row)
 
