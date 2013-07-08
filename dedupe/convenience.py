@@ -14,9 +14,20 @@ def dataSample(data, sample_size):
     '''Randomly sample pairs of records from a data dictionary'''
 
     data_list = data.values()
-    random_pairs = dedupe.core.randomPairs(len(data_list), sample_size)
+    data_list_A = []
+    data_list_B = []
 
-    return tuple((data_list[k1], data_list[k2]) for k1, k2 in random_pairs)
+    for data in data_list:
+        if data['dataset'] == 0:
+            data_list_A.append(data)
+        else:
+            data_list_B.append(data)
+
+    n_records = len(data_list_A) if len(data_list_A) < len(data_list_B) else len(data_list_B)
+
+    random_pairs = dedupe.core.randomPairs(n_records, sample_size)
+
+    return tuple((data_list_A[int(k1)], data_list_B[int(k2)]) for k1, k2 in random_pairs)
 
 
 def blockData(data_d, blocker):
