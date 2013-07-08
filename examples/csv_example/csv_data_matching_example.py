@@ -198,10 +198,6 @@ for filename in output_files:
         f = open(filename,'w')
         writer_coll[filename] = csv.writer(f)
 
-<<<<<<< HEAD
-=======
-row_id=0
->>>>>>> 18e3e1bebf1b3bd64fbcc44595d9e0b8d88264d9
 for i in range(len(input_files)):
     with open(input_files[i]) as f:
         reader = csv.reader(f)
@@ -211,14 +207,7 @@ for i in range(len(input_files)):
         writer_coll[output_files[i]].writerow(heading_row)
 
         for row in reader:
-<<<<<<< HEAD
             row_id = int(row[0])
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer_coll[output_files[i]].writerow(row)
-=======
-            cluster_id = cluster_membership[row_id]
-            row.insert(0, cluster_id)
-            writer_coll[output_files[i]].writerow(row)
-            row_id += 1
->>>>>>> 18e3e1bebf1b3bd64fbcc44595d9e0b8d88264d9
