@@ -91,7 +91,7 @@ def readData(filenames):
             reader = csv.DictReader(f)
             for row in reader:
                 clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
-                clean_row.append(('dataSet',fileno))
+                clean_row.append(('dataset',fileno))
                 row_id = int(row['Id'])
                 data_d[row_id] = dedupe.core.frozendict(clean_row)
 
