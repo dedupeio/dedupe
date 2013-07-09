@@ -10,12 +10,12 @@ import dedupe.core
 
     
 
-def dataSample(data, sample_size, const_matching=0):
+def dataSample(data, sample_size, constrained_matching=False):
     '''Randomly sample pairs of records from a data dictionary'''
 
     data_list = data.values()
 
-    if const_matching:
+    if constrained_matching:
         data_list_A = []
         data_list_B = []
 
@@ -38,13 +38,13 @@ def dataSample(data, sample_size, const_matching=0):
 
 
 
-def blockData(data_d, blocker, const_matching=0):
+def blockData(data_d, blocker, constrained_matching=False):
 
     blocks = dedupe.core.OrderedDict({})
     record_blocks = dedupe.core.OrderedDict({})
     key_blocks = dedupe.core.OrderedDict({})
 
-    blocker.tfIdfBlocks(data_d.iteritems(), const_matching)
+    blocker.tfIdfBlocks(data_d.iteritems(), constrained_matching)
 
     for (record_id, record) in data_d.iteritems():
         for key in blocker((record_id, record)):
