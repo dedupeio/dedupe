@@ -22,8 +22,6 @@ def invertIndex(data, tfidf_fields, df_index=None):
 
     for (record_id, record) in data:
         if record['dataset'] == 0:
-            print "record"
-            print record
             corpus_ids.add(record_id)  # candidate for removal
         for field in tfidf_fields:
             tokens = words.findall(record[field].lower())
@@ -122,7 +120,7 @@ def createCanopies(field,
 
         candidate_set = set((doc_id for token in center_tokens 
                                     for doc_id in field_inverted_index[token]['occurrences']
-                                    if data[doc_id]['dataset'] == 1))
+                                    if doc_id['dataset'] == 1))
 
         candidate_set = candidate_set - seen_set
 
