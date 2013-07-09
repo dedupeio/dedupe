@@ -11,8 +11,6 @@ python:
 install:
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.6" ]; then pip install --use-mirrors -r py26_requirements.txt; fi
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then pip install --use-mirrors -r requirements.txt; fi
-  - python setup.py install
+  - python setup.py develop
 # command to run tests, e.g. python setup.py test
-script: 
-  - cd test
-  - nosetests
+script: nosetests
