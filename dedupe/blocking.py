@@ -52,7 +52,7 @@ class Blocker:
 
         return set([str(key) for key in record_keys])
 
-    def tfIdfBlocks(self, data, const_matching=0):
+    def tfIdfBlocks(self, data, constrained_matching=False):
         '''Creates TF/IDF canopy of a given set of data'''
         
         if not self.tfidf_predicates:
@@ -62,7 +62,7 @@ class Blocker:
         for predicate, field in self.tfidf_predicates :
             tfidf_fields.add(field)
 
-        vectors = tfidf.invertIndex(data, tfidf_fields, const_matching)
+        vectors = tfidf.invertIndex(data, tfidf_fields, constrained_matching)
         inverted_index, token_vector, corpus_ids = vectors
 
 
@@ -78,13 +78,13 @@ class Blocker:
                           'field': field})
 
             canopy = tfidf.createCanopies(field, data, threshold, corpus_ids,
-                                          token_vector, inverted_index, const_matching)
+                                          token_vector, inverted_index, constrained_matching)
             self.canopies[threshold.__name__ + field] = canopy
 
 
 def blockTraining(training_pairs,
                   predicate_set,
-                  const_matching=0,
+                  constrained_matching=False,
                   eta=.1,
                   epsilon=.1):
     '''
@@ -99,7 +99,7 @@ def blockTraining(training_pairs,
 
     coverage = Coverage(predicate_set,
                         training_dupes + training_distinct,
-                        const_matching)
+                        constrained_matching)
 
     coverage_threshold = eta * len(training_distinct)
     logging.info("coverage threshold: %s", coverage_threshold)
@@ -220,7 +220,7 @@ def findOptimumBlocking(uncovered_dupes,
 
 
 class Coverage() :
-    def __init__(self, predicate_set, pairs, const_matching=0) :
+    def __init__(self, predicate_set, pairs, constrained_matching=False) :
         self.overlapping = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
 
@@ -230,7 +230,7 @@ class Coverage() :
         self.simplePredicateOverlap(basic_preds, pairs)
 
         logging.info("Calculating coverage of tf-idf predicates")
-        self.canopyOverlap(tfidf_preds, pairs, const_matching)
+        self.canopyOverlap(tfidf_preds, pairs, constrained_matching)
 
         for predicate in predicate_set :
             covered_pairs = set.intersection(*(self.overlapping[basic_predicate]
@@ -262,7 +262,7 @@ class Coverage() :
     def canopyOverlap(self,
                        tfidf_predicates,
                        record_pairs,
-                       const_matching=0) :
+                       constrained_matching=False) :
 
         # uniquify records
         docs = list(set(itertools.chain(*record_pairs)))
@@ -271,7 +271,7 @@ class Coverage() :
 
         blocker = Blocker()
         blocker.tfidf_predicates = tfidf_predicates
-        blocker.tfIdfBlocks(self_identified,const_matching)
+        blocker.tfIdfBlocks(self_identified,constrained_matching)
 
         for (threshold, field) in blocker.tfidf_predicates:
             canopy = blocker.canopies[threshold.__name__ + field]

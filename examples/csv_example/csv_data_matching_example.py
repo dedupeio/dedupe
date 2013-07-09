@@ -54,7 +54,7 @@ settings_file = 'csv_example_data_matching_learned_settings'
 training_file = 'csv_example_data_matching_training.json'
 
 # Set this variable when performing constraint data matching
-const_matching = 1
+constrained_matching = True
 
 # Dedupe can take custom field comparison functions, here's one
 # we'll use for zipcodes
@@ -111,7 +111,7 @@ if os.path.exists(settings_file):
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 150000, const_matching)
+    data_sample = dedupe.dataSample(data_d, 150000, constrained_matching)
 
     # Define the fields dedupe will pay attention to
     #
@@ -153,7 +153,7 @@ else:
 print 'blocking...'
 # Initialize our blocker. We'll learn our blocking rules if we haven't
 # loaded them from a saved settings file.
-blocker = deduper.blockingFunction(const_matching)
+blocker = deduper.blockingFunction(constrained_matching)
 
 # Save our weights and predicates to disk.  If the settings file
 # exists, we will skip all the training and learning next time we run
@@ -164,7 +164,7 @@ deduper.writeSettings(settings_file)
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = dedupe.blockData(data_d, blocker, const_matching)
+blocked_data = dedupe.blockData(data_d, blocker, constrained_matching)
 
 # ## Clustering
 
@@ -175,13 +175,13 @@ blocked_data = dedupe.blockData(data_d, blocker, const_matching)
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-threshold = deduper.goodThreshold(blocked_data, const_matching, recall_weight=2)
+threshold = deduper.goodThreshold(blocked_data, constrained_matching, recall_weight=2)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, data_d, const_matching, threshold)
+clustered_dupes = deduper.duplicateClusters(blocked_data, data_d, constrained_matching, threshold)
 
 print '# duplicate sets', len(clustered_dupes)
 

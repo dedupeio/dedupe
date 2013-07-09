@@ -14,14 +14,14 @@ class TfidfPredicate(float):
     def __init__(self, threshold):
         self.__name__ = 'TF-IDF:' + str(threshold)
 
-def invertIndex(data, tfidf_fields, const_matching=0, df_index=None):
+def invertIndex(data, tfidf_fields, constrained_matching=False, df_index=None):
 
     inverted_index = defaultdict(lambda : defaultdict(list))
     token_vector = defaultdict(dict)
     corpus_ids = set([])
 
     for (record_id, record) in data:
-        if const_matching:
+        if constrained_matching:
             if record['dataset'] == 0:
                 corpus_ids.add(record_id)  # candidate for removal
         else:
@@ -91,7 +91,7 @@ def createCanopies(field,
                    corpus_ids,
                    token_vector,
                    inverted_index,
-                   const_matching=0):
+                   constrained_matching=False):
     """
     A function that returns a field value of a record with a
     particular doc_id, doc_id is the only argument that must be
@@ -122,7 +122,7 @@ def createCanopies(field,
                             in center_vector.keys()
                             if field_inverted_index[token]['idf'] > 0)
 
-        if const_matching:
+        if constrained_matching:
             candidate_set = set((doc_id for token in center_tokens 
                                         for doc_id in field_inverted_index[token]['occurrences']
                                         if doc_id['dataset'] == 1))
@@ -151,7 +151,7 @@ def createCanopies(field,
             if cosine_similarity > center_threshold :
                 canopies[doc_id] = center_id
                 seen_set.add(doc_id)
-                if not const_matching:
+                if not constrained_matching:
                     corpus_ids.remove(doc_id)
 
     return canopies
