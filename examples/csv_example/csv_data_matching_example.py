@@ -53,6 +53,8 @@ output_files = ['CPS_Early_Childhoos_Output.csv','chapin_Output.csv']
 settings_file = 'csv_example_data_matching_learned_settings'
 training_file = 'csv_example_data_matching_training.json'
 
+# Set this variable when performing constraint data matching
+const_matching = 1
 
 # Dedupe can take custom field comparison functions, here's one
 # we'll use for zipcodes
@@ -109,7 +111,7 @@ if os.path.exists(settings_file):
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 150000)
+    data_sample = dedupe.dataSample(data_d, 150000, const_matching)
 
     # Define the fields dedupe will pay attention to
     #
