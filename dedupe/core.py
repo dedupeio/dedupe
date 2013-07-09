@@ -48,7 +48,7 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
         x += 1
         y += 1
 
-    return numpy.column_stack((x, y))
+    return numpy.column_stack((x, y)).astype(int)
 
 
 

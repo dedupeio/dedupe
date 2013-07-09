@@ -13,4 +13,4 @@ install:
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then pip install --use-mirrors -r requirements.txt; fi
   - python setup.py install
 # command to run tests, e.g. python setup.py test
-script: python test/test_dedupe.py
+script: nosetests

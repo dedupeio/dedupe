@@ -3,9 +3,9 @@ from dedupe.distance.jaccard import compareJaccard
 
 class TestJaccard(unittest.TestCase):
     def setUp(self):
-        self.set1 = 'a**b**c'
-        self.set2 = 'c**d**e'
-        self.set3 = 'x**y**z'
+        self.set1 = frozenset(['a', 'b', 'c'])
+        self.set2 = frozenset(['c', 'd', 'e'])
+        self.set3 = frozenset(['x', 'y', 'z'])
 
     def test_jaccard_equal(self):
         jaccard_val = compareJaccard(self.set1, self.set2)

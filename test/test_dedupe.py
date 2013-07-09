@@ -1,6 +1,25 @@
 import dedupe
 import unittest
 import numpy
+import random
+
+class CoreTest(unittest.TestCase):
+  def setUp(self) :
+    random.seed(123)
+
+  def test_random_pair(self) :
+    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+    assert dedupe.core.randomPairs(10, 10).any()
+    assert dedupe.core.randomPairs(10*1000000000, 10).any()
+    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
+                             numpy.array([[ 1,  8],
+                                          [ 5,  7],
+                                          [ 1,  2],
+                                          [ 3,  7],
+                                          [ 2,  9]]))
+
+
+    
 
 class DedupeClassTest(unittest.TestCase):
   def test_initialize(self) :
@@ -94,8 +113,6 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
-
-
  
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
@@ -110,11 +127,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
         
+
 if __name__ == "__main__":
     unittest.main()
 
-class CoreTest(unittest.TestCase):
-  def random_pair_test(self) :
-    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-    assert dedupe.core.randomPairs(10, 10).any()
-    assert dedupe.core.randomPairs(10*1000000000, 10).any()

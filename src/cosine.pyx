@@ -21,16 +21,17 @@ def calculateDocumentFrequency(iterable_list):
         if hasattr(i, '__iter__'):
             for j in i:
                 if j in tf_dict:
-                    tf_dict[j] += 1
+                    tf_dict[j] += 1.0
                 else:
-                    tf_dict[j] = 1
+                    tf_dict[j] = 1.0
         else:
             if i in tf_dict:
-                tf_dict[i] += 1
+                tf_dict[i] += 1.0
             else:
-                tf_dict[i] = 1
+                tf_dict[i] = 1.0
 
     cdef idf_dict = {}
+
     cdef float idf
     for t, v in tf_dict.iteritems():
         if v > n_docs * 0.05 :

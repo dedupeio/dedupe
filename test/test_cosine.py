@@ -4,9 +4,9 @@ import numpy
 
 class TestCosine(unittest.TestCase):
     def setUp(self):
-        self.ilist = [('a', 'b', 'c'),
-                      ('b', 'c', 'd'),
-                      ('d', 'e', 'f')
+        self.ilist = [frozenset(['a', 'b', 'c']),
+                      frozenset(['b', 'c', 'd']),
+                      frozenset(['d', 'e', 'f'])
                       ]
 
     def test_cosine(self):
@@ -30,7 +30,7 @@ class TestCosine(unittest.TestCase):
 
     def test_cosine_na(self):
         cosine = createCosineSimilarity(self.ilist)
-        cosine_sim = cosine(self.ilist[0], ())
+        cosine_sim = cosine(self.ilist[0], frozenset([]))
         self.assertAlmostEqual(cosine_sim, 0, places=5)
 
     def test_cosine_identical(self):
@@ -40,9 +40,9 @@ class TestCosine(unittest.TestCase):
 
 class TestCosineClass(unittest.TestCase):
     def setUp(self):
-        self.ilist = [('a', 'b', 'c'),
-                      ('b', 'c', 'd'),
-                      ('d', 'e', 'f')
+        self.ilist = [frozenset(['a', 'b', 'c']),
+                      frozenset(['b', 'c', 'd']),
+                      frozenset(['d', 'e', 'f'])
                       ]
 
     def test_cosine(self):
@@ -53,7 +53,7 @@ class TestCosineClass(unittest.TestCase):
 
     def test_cosine_na(self):
         cosine = CosineSimilarity(self.ilist)
-        cosine_sim = cosine(self.ilist[0], ())
+        cosine_sim = cosine(self.ilist[0], frozenset([]))
         self.assertAlmostEqual(cosine_sim, 0, places=5)
         
     def test_cosine_identical(self):
