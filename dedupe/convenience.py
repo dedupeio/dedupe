@@ -38,13 +38,13 @@ def dataSample(data, sample_size, const_matching=0):
 
 
 
-def blockData(data_d, blocker):
+def blockData(data_d, blocker, const_matching=0):
 
     blocks = dedupe.core.OrderedDict({})
     record_blocks = dedupe.core.OrderedDict({})
     key_blocks = dedupe.core.OrderedDict({})
 
-    blocker.tfIdfBlocks(data_d.iteritems())
+    blocker.tfIdfBlocks(data_d.iteritems(), const_matching)
 
     for (record_id, record) in data_d.iteritems():
         for key in blocker((record_id, record)):
