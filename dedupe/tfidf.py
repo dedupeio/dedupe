@@ -22,6 +22,8 @@ def invertIndex(data, tfidf_fields, df_index=None):
 
     for (record_id, record) in data:
         if record['dataset'] == 0:
+            print "record"
+            print record
             corpus_ids.add(record_id)  # candidate for removal
         for field in tfidf_fields:
             tokens = words.findall(record[field].lower())
@@ -83,6 +85,7 @@ def invertIndex(data, tfidf_fields, df_index=None):
     return (inverted_index, token_vector, corpus_ids)
 
 def createCanopies(field,
+                   data,
                    threshold,
                    corpus_ids,
                    token_vector,
@@ -97,6 +100,7 @@ def createCanopies(field,
     seen_set = set([])
     corpus_ids = corpus_ids.copy()
     field_inverted_index = inverted_index[field]
+    data_d = dict(data)
 
     token_vectors = token_vector[field]
     while corpus_ids:
@@ -118,7 +122,7 @@ def createCanopies(field,
 
         candidate_set = set((doc_id for token in center_tokens 
                                     for doc_id in field_inverted_index[token]['occurrences']
-                                    if data[doc_id][‘dataset’] == 1))
+                                    if data[doc_id]['dataset'] == 1))
 
         candidate_set = candidate_set - seen_set
 
@@ -140,6 +144,5 @@ def createCanopies(field,
             if cosine_similarity > center_threshold :
                 canopies[doc_id] = center_id
                 seen_set.add(doc_id)
-                corpus_ids.remove(doc_id)
 
     return canopies
