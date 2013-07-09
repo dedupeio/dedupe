@@ -179,7 +179,7 @@ threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
+clustered_dupes = deduper.duplicateClusters(blocked_data, data_d, threshold)
 
 print '# duplicate sets', len(clustered_dupes)
 
