@@ -22,7 +22,6 @@ elif opts.verbose >= 2:
     log_level = logging.DEBUG
 logging.basicConfig(level=log_level)
 
-const_matching = 0
 
 # create a random set of training pairs based on known duplicates
 
@@ -130,7 +129,7 @@ else:
                                                  num_training_dupes,
                                                  num_training_distinct)
     
-    deduper.data_sample = dedupe.dataSample(data_d, 1000000, const_matching)
+    deduper.data_sample = dedupe.dataSample(data_d, 1000000)
 
 
     deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
@@ -150,16 +149,15 @@ else:
 
 
 print 'blocking...'
-blocker = deduper.blockingFunction(const_matching,ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockData(data_d, blocker, const_matching))
+blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
+blocked_data = tuple(dedupe.blockData(data_d, blocker))
 
-alpha = deduper.goodThreshold(blocked_data, const_matching)
+alpha = deduper.goodThreshold(blocked_data)
 
 
 # print candidates
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data,
-                                            const_matching,
                                             threshold=alpha)
 
 
