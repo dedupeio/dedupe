@@ -128,7 +128,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
         
-class CoreTest(unittest.TestCase):
+class ConvenienceTest(unittest.TestCase):
   def setUp(self):
     lst = ['name','age','address','dataset']
     data = [dict.fromkeys(xrange(20)) for x in range(10000)]
