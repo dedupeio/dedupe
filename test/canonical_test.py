@@ -158,6 +158,7 @@ alpha = deduper.goodThreshold(blocked_data)
 # print candidates
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data,
+                                            data_d,
                                             threshold=alpha)
 
 
