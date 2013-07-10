@@ -2,6 +2,7 @@ import dedupe
 import unittest
 import numpy
 import random
+import itertools
 
 class CoreTest(unittest.TestCase):
   def setUp(self) :
@@ -127,6 +128,18 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
         
+class CoreTest(unittest.TestCase):
+  def setUp(self):
+    lst = ['name','age','address','dataset']
+    data = [dict.fromkeys(xrange(20)) for x in range(10000)]
+    data_for_constrained_matching = [dict.fromkeys(lst) for x in range(10000)]
+    keys = range(len(data))
+    self.data_d = dict(itertools.izip(keys,data))
+    self.data_d_constrained_matching = dict(itertools.izip(keys,data_for_constrained_matching))
+
+  def test_data_sample(self):
+    assert dedupe.convenience.dataSample(self.data_d,1)
+    assert dedupe.convenience.dataSample(self.data_d,150000)
 
 if __name__ == "__main__":
     unittest.main()
