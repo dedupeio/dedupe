@@ -16,7 +16,7 @@ def dataSample(data, sample_size):
     data_list = data.values()
     random_pairs = dedupe.core.randomPairs(len(data_list), sample_size)
 
-    return tuple((data_list[int(k1)], data_list[int(k2)]) for k1, k2 in random_pairs)
+    return tuple((data_list[k1], data_list[k2]) for k1, k2 in random_pairs)
 
 
 def blockData(data_d, blocker):
