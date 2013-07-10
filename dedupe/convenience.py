@@ -25,6 +25,9 @@ def dataSample(data, sample_size, constrained_matching=False):
             else:
                 data_list_B.append(record)
 
+        data_list_A.append(data_list_A[0])
+        data_list_B.append(data_list_B[0])
+
         n_records = min(len(data_list_A), len(data_list_B))
 
         random_pairs = dedupe.core.randomPairs(n_records, sample_size)
