@@ -20,8 +20,30 @@ class CoreTest(unittest.TestCase):
                                           [ 2,  9]]))
 
 
-    
+class ConvenienceTest(unittest.TestCase):
+  def setUp(self):
+    self.data_d = {  100 : {"name": "Bob", "age": "50"},
+                     105 : {"name": "Charlie", "age": "75"},
+                     110 : {"name": "Meredith", "age": "40"},
+                     115 : {"name": "Sue", "age": "10"}, 
+                     120 : {"name": "Jimmy", "age": "20"},
+                     125 : {"name": "Jimbo", "age": "21"},
+                     130 : {"name": "Willy", "age": "35"},
+                     135 : {"name": "William", "age": "35"},
+                     140 : {"name": "Martha", "age": "19"},
+                     145 : {"name": "Kyle", "age": "27"},
+                  }
+    random.seed(123)
 
+  def test_data_sample(self):
+    assert dedupe.convenience.dataSample(self.data_d,5) == \
+            (({'age': '27', 'name': 'Kyle'}, {'age': '50', 'name': 'Bob'}),
+            ({'age': '27', 'name': 'Kyle'}, {'age': '35', 'name': 'William'}),
+            ({'age': '10', 'name': 'Sue'}, {'age': '35', 'name': 'William'}),
+            ({'age': '27', 'name': 'Kyle'}, {'age': '20', 'name': 'Jimmy'}),
+            ({'age': '75', 'name': 'Charlie'}, {'age': '21', 'name': 'Jimbo'}))
+
+ 
 class DedupeClassTest(unittest.TestCase):
   def test_initialize(self) :
     fields =  { 'name' : {'type': 'String'}, 
@@ -128,18 +150,6 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
         
-class ConvenienceTest(unittest.TestCase):
-  def setUp(self):
-    lst = ['name','age','address','dataset']
-    data = [dict.fromkeys(xrange(20)) for x in range(10000)]
-    data_for_constrained_matching = [dict.fromkeys(lst) for x in range(10000)]
-    keys = range(len(data))
-    self.data_d = dict(itertools.izip(keys,data))
-    self.data_d_constrained_matching = dict(itertools.izip(keys,data_for_constrained_matching))
-
-  def test_data_sample(self):
-    assert dedupe.convenience.dataSample(self.data_d,1)
-    assert dedupe.convenience.dataSample(self.data_d,150000)
 
 if __name__ == "__main__":
     unittest.main()
