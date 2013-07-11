@@ -182,11 +182,11 @@ def blockedPairs(blocks,constrained_matching=False, data={}) :
 
         if constrained_matching:
             for pair in block_pairs :
-                if pair[0].__class__ is int:
-                    if (data[pair[0]]['dataset'] != data[pair[1]]['dataset']):
+                if isinstance(pair[0],frozendict):
+                    if (pair[0]['dataset'] != pair[1]['dataset']):
                         yield pair
                 else:
-                    if (pair[0]['dataset'] != pair[1]['dataset']):
+                    if (data[pair[0]]['dataset'] != data[pair[1]]['dataset']):
                         yield pair
         else:
             for pair in block_pairs :
