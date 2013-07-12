@@ -3,6 +3,7 @@ import unittest
 import numpy
 import random
 import itertools
+import warnings
 
 class CoreTest(unittest.TestCase):
   def setUp(self) :
@@ -42,6 +43,12 @@ class ConvenienceTest(unittest.TestCase):
             ({'age': '10', 'name': 'Sue'}, {'age': '35', 'name': 'William'}),
             ({'age': '27', 'name': 'Kyle'}, {'age': '20', 'name': 'Jimmy'}),
             ({'age': '75', 'name': 'Charlie'}, {'age': '21', 'name': 'Jimbo'}))
+
+    with warnings.catch_warnings(record=True) as w:
+      warnings.simplefilter("always")
+      dedupe.convenience.dataSample(self.data_d,10000)
+      assert len(w) == 1
+      assert str(w[-1].message) == "Pairs generated are less than Sample Size"
 
  
 class DedupeClassTest(unittest.TestCase):
