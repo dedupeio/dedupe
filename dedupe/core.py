@@ -55,8 +55,8 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     Return random combinations of indices for record list A and B
     """
 
-    A_samples = sampleWithReplacement(n_records_A, sample_size)
-    B_samples = sampleWithReplacement(n_records_B, sample_size)
+    A_samples = numpy.random.randint(n_records_A, size=sample_size)
+    B_samples = numpy.random.randint(n_records_B, size=sample_size)
     pairs = zip(A_samples,B_samples)
     set_pairs = set(pairs)
 
@@ -66,13 +66,6 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     else:
         return set_pairs
 
-def sampleWithReplacement(population, k):
-    """
-    Chooses k random elements (with replacement) from a population
-    """
-
-    _random, _int = random.random, int # speed hack
-    return [_int(_random() * population) for i in itertools.repeat(None, k)]
 
 def trainModel(training_data, data_model, alpha=.001):
     """
