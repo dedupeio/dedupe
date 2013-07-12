@@ -87,10 +87,6 @@ def readData(filename):
     where the key is a unique record ID and each value is a 
     [frozendict](http://code.activestate.com/recipes/414283-frozen-dictionaries/) 
     (hashable dictionary) of the row fields.
-
-    **Currently, dedupe depends upon records' unique ids being integers
-    with no integers skipped. The smallest valued unique id must be 0 or
-    1. Expect this requirement will likely be relaxed in the future.**
     """
 
     data_d = {}
