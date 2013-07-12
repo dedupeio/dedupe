@@ -2,6 +2,8 @@ import dedupe
 import unittest
 import numpy
 import random
+import itertools
+import warnings
 
 class CoreTest(unittest.TestCase):
   def setUp(self) :
@@ -19,8 +21,36 @@ class CoreTest(unittest.TestCase):
                                           [ 2,  9]]))
 
 
-    
+class ConvenienceTest(unittest.TestCase):
+  def setUp(self):
+    self.data_d = {  100 : {"name": "Bob", "age": "50"},
+                     105 : {"name": "Charlie", "age": "75"},
+                     110 : {"name": "Meredith", "age": "40"},
+                     115 : {"name": "Sue", "age": "10"}, 
+                     120 : {"name": "Jimmy", "age": "20"},
+                     125 : {"name": "Jimbo", "age": "21"},
+                     130 : {"name": "Willy", "age": "35"},
+                     135 : {"name": "William", "age": "35"},
+                     140 : {"name": "Martha", "age": "19"},
+                     145 : {"name": "Kyle", "age": "27"},
+                  }
+    random.seed(123)
 
+  def test_data_sample(self):
+    assert dedupe.convenience.dataSample(self.data_d,5) == \
+            (({'age': '27', 'name': 'Kyle'}, {'age': '50', 'name': 'Bob'}),
+            ({'age': '27', 'name': 'Kyle'}, {'age': '35', 'name': 'William'}),
+            ({'age': '10', 'name': 'Sue'}, {'age': '35', 'name': 'William'}),
+            ({'age': '27', 'name': 'Kyle'}, {'age': '20', 'name': 'Jimmy'}),
+            ({'age': '75', 'name': 'Charlie'}, {'age': '21', 'name': 'Jimbo'}))
+
+    with warnings.catch_warnings(record=True) as w:
+      warnings.simplefilter("always")
+      dedupe.convenience.dataSample(self.data_d,10000)
+      assert len(w) == 1
+      assert str(w[-1].message) == "Pairs generated are less than Sample Size"
+
+ 
 class DedupeClassTest(unittest.TestCase):
   def test_initialize(self) :
     fields =  { 'name' : {'type': 'String'}, 
