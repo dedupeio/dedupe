@@ -53,7 +53,29 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
 
     return numpy.column_stack((x, y)).astype(int)
 
+def randomPairsMatch(n_records_A, n_records_B, sample_size):
+    """
+    Return random combinations of indices for record list A and B
+    """
 
+    A_samples = sampleWithReplacement(n_records_A, sample_size)
+    B_samples = sampleWithReplacement(n_records_B, sample_size)
+    pairs = zip(A_samples,B_samples)
+    set_pairs = set(pairs)
+
+    if len(set_pairs) < sample_size:
+        return set.union(set_pairs,randomPairsMatch(n_records_A,n_records_B,
+                                                    (sample_size-len(set_pairs))))
+    else:
+        return set_pairs
+
+def sampleWithReplacement(population, k):
+    """
+    Chooses k random elements (with replacement) from a population
+    """
+
+    _random, _int = random.random, int # speed hack
+    return [_int(_random() * population) for i in itertools.repeat(None, k)]
 
 def trainModel(training_data, data_model, alpha=.001):
     """
