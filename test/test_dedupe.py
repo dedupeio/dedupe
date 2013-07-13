@@ -158,6 +158,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
     assert dedupe.predicates.initials(field,12) == ()
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
+    assert dedupe.predicates.ngrams(field,3) == ('123','23 ','3 1',' 16','16t','6th','th ','h s',' st')
 
 if __name__ == "__main__":
     unittest.main()
