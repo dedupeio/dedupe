@@ -142,6 +142,18 @@ class BlockingTest(unittest.TestCase):
              self.frozendict({"name": "William", "age": "35"}))]
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
+    self.predicate_set = []
+    self.predicate_set.extend(list(itertools.product(self.predicate_functions, fields)))
+    disjunctive_predicates = list(itertools.combinations(self.predicate_set, 2))
+    disjunctive_predicates = [predicate for predicate in disjunctive_predicates
+                              if predicate[0][1] != predicate[1][1]]
+    self.predicate_set = [(predicate, ) for predicate in self.predicate_set]
+    self.predicate_set.extend(disjunctive_predicates)
+
+  def test_block_training(self):
+    assert dedupe.blocking.blockTraining(self.training_pairs,self.predicate_set) == \
+            [((self.sameThreeCharStartPredicate, 'name'),)]
+
     
  
 class PredicatesTest(unittest.TestCase):
