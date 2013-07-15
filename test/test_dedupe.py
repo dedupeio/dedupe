@@ -141,6 +141,9 @@ class BlockingTest(unittest.TestCase):
             (self.frozendict({"name": "Willy", "age": "35"}),
              self.frozendict({"name": "William", "age": "35"}))]
       }
+    self.training_dupes = (self.training_pairs[1])[:]
+    self.training_distinct = (self.training_pairs[0])[:]
+    self.pairs = self.training_dupes + self.training_dupes
     self.empty_training_pairs = {0: [], 1: []}
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     self.predicate_set = []
@@ -154,6 +157,10 @@ class BlockingTest(unittest.TestCase):
                        ((self.sameThreeCharStartPredicate, 'name'),), \
                        ((dedupe.tfidf.TfidfPredicate(0.2), 'name'),), \
                        ((dedupe.tfidf.TfidfPredicate(0.4), 'name'),)]
+    self.basic_preds = set([(self.wholeFieldPredicate, 'name'), \
+                            (self.sameThreeCharStartPredicate, 'name')])
+    self.tfidf_preds = set([(dedupe.tfidf.TfidfPredicate(0.2), 'name'), \
+                            (dedupe.tfidf.TfidfPredicate(0.4), 'name')])
 
   def test_block_training(self):
     assert dedupe.blocking.blockTraining(self.training_pairs,self.predicate_set) == \
@@ -163,11 +170,26 @@ class BlockingTest(unittest.TestCase):
 
   def test_predicates_type(self):
     basic_predicates, tfidf_predicates = dedupe.blocking.predicateTypes(self.predicates)
-    assert basic_predicates == set([(self.wholeFieldPredicate, 'name'), \
-                                    (self.sameThreeCharStartPredicate, 'name')])
-    assert tfidf_predicates == set([(dedupe.tfidf.TfidfPredicate(0.2), 'name'), \
-                                    (dedupe.tfidf.TfidfPredicate(0.4), 'name')])
+    assert basic_predicates == self.basic_preds
+    assert tfidf_predicates == self.tfidf_preds
+
+  def test_simple_predicate_and_canopy_overlap(self):
+    coverage = dedupe.blocking.Coverage(self.predicates,self.pairs)
     
+    overlap = [((self.sameThreeCharStartPredicate, 'name'), \
+                set([(self.frozendict({'age': '20', 'name': 'Jimmy'}), \
+                      self.frozendict({'age': '21', 'name': 'Jimbo'})), \
+                     (self.frozendict({'age': '35', 'name': 'Willy'}), \
+                      self.frozendict({'age': '35', 'name': 'William'}))])), \
+               (((self.wholeFieldPredicate, 'name'),), set([])), (((0.2, 'name'),), set([])), \
+               (((self.sameThreeCharStartPredicate, 'name'),), \
+                set([(self.frozendict({'age': '20', 'name': 'Jimmy'}), \
+                      self.frozendict({'age': '21', 'name': 'Jimbo'})), \
+                     (self.frozendict({'age': '35', 'name': 'Willy'}), \
+                      self.frozendict({'age': '35', 'name': 'William'}))])), \
+               (((0.4, 'name'),), set([])), ((0.4, 'name'), set([])), \
+               ((self.wholeFieldPredicate, 'name'), set([])), ((0.2, 'name'), set([]))]
+    assert coverage.overlapping.items() == overlap
  
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
