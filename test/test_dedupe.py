@@ -141,6 +141,7 @@ class BlockingTest(unittest.TestCase):
             (self.frozendict({"name": "Willy", "age": "35"}),
              self.frozendict({"name": "William", "age": "35"}))]
       }
+    self.empty_training_pairs = {0: [], 1: []}
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     self.predicate_set = []
     self.predicate_set.extend(list(itertools.product(self.predicate_functions, fields)))
@@ -157,6 +158,8 @@ class BlockingTest(unittest.TestCase):
   def test_block_training(self):
     assert dedupe.blocking.blockTraining(self.training_pairs,self.predicate_set) == \
             [((self.sameThreeCharStartPredicate, 'name'),)]
+    self.assertRaises(ValueError, dedupe.blocking.blockTraining, self.empty_training_pairs, \
+                                                                 self.predicate_set)
 
   def test_predicates_type(self):
     basic_predicates, tfidf_predicates = dedupe.blocking.predicateTypes(self.predicates)
