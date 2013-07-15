@@ -149,11 +149,21 @@ class BlockingTest(unittest.TestCase):
                               if predicate[0][1] != predicate[1][1]]
     self.predicate_set = [(predicate, ) for predicate in self.predicate_set]
     self.predicate_set.extend(disjunctive_predicates)
+    self.predicates = [((self.wholeFieldPredicate, 'name'),), \
+                       ((self.sameThreeCharStartPredicate, 'name'),), \
+                       ((dedupe.tfidf.TfidfPredicate(0.2), 'name'),), \
+                       ((dedupe.tfidf.TfidfPredicate(0.4), 'name'),)]
 
   def test_block_training(self):
     assert dedupe.blocking.blockTraining(self.training_pairs,self.predicate_set) == \
             [((self.sameThreeCharStartPredicate, 'name'),)]
 
+  def test_predicates_type(self):
+    basic_predicates, tfidf_predicates = dedupe.blocking.predicateTypes(self.predicates)
+    assert basic_predicates == set([(self.wholeFieldPredicate, 'name'), \
+                                    (self.sameThreeCharStartPredicate, 'name')])
+    assert tfidf_predicates == set([(dedupe.tfidf.TfidfPredicate(0.2), 'name'), \
+                                    (dedupe.tfidf.TfidfPredicate(0.4), 'name')])
     
  
 class PredicatesTest(unittest.TestCase):
