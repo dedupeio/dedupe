@@ -97,6 +97,11 @@ def readData(filenames):
                 row_id = int(row['Id'])
                 data_d[row_id] = dedupe.core.frozendict(clean_row)
 
+    if constrained_matching:
+        data_d = dedupe.core.ConstrainedDataSets(data_d)
+    else:
+        data_d = dedupe.core.SingleDataSet(data_d)
+
     return data_d
 
 
@@ -111,7 +116,7 @@ if os.path.exists(settings_file):
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 150000, constrained_matching)
+    data_sample = dedupe.dataSample(data_d, 150000)
 
     # Define the fields dedupe will pay attention to
     #
@@ -164,7 +169,7 @@ deduper.writeSettings(settings_file)
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = dedupe.blockData(data_d, blocker, constrained_matching)
+blocked_data = dedupe.blockData(data_d, blocker)
 
 # ## Clustering
 
