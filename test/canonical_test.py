@@ -22,7 +22,7 @@ elif opts.verbose >= 2:
     log_level = logging.DEBUG
 logging.basicConfig(level=log_level)
 
-
+constrained_matching = False
 # create a random set of training pairs based on known duplicates
 
 def randomTrainingPairs(data_d,
@@ -64,6 +64,11 @@ def canonicalImport(filename):
                          row.iteritems()]
             data_d[i] = dedupe.core.frozendict(clean_row)
             clusters.setdefault(row['unique_id'], []).append(i)
+
+    if constrained_matching:
+        data_d = dedupe.core.SingleDataSet(data_d)
+    else:
+        data_d = dedupe.core.ConstrainedDataSets(data_d)
 
     for (unique_id, cluster) in clusters.iteritems():
         if len(cluster) > 1:
