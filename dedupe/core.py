@@ -220,6 +220,25 @@ def split(iterable):
         yield proj(qi)
 
 
+class SingleDataSet(dict):
+    def __init__(self, *args):
+        self.constrained = False
+
+    def __new__(cls, *args):
+        new = dict.__new__(cls)
+        dict.__init__(new,*args)
+        return new
+
+
+class ConstrainedDataSets(dict):
+    def __init__(self, *args):
+        self.constrained = True
+
+    def __new__(cls, *args):
+        new = dict.__new__(cls)
+        dict.__init__(new,*args)
+        return new
+
 
 class frozendict(dict):
     '''
