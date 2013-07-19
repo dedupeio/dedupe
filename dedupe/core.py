@@ -12,6 +12,7 @@ import numpy
 
 import lr
 from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
+from scipy.sparse import coo_matrix,dok_matrix
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
@@ -184,6 +185,19 @@ def scoreDuplicates(ids, records, data_model, threshold=None):
     logging.info('all scores %d' % scored_pairs.shape)
     scored_pairs = numpy.unique(scored_pairs)
     logging.info('unique scores %d' % scored_pairs.shape)
+
+    return scored_pairs
+
+def scoreDuplicatesConstrained(ids, records, data_model, threshold=None):
+
+    field_distances = fieldDistances(list(records), data_model)
+    duplicate_scores = scorePairs(field_distances, data_model)
+
+    id_list = numpy.asarray(list(ids))
+    row = id_list[:,0]
+    col = id_list[:,1]
+    scored_pairs = numpy.asarray(dok_matrix(coo_matrix((duplicate_scores,(row,col)))).todense())
+    scored_pairs[scored_pairs < threshold] = 0
 
     return scored_pairs
 
