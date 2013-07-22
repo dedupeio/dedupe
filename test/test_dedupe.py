@@ -74,8 +74,6 @@ class DedupeClassTest(unittest.TestCase):
 
     assert deduper.blocker_types == {'String' : string_predicates + tfidf_string_predicates}
 
-  
-
 
 class AffineGapTest(unittest.TestCase):
   def setUp(self):
@@ -102,6 +100,7 @@ class AffineGapTest(unittest.TestCase):
   def test_normalized_affine_gap_correctness(self):
     assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
     
+
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
     # Fully connected star network
@@ -121,6 +120,29 @@ class ClusteringTest(unittest.TestCase):
     assert hierarchical(self.dupes, 1) == []
     assert hierarchical(self.dupes, 0.5) == [set([1, 2, 3]), set([4,5])]
     assert hierarchical(self.dupes, 0) == [set([1, 2, 3, 4, 5])]
+
+
+class TfidfTest(unittest.TestCase):
+  def setUp(self):
+    self.data_d = {  100 : {"name": "Bob", "age": "50"},
+                     105 : {"name": "Charlie", "age": "75"},
+                     110 : {"name": "Meredith", "age": "40"},
+                     115 : {"name": "Sue", "age": "10"},
+                     120 : {"name": "Jimmy", "age": "20"},
+                     125 : {"name": "Jimbo", "age": "21"},
+                     130 : {"name": "Willy", "age": "35"},
+                     135 : {"name": "William", "age": "35"},
+                     140 : {"name": "Martha", "age": "19"},
+                     145 : {"name": "Kyle", "age": "27"},
+                  }
+    self.data = self.data_d.iteritems()
+    self.tfidf_fields = set(['name'])
+
+  def test_invert_index(self):
+    vectors = dedupe.tfidf.invertIndex(self.data,self.tfidf_fields)
+    inverted_index, token_vector, corpus_ids = vectors
+    assert corpus_ids == set([100,105,110,115,120,125,130,135,140,145])
+
 
 class BlockingTest(unittest.TestCase):
   def setUp(self):
@@ -173,24 +195,30 @@ class BlockingTest(unittest.TestCase):
     assert basic_predicates == self.basic_preds
     assert tfidf_predicates == self.tfidf_preds
 
+
   def test_simple_predicate_and_canopy_overlap(self):
     coverage = dedupe.blocking.Coverage(self.predicates,self.pairs)
+
+    overlap = [(((self.sameThreeCharStartPredicate, 'name'),), \
+                  set([(self.frozendict({'age': '20', 'name': 'Jimmy'}), \
+                        self.frozendict({'age': '21', 'name': 'Jimbo'})), \
+                       (self.frozendict({'age': '35', 'name': 'Willy'}), \
+                        self.frozendict({'age': '35', 'name': 'William'}))])), \
+                (((0.2, 'name'),), set([])), (((0.4, 'name'),), set([])), \
+                ((self.wholeFieldPredicate, 'name'), set([])), ((0.4, 'name'), set([])), \
+                (((self.wholeFieldPredicate, 'name'),), set([])), \
+                ((self.sameThreeCharStartPredicate, 'name'), \
+                  set([(self.frozendict({'age': '20', 'name': 'Jimmy'}), \
+                        self.frozendict({'age': '21', 'name': 'Jimbo'})), \
+                       (self.frozendict({'age': '35', 'name': 'Willy'}), \
+                        self.frozendict({'age': '35', 'name': 'William'}))])), \
+                ((0.2, 'name'), set([]))]
     
-    overlap = [((self.sameThreeCharStartPredicate, 'name'), \
-                set([(self.frozendict({'age': '20', 'name': 'Jimmy'}), \
-                      self.frozendict({'age': '21', 'name': 'Jimbo'})), \
-                     (self.frozendict({'age': '35', 'name': 'Willy'}), \
-                      self.frozendict({'age': '35', 'name': 'William'}))])), \
-               (((self.wholeFieldPredicate, 'name'),), set([])), (((0.2, 'name'),), set([])), \
-               (((self.sameThreeCharStartPredicate, 'name'),), \
-                set([(self.frozendict({'age': '20', 'name': 'Jimmy'}), \
-                      self.frozendict({'age': '21', 'name': 'Jimbo'})), \
-                     (self.frozendict({'age': '35', 'name': 'Willy'}), \
-                      self.frozendict({'age': '35', 'name': 'William'}))])), \
-               (((0.4, 'name'),), set([])), ((0.4, 'name'), set([])), \
-               ((self.wholeFieldPredicate, 'name'), set([])), ((0.2, 'name'), set([]))]
-    assert coverage.overlapping.items() == overlap
+    coverage_items = coverage.overlapping.items()
+    output = overlap
+    self.assertEqual(coverage_items,output)
  
+
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
@@ -206,6 +234,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.initials(field,12) == ()
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
     assert dedupe.predicates.ngrams(field,3) == ('123','23 ','3 1',' 16','16t','6th','th ','h s',' st')
+
 
 if __name__ == "__main__":
     unittest.main()
