@@ -8,6 +8,8 @@ import fastcluster
 import hcluster
 import networkx
 from networkx.algorithms.components.connected import connected_components
+from scipy.sparse import coo_matrix,dok_matrix
+from hungarian import _Hungarian
 
 
 def condensedDistance(dupes):
@@ -92,5 +94,39 @@ def cluster(dupes, threshold=.5):
             cluster_id += 1
 
     clusters = [set(l) for l in clustering.values() if len(l) > 1]
+
+    return clusters
+
+
+def clusterConstrained(dupes,threshold=.6):
+
+    dupe_graph = networkx.Graph()
+    dupe_graph.add_weighted_edges_from((x[0], x[1], y) for (x, y) in dupes)
+
+    dupe_sub_graphs = connected_components(dupe_graph)
+    clusters = []
+    
+    for sub_graph in dupe_sub_graphs:
+        if len(sub_graph) > 2:
+            pairs = (x[0:2] for x in dupe_graph.edges_iter(sub_graph, data=True))
+            scores = (x[2]['weight'] for x in dupe_graph.edges_iter(sub_graph, data=True))
+            scores = list(scores)
+            
+            id_list = numpy.asarray(list(pairs))
+            row = list(set(id_list[:,0]))
+            row_list = [row.index(a) for a in id_list[:,0]]
+            col = list(set(id_list[:,1]))
+            col_list = [col.index(a) for a in id_list[:,1]]
+            
+            scored_pairs = numpy.asarray(dok_matrix(coo_matrix((scores,(row_list,col_list)))).todense())
+            scored_pairs[scored_pairs < threshold] = 0
+            scored_pairs = 1 - scored_pairs
+            
+            m = _Hungarian()
+            clustering = m.compute(scored_pairs)
+            cluster = [set(l) for l in clustering if len(l) > 1]
+            clusters = clusters + cluster
+        else:
+            clusters.append(set(sub_graph))
 
     return clusters

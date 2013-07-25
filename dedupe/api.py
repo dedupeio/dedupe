@@ -15,7 +15,6 @@ import itertools
 import logging
 import types
 import pickle
-from munkres import Munkres
 import numpy
 
 import dedupe
@@ -400,20 +399,14 @@ class Dedupe:
         candidate_keys = core.blockedPairs(blocked_keys, constrained_matching, data)
         candidate_records = core.blockedPairs(blocked_records, constrained_matching)
         
-        if constrained_matching:
-          self.dupes = core.scoreDuplicatesConstrained(candidate_keys,
-                                                       candidate_records,
-                                                       self.data_model,
-                                                       threshold)
-          self.dupes = 1 - self.dupes
-          m = Munkres()
-          clusters = m.compute(self.dupes)
-
-        else:
-          self.dupes = core.scoreDuplicates(candidate_keys,
+        self.dupes = core.scoreDuplicates(candidate_keys,
                                             candidate_records,
                                             self.data_model,
                                             threshold)
+
+        if constrained_matching:
+          clusters = clustering.clusterConstrained(self.dupes, cluster_threshold)
+        else:
           clusters = clustering.cluster(self.dupes, cluster_threshold)
 
         return clusters
