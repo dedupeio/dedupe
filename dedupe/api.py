@@ -15,7 +15,6 @@ import itertools
 import logging
 import types
 import pickle
-from munkres import Munkres
 import numpy
 
 import dedupe
@@ -417,11 +416,11 @@ class Dedupe:
 
         else:
           self.dupes = core.scoreDuplicates(candidate_keys,
-                                            candidate_records,
-                                            self.data_model,
-                                            threshold)
+
+        if constrained_matching:
+          clusters = clustering.clusterConstrained(self.dupes, cluster_threshold)
+        else:
           clusters = clustering.cluster(self.dupes, cluster_threshold)
->>>>>>> Resolve the Clustering Issue for Constrained DataSets by using Hungarian Algorithm
 
         return clusters
 
