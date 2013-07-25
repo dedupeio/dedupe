@@ -191,18 +191,6 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
 
     return scored_pairs
 
-def scoreDuplicatesConstrained(ids, records, data_model, threshold=None):
-
-    field_distances = fieldDistances(list(records), data_model)
-    duplicate_scores = scorePairs(field_distances, data_model)
-
-    id_list = numpy.asarray(list(ids))
-    row = id_list[:,0]
-    col = id_list[:,1]
-    scored_pairs = numpy.asarray(dok_matrix(coo_matrix((duplicate_scores,(row,col)))).todense())
-    scored_pairs[scored_pairs < threshold] = 0
-
-    return scored_pairs
 
 def blockedPairs(blocks,constrained_matching=False, data={}) :
     for block in blocks :
