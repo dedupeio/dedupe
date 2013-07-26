@@ -401,12 +401,14 @@ class Dedupe:
         candidate_records = core.blockedPairs(blocked_records)
         
         candidate_keys, ids = itertools.tee(candidate_keys)
+        id_type = type(list(ids)[0][0])
 
         self.dupes = core.scoreDuplicates(candidate_keys,
                                           candidate_records,
+                                          id_type,
                                           self.data_model,
                                           threshold)
-        clusters = clustering.cluster(self.dupes, ids, cluster_threshold)
+        clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters
 

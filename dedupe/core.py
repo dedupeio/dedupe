@@ -141,10 +141,9 @@ def scorePairs(field_distances, data_model):
     return scores
 
 
-def scoreDuplicates(ids, records, data_model, threshold=None):
+def scoreDuplicates(ids, records, id_type, data_model, threshold=None):  
 
-    ids, ids_copy = itertools.tee(ids)
-    score_dtype = [('pairs', type(list(ids_copy)[0][0]), 2), ('score', 'f4', 1)]
+    score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
     scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
     complete = False
