@@ -63,7 +63,7 @@ def canonicalImport(filename):
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
             data_d[i] = dedupe.core.frozendict(clean_row)
-            clusters.setdefault(row['unique_id'], []).append(i)
+            clusters.setdefault(row['unique_id'], []).append(str(i))
 
     for (unique_id, cluster) in clusters.iteritems():
         if len(cluster) > 1:
