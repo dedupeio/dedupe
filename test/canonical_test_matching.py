@@ -69,11 +69,6 @@ def canonicalImport(filenames):
                 clusters.setdefault(row['unique_id'], []).append(i)
                 i = i + 1
 
-    if constrained_matching:
-        data_d = dedupe.core.SingleDataSet(data_d)
-    else:
-        data_d = dedupe.core.ConstrainedDataSets(data_d)
-
     for (unique_id, cluster) in clusters.iteritems():
         if len(cluster) > 1:
             for pair in combinations(cluster, 2):
@@ -138,7 +133,7 @@ else:
                                                  num_training_dupes,
                                                  num_training_distinct)
     
-    deduper.data_sample = dedupe.dataSample(data_d, 1000000)
+    deduper.data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching)
 
 
     deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
@@ -159,7 +154,7 @@ else:
 
 print 'blocking...'
 blocker = deduper.blockingFunction(constrained_matching, ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockData(data_d, blocker))
+blocked_data = tuple(dedupe.blockData(data_d, blocker, constrained_matching))
 
 alpha = deduper.goodThreshold(blocked_data, constrained_matching)
 
