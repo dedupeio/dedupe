@@ -8,6 +8,7 @@ import fastcluster
 import hcluster
 import networkx
 from networkx.algorithms.components.connected import connected_components
+from networkx import adjacency_matrix
 from scipy.sparse import coo_matrix,dok_matrix
 from hungarian import _Hungarian
 
@@ -116,8 +117,11 @@ def clusterConstrained(dupes,threshold=.6):
             row_list = [row.index(a) for a in id_list[:,0]]
             col = list(set(id_list[:,1]))
             col_list = [col.index(a) for a in id_list[:,1]]
-            
-            scored_pairs = numpy.asarray(coo_matrix((scores,(row_list,col_list))).todense())
+
+            cost_matrix_graph = networkx.Graph()
+            cost_matrix_graph.add_weighted_edges_from((x, y, z) for (x, y, z) in \
+                                                                zip(row_list, col_list, scores))
+            scored_pairs = numpy.asarray(adjacency_matrix(cost_matrix_graph))
             scored_pairs[scored_pairs < threshold] = 0
             scored_pairs = 1 - scored_pairs
             
