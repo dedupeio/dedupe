@@ -12,7 +12,6 @@ import numpy
 
 import lr
 from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
-from scipy.sparse import coo_matrix,dok_matrix
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
