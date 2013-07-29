@@ -9,7 +9,6 @@ import hcluster
 import networkx
 from networkx.algorithms.components.connected import connected_components
 from networkx import adjacency_matrix
-from scipy.sparse import coo_matrix,dok_matrix
 from hungarian import _Hungarian
 
 
