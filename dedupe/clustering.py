@@ -111,14 +111,13 @@ def clusterConstrained(dupes,threshold=.6):
             pairs = (x[0:2] for x in dupe_graph.edges_iter(sub_graph, data=True))
             scores = (x[2]['weight'] for x in dupe_graph.edges_iter(sub_graph, data=True))
             scores = list(scores)
-            
             id_list = numpy.asarray(list(pairs))
             row = list(set(id_list[:,0]))
             row_list = [row.index(a) for a in id_list[:,0]]
             col = list(set(id_list[:,1]))
             col_list = [col.index(a) for a in id_list[:,1]]
             
-            scored_pairs = numpy.asarray(dok_matrix(coo_matrix((scores,(row_list,col_list)))).todense())
+            scored_pairs = numpy.asarray(coo_matrix((scores,(row_list,col_list))).todense())
             scored_pairs[scored_pairs < threshold] = 0
             scored_pairs = 1 - scored_pairs
             
