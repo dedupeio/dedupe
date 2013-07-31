@@ -57,7 +57,7 @@ def cluster(dupes, threshold=.5):
 
     threshold = 1 - threshold
 
-    score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
+    score_dtype = [('pairs', 'S10', 2), ('score', 'f4', 1)]
 
     dupe_graph = networkx.Graph()
     dupe_graph.add_weighted_edges_from((x[0], x[1], y) for (x, y) in dupes)

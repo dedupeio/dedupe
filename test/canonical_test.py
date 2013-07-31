@@ -29,6 +29,7 @@ def randomTrainingPairs(data_d,
                         duplicates_s,
                         n_training_dupes,
                         n_training_distinct,
+                        id_type,
                         ):
 
     if n_training_dupes < len(duplicates_s):
@@ -36,7 +37,7 @@ def randomTrainingPairs(data_d,
     else:
         duplicates = duplicates_s
 
-    duplicates = [(data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
+    duplicates = [(data_d[id_type(tuple(pair)[0])], data_d[id_type(tuple(pair)[1])])
                   for pair in duplicates]
 
     all_pairs = list(combinations(data_d, 2))
@@ -59,18 +60,19 @@ def canonicalImport(filename):
 
     with open(filename) as f:
         reader = csv.DictReader(f)
+        id_type = int  # Set this according to the type of the Id
         for (i, row) in enumerate(reader):
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
             data_d[i] = dedupe.core.frozendict(clean_row)
-            clusters.setdefault(row['unique_id'], []).append(i)
+            clusters.setdefault(row['unique_id'], []).append(str(i))
 
     for (unique_id, cluster) in clusters.iteritems():
         if len(cluster) > 1:
             for pair in combinations(cluster, 2):
                 duplicates.add(frozenset(pair))
 
-    return (data_d, reader.fieldnames, duplicates)
+    return (data_d, reader.fieldnames, duplicates, id_type)
 
 
 def evaluateDuplicates(found_dupes, true_dupes):
@@ -103,7 +105,7 @@ num_training_dupes = 400
 num_training_distinct = 2000
 num_iterations = 10
 
-(data_d, header, duplicates_s) = canonicalImport(raw_data)
+(data_d, header, duplicates_s, id_type) = canonicalImport(raw_data)
 
 t0 = time.time()
 
@@ -127,7 +129,8 @@ else:
     deduper.training_pairs = randomTrainingPairs(data_d,
                                                  duplicates_s,
                                                  num_training_dupes,
-                                                 num_training_distinct)
+                                                 num_training_distinct,
+                                                 id_type)
     
     deduper.data_sample = dedupe.dataSample(data_d, 1000000)
 

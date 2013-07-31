@@ -143,7 +143,7 @@ def scorePairs(field_distances, data_model):
 
 def scoreDuplicates(ids, records, data_model, threshold=None):
 
-    score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
+    score_dtype = [('pairs', 'S10', 2), ('score', 'f4', 1)]
     scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
     complete = False
