@@ -122,7 +122,6 @@ def clusterConstrained(dupes,threshold=.6):
             cluster = [set([row_order[l[0]], col_order[l[1]]]) for l in clustering if len(l) > 1]
             clusters = clusters + cluster
         else:
-            #print list(sub_graph.edges()[0])
             clusters.append(set(sub_graph.edges()[0]))
 
     return clusters
