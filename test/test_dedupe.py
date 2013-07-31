@@ -1,7 +1,56 @@
 import dedupe
 import unittest
 import numpy
+import random
+import itertools
+import warnings
 
+class CoreTest(unittest.TestCase):
+  def setUp(self) :
+    random.seed(123)
+
+  def test_random_pair(self) :
+    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+    assert dedupe.core.randomPairs(10, 10).any()
+    assert dedupe.core.randomPairs(10*1000000000, 10).any()
+    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
+                             numpy.array([[ 1,  8],
+                                          [ 5,  7],
+                                          [ 1,  2],
+                                          [ 3,  7],
+                                          [ 2,  9]]))
+
+
+class ConvenienceTest(unittest.TestCase):
+  def setUp(self):
+    self.data_d = {  100 : {"name": "Bob", "age": "50"},
+                     105 : {"name": "Charlie", "age": "75"},
+                     110 : {"name": "Meredith", "age": "40"},
+                     115 : {"name": "Sue", "age": "10"}, 
+                     120 : {"name": "Jimmy", "age": "20"},
+                     125 : {"name": "Jimbo", "age": "21"},
+                     130 : {"name": "Willy", "age": "35"},
+                     135 : {"name": "William", "age": "35"},
+                     140 : {"name": "Martha", "age": "19"},
+                     145 : {"name": "Kyle", "age": "27"},
+                  }
+    random.seed(123)
+
+  def test_data_sample(self):
+    assert dedupe.convenience.dataSample(self.data_d,5) == \
+            (({'age': '27', 'name': 'Kyle'}, {'age': '50', 'name': 'Bob'}),
+            ({'age': '27', 'name': 'Kyle'}, {'age': '35', 'name': 'William'}),
+            ({'age': '10', 'name': 'Sue'}, {'age': '35', 'name': 'William'}),
+            ({'age': '27', 'name': 'Kyle'}, {'age': '20', 'name': 'Jimmy'}),
+            ({'age': '75', 'name': 'Charlie'}, {'age': '21', 'name': 'Jimbo'}))
+
+    with warnings.catch_warnings(record=True) as w:
+      warnings.simplefilter("always")
+      dedupe.convenience.dataSample(self.data_d,10000)
+      assert len(w) == 1
+      assert str(w[-1].message) == "Pairs generated are less than Sample Size"
+
+ 
 class DedupeClassTest(unittest.TestCase):
   def test_initialize(self) :
     fields =  { 'name' : {'type': 'String'}, 
@@ -94,8 +143,6 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
-
-
  
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
@@ -110,11 +157,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
         
+
 if __name__ == "__main__":
     unittest.main()
 
-class CoreTest(unittest.TestCase):
-  def random_pair_test(self) :
-    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-    assert dedupe.core.randomPairs(10, 10).any()
-    assert dedupe.core.randomPairs(10*1000000000, 10).any()

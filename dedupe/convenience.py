@@ -27,11 +27,11 @@ def dataSample(data, sample_size, constrained_matching=False):
 
         random_pairs = dedupe.core.randomPairsMatch(len(data_list_A),len(data_list_B), sample_size)
 
-        return tuple((data_list_A[int(k1)], data_list_B[int(k2)]) for k1, k2 in random_pairs)
+        return tuple((data_list_A[k1], data_list_B[k2]) for k1, k2 in random_pairs)
     else:
         random_pairs = dedupe.core.randomPairs(len(data_list), sample_size)
 
-        return tuple((data_list[int(k1)], data_list[int(k2)]) for k1, k2 in random_pairs)
+        return tuple((data_list[k1], data_list[k2]) for k1, k2 in random_pairs)
 
 
 def blockData(data_d, blocker, constrained_matching=False):

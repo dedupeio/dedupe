@@ -97,6 +97,9 @@ python examples/mysql_example/mysql_example.py
 We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
 [run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
+## Documentation
+[The documentation for the dedupe library is on our wiki](https://github.com/open-city/dedupe/wiki/API-documentation).
+
 ## Testing
 
 [<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)
