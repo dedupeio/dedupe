@@ -16,18 +16,12 @@ cdef double NAN = <double> np.nan
 # "The field matching problem: Algorithms and applications" 
 # http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
 
-cpdef float affineGapDistance(u_string1, u_string2,
+cpdef float affineGapDistance(unicode string1, unicode string2,
                               float matchWeight = 1,
                               float mismatchWeight = 11,
                               float gapWeight = 10,
                               float spaceWeight = 7,
                               float abbreviation_scale = .125):
-
-  #py_byte_string_1 = u_string1.encode('UTF-8')
-  cdef unicode string1 = unicode(u_string1)
-
-  #py_byte_string_2 = u_string2.encode('UTF-8')
-  cdef unicode string2 = unicode(u_string2)
 
   cdef int length1 = len(string1)
   cdef int length2 = len(string2)
@@ -127,7 +121,7 @@ cpdef float affineGapDistance(u_string1, u_string2,
 
   return distance
 
-cpdef float normalizedAffineGapDistance(string1, string2,
+cpdef float normalizedAffineGapDistance(unicode string1, unicode string2,
                                         float matchWeight = 1,
                                         float mismatchWeight = 11,
                                         float gapWeight = 10,
@@ -140,7 +134,7 @@ cpdef float normalizedAffineGapDistance(string1, string2,
     if length1 == 0 or length2 == 0 :
         return NAN
 
-    cdef float normalizer = len(string1) + len(string2)
+    cdef float normalizer = length1 + length2
 
     cdef float distance = affineGapDistance(string1, string2,
                                             matchWeight,
