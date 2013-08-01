@@ -98,8 +98,8 @@ class AffineGapTest(unittest.TestCase):
     assert self.affineGapDistance('aaa', 'aa', -5, 5, 5, 1, 0.5) == -7
     assert self.affineGapDistance('aaa', 'a', -5, 5, 5, 1, 0.5) == -1.5
     assert numpy.isnan(self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5))
-    assert self.affineGapDistance('aaa', 'abba', -5, 5, 5, 1, 0.5) == 1
-    assert self.affineGapDistance(u'áaa', u'abba', -5, 5, 5, 1, 0.5) == 1
+    assert self.affineGapDistance('baa', 'abba', -5, 5, 5, 1, 0.5) == 1
+    assert self.affineGapDistance(u'áaa', u'abba', -5, 5, 5, 1, 0.5) == 3
 
   def test_normalized_affine_gap_correctness(self):
     assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))

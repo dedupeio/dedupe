@@ -1,11 +1,11 @@
 #!python
-#cython: boundscheck=False, wraparound=False
-# cython: c_string_type=unicode, c_string_encoding=utf8
+# cython: boundscheck=False, wraparound=False
 
 from libc cimport limits
 from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as np
+
 
 cdef double NAN = <double> np.nan
 
@@ -16,12 +16,18 @@ cdef double NAN = <double> np.nan
 # "The field matching problem: Algorithms and applications" 
 # http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
 
-cpdef float affineGapDistance(char *string1, char *string2,
+cpdef float affineGapDistance(u_string1, u_string2,
                               float matchWeight = 1,
                               float mismatchWeight = 11,
                               float gapWeight = 10,
                               float spaceWeight = 7,
                               float abbreviation_scale = .125):
+
+  #py_byte_string_1 = u_string1.encode('UTF-8')
+  cdef unicode string1 = unicode(u_string1)
+
+  #py_byte_string_2 = u_string2.encode('UTF-8')
+  cdef unicode string2 = unicode(u_string2)
 
   cdef int length1 = len(string1)
   cdef int length2 = len(string2)
@@ -121,7 +127,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
 
   return distance
 
-cpdef float normalizedAffineGapDistance(char *string1, char *string2,
+cpdef float normalizedAffineGapDistance(string1, string2,
                                         float matchWeight = 1,
                                         float mismatchWeight = 11,
                                         float gapWeight = 10,
