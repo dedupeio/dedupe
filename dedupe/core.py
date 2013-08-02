@@ -50,6 +50,21 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
 
     return numpy.column_stack((x, y)).astype(int)
 
+def randomPairsMatch(n_records_A, n_records_B, sample_size):
+    """
+    Return random combinations of indices for record list A and B
+    """
+
+    A_samples = numpy.random.randint(n_records_A, size=sample_size)
+    B_samples = numpy.random.randint(n_records_B, size=sample_size)
+    pairs = zip(A_samples,B_samples)
+    set_pairs = set(pairs)
+
+    if len(set_pairs) < sample_size:
+        return set.union(set_pairs,randomPairsMatch(n_records_A,n_records_B,
+                                                    (sample_size-len(set_pairs))))
+    else:
+        return set_pairs
 
 
 def trainModel(training_data, data_model, alpha=.001):
@@ -172,13 +187,23 @@ def scoreDuplicates(ids, records, data_model, threshold=None):
 
     return scored_pairs
 
-def blockedPairs(blocks) :
+
+def blockedPairs(blocks,constrained_matching=False, data={}) :
     for block in blocks :
 
         block_pairs = itertools.combinations(block, 2)
 
-        for pair in block_pairs :
-            yield pair
+        if constrained_matching:
+            for pair in block_pairs :
+                if isinstance(pair[0],frozendict):
+                    if (pair[0]['dataset'] != pair[1]['dataset']):
+                        yield pair
+                else:
+                    if (data[pair[0]]['dataset'] != data[pair[1]]['dataset']):
+                        yield pair
+        else:
+            for pair in block_pairs :
+                yield pair
 
 def split(iterable):
     it = iter(iterable)
@@ -191,7 +216,6 @@ def split(iterable):
             yield qi.popleft()
     for qi in q:
         yield proj(qi)
-
 
 
 class frozendict(dict):

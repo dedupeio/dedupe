@@ -8,6 +8,10 @@ import fastcluster
 import hcluster
 import networkx
 from networkx.algorithms.components.connected import connected_components
+from networkx.algorithms.bipartite.basic import biadjacency_matrix
+from networkx.algorithms import bipartite
+from networkx import connected_component_subgraphs
+from hungarian import _Hungarian
 
 
 def condensedDistance(dupes):
@@ -92,5 +96,32 @@ def cluster(dupes, threshold=.5):
             cluster_id += 1
 
     clusters = [set(l) for l in clustering.values() if len(l) > 1]
+
+    return clusters
+
+
+def clusterConstrained(dupes,threshold=.6):
+
+    dupe_graph = networkx.Graph()
+    dupe_graph.add_weighted_edges_from(((x[0], x[1], y) for (x, y) in dupes), bipartite=1)
+    
+    dupe_sub_graphs = connected_component_subgraphs(dupe_graph)
+    clusters = []
+    for sub_graph in dupe_sub_graphs:
+        if len(sub_graph) > 2:
+            row_order, col_order = bipartite.sets(sub_graph)
+            row_order, col_order = list(row_order), list(col_order)
+            scored_pairs = numpy.asarray(biadjacency_matrix(sub_graph, row_order, col_order))
+
+            scored_pairs[scored_pairs < threshold] = 0
+            scored_pairs = 1 - scored_pairs
+            
+            m = _Hungarian()
+            clustering = m.compute(scored_pairs)
+
+            cluster = [set([row_order[l[0]], col_order[l[1]]]) for l in clustering if len(l) > 1]
+            clusters = clusters + cluster
+        else:
+            clusters.append(set(sub_graph.edges()[0]))
 
     return clusters
