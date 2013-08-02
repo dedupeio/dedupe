@@ -133,7 +133,9 @@ class ClusteringTest(unittest.TestCase):
     assert hierarchical(self.dupes, 1) == []
     assert hierarchical(self.dupes, 0.5) == [set(['1', '2', '3']), set(['4','5'])]
     assert hierarchical(self.dupes, 0) == [set(['1', '2', '3', '4', '5'])]
+    assert hierarchical(self.str_dupes, 1) == []
     assert hierarchical(self.str_dupes,0.5) == [set(['1', '2', '3']), set(['4','5'])]
+    assert hierarchical(self.str_dupes,0) == [set(['1', '2', '3', '4', '5'])]
 
 class BlockingTest(unittest.TestCase):
   def setUp(self):
