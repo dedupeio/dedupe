@@ -1,6 +1,5 @@
 #!python
 #cython: boundscheck=False, wraparound=False
-# cython: c_string_type=unicode, c_string_encoding=utf8
 
 from libc cimport limits
 from libc.stdlib cimport malloc, free
