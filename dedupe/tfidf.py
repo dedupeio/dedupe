@@ -14,14 +14,18 @@ class TfidfPredicate(float):
     def __init__(self, threshold):
         self.__name__ = 'TF-IDF:' + str(threshold)
 
-def invertIndex(data, tfidf_fields, df_index=None):
+def invertIndex(data, tfidf_fields, constrained_matching=False, df_index=None):
 
     inverted_index = defaultdict(lambda : defaultdict(list))
     token_vector = defaultdict(dict)
     corpus_ids = set([])
 
     for (record_id, record) in data:
-        corpus_ids.add(record_id)  # candidate for removal
+        if constrained_matching:
+            if record['dataset'] == 0:
+                corpus_ids.add(record_id)  # candidate for removal
+        else:
+            corpus_ids.add(record_id)  # candidate for removal
         for field in tfidf_fields:
             tokens = words.findall(record[field].lower())
             tokens = [(token, tokens.count(token))
@@ -82,10 +86,12 @@ def invertIndex(data, tfidf_fields, df_index=None):
     return (inverted_index, token_vector, corpus_ids)
 
 def createCanopies(field,
+                   data,
                    threshold,
                    corpus_ids,
                    token_vector,
-                   inverted_index):
+                   inverted_index,
+                   constrained_matching=False):
     """
     A function that returns a field value of a record with a
     particular doc_id, doc_id is the only argument that must be
@@ -96,6 +102,7 @@ def createCanopies(field,
     seen_set = set([])
     corpus_ids = corpus_ids.copy()
     field_inverted_index = inverted_index[field]
+    data_d = dict(data)
 
     token_vectors = token_vector[field]
     while corpus_ids:
@@ -115,11 +122,16 @@ def createCanopies(field,
                             in center_vector.keys()
                             if field_inverted_index[token]['idf'] > 0)
 
-        candidate_set = set.union(*(field_inverted_index[token]['occurrences']
-                                    for token in center_tokens))
+        if constrained_matching:
+            candidate_set = set((doc_id for token in center_tokens 
+                                        for doc_id in field_inverted_index[token]['occurrences']
+                                        if doc_id['dataset'] == 1))
+        else:
+            candidate_set = set.union(*(field_inverted_index[token]['occurrences']
+                                        for token in center_tokens))
+
 
         candidate_set = candidate_set - seen_set
-
 
         token_idfs = dict([(token, field_inverted_index[token]['idf']**2)
                            for token in center_tokens])
@@ -139,6 +151,7 @@ def createCanopies(field,
             if cosine_similarity > center_threshold :
                 canopies[doc_id] = center_id
                 seen_set.add(doc_id)
-                corpus_ids.remove(doc_id)
+                if not constrained_matching:
+                    corpus_ids.remove(doc_id)
 
     return canopies
