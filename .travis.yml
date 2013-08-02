@@ -5,6 +5,11 @@ branches:
 language: python
 notifications:
   email: false
+    on_success: change
+    on_failure: always
+  irc : "chat.freenode.net#dedupe"
+    
+  
 python:
   - "2.7"
   - "2.6"
