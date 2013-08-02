@@ -4,7 +4,7 @@ branches:
 
 language: python
 notifications:
-  email: false
+  email: 
     on_success: change
     on_failure: always
   irc : "chat.freenode.net#dedupe"
