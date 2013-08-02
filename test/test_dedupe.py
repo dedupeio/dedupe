@@ -115,12 +115,25 @@ class ClusteringTest(unittest.TestCase):
                   ((3,4), .3),
                   ((3,5), .5),
                   ((4,5), .72))
+    #Dupes with Ids as String
+    self.str_dupes = ((('1', '2'), .86),
+                      (('1', '3'), .72),
+                      (('1', '4'), .2),
+                      (('1', '5'), .6),
+                      (('2', '3'), .86),
+                      (('2', '4'), .2),
+                      (('2', '5'), .72),
+                      (('3', '4'), .3),
+                      (('3', '5'), .5),
+                      (('4', '5'), .72))
+
             
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
     assert hierarchical(self.dupes, 1) == []
     assert hierarchical(self.dupes, 0.5) == [set(['1', '2', '3']), set(['4','5'])]
     assert hierarchical(self.dupes, 0) == [set(['1', '2', '3', '4', '5'])]
+    assert hierarchical(self.str_dupes,0.5) == [set(['1', '2', '3']), set(['4','5'])]
 
 class BlockingTest(unittest.TestCase):
   def setUp(self):
