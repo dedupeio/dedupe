@@ -48,7 +48,8 @@ class ConvenienceTest(unittest.TestCase):
       warnings.simplefilter("always")
       dedupe.convenience.dataSample(self.data_d,10000)
       assert len(w) == 1
-      assert str(w[-1].message) == "Pairs generated are less than Sample Size"
+      assert str(w[-1].message) == "Requested sample of size 10000, only returning 45 possible pairs"
+
 
  
 class DedupeClassTest(unittest.TestCase):

@@ -7,6 +7,7 @@ import json
 import itertools
 import logging
 from itertools import count
+import warnings
 
 import numpy
 
@@ -24,6 +25,8 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
     n = n_records * (n_records - 1) / 2
 
     if sample_size >= n:
+        warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
+
         random_indices = numpy.arange(n)
         numpy.random.shuffle(random_indices)
     else:
