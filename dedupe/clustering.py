@@ -68,7 +68,7 @@ def cluster(dupes, threshold=.5):
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 2:
-            pair_gen = ((x[0:2], x[2]['weight']) 
+            pair_gen = ((sorted(x[0:2]), x[2]['weight'])
                         for x in dupe_graph.edges_iter(sub_graph, data=True))
 
             pairs = numpy.fromiter(pair_gen, dtype=score_dtype)
