@@ -9,7 +9,6 @@ import core
 import numpy
 import logging
 import random
-import sys
 
 def findUncertainPairs(field_distances, data_model, bias=0.5):
     """
@@ -144,16 +143,14 @@ def consoleLabel(uncertain_pairs, fields):
 
         for pair in record_pair:
             for field in fields:
-                line = "%s : %s\n" % (field, pair[field])
-                sys.stderr.write(line)
-            sys.stderr.write('\n')
+                print field, ': ', pair[field]
+            print ''
 
-        sys.stderr.write('Do these records refer to the same thing?\n')
+        print 'Do these records refer to the same thing?'
 
         valid_response = False
         while not valid_response:
-            sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
-            label = sys.stdin.readline().strip()
+            label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
             if label in ['y', 'n', 'u', 'f']:
                 valid_response = True
 
@@ -162,11 +159,11 @@ def consoleLabel(uncertain_pairs, fields):
         elif label == 'n':
             nonduplicates.append(record_pair)
         elif label == 'f':
-            sys.stderr.write('Finished labeling\n')
+            print 'Finished labeling'
             finished = True
             break
         elif label != 'u':
-            sys.stderr.write('Nonvalid response\n')
+            print 'Nonvalid response'
             raise
 
     return ({0: nonduplicates, 1: duplicates}, finished)
