@@ -412,13 +412,12 @@ class Dedupe:
                                           threshold)
         
         if constrained_matching:
-          self.dupes = 1 - self.dupes
-          m = Munkres()
-          clusters = m.compute(self.dupes)
+            clusters = clustering.clusterConstrained(self.dupes, cluster_threshold)
+          
 
         else:
-
           clusters = clustering.cluster(self.dupes, cluster_threshold)
+
 
         return clusters
 
