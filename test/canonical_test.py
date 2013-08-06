@@ -59,7 +59,6 @@ def canonicalImport(filename):
 
     with open(filename) as f:
         reader = csv.DictReader(f)
-        id_type = int  # Set this according to the type of the Id
         for (i, row) in enumerate(reader):
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
