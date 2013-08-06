@@ -403,23 +403,21 @@ class Dedupe:
         peek = ids.next()
         id_type = type(peek[0])
         ids = itertools.chain([peek], ids)
-        
 
+
+        self.dupes = core.scoreDuplicates(candidate_keys,
+                                          candidate_records,
+                                          id_type,
+                                          self.data_model,
+                                          threshold)
+        
         if constrained_matching:
-          self.dupes = core.scoreDuplicatesConstrained(candidate_keys,
-                                                       candidate_records,
-                                                       self.data_model,
-                                                       threshold)
           self.dupes = 1 - self.dupes
           m = Munkres()
           clusters = m.compute(self.dupes)
 
         else:
-          self.dupes = core.scoreDuplicates(candidate_keys,
 
-        if constrained_matching:
-          clusters = clustering.clusterConstrained(self.dupes, cluster_threshold)
-        else:
           clusters = clustering.cluster(self.dupes, cluster_threshold)
 
         return clusters
