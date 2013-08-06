@@ -17,6 +17,7 @@ class TfidfPredicate(float):
 def invertIndex(data, tfidf_fields, constrained_matching=False, df_index=None):
 
     inverted_index = defaultdict(lambda : defaultdict(list))
+    constrained_inverted_index = defaultdict(lambda : defaultdict(list))
     token_vector = defaultdict(dict)
     corpus_ids = set([])
 
@@ -33,6 +34,9 @@ def invertIndex(data, tfidf_fields, constrained_matching=False, df_index=None):
                       if token]
             for (token, _) in tokens:
                 inverted_index[field][token].append(record_id)
+            if constrained_matching :
+                for (token, _) in tokens:
+                    constrained_inverted_index[field][token].append(record_id)
 
             token_vector[field][record_id] = tokens
 
@@ -70,9 +74,12 @@ def invertIndex(data, tfidf_fields, constrained_matching=False, df_index=None):
                                      {'field' : field,
                                       'token' : token,
                                       'occurences' : n_occurrences})
-
-                inverted_index[field][token] = {'idf': idf, 
-                                                'occurrences': set(occurrences)}
+                if constrained_matching :
+                    inverted_index[field][token] = {'idf': idf, 
+                                                    'occurrences': set(constrained_inverted_index[field][token])}
+                else :
+                    inverted_index[field][token] = {'idf': idf, 
+                                                    'occurrences': set(occurences)}
 
     for field in token_vector:
         field_inverted_index = inverted_index[field]
@@ -124,8 +131,8 @@ def createCanopies(field,
 
         if constrained_matching:
             candidate_set = set((doc_id for token in center_tokens 
-                                        for doc_id in field_inverted_index[token]['occurrences']
-                                        if doc_id['dataset'] == 1))
+                                        for doc_id in field_inverted_index[token]['occurrences']))
+
         else:
             candidate_set = set.union(*(field_inverted_index[token]['occurrences']
                                         for token in center_tokens))

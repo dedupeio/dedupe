@@ -101,7 +101,7 @@ def printPairs(pairs):
             print data_d[instance].values()
 
 
-settings_file = 'test/datasets/canonical_data_matching_learned_settings.json'
+settings_file = 'canonical_data_matching_learned_settings'
 raw_data = ['test/datasets/restaurant-1.csv','test/datasets/restaurant-2.csv']
 num_training_dupes = 400
 num_training_distinct = 2000
