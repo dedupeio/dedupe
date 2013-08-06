@@ -27,7 +27,7 @@ class CoreTest(unittest.TestCase):
     self.data_model['fields']['name'] = v
     self.data_model['bias'] = 4.76
 
-    score_dtype = [('pairs', 'S10', 2), ('score', 'f4', 1)]
+    score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
     self.desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
                                              (['4', '5'], 0.78), (['6', '7'], 0.72), \
                                              (['8', '9'], 0.84)], dtype=score_dtype)
@@ -47,6 +47,7 @@ class CoreTest(unittest.TestCase):
   def test_score_duplicates(self):
     actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.ids_str,
                                                           self.records,
+                                                          'S1',
                                                           self.data_model)
 
     scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
@@ -163,12 +164,12 @@ class ClusteringTest(unittest.TestCase):
             
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 1) == []
-    assert hierarchical(self.dupes, 0.5) == [set(['1', '2', '3']), set(['4','5'])]
-    assert hierarchical(self.dupes, 0) == [set(['1', '2', '3', '4', '5'])]
-    assert hierarchical(self.str_dupes, 1) == []
-    assert hierarchical(self.str_dupes,0.5) == [set(['1', '2', '3']), set(['4','5'])]
-    assert hierarchical(self.str_dupes,0) == [set(['1', '2', '3', '4', '5'])]
+    assert hierarchical(self.dupes, 'i4', 1) == []
+    assert hierarchical(self.dupes, 'i4', 0.5) == [set([1, 2, 3]), set([4,5])]
+    assert hierarchical(self.dupes, 'i4', 0) == [set([1, 2, 3, 4, 5])]
+    assert hierarchical(self.str_dupes, 'S1', 1) == []
+    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), set(['4','5'])]
+    assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
 
 class BlockingTest(unittest.TestCase):
   def setUp(self):
