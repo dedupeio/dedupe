@@ -43,7 +43,7 @@ def condensedDistance(dupes):
     return (i_to_id, condensed_distances)
 
 
-def cluster(dupes, threshold=.5):
+def cluster(dupes, id_type, threshold=.5):
     '''
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
@@ -57,7 +57,7 @@ def cluster(dupes, threshold=.5):
 
     threshold = 1 - threshold
 
-    score_dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)]
+    score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
     dupe_graph = networkx.Graph()
     dupe_graph.add_weighted_edges_from((x[0], x[1], y) for (x, y) in dupes)
@@ -68,7 +68,7 @@ def cluster(dupes, threshold=.5):
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 2:
-            pair_gen = ((x[0:2], x[2]['weight']) 
+            pair_gen = ((sorted(x[0:2]), x[2]['weight'])
                         for x in dupe_graph.edges_iter(sub_graph, data=True))
 
             pairs = numpy.fromiter(pair_gen, dtype=score_dtype)
