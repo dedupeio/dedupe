@@ -401,7 +401,9 @@ class Dedupe:
         candidate_records = core.blockedPairs(blocked_records)
 
         candidate_keys, ids = itertools.tee(candidate_keys)
-        id_type = type(list(ids)[0][0])
+        peek = ids.next()
+        id_type = type(peek[0])
+        ids = itertools.chain([peek], ids)
         
         self.dupes = core.scoreDuplicates(candidate_keys,
                                           candidate_records,
