@@ -4,6 +4,7 @@ from collections import defaultdict
 import math
 import logging
 import re
+import dedupe.mekano as mk
 
 words = re.compile("[\w']+")
 
@@ -14,76 +15,115 @@ class TfidfPredicate(float):
     def __init__(self, threshold):
         self.__name__ = 'TF-IDF:' + str(threshold)
 
+    def __repr__(self) :
+        return self.__name__
+
+
+def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
+
+
+    for field in token_vectors :
+        singletons = set([])
+        stop_words = set([])
+        for atom in inverted_index[field].atoms() :
+            df = inverted_index[field].getDF(atom)
+            if df < 2 :
+                singletons.add(atom)
+            elif df > stop_word_threshold :
+                stop_words.add(atom)
+                
+        
+
+        wv = mk.WeightVectors(inverted_index[field])
+        ii = defaultdict(set)
+        for record_id, vector in token_vectors[field].iteritems() :
+            w_vector = wv[vector]
+            w_vector.name = vector.name
+            for atom in w_vector :
+                if atom in singletons or atom in stop_words :
+                    del w_vector[atom]
+            token_vectors[field][record_id] = w_vector
+            for token in w_vector :
+                ii[token].add(w_vector)
+            
+            
+
+        inverted_index[field] = ii
+
+    return token_vectors, inverted_index
+
 def invertIndex(data, tfidf_fields, df_index=None):
 
-    inverted_index = defaultdict(lambda : defaultdict(list))
-    token_vector = defaultdict(dict)
-    corpus_ids = set([])
+    tokenfactory = mk.AtomFactory("tokens")  
+    inverted_index = {}
 
-    for (record_id, record) in data:
-        corpus_ids.add(record_id)  # candidate for removal
+    for field in tfidf_fields :
+        inverted_index[field] = mk.InvertedIndex()
+
+    token_vector = defaultdict(dict)
+
+    for record_id, record in data:
         for field in tfidf_fields:
             tokens = words.findall(record[field].lower())
-            tokens = [(token, tokens.count(token))
-                      for token in set(tokens)
-                      if token]
-            for (token, _) in tokens:
-                inverted_index[field][token].append(record_id)
+            av = mk.AtomVector(name=record_id)
+            for token in tokens :
+                av[tokenfactory[token]] += 1
+            inverted_index[field].add(av)
 
-            token_vector[field][record_id] = tokens
+            token_vector[field][record_id] = av
 
-    # ignore stop words in TFIDF canopy creation
-
-    num_docs = len(token_vector.values()[0])
+    num_docs = inverted_index.values()[0].getN()
 
     stop_word_threshold = max(num_docs * 0.025, 500)
     logging.info('Stop word threshold: %(stop_thresh)d',
                  {'stop_thresh' :stop_word_threshold})
 
-    num_docs_log = math.log(num_docs + 0.5)
-    singleton_idf = num_docs_log - math.log(1.0 + 0.5)
 
-    if df_index:
-        for field in inverted_index:
-            for (token, occurrences) in \
-                inverted_index[field].iteritems():
-                inverted_index[field][token] = {'idf': df_index[token],
-                                                'occurrences': set(occurrences)}
-    else:
+    token_vectors, inverted_index = weightVectors(inverted_index, 
+                                                  token_vector,
+                                                  stop_word_threshold)
+    
 
-        for field in inverted_index:
-            for (token, occurrences) in \
-                inverted_index[field].iteritems():
-                n_occurrences = len(occurrences)
-                if n_occurrences < 2:
-                    idf = singleton_idf
-                    occurrences = []
-                else:
-                    idf = num_docs_log - math.log(n_occurrences + 0.5)
-                    if n_occurrences > stop_word_threshold:
-                        occurrences = []
-                        logging.info('Stop word: %(field)s, %(token)s, %(occurences)d',
-                                     {'field' : field,
-                                      'token' : token,
-                                      'occurences' : n_occurrences})
+    return (inverted_index, token_vector)
 
-                inverted_index[field][token] = {'idf': idf, 
-                                                'occurrences': set(occurrences)}
+#@profile
+def makeCanopy(inverted_index, token_vector, threshold) :
+    canopies = defaultdict(lambda:None)
+    seen = set([])
+    corpus_ids = set(token_vector.keys())
 
-    for field in token_vector:
-        field_inverted_index = inverted_index[field]
-        for (record_id, tokens) in token_vector[field].iteritems():
-            norm = math.sqrt(sum((field_inverted_index[token]['idf'] * count)**2 
-                                  for (token, count) in tokens))
-            if norm > 0 :
-                token_vector[field][record_id] = (dict(tokens), norm)
-            else :
-                token_vector[field][record_id] = ({}, 0)
-    return (inverted_index, token_vector, corpus_ids)
+
+    while corpus_ids:
+        center_id = corpus_ids.pop()
+        canopies[center_id] = center_id
+        center_vector = token_vector[center_id]
+        
+        seen.add(center_vector)
+
+        if not center_vector :
+            continue
+     
+        candidates = set.union(*(inverted_index[token] 
+                                 for token in center_vector))
+
+        candidates = candidates - seen
+
+        for candidate_vector in candidates :
+
+            similarity = candidate_vector * center_vector         
+
+            if similarity > threshold :
+                candidate_id = candidate_vector.name
+                canopies[candidate_id] = center_id
+                seen.add(candidate_vector)
+                corpus_ids.remove(candidate_id)
+
+    return canopies
+
+    
 
 def createCanopies(field,
                    threshold,
-                   corpus_ids,
                    token_vector,
                    inverted_index):
     """
@@ -92,53 +132,7 @@ def createCanopies(field,
     accepted by select_function
     """
 
-    canopies = defaultdict(lambda : None)
-    seen_set = set([])
-    corpus_ids = corpus_ids.copy()
     field_inverted_index = inverted_index[field]
-
     token_vectors = token_vector[field]
-    while corpus_ids:
-        center_id = corpus_ids.pop()
-        canopies[center_id] = center_id
 
-        doc_id = center_id
-        (center_vector, center_norm) = token_vectors[center_id]
-
-        seen_set.add(center_id)
-
-        if not center_norm:
-            continue
-
-        # initialize the potential block with center
-        center_tokens = set(token for token
-                            in center_vector.keys()
-                            if field_inverted_index[token]['idf'] > 0)
-
-        candidate_set = set.union(*(field_inverted_index[token]['occurrences']
-                                    for token in center_tokens))
-
-        candidate_set = candidate_set - seen_set
-
-
-        token_idfs = dict([(token, field_inverted_index[token]['idf']**2)
-                           for token in center_tokens])
-        center_threshold = threshold * center_norm
-
-        for doc_id in candidate_set:
-            (candidate_vector, candidate_norm) = token_vectors[doc_id]
-
-            common_tokens = center_tokens.intersection(candidate_vector.keys())
-
-            cosine_similarity = sum((center_vector[token]
-                                     * candidate_vector[token]
-                                     * token_idfs[token])
-                                    for token in common_tokens)/candidate_norm
-            
-
-            if cosine_similarity > center_threshold :
-                canopies[doc_id] = center_id
-                seen_set.add(doc_id)
-                corpus_ids.remove(doc_id)
-
-    return canopies
+    return makeCanopy(field_inverted_index, token_vectors, threshold)
