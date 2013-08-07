@@ -63,8 +63,7 @@ class Blocker:
             tfidf_fields.add(field)
 
         vectors = tfidf.invertIndex(data, tfidf_fields, constrained_matching)
-        inverted_index, token_vector, corpus_ids = vectors
-
+        inverted_index, token_vector = vectors
 
         logging.info('creating TF/IDF canopies')
 
@@ -77,8 +76,8 @@ class Blocker:
                           'threshold': threshold, 
                           'field': field})
 
-            canopy = tfidf.createCanopies(field, data, threshold, corpus_ids,
-                                          token_vector, inverted_index, constrained_matching)
+            canopy = tfidf.createCanopies(field, threshold,
+                                          token_vector, inverted_index)
             self.canopies[threshold.__name__ + field] = canopy
 
 
@@ -266,19 +265,22 @@ class Coverage() :
 
         # uniquify records
         docs = list(set(itertools.chain(*record_pairs)))
+        id_records = list(itertools.izip(itertools.count(), docs))
+        record_ids = dict(itertools.izip(docs, itertools.count()))
 
-        self_identified = itertools.izip(docs, docs)
 
         blocker = Blocker()
         blocker.tfidf_predicates = tfidf_predicates
-        blocker.tfIdfBlocks(self_identified,constrained_matching)
+        blocker.tfIdfBlocks(id_records, constrained_matching)
 
         for (threshold, field) in blocker.tfidf_predicates:
             canopy = blocker.canopies[threshold.__name__ + field]
             for record_1, record_2 in record_pairs :
-                if canopy[record_1] == canopy[record_2]:
+                id_1 = record_ids[record_1]
+                id_2 = record_ids[record_2]
+                if canopy[id_1] == canopy[id_2]:
                     self.overlapping[(threshold, field)].add((record_1, record_2))
-                    self.blocks[(threshold, field)][canopy[record_1]].add((record_1, record_2))
+                    self.blocks[(threshold, field)][canopy[id_1]].add((record_1, record_2))
 
 
     def predicateCoverage(self,

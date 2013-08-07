@@ -220,35 +220,35 @@ def split(iterable):
     for qi in q:
         yield proj(qi)
 
+import collections
 
-class frozendict(dict):
-    '''
-    A data type for hashable dictionaries
-    From http://code.activestate.com/recipes/414283-frozen-dictionaries/
-    '''
+class frozendict(collections.Mapping):
+    """Don't forget the docstrings!!"""
 
-    def _blocked_attribute(obj):
-        raise AttributeError('A frozendict cannot be modified.')
+    def __init__(self, *args, **kwargs):
+        self._d = dict(*args, **kwargs)
 
-    _blocked_attribute = property(_blocked_attribute)
+    def __iter__(self):
+        return iter(self._d)
 
-    __delitem__ = __setitem__ = clear = _blocked_attribute
-    pop = popitem = setdefault = update = _blocked_attribute
+    def __len__(self):
+        return len(self._d)
 
-    def __new__(cls, *args):
-        new = dict.__new__(cls)
-        dict.__init__(new, *args)
-        return new
+    def __getitem__(self, key):
+        return self._d[key]
 
-    def __init__(self, *args):
-        pass
+    def __repr__(self) :
+        return '<frozendict %s>' % repr(self._d)
 
     def __hash__(self):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(tuple(sorted(self.items())))
+            h = self._cached_hash = hash(frozenset(self._d.iteritems()))
             return h
+
+
+
 
 ## {{{ http://code.activestate.com/recipes/576693/ (r9)
 # Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
