@@ -117,8 +117,8 @@ else:
                         'Has Missing' :True},}
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields)
-    deduper.constrained_matching = True
+    deduper = dedupe.Dedupe(fields,
+                            constrained_matching = True)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.

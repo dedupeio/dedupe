@@ -51,7 +51,7 @@ class Dedupe:
 
     # === `Dedupe.__init__` ===
 
-    def __init__(self, init=None):
+    def __init__(self, init=None, constrained_matching=False):
         """
         Load or initialize a data model.
 
@@ -128,7 +128,7 @@ class Dedupe:
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
-        self.constrained_matching = False
+        self.constrained_matching = constrained_matching
 
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
