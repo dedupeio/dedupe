@@ -191,7 +191,8 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
     return scored_pairs
 
 
-def blockedPairs(blocks,constrained_matching=False, data={}) :
+def blockedPairs(blocks, constrained_matching=False, data={}) :
+
     for block in blocks :
 
         block_pairs = itertools.combinations(block, 2)

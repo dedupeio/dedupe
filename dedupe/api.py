@@ -128,6 +128,7 @@ class Dedupe:
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
+        self.constrained_matching = False
 
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
@@ -285,7 +286,7 @@ class Dedupe:
 
         self._logLearnedWeights()
 
-    def blockingFunction(self, constrained_matching=False, ppc=1, uncovered_dupes=1):
+    def blockingFunction(self, ppc=1, uncovered_dupes=1):
         """
         Returns a function that takes in a record dictionary and
         returns a list of blocking keys for the record. We will
@@ -316,13 +317,13 @@ class Dedupe:
         """
 
         if not self.predicates:
-            self.predicates = self._learnBlocking(ppc, uncovered_dupes, constrained_matching)
+            self.predicates = self._learnBlocking(ppc, uncovered_dupes)
 
         blocker = blocking.Blocker(self.predicates)
 
         return blocker
 
-    def goodThreshold(self, blocks, constrained_matching=False, recall_weight=1.5):
+    def goodThreshold(self, blocks, recall_weight=1.5):
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -341,7 +342,7 @@ class Dedupe:
 
         blocked_records = (block.values() for block in blocks)
 
-        candidates = core.blockedPairs(blocked_records,constrained_matching)
+        candidates = core.blockedPairs(blocked_records, self.constrained_matching)
 
         field_distances = core.fieldDistances(candidates, self.data_model)
         probability = core.scorePairs(field_distances, self.data_model)
@@ -365,7 +366,7 @@ class Dedupe:
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, data, constrained_matching=False, threshold=.5):
+    def duplicateClusters(self, blocks, data, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -395,8 +396,8 @@ class Dedupe:
                                                    for block in blocks)
 
 
-        candidate_keys = core.blockedPairs(blocked_keys, constrained_matching, data)
-        candidate_records = core.blockedPairs(blocked_records, constrained_matching)
+        candidate_keys = core.blockedPairs(blocked_keys, self.constrained_matching, data)
+        candidate_records = core.blockedPairs(blocked_records, self.constrained_matching, data)
 
         candidate_keys, ids = itertools.tee(candidate_keys)
         peek = ids.next()
@@ -409,14 +410,14 @@ class Dedupe:
                                           self.data_model,
                                           threshold)
         
-        if constrained_matching:
+        if self.constrained_matching:
             clusters = clustering.clusterConstrained(self.dupes, cluster_threshold)
         else:
             clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters
 
-    def _learnBlocking(self, eta, epsilon, constrained_matching=False):
+    def _learnBlocking(self, eta, epsilon):
         """Learn a good blocking of the data"""
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
@@ -432,7 +433,7 @@ class Dedupe:
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
-                                                           constrained_matching,
+                                                           self.constrained_matching,
                                                            eta,
                                                            epsilon)
 
