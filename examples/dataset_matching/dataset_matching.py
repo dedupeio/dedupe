@@ -54,7 +54,13 @@ output_file = 'data_matching_output.csv'
 settings_file = 'data_matching_learned_settings'
 training_file = 'data_matching_training.json'
 
-
+def comparePrice(price_1, price_2) :
+    if price_1 == 0 :
+        return nan
+    elif price_1 == 0 :
+        return nan
+    else :
+        return abs(price_1 - price_2)
 
 def preProcess(column):
     """
@@ -83,8 +89,12 @@ def readData(filenames):
         with open(filename) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
-                clean_row.append(('dataset', fileno))
+                clean_row = dict([(k, preProcess(v)) for (k, v) in row.items()])
+                clean_row['dataset'] = fileno
+                try :
+                    clean_row['price'] = float(clean_row['price'][1:])
+                except ValueError :
+                    clean_row['price'] = 0
                 row_id = i
                 data_d[row_id] = dedupe.core.frozendict(clean_row)
                 i += 1
@@ -94,7 +104,6 @@ def readData(filenames):
 
 print 'importing data ...'
 data_d = readData(input_files)
-
 
 # ## Training
 
@@ -114,7 +123,10 @@ else:
     fields = {
         'title': {'type': 'String'},
         'description': {'type': 'String',
-                        'Has Missing' :True},}
+                        'Has Missing' :True},
+        'price': {'type' : 'Custom',
+                  'comparator' : comparePrice,
+                  'Has Missing' : True}}
 
     # Create a new deduper object and pass our data model to it.
     deduper = dedupe.Dedupe(fields,
@@ -168,7 +180,7 @@ blocked_data = dedupe.blockData(data_d, blocker)
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
+threshold = deduper.goodThreshold(blocked_data, recall_weight=3)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
