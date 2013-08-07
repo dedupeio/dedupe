@@ -4,7 +4,7 @@ from collections import defaultdict
 import math
 import logging
 import re
-import mekano as mk
+import dedupe.mekano as mk
 
 words = re.compile("[\w']+")
 
