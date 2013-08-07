@@ -390,7 +390,6 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        
         blocked_keys, blocked_records = core.split((block.keys(),
                                                     block.values())
                                                    for block in blocks)
@@ -404,7 +403,6 @@ class Dedupe:
         id_type = type(peek[0])
         ids = itertools.chain([peek], ids)
 
-
         self.dupes = core.scoreDuplicates(candidate_keys,
                                           candidate_records,
                                           id_type,
@@ -413,11 +411,8 @@ class Dedupe:
         
         if constrained_matching:
             clusters = clustering.clusterConstrained(self.dupes, cluster_threshold)
-          
-
         else:
-          clusters = clustering.cluster(self.dupes, cluster_threshold)
-
+            clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters
 
