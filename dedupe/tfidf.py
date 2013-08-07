@@ -54,8 +54,6 @@ def invertIndex(data, tfidf_fields, constrained_matching= False, df_index=None):
 
     tokenfactory = mk.AtomFactory("tokens")  
     inverted_index = {}
-    constrained_inverted_index = {}
-
 
     for field in tfidf_fields :
         inverted_index[field] = mk.InvertedIndex()
@@ -71,10 +69,10 @@ def invertIndex(data, tfidf_fields, constrained_matching= False, df_index=None):
                 av[tokenfactory[token]] += 1
             inverted_index[field].add(av)
             if constrained_matching :
-                if record['dataset'] == 1 :
-                    token_vector[field][record_id] = av
-                else :
+                if record['dataset'] == 0 :
                     center_tokens[field][record_id] = av
+                else :
+                    token_vector[field][record_id] = av
             else :
                 token_vector[field][record_id] = av
 
@@ -86,11 +84,13 @@ def invertIndex(data, tfidf_fields, constrained_matching= False, df_index=None):
 
     if constrained_matching :
         temp_token_vectors, _ = weightVectors(inverted_index, 
-                                         center_tokens,
-                                         stop_word_threshold)
+                                              center_tokens,
+                                              stop_word_threshold)
+
         _, inverted_index = weightVectors(inverted_index, 
                                           token_vector,
                                           stop_word_threshold)
+
         token_vectors = temp_token_vectors
 
 
@@ -125,12 +125,13 @@ def makeCanopy(inverted_index, token_vector, threshold) :
         candidates = candidates - seen
 
         for candidate_vector in candidates :
-            similarity = candidate_vector * center_vector         
+            similarity = candidate_vector * center_vector        
 
             if similarity > threshold :
                 candidate_id = candidate_vector.name
                 canopies[candidate_id] = center_id
                 seen.add(candidate_vector)
+                # something is wrong here
                 corpus_ids.remove(candidate_id)
 
     return canopies
