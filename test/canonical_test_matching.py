@@ -22,7 +22,6 @@ elif opts.verbose >= 2:
     log_level = logging.DEBUG
 logging.basicConfig(level=log_level)
 
-constrained_matching = True
 # create a random set of training pairs based on known duplicates
 
 def randomTrainingPairs(data_d,
@@ -122,7 +121,7 @@ else:
               'city' : {'type' : 'String'}
               }
 
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, constrained_matching=True)
     deduper.num_iterations = num_iterations
 
     print "Using a random sample of training pairs..."
@@ -133,7 +132,7 @@ else:
                                                  num_training_dupes,
                                                  num_training_distinct)
     
-    deduper.data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching)
+    deduper.data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching=True)
 
 
     deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
@@ -153,17 +152,16 @@ else:
 
 
 print 'blocking...'
-blocker = deduper.blockingFunction(constrained_matching, ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockData(data_d, blocker, constrained_matching))
+blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
+blocked_data = tuple(dedupe.blockData(data_d, blocker, constrained_matching=True))
 
-alpha = deduper.goodThreshold(blocked_data, constrained_matching)
+alpha = deduper.goodThreshold(blocked_data)
 
 
 # print candidates
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data,
                                             data_d,
-                                            constrained_matching,
                                             threshold=alpha)
 
 
