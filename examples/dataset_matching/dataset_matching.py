@@ -110,7 +110,6 @@ data_d = readData(input_files)
 if os.path.exists(settings_file):
     print 'reading from', settings_file
     deduper = dedupe.Dedupe(settings_file)
-    deduper.constrained_matching = True
 
 else:
     # To train dedupe, we feed it a random sample of records.

@@ -108,9 +108,11 @@ class Dedupe:
         if init.__class__ is dict and init:
             self.data_model = _initializeDataModel(init)
             self.predicates = None
+            self.constrained_matching = constrained_matching
         elif init.__class__ is str and init:
             (self.data_model,
-             self.predicates) = self._readSettings(init)
+             self.predicates,
+             self.constrained_matching) = self._readSettings(init)
         elif init:
             raise ValueError('Incorrect Input Type: must supply either a '
                              'field definition or a settings file.'
@@ -128,7 +130,6 @@ class Dedupe:
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
-        self.constrained_matching = constrained_matching
 
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
@@ -465,18 +466,20 @@ class Dedupe:
         with open(file_name, 'w') as f:
             pickle.dump(self.data_model, f)
             pickle.dump(self.predicates, f)
+            pickle.dump(self.constrained_matching, f)
 
     def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
             try:
                 data_model = pickle.load(f)
                 predicates = pickle.load(f)
+                constrained_matching = pickle.load(f)
             except KeyError :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
 
-        return data_model, predicates
+        return data_model, predicates, constrained_matching
 
 
     def writeTraining(self, file_name):
