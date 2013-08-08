@@ -169,7 +169,7 @@ deduper.writeSettings(settings_file)
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = dedupe.blockData(data_d, blocker)
+blocked_data = dedupe.blockData(data_d, blocker, constrained_matching=True)
 
 # ## Clustering
 
