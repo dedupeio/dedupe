@@ -49,9 +49,32 @@ def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
 
     return token_vectors, i_index
 
+def fieldToAtomVector(field, record_id, tokenfactory) :
+    tokens = words.findall(field.lower())
+    av = mk.AtomVector(name=record_id)
+    for token in tokens :
+        av[tokenfactory[token]] += 1
+    
+    return av
 
-def invertIndex(data, tfidf_fields, constrained_matching= False, df_index=None):
+def unconstrainedIndexing(data, tfidf_fields) :
+    tokenfactory = mk.AtomFactory("tokens")  
+    inverted_index = {}
 
+    for field in tfidf_fields :
+        inverted_index[field] = mk.InvertedIndex()
+
+    token_vector = defaultdict(dict)
+
+    for record_id, record in data:
+        for field in tfidf_fields:
+            av = fieldToAtomVector(record[field], record_id, tokenfactory)
+            inverted_index[field].add(av)
+            token_vector[field][record_id] = av
+
+    return inverted_index, token_vector
+
+def constrainedIndexing(data, tfidf_fields) :
     tokenfactory = mk.AtomFactory("tokens")  
     inverted_index = {}
 
@@ -63,18 +86,23 @@ def invertIndex(data, tfidf_fields, constrained_matching= False, df_index=None):
 
     for record_id, record in data:
         for field in tfidf_fields:
-            tokens = words.findall(record[field].lower())
-            av = mk.AtomVector(name=record_id)
-            for token in tokens :
-                av[tokenfactory[token]] += 1
+            av = fieldToAtomVector(record[field], record_id, tokenfactory)
             inverted_index[field].add(av)
-            if constrained_matching :
-                if record['dataset'] == 0 :
-                    center_tokens[field][record_id] = av
-                else :
-                    token_vector[field][record_id] = av
+            if record['dataset'] == 0 :
+                center_tokens[field][record_id] = av
             else :
                 token_vector[field][record_id] = av
+
+    return inverted_index, center_tokens, token_vector
+
+
+def invertIndex(data, tfidf_fields, constrained_matching= False):
+
+    if constrained_matching :
+        _results = constrainedIndexing(data, tfidf_fields)
+        inverted_index, center_tokens, token_vector = _results
+    else : 
+        inverted_index, token_vector = unconstrainedIndexing(data, tfidf_fields)
 
     num_docs = inverted_index.values()[0].getN()
 
