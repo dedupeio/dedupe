@@ -33,7 +33,7 @@ from dedupe.distance.jaccard import compareJaccard
 
 try:
     from collections import OrderedDict
-except ImportError :
+except ImportError:
     from core import OrderedDict
 
 
@@ -69,12 +69,12 @@ class Dedupe:
                       'Zip':       {'type': 'String', 'Has Missing':True},
                       'Phone':     {'type': 'String', 'Has Missing':True},
                       }
-            
+
             deduper = dedupe.Dedupe(fields)
 
-        
+
         #### Keyword arguments
-        
+
         `init`
         A field definition or a file location for a settings file.
 
@@ -122,7 +122,6 @@ class Dedupe:
                              'definition or a settings file.'
                              )
 
-
         self.training_data = None
         self.training_pairs = None
         self.data_sample = None
@@ -144,9 +143,8 @@ class Dedupe:
                                          for threshold
                                          in [0.2, 0.4, 0.6, 0.8]])
 
-        self.blocker_types = {'String' : (string_predicates
-                                          + tfidf_string_predicates)}
-
+        self.blocker_types = {'String': (string_predicates +
+                                         tfidf_string_predicates)}
 
     def _initializeTraining(self, training_file=None):
         """
@@ -172,7 +170,7 @@ class Dedupe:
               data_sample,
               training_source=None):
         """
-        Learn field weights from file of labeled examples or round of 
+        Learn field weights from file of labeled examples or round of
         interactive labeling
 
         Keyword arguments:
@@ -212,7 +210,7 @@ class Dedupe:
         examples that the learner is now most curious about.  This will
         continue until the labeling function sends a message that we
         it is done labeling.
-            
+
         The labeling function must be a function that takes two
         arguments.  The first argument is a sequence of pairs of
         records. The second argument is the data model.
@@ -249,17 +247,17 @@ class Dedupe:
 
         if training_source.__class__ is str:
             logging.info('reading training from file')
-            if self.training_data is None :
+            if self.training_data is None:
                 self._initializeTraining(training_source)
 
             (self.training_pairs, self.training_data) = self._readTraining(training_source, self.training_data)
 
         elif isinstance(training_source, types.FunctionType):
 
-            if self.training_data is None :
+            if self.training_data is None:
                 self._initializeTraining()
 
-            (self.training_data, 
+            (self.training_data,
              self.training_pairs,
              self.data_model) = training.activeLearning(self.data_sample,
                                                         self.data_model,
@@ -276,12 +274,12 @@ class Dedupe:
         logging.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
-                                           core.trainModel, 
-                                           self.data_model, 
+                                           core.trainModel,
+                                           self.data_model,
                                            k=n_folds)
 
         self.data_model = core.trainModel(self.training_data,
-                                          self.data_model, 
+                                          self.data_model,
                                           alpha)
 
         self._logLearnedWeights()
@@ -327,7 +325,7 @@ class Dedupe:
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
-        blocked data. 
+        blocked data.
 
         Keyword arguments:
         blocks --        Sequence of tuples of records, where each
@@ -375,7 +373,7 @@ class Dedupe:
         blocks --     Sequence of tuples of records, where each
                       tuple is a set of records covered by a blocking
                       predicate
-                                          
+
         threshold --  Number between 0 and 1 (default is .5). We will
                       only consider as duplicates record pairs as
                       duplicates if their estimated duplicate likelihood is
@@ -383,7 +381,7 @@ class Dedupe:
 
                       Lowering the number will increase recall, raising it
                       will increase precision
-                              
+
 
         """
 
@@ -391,11 +389,9 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        
         blocked_keys, blocked_records = core.split((block.keys(),
                                                     block.values())
                                                    for block in blocks)
-
 
         candidate_keys = core.blockedPairs(blocked_keys)
         candidate_records = core.blockedPairs(blocked_records)
@@ -404,7 +400,7 @@ class Dedupe:
         peek = ids.next()
         id_type = type(peek[0])
         ids = itertools.chain([peek], ids)
-        
+
         self.dupes = core.scoreDuplicates(candidate_keys,
                                           candidate_records,
                                           id_type,
@@ -423,11 +419,8 @@ class Dedupe:
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
-
         predicate_set = predicateGenerator(self.blocker_types, self.data_model)
 
-
-        
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
                                                            eta,
@@ -447,11 +440,10 @@ class Dedupe:
             except AttributeError:
                 logging.info((k1, v1))
 
-    # === writeSettings === 
-
+    # === writeSettings ===
     def writeSettings(self, file_name):
         """
-        Write a settings file that contains the 
+        Write a settings file that contains the
         data model and predicates
 
         Keyword arguments:
@@ -467,13 +459,12 @@ class Dedupe:
             try:
                 data_model = pickle.load(f)
                 predicates = pickle.load(f)
-            except KeyError :
+            except KeyError:
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
 
         return data_model, predicates
-
 
     def writeTraining(self, file_name):
         """
@@ -489,8 +480,6 @@ class Dedupe:
 
         with open(file_name, 'wb') as f:
             json.dump(d_training_pairs, f, default=self.training_encoder)
-
-
 
     def _readTraining(self, file_name, training_pairs):
         """Read training pairs from a file"""
@@ -542,40 +531,39 @@ def _initializeDataModel(fields):
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] == 'LatLong' :
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-            else :
-                v['comparator'] = compareLatLong
-
-        elif v['type'] == 'Set' :
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-            else :
-                v['comparator'] = compareJaccard
-
-
-        elif v['type'] == 'String' :
-            if 'comparator' in v :
+        elif v['type'] == 'LatLong':
+            if 'comparator' in v:
                 raise ValueError("Custom comparators can only be defined "
                                  "for fields of type 'Custom'")
-            else :
+            else:
+                v['comparator'] = compareLatLong
+
+        elif v['type'] == 'Set':
+            if 'comparator' in v:
+                raise ValueError("Custom comparators can only be defined "
+                                 "for fields of type 'Custom'")
+            else:
+                v['comparator'] = compareJaccard
+
+        elif v['type'] == 'String':
+            if 'comparator' in v:
+                raise ValueError("Custom comparators can only be defined "
+                                 "for fields of type 'Custom'")
+            else:
                 v['comparator'] = normalizedAffineGapDistance
 
-        elif v['type'] == 'Custom' and 'comparator' not in v :
+        elif v['type'] == 'Custom' and 'comparator' not in v:
             raise ValueError("For 'Custom' field types you must define "
                              "a 'comparator' fucntion in the field "
                              "definition. ")
 
-        elif v['type'] == 'Interaction' :
-            if 'Interaction Fields' in v :
-                 for field in v['Interaction Fields'] :
-                     if 'Has Missing' in fields[field] :
-                         v.update({'Has Missing' : True})
-                         break
-            else :
+        elif v['type'] == 'Interaction':
+            if 'Interaction Fields' in v:
+                for field in v['Interaction Fields']:
+                    if 'Has Missing' in fields[field]:
+                        v.update({'Has Missing': True})
+                        break
+            else:
                 raise ValueError('No "Interaction Fields" defined')
 
             v.update({'weight': 0})
@@ -584,31 +572,26 @@ def _initializeDataModel(fields):
             # ordered dict so we'll add them after we finish
             # processing all the other fields
             continue
-            
-        
 
         data_model['fields'][k] = v
 
-
     data_model['fields'].update(interaction_terms)
 
-
-    for k, v in data_model['fields'].items() :
-        if 'Has Missing' in v :
-             if v['Has Missing'] :
-                 data_model['fields'][k + ': not_missing'] = {'weight' : 0,
-                                                              'type'   : 'Missing Data'}
-        else :
-            data_model['fields'][k].update({'Has Missing' : False})
-         
-
+    for k, v in data_model['fields'].items():
+        if 'Has Missing' in v:
+            if v['Has Missing']:
+                data_model['fields'][k + ': not_missing'] = {'weight': 0,
+                                                             'type': 'Missing Data'}
+        else:
+            data_model['fields'][k].update({'Has Missing': False})
 
     data_model['bias'] = 0
     return data_model
 
-def predicateGenerator(blocker_types, data_model) :
+
+def predicateGenerator(blocker_types, data_model):
     predicate_set = []
-    for record_type, predicate_functions in blocker_types.items() :
+    for record_type, predicate_functions in blocker_types.items():
         fields = [field_name for field_name, details
                   in data_model['fields'].items()
                   if details['type'] == record_type]
@@ -624,7 +607,7 @@ def disjunctivePredicates(predicate_set):
 
     # filter out disjunctive predicates that operate on same field
 
-    disjunctive_predicates = [predicate for predicate in disjunctive_predicates 
+    disjunctive_predicates = [predicate for predicate in disjunctive_predicates
                               if predicate[0][1] != predicate[1][1]]
 
     predicate_set = [(predicate, ) for predicate in predicate_set]

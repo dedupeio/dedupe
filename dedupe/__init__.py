@@ -14,7 +14,7 @@ __all__ = ['affinegap',
 
 #from distance import affinegap
 from distance import affinegap
-import distance 
+import distance
 import mekano
 import blocking
 import clustering
