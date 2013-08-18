@@ -4,6 +4,7 @@ import numpy
 import random
 import itertools
 import warnings
+import dedupe.mekano as mk
 
 class CoreTest(unittest.TestCase):
   def setUp(self) :
@@ -85,7 +86,6 @@ class ConvenienceTest(unittest.TestCase):
       assert str(w[-1].message) == "Requested sample of size 10000, only returning 45 possible pairs"
 
 
- 
 class DedupeClassTest(unittest.TestCase):
   def test_initialize(self) :
     fields =  { 'name' : {'type': 'String'}, 
@@ -162,7 +162,6 @@ class ClusteringTest(unittest.TestCase):
                       (('3', '5'), .5),
                       (('4', '5'), .72))
 
-            
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
     assert hierarchical(self.dupes, 'i4', 1) == []
@@ -193,7 +192,19 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
- 
+
+class TfidfTest(unittest.TestCase):
+  def setUp(self):
+    self.field = "Hello World world"
+    self.tokenfactory = mk.AtomFactory("tokens")
+    self.record_id = 20
+
+  def test_field_to_atom_vector(self):
+    av = dedupe.tfidf.fieldToAtomVector(self.field, self.record_id, self.tokenfactory)
+    assert av[self.tokenfactory["hello"]] == 1.0
+    assert av[self.tokenfactory["world"]] == 2.0
+
+
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
