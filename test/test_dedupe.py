@@ -5,6 +5,7 @@ import random
 import itertools
 import warnings
 import dedupe.mekano as mk
+import collections
 
 class CoreTest(unittest.TestCase):
   def setUp(self) :
@@ -213,6 +214,7 @@ class TfidfTest(unittest.TestCase):
     self.tfidf_fields = set(["name"])
 
   def test_field_to_atom_vector(self):
+
     av = dedupe.tfidf.fieldToAtomVector(self.field, self.record_id, self.tokenfactory)
     assert av[self.tokenfactory["hello"]] == 1.0
     assert av[self.tokenfactory["world"]] == 2.0
@@ -220,8 +222,18 @@ class TfidfTest(unittest.TestCase):
   def test_constrained_indexing(self):
     inverted_index, center_tokens, token_vector =  \
       dedupe.tfidf.constrainedIndexing(self.data_d.iteritems(), self.tfidf_fields)
-    print center_tokens
-    print token_vector
+    assert set(center_tokens['name'].keys()) == set([145, 130, 115, 100, 125])
+    assert set(token_vector['name'].keys()) == set([120, 105, 140, 110, 135])
+    assert set(center_tokens['name'].keys()) & set(token_vector['name'].keys()) == set([])
+
+    indexed_records = []
+    for token in inverted_index['name'].atoms() :
+      for record in inverted_index['name'].getii(token) :
+        indexed_records.append(record.name)
+
+    assert set(indexed_records) == set(center_tokens['name'].keys()) | set(token_vector['name'].keys())
+
+
 
   def test_inverted_index(self):
     inverted_index, token_vectors = dedupe.tfidf.invertIndex(
