@@ -128,7 +128,7 @@ def invertIndex(data, tfidf_fields, constrained_matching= False):
                                                       stop_word_threshold)
     
 
-    return (inverted_index, token_vector)
+    return (inverted_index, token_vectors)
 
 
 #@profile
@@ -159,7 +159,7 @@ def makeCanopy(inverted_index, token_vector, threshold) :
                 candidate_id = candidate_vector.name
                 canopies[candidate_id] = center_id
                 seen.add(candidate_vector)
-                # something is wrong here
+                # This will throw error, for now
                 corpus_ids.remove(candidate_id)
 
     return canopies
