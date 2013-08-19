@@ -223,6 +223,15 @@ class TfidfTest(unittest.TestCase):
     print center_tokens
     print token_vector
 
+  def test_inverted_index(self):
+    inverted_index, token_vectors = dedupe.tfidf.invertIndex(
+                                              self.data_d.iteritems(),
+                                              self.tfidf_fields,
+                                              constrained_matching=True,
+                                                            )
+    print inverted_index
+    print token_vectors
+
 
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
