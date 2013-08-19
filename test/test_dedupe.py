@@ -198,11 +198,30 @@ class TfidfTest(unittest.TestCase):
     self.field = "Hello World world"
     self.tokenfactory = mk.AtomFactory("tokens")
     self.record_id = 20
+    self.data_d = {
+                     100 : {"name": "Bob", "age": "50", "dataset": 0},
+                     105 : {"name": "Charlie", "age": "75", "dataset": 1},
+                     110 : {"name": "Meredith", "age": "40", "dataset": 1},
+                     115 : {"name": "Sue", "age": "10", "dataset": 0},
+                     120 : {"name": "Jimbo", "age": "21","dataset": 1},
+                     125 : {"name": "Jimbo", "age": "21", "dataset": 0},
+                     130 : {"name": "Willy", "age": "35", "dataset": 0},
+                     135 : {"name": "Willy", "age": "35", "dataset": 1},
+                     140 : {"name": "Martha", "age": "19", "dataset": 1},
+                     145 : {"name": "Kyle", "age": "27", "dataset": 0},
+                  }
+    self.tfidf_fields = set(["name"])
 
   def test_field_to_atom_vector(self):
     av = dedupe.tfidf.fieldToAtomVector(self.field, self.record_id, self.tokenfactory)
     assert av[self.tokenfactory["hello"]] == 1.0
     assert av[self.tokenfactory["world"]] == 2.0
+
+  def test_constrained_indexing(self):
+    inverted_index, center_tokens, token_vector =  \
+      dedupe.tfidf.constrainedIndexing(self.data_d.iteritems(), self.tfidf_fields)
+    print center_tokens
+    print token_vector
 
 
 class PredicatesTest(unittest.TestCase):
