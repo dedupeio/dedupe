@@ -233,16 +233,22 @@ class TfidfTest(unittest.TestCase):
 
     assert set(indexed_records) == set(center_tokens['name'].keys()) | set(token_vector['name'].keys())
 
-
-
   def test_inverted_index(self):
     inverted_index, token_vectors = dedupe.tfidf.invertIndex(
                                               self.data_d.iteritems(),
                                               self.tfidf_fields,
                                               constrained_matching=True,
                                                             )
-    print inverted_index
-    print token_vectors
+
+    assert set(token_vectors['name'].keys()) == set([145, 130, 115, 100, 125])
+    assert set(inverted_index['name'].keys()) == set([2,5])
+
+    indexed_records = []
+    for atomvectors in inverted_index['name'].values():
+      for av in atomvectors:
+        indexed_records.append(av.name)
+
+    assert set(indexed_records) == set([120,135])
 
 
 class PredicatesTest(unittest.TestCase):
