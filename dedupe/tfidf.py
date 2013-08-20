@@ -159,8 +159,7 @@ def makeCanopy(inverted_index, token_vector, threshold) :
                 candidate_id = candidate_vector.name
                 canopies[candidate_id] = center_id
                 seen.add(candidate_vector)
-                # This will throw error, for now
-                corpus_ids.remove(candidate_id)
+
 
     return canopies
 
