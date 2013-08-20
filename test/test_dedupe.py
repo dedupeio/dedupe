@@ -151,6 +151,23 @@ class ClusteringTest(unittest.TestCase):
                   ((3,4), .3),
                   ((3,5), .5),
                   ((4,5), .72))
+    self.bipartite_dupes = (((1,5), .1),
+                            ((1,6), .72),
+                            ((1,7), .2),
+                            ((1,8), .6),
+                            ((2,5), .2),
+                            ((2,6), .2),
+                            ((2,7), .72),
+                            ((2,8), .3),
+                            ((3,5), .24),
+                            ((3,6), .72),
+                            ((3,7), .24),
+                            ((3,8), .65),
+                            ((4,5), .63),
+                            ((4,6), .96),
+                            ((4,7), .23),
+                            ((4,8), .74))
+
     #Dupes with Ids as String
     self.str_dupes = ((('1', '2'), .86),
                       (('1', '3'), .72),
@@ -171,6 +188,12 @@ class ClusteringTest(unittest.TestCase):
     assert hierarchical(self.str_dupes, 'S1', 1) == []
     assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), set(['4','5'])]
     assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
+    assert dedupe.clustering.clusterConstrained(self.bipartite_dupes, 0.5) == \
+                          [set([1, 6]), set([2, 7]), set([3, 8]), set([4, 5])]
+    assert dedupe.clustering.clusterConstrained(self.bipartite_dupes, 0) == \
+                          [set([1, 6]), set([2, 7]), set([3, 8]), set([4, 5])]
+    assert dedupe.clustering.clusterConstrained(self.bipartite_dupes, 1) == []
+
 
 class BlockingTest(unittest.TestCase):
   def setUp(self):
