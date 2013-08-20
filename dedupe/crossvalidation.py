@@ -39,7 +39,7 @@ def gridSearch(training_data,
 
             true_dupes = numpy.sum(labels == 1)
 
-            if true_dupes == 0 :
+            if true_dupes == 0:
                 logging.warning("not real positives, change size of folds")
                 continue
 
@@ -47,13 +47,13 @@ def gridSearch(training_data,
 
             recall = true_predicted_dupes/float(true_dupes)
 
-            if recall == 0 :
+            if recall == 0:
                 score = 0
 
             else:
-                precision = true_predicted_dupes/float(numpy.sum(predictions > 0))
+                precision = \
+                    (true_predicted_dupes/float(numpy.sum(predictions > 0)))
                 score = 2 * recall * precision / (recall + precision)
-
 
             all_score += score
 
@@ -73,7 +73,8 @@ def kFolds(training_data, k):
     slices = [training_data[i::k] for i in xrange(k)]
     for i in xrange(k):
         validation = slices[i]
-        training = [datum for s in slices if s is not validation for datum in s]
+        training = \
+            [datum for s in slices if s is not validation for datum in s]
         validation = numpy.array(validation, train_dtype)
         training = numpy.array(training, train_dtype)
 
