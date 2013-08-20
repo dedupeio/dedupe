@@ -188,13 +188,21 @@ class ClusteringTest(unittest.TestCase):
     assert hierarchical(self.str_dupes, 'S1', 1) == []
     assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), set(['4','5'])]
     assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
-    assert dedupe.clustering.clusterConstrained(self.bipartite_dupes, 0.5) == \
-                            [set([1, 6]), set([3, 8]), set([4, 5]), set([2, 7])]
-    assert dedupe.clustering.clusterConstrained(self.bipartite_dupes, 0) == \
-                            [set([1, 6]), set([2, 7]), set([3, 8]), set([4, 5])]
-    assert dedupe.clustering.clusterConstrained(self.bipartite_dupes, 0.8) == \
-                            [set([4,6])]
-    assert dedupe.clustering.clusterConstrained(self.bipartite_dupes, 1) == []
+
+  def test_hungarian(self):
+    hungarian = dedupe.clustering.clusterConstrained
+    assert hungarian(self.bipartite_dupes, 0.5) == [set([1, 6]), 
+                                                    set([3, 8]), 
+                                                    set([4, 5]), 
+                                                    set([2, 7])]
+    assert hungarian(self.bipartite_dupes, 0) == [set([1, 6]), 
+                                                  set([2, 7]), 
+                                                  set([3, 8]), 
+                                                  set([4, 5])]
+    assert hungarian(self.bipartite_dupes, 0.8) == [set([4,6])]
+    assert hungarian(self.bipartite_dupes, 1) == []
+
+
 
 
 class BlockingTest(unittest.TestCase):
