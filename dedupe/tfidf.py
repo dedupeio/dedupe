@@ -63,8 +63,6 @@ def fieldToAtomVector(field, record_id, tokenfactory) :
     
     return av
 
-
-
 def unweightedIndex(data, fields, constrained_matching = False) :    
     def unconstrained_record_tokenizer(record, field, record_id, av) :
         tokenized_records[field][record_id] = av
@@ -161,7 +159,7 @@ def makeCanopy(inverted_index, token_vector, threshold) :
                 candidate_id = candidate_vector.name
                 canopies[candidate_id] = center_id
                 seen.add(candidate_vector)
-                corpus_ids.difference_update(candidate_vector.name)
+                corpus_ids.difference_update([candidate_vector.name])
 
     return canopies
 
