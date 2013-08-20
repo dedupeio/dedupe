@@ -11,6 +11,7 @@ import logging
 import random
 import sys
 
+
 def findUncertainPairs(field_distances, data_model, bias=0.5):
     """
     Given a set of field distances and a data model return the
@@ -26,8 +27,8 @@ def findUncertainPairs(field_distances, data_model, bias=0.5):
 
     informativity = numpy.copy(probability)
     informativity[probability < p_max] /= p_max
-    informativity[probability >= p_max] = (1 - probability[probability >= p_max])/(1-p_max)
-
+    informativity[probability >= p_max] = \
+        (1 - probability[probability >= p_max])/(1-p_max)
 
     return numpy.argsort(-informativity)
 
@@ -47,7 +48,6 @@ def activeLearning(candidates,
               if data_model['fields'][field]['type'] not in ('Missing Data',
                                                              'Interaction')]
 
-
     duplicates = []
     nonduplicates = []
 
@@ -55,17 +55,15 @@ def activeLearning(candidates,
         nonduplicates.extend(training_pairs[0])
         duplicates.extend(training_pairs[1])
 
-
-    if training_data.shape[0] == 0 :
+    if training_data.shape[0] == 0:
         rand_int = random.randint(0, len(candidates))
         exact_match = candidates[rand_int]
-        training_data = addTrainingData({1:[exact_match]*2,
-                                         0:[]},
+        training_data = addTrainingData({1: [exact_match]*2,
+                                         0: []},
                                         data_model,
                                         training_data)
 
     data_model = core.trainModel(training_data, data_model, .1)
-
 
     finished = False
 
@@ -77,11 +75,11 @@ def activeLearning(candidates,
 
     seen_indices = set()
 
-    while finished == False:
+    while finished is False:
         logging.info('finding the next uncertain pair ...')
         uncertain_indices = findUncertainPairs(field_distances,
                                                data_model,
-                                               (len(duplicates)/
+                                               (len(duplicates) /
                                                 (len(nonduplicates)+1.0)))
 
         for uncertain_index in uncertain_indices:
@@ -96,7 +94,9 @@ def activeLearning(candidates,
         nonduplicates.extend(labeled_pairs[0])
         duplicates.extend(labeled_pairs[1])
 
-        training_data = addTrainingData(labeled_pairs, data_model, training_data)
+        training_data = addTrainingData(labeled_pairs,
+                                        data_model,
+                                        training_data)
 
         if len(training_data) > 0:
 
@@ -122,22 +122,23 @@ def addTrainingData(labeled_pairs, data_model, training_data=[]):
     new_training_data = numpy.empty(len(examples),
                                     dtype=training_data.dtype)
 
-    new_training_data['label'] = [0] * len(labeled_pairs[0]) + [1] * len(labeled_pairs[1])
+    new_training_data['label'] = ([0] * len(labeled_pairs[0])) + \
+                                 ([1] * len(labeled_pairs[1]))
     new_training_data['distances'] = core.fieldDistances(examples, data_model)
 
-
     training_data = numpy.append(training_data, new_training_data)
-
 
     return training_data
 
 
 def consoleLabel(uncertain_pairs, fields):
-    '''Command line interface for presenting and labeling training pairs by the user'''
+    """
+    Command line interface for presenting and labeling
+    training pairs by the user
+    """
     duplicates = []
     nonduplicates = []
     finished = False
-
 
     for record_pair in uncertain_pairs:
         label = ''
@@ -179,27 +180,23 @@ def semiSupervisedNonDuplicates(data_sample,
 
     confidence = 1 - nonduplicate_confidence_threshold
 
-    def distinctPairs() :
+    def distinctPairs():
         data_slice = data_sample[0:sample_size]
         pair_distance = core.fieldDistances(data_slice, data_model)
         scores = core.scorePairs(pair_distance, data_model)
 
         sample_n = 0
-        for score, pair in zip(scores, data_sample) :
-            if score < confidence :
+        for score, pair in zip(scores, data_sample):
+            if score < confidence:
                 yield pair
                 sample_n += 1
 
-        if sample_n < sample_size and len(data_sample) > sample_size :
-            for pair in data_sample[sample_size:] :
+        if sample_n < sample_size and len(data_sample) > sample_size:
+            for pair in data_sample[sample_size:]:
                 pair_distance = core.fieldDistances([pair], data_model)
                 score = core.scorePairs(pair_distance, data_model)
-                
-                if score < confidence :
+
+                if score < confidence:
                     yield (pair)
 
     return islice(distinctPairs(), 0, sample_size)
-
-    
-
-
