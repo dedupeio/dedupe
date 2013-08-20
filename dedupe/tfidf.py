@@ -19,35 +19,41 @@ class TfidfPredicate(float):
         return self.__name__
 
 
-def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
+def stopWords(inverted_index, stop_word_threshold) :
+    stop_words= set([])
 
-    i_index = {}
+    for atom in inverted_index.atoms() :
+        df = inverted_index.getDF(atom)
+        if df < 2 :
+            stop_words.add(atom)
+        elif df > stop_word_threshold :
+            stop_words.add(atom)
+    
+    return stop_words
 
-    for field in token_vectors :
-        singletons = set([])
-        stop_words = set([])
-        for atom in inverted_index[field].atoms() :
-            df = inverted_index[field].getDF(atom)
-            if df < 2 :
-                singletons.add(atom)
-            elif df > stop_word_threshold :
-                stop_words.add(atom)
-                
-        wv = mk.WeightVectors(inverted_index[field])
-        ii = defaultdict(set)
-        for record_id, vector in token_vectors[field].iteritems() :
-            w_vector = wv[vector]
-            w_vector.name = vector.name
-            for atom in w_vector :
-                if atom in singletons or atom in stop_words :
-                    del w_vector[atom]
-            token_vectors[field][record_id] = w_vector
-            for token in w_vector :
-                ii[token].add(w_vector)
+        
+def weightVectors(weight_vectors, tokenized_records, stop_words) :
+    weighted_records = {}
+
+    for record_id, vector in tokenized_records.iteritems() :
+        weighted_vector = weight_vectors[vector]
+        weighted_vector.name = vector.name
+        for atom in weighted_vector :
+            if atom in stop_words :
+                del weighted_vector[atom]
+        weighted_records[record_id] = weighted_vector
+
+    return weighted_records
+
+def tokensToInvertedIndex(token_vectors) :
+    i_index = defaultdict(set)
+    for record_id, vector in token_vectors.iteritems() :
+        for token in vector :
+            i_index[token].add(vector)
+    
+    return i_index
             
-        i_index[field] = ii
 
-    return token_vectors, i_index
 
 def fieldToAtomVector(field, record_id, tokenfactory) :
     tokens = words.findall(field.lower())
@@ -57,78 +63,78 @@ def fieldToAtomVector(field, record_id, tokenfactory) :
     
     return av
 
-def unconstrainedIndexing(data, tfidf_fields) :
+
+
+def unweightedIndex(data, fields, constrained_matching = False) :    
+    def unconstrained_record_tokenizer(record, field, record_id, av) :
+        tokenized_records[field][record_id] = av
+
+    def constrained_record_tokenizer(record, field, record_id, av) : 
+        if record['dataset'] == 0 : 
+            tokenized_center_records[field][record_id] = av
+        else : 
+            tokenized_records[field][record_id] = av
+
     tokenfactory = mk.AtomFactory("tokens")  
-    inverted_index = {}
-
-    for field in tfidf_fields :
-        inverted_index[field] = mk.InvertedIndex()
-
-    token_vector = defaultdict(dict)
-
-    for record_id, record in data:
-        for field in tfidf_fields:
-            av = fieldToAtomVector(record[field], record_id, tokenfactory)
-            inverted_index[field].add(av)
-            token_vector[field][record_id] = av
-
-    return inverted_index, token_vector
-
-def constrainedIndexing(data, tfidf_fields) :
-    tokenfactory = mk.AtomFactory("tokens")  
-    inverted_index = {}
-
-    for field in tfidf_fields :
-        inverted_index[field] = mk.InvertedIndex()
-
-    token_vector = defaultdict(dict)
-    center_tokens = defaultdict(dict)
-
-    for record_id, record in data:
-        for field in tfidf_fields:
-            av = fieldToAtomVector(record[field], record_id, tokenfactory)
-            inverted_index[field].add(av)
-            if record['dataset'] == 0 :
-                center_tokens[field][record_id] = av
-            else :
-                token_vector[field][record_id] = av
-
-    return inverted_index, center_tokens, token_vector
-
-
-def invertIndex(data, tfidf_fields, constrained_matching= False):
-
+    tokenized_records = defaultdict(dict)
+    tokenized_center_records = defaultdict(dict)
+    inverted_indices = defaultdict(lambda : mk.InvertedIndex())
+  
     if constrained_matching :
-        _results = constrainedIndexing(data, tfidf_fields)
-        inverted_index, center_tokens, token_vector = _results
-    else : 
-        inverted_index, token_vector = unconstrainedIndexing(data, tfidf_fields)
+        tokenizer = constrained_record_tokenizer
+    else :
+        tokenizer = unconstrained_record_tokenizer
 
-    num_docs = inverted_index.values()[0].getN()
+    for record_id, record in data:
+        for field in fields:
+            av = fieldToAtomVector(record[field], record_id, tokenfactory)
+            inverted_indices[field].add(av) 
+            tokenizer(record, field, record_id, av)
 
+    return tokenized_records, tokenized_center_records, inverted_indices
+
+def invertIndex(data, fields, constrained_matching= False):
+    (tokenized_records, 
+     tokenized_center_records,
+     inverted_indices) = unweightedIndex(data, fields, constrained_matching)
+
+    num_docs = inverted_indices.values()[0].getN()
     stop_word_threshold = max(num_docs * 0.025, 500)
     logging.info('Stop word threshold: %(stop_thresh)d',
                  {'stop_thresh' :stop_word_threshold})
 
+    weighted_records_d = defaultdict(dict)
+    weighted_inverted_indices = {}
+    stop_words_d = {}
+    weighted_vectors_d = {}
+
+    for field in fields :
+        inverted_index = inverted_indices[field]
+        weighted_vectors = mk.WeightVectors(inverted_index)
+        stop_words = stopWords(inverted_index, stop_word_threshold)
+        weighted_records = weightVectors(weighted_vectors,
+                                         tokenized_records[field],
+                                         stop_words)
+
+        weighted_inverted_indices[field] = tokensToInvertedIndex(weighted_records)
+        weighted_records_d[field] = weighted_records
+
+        stop_words_d[field] = stop_words
+        weighted_vectors_d[field] = weighted_vectors
+
     if constrained_matching :
-        temp_token_vectors, _ = weightVectors(inverted_index, 
-                                              center_tokens,
-                                              stop_word_threshold)
+        weighted_center_records_d = defaultdict(dict)
+        for field in fields :
+            stop_words = stop_words_d[field]
+            weighted_vectors = weighted_vectors_d[field]
+            weighted_center_records_d[field] = weightVectors(weighted_vectors,
+                                                             tokenized_center_records[field],
+                                                             stop_words)
 
-        _, inverted_index = weightVectors(inverted_index, 
-                                          token_vector,
-                                          stop_word_threshold)
-
-        token_vectors = temp_token_vectors
-
+        return weighted_inverted_indices, weighted_center_records_d
 
     else :
-        token_vectors, inverted_index = weightVectors(inverted_index, 
-                                                      token_vector,
-                                                      stop_word_threshold)
-    
-
-    return (inverted_index, token_vectors)
+        return weighted_inverted_indices, weighted_records_d
 
 
 #@profile
@@ -159,7 +165,7 @@ def makeCanopy(inverted_index, token_vector, threshold) :
                 candidate_id = candidate_vector.name
                 canopies[candidate_id] = center_id
                 seen.add(candidate_vector)
-
+                corpus_ids.difference_update(candidate_vector.name)
 
     return canopies
 

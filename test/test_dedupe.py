@@ -151,6 +151,19 @@ class ClusteringTest(unittest.TestCase):
                   ((3,4), .3),
                   ((3,5), .5),
                   ((4,5), .72))
+
+    #Dupes with Ids as String
+    self.str_dupes = ((('1', '2'), .86),
+                      (('1', '3'), .72),
+                      (('1', '4'), .2),
+                      (('1', '5'), .6),
+                      (('2', '3'), .86),
+                      (('2', '4'), .2),
+                      (('2', '5'), .72),
+                      (('3', '4'), .3),
+                      (('3', '5'), .5),
+                      (('4', '5'), .72))
+
     self.bipartite_dupes = (((1,5), .1),
                             ((1,6), .72),
                             ((1,7), .2),
@@ -168,17 +181,6 @@ class ClusteringTest(unittest.TestCase):
                             ((4,7), .23),
                             ((4,8), .74))
 
-    #Dupes with Ids as String
-    self.str_dupes = ((('1', '2'), .86),
-                      (('1', '3'), .72),
-                      (('1', '4'), .2),
-                      (('1', '5'), .6),
-                      (('2', '3'), .86),
-                      (('2', '4'), .2),
-                      (('2', '5'), .72),
-                      (('3', '4'), .3),
-                      (('3', '5'), .5),
-                      (('4', '5'), .72))
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
@@ -186,7 +188,8 @@ class ClusteringTest(unittest.TestCase):
     assert hierarchical(self.dupes, 'i4', 0.5) == [set([1, 2, 3]), set([4,5])]
     assert hierarchical(self.dupes, 'i4', 0) == [set([1, 2, 3, 4, 5])]
     assert hierarchical(self.str_dupes, 'S1', 1) == []
-    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), set(['4','5'])]
+    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), 
+                                                      set(['4','5'])]
     assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
 
   def test_hungarian(self):
@@ -252,19 +255,6 @@ class TfidfTest(unittest.TestCase):
     assert av[self.tokenfactory["hello"]] == 1.0
     assert av[self.tokenfactory["world"]] == 2.0
 
-  def test_constrained_indexing(self):
-    inverted_index, center_tokens, token_vector =  \
-      dedupe.tfidf.constrainedIndexing(self.data_d.iteritems(), self.tfidf_fields)
-    assert set(center_tokens['name'].keys()) == set([145, 130, 115, 100, 125])
-    assert set(token_vector['name'].keys()) == set([120, 105, 140, 110, 135])
-    assert set(center_tokens['name'].keys()) & set(token_vector['name'].keys()) == set([])
-
-    indexed_records = []
-    for token in inverted_index['name'].atoms() :
-      for record in inverted_index['name'].getii(token) :
-        indexed_records.append(record.name)
-
-    assert set(indexed_records) == set(center_tokens['name'].keys()) | set(token_vector['name'].keys())
 
   def test_inverted_index(self):
     inverted_index, token_vectors = dedupe.tfidf.invertIndex(
