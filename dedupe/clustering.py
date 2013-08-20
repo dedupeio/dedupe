@@ -103,7 +103,7 @@ def cluster(dupes, id_type, threshold=.5):
 def clusterConstrained(dupes,threshold=.6):
 
     dupe_graph = networkx.Graph()
-    dupe_graph.add_weighted_edges_from(((x[0], x[1], y) for (x, y) in dupes), bipartite=1)
+    dupe_graph.add_weighted_edges_from(((x[0], x[1], y) for (x, y) in dupes if y >= threshold), bipartite=1)
     
     dupe_sub_graphs = connected_component_subgraphs(dupe_graph)
     clusters = []
