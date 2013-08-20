@@ -191,9 +191,8 @@ class ClusteringTest(unittest.TestCase):
 
   def test_hungarian(self):
     hungarian = dedupe.clustering.clusterConstrained
-    assert hungarian(self.bipartite_dupes, 0.5) == [set([1, 6]), 
-                                                    set([3, 8]), 
-                                                    set([4, 5]), 
+    assert hungarian(self.bipartite_dupes, 0.5) == [set([3, 8]), 
+                                                    set([4, 6]), 
                                                     set([2, 7])]
     assert hungarian(self.bipartite_dupes, 0) == [set([1, 6]), 
                                                   set([2, 7]), 

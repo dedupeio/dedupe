@@ -111,15 +111,25 @@ def clusterConstrained(dupes,threshold=.6):
         if len(sub_graph) > 2:
             row_order, col_order = bipartite.sets(sub_graph)
             row_order, col_order = list(row_order), list(col_order)
+            row_size, col_size = len(row_order), len(col_order)
             scored_pairs = numpy.asarray(biadjacency_matrix(sub_graph, row_order, col_order))
 
             scored_pairs[scored_pairs < threshold] = 0
-            scored_pairs = 1 - scored_pairs
+            temp = 1 - scored_pairs
+            r = numpy.prod(temp, axis=0)
+            b = numpy.vstack((scored_pairs,numpy.tile(r,(numpy.size(scored_pairs,1),1))))
+            c = numpy.prod(temp, axis=1)
+            c.shape = (numpy.size(b,1),1)
+            z = numpy.zeros((numpy.size(scored_pairs,1),1))
+            c = numpy.vstack((c,z))
+            b = numpy.hstack((b, numpy.tile(c, (numpy.size(scored_pairs,0)))))
+            b = 1 - b
+            # scored_pairs = 1 - scored_pairs
             
             m = _Hungarian()
-            clustering = m.compute(scored_pairs)
+            clustering = m.compute(b)
 
-            cluster = [set([row_order[l[0]], col_order[l[1]]]) for l in clustering if len(l) > 1]
+            cluster = [set([row_order[l[0]], col_order[l[1]]]) for l in clustering if len(l) > 1 if (l[0] < row_size) and (l[1] < col_size)] 
             clusters = clusters + cluster
         else:
             clusters.append(set(sub_graph.edges()[0]))
