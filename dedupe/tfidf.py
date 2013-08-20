@@ -104,14 +104,15 @@ def invertIndex(data, fields, constrained_matching= False):
                  {'stop_thresh' :stop_word_threshold})
 
     weighted_records_d = defaultdict(dict)
+    weighted_center_records_d = defaultdict(dict)
     weighted_inverted_indices = {}
-    stop_words_d = {}
-    weighted_vectors_d = {}
 
     for field in fields :
         inverted_index = inverted_indices[field]
+
         weighted_vectors = mk.WeightVectors(inverted_index)
         stop_words = stopWords(inverted_index, stop_word_threshold)
+
         weighted_records = weightVectors(weighted_vectors,
                                          tokenized_records[field],
                                          stop_words)
@@ -119,18 +120,13 @@ def invertIndex(data, fields, constrained_matching= False):
         weighted_inverted_indices[field] = tokensToInvertedIndex(weighted_records)
         weighted_records_d[field] = weighted_records
 
-        stop_words_d[field] = stop_words
-        weighted_vectors_d[field] = weighted_vectors
-
-    if constrained_matching :
-        weighted_center_records_d = defaultdict(dict)
-        for field in fields :
-            stop_words = stop_words_d[field]
-            weighted_vectors = weighted_vectors_d[field]
+        if constrained_matching :
             weighted_center_records_d[field] = weightVectors(weighted_vectors,
                                                              tokenized_center_records[field],
                                                              stop_words)
 
+
+    if constrained_matching :
         return weighted_inverted_indices, weighted_center_records_d
 
     else :
