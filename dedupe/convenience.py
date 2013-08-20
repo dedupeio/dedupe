@@ -8,7 +8,6 @@ Convenience functions for in memory deduplication
 import collections
 import dedupe.core
 
-    
 
 def dataSample(data, sample_size):
     '''Randomly sample pairs of records from a data dictionary'''
@@ -29,11 +28,8 @@ def blockData(data_d, blocker):
 
     for (record_id, record) in data_d.iteritems():
         for key in blocker((record_id, record)):
-            blocks.setdefault(key, {}).update({record_id : record})
+            blocks.setdefault(key, {}).update({record_id: record})
 
     blocked_records = tuple(block for block in blocks.values())
 
     return blocked_records
-        
-
-        
