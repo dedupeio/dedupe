@@ -163,7 +163,8 @@ class Dedupe:
         self.training_pairs = None
 
         if training_file:
-            (self.training_pairs, self.training_data) = self._readTraining(training_file, self.training_data)
+            (self.training_pairs, self.training_data) = \
+                self._readTraining(training_file, self.training_data)
 
     # === Dedupe.train ===
     def train(self,
@@ -242,7 +243,8 @@ class Dedupe:
 
         self.data_sample = data_sample
 
-        if training_source.__class__ is not str and not isinstance(training_source, types.FunctionType):
+        if (training_source.__class__ is not str and
+                not isinstance(training_source, types.FunctionType)):
             raise ValueError
 
         if training_source.__class__ is str:
@@ -250,7 +252,8 @@ class Dedupe:
             if self.training_data is None:
                 self._initializeTraining(training_source)
 
-            (self.training_pairs, self.training_data) = self._readTraining(training_source, self.training_data)
+            (self.training_pairs, self.training_data) = \
+                self._readTraining(training_source, self.training_data)
 
         elif isinstance(training_source, types.FunctionType):
 
@@ -413,9 +416,10 @@ class Dedupe:
     def _learnBlocking(self, eta, epsilon):
         """Learn a good blocking of the data"""
 
-        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model,
-                                                                       sample_size=32000)
+        confident_nonduplicates = \
+            training.semiSupervisedNonDuplicates(self.data_sample,
+                                                 self.data_model,
+                                                 sample_size=32000)
 
         self.training_pairs[0].extend(confident_nonduplicates)
 
@@ -476,7 +480,8 @@ class Dedupe:
 
         d_training_pairs = {}
         for (label, pairs) in self.training_pairs.iteritems():
-            d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for pair in pairs]
+            d_training_pairs[label] = \
+                [(dict(pair[0]), dict(pair[1])) for pair in pairs]
 
         with open(file_name, 'wb') as f:
             json.dump(d_training_pairs, f, default=self.training_encoder)
@@ -580,8 +585,8 @@ def _initializeDataModel(fields):
     for k, v in data_model['fields'].items():
         if 'Has Missing' in v:
             if v['Has Missing']:
-                data_model['fields'][k + ': not_missing'] = {'weight': 0,
-                                                             'type': 'Missing Data'}
+                data_model['fields'][k + ': not_missing'] = \
+                    {'weight': 0, 'type': 'Missing Data'}
         else:
             data_model['fields'][k].update({'Has Missing': False})
 
@@ -595,7 +600,8 @@ def predicateGenerator(blocker_types, data_model):
         fields = [field_name for field_name, details
                   in data_model['fields'].items()
                   if details['type'] == record_type]
-        predicate_set.extend(list(itertools.product(predicate_functions, fields)))
+        predicate_set.extend(
+            list(itertools.product(predicate_functions, fields)))
     predicate_set = disjunctivePredicates(predicate_set)
 
     return predicate_set
