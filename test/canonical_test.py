@@ -15,7 +15,7 @@ optp.add_option('-v', '--verbose', dest='verbose', action='count',
                 help='Increase verbosity (specify multiple times for more)'
                 )
 (opts, args) = optp.parse_args()
-log_level = logging.WARNING 
+log_level = logging.WARNING
 if opts.verbose == 1:
     log_level = logging.INFO
 elif opts.verbose >= 2:
@@ -115,7 +115,7 @@ else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
               'cuisine': {'type': 'String'},
-              'city' : {'type' : 'String'}
+              'city': {'type': 'String'}
               }
 
     deduper = dedupe.Dedupe(fields)
@@ -128,13 +128,13 @@ else:
                                                  duplicates_s,
                                                  num_training_dupes,
                                                  num_training_distinct)
-    
+
     deduper.data_sample = dedupe.dataSample(data_d, 1000000)
 
-
-    deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
-                                                            deduper.data_model,
-                                                            deduper.training_data)
+    deduper.training_data = \
+        dedupe.training.addTrainingData(deduper.training_pairs,
+                                        deduper.data_model,
+                                        deduper.training_data)
 
     deduper.alpha = dedupe.crossvalidation.gridSearch(deduper.training_data,
                                                       dedupe.core.trainModel,
