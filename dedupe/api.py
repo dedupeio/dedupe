@@ -534,6 +534,7 @@ def _initializeDataModel(fields):
         elif v['type'] not in ['String',
                                'LatLong',
                                'Set',
+                               'Source',
                                'Custom',
                                'Interaction']:
 
@@ -566,8 +567,22 @@ def _initializeDataModel(fields):
 
         elif v['type'] == 'Custom' and 'comparator' not in v :
             raise ValueError("For 'Custom' field types you must define "
-                             "a 'comparator' fucntion in the field "
+                             "a 'comparator' function in the field "
                              "definition. ")
+
+        elif v['type'] == 'Source' :
+            if 'Source Names' not in v :
+                raise ValueError('No "Source Names" defined')
+            if len(v['Source Names']) != 2 :
+                raise ValueError("You must supply two and only two source names")
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
+                                 "for fields of type 'Custom'")
+            else :
+                v['comparator'] = SourceComparator(v['Source Names'])
+                
+            
+
 
         elif v['type'] == 'Interaction' :
             if 'Interaction Fields' in v :
@@ -631,3 +646,22 @@ def disjunctivePredicates(predicate_set):
     predicate_set.extend(disjunctive_predicates)
 
     return predicate_set
+
+class SourceComparator(object):
+    def __init__(self, source_names) :
+        assert len(source_names) == 2
+        self.sources = dict(zip(source_names, itertools.count()))
+    def __call__(self, field_1, field_2):
+        if field_1 == '' and field_2 == '' :
+            return numpy.nan
+        elif field_1 == '' and field_2 in self.sources :
+            return numpy.nan
+        elif field_1 in self.sources and field_2 == '' :
+            return numpy.nan 
+        elif field_1 in self.sources and field_2 in self.sources :
+            if field_1 == field_2 :
+                return self.sources[field_1] 
+            else :
+                return 2
+        else :
+            raise ValueError("field not in Source Names")

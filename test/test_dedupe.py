@@ -88,11 +88,33 @@ class ConvenienceTest(unittest.TestCase):
  
 class DedupeClassTest(unittest.TestCase):
   def test_initialize(self) :
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-            }
-    deduper = dedupe.Dedupe(fields)
+    dist = dedupe.affinegap.normalizedAffineGapDistance
+    deduper = dedupe.Dedupe({'name' : {'type' : 'String'}})
+    assert deduper.data_model['fields']['name'] == {'Has Missing': False, 
+                                                    'type': 'String', 
+                                                    'comparator': dist}
 
+    deduper = dedupe.Dedupe({'name' : {'type' : 'String',
+                                       'Has Missing' : True}})
+    assert deduper.data_model['fields']['name'] == {'Has Missing': True, 
+                                                    'type': 'String', 
+                                                    'comparator': dist }
+
+    deduper = dedupe.Dedupe({'name' : {'type' : 'Source',
+                                       'Source Names' : ['a', 'b'],
+                                       'Has Missing' : True}})
+
+    source_comparator = deduper.data_model['fields']['name']['comparator']
+    assert source_comparator('a', 'a') == 0
+    assert source_comparator('b', 'b') == 1
+    assert source_comparator('a', 'b') == 2
+    assert source_comparator('b', 'a') == 2
+    self.assertRaises(ValueError, source_comparator, 'b', 'c')
+    self.assertRaises(ValueError, source_comparator, '', 'c')
+    assert numpy.isnan(source_comparator('', 'b'))
+
+  def test_base_predicates(self) :
+    deduper = dedupe.Dedupe({'name' : {'type' : 'String'}})
     string_predicates = (dedupe.predicates.wholeFieldPredicate,
                          dedupe.predicates.tokenFieldPredicate,
                          dedupe.predicates.commonIntegerPredicate,
@@ -206,7 +228,34 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.nearIntegersPredicate(field) == (15, 16, 17, 122, 123, 124)
     assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
-        
+
+class FieldDistances(unittest.TestCase):
+  def test_field_distance(self) :
+    fieldDistances = dedupe.core.fieldDistances
+    deduper = dedupe.Dedupe({'name' : {'type' :'String'},
+                             'source' : {'type' : 'Source',
+                                         'Source Names' : ['a', 'b']}})
+
+    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
+                     {'name' : 'steven', 'source' : 'a'}),)
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[0, 0.647, 0]]), 3)
+
+    record_pairs = (({'name' : 'steve', 'source' : 'b'}, 
+                     {'name' : 'steven', 'source' : 'b'}),)
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[1, 0.647, 0]]), 3)
+
+    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
+                     {'name' : 'steven', 'source' : 'b'}),)
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[0, 0.647, 1]]), 3)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
