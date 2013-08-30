@@ -39,6 +39,7 @@ class TestCosine(unittest.TestCase):
         cosine_sim = cosine(self.ilist[0], self.ilist[0])
         self.assertAlmostEqual(cosine_sim, 1, places=5)
 
+
 class TestCosineClass(unittest.TestCase):
     def setUp(self):
         self.ilist = [frozenset(['a', 'b', 'c']),
@@ -57,12 +58,12 @@ class TestCosineClass(unittest.TestCase):
         cosine = CosineSimilarity(self.ilist, 1.0)
         cosine_sim = cosine(self.ilist[0], frozenset([]))
         self.assertAlmostEqual(cosine_sim, 0, places=5)
-        
+
     def test_cosine_identical(self):
         cosine = CosineSimilarity(self.ilist, 1.0)
         cosine_sim = cosine(self.ilist[0], self.ilist[0])
         self.assertAlmostEqual(cosine_sim, 1, places=5)
 
-    
+
 if __name__ == '__main__':
     unittest.main()
