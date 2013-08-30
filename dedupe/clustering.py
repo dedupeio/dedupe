@@ -113,7 +113,6 @@ def clusterConstrained(dupes,threshold=.6):
             row_size, col_size = len(row_order), len(col_order)
             scored_pairs = numpy.asarray(biadjacency_matrix(sub_graph, row_order, col_order))
 
-            scored_pairs[scored_pairs < threshold] = 0
             scored_pairs_temp = 1 - scored_pairs
             row_prod = numpy.prod(scored_pairs_temp, axis=0)
             col_size = numpy.size(scored_pairs,1)
