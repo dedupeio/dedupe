@@ -115,18 +115,17 @@ def clusterConstrained(dupes,threshold=.6):
             scored_pairs = numpy.asarray(biadjacency_matrix(sub_graph, row_order, col_order))
 
             scored_pairs[scored_pairs < threshold] = 0
-            temp = 1 - scored_pairs
-            r = numpy.prod(temp, axis=0)
-            b = numpy.vstack((scored_pairs,numpy.tile(r,(numpy.size(scored_pairs,1),1))))
-            c = numpy.prod(temp, axis=1)
-            c.shape = (numpy.size(temp,0),1)
-            z = numpy.zeros((numpy.size(scored_pairs,1),1))
-            c = numpy.vstack((c,z))
-            b = numpy.hstack((b, numpy.tile(c, (numpy.size(scored_pairs,0)))))
-            b = 1 - b
+            scored_pairs = 1 - scored_pairs
+            row_prod = numpy.prod(scored_pairs, axis=0)
+            cost_matrix_row_prod = numpy.vstack((scored_pairs,numpy.tile(row_prod,(numpy.size(scored_pairs,1),1))))
+            col_prod = numpy.prod(scored_pairs, axis=1)
+            col_prod.shape = (numpy.size(scored_pairs,0),1)
+            col_prod = numpy.vstack((col_prod,numpy.zeros((numpy.size(scored_pairs,1),1))))
+            cost_matrix = numpy.hstack((cost_matrix_row_prod, numpy.tile(col_prod, (numpy.size(scored_pairs,0)))))
+            cost_matrix = 1 - cost_matrix
             
             m = _Hungarian()
-            clustering = m.compute(b)
+            clustering = m.compute(cost_matrix)
 
             cluster = [set([row_order[l[0]], col_order[l[1]]]) for l in clustering if len(l) > 1 if (l[0] < row_size) and (l[1] < col_size)] 
             clusters = clusters + cluster
