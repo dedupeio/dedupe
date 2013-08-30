@@ -41,7 +41,8 @@ def weightVectors(weight_vectors, tokenized_records, stop_words) :
         for atom in weighted_vector :
             if atom in stop_words :
                 del weighted_vector[atom]
-        weighted_records[record_id] = weighted_vector
+        if weighted_vector :
+            weighted_records[record_id] = weighted_vector
 
     return weighted_records
 

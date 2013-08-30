@@ -255,14 +255,14 @@ class TfidfTest(unittest.TestCase):
     assert av[self.tokenfactory["world"]] == 2.0
 
 
-  def test_inverted_index(self):
+  def test_constrained_inverted_index(self):
     inverted_index, token_vectors = dedupe.tfidf.invertIndex(
                                               self.data_d.iteritems(),
                                               self.tfidf_fields,
                                               constrained_matching=True,
                                                             )
 
-    assert set(token_vectors['name'].keys()) == set([145, 130, 115, 100, 125])
+    assert set(token_vectors['name'].keys()) == set([130, 125])
     assert set(inverted_index['name'].keys()) == set([2,5])
 
     indexed_records = []
@@ -271,6 +271,23 @@ class TfidfTest(unittest.TestCase):
         indexed_records.append(av.name)
 
     assert set(indexed_records) == set([120,135])
+
+
+  def test_unconstrained_inverted_index(self):
+    inverted_index, token_vectors = dedupe.tfidf.invertIndex(
+                                              self.data_d.iteritems(),
+                                              self.tfidf_fields)
+
+
+    assert set(token_vectors['name'].keys()) == set([120, 130, 125, 135])
+    assert set(inverted_index['name'].keys()) == set([2,5])
+
+    indexed_records = []
+    for atomvectors in inverted_index['name'].values():
+      for av in atomvectors:
+        indexed_records.append(av.name)
+
+    assert set(indexed_records) == set([120, 130, 125, 135])
 
 
 class PredicatesTest(unittest.TestCase):
