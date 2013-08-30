@@ -115,8 +115,8 @@ def clusterConstrained(dupes,threshold=.6):
 
             inverted_scored_pairs = 1 - scored_pairs
             row_prod = numpy.prod(inverted_scored_pairs, axis=0)
-            col_size = numpy.size(scored_pairs,1)
-            row_size = numpy.size(scored_pairs,0)
+            col_size = scored_pairs.shape[1]
+            row_size = scored_pairs.shape[0]
             cost_matrix_row_prod = numpy.vstack((scored_pairs,numpy.tile(row_prod,(col_size,1))))
             col_prod = numpy.prod(inverted_scored_pairs, axis=1)
             col_prod.shape = (row_size,1)
