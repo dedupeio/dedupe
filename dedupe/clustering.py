@@ -109,8 +109,7 @@ def clusterConstrained(dupes,threshold=.6):
     clusters = []
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 2:
-            row_order, col_order = bipartite.sets(sub_graph)
-            row_order, col_order = list(row_order), list(col_order)
+            row_order, col_order = [list(b_set) for b_set in bipartite.sets(sub_graph)]
             row_size, col_size = len(row_order), len(col_order)
             scored_pairs = numpy.asarray(biadjacency_matrix(sub_graph, row_order, col_order))
 
