@@ -119,12 +119,11 @@ def clusterConstrained(dupes,threshold=.6):
             r = numpy.prod(temp, axis=0)
             b = numpy.vstack((scored_pairs,numpy.tile(r,(numpy.size(scored_pairs,1),1))))
             c = numpy.prod(temp, axis=1)
-            c.shape = (numpy.size(b,1),1)
+            c.shape = (numpy.size(temp,0),1)
             z = numpy.zeros((numpy.size(scored_pairs,1),1))
             c = numpy.vstack((c,z))
             b = numpy.hstack((b, numpy.tile(c, (numpy.size(scored_pairs,0)))))
             b = 1 - b
-            # scored_pairs = 1 - scored_pairs
             
             m = _Hungarian()
             clustering = m.compute(b)
