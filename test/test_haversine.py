@@ -2,6 +2,7 @@ import unittest
 from dedupe.distance.haversine import compareLatLong
 import numpy
 
+
 class TestHaversine(unittest.TestCase):
     def setUp(self):
         self.sfo = (37.619105, -122.375236)
@@ -25,6 +26,5 @@ class TestHaversine(unittest.TestCase):
         self.assertAlmostEqual(km_dist_n_na, 157, -1)
 
 
-        
 if __name__ == '__main__':
     unittest.main()
