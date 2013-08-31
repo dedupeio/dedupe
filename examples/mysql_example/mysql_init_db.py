@@ -4,10 +4,10 @@
 This is a setup script for mysql_example.  It downloads a zip file of
 Illinois campaign contributions and loads them in t aMySQL database
 named 'contributions'.
- 
+
 __Note:__ You will need to run this script first before execuing
 [mysql_example.py](http://open-city.github.com/dedupe/doc/mysql_example.html).
- 
+
 Tables created:
 * raw_table - raw import of entire CSV file
 * donors - all distinct donors based on name and address
@@ -29,14 +29,14 @@ os.chdir('./examples/mysql_example/')
 contributions_zip_file = 'Illinois-campaign-contributions.txt.zip'
 contributions_txt_file = 'Illinois-campaign-contributions.txt'
 
-if not os.path.exists(contributions_zip_file) :
+if not os.path.exists(contributions_zip_file):
     print 'downloading', contributions_zip_file, '(~60mb) ...'
     u = urllib2.urlopen('https://s3.amazonaws.com/dedupe-data/Illinois-campaign-contributions.txt.zip')
     localFile = open(contributions_zip_file, 'w')
     localFile.write(u.read())
     localFile.close()
 
-if not os.path.exists(contributions_txt_file) :
+if not os.path.exists(contributions_txt_file):
     zip_file = zipfile.ZipFile(contributions_zip_file, 'r')
     print 'extracting %s' % contributions_zip_file
     zip_file_contents = zip_file.namelist()
@@ -45,8 +45,8 @@ if not os.path.exists(contributions_txt_file) :
             zip_file.extract(f)
     zip_file.close()
 
-conn = MySQLdb.connect(read_default_file = os.path.abspath('.') + '/mysql.cnf', 
-                       local_infile = 1,
+conn = MySQLdb.connect(read_default_file=os.path.abspath('.') + '/mysql.cnf',
+                       local_infile=1,
                        db='contributions')
 c = conn.cursor()
 
@@ -77,7 +77,7 @@ c.execute("CREATE TABLE raw_table "
 conn.commit()
 
 c.execute("LOAD DATA LOCAL INFILE %s INTO TABLE raw_table "
-          "FIELDS TERMINATED BY '\t' LINES TERMINATED BY '\r\n' " 
+          "FIELDS TERMINATED BY '\t' LINES TERMINATED BY '\r\n' "
           "IGNORE 1 LINES "
           "(reciept_id, last_name, first_name, "
           " address_1, address_2, city, state, "
@@ -116,7 +116,6 @@ c.execute("CREATE INDEX donors_donor_info ON donors "
           "(last_name, first_name, address_1, address_2, city, "
           " state, zip)")
 conn.commit()
-
 
 
 print 'creating recipients table...'

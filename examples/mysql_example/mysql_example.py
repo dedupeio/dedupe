@@ -5,12 +5,12 @@ This is an example of working with very large data. There are about
 700,000 unduplicated donors in this database of Illinois political
 campaign contributions.
 
-With such a large set of input data, we cannot store all the comparisons 
+With such a large set of input data, we cannot store all the comparisons
 we need to make in memory. Instead, we will read the pairs on demand
 from the MySQL database.
 
-__Note:__ You will need to run `python examples/mysql_example/mysql_init_db.py` 
-before running this script. See the annotates source for 
+__Note:__ You will need to run `python examples/mysql_example/mysql_init_db.py`
+before running this script. See the annotates source for
 [mysql_init_db](http://open-city.github.com/dedupe/doc/mysql_init_db.html)
 
 For smaller datasets (<10,000), see our
@@ -39,7 +39,7 @@ optp.add_option('-v', '--verbose', dest='verbose', action='count',
                 help='Increase verbosity (specify multiple times for more)'
                 )
 (opts, args) = optp.parse_args()
-log_level = logging.WARNING 
+log_level = logging.WARNING
 if opts.verbose == 1:
     log_level = logging.INFO
 elif opts.verbose >= 2:
@@ -88,7 +88,7 @@ def getSample(cur, sample_size, id_column, table):
     temp_d = {}
 
     cur.execute(DONOR_SELECT)
-    for row in cur.fetchall() :
+    for row in cur.fetchall():
         temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
     def random_pair_generator():
@@ -109,7 +109,7 @@ start_time = time.time()
 # `examples/mysql_example/mysql.cnf` and fill in your mysql database
 # information in `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
-                      read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+                      read_default_file=os.path.abspath('.') + '/mysql.cnf',
                       cursorclass=MySQLdb.cursors.DictCursor)
 
 c = con.cursor()
@@ -127,17 +127,16 @@ else:
     print 'selecting random sample from donors table...'
     data_sample = getSample(c, 750000, 'donor_id', 'donors')
 
-
     # Define the fields dedupe will pay attention to
     #
     # The address, city, and zip fields are often missing, so we'll
     # tell dedupe that, and we'll learn a model that take that into
     # account
     fields = {'name': {'type': 'String'},
-              'address': {'type': 'String', 'Has Missing' : True},
-              'city': {'type': 'String', 'Has Missing' : True},
+              'address': {'type': 'String', 'Has Missing': True},
+              'city': {'type': 'String', 'Has Missing': True},
               'state': {'type': 'String'},
-              'zip': {'type': 'String', 'Has Missing' : True},
+              'zip': {'type': 'String', 'Has Missing': True},
               }
 
     # Create a new deduper object and pass our data model to it.
@@ -214,26 +213,28 @@ blocker.tfIdfBlocks(full_data)
 # Now we are ready to write our blocking map table by creating a
 # generator that yields unique `(block_key, donor_id)` tuples.
 print 'writing blocking map'
-def block_data() :
+
+
+def block_data():
     c.execute(DONOR_SELECT)
     full_data = ((row['donor_id'], row) for row in c.fetchall())
-    for i, (donor_id, record) in enumerate(full_data) :
-        if i % 10000 == 0 :
+    for i, (donor_id, record) in enumerate(full_data):
+        if i % 10000 == 0:
             print i, ',', time.time() - start_time, 'seconds'
-        for key in blocker((donor_id, record)) :
+        for key in blocker((donor_id, record)):
             yield (key, donor_id)
 
 b_data = block_data()
 
-# MySQL has a hard limit on the size of a data object that can be passed to it. 
+# MySQL has a hard limit on the size of a data object that can be passed to it.
 # To get around this, we chunk the blocked data in to groups of 10,000 blocks
 step = 10000
 done = False
-while not done :
+while not done:
     chunk = itertools.islice(b_data, step)
-    records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
-                                     chunk)
-    if records_written < step :
+    records_written = c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
+                                    chunk)
+    if records_written < step:
         done = True
 
     con.commit()
@@ -247,22 +248,22 @@ print 'created', time.time() - start_time, 'seconds'
 # ## Clustering
 
 # Grabs a block of records for comparison.
-block_select = (DONOR_SELECT + 
-                " INNER JOIN blocking_map USING (donor_id) " 
+block_select = (DONOR_SELECT +
+                " INNER JOIN blocking_map USING (donor_id) "
                 "WHERE block_key = %s ORDER BY donor_id")
 
 
 # Generator function that yields records based on blocking map keys
-def candidates_gen(block_keys) :
-    for i, block_key in enumerate(block_keys) :
-        if i % 10000 == 0 :
+def candidates_gen(block_keys):
+    for i, block_key in enumerate(block_keys):
+        if i % 10000 == 0:
             print i, "blocks"
             print time.time() - start_time, "seconds"
 
         c.execute(block_select, (block_key,))
         records = {}
-        for row in c.fetchall() :
-            records.update({row['donor_id'] : row})
+        for row in c.fetchall():
+            records.update({row['donor_id']: row})
         yield records
 
 # Grab all the block keys with more than one record.
@@ -298,13 +299,13 @@ print 'creating entity_map database'
 c.execute("CREATE TABLE entity_map "
           "(donor_id INTEGER, canon_id INTEGER, PRIMARY KEY(donor_id))")
 
-for cluster in clustered_dupes :
+for cluster in clustered_dupes:
     cluster_head = str(cluster.pop())
     c.execute('INSERT INTO entity_map VALUES (%s, %s)',
-                (cluster_head, cluster_head))
-    for key in cluster :
+              (cluster_head, cluster_head))
+    for key in cluster:
         c.execute('INSERT INTO entity_map VALUES (%s, %s)',
-                    (str(key), cluster_head))
+                  (str(key), cluster_head))
 
 con.commit()
 
@@ -322,9 +323,9 @@ print len(clustered_dupes)
 #
 # For example, let's see who the top 10 donors are.
 
-locale.setlocale(locale.LC_ALL, '') # for pretty printing numbers
+locale.setlocale(locale.LC_ALL, '')  # for pretty printing numbers
 
-# Create a temporary table so each group and unmatched record has a unique id
+#  Create a temporary table so each group and unmatched record has a unique id
 c.execute("CREATE TEMPORARY TABLE e_map "
           "SELECT IFNULL(canon_id, donor_id) AS canon_id, donor_id "
           "FROM entity_map "
@@ -345,7 +346,7 @@ c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) AS name, "
 
 
 print "Top Donors (deduped)"
-for row in c.fetchall() :
+for row in c.fetchall():
     row['totals'] = locale.currency(row['totals'], grouping=True)
     print '%(totals)20s: %(name)s' % row
 
@@ -360,10 +361,9 @@ c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) as name, "
           "LIMIT 10")
 
 print "Top Donors (raw)"
-for row in c.fetchall() :
+for row in c.fetchall():
     row['totals'] = locale.currency(row['totals'], grouping=True)
     print '%(totals)20s: %(name)s' % row
-
 
 
 # Close our database connection
