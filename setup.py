@@ -3,8 +3,10 @@
 
 try:
     from setuptools import setup, Extension
-except ImportError :
-    raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
+except ImportError:
+    raise ImportError("setuptools module required, please go to \
+        https://pypi.python.org/pypi/setuptools and follow the instructions \
+        for installing setuptools")
 
 
 # from Michael Hoffman's http://www.ebi.ac.uk/~hoffman/software/sunflower/
@@ -30,39 +32,41 @@ setup(
     url='https://github.com/open-city/dedupe',
     version='0.4',
     packages=['dedupe', 'dedupe.distance', 'dedupe.mekano'],
-    ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
+    ext_modules=[NumpyExtension('dedupe.distance.affinegap',
+                                ['src/affinegap.c']),
                  Extension('dedupe.distance.jaccard', ['src/jaccard.c']),
-                 NumpyExtension('dedupe.distance.haversine', ['src/haversine.c'], libraries=['m']),
-                 NumpyExtension('dedupe.distance.cosine', ['src/cosine.c'], libraries=['m']),
+                 NumpyExtension('dedupe.distance.haversine',
+                                ['src/haversine.c'], libraries=['m']),
+                 NumpyExtension('dedupe.distance.cosine',
+                                ['src/cosine.c'], libraries=['m']),
                  NumpyExtension('dedupe.lr', sources=['src/lr.c']),
-                 Extension('dedupe.mekano.atomvector', 
+                 Extension('dedupe.mekano.atomvector',
                            sources=['src/mekano/atomvector.cpp',
                                     'src/mekano/CUtils.cpp'],
                            include_dirs=['src/mekano', '.'],
                            language='c++'),
-                 Extension('dedupe.mekano.atomvectorstore', 
+                 Extension('dedupe.mekano.atomvectorstore',
                            sources=['src/mekano/atomvectorstore.cpp',
                                     'src/mekano/CUtils.cpp'],
                            include_dirs=['src/mekano', '.'],
                            language='c++'),
-                 Extension('dedupe.mekano.corpusstats', 
+                 Extension('dedupe.mekano.corpusstats',
                            sources=['src/mekano/corpusstats.cpp'],
                            include_dirs=['src/mekano', '.'],
                            language='c++'),
-                 Extension('dedupe.mekano.invidx', 
+                 Extension('dedupe.mekano.invidx',
                            sources=['src/mekano/invidx.cpp',
                                     'src/mekano/CUtils.cpp'],
                            include_dirs=['src/mekano', '.'],
                            language='c++'),
-                 Extension('dedupe.mekano.weightvectors', 
+                 Extension('dedupe.mekano.weightvectors',
                            sources=['src/mekano/weightvectors.cpp'],
                            include_dirs=['src/mekano', '.'],
                            language='c++')],
 
-                 
 
-    license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
+    license='The MIT License: '
+            'http://www.opensource.org/licenses/mit-license.php',
     install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx'],
     long_description=open('README.md').read(),
     )
-

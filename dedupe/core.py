@@ -12,7 +12,9 @@ import warnings
 import numpy
 
 import lr
-from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
+from dedupe.distance.affinegap \
+    import normalizedAffineGapDistance as stringDistance
+
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
@@ -20,12 +22,13 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
     n records
     """
 
-    if n_records < 2 :
+    if n_records < 2:
         raise ValueError("Needs at least two records")
     n = n_records * (n_records - 1) / 2
 
     if sample_size >= n:
-        warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
+        warnings.warn("Requested sample of size %d, only returning %d possible"
+                      " pairs" % (sample_size, n))
 
         random_indices = numpy.arange(n)
         numpy.random.shuffle(random_indices)
@@ -40,8 +43,6 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
                                   for _ in xrange(sample_size)])
             return numpy.sort(sample, axis=1)
 
-
-
     b = 1 - 2 * n_records
 
     x = numpy.trunc((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2)
@@ -54,18 +55,17 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
     return numpy.column_stack((x, y)).astype(int)
 
 
-
 def trainModel(training_data, data_model, alpha=.001):
     """
     Use logistic regression to train weights for all fields in the data model
     """
-    
+
     labels = training_data['label']
     examples = training_data['distances']
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
-    for i, name in enumerate(data_model['fields']) :
+    for i, name in enumerate(data_model['fields']):
         data_model['fields'][name]['weight'] = float(weight[i])
 
     data_model['bias'] = bias
@@ -81,52 +81,47 @@ def fieldDistances(record_pairs, data_model):
                          if v['type'] not in ('Missing Data',
                                               'Interaction')]
 
-    
-    missing_field_indices = [i for i, (field, v) 
+    missing_field_indices = [i for i, (field, v)
                              in enumerate(fields.items())
                              if 'Has Missing' in v and v['Has Missing']]
 
     field_names = fields.keys()
-  
+
     interactions = []
-    for field in fields :
-        if fields[field]['type'] == 'Interaction' :
+    for field in fields:
+        if fields[field]['type'] == 'Interaction':
             interaction_indices = []
-            for interaction_field in fields[field]['Interaction Fields'] :
-                interaction_indices.append(field_names.index(interaction_field))
+            for interaction_field in fields[field]['Interaction Fields']:
+                interaction_indices.append(
+                    field_names.index(interaction_field))
             interactions.append(interaction_indices)
-    
+
     field_distances = numpy.fromiter((compare(record_pair[0][field],
-                                              record_pair[1][field]) 
-                                      for record_pair in record_pairs 
-                                      for field, compare in field_comparators), 
+                                              record_pair[1][field])
+                                      for record_pair in record_pairs
+                                      for field, compare in field_comparators),
                                      'f4')
-    field_distances = field_distances.reshape(-1,len(field_comparators))
+    field_distances = field_distances.reshape(-1, len(field_comparators))
 
     interaction_distances = numpy.empty((field_distances.shape[0],
                                          len(interactions)))
 
-    for i, interaction in enumerate(interactions) :
-        a = numpy.prod(field_distances[...,interaction], axis=1)
-        interaction_distances[...,i] = a
-       
+    for i, interaction in enumerate(interactions):
+        a = numpy.prod(field_distances[..., interaction], axis=1)
+        interaction_distances[..., i] = a
+
     field_distances = numpy.concatenate((field_distances,
                                          interaction_distances),
                                         axis=1)
-
-        
 
     missing_data = numpy.isnan(field_distances)
 
     field_distances[missing_data] = 0
 
-    missing_indicators = 1-missing_data[:,missing_field_indices]
+    missing_indicators = 1-missing_data[:, missing_field_indices]
 
-    
-
-    field_distances = numpy.concatenate((field_distances,
-                                         1-missing_data[:,missing_field_indices]),
-                                        axis=1)
+    field_distances = numpy.concatenate(
+        (field_distances, 1-missing_data[:, missing_field_indices]), axis=1)
 
     return field_distances
 
@@ -162,7 +157,8 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
         scored_pairs = numpy.append(scored_pairs,
                                     numpy.array(zip(id_slice,
                                                     duplicate_scores),
-                                                dtype=score_dtype)[duplicate_scores > threshold], 
+                                                dtype=score_dtype)
+                                    [duplicate_scores > threshold],
                                     axis=0)
         i += 1
         if len(field_distances) < chunk_size:
@@ -175,17 +171,20 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
 
     return scored_pairs
 
-def blockedPairs(blocks) :
-    for block in blocks :
+
+def blockedPairs(blocks):
+    for block in blocks:
 
         block_pairs = itertools.combinations(block, 2)
 
-        for pair in block_pairs :
+        for pair in block_pairs:
             yield pair
+
 
 def split(iterable):
     it = iter(iterable)
-    q = [collections.deque([x]) for x in it.next()] 
+    q = [collections.deque([x]) for x in it.next()]
+
     def proj(qi):
         while True:
             if not qi:
@@ -196,6 +195,7 @@ def split(iterable):
         yield proj(qi)
 
 import collections
+
 
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
@@ -212,7 +212,7 @@ class frozendict(collections.Mapping):
     def __getitem__(self, key):
         return self._d[key]
 
-    def __repr__(self) :
+    def __repr__(self):
         return '<frozendict %s>' % repr(self._d)
 
     def __hash__(self):
@@ -223,10 +223,9 @@ class frozendict(collections.Mapping):
             return h
 
 
-
-
 ## {{{ http://code.activestate.com/recipes/576693/ (r9)
-# Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
+# Backport of OrderedDict() class that runs on
+# Python 2.4, 2.5, 2.6, 2.7 and pypy.
 # Passes Python2.7's test suite and incorporates all the latest updates.
 try:
     from thread import get_ident as _get_ident
@@ -238,14 +237,17 @@ try:
 except ImportError:
     pass
 
+
 class OrderedDict(dict):
     'Dictionary that remembers insertion order'
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
     # The remaining methods are order-aware.
-    # Big-O running times for all methods are the same as for regular dictionaries.
+    # Big-O running times for all methods are the same as for
+    # regular dictionaries.
 
-    # The internal self.__map dictionary maps keys to links in a doubly linked list.
+    # The internal self.__map dictionary maps keys to links in a
+    # doubly linked list.
     # The circular doubly linked list starts and ends with a sentinel element.
     # The sentinel element never gets deleted (this simplifies the algorithm).
     # Each link is stored as a list of length three:  [PREV, NEXT, KEY].
@@ -268,8 +270,9 @@ class OrderedDict(dict):
 
     def __setitem__(self, key, value, dict_setitem=dict.__setitem__):
         'od.__setitem__(i, y) <==> od[i]=y'
-        # Setting a new item creates a new link which goes at the end of the linked
-        # list, and the inherited dictionary is updated with the new key/value pair.
+        # Setting a new item creates a new link which goes at the end of
+        # the linked list, and the inherited dictionary is updated with
+        # the new key/value pair.
         if key not in self:
             root = self.__root
             last = root[0]
@@ -279,7 +282,8 @@ class OrderedDict(dict):
     def __delitem__(self, key, dict_delitem=dict.__delitem__):
         'od.__delitem__(y) <==> del od[y]'
         # Deleting an existing item uses self.__map to find the link which is
-        # then removed by updating the links in the predecessor and successor nodes.
+        # then removed by updating the links in the predecessor and
+        # successor nodes.
         dict_delitem(self, key)
         link_prev, link_next, key = self.__map.pop(key)
         link_prev[1] = link_next
@@ -315,7 +319,7 @@ class OrderedDict(dict):
 
     def popitem(self, last=True):
         '''od.popitem() -> (k, v), return and remove a (key, value) pair.
-        Pairs are returned in LIFO order if last is true or FIFO order if false.
+        Pairs are returned in LIFO order if last is true or FIFO order if false
 
         '''
         if not self:
@@ -367,10 +371,10 @@ class OrderedDict(dict):
     def update(*args, **kwds):
         '''od.update(E, **F) -> None.  Update od from dict/iterable E and F.
 
-        If E is a dict instance, does:           for k in E: od[k] = E[k]
-        If E has a .keys() method, does:         for k in E.keys(): od[k] = E[k]
-        Or if E is an iterable of items, does:   for k, v in E: od[k] = v
-        In either case, this is followed by:     for k, v in F.items(): od[k] = v
+        If E is a dict instance, does:         for k in E: od[k] = E[k]
+        If E has a .keys() method, does:       for k in E.keys(): od[k] = E[k]
+        Or if E is an iterable of items, does: for k, v in E: od[k] = v
+        In either case, this is followed by:   for k, v in F.items(): od[k] = v
 
         '''
         if len(args) > 2:
@@ -395,14 +399,16 @@ class OrderedDict(dict):
         for key, value in kwds.items():
             self[key] = value
 
-    __update = update  # let subclasses override update without breaking __init__
+    __update = update  # let subclasses override update without
+                       # breaking __init__
 
     __marker = object()
 
     def pop(self, key, default=__marker):
-        '''od.pop(k[,d]) -> v, remove specified key and return the corresponding value.
-        If key is not found, d is returned if given, otherwise KeyError is raised.
-
+        '''
+        od.pop(k[,d]) -> v, remove specified key and return the
+        corresponding value. If key is not found, d is returned if given,
+        otherwise KeyError is raised.
         '''
         if key in self:
             result = self[key]
@@ -458,12 +464,12 @@ class OrderedDict(dict):
         return d
 
     def __eq__(self, other):
-        '''od.__eq__(y) <==> od==y.  Comparison to another OD is order-sensitive
-        while comparison to a regular mapping is order-insensitive.
+        '''od.__eq__(y) <==> od==y.  Comparison to another OD is order-
+        sensitive while comparison to a regular mapping is order-insensitive.
 
         '''
         if isinstance(other, OrderedDict):
-            return len(self)==len(other) and self.items() == other.items()
+            return len(self) == len(other) and self.items() == other.items()
         return dict.__eq__(self, other)
 
     def __ne__(self, other):
@@ -483,4 +489,3 @@ class OrderedDict(dict):
         "od.viewitems() -> a set-like object providing a view on od's items"
         return ItemsView(self)
 ## end of http://code.activestate.com/recipes/576693/ }}}
-        

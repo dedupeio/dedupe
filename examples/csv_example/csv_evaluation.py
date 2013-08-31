@@ -3,6 +3,7 @@ import collections
 import itertools
 import os
 
+
 def evaluateDuplicates(found_dupes, true_dupes):
     true_positives = found_dupes.intersection(true_dupes)
     false_positives = found_dupes.difference(true_dupes)
@@ -18,7 +19,7 @@ def evaluateDuplicates(found_dupes, true_dupes):
     print len(true_positives) / float(len(true_dupes))
 
 
-def dupePairs(filename, rowname) :
+def dupePairs(filename, rowname):
     dupe_d = collections.defaultdict(list)
 
     with open(filename) as f:
@@ -26,7 +27,7 @@ def dupePairs(filename, rowname) :
         for row in reader:
             dupe_d[row[rowname]].append(row['Id'])
 
-    if 'x' in dupe_d :
+    if 'x' in dupe_d:
         del dupe_d['x']
 
     dupe_s = set([])
@@ -46,4 +47,3 @@ true_dupes = dupePairs(manual_clusters, 'True Id')
 test_dupes = dupePairs(dedupe_clusters, 'Cluster ID')
 
 evaluateDuplicates(test_dupes, true_dupes)
-

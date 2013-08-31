@@ -8,15 +8,16 @@ import logging
 
 import dedupe.tfidf as tfidf
 
+
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
-    def __init__(self, predicates = None):
+    def __init__(self, predicates=None):
 
-        if predicates is None :
+        if predicates is None:
             self.simple_predicates = set([])
             self.tfidf_predicates = set([])
 
-        else :
+        else:
             predicate_types = predicateTypes(predicates)
             self.simple_predicates, self.tfidf_predicates = predicate_types
 
@@ -24,7 +25,7 @@ class Blocker:
         self.canopies = {}
 
     def __call__(self, instance):
-        if self.tfidf_predicates and not self.canopies :
+        if self.tfidf_predicates and not self.canopies:
             raise ValueError("No canopies defined, but tf-idf predicate "
                              "learned. Did you run the tfIdfBlocks method "
                              "of the blocker?")
@@ -38,7 +39,8 @@ class Blocker:
                 pred_id = F.__name__ + field
                 if isinstance(F, types.FunctionType):
                     record_field = record[field]
-                    block_keys = [str(key) + pred_id for key in F(record_field)]
+                    block_keys = \
+                        [str(key) + pred_id for key in F(record_field)]
                     predicate_keys.append(block_keys)
                 elif F.__class__ is tfidf.TfidfPredicate:
                     center = self.canopies[pred_id][record_id]
@@ -54,28 +56,28 @@ class Blocker:
 
     def tfIdfBlocks(self, data):
         '''Creates TF/IDF canopy of a given set of data'''
-        
+
         if not self.tfidf_predicates:
             return
-            
+
         tfidf_fields = set([])
-        for predicate, field in self.tfidf_predicates :
+        for predicate, field in self.tfidf_predicates:
             tfidf_fields.add(field)
 
         vectors = tfidf.invertIndex(data, tfidf_fields)
         inverted_index, token_vector = vectors
-
 
         logging.info('creating TF/IDF canopies')
 
         num_thresholds = len(self.tfidf_predicates)
 
         for (i, (threshold, field)) in enumerate(self.tfidf_predicates, 1):
-            logging.info('%(i)i/%(num_thresholds)i field %(threshold)2.2f %(field)s',
-                         {'i': i, 
-                          'num_thresholds': num_thresholds, 
-                          'threshold': threshold, 
-                          'field': field})
+            logging.info(
+                '%(i)i/%(num_thresholds)i field %(threshold)2.2f %(field)s',
+                {'i': i,
+                 'num_thresholds': num_thresholds,
+                 'threshold': threshold,
+                 'field': field})
 
             canopy = tfidf.createCanopies(field, threshold,
                                           token_vector, inverted_index)
@@ -122,7 +124,7 @@ def blockTraining(training_pairs,
     logging.info("After removing liberal predicates, %s predicates",
                  len(predicate_set))
 
-    distinct_coverage = coverage.predicateCoverage(predicate_set, 
+    distinct_coverage = coverage.predicateCoverage(predicate_set,
                                                    training_distinct)
 
     final_predicate_set = findOptimumBlocking(training_dupes,
@@ -132,13 +134,14 @@ def blockTraining(training_pairs,
                                               coverage)
 
     logging.info('Final predicate set:')
-    for predicate in final_predicate_set :
+    for predicate in final_predicate_set:
         logging.info([(pred.__name__, field) for pred, field in predicate])
 
     if final_predicate_set:
         return final_predicate_set
     else:
-        raise ValueError('No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data')
+        raise ValueError('No predicate found! We could not learn a single good\
+                          predicate. Maybe give Dedupe more training data')
 
 
 def findOptimumBlocking(uncovered_dupes,
@@ -164,11 +167,11 @@ def findOptimumBlocking(uncovered_dupes,
     # predicates, the denominators factor out and our coverage
     # estimator becomes
     #
-    # (predicate_covered_dupe_pairs + 1)/ (predicate_covered_distinct_pairs + 1)
+    # (predicate_covered_dupe_pairs + 1)/ (predicate_covered_distinct_pairs +1)
 
     dupe_coverage = coverage.predicateCoverage(predicate_set,
                                                uncovered_dupes)
-    
+
     uncovered_dupes = set(uncovered_dupes)
 
     final_predicate_set = []
@@ -176,7 +179,7 @@ def findOptimumBlocking(uncovered_dupes,
 
         best_cover = 0
         best_predicate = None
-        for predicate in dupe_coverage :
+        for predicate in dupe_coverage:
             dupes = len(dupe_coverage[predicate])
             distinct = len(distinct_coverage[predicate])
             cover = (dupes + 1.0)/(distinct + 1.0)
@@ -186,41 +189,35 @@ def findOptimumBlocking(uncovered_dupes,
                 best_distinct = distinct
                 best_dupes = dupes
 
-
         if not best_predicate:
             logging.warning('Ran out of predicates')
             break
 
         final_predicate_set.append(best_predicate)
         predicate_set.remove(best_predicate)
-        
+
         uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
         dupe_coverage = coverage.predicateCoverage(predicate_set,
                                                    uncovered_dupes)
-
 
         logging.debug([(pred.__name__, field)
                       for pred, field in best_predicate])
         logging.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
                       'found_distinct: %(found_distinct)d, '
                       'uncovered dupes: %(uncovered)d',
-                      {'cover' : best_cover,
-                       'found_dupes' : best_dupes,
-                       'found_distinct' : best_distinct,
-                       'uncovered' : len(uncovered_dupes)
+                      {'cover': best_cover,
+                       'found_dupes': best_dupes,
+                       'found_distinct': best_distinct,
+                       'uncovered': len(uncovered_dupes)
                        })
-
-
-
 
     return final_predicate_set
 
 
-
-class Coverage() :
-    def __init__(self, predicate_set, pairs) :
+class Coverage():
+    def __init__(self, predicate_set, pairs):
         self.overlapping = defaultdict(set)
-        self.blocks = defaultdict(lambda : defaultdict(set))
+        self.blocks = defaultdict(lambda: defaultdict(set))
 
         basic_preds, tfidf_preds = predicateTypes(predicate_set)
 
@@ -230,42 +227,41 @@ class Coverage() :
         logging.info("Calculating coverage of tf-idf predicates")
         self.canopyOverlap(tfidf_preds, pairs)
 
-        for predicate in predicate_set :
-            covered_pairs = set.intersection(*(self.overlapping[basic_predicate]
-                                               for basic_predicate
-                                               in predicate))
+        for predicate in predicate_set:
+            covered_pairs = set.intersection(
+                *(self.overlapping[basic_predicate] for basic_predicate
+                    in predicate))
             self.overlapping[predicate] = covered_pairs
 
-
     def simplePredicateOverlap(self,
-                                basic_predicates,
-                                pairs) :
+                               basic_predicates,
+                               pairs):
 
-        for basic_predicate in basic_predicates :
-            (F, field) = basic_predicate        
-            for pair in pairs :
+        for basic_predicate in basic_predicates:
+            (F, field) = basic_predicate
+            for pair in pairs:
                 field_predicate_1 = F(pair[0][field])
 
                 if field_predicate_1:
                     field_predicate_2 = F(pair[1][field])
 
-                    if field_predicate_2 :
-                        field_preds = set(field_predicate_2) & set(field_predicate_1)
-                        if field_preds :
+                    if field_predicate_2:
+                        field_preds = \
+                            (set(field_predicate_2) & set(field_predicate_1))
+                        if field_preds:
                             self.overlapping[basic_predicate].add(pair)
 
-                        for field_pred in field_preds :
+                        for field_pred in field_preds:
                             self.blocks[basic_predicate][field_pred].add(pair)
 
     def canopyOverlap(self,
-                       tfidf_predicates,
-                       record_pairs) :
+                      tfidf_predicates,
+                      record_pairs):
 
         # uniquify records
         docs = list(set(itertools.chain(*record_pairs)))
         id_records = list(itertools.izip(itertools.count(), docs))
         record_ids = dict(itertools.izip(docs, itertools.count()))
-
 
         blocker = Blocker()
         blocker.tfidf_predicates = tfidf_predicates
@@ -273,45 +269,46 @@ class Coverage() :
 
         for (threshold, field) in blocker.tfidf_predicates:
             canopy = blocker.canopies[threshold.__name__ + field]
-            for record_1, record_2 in record_pairs :
+            for record_1, record_2 in record_pairs:
                 id_1 = record_ids[record_1]
                 id_2 = record_ids[record_2]
                 if canopy[id_1] == canopy[id_2]:
-                    self.overlapping[(threshold, field)].add((record_1, record_2))
-                    self.blocks[(threshold, field)][canopy[id_1]].add((record_1, record_2))
-
+                    self.overlapping[(threshold, field)].add(
+                        (record_1, record_2))
+                    self.blocks[(threshold, field)][canopy[id_1]].add(
+                        (record_1, record_2))
 
     def predicateCoverage(self,
                           predicate_set,
-                          pairs) :
+                          pairs):
 
         coverage = defaultdict(set)
         pairs = set(pairs)
 
-        for predicate in predicate_set :
+        for predicate in predicate_set:
             covered_pairs = pairs.intersection(self.overlapping[predicate])
-            if covered_pairs :
+            if covered_pairs:
                 coverage[predicate] = covered_pairs
 
         return coverage
 
     def predicateBlocks(self,
                         predicate_set,
-                        pairs) :
+                        pairs):
 
         predicate_blocks = {}
-        blocks = defaultdict(lambda : defaultdict(set))
+        blocks = defaultdict(lambda: defaultdict(set))
 
         pairs = set(pairs)
 
-        
-        for basic_predicate in self.blocks :
-            for block_key, block_group in self.blocks[basic_predicate].iteritems() :
+        for basic_predicate in self.blocks:
+            block_iter = self.blocks[basic_predicate].iteritems()
+            for block_key, block_group in block_iter:
                 block_group = pairs.intersection(block_group)
-                if block_group :
+                if block_group:
                     blocks[basic_predicate][block_key] = block_group
 
-        for predicate in predicate_set :
+        for predicate in predicate_set:
             block_groups = itertools.product(*(blocks[basic_predicate].values()
                                                for basic_predicate
                                                in predicate))
@@ -323,7 +320,7 @@ class Coverage() :
         return predicate_blocks
 
 
-def predicateTypes(predicates) :
+def predicateTypes(predicates):
     tfidf_predicates = set([])
     simple_predicates = set([])
 
@@ -335,5 +332,3 @@ def predicateTypes(predicates) :
                 simple_predicates.add((pred, field))
 
     return simple_predicates, tfidf_predicates
-
-
