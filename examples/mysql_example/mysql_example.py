@@ -332,17 +332,18 @@ c.execute("CREATE TEMPORARY TABLE e_map "
           "RIGHT JOIN donors USING(donor_id)")
 
 
-c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) AS name, "
-          "donation_totals.totals AS totals "
-          "FROM donors INNER JOIN "
-          "(SELECT canon_id, SUM(amount) AS totals "
-          " FROM contributions INNER JOIN e_map "
-          " USING (donor_id) "
-          " GROUP BY (canon_id) "
-          " ORDER BY totals "
-          " DESC LIMIT 10) "
-          "AS donation_totals "
-          "WHERE donors.donor_id = donation_totals.canon_id")
+c.execute(
+    "SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) AS name, "
+    "donation_totals.totals AS totals "
+    "FROM donors INNER JOIN "
+    "(SELECT canon_id, SUM(amount) AS totals "
+    " FROM contributions INNER JOIN e_map "
+    " USING (donor_id) "
+    " GROUP BY (canon_id) "
+    " ORDER BY totals "
+    " DESC LIMIT 10) "
+    "AS donation_totals "
+    "WHERE donors.donor_id = donation_totals.canon_id")
 
 
 print "Top Donors (deduped)"
@@ -352,13 +353,14 @@ for row in c.fetchall():
 
 # Compare this to what we would have gotten if we hadn't done any
 # deduplication
-c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) as name, "
-          "SUM(contributions.amount) AS totals "
-          "FROM donors INNER JOIN contributions "
-          "USING (donor_id) "
-          "GROUP BY (donor_id) "
-          "ORDER BY totals DESC "
-          "LIMIT 10")
+c.execute(
+    "SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) as name, "
+    "SUM(contributions.amount) AS totals "
+    "FROM donors INNER JOIN contributions "
+    "USING (donor_id) "
+    "GROUP BY (donor_id) "
+    "ORDER BY totals DESC "
+    "LIMIT 10")
 
 print "Top Donors (raw)"
 for row in c.fetchall():

@@ -31,7 +31,8 @@ contributions_txt_file = 'Illinois-campaign-contributions.txt'
 
 if not os.path.exists(contributions_zip_file):
     print 'downloading', contributions_zip_file, '(~60mb) ...'
-    u = urllib2.urlopen('https://s3.amazonaws.com/dedupe-data/Illinois-campaign-contributions.txt.zip')
+    u = urllib2.urlopen('https://s3.amazonaws.com/dedupe-data/'
+                        'Illinois-campaign-contributions.txt.zip')
     localFile = open(contributions_zip_file, 'w')
     localFile.write(u.read())
     localFile.close()
@@ -120,7 +121,8 @@ conn.commit()
 
 print 'creating recipients table...'
 c.execute("CREATE TABLE recipients "
-          "(recipient_id INTEGER PRIMARY KEY AUTO_INCREMENT, name VARCHAR(70)) "
+          "(recipient_id INTEGER PRIMARY KEY AUTO_INCREMENT, "
+          " name VARCHAR(70)) "
           "CHARACTER SET utf8 COLLATE utf8_unicode_ci")
 
 c.execute("INSERT IGNORE INTO recipients "
@@ -174,7 +176,8 @@ conn.commit()
 print 'nullifying empty strings in donors'
 c.execute("UPDATE donors "
           "SET "
-          "first_name = CASE first_name WHEN '' THEN NULL ELSE first_name END, "
+          "first_name = CASE first_name WHEN '' "
+          "THEN NULL ELSE first_name END, "
           "last_name = CASE last_name WHEN '' THEN NULL ELSE last_name END, "
           "address_1 = CASE address_1 WHEN '' THEN NULL ELSE address_1 END, "
           "address_2 = CASE address_2 WHEN '' THEN NULL ELSE address_2 END, "
