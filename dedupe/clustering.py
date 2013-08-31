@@ -16,10 +16,10 @@ def condensedDistance(dupes):
     distance matrix" required by the hierarchical clustering
     algorithms. Also return a dictionary that maps the distance matrix
     to the record_ids.
-   
+
     The condensed distance matrix is described in the scipy
     documentation of scipy.cluster.hierarchy.linkage
-    http://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+    http://goo.gl/4rVz2g
     '''
 
     candidate_set = numpy.unique(dupes['pairs'])
@@ -50,7 +50,7 @@ def cluster(dupes, id_type, threshold=.5):
     threshold
 
     Keyword arguments:
-    threshold -- number betweent 0 and 1 (default is .5). lowering the 
+    threshold -- number betweent 0 and 1 (default is .5). lowering the
                  number will increase precision, raising it will increase
                  recall
     '''
@@ -75,16 +75,17 @@ def cluster(dupes, id_type, threshold=.5):
 
             (i_to_id, condensed_distances) = condensedDistance(pairs)
             linkage = fastcluster.linkage(condensed_distances,
-                                          method='centroid', 
+                                          method='centroid',
                                           preserve_input=False)
 
-            partition = hcluster.fcluster(linkage, 
+            partition = hcluster.fcluster(linkage,
                                           threshold,
                                           criterion='distance')
 
             for (i, sub_cluster_id) in enumerate(partition):
-                clustering.setdefault(cluster_id + sub_cluster_id, []).append(i_to_id[i])
-            
+                clustering.setdefault(cluster_id +
+                                      sub_cluster_id, []).append(i_to_id[i])
+
             cluster_id += max(partition)
         else:
 
