@@ -21,8 +21,8 @@ def condensedDistance(dupes):
 
     index = {N choose 2}-{N-row choose 2} + (col-row-1)
           = N*(N-1)/2 - (N-row)*(N-row-1)/2 + col - row - 1
-            ^^^^^^^^^   ^^^^^^^^^^^^^^^   
-           matrix_length     row_step
+            ^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^   
+          matrix_length       row_step
     
     where (row,col) is index of an uncondensed square N X N distance matrix.
     
