@@ -23,7 +23,7 @@ def condensedDistance(dupes):
             ^^^^^^^^^   ^^^^^^^^^^^^^^^   
            matrix_length     row_step
     
-    where (row,col) is index of an uncondensed square d X d distance matrix.
+    where (row,col) is index of an uncondensed square N X N distance matrix.
     '''
 
     candidate_set = numpy.unique(dupes['pairs'])
