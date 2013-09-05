@@ -19,11 +19,14 @@ def condensedDistance(dupes):
    
     The formula for an index of the condensed matrix is
 
-    index = N*(N-1)/2 - (N-row)*(N-i-row)/2 + col - row - 1
+    index = {N choose 2}-{N-row choose 2} + (col-row-1)
+          = N*(N-1)/2 - (N-row)*(N-row-1)/2 + col - row - 1
             ^^^^^^^^^   ^^^^^^^^^^^^^^^   
            matrix_length     row_step
     
     where (row,col) is index of an uncondensed square N X N distance matrix.
+    
+    See http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
     '''
 
     candidate_set = numpy.unique(dupes['pairs'])
