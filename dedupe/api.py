@@ -259,13 +259,26 @@ class Dedupe:
             if self.training_data is None :
                 self._initializeTraining()
 
+            activeLearner = training.activeLearning(self.data_sample,
+                                                    self.data_model,
+                                                    self.training_data,
+                                                    self.training_pairs)
+            finished = False
+
+            while not finished :
+                labeled_pair, finished = training_source(activeLearner.getUncertainPair())
+                if not finished :
+                    activeLearner.markPairs(labeled_pairs)
+                
+            self.training_data, self.training_pairs, self.data_model = activeLearner.results()
+
+
+            
+                
+                
             (self.training_data, 
              self.training_pairs,
-             self.data_model) = training.activeLearning(self.data_sample,
-                                                        self.data_model,
-                                                        training_source,
-                                                        self.training_data,
-                                                        self.training_pairs)
+             self.data_model) = 
 
         n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
 

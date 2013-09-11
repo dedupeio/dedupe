@@ -32,81 +32,85 @@ def findUncertainPairs(field_distances, data_model, bias=0.5):
     return numpy.argsort(-informativity)
 
 
-def activeLearning(candidates,
-                   data_model,
-                   labelPairFunction,
-                   training_data,
-                   training_pairs=None):
+class activeLearning(object) :
     """
     Ask the user to label the record pair we are most uncertain of. Train the
     data model, and update our uncertainty. Repeat until user tells us she is
     finished.
     """
+    def __init__(candidates, 
+                 data_model,
+                 training_data,
+                 training_pairs=None) :
 
-    fields = [field for field in data_model['fields']
-              if data_model['fields'][field]['type'] not in ('Missing Data',
-                                                             'Interaction')]
+        self.fields = [field for field in data_model['fields']
+                       if data_model['fields'][field]['type'] not in ('Missing Data',
+                                                                      'Interaction')]
 
+        self.candidates = candidates
 
-    duplicates = []
-    nonduplicates = []
+        self.duplicates = []
+        self.nonduplicates = []
 
-    if training_pairs:
-        nonduplicates.extend(training_pairs[0])
-        duplicates.extend(training_pairs[1])
-
-
-    if training_data.shape[0] == 0 :
-        rand_int = random.randint(0, len(candidates))
-        exact_match = candidates[rand_int]
-        training_data = addTrainingData({1:[exact_match]*2,
-                                         0:[]},
-                                        data_model,
-                                        training_data)
-
-    data_model = core.trainModel(training_data, data_model, .1)
+        if training_pairs:
+            self.nonduplicates.extend(training_pairs[0])
+            self.duplicates.extend(training_pairs[1])
 
 
-    finished = False
+        if training_data.shape[0] == 0 :
+            rand_int = random.randint(0, len(candidates))
+            exact_match = candidates[rand_int]
+            training_data = addTrainingData({1:[exact_match]*2,
+                                             0:[]},
+                                            data_model,
+                                            training_data)
 
-    import time
-    t_train = time.time()
-    field_distances = core.fieldDistances(candidates, data_model)
-    logging.info('calculated fieldDistances in %s seconds',
-                 str(time.time() - t_train))
+        self.data_model = core.trainModel(training_data, data_model, .1)
 
-    seen_indices = set()
 
-    while finished == False:
-        logging.info('finding the next uncertain pair ...')
-        uncertain_indices = findUncertainPairs(field_distances,
-                                               data_model,
-                                               (len(duplicates)/
-                                                (len(nonduplicates)+1.0)))
+        finished = False
+
+        import time
+        t_train = time.time()
+        self.field_distances = core.fieldDistances(candidates, data_model)
+        logging.info('calculated fieldDistances in %s seconds',
+                     str(time.time() - t_train))
+
+        self.seen_indices = set()
+
+    def getPairForTraining(self) :
+        uncertain_indices = findUncertainPairs(self.field_distances,
+                                               self.data_model,
+                                               (len(self.duplicates)/
+                                                (len(self.nonduplicates)+1.0)))
 
         for uncertain_index in uncertain_indices:
-            if uncertain_index not in seen_indices:
-                seen_indices.add(uncertain_index)
+            if uncertain_index not in self.seen_indices:
+                self.seen_indices.add(uncertain_index)
                 break
 
-        uncertain_pairs = [candidates[uncertain_index]]
+        uncertain_pairs = [self.candidates[uncertain_index]]
 
-        (labeled_pairs, finished) = labelPairFunction(uncertain_pairs, fields)
+        return(uncertain_pairs, self.fields)
 
-        nonduplicates.extend(labeled_pairs[0])
-        duplicates.extend(labeled_pairs[1])
+    def markPairs(self, labeled_pairs) :
 
-        training_data = addTrainingData(labeled_pairs, data_model, training_data)
+        self.nonduplicates.extend(labeled_pairs[0])
+        self.duplicates.extend(labeled_pairs[1])
+
+        self.training_data = addTrainingData(labeled_pairs, data_model, training_data)
 
         if len(training_data) > 0:
 
-            data_model = core.trainModel(training_data, data_model, .1)
+            self.data_model = core.trainModel(training_data, data_model, .1)
         else:
             raise ValueError('No training pairs given')
 
-    training_pairs = {0: nonduplicates, 1: duplicates}
+    def results(self) :
 
-    return (training_data, training_pairs, data_model)
+        training_pairs = {0: self.nonduplicates, 1: self.duplicates}
+
+        return (self.training_data, self.training_pairs, self.data_model)
 
 
 def addTrainingData(labeled_pairs, data_model, training_data=[]):
