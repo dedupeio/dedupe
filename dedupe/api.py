@@ -52,7 +52,7 @@ class Dedupe:
 
     # === `Dedupe.__init__` ===
 
-    def __init__(self, init=None):
+    def __init__(self, init=None, data_sample=None):
         """
         Load or initialize a data model.
 
@@ -105,27 +105,28 @@ class Dedupe:
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
+        assert init is not None, 'No Input: must supply either a field ' \
+                                 'definition or a settings file.'
 
-        if init.__class__ is dict and init:
+        assert init is dict or init is str, 'Incorrect Input Type: must supply ' \
+                                            'either a field definition or a ' \
+                                            'settings file.'
+
+        if init.__class__ is dict:
+            assert data_sample is not None, 'If you are not reading settings ' \
+                                            'a file, you must provide a sample ' \
+                                            'of the data'
             self.data_model = _initializeDataModel(init)
             self.predicates = None
-        elif init.__class__ is str and init:
+            self.data_sample = data_sample
+        else :
             (self.data_model,
              self.predicates) = self._readSettings(init)
-        elif init:
-            raise ValueError('Incorrect Input Type: must supply either a '
-                             'field definition or a settings file.'
-                             )
-        else:
-
-            raise ValueError('No Input: must supply either a field '
-                             'definition or a settings file.'
-                             )
+            self.data_sample = None
 
 
         self.training_data = None
         self.training_pairs = None
-        self.data_sample = None
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
@@ -167,10 +168,21 @@ class Dedupe:
         if training_file:
             (self.training_pairs, self.training_data) = self._readTraining(training_file, self.training_data)
 
+    def trainFromFile(self, training_source) :
+        assert training_source.__class__ is str
+
+        logging.info('reading training from file')
+        if self.training_data is None :
+            self._initializeTraining(training_source)
+
+        (self.training_pairs, 
+         self.training_data) = self._readTraining(training_source, 
+                                                  self.training_data)
+
+        self.train()
+
     # === Dedupe.train ===
-    def train(self,
-              data_sample,
-              training_source=None):
+    def train(self, alpha=None) :
         """
         Learn field weights from file of labeled examples or round of 
         interactive labeling
@@ -242,56 +254,20 @@ class Dedupe:
         for this file see the method writeTraining.
         """
 
-        self.data_sample = data_sample
+        if alpha is None :
 
-        if training_source.__class__ is not str and not isinstance(training_source, types.FunctionType):
-            raise ValueError
+            n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
 
-        if training_source.__class__ is str:
-            logging.info('reading training from file')
-            if self.training_data is None :
-                self._initializeTraining(training_source)
+            n_folds = min(max(2,
+                              numpy.sum(self.training_data['label'])/3),
+                          20)
 
-            (self.training_pairs, self.training_data) = self._readTraining(training_source, self.training_data)
+            logging.info('%d folds', n_folds)
 
-        elif isinstance(training_source, types.FunctionType):
-
-            if self.training_data is None :
-                self._initializeTraining()
-
-            activeLearner = training.activeLearning(self.data_sample,
-                                                    self.data_model,
-                                                    self.training_data,
-                                                    self.training_pairs)
-            finished = False
-
-            while not finished :
-                labeled_pair, finished = training_source(activeLearner.getUncertainPair())
-                if not finished :
-                    activeLearner.markPairs(labeled_pairs)
-                
-            self.training_data, self.training_pairs, self.data_model = activeLearner.results()
-
-
-            
-                
-                
-            (self.training_data, 
-             self.training_pairs,
-             self.data_model) = 
-
-        n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
-
-        n_folds = min(max(2,
-                          numpy.sum(self.training_data['label'])/3),
-                      20)
-
-        logging.info('%d folds', n_folds)
-
-        alpha = crossvalidation.gridSearch(self.training_data,
-                                           core.trainModel, 
-                                           self.data_model, 
-                                           k=n_folds)
+            alpha = crossvalidation.gridSearch(self.training_data,
+                                               core.trainModel, 
+                                               self.data_model, 
+                                               k=n_folds)
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model, 
@@ -521,6 +497,61 @@ class Dedupe:
                                                  self.training_data)
 
         return (training_pairs, training_data)
+
+class ActiveDedupe(Dedupe) :
+
+    self.activeLearner = None
+
+    def _initializeActiveLearning(self) :
+        if self.training_data.shape[0] == 0 :
+            rand_int = random.randint(0, len(candidates))
+            exact_match = self.data_sample[rand_int]
+            self.training_data = self._addTrainingData({1:[exact_match]*2,
+                                                        0:[]})
+
+        self.train(alpha=0.1)
+        self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                     self.data_model)
+
+    def getUncertainPair(self) :
+        if self.activeLearner is None :
+            self._initializeActiveLearning()
+
+        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1)
+
+        return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
+
+    def markPair(self, labeled_pairs) :
+        for label, pair in labeled_pairs.items() :
+            self.training_pairs[label].extend(pair)
+
+        self._addTrainingData(labeled_pairs) 
+
+        self.train(alpha=.1)
+
+    def _addTrainingData(labeled_pairs) :
+        """
+        Appends training data to the training data collection.
+        """
+    
+        labels, examples = labeled_pairs.keys(), labeled_pairs.values()
+
+        new_training_data = numpy.empty(len(examples),
+                                        dtype=self.training_data.dtype)
+
+        new_training_data['label'] = labels
+        new_training_data['distances'] = core.fieldDistances(examples, 
+                                                             self.data_model)
+
+        self.training_data = numpy.append(self.training_data, 
+                                          new_training_data)
+
+
+
+
+    
+
+
 
 
 def _initializeDataModel(fields):
