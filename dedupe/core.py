@@ -79,7 +79,8 @@ def fieldDistances(record_pairs, data_model):
     field_comparators = [(field, v['comparator'])
                          for field, v in fields.items()
                          if v['type'] not in ('Missing Data',
-                                              'Interaction')]
+                                              'Interaction',
+                                              'Different Source')]
 
     
     missing_field_indices = [i for i, (field, v) 

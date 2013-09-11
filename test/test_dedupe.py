@@ -230,7 +230,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
 
 class FieldDistances(unittest.TestCase):
-  def test_field_distance(self) :
+  def test_field_distance_simple(self) :
     fieldDistances = dedupe.core.fieldDistances
     deduper = dedupe.Dedupe({'name' : {'type' :'String'},
                              'source' : {'type' : 'Source',
@@ -254,6 +254,25 @@ class FieldDistances(unittest.TestCase):
                                                            deduper.data_model),
                                             numpy.array([[0, 0.647, 1]]), 3)
 
+  def test_field_distance_interaction(self) :
+    fieldDistances = dedupe.core.fieldDistances
+    deduper = dedupe.Dedupe({'first_name' : {'type' :'String', 'Has Missing' : True},
+                             'last_name' : {'type' : 'String'},
+                             'first-last' : {'type' : 'Interaction', 
+                                             'Interaction Fields' : ['first_name', 
+                                                                     'last_name']},
+                             'source' : {'type' : 'Source',
+                                         'Source Names' : ['a', 'b']}})
+
+    record_pairs = (({'first_name' : 'steve', 
+                      'last_name' : 'smith', 
+                      'source' : 'b'}, 
+                     {'first_name' : 'steven', 
+                      'last_name' : 'smith', 
+                      'source' : 'b'}),)
+    print fieldDistances(record_pairs, 
+                         deduper.data_model)
+    print deduper.data_model['fields'].keys()
 
 
 

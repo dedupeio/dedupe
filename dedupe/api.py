@@ -516,6 +516,7 @@ def _initializeDataModel(fields):
     data_model['fields'] = OrderedDict()
 
     interaction_terms = {}
+    source_compare = False
 
     for (k, v) in fields.iteritems():
         if v.__class__ is not dict:
@@ -580,7 +581,7 @@ def _initializeDataModel(fields):
                                  "for fields of type 'Custom'")
             else :
                 v['comparator'] = SourceComparator(v['Source Names'])
-                
+                source_compare = True
             
 
 
@@ -604,9 +605,11 @@ def _initializeDataModel(fields):
 
         data_model['fields'][k] = v
 
+    if source_compare :
+        data_model['fields']['different sources'] = {'weight' : 0,
+                                                     'type' : 'Different Source'}
 
     data_model['fields'].update(interaction_terms)
-
 
     for k, v in data_model['fields'].items() :
         if 'Has Missing' in v :
@@ -650,18 +653,19 @@ def disjunctivePredicates(predicate_set):
 class SourceComparator(object):
     def __init__(self, source_names) :
         assert len(source_names) == 2
-        self.sources = dict(zip(source_names, itertools.count()))
+
+        sources = [(name, name) for name in source_names]
+        sources += list(itertools.combinations(source_names, 2))
+        self.sources = dict(zip(sources, itertools.count()))
+        for k, v in self.sources.items() :
+            self.sources[tuple(sorted(k, reverse=True))] = v
+
+        self.sources_and_null = set(source_names + [''])
     def __call__(self, field_1, field_2):
-        if field_1 == '' and field_2 == '' :
+        sources = (field_1, field_2)
+        if sources in self.sources :
+            return self.sources[sources]
+        elif set(sources) <= self.sources_and_null :
             return numpy.nan
-        elif field_1 == '' and field_2 in self.sources :
-            return numpy.nan
-        elif field_1 in self.sources and field_2 == '' :
-            return numpy.nan 
-        elif field_1 in self.sources and field_2 in self.sources :
-            if field_1 == field_2 :
-                return self.sources[field_1] 
-            else :
-                return 2
         else :
             raise ValueError("field not in Source Names")
