@@ -108,9 +108,9 @@ class Dedupe:
         assert init is not None, 'No Input: must supply either a field ' \
                                  'definition or a settings file.'
 
-        assert init is dict or init is str, 'Incorrect Input Type: must supply ' \
-                                            'either a field definition or a ' \
-                                            'settings file.'
+        assert init.__class__ in (dict, str), 'Incorrect Input Type: must supply ' \
+                                              'either a field definition or a ' \
+                                              'settings file.'
 
         if init.__class__ is dict:
             assert data_sample is not None, 'If you are not reading settings ' \
@@ -124,9 +124,12 @@ class Dedupe:
              self.predicates) = self._readSettings(init)
             self.data_sample = None
 
+        n_fields = len(self.data_model['fields'])
+        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
 
-        self.training_data = None
-        self.training_pairs = None
+        self.training_data = numpy.zeros(0, dtype=training_dtype)
+        self.training_pairs = {0: [], 1: []}
+
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
@@ -149,35 +152,12 @@ class Dedupe:
                                           + tfidf_string_predicates)}
 
 
-    def _initializeTraining(self, training_file=None):
-        """
-        Loads labeled examples from file, if passed.
-
-        Keyword arguments:
-        training_file -- path to a json file of labeled examples
-
-        """
-
-        n_fields = len(self.data_model['fields'])
-
-        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
-
-        self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = None
-
-        if training_file:
-            (self.training_pairs, self.training_data) = self._readTraining(training_file, self.training_data)
-
     def trainFromFile(self, training_source) :
         assert training_source.__class__ is str
 
         logging.info('reading training from file')
-        if self.training_data is None :
-            self._initializeTraining(training_source)
 
-        (self.training_pairs, 
-         self.training_data) = self._readTraining(training_source, 
-                                                  self.training_data)
+        self._readTraining(training_source)
 
         self.train()
 
@@ -481,30 +461,46 @@ class Dedupe:
 
 
 
-    def _readTraining(self, file_name, training_pairs):
+    def _readTraining(self, file_name):
         """Read training pairs from a file"""
         with open(file_name, 'r') as f:
             training_pairs_raw = json.load(f, cls=self.training_decoder)
 
-        training_pairs = {0: [], 1: []}
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
-                training_pairs[int(label)].append((core.frozendict(pair[0]),
+                self.training_pairs[int(label)].append((core.frozendict(pair[0]),
                                                    core.frozendict(pair[1])))
 
-        training_data = training.addTrainingData(training_pairs,
-                                                 self.data_model,
-                                                 self.training_data)
+        self._addTrainingData(self.training_pairs)
 
-        return (training_pairs, training_data)
+
+    def _addTrainingData(self, labeled_pairs) :
+        """
+        Appends training data to the training data collection.
+        """
+    
+        nondupes, dupes = labeled_pairs[0], labeled_pairs[1]
+        labels = ([0] * len(nondupes) 
+                  + [1] * len(dupes))
+
+        new_training_data = numpy.empty(len(labels),
+                                        dtype=self.training_data.dtype)
+
+        new_training_data['label'] = labels
+        new_training_data['distances'] = core.fieldDistances(nondupes + dupes, 
+                                                             self.data_model)
+
+        self.training_data = numpy.append(self.training_data, 
+                                          new_training_data)
+
 
 class ActiveDedupe(Dedupe) :
 
-    self.activeLearner = None
+    activeLearner = None
 
     def _initializeActiveLearning(self) :
         if self.training_data.shape[0] == 0 :
-            rand_int = random.randint(0, len(candidates))
+            rand_int = random.randint(0, len(self.data_sample))
             exact_match = self.data_sample[rand_int]
             self.training_data = self._addTrainingData({1:[exact_match]*2,
                                                         0:[]})
@@ -516,35 +512,18 @@ class ActiveDedupe(Dedupe) :
     def getUncertainPair(self) :
         if self.activeLearner is None :
             self._initializeActiveLearning()
-
-        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1)
+        
+        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1.0)
 
         return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
 
-    def markPair(self, labeled_pairs) :
+    def markPairs(self, labeled_pairs) :
         for label, pair in labeled_pairs.items() :
             self.training_pairs[label].extend(pair)
 
         self._addTrainingData(labeled_pairs) 
 
         self.train(alpha=.1)
-
-    def _addTrainingData(labeled_pairs) :
-        """
-        Appends training data to the training data collection.
-        """
-    
-        labels, examples = labeled_pairs.keys(), labeled_pairs.values()
-
-        new_training_data = numpy.empty(len(examples),
-                                        dtype=self.training_data.dtype)
-
-        new_training_data['label'] = labels
-        new_training_data['distances'] = core.fieldDistances(examples, 
-                                                             self.data_model)
-
-        self.training_data = numpy.append(self.training_data, 
-                                          new_training_data)
 
 
 

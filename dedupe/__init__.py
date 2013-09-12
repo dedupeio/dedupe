@@ -24,6 +24,7 @@ import predicates
 import training
 import crossvalidation
 from api import Dedupe
+from api import ActiveDedupe
 from core import randomPairs
 from convenience import dataSample
 from convenience import blockData

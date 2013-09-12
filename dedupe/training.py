@@ -38,7 +38,7 @@ class ActiveLearning(object) :
     data model, and update our uncertainty. Repeat until user tells us she is
     finished.
     """
-    def __init__(candidates, data_model) :
+    def __init__(self, candidates, data_model) :
 
         self.candidates = candidates
         self.fields = [field for field in data_model['fields']
