@@ -102,7 +102,7 @@ We are trying to figure out a range of typical runtimes for diferent hardware. P
 
 ## Testing
 
-[<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)
+[<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)[![Coverage Status](https://coveralls.io/repos/open-city/dedupe/badge.png?branch=master)](https://coveralls.io/r/open-city/dedupe?branch=master)
 
 Unit tests of core dedupe functions
 ```bash

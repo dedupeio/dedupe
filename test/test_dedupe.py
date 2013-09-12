@@ -91,7 +91,7 @@ class DedupeClassTest(unittest.TestCase):
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
             }
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, [])
 
     string_predicates = (dedupe.predicates.wholeFieldPredicate,
                          dedupe.predicates.tokenFieldPredicate,
