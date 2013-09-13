@@ -20,7 +20,7 @@ install:
   - python setup.py develop
 # command to run tests, e.g. python setup.py test
 script: 
-  - coverage run --source=dedupe --omit=dedupe/backport.py -m nose -I canonical_test
+  - coverage run -m nose -I canonical_test
   - nosetests test/canonical_test*
 after_success:
     coveralls
