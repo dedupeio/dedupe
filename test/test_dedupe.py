@@ -358,7 +358,7 @@ class BlockingTest(unittest.TestCase):
     
     coverage_items = coverage.overlapping.items()
     output = overlap
-    self.assertEqual(zip(*coverage_items)[1],zip(*output)[1])
+    self.assertEqual(set(zip(*coverage_items)[1]),set(zip(*output)[1]))
  
 
 class PredicatesTest(unittest.TestCase):
