@@ -48,6 +48,9 @@ class DataModelTest(unittest.TestCase) :
     self.assertRaises(AssertionError, DataModel, {'a' : {'foo' : 'bar'}})
     self.assertRaises(AssertionError, DataModel, {'a' : {'type' : 'bar'}})
     self.assertRaises(AssertionError, DataModel, {'a-b' : {'type' : 'Interaction'}})
+    self.assertRaises(AssertionError, DataModel, {'a-b' : {'type' : 'Custom'}})
+    self.assertRaises(AssertionError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
+
     self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction',
                                                            'Interaction Fields' : ['a', 'b']}})
     assert DataModel({'a' : {'type' : 'String'}}) == \

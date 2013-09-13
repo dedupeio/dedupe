@@ -73,7 +73,7 @@ class DataModel(dict) :
             "{'Phone': {type: 'String'}}"
 
         if definition['type'] == 'Custom' :
-            assert 'comparator' in v, \
+            assert 'comparator' in definition, \
                 "For 'Custom' field types you must define " \
                 "a 'comparator' function in the field "\
                 "definition. "
