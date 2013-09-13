@@ -25,31 +25,32 @@ class DataModel(dict) :
                 v['comparator'] = compareJaccard
             elif v['type'] == 'String' :
                 v['comparator'] = normalizedAffineGapDistance
-            elif v['type'] == 'Interaction' :
-                for field in v['Interaction Fields'] :
-                    if 'Has Missing' in fields[field] :
-                        v.update({'Has Missing' : True})
-                        break
 
-                v.update({'weight': 0})
+            if v['type'] != 'Interaction' :
+                self['fields'][k] = v
+
+            else :
+                
+                if any(fields[field]['Has Missing']
+                       for field in v['Interaction Fields'] if 
+                       'Has Missing' in fields[field]) :
+                    v.update({'Has Missing' : True})
+
                 interaction_terms[k] = v
-                # We want the interaction terms to be at the end of of the
-                # ordered dict so we'll add them after we finish
-                # processing all the other fields
-                continue
-
-            self['fields'][k] = v
 
         self['fields'].update(interaction_terms)
+        
+        self.missingData()
 
+    def missingData(self) :
         for k, v in self['fields'].items() :
            if 'Has Missing' in v :
                if v['Has Missing'] :
-                   self['fields'][k + ': not_missing'] = {'weight' : 0,
-                                                                  'type'   : 'Missing Data'}
+                   self['fields'][k + ': not_missing'] = {'type'   : 'Missing Data'}
            else :
                self['fields'][k].update({'Has Missing' : False})
 
+        
 
     def checkFieldDefinition(self, definition) :
         assert definition.__class__ is dict, \
@@ -82,7 +83,7 @@ class DataModel(dict) :
                 "defined for fields of type 'Custom'"
 
         if definition['type'] == 'Interaction' :
-            assert 'Interaction Fields' in v, \
+            assert 'Interaction Fields' in definition, \
                 'No "Interaction Fields" defined'
 
 
