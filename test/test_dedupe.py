@@ -132,12 +132,11 @@ class DataModelTest(unittest.TestCase) :
                                         'Interaction Fields': ['a', 'b']})]),
        'bias': 0}
 
-class DedupeClassTest(unittest.TestCase):
-  def setUp(self) : 
-    random.seed(123) 
-    self.data_sample = dedupe.dataSample(DATA, 5)
+class DedupeInitializeTest(unittest.TestCase) :
+  def test_initialize_fields(self) :
+    self.assertRaises(AssertionError, dedupe.Dedupe)
+    self.assertRaises(AssertionError, dedupe.Dedupe, [])
 
-  def test_initialize(self) :
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
               }
@@ -158,6 +157,46 @@ class DedupeClassTest(unittest.TestCase):
                                      in [0.2, 0.4, 0.6, 0.8]])
 
     assert deduper.blocker_types == {'String' : string_predicates + tfidf_string_predicates}
+
+
+class DedupeClassTest(unittest.TestCase):
+  def setUp(self) : 
+    random.seed(123) 
+    fields =  { 'name' : {'type': 'String'}, 
+                'age'  : {'type': 'String'},
+              }
+    data_sample = dedupe.dataSample(DATA, 6)
+    self.deduper = dedupe.Dedupe(fields, data_sample)
+
+  def test_add_training(self) :
+    training_pairs = {0 : self.deduper.data_sample[0:3],
+                      1 : self.deduper.data_sample[3:6]}
+    self.deduper._addTrainingData(training_pairs)
+    numpy.testing.assert_equal(self.deduper.training_data['label'],
+                               [0, 0, 0, 1, 1, 1])
+    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
+                                      numpy.array(
+                                        [[5.5, 5.0178], 
+                                         [5.5, 3.4431],
+                                         [3.0, 5.5],
+                                         [3.0, 5.125], 
+                                         [5.5, 5.1931],
+                                         [5.5, 5.0178]]),
+                                      4)
+    self.deduper._addTrainingData(training_pairs)
+    numpy.testing.assert_equal(self.deduper.training_data['label'],
+                               [0, 0, 0, 1, 1, 1]*2)
+    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
+                                      numpy.array(
+                                        [[5.5, 5.0178], 
+                                         [5.5, 3.4431],
+                                         [3.0, 5.5],
+                                         [3.0, 5.125], 
+                                         [5.5, 5.1931],
+                                         [5.5, 5.0178]]*2),
+                                      4)
+
+
 
 
 class CoreTest(unittest.TestCase):
