@@ -27,14 +27,7 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
-from dedupe.distance.affinegap import normalizedAffineGapDistance
-from dedupe.distance.haversine import compareLatLong
-from dedupe.distance.jaccard import compareJaccard
-
-try:
-    from collections import OrderedDict
-except ImportError :
-    from core import OrderedDict
+from dedupe.datamodel import DataModel
 
 
 class Dedupe:
@@ -116,7 +109,7 @@ class Dedupe:
             assert data_sample is not None, 'If you are not reading settings ' \
                                             'a file, you must provide a sample ' \
                                             'of the data'
-            self.data_model = _initializeDataModel(init)
+            self.data_model = DataModel(init)
             self.predicates = None
             self.data_sample = data_sample
         else :
@@ -528,106 +521,6 @@ class ActiveDedupe(Dedupe) :
 
 
 
-    
-
-
-
-
-def _initializeDataModel(fields):
-    """Initialize a data_model with a field definition"""
-    data_model = {}
-    data_model['fields'] = OrderedDict()
-
-    interaction_terms = {}
-
-    for (k, v) in fields.iteritems():
-        if v.__class__ is not dict:
-            raise ValueError("Incorrect field specification: field "
-                             "specifications are dictionaries that must "
-                             "include a type definition, ex. "
-                             "{'Phone': {type: 'String'}}"
-                             )
-        elif 'type' not in v:
-
-            raise ValueError("Missing field type: field "
-                             "specifications are dictionaries that must "
-                             "include a type definition, ex. "
-                             "{'Phone': {type: 'String'}}"
-                             )
-        elif v['type'] not in ['String',
-                               'LatLong',
-                               'Set',
-                               'Custom',
-                               'Interaction']:
-
-            raise ValueError("Invalid field type: field "
-                             "specifications are dictionaries that must "
-                             "include a type definition, ex. "
-                             "{'Phone': {type: 'String'}}"
-                             )
-        elif v['type'] == 'LatLong' :
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-            else :
-                v['comparator'] = compareLatLong
-
-        elif v['type'] == 'Set' :
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-            else :
-                v['comparator'] = compareJaccard
-
-
-        elif v['type'] == 'String' :
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                 "for fields of type 'Custom'")
-            else :
-                v['comparator'] = normalizedAffineGapDistance
-
-        elif v['type'] == 'Custom' and 'comparator' not in v :
-            raise ValueError("For 'Custom' field types you must define "
-                             "a 'comparator' fucntion in the field "
-                             "definition. ")
-
-        elif v['type'] == 'Interaction' :
-            if 'Interaction Fields' in v :
-                 for field in v['Interaction Fields'] :
-                     if 'Has Missing' in fields[field] :
-                         v.update({'Has Missing' : True})
-                         break
-            else :
-                raise ValueError('No "Interaction Fields" defined')
-
-            v.update({'weight': 0})
-            interaction_terms[k] = v
-            # We want the interaction terms to be at the end of of the
-            # ordered dict so we'll add them after we finish
-            # processing all the other fields
-            continue
-            
-        
-
-        data_model['fields'][k] = v
-
-
-    data_model['fields'].update(interaction_terms)
-
-
-    for k, v in data_model['fields'].items() :
-        if 'Has Missing' in v :
-             if v['Has Missing'] :
-                 data_model['fields'][k + ': not_missing'] = {'weight' : 0,
-                                                              'type'   : 'Missing Data'}
-        else :
-            data_model['fields'][k].update({'Has Missing' : False})
-         
-
-
-    data_model['bias'] = 0
-    return data_model
 
 def predicateGenerator(blocker_types, data_model) :
     predicate_set = []

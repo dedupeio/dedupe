@@ -5,73 +5,22 @@ import random
 import itertools
 import warnings
 
-class CoreTest(unittest.TestCase):
-  def setUp(self) :
-    random.seed(123)
-
-    self.ids_str = iter([('1', '2'), ('2', '3'), ('4', '5'), ('6', '7'), ('8','9')])
-
-    self.records = iter([({'name': 'Margret', 'age': '32'}, {'name': 'Marga', 'age': '33'}), \
-                         ({'name': 'Marga', 'age': '33'}, {'name': 'Maria', 'age': '19'}), \
-                         ({'name': 'Maria', 'age': '19'}, {'name': 'Monica', 'age': '39'}), \
-                         ({'name': 'Monica', 'age': '39'}, {'name': 'Mira', 'age': '47'}), \
-                         ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
-                        ])
-
-    self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
-    self.data_model = {}
-    self.data_model['fields'] = dedupe.core.OrderedDict()
-    v = {}
-    v.update({'Has Missing': False, 'type': 'String', 'comparator': self.normalizedAffineGapDistance, \
-              'weight': -1.0302742719650269})
-    self.data_model['fields']['name'] = v
-    self.data_model['bias'] = 4.76
-
-    score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
-    self.desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
-                                             (['4', '5'], 0.78), (['6', '7'], 0.72), \
-                                             (['8', '9'], 0.84)], dtype=score_dtype)
-
-
-  def test_random_pair(self) :
-    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-    assert dedupe.core.randomPairs(10, 10).any()
-    assert dedupe.core.randomPairs(10*1000000000, 10).any()
-    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
-                             numpy.array([[ 1,  8],
-                                          [ 5,  7],
-                                          [ 1,  2],
-                                          [ 3,  7],
-                                          [ 2,  9]]))
-
-  def test_score_duplicates(self):
-    actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.ids_str,
-                                                          self.records,
-                                                          'S1',
-                                                          self.data_model)
-
-    scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
-
-    numpy.testing.assert_almost_equal(self.desired_scored_pairs['score'], scores_str)
-    numpy.testing.assert_equal(self.desired_scored_pairs['pairs'], actual_scored_pairs_str['pairs'])
+DATA = {  100 : {"name": "Bob", "age": "50"},
+          105 : {"name": "Charlie", "age": "75"},
+          110 : {"name": "Meredith", "age": "40"},
+          115 : {"name": "Sue", "age": "10"}, 
+          120 : {"name": "Jimmy", "age": "20"},
+          125 : {"name": "Jimbo", "age": "21"},
+          130 : {"name": "Willy", "age": "35"},
+          135 : {"name": "William", "age": "35"},
+          140 : {"name": "Martha", "age": "19"},
+          145 : {"name": "Kyle", "age": "27"}
+        }
 
 class ConvenienceTest(unittest.TestCase):
-  def setUp(self):
-    self.data_d = {  100 : {"name": "Bob", "age": "50"},
-                     105 : {"name": "Charlie", "age": "75"},
-                     110 : {"name": "Meredith", "age": "40"},
-                     115 : {"name": "Sue", "age": "10"}, 
-                     120 : {"name": "Jimmy", "age": "20"},
-                     125 : {"name": "Jimbo", "age": "21"},
-                     130 : {"name": "Willy", "age": "35"},
-                     135 : {"name": "William", "age": "35"},
-                     140 : {"name": "Martha", "age": "19"},
-                     145 : {"name": "Kyle", "age": "27"},
-                  }
-    random.seed(123)
-
   def test_data_sample(self):
-    assert dedupe.convenience.dataSample(self.data_d,5) == \
+    random.seed(123)
+    assert dedupe.dataSample(DATA ,5) == \
             (({'age': '27', 'name': 'Kyle'}, {'age': '50', 'name': 'Bob'}),
             ({'age': '27', 'name': 'Kyle'}, {'age': '35', 'name': 'William'}),
             ({'age': '10', 'name': 'Sue'}, {'age': '35', 'name': 'William'}),
@@ -80,17 +29,20 @@ class ConvenienceTest(unittest.TestCase):
 
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      dedupe.convenience.dataSample(self.data_d,10000)
+      dedupe.dataSample(DATA,10000)
       assert len(w) == 1
       assert str(w[-1].message) == "Requested sample of size 10000, only returning 45 possible pairs"
 
 
- 
 class DedupeClassTest(unittest.TestCase):
+  def setUp(self) : 
+    random.seed(123) 
+    self.data_sample = dedupe.dataSample(DATA, 5)
+
   def test_initialize(self) :
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
-            }
+              }
     deduper = dedupe.Dedupe(fields, [])
 
     string_predicates = (dedupe.predicates.wholeFieldPredicate,
@@ -109,6 +61,55 @@ class DedupeClassTest(unittest.TestCase):
 
     assert deduper.blocker_types == {'String' : string_predicates + tfidf_string_predicates}
 
+
+
+
+
+class CoreTest(unittest.TestCase):
+
+  def test_random_pair(self) :
+    random.seed(123)
+    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+    assert dedupe.core.randomPairs(10, 10).any()
+    assert dedupe.core.randomPairs(10*1000000000, 10).any()
+    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
+                             numpy.array([[ 1,  8],
+                                          [ 5,  7],
+                                          [ 1,  2],
+                                          [ 3,  7],
+                                          [ 2,  9]]))
+
+  def test_score_duplicates(self):
+    score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
+    desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
+                                        (['4', '5'], 0.78), (['6', '7'], 0.72), \
+                                        (['8', '9'], 0.84)], dtype=score_dtype)
+    ids_str = iter([('1', '2'), ('2', '3'), ('4', '5'), ('6', '7'), ('8','9')])
+    records = iter([({'name': 'Margret', 'age': '32'}, {'name': 'Marga', 'age': '33'}), \
+                    ({'name': 'Marga', 'age': '33'}, {'name': 'Maria', 'age': '19'}), \
+                    ({'name': 'Maria', 'age': '19'}, {'name': 'Monica', 'age': '39'}), \
+                    ({'name': 'Monica', 'age': '39'}, {'name': 'Mira', 'age': '47'}), \
+                    ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
+                  ])
+
+    data_model = {'fields' : dedupe.core.OrderedDict()} 
+    data_model['fields']['name'] = {'type': 'String', 
+                                    'comparator': dedupe.affinegap.normalizedAffineGapDistance, 
+                                    'weight': -1.0302742719650269}
+    data_model['bias'] = 4.76
+
+
+    actual_scored_pairs_str = dedupe.core.scoreDuplicates(ids_str,
+                                                          records,
+                                                          'S1',
+                                                          data_model)
+
+    scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
+
+    numpy.testing.assert_almost_equal(desired_scored_pairs['score'], 
+                                      scores_str)
+    numpy.testing.assert_equal(desired_scored_pairs['pairs'], 
+                               actual_scored_pairs_str['pairs'])
   
 
 
