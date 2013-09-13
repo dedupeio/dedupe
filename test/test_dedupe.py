@@ -92,7 +92,7 @@ class CoreTest(unittest.TestCase):
                     ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
                   ])
 
-    data_model = {'fields' : dedupe.core.OrderedDict()} 
+    data_model = {'fields' : dedupe.backport.OrderedDict()} 
     data_model['fields']['name'] = {'type': 'String', 
                                     'comparator': dedupe.affinegap.normalizedAffineGapDistance, 
                                     'weight': -1.0302742719650269}
