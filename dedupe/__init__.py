@@ -24,6 +24,7 @@ import predicates
 import training
 import crossvalidation
 import datamodel
+import backport
 from api import Dedupe
 from api import ActiveDedupe
 from core import randomPairs
