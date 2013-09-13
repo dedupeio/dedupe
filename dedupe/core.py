@@ -13,6 +13,7 @@ import numpy
 
 import lr
 from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
+from dedupe.datamodel import DataModel
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
@@ -76,10 +77,10 @@ def trainModel(training_data, data_model, alpha=.001):
 def fieldDistances(record_pairs, data_model):
     fields = data_model['fields']
 
-    field_comparators = [(field, v['comparator'])
-                         for field, v in fields.items()
-                         if v['type'] not in ('Missing Data',
-                                              'Interaction')]
+    assert data_model.__class__ is DataModel
+
+    field_comparators = [(field, fields[field]['comparator'])
+                         for field in data_model.comparison_fields]
 
     
     missing_field_indices = [i for i, (field, v) 
@@ -89,19 +90,32 @@ def fieldDistances(record_pairs, data_model):
     field_names = fields.keys()
   
     interactions = []
+    source_index = None
+
     for field in fields :
         if fields[field]['type'] == 'Interaction' :
             interaction_indices = []
             for interaction_field in fields[field]['Interaction Fields'] :
                 interaction_indices.append(field_names.index(interaction_field))
             interactions.append(interaction_indices)
-    
+        if fields[field]['type'] == 'Source' :
+            source_index = field_names.index(field) 
+
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 
                                       for field, compare in field_comparators), 
                                      'f4')
     field_distances = field_distances.reshape(-1,len(field_comparators))
+
+    if source_index is not None:
+        different_sources = field_distances[:, source_index] == 2
+        field_distances[:, different_sources] = 0
+        different_sources = different_sources.reshape(-1, 1)
+        field_distances = numpy.concatenate((field_distances,
+                                             different_sources.astype(float)),
+                                            axis=1)
+
 
     interaction_distances = numpy.empty((field_distances.shape[0],
                                          len(interactions)))
@@ -121,12 +135,12 @@ def fieldDistances(record_pairs, data_model):
     field_distances[missing_data] = 0
 
     missing_indicators = 1-missing_data[:,missing_field_indices]
-
     
 
     field_distances = numpy.concatenate((field_distances,
-                                         1-missing_data[:,missing_field_indices]),
+                                         missing_indicators),
                                         axis=1)
+
 
     return field_distances
 

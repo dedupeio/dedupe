@@ -6,6 +6,7 @@ except ImportError :
 from dedupe.distance.affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
 from dedupe.distance.jaccard import compareJaccard
+from dedupe.distance.categorical import SourceComparator
 
 
 class DataModel(dict) :
@@ -15,6 +16,7 @@ class DataModel(dict) :
         self['fields'] = OrderedDict()
 
         interaction_terms = {}
+        sources = []
 
         for k, v in fields.items():
             self.checkFieldDefinition(v)
@@ -25,22 +27,34 @@ class DataModel(dict) :
                 v['comparator'] = compareJaccard
             elif v['type'] == 'String' :
                 v['comparator'] = normalizedAffineGapDistance
+            elif v['type'] == 'Source' :
+                v['comparator'] = SourceComparator(v['Source Names'])
+                sources = dict([(index, sources) for sources, index 
+                                in v['comparator'].sources.items()])
 
-            if v['type'] != 'Interaction' :
-                self['fields'][k] = v
 
-            else :
-                
+            if v['type'] == 'Interaction' :
                 if any(fields[field]['Has Missing']
                        for field in v['Interaction Fields'] if 
                        'Has Missing' in fields[field]) :
                     v.update({'Has Missing' : True})
 
                 interaction_terms[k] = v
+            
+            else :
+                self['fields'][k] = v
+
+        self.comparison_fields = self['fields'].keys()
+
+        for i in range(2,len(sources)) :
+            self['fields'][sources[i]] = {'type' : 'Different Source'}
 
         self['fields'].update(interaction_terms)
-        
+
         self.missingData()
+
+            
+
 
     def missingData(self) :
         for k, v in self['fields'].items() :
@@ -66,7 +80,7 @@ class DataModel(dict) :
             "{'Phone': {type: 'String'}}"
 
         assert definition['type'] in ['String', 'LatLong', 'Set',
-                                      'Custom', 'Interaction'], \
+                                      'Custom', 'Interaction', 'Source'], \
             "Invalid field type: field " \
             "specifications are dictionaries that must " \
             "include a type definition, ex. " \
