@@ -283,10 +283,7 @@ class TfidfTest(unittest.TestCase):
     self.data = self.data_d.iteritems()
     self.tfidf_fields = set(['name'])
 
-  def test_invert_index(self):
-    vectors = dedupe.tfidf.invertIndex(self.data,self.tfidf_fields)
-    inverted_index, token_vector, corpus_ids = vectors
-    assert corpus_ids == set([100,105,110,115,120,125,130,135,140,145])
+
 
 
 class BlockingTest(unittest.TestCase):
@@ -295,7 +292,7 @@ class BlockingTest(unittest.TestCase):
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
               }
-    self.deduper = dedupe.Dedupe(fields)
+    self.deduper = dedupe.Dedupe(fields, [])
     self.wholeFieldPredicate = dedupe.predicates.wholeFieldPredicate
     self.sameThreeCharStartPredicate = dedupe.predicates.sameThreeCharStartPredicate
     self.training_pairs = {
@@ -361,7 +358,7 @@ class BlockingTest(unittest.TestCase):
     
     coverage_items = coverage.overlapping.items()
     output = overlap
-    self.assertEqual(coverage_items,output)
+    self.assertEqual(zip(*coverage_items)[1],zip(*output)[1])
  
 
 class PredicatesTest(unittest.TestCase):
