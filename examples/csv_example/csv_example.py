@@ -22,7 +22,7 @@ import logging
 import optparse
 from numpy import nan
 
-import AsciiDammit
+import examples.shared.AsciiDammit as AsciiDammit
 
 import dedupe
 
