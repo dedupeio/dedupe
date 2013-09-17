@@ -412,7 +412,7 @@ class Dedupe:
                                           threshold)
         
         if self.constrained_matching:
-            clusters = clustering.clusterConstrained(self.dupes, cluster_threshold)
+            clusters = clustering.greedyMatching(self.dupes, cluster_threshold)
         else:
             clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 

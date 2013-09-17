@@ -204,7 +204,14 @@ class ClusteringTest(unittest.TestCase):
     assert hungarian(self.bipartite_dupes, 0.8) == [set([4,6])]
     assert hungarian(self.bipartite_dupes, 1) == []
 
-
+  def test_greedy_matching(self):
+    greedyMatch = dedupe.clustering.greedyMatching
+    assert greedyMatch(self.bipartite_dupes, 0.5) == [set([4, 6]), set([2, 7]),
+                                                      set([3, 8])]
+    assert greedyMatch(self.bipartite_dupes, 0) == [set([4, 6]), set([2, 7]),
+                                                    set([8, 3]), set([1, 5])]
+    assert greedyMatch(self.bipartite_dupes, 0.8) == [set([4, 6])]
+    assert greedyMatch(self.bipartite_dupes, 1) == []
 
 
 class BlockingTest(unittest.TestCase):
