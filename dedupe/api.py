@@ -15,7 +15,6 @@ import itertools
 import logging
 import types
 import pickle
-
 import numpy
 
 import dedupe
@@ -52,7 +51,7 @@ class Dedupe:
 
     # === `Dedupe.__init__` ===
 
-    def __init__(self, init=None):
+    def __init__(self, init=None, constrained_matching=False):
         """
         Load or initialize a data model.
 
@@ -109,9 +108,11 @@ class Dedupe:
         if init.__class__ is dict and init:
             self.data_model = _initializeDataModel(init)
             self.predicates = None
+            self.constrained_matching = constrained_matching
         elif init.__class__ is str and init:
             (self.data_model,
-             self.predicates) = self._readSettings(init)
+             self.predicates,
+             self.constrained_matching) = self._readSettings(init)
         elif init:
             raise ValueError('Incorrect Input Type: must supply either a '
                              'field definition or a settings file.'
@@ -342,7 +343,7 @@ class Dedupe:
 
         blocked_records = (block.values() for block in blocks)
 
-        candidates = core.blockedPairs(blocked_records)
+        candidates = core.blockedPairs(blocked_records, self.constrained_matching)
 
         field_distances = core.fieldDistances(candidates, self.data_model)
         probability = core.scorePairs(field_distances, self.data_model)
@@ -366,7 +367,7 @@ class Dedupe:
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, threshold=.5):
+    def duplicateClusters(self, blocks, data, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -391,26 +392,29 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        
         blocked_keys, blocked_records = core.split((block.keys(),
                                                     block.values())
                                                    for block in blocks)
 
 
-        candidate_keys = core.blockedPairs(blocked_keys)
-        candidate_records = core.blockedPairs(blocked_records)
+        candidate_keys = core.blockedPairs(blocked_keys, self.constrained_matching, data)
+        candidate_records = core.blockedPairs(blocked_records, self.constrained_matching, data)
 
         candidate_keys, ids = itertools.tee(candidate_keys)
         peek = ids.next()
         id_type = type(peek[0])
         ids = itertools.chain([peek], ids)
-        
+
         self.dupes = core.scoreDuplicates(candidate_keys,
                                           candidate_records,
                                           id_type,
                                           self.data_model,
                                           threshold)
-        clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
+        
+        if self.constrained_matching:
+            clusters = clustering.greedyMatching(self.dupes, cluster_threshold)
+        else:
+            clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters
 
@@ -430,6 +434,7 @@ class Dedupe:
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
+                                                           self.constrained_matching,
                                                            eta,
                                                            epsilon)
 
@@ -461,18 +466,20 @@ class Dedupe:
         with open(file_name, 'w') as f:
             pickle.dump(self.data_model, f)
             pickle.dump(self.predicates, f)
+            pickle.dump(self.constrained_matching, f)
 
     def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
             try:
                 data_model = pickle.load(f)
                 predicates = pickle.load(f)
+                constrained_matching = pickle.load(f)
             except KeyError :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
 
-        return data_model, predicates
+        return data_model, predicates, constrained_matching
 
 
     def writeTraining(self, file_name):

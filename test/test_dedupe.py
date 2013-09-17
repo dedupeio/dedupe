@@ -4,6 +4,8 @@ import numpy
 import random
 import itertools
 import warnings
+import dedupe.mekano as mk
+import collections
 
 class CoreTest(unittest.TestCase):
   def setUp(self) :
@@ -85,7 +87,6 @@ class ConvenienceTest(unittest.TestCase):
       assert str(w[-1].message) == "Requested sample of size 10000, only returning 45 possible pairs"
 
 
- 
 class DedupeClassTest(unittest.TestCase):
   def test_initialize(self) :
     fields =  { 'name' : {'type': 'String'}, 
@@ -150,6 +151,7 @@ class ClusteringTest(unittest.TestCase):
                   ((3,4), .3),
                   ((3,5), .5),
                   ((4,5), .72))
+
     #Dupes with Ids as String
     self.str_dupes = ((('1', '2'), .86),
                       (('1', '3'), .72),
@@ -162,15 +164,55 @@ class ClusteringTest(unittest.TestCase):
                       (('3', '5'), .5),
                       (('4', '5'), .72))
 
-            
+    self.bipartite_dupes = (((1,5), .1),
+                            ((1,6), .72),
+                            ((1,7), .2),
+                            ((1,8), .6),
+                            ((2,5), .2),
+                            ((2,6), .2),
+                            ((2,7), .72),
+                            ((2,8), .3),
+                            ((3,5), .24),
+                            ((3,6), .72),
+                            ((3,7), .24),
+                            ((3,8), .65),
+                            ((4,5), .63),
+                            ((4,6), .96),
+                            ((4,7), .23),
+                            ((4,8), .74))
+
+
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
     assert hierarchical(self.dupes, 'i4', 1) == []
     assert hierarchical(self.dupes, 'i4', 0.5) == [set([1, 2, 3]), set([4,5])]
     assert hierarchical(self.dupes, 'i4', 0) == [set([1, 2, 3, 4, 5])]
     assert hierarchical(self.str_dupes, 'S1', 1) == []
-    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), set(['4','5'])]
+    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), 
+                                                      set(['4','5'])]
     assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
+
+  def test_hungarian(self):
+    hungarian = dedupe.clustering.clusterConstrained
+    assert hungarian(self.bipartite_dupes, 0.5) == [set([3, 8]), 
+                                                    set([4, 6]), 
+                                                    set([2, 7])]
+    assert hungarian(self.bipartite_dupes, 0) == [set([1, 6]), 
+                                                  set([2, 7]), 
+                                                  set([3, 8]), 
+                                                  set([4, 5])]
+    assert hungarian(self.bipartite_dupes, 0.8) == [set([4,6])]
+    assert hungarian(self.bipartite_dupes, 1) == []
+
+  def test_greedy_matching(self):
+    greedyMatch = dedupe.clustering.greedyMatching
+    assert greedyMatch(self.bipartite_dupes, 0.5) == [set([4, 6]), set([2, 7]),
+                                                      set([3, 8])]
+    assert greedyMatch(self.bipartite_dupes, 0) == [set([4, 6]), set([2, 7]),
+                                                    set([8, 3]), set([1, 5])]
+    assert greedyMatch(self.bipartite_dupes, 0.8) == [set([4, 6])]
+    assert greedyMatch(self.bipartite_dupes, 1) == []
+
 
 class BlockingTest(unittest.TestCase):
   def setUp(self):
@@ -193,7 +235,68 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
- 
+
+class TfidfTest(unittest.TestCase):
+  def setUp(self):
+    self.field = "Hello World world"
+    self.tokenfactory = mk.AtomFactory("tokens")
+    self.record_id = 20
+    self.data_d = {
+                     100 : {"name": "Bob", "age": "50", "dataset": 0},
+                     105 : {"name": "Charlie", "age": "75", "dataset": 1},
+                     110 : {"name": "Meredith", "age": "40", "dataset": 1},
+                     115 : {"name": "Sue", "age": "10", "dataset": 0},
+                     120 : {"name": "Jimbo", "age": "21","dataset": 1},
+                     125 : {"name": "Jimbo", "age": "21", "dataset": 0},
+                     130 : {"name": "Willy", "age": "35", "dataset": 0},
+                     135 : {"name": "Willy", "age": "35", "dataset": 1},
+                     140 : {"name": "Martha", "age": "19", "dataset": 1},
+                     145 : {"name": "Kyle", "age": "27", "dataset": 0},
+                  }
+    self.tfidf_fields = set(["name"])
+
+  def test_field_to_atom_vector(self):
+
+    av = dedupe.tfidf.fieldToAtomVector(self.field, self.record_id, self.tokenfactory)
+    assert av[self.tokenfactory["hello"]] == 1.0
+    assert av[self.tokenfactory["world"]] == 2.0
+
+
+  def test_constrained_inverted_index(self):
+    inverted_index, token_vectors = dedupe.tfidf.invertIndex(
+                                              self.data_d.iteritems(),
+                                              self.tfidf_fields,
+                                              constrained_matching=True,
+                                                            )
+
+    assert set(token_vectors['name'].keys()) == set([130, 125])
+    assert set(inverted_index['name'].keys()) == set([2,5])
+
+    indexed_records = []
+    for atomvectors in inverted_index['name'].values():
+      for av in atomvectors:
+        indexed_records.append(av.name)
+
+    assert set(indexed_records) == set([120,135])
+
+
+  def test_unconstrained_inverted_index(self):
+    inverted_index, token_vectors = dedupe.tfidf.invertIndex(
+                                              self.data_d.iteritems(),
+                                              self.tfidf_fields)
+
+
+    assert set(token_vectors['name'].keys()) == set([120, 130, 125, 135])
+    assert set(inverted_index['name'].keys()) == set([2,5])
+
+    indexed_records = []
+    for atomvectors in inverted_index['name'].values():
+      for av in atomvectors:
+        indexed_records.append(av.name)
+
+    assert set(indexed_records) == set([120, 130, 125, 135])
+
+
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
