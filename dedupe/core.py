@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import pdb
 import collections
 import random
 import json
@@ -80,6 +81,7 @@ def fieldDistances(record_pairs, data_model):
                          for field, v in fields.items()
                          if v['type'] not in ('Missing Data',
                                               'Interaction',
+                                              'Source Interaction',
                                               'Different Source')]
 
     
@@ -90,6 +92,7 @@ def fieldDistances(record_pairs, data_model):
     field_names = fields.keys()
   
     interactions = []
+    source_interactions = []
     source_index = None
 
     for field in fields :
@@ -100,6 +103,13 @@ def fieldDistances(record_pairs, data_model):
             interactions.append(interaction_indices)
         if fields[field]['type'] == 'Source' :
             source_index = field_names.index(field) 
+        if fields[field]['type'] == 'Source Interaction' :
+            interaction_indices = []
+            for interaction_field in fields[field]['Interaction Fields'] :
+                interaction_indices.append(field_names.index(interaction_field))
+            source_interactions.append(interaction_indices)
+
+        
 
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
@@ -110,11 +120,12 @@ def fieldDistances(record_pairs, data_model):
 
     if source_index is not None:
         different_sources = field_distances[:, source_index] == 2
-        field_distances[:, different_sources] = 0
+        field_distances[:, source_index][different_sources] = 0
         different_sources = different_sources.reshape(-1, 1)
         field_distances = numpy.concatenate((field_distances,
                                              different_sources.astype(float)),
                                             axis=1)
+
 
 
     interaction_distances = numpy.empty((field_distances.shape[0],
@@ -123,10 +134,23 @@ def fieldDistances(record_pairs, data_model):
     for i, interaction in enumerate(interactions) :
         a = numpy.prod(field_distances[...,interaction], axis=1)
         interaction_distances[...,i] = a
-       
+
     field_distances = numpy.concatenate((field_distances,
                                          interaction_distances),
                                         axis=1)
+
+    source_interaction_distances = numpy.empty((field_distances.shape[0],
+                                                len(source_interactions)))
+
+    for i, interaction in enumerate(source_interactions) :
+        a = numpy.prod(field_distances[...,interaction], axis=1)
+        source_interaction_distances[...,i] = a
+
+    field_distances = numpy.concatenate((field_distances,
+                                         source_interaction_distances),
+                                        axis=1)
+
+
 
         
 

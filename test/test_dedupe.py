@@ -240,29 +240,30 @@ class FieldDistances(unittest.TestCase):
                      {'name' : 'steven', 'source' : 'a'}),)
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[0, 0.647, 0]]), 3)
+                                            numpy.array([[0, 0.647, 0, 0, 0]]), 3)
 
     record_pairs = (({'name' : 'steve', 'source' : 'b'}, 
                      {'name' : 'steven', 'source' : 'b'}),)
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[1, 0.647, 0]]), 3)
+                                            numpy.array([[1, 0.647, 0, 0.647, 0]]), 3)
 
     record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
                      {'name' : 'steven', 'source' : 'b'}),)
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[0, 0.647, 1]]), 3)
+                                            numpy.array([[0, 0.647, 1, 0, 0.647]]), 3)
 
   def test_field_distance_interaction(self) :
     fieldDistances = dedupe.core.fieldDistances
-    deduper = dedupe.Dedupe({'first_name' : {'type' :'String', 'Has Missing' : True},
+    deduper = dedupe.Dedupe({'first_name' : {'type' :'String'},
                              'last_name' : {'type' : 'String'},
                              'first-last' : {'type' : 'Interaction', 
                                              'Interaction Fields' : ['first_name', 
                                                                      'last_name']},
                              'source' : {'type' : 'Source',
-                                         'Source Names' : ['a', 'b']}})
+                                         'Source Names' : ['a', 'b']}
+                           })
 
     record_pairs = (({'first_name' : 'steve', 
                       'last_name' : 'smith', 
@@ -270,9 +271,21 @@ class FieldDistances(unittest.TestCase):
                      {'first_name' : 'steven', 
                       'last_name' : 'smith', 
                       'source' : 'b'}),)
-    print fieldDistances(record_pairs, 
-                         deduper.data_model)
-    print deduper.data_model['fields'].keys()
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[ 1.0,  
+                                                           0.647,  
+                                                           0.5,  
+                                                           0.0,  
+                                                           0.323,
+                                                           0.0,
+                                                           0.0,
+                                                           0.5, 
+                                                           0.0, 
+                                                           0.647,
+                                                           0.323]]), 3)  
+
+
 
 
 

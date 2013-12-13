@@ -582,6 +582,7 @@ def _initializeDataModel(fields):
             else :
                 v['comparator'] = SourceComparator(v['Source Names'])
                 source_compare = True
+                source_key = k
             
 
 
@@ -605,11 +606,27 @@ def _initializeDataModel(fields):
 
         data_model['fields'][k] = v
 
+
+
     if source_compare :
         data_model['fields']['different sources'] = {'weight' : 0,
                                                      'type' : 'Different Source'}
-
     data_model['fields'].update(interaction_terms)
+
+
+    if source_compare :
+        source_terms = {}
+        for k, v in data_model['fields'].items() :
+            if k not in (source_key, 'different sources') :
+                source_terms[source_key + ':' + k] =\
+                  {'type' : 'Source Interaction', 
+                   'Interaction Fields' : [source_key, k]}
+                source_terms['different sources:' + k] =\
+                  {'type' : 'Source Interaction', 
+                   'Interaction Fields' : ['different sources', k]}
+
+        data_model['fields'].update(source_terms)
+
 
     for k, v in data_model['fields'].items() :
         if 'Has Missing' in v :
@@ -618,7 +635,10 @@ def _initializeDataModel(fields):
                                                               'type'   : 'Missing Data'}
         else :
             data_model['fields'][k].update({'Has Missing' : False})
-         
+
+     
+
+
 
 
     data_model['bias'] = 0
