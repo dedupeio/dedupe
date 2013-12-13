@@ -611,21 +611,28 @@ def _initializeDataModel(fields):
     if source_compare :
         data_model['fields']['different sources'] = {'weight' : 0,
                                                      'type' : 'Different Source'}
-    data_model['fields'].update(interaction_terms)
-
-
-    if source_compare :
         source_terms = {}
         for k, v in data_model['fields'].items() :
             if k not in (source_key, 'different sources') :
                 source_terms[source_key + ':' + k] =\
-                  {'type' : 'Source Interaction', 
+                  {'type' : 'Interaction', 
                    'Interaction Fields' : [source_key, k]}
                 source_terms['different sources:' + k] =\
-                  {'type' : 'Source Interaction', 
+                  {'type' : 'Interaction', 
                    'Interaction Fields' : ['different sources', k]}
 
-        data_model['fields'].update(source_terms)
+        for k, v in interaction_terms.items() :
+            interaction_fields = v['Interaction Fields']
+            source_terms[source_key + ':' + k] =\
+              {'type' : 'Interaction', 
+               'Interaction Fields' : interaction_fields + [source_key] }
+            source_terms['different sources' + ':' + k] =\
+              {'type' : 'Interaction', 
+               'Interaction Fields' : interaction_fields + ['different sources'] }
+
+        interaction_terms.update(source_terms)
+
+    data_model['fields'].update(interaction_terms)
 
 
     for k, v in data_model['fields'].items() :

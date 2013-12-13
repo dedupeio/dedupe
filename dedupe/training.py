@@ -45,9 +45,7 @@ def activeLearning(candidates,
 
     fields = [field for field in data_model['fields']
               if data_model['fields'][field]['type'] not in ('Missing Data',
-                                                             'Interaction',
-                                                             'Source Interaction',
-                                                             'Different Source')]
+                                                             'Interaction')]
 
 
     duplicates = []
