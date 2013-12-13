@@ -90,7 +90,7 @@ def fieldDistances(record_pairs, data_model):
     field_names = fields.keys()
   
     interactions = []
-    source_index = None
+    categorical_indices = []
 
     for field in fields :
         if fields[field]['type'] == 'Interaction' :
@@ -99,7 +99,9 @@ def fieldDistances(record_pairs, data_model):
                 interaction_indices.append(field_names.index(interaction_field))
             interactions.append(interaction_indices)
         if fields[field]['type'] == 'Source' :
-            source_index = field_names.index(field) 
+            categorical_indices.append((field_names.index(field), 
+                                        fields[field]['comparator'].length))
+
 
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
@@ -108,9 +110,10 @@ def fieldDistances(record_pairs, data_model):
                                      'f4')
     field_distances = field_distances.reshape(-1,len(field_comparators))
 
-    if source_index is not None:
-        different_sources = field_distances[:, source_index] == 2
-        field_distances[:, source_index][different_sources] = 0
+    for cat_index, length in categorical_indices :
+        different_sources = field_distances[:, cat_index] == numpy.arange(2, length)[None, ...]
+        print different_sources
+        field_distances[:, cat_index][field_distances[:, cat_index] > 1] = 0
         different_sources = different_sources.reshape(-1, 1)
         field_distances = numpy.concatenate((field_distances,
                                              different_sources.astype(float)),

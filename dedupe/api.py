@@ -512,10 +512,20 @@ class Dedupe:
 
 def _initializeDataModel(fields):
     """Initialize a data_model with a field definition"""
+
+    # The data model needs to order the different kinds of variabls in
+    # a particular way. First, variables that are directly produced by
+    # a comparison function have to go first. Second, dummy variable
+    # that will be set from the return value of a comparison
+    # function. Third, interaction variables of the first two
+    # types. Finally, handle any missing data flags. The reasons for this
+    # order has to do with implementation details of core.fieldDistances
+
     data_model = {}
     data_model['fields'] = OrderedDict()
 
     interaction_terms = {}
+    categoricals = {}
     source_compare = False
 
     for (k, v) in fields.iteritems():
@@ -581,6 +591,12 @@ def _initializeDataModel(fields):
                                  "for fields of type 'Custom'")
             else :
                 v['comparator'] = SourceComparator(v['Source Names'])
+                
+                categoricals['different sources'] = {'weight' : 0,
+                                                     'primary' : k,
+                                                     'type' : 'Different Source', 
+                                                     'order' : 0}
+
                 source_compare = True
                 source_key = k
             
@@ -606,20 +622,26 @@ def _initializeDataModel(fields):
 
         data_model['fields'][k] = v
 
+    data_model['fields'].update(categoricals)
 
 
     if source_compare :
-        data_model['fields']['different sources'] = {'weight' : 0,
-                                                     'type' : 'Different Source'}
+
         source_terms = {}
         for k, v in data_model['fields'].items() :
             if k not in (source_key, 'different sources') :
+                if 'Has Missing' in fields[k] :
+                    missing = True
+                else :
+                    missing = False
                 source_terms[source_key + ':' + k] =\
                   {'type' : 'Interaction', 
-                   'Interaction Fields' : [source_key, k]}
+                   'Interaction Fields' : [source_key, k],
+                   'Has Missing' : missing}
                 source_terms['different sources:' + k] =\
                   {'type' : 'Interaction', 
-                   'Interaction Fields' : ['different sources', k]}
+                   'Interaction Fields' : ['different sources', k],
+                   'Mas Missing' : missing}
 
         for k, v in interaction_terms.items() :
             interaction_fields = v['Interaction Fields']
@@ -688,6 +710,8 @@ class SourceComparator(object):
             self.sources[tuple(sorted(k, reverse=True))] = v
 
         self.sources_and_null = set(source_names + [''])
+
+        self.length = len(self.sources)
     def __call__(self, field_1, field_2):
         sources = (field_1, field_2)
         if sources in self.sources :
