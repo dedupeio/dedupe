@@ -525,7 +525,7 @@ def _initializeDataModel(fields):
     data_model = {}
     data_model['fields'] = OrderedDict()
 
-    interaction_terms = {}
+    interaction_terms = OrderedDict()
     categoricals = OrderedDict()
     source_compare = False
 
@@ -644,12 +644,13 @@ def _initializeDataModel(fields):
 
         data_model['fields'][k] = v
 
-    data_model['fields'].update(categoricals)
-
+    data_model['fields'] = OrderedDict(data_model['fields'].items() 
+                                       + categoricals.items()
+                                       + interaction_terms.items())
 
     if source_compare :
 
-        source_terms = {}
+        source_terms = OrderedDict()
         for k, v in data_model['fields'].items() :
             if k not in (source_key, 'different sources') :
                 if 'Has Missing' in data_model['fields'][k] :
@@ -675,9 +676,9 @@ def _initializeDataModel(fields):
               {'type' : 'Interaction', 
                'Interaction Fields' : interaction_fields + ['different sources'] }
 
-        interaction_terms.update(source_terms)
+        data_model['fields'] = OrderedDict(data_model['fields'].items() 
+                                           + source_terms.items())
 
-    data_model['fields'].update(interaction_terms)
 
 
     for k, v in data_model['fields'].items() :
@@ -721,5 +722,4 @@ def disjunctivePredicates(predicate_set):
     predicate_set.extend(disjunctive_predicates)
 
     return predicate_set
-
 

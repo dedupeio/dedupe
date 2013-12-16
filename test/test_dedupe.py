@@ -288,8 +288,8 @@ class FieldDistances(unittest.TestCase):
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-            numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.],
-                         [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0.]]),
+         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.],
+                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.]]),
                                             3)
 
  
@@ -312,17 +312,25 @@ class FieldDistances(unittest.TestCase):
                       'last_name' : 'smith', 
                       'source' : 'b'}),)
 
+# ['source', 'first_name', 'last_name', 'different sources',
+# 'first-last', 'source:first_name', 'different sources:first_name',
+# 'source:last_name', 'different sources:last_name',
+# 'source:first-last', 'different sources:first-last']
+
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
                                             numpy.array([[ 1.0,  
                                                            0.647,  
                                                            0.5,  
-                                                           0.0, 
                                                            0.0,
+                                                           0.323,
                                                            0.647,
+                                                           0.0,
+                                                           0.5,
+                                                           0.0,
                                                            0.323,
-                                                           0.323,
-                                                           0.0]]), 3) 
+                                                           0.0]]),
+                                            3)
 
 
 
