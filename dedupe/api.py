@@ -30,6 +30,7 @@ import dedupe.tfidf as tfidf
 from dedupe.distance.affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
 from dedupe.distance.jaccard import compareJaccard
+from dedupe.distance.categorical import CategoricalComparator
 
 try:
     from collections import OrderedDict
@@ -525,7 +526,7 @@ def _initializeDataModel(fields):
     data_model['fields'] = OrderedDict()
 
     interaction_terms = {}
-    categoricals = {}
+    categoricals = OrderedDict()
     source_compare = False
 
     for (k, v) in fields.iteritems():
@@ -546,6 +547,7 @@ def _initializeDataModel(fields):
                                'LatLong',
                                'Set',
                                'Source',
+                               'Categorical',
                                'Custom',
                                'Interaction']:
 
@@ -581,21 +583,41 @@ def _initializeDataModel(fields):
                              "a 'comparator' function in the field "
                              "definition. ")
 
+        elif v['type'] == 'Categorical' :
+            if 'Categories' not in v :
+                raise ValueError('No "Categories" defined')
+            if 'comparator' in v :
+                raise ValueError("Custom comparators can only be defined "
+                                 "for fields of type 'Custom'")
+
+            else :
+                comparator = CategoricalComparator(v['Categories'])
+
+                for value, combo in comparator.combinations[2:] :
+                    categoricals[combo] = {'weight' : 0,
+                                           'type' : 'Different Source',
+                                           'value' : value}
+                v['comparator'] = comparator
+
+
+        
+
+
         elif v['type'] == 'Source' :
             if 'Source Names' not in v :
                 raise ValueError('No "Source Names" defined')
             if len(v['Source Names']) != 2 :
-                raise ValueError("You must supply two and only two source names")
+                raise ValueError("You must supply two and only two source names")  
             if 'comparator' in v :
                 raise ValueError("Custom comparators can only be defined "
-                                 "for fields of type 'Custom'")
-            else :
-                v['comparator'] = SourceComparator(v['Source Names'])
+                               "for fields of type 'Custom'")
                 
+            else :
+                comparator = CategoricalComparator(v['Source Names'])
+
                 categoricals['different sources'] = {'weight' : 0,
-                                                     'primary' : k,
-                                                     'type' : 'Different Source', 
-                                                     'order' : 0}
+                                                     'type' : 'Different Source'}
+                v['comparator'] = comparator
 
                 source_compare = True
                 source_key = k
@@ -630,25 +652,26 @@ def _initializeDataModel(fields):
         source_terms = {}
         for k, v in data_model['fields'].items() :
             if k not in (source_key, 'different sources') :
-                if 'Has Missing' in fields[k] :
+                if 'Has Missing' in data_model['fields'][k] :
                     missing = True
                 else :
                     missing = False
-                source_terms[source_key + ':' + k] =\
+                string_k = str(k)
+                source_terms[source_key + ':' + string_k] =\
                   {'type' : 'Interaction', 
                    'Interaction Fields' : [source_key, k],
                    'Has Missing' : missing}
-                source_terms['different sources:' + k] =\
+                source_terms['different sources:' + string_k] =\
                   {'type' : 'Interaction', 
                    'Interaction Fields' : ['different sources', k],
                    'Mas Missing' : missing}
 
         for k, v in interaction_terms.items() :
             interaction_fields = v['Interaction Fields']
-            source_terms[source_key + ':' + k] =\
+            source_terms[source_key + ':' + string_k] =\
               {'type' : 'Interaction', 
                'Interaction Fields' : interaction_fields + [source_key] }
-            source_terms['different sources' + ':' + k] =\
+            source_terms['different sources' + ':' + string_k] =\
               {'type' : 'Interaction', 
                'Interaction Fields' : interaction_fields + ['different sources'] }
 
@@ -699,24 +722,4 @@ def disjunctivePredicates(predicate_set):
 
     return predicate_set
 
-class SourceComparator(object):
-    def __init__(self, source_names) :
-        assert len(source_names) == 2
 
-        sources = [(name, name) for name in source_names]
-        sources += list(itertools.combinations(source_names, 2))
-        self.sources = dict(zip(sources, itertools.count()))
-        for k, v in self.sources.items() :
-            self.sources[tuple(sorted(k, reverse=True))] = v
-
-        self.sources_and_null = set(source_names + [''])
-
-        self.length = len(self.sources)
-    def __call__(self, field_1, field_2):
-        sources = (field_1, field_2)
-        if sources in self.sources :
-            return self.sources[sources]
-        elif set(sources) <= self.sources_and_null :
-            return numpy.nan
-        else :
-            raise ValueError("field not in Source Names")
