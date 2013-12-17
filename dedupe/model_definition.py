@@ -111,7 +111,7 @@ def initializeDataModel(fields):
                 raise ValueError('No "Interaction Fields" defined')
                  
             for field in v['Interaction Fields'] :
-                if 'Has Missing' in fields[field] and fields[field]['Has Missing']:
+                if fields[field].get('Has Missing') :
                     v.update({'Has Missing' : True})
                     break
 
@@ -133,14 +133,13 @@ def initializeDataModel(fields):
 
     for k, v in data_model['fields'].items() :
         if k not in source_fields :
-            if 'Has Missing' in data_model['fields'][k] :
-                missing = data_model['fields'][k]['Has Missing']
+            if data_model['fields'][k].get('Has Missing') :
+                missing = True
             else :
                 missing = False
                 
             for source_field in source_fields :
-                if ('Has Missing' in data_model['fields'][source_field] 
-                    and data_model['fields'][source_field]['Has Missing']) :
+                if data_model['fields'][source_field].get('Has Missing') :
                     missing = True
             
                 if v['type'] == 'Interaction' :
@@ -155,9 +154,8 @@ def initializeDataModel(fields):
                    'Has Missing' : missing}
 
 
-
     for k, v in data_model['fields'].items() :
-        if 'Has Missing' in v and v['Has Missing'] :
+        if v.get('Has Missing') :
             data_model['fields'][k + ': not_missing'] = {'weight' : 0,
                                                          'type'   : 'Missing Data'}
         else :
