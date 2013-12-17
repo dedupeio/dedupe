@@ -80,7 +80,7 @@ def fieldDistances(record_pairs, data_model):
                          for field, v in fields.items()
                          if v['type'] not in ('Missing Data',
                                               'Interaction',
-                                              'Different Source')]
+                                              'Higher Categories')]
 
     
     missing_field_indices = [i for i, (field, v) 

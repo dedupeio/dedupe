@@ -527,7 +527,7 @@ def _initializeDataModel(fields):
 
     interaction_terms = OrderedDict()
     categoricals = OrderedDict()
-    source_compare = False
+    source_fields = []
 
     for (k, v) in fields.iteritems():
         if v.__class__ is not dict:
@@ -556,71 +556,57 @@ def _initializeDataModel(fields):
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] == 'LatLong' :
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-            else :
-                v['comparator'] = compareLatLong
-
-        elif v['type'] == 'Set' :
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                  "for fields of type 'Custom'")
-            else :
-                v['comparator'] = compareJaccard
-
-
-        elif v['type'] == 'String' :
-            if 'comparator' in v :
+        
+        elif 'comparator' in v and v['type'] != 'Custom' :
                 raise ValueError("Custom comparators can only be defined "
                                  "for fields of type 'Custom'")
-            else :
-                v['comparator'] = normalizedAffineGapDistance
 
         elif v['type'] == 'Custom' and 'comparator' not in v :
             raise ValueError("For 'Custom' field types you must define "
                              "a 'comparator' function in the field "
                              "definition. ")
 
+
+        elif v['type'] == 'LatLong' :
+            v['comparator'] = compareLatLong
+
+        elif v['type'] == 'Set' :
+            v['comparator'] = compareJaccard
+
+        elif v['type'] == 'String' :
+            v['comparator'] = normalizedAffineGapDistance
+
+
         elif v['type'] == 'Categorical' :
             if 'Categories' not in v :
                 raise ValueError('No "Categories" defined')
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                                 "for fields of type 'Custom'")
-
             else :
                 comparator = CategoricalComparator(v['Categories'])
 
                 for value, combo in sorted(comparator.combinations[2:]) :
-                    categoricals[combo] = {'weight' : 0,
-                                           'type' : 'Different Source',
-                                           'value' : value}
+                    categoricals[str(combo)] = {'weight' : 0,
+                                                'type' : 'Higher Categories',
+                                                'value' : value}
                 v['comparator'] = comparator
-
-
         
-
 
         elif v['type'] == 'Source' :
             if 'Source Names' not in v :
                 raise ValueError('No "Source Names" defined')
             if len(v['Source Names']) != 2 :
                 raise ValueError("You must supply two and only two source names")  
-            if 'comparator' in v :
-                raise ValueError("Custom comparators can only be defined "
-                               "for fields of type 'Custom'")
-                
             else :
+                source_fields.append(k)
+
                 comparator = CategoricalComparator(v['Source Names'])
 
-                categoricals['different sources'] = {'weight' : 0,
-                                                     'type' : 'Different Source'}
-                v['comparator'] = comparator
+                for value, combo in sorted(comparator.combinations[2:]) :
+                    categoricals[str(combo)] = {'weight' : 0,
+                                                'type' : 'Higher Categories',
+                                                'value' : value}
+                    source_fields.append(str(combo))
 
-                source_compare = True
-                source_key = k
+                v['comparator'] = comparator
             
 
 
@@ -628,7 +614,7 @@ def _initializeDataModel(fields):
             if 'Interaction Fields' in v :
                  for field in v['Interaction Fields'] :
                      if 'Has Missing' in fields[field] :
-                         v.update({'Has Missing' : True})
+                         v.update({'Has Missing' : fields[field]['Has Missing']})
                          break
             else :
                 raise ValueError('No "Interaction Fields" defined')
@@ -648,36 +634,26 @@ def _initializeDataModel(fields):
                                        + categoricals.items()
                                        + interaction_terms.items())
 
-    if source_compare :
 
-        source_terms = OrderedDict()
-        for k, v in data_model['fields'].items() :
-            if k not in (source_key, 'different sources') :
-                if 'Has Missing' in data_model['fields'][k] :
-                    missing = True
+    for k, v in data_model['fields'].items() :
+        if k not in (source_fields) :
+            if 'Has Missing' in data_model['fields'][k] :
+                missing = data_model['fields'][k]['Has Missing']
+            else :
+                missing = False
+                
+            for source_field in source_fields :
+            
+                if v['type'] == 'Interaction' :
+                    interaction_fields = [source_field]
+                    interaction_fields += v['Interaction Fields']
                 else :
-                    missing = False
-                string_k = str(k)
-                source_terms[source_key + ':' + string_k] =\
+                    interaction_fields = [source_field, k]
+
+                data_model['fields'][source_field + ':' + k] =\
                   {'type' : 'Interaction', 
-                   'Interaction Fields' : [source_key, k],
+                   'Interaction Fields' : interaction_fields,
                    'Has Missing' : missing}
-                source_terms['different sources:' + string_k] =\
-                  {'type' : 'Interaction', 
-                   'Interaction Fields' : ['different sources', k],
-                   'Mas Missing' : missing}
-
-        for k, v in interaction_terms.items() :
-            interaction_fields = v['Interaction Fields']
-            source_terms[source_key + ':' + string_k] =\
-              {'type' : 'Interaction', 
-               'Interaction Fields' : interaction_fields + [source_key] }
-            source_terms['different sources' + ':' + string_k] =\
-              {'type' : 'Interaction', 
-               'Interaction Fields' : interaction_fields + ['different sources'] }
-
-        data_model['fields'] = OrderedDict(data_model['fields'].items() 
-                                           + source_terms.items())
 
 
 
