@@ -139,6 +139,9 @@ def initializeDataModel(fields):
                 missing = False
                 
             for source_field in source_fields :
+                if ('Has Missing' in data_model['fields'][source_field] 
+                    and data_model['fields'][source_field]['Has Missing']) :
+                    missing = True
             
                 if v['type'] == 'Interaction' :
                     interaction_fields = [source_field]
