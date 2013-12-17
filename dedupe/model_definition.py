@@ -20,148 +20,145 @@ def initializeDataModel(fields):
     # types. Finally, handle any missing data flags. The reasons for this
     # order has to do with implementation details of core.fieldDistances
 
-    data_model = {}
-    data_model['fields'] = OrderedDict()
+    field_model = OrderedDict()
 
     interaction_terms = OrderedDict()
     categoricals = OrderedDict()
     source_fields = []
 
-    for (k, v) in fields.iteritems():
-        if v.__class__ is not dict:
+    for field, definition in fields.iteritems():
+        if definition.__class__ is not dict:
             raise ValueError("Incorrect field specification: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif 'type' not in v:
 
+        elif 'type' not in definition:
             raise ValueError("Missing field type: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
-        elif v['type'] not in ['String',
-                               'LatLong',
-                               'Set',
-                               'Source',
-                               'Categorical',
-                               'Custom',
-                               'Interaction']:
 
+        elif definition['type'] not in ['String',
+                                        'LatLong',
+                                        'Set',
+                                        'Source',
+                                        'Categorical',
+                                        'Custom',
+                                        'Interaction']:
             raise ValueError("Invalid field type: field "
                              "specifications are dictionaries that must "
                              "include a type definition, ex. "
                              "{'Phone': {type: 'String'}}"
                              )
         
-        elif v['type'] != 'Custom' and 'comparator' in v :
+        elif definition['type'] != 'Custom' and 'comparator' in definition :
             raise ValueError("Custom comparators can only be defined "
                              "for fields of type 'Custom'")
 
-        elif v['type'] == 'Custom' and 'comparator' not in v :
+        elif definition['type'] == 'Custom' and 'comparator' not in definition :
             raise ValueError("For 'Custom' field types you must define "
                              "a 'comparator' function in the field "
                              "definition. ")
 
+        elif definition['type'] == 'LatLong' :
+            definition['comparator'] = compareLatLong
 
-        elif v['type'] == 'LatLong' :
-            v['comparator'] = compareLatLong
+        elif definition['type'] == 'Set' :
+            definition['comparator'] = compareJaccard
 
-        elif v['type'] == 'Set' :
-            v['comparator'] = compareJaccard
+        elif definition['type'] == 'String' :
+            definition['comparator'] = normalizedAffineGapDistance
 
-        elif v['type'] == 'String' :
-            v['comparator'] = normalizedAffineGapDistance
-
-
-        elif v['type'] == 'Categorical' :
-            if 'Categories' not in v :
+        elif definition['type'] == 'Categorical' :
+            if 'Categories' not in definition :
                 raise ValueError('No "Categories" defined')
 
-            comparator = CategoricalComparator(v['Categories'])
+            comparator = CategoricalComparator(definition['Categories'])
 
             for value, combo in sorted(comparator.combinations[2:]) :
                 categoricals[str(combo)] = {'weight' : 0,
                                             'type' : 'Higher Categories',
                                             'value' : value}
-            v['comparator'] = comparator
+
+            definition['comparator'] = comparator
         
-
-        elif v['type'] == 'Source' :
-            if 'Source Names' not in v :
+        elif definition['type'] == 'Source' :
+            if 'Source Names' not in definition :
                 raise ValueError('No "Source Names" defined')
-            if len(v['Source Names']) != 2 :
-                raise ValueError("You must supply two and only two source names")  
-            source_fields.append(k)
+            if len(definition['Source Names']) != 2 :
+                raise ValueError("You must supply two and only " 
+                                  "two source names")  
+            source_fields.append(field)
 
-            comparator = CategoricalComparator(v['Source Names'])
+            comparator = CategoricalComparator(definition['Source Names'])
 
             for value, combo in sorted(comparator.combinations[2:]) :
                 categoricals[str(combo)] = {'weight' : 0,
-                                                'type' : 'Higher Categories',
-                                                'value' : value}
+                                            'type' : 'Higher Categories',
+                                            'value' : value}
                 source_fields.append(str(combo))
 
-            v['comparator'] = comparator
+            definition['comparator'] = comparator
             
-
-        elif v['type'] == 'Interaction' :
-            if 'Interaction Fields' not in v :
+        elif definition['type'] == 'Interaction' :
+            if 'Interaction Fields' not in definition :
                 raise ValueError('No "Interaction Fields" defined')
                  
-            for field in v['Interaction Fields'] :
-                if fields[field].get('Has Missing') :
-                    v.update({'Has Missing' : True})
+            for interacting_field in definition['Interaction Fields'] :
+                if fields[interacting_field].get('Has Missing') :
+                    definition.update({'Has Missing' : True})
                     break
 
-            v.update({'weight': 0})
-            interaction_terms[k] = v
+            definition.update({'weight': 0})
+            interaction_terms[field] = definition
             # We want the interaction terms to be at the end of of the
             # ordered dict so we'll add them after we finish
             # processing all the other fields
             continue
             
-        
+        field_model[field] = definition
 
-        data_model['fields'][k] = v
-
-    data_model['fields'] = OrderedDict(data_model['fields'].items() 
-                                       + categoricals.items()
-                                       + interaction_terms.items())
+    field_model = OrderedDict(field_model.items() 
+                              + categoricals.items()
+                              + interaction_terms.items())
 
 
-    for k, v in data_model['fields'].items() :
-        if k not in source_fields :
-            if data_model['fields'][k].get('Has Missing') :
+    for field, definition in field_model.items() :
+        if field not in source_fields :
+            if field_model[field].get('Has Missing') :
                 missing = True
             else :
                 missing = False
                 
             for source_field in source_fields :
-                if data_model['fields'][source_field].get('Has Missing') :
+                if field_model[source_field].get('Has Missing') :
                     missing = True
             
-                if v['type'] == 'Interaction' :
+                if definition['type'] == 'Interaction' :
                     interaction_fields = [source_field]
-                    interaction_fields += v['Interaction Fields']
+                    interaction_fields += definition['Interaction Fields']
                 else :
-                    interaction_fields = [source_field, k]
+                    interaction_fields = [source_field, field]
 
-                data_model['fields'][source_field + ':' + k] =\
+                field_model[source_field + ':' + field] =\
                   {'type' : 'Interaction', 
                    'Interaction Fields' : interaction_fields,
                    'Has Missing' : missing}
 
-
-    for k, v in data_model['fields'].items() :
-        if v.get('Has Missing') :
-            data_model['fields'][k + ': not_missing'] = {'weight' : 0,
-                                                         'type'   : 'Missing Data'}
+    for field, definition in field_model.items() :
+        if definition.get('Has Missing') :
+            field_model[field + ': not_missing'] =\
+              {'weight' : 0,
+               'type'   : 'Missing Data'}
         else :
-            data_model['fields'][k].update({'Has Missing' : False})
+            field_model[field].update({'Has Missing' : False})
 
      
+    
+    data_model = {'fields' : field_model,
+                  'bias' : 0}
 
-    data_model['bias'] = 0
     return data_model
