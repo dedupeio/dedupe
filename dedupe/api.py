@@ -557,9 +557,9 @@ def _initializeDataModel(fields):
                              "{'Phone': {type: 'String'}}"
                              )
         
-        elif 'comparator' in v and v['type'] != 'Custom' :
-                raise ValueError("Custom comparators can only be defined "
-                                 "for fields of type 'Custom'")
+        elif v['type'] != 'Custom' and 'comparator' in v :
+            raise ValueError("Custom comparators can only be defined "
+                             "for fields of type 'Custom'")
 
         elif v['type'] == 'Custom' and 'comparator' not in v :
             raise ValueError("For 'Custom' field types you must define "
@@ -580,14 +580,14 @@ def _initializeDataModel(fields):
         elif v['type'] == 'Categorical' :
             if 'Categories' not in v :
                 raise ValueError('No "Categories" defined')
-            else :
-                comparator = CategoricalComparator(v['Categories'])
 
-                for value, combo in sorted(comparator.combinations[2:]) :
-                    categoricals[str(combo)] = {'weight' : 0,
-                                                'type' : 'Higher Categories',
-                                                'value' : value}
-                v['comparator'] = comparator
+            comparator = CategoricalComparator(v['Categories'])
+
+            for value, combo in sorted(comparator.combinations[2:]) :
+                categoricals[str(combo)] = {'weight' : 0,
+                                            'type' : 'Higher Categories',
+                                            'value' : value}
+            v['comparator'] = comparator
         
 
         elif v['type'] == 'Source' :
@@ -595,29 +595,27 @@ def _initializeDataModel(fields):
                 raise ValueError('No "Source Names" defined')
             if len(v['Source Names']) != 2 :
                 raise ValueError("You must supply two and only two source names")  
-            else :
-                source_fields.append(k)
+            source_fields.append(k)
 
-                comparator = CategoricalComparator(v['Source Names'])
+            comparator = CategoricalComparator(v['Source Names'])
 
-                for value, combo in sorted(comparator.combinations[2:]) :
-                    categoricals[str(combo)] = {'weight' : 0,
+            for value, combo in sorted(comparator.combinations[2:]) :
+                categoricals[str(combo)] = {'weight' : 0,
                                                 'type' : 'Higher Categories',
                                                 'value' : value}
-                    source_fields.append(str(combo))
+                source_fields.append(str(combo))
 
-                v['comparator'] = comparator
+            v['comparator'] = comparator
             
 
-
         elif v['type'] == 'Interaction' :
-            if 'Interaction Fields' in v :
-                 for field in v['Interaction Fields'] :
-                     if 'Has Missing' in fields[field] :
-                         v.update({'Has Missing' : fields[field]['Has Missing']})
-                         break
-            else :
+            if 'Interaction Fields' not in v :
                 raise ValueError('No "Interaction Fields" defined')
+                 
+            for field in v['Interaction Fields'] :
+                if 'Has Missing' in fields[field] and fields[field]['Has Missing']:
+                    v.update({'Has Missing' : True})
+                    break
 
             v.update({'weight': 0})
             interaction_terms[k] = v
@@ -636,7 +634,7 @@ def _initializeDataModel(fields):
 
 
     for k, v in data_model['fields'].items() :
-        if k not in (source_fields) :
+        if k not in source_fields :
             if 'Has Missing' in data_model['fields'][k] :
                 missing = data_model['fields'][k]['Has Missing']
             else :
@@ -658,17 +656,13 @@ def _initializeDataModel(fields):
 
 
     for k, v in data_model['fields'].items() :
-        if 'Has Missing' in v :
-             if v['Has Missing'] :
-                 data_model['fields'][k + ': not_missing'] = {'weight' : 0,
-                                                              'type'   : 'Missing Data'}
+        if 'Has Missing' in v and v['Has Missing'] :
+            data_model['fields'][k + ': not_missing'] = {'weight' : 0,
+                                                         'type'   : 'Missing Data'}
         else :
             data_model['fields'][k].update({'Has Missing' : False})
 
      
-
-
-
 
     data_model['bias'] = 0
     return data_model
