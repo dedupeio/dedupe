@@ -593,7 +593,7 @@ def _initializeDataModel(fields):
             else :
                 comparator = CategoricalComparator(v['Categories'])
 
-                for value, combo in comparator.combinations[2:] :
+                for value, combo in sorted(comparator.combinations[2:]) :
                     categoricals[combo] = {'weight' : 0,
                                            'type' : 'Different Source',
                                            'value' : value}
