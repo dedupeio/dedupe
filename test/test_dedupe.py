@@ -20,7 +20,7 @@ class CoreTest(unittest.TestCase):
 
     self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
     self.data_model = {}
-    self.data_model['fields'] = dedupe.core.OrderedDict()
+    self.data_model['fields'] = dedupe.backport.OrderedDict()
     v = {}
     v.update({'Has Missing': False, 'type': 'String', 'comparator': self.normalizedAffineGapDistance, \
               'weight': -1.0302742719650269})
