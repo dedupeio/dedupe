@@ -122,6 +122,7 @@ class Dedupe:
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
+        self.num_processes = 2
 
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
@@ -402,7 +403,8 @@ class Dedupe:
                                           candidate_records,
                                           id_type,
                                           self.data_model,
-                                          threshold)
+                                          threshold,
+                                          self.num_processes)
         clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters
