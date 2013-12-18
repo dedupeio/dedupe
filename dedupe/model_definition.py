@@ -6,7 +6,7 @@ from dedupe.distance.categorical import CategoricalComparator
 try:
     from collections import OrderedDict
 except ImportError :
-    from core import OrderedDict
+    from backport import OrderedDict
 
 
 def initializeDataModel(fields):
