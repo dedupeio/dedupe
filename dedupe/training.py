@@ -43,7 +43,8 @@ class ActiveLearning(object) :
         self.candidates = candidates
         self.fields = [field for field in data_model['fields']
                        if data_model['fields'][field]['type'] not in ('Missing Data',
-                                                                      'Interaction')]
+                                                                      'Interaction',
+                                                                      'Higher Categories')]
         self.field_distances = core.fieldDistances(self.candidates, data_model)
         self.seen_indices = set()
 

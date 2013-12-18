@@ -148,6 +148,8 @@ Copyright (c) 2013 Forest Gregg and Derek Eder. Released under the MIT License.
 
 [See LICENSE for details](https://github.com/open-city/dedupe/wiki/License)
 
+Third-party copyright in this distribution is noted where applicable.
+
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 

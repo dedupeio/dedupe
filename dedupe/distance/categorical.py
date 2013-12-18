@@ -1,21 +1,28 @@
 import itertools
+import numpy
 
-class SourceComparator(object):
-    def __init__(self, source_names) :
-        assert len(source_names) == 2
+class CategoricalComparator(object):
+    def __init__(self, category_names) :
+        categories = [(name, name) for name in category_names]
+        categories += list(itertools.combinations(category_names, 2))
 
-        sources = [(name, name) for name in source_names]
-        sources += list(itertools.combinations(source_names, 2))
-        self.sources = dict(zip(sources, itertools.count()))
-        for k, v in self.sources.items() :
-            self.sources[tuple(sorted(k, reverse=True))] = v
+        self.length = len(categories)
 
-        self.sources_and_null = set(source_names + [''])
+        self.categories = dict(zip(categories, itertools.count()))
+        for k, v in self.categories.items() :
+            self.categories[tuple(sorted(k, reverse=True))] = v
+
+        values = [self.categories[combo] for combo in categories]
+
+        self.combinations = zip(values,categories)
+
+        self.categories_and_null = set(category_names + [''])
+
     def __call__(self, field_1, field_2):
-        sources = (field_1, field_2)
-        if sources in self.sources :
-            return self.sources[sources]
-        elif set(sources) <= self.sources_and_null :
+        categories = (field_1, field_2)
+        if categories in self.categories :
+            return self.categories[categories]
+        elif set(categories) <= self.categories_and_null :
             return numpy.nan
         else :
             raise ValueError("field not in Source Names")

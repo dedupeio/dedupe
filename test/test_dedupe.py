@@ -44,12 +44,12 @@ class DataModelTest(unittest.TestCase) :
     
     self.assertRaises(TypeError, DataModel)
     assert DataModel({}) == {'fields': OrderedDict(), 'bias': 0}
-    self.assertRaises(AssertionError, DataModel, {'a' : 'String'})
-    self.assertRaises(AssertionError, DataModel, {'a' : {'foo' : 'bar'}})
-    self.assertRaises(AssertionError, DataModel, {'a' : {'type' : 'bar'}})
-    self.assertRaises(AssertionError, DataModel, {'a-b' : {'type' : 'Interaction'}})
-    self.assertRaises(AssertionError, DataModel, {'a-b' : {'type' : 'Custom'}})
-    self.assertRaises(AssertionError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
+    self.assertRaises(ValueError, DataModel, {'a' : 'String'})
+    self.assertRaises(ValueError, DataModel, {'a' : {'foo' : 'bar'}})
+    self.assertRaises(ValueError, DataModel, {'a' : {'type' : 'bar'}})
+    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Interaction'}})
+    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Custom'}})
+    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
 
     self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction',
                                                            'Interaction Fields' : ['a', 'b']}})
@@ -311,23 +311,25 @@ class ClusteringTest(unittest.TestCase):
 
 class TfidfTest(unittest.TestCase):
   def setUp(self):
-    self.data_d = {  100 : {"name": "Bob", "age": "50"},
-                     105 : {"name": "Charlie", "age": "75"},
-                     110 : {"name": "Meredith", "age": "40"},
-                     115 : {"name": "Sue", "age": "10"},
-                     120 : {"name": "Jimmy", "age": "20"},
-                     125 : {"name": "Jimbo", "age": "21"},
-                     130 : {"name": "Willy", "age": "35"},
-                     135 : {"name": "William", "age": "35"},
-                     140 : {"name": "Martha", "age": "19"},
-                     145 : {"name": "Kyle", "age": "27"},
-                  }
-    self.data = self.data_d.iteritems()
-    self.tfidf_fields = set(['name'])
-
-
- 
-
+    self.frozendict = dedupe.core.frozendict
+    fields =  { 'name' : {'type': 'String'}, 
+                'age'  : {'type': 'String'},
+              }
+    self.deduper = dedupe.Dedupe(fields)
+    self.wholeFieldPredicate = dedupe.predicates.wholeFieldPredicate
+    self.sameThreeCharStartPredicate = dedupe.predicates.sameThreeCharStartPredicate
+    self.training_pairs = {
+        0: [(self.frozendict({"name": "Bob", "age": "50"}),
+             self.frozendict({"name": "Charlie", "age": "75"})),
+            (self.frozendict({"name": "Meredith", "age": "40"}),
+             self.frozendict({"name": "Sue", "age": "10"}))], 
+        1: [(self.frozendict({"name": "Jimmy", "age": "20"}),
+             self.frozendict({"name": "Jimbo", "age": "21"})),
+            (self.frozendict({"name": "Willy", "age": "35"}),
+             self.frozendict({"name": "William", "age": "35"}))]
+      }
+    self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
+    
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
@@ -353,32 +355,75 @@ class FieldDistances(unittest.TestCase):
 
     record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
                      {'name' : 'steven', 'source' : 'a'}),)
+
+
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[0, 0.647, 0]]), 3)
+                                            numpy.array([[0, 0.647, 0, 0, 0]]), 3)
 
     record_pairs = (({'name' : 'steve', 'source' : 'b'}, 
                      {'name' : 'steven', 'source' : 'b'}),)
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[1, 0.647, 0]]), 3)
+                                            numpy.array([[1, 0.647, 0, 0.647, 0]]), 3)
 
     record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
                      {'name' : 'steven', 'source' : 'b'}),)
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[0, 0.647, 1]]), 3)
+                                            numpy.array([[0, 0.647, 1, 0, 0.647]]), 3)
+
+  def test_comparator(self) :
+    fieldDistances = dedupe.core.fieldDistances
+    deduper = dedupe.Dedupe({'type' : {'type' : 'Categorical',
+                                       'Categories' : ['a', 'b', 'c']}
+                             }, [])
+
+    record_pairs = (({'type' : 'a'},
+                     {'type' : 'b'}),
+                    ({'type' : 'a'},
+                     {'type' : 'c'}))
+
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[ 0, 0, 1, 0, 0],
+                                                         [ 0, 0, 0, 1, 0]]),
+                                            3)
+
+    deduper = dedupe.Dedupe({'type' : {'type' : 'Categorical',
+                                       'Categories' : ['a', 'b', 'c']},
+                             'source' : {'type' : 'Source',
+                                         'Source Names' : ['foo', 'bar']}
+                             }, [])
+
+    record_pairs = (({'type' : 'a',
+                      'source' : 'bar'},
+                     {'type' : 'b',
+                      'source' : 'bar'}),
+                    ({'type' : 'a', 
+                      'source' : 'foo'},
+                     {'type' : 'c',
+                      'source' : 'bar'}))
+
+
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.],
+                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.]]),
+                                            3)
+
+ 
 
   def test_field_distance_interaction(self) :
     fieldDistances = dedupe.core.fieldDistances
-    deduper = dedupe.Dedupe({'first_name' : {'type' :'String', 
-                                             'Has Missing' : True},
+    deduper = dedupe.Dedupe({'first_name' : {'type' :'String'},
                              'last_name' : {'type' : 'String'},
                              'first-last' : {'type' : 'Interaction', 
                                              'Interaction Fields' : ['first_name', 
                                                                      'last_name']},
                              'source' : {'type' : 'Source',
-                                         'Source Names' : ['a', 'b']}}, [])
+                                         'Source Names' : ['a', 'b']}
+                           }, [])
 
     record_pairs = (({'first_name' : 'steve', 
                       'last_name' : 'smith', 
@@ -386,9 +431,27 @@ class FieldDistances(unittest.TestCase):
                      {'first_name' : 'steven', 
                       'last_name' : 'smith', 
                       'source' : 'b'}),)
-    print fieldDistances(record_pairs, 
-                         deduper.data_model)
-    print deduper.data_model['fields'].keys()
+
+    # ['source', 'first_name', 'last_name', 'different sources',
+    # 'first-last', 'source:first_name', 'different sources:first_name',
+    # 'source:last_name', 'different sources:last_name',
+    # 'source:first-last', 'different sources:first-last']
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[ 1.0,  
+                                                           0.647,  
+                                                           0.5,  
+                                                           0.0,
+                                                           0.323,
+                                                           0.647,
+                                                           0.0,
+                                                           0.5,
+                                                           0.0,
+                                                           0.323,
+                                                           0.0]]),
+                                            3)
+
+
 
 
 

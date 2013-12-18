@@ -6,99 +6,162 @@ except ImportError :
 from dedupe.distance.affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
 from dedupe.distance.jaccard import compareJaccard
-from dedupe.distance.categorical import SourceComparator
+from dedupe.distance.categorical import CategoricalComparator
 
 
 class DataModel(dict) :
     def __init__(self, fields):
         self['bias'] = 0
+        self.comparison_fields = []
 
-        self['fields'] = OrderedDict()
+        field_model = OrderedDict()
 
-        interaction_terms = {}
-        sources = []
+        interaction_terms = OrderedDict()
+        categoricals = OrderedDict()
+        source_fields = []
 
-        for k, v in fields.items():
-            self.checkFieldDefinition(v)
+        for field, definition in fields.iteritems():
 
-            if v['type'] == 'LatLong' :
-                v['comparator'] = compareLatLong
-            elif v['type'] == 'Set' :
-                v['comparator'] = compareJaccard
-            elif v['type'] == 'String' :
-                v['comparator'] = normalizedAffineGapDistance
-            elif v['type'] == 'Source' :
-                v['comparator'] = SourceComparator(v['Source Names'])
-                sources = dict([(index, sources) for sources, index 
-                                in v['comparator'].sources.items()])
+            self.checkFieldDefinitions(definition)
 
-
-            if v['type'] == 'Interaction' :
-                if any(fields[field]['Has Missing']
-                       for field in v['Interaction Fields'] if 
-                       'Has Missing' in fields[field]) :
-                    v.update({'Has Missing' : True})
-
-                interaction_terms[k] = v
+            if definition['type'] == 'LatLong' :
+                definition['comparator'] = compareLatLong
+                
+            elif definition['type'] == 'Set' :
+                definition['comparator'] = compareJaccard
+                
+            elif definition['type'] == 'String' :
+                definition['comparator'] = normalizedAffineGapDistance
             
-            else :
-                self['fields'][k] = v
+            elif definition['type'] == 'Categorical' :
+                if 'Categories' not in definition :
+                    raise ValueError('No "Categories" defined')
 
-        self.comparison_fields = self['fields'].keys()
+                comparator = CategoricalComparator(definition['Categories'])
 
-        for i in range(2,len(sources)) :
-            self['fields'][sources[i]] = {'type' : 'Different Source'}
+                for value, combo in sorted(comparator.combinations[2:]) :
+                    categoricals[str(combo)] = {'type' : 'Higher Categories',
+                                                'value' : value}
 
-        self['fields'].update(interaction_terms)
+                definition['comparator'] = comparator
+        
+            elif definition['type'] == 'Source' :
+                if 'Source Names' not in definition :
+                    raise ValueError('No "Source Names" defined')
+                if len(definition['Source Names']) != 2 :
+                    raise ValueError("You must supply two and only " 
+                                  "two source names")  
+                source_fields.append(field)
+
+                comparator = CategoricalComparator(definition['Source Names'])
+                
+                for value, combo in sorted(comparator.combinations[2:]) :
+                    categoricals[str(combo)] = {'type' : 'Higher Categories',
+                                                'value' : value}
+                    source_fields.append(str(combo))
+
+                definition['comparator'] = comparator
+            
+            elif definition['type'] == 'Interaction' :
+                if 'Interaction Fields' not in definition :
+                    raise ValueError('No "Interaction Fields" defined')
+                 
+                for interacting_field in definition['Interaction Fields'] :
+                    if fields[interacting_field].get('Has Missing') :
+                        definition.update({'Has Missing' : True})
+                        break
+
+                interaction_terms[field] = definition
+                # We want the interaction terms to be at the end of of the
+                # ordered dict so we'll add them after we finish
+                # processing all the other fields
+                continue
+            
+            field_model[field] = definition
+            self.comparison_fields.append(field)
+
+        self['fields'] = OrderedDict(field_model.items() 
+                                     + categoricals.items()
+                                     + interaction_terms.items())
+
+
+        self.higherCategoricals(source_fields)
 
         self.missingData()
+    
 
+
+
+    
+    def higherCategoricals(self, source_fields) :
+        for field, definition in self['fields'].items() :
+            if field not in source_fields :
+                if self['fields'][field].get('Has Missing') :
+                    missing = True
+                else :
+                    missing = False
+                
+                for source_field in source_fields :
+                    if self['fields'][source_field].get('Has Missing') :
+                        missing = True
             
+                    if definition['type'] == 'Interaction' :
+                        interaction_fields = [source_field]
+                        interaction_fields += definition['Interaction Fields']
+                    else :
+                        interaction_fields = [source_field, field]
+
+                    self['fields'][source_field + ':' + field] =\
+                          {'type' : 'Interaction', 
+                           'Interaction Fields' : interaction_fields,
+                           'Has Missing' : missing}
+
+
 
 
     def missingData(self) :
-        for k, v in self['fields'].items() :
-           if 'Has Missing' in v :
-               if v['Has Missing'] :
-                   self['fields'][k + ': not_missing'] = {'type'   : 'Missing Data'}
-           else :
-               self['fields'][k].update({'Has Missing' : False})
+        for field, definition in self['fields'].items() :
+            if definition.get('Has Missing') :
+                self['fields'][field + ': not_missing'] =\
+                  {'type'   : 'Missing Data'}
+            else :
+                self['fields'][field].update({'Has Missing' : False})
 
         
 
-    def checkFieldDefinition(self, definition) :
-        assert definition.__class__ is dict, \
-            "Incorrect field specification: field " \
-            "specifications are dictionaries that must " \
-            "include a type definition, ex. " \
-            "{'Phone': {type: 'String'}}"
+    def checkFieldDefinitions(self, definition) :
+        if definition.__class__ is not dict:
+            raise ValueError("Incorrect field specification: field "
+                             "specifications are dictionaries that must "
+                             "include a type definition, ex. "
+                             "{'Phone': {type: 'String'}}"
+                             )
 
-        assert 'type' in definition, \
-            "Missing field type: field " \
-            "specifications are dictionaries that must " \
-            "include a type definition, ex. " \
-            "{'Phone': {type: 'String'}}"
+        elif 'type' not in definition:
+            raise ValueError("Missing field type: field "
+                             "specifications are dictionaries that must "
+                             "include a type definition, ex. "
+                             "{'Phone': {type: 'String'}}"
+                             )
 
-        assert definition['type'] in ['String', 'LatLong', 'Set',
-                                      'Custom', 'Interaction', 'Source'], \
-            "Invalid field type: field " \
-            "specifications are dictionaries that must " \
-            "include a type definition, ex. " \
-            "{'Phone': {type: 'String'}}"
-
-        if definition['type'] == 'Custom' :
-            assert 'comparator' in definition, \
-                "For 'Custom' field types you must define " \
-                "a 'comparator' function in the field "\
-                "definition. "
-        else :
-            assert 'comparator' not in definition, \
-                "Custom comparators can only be " \
-                "defined for fields of type 'Custom'"
-
-        if definition['type'] == 'Interaction' :
-            assert 'Interaction Fields' in definition, \
-                'No "Interaction Fields" defined'
-
-
+        elif definition['type'] not in ['String',
+                                        'LatLong',
+                                        'Set',
+                                        'Source',
+                                        'Categorical',
+                                        'Custom',
+                                        'Interaction']:
+            raise ValueError("Invalid field type: field "
+                             "specifications are dictionaries that must "
+                             "include a type definition, ex. "
+                             "{'Phone': {type: 'String'}}")
+        
+        elif definition['type'] != 'Custom' and 'comparator' in definition :
+            raise ValueError("Custom comparators can only be defined "
+                             "for fields of type 'Custom'")
+                
+        elif definition['type'] == 'Custom' and 'comparator' not in definition :
+                raise ValueError("For 'Custom' field types you must define "
+                                 "a 'comparator' function in the field "
+                                 "definition. ")
 

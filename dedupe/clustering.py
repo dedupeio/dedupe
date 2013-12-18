@@ -17,9 +17,16 @@ def condensedDistance(dupes):
     algorithms. Also return a dictionary that maps the distance matrix
     to the record_ids.
    
-    The condensed distance matrix is described in the scipy
-    documentation of scipy.cluster.hierarchy.linkage
-    http://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+    The formula for an index of the condensed matrix is
+
+    index = {N choose 2}-{N-row choose 2} + (col-row-1)
+          = N*(N-1)/2 - (N-row)*(N-row-1)/2 + col - row - 1
+            ^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^   
+          matrix_length       row_step
+    
+    where (row,col) is index of an uncondensed square N X N distance matrix.
+    
+    See http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
     '''
 
     candidate_set = numpy.unique(dupes['pairs'])
@@ -28,14 +35,14 @@ def condensedDistance(dupes):
     i_to_id = dict(enumerate(candidate_set))
 
     ids = candidate_set.searchsorted(dupes['pairs'])
-    id_1 = ids[:, 0]
-    id_2 = ids[:, 1]
+    row = ids[:, 0]
+    col = ids[:, 1]
 
-    N = len(numpy.union1d(id_1, id_2))
+    N = len(numpy.union1d(row, col))
     matrix_length = N * (N - 1) / 2
 
-    step = (N - id_1) * (N - id_1 - 1) / 2
-    index = matrix_length - step + id_2 - id_1 - 1
+    row_step = (N - row) * (N - row - 1) / 2
+    index = matrix_length - row_step + col - row - 1
 
     condensed_distances = numpy.ones(matrix_length, 'f4')
     condensed_distances[index] = 1 - dupes['score']
