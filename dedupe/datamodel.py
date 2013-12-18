@@ -14,8 +14,17 @@ class DataModel(dict) :
         self['bias'] = 0
         self.comparison_fields = []
 
-        field_model = OrderedDict()
+        self['fields'], source_fields = self.assignComparators(fields)
 
+        self.higherCategoricals(source_fields)
+
+        self.missingData()
+        
+        self.fieldDistanceVariables()
+
+
+    def assignComparators(self, fields) :
+        field_model = OrderedDict()
         interaction_terms = OrderedDict()
         categoricals = OrderedDict()
         source_fields = []
@@ -80,19 +89,13 @@ class DataModel(dict) :
             field_model[field] = definition
             self.comparison_fields.append(field)
 
-        self['fields'] = OrderedDict(field_model.items() 
-                                     + categoricals.items()
-                                     + interaction_terms.items())
+        field_model = OrderedDict(field_model.items()
+                                  + categoricals.items()
+                                  + interaction_terms.items())
+
+        return field_model, source_fields
 
 
-        self.higherCategoricals(source_fields)
-
-        self.missingData()
-    
-
-
-
-    
     def higherCategoricals(self, source_fields) :
         for field, definition in self['fields'].items() :
             if field not in source_fields :
@@ -164,4 +167,33 @@ class DataModel(dict) :
                 raise ValueError("For 'Custom' field types you must define "
                                  "a 'comparator' function in the field "
                                  "definition. ")
+
+
+    def fieldDistanceVariables(self) :
+
+        fields = self['fields']
+        field_names = fields.keys()
+
+        self.interactions = []
+        self.categorical_indices = []
+
+        self.field_comparators = [(field, fields[field]['comparator'])
+                                  for field in self.comparison_fields]
+
+    
+        self.missing_field_indices = [i for i, (field, v) 
+                                      in enumerate(fields.items())
+                                      if v.get('Has Missing')]
+
+        for field, definition in fields.items() :
+            field_type = definition['type']
+            if field_type == 'Interaction' :
+                interaction_indices = []
+                for interaction_field in definition['Interaction Fields'] :
+                    interaction_indices.append(field_names.index(interaction_field))
+                self.interactions.append(interaction_indices)
+            if field_type in ('Source', 'Categorical') :
+                self.categorical_indices.append((field_names.index(field), 
+                                                 definition['comparator'].length))
+
 
