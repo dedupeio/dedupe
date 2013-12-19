@@ -136,3 +136,10 @@ def createCanopies(field,
     token_vectors = token_vector[field]
 
     return makeCanopy(field_inverted_index, token_vectors, threshold)
+
+def _createCanopies(args) :
+    (field,
+     threshold,
+     token_vector,
+     inverted_index) = args
+    return createCanopies(field, threshold, token_vector, inverted_index)

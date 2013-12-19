@@ -15,6 +15,7 @@ import itertools
 import logging
 import types
 import pickle
+import multiprocessing
 
 import numpy
 
@@ -98,6 +99,8 @@ class Dedupe:
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
+        self.pool = multiprocessing.Pool(processes=4)
+
 
         if init.__class__ is dict and init:
             self.data_model = model_definition.initializeDataModel(init)
@@ -404,7 +407,7 @@ class Dedupe:
                                           id_type,
                                           self.data_model,
                                           threshold,
-                                          self.num_processes)
+                                          self.pool)
         clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters

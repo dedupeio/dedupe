@@ -66,7 +66,10 @@ DONOR_SELECT = "SELECT donor_id, " \
                "LOWER(CONCAT_WS(' ', first_name, last_name)) AS name, " \
                "IFNULL(LOWER(zip),'') AS zip, " \
                "IFNULL(LOWER(state),'') AS state, " \
-               "LOWER(CONCAT_WS(' ', address_1, address_2)) AS address " \
+               "LOWER(CONCAT_WS(' ', address_1, address_2)) AS address, " \
+               "IFNULL(LOWER(occupation), '') AS occupation, "\
+               "IFNULL(LOWER(employer), '') AS employer, "\
+               "ISNULL(first_name) AS person "\
                "FROM donors"
 
 
@@ -138,6 +141,12 @@ else:
               'city': {'type': 'String', 'Has Missing' : True},
               'state': {'type': 'String'},
               'zip': {'type': 'String', 'Has Missing' : True},
+              'employer' : {'type' : 'String', 'Has Missing' : True},
+              'occupation' : {'type' : 'String', 'Has Missing' : True},
+              'person' : {'type' : 'Source', 
+                          'Source Names' : [0, 1]},
+              'name-address' : {'type' : 'Interaction', 
+                                'Interaction Fields' : ['name', 'address']}
               }
 
     # Create a new deduper object and pass our data model to it.
@@ -166,83 +175,86 @@ else:
     # When finished, save our labeled, training pairs to disk
     deduper.writeTraining(training_file)
 
-# ## Blocking
+    # ## Blocking
 
-print 'blocking...'
-# If we didn't read saved blocking rules from a settings file, then
-# we will try to find good blocking rules now. In either case we'll
-# initialize our blocker
+    print 'blocking...'
+    # If we didn't read saved blocking rules from a settings file, then
+    # we will try to find good blocking rules now. In either case we'll
+    # initialize our blocker
 
-# Notice our two arguments here
-#
-# `ppc` limits the Proportion of Pairs Covered that we allow a
-# predicate to cover. If a predicate puts together a fraction of
-# possible pairs greater than the ppc, that predicate will be removed
-# from consideration. As the size of the data increases, the user
-# will generally want to reduce ppc.
-#
-# `uncovered_dupes` is the number of true dupes pairs in our training
-# data that we are willing to accept will never be put into any
-# block. If true duplicates are never in the same block, we will never
-# compare them, and may never declare them to be duplicates.
-#
-# However, requiring that we cover every single true dupe pair may
-# mean that we have to use blocks that put together many, many
-# distinct pairs that we'll have to expensively, compare as well.
-blocker = deduper.blockingFunction(ppc=0.001, uncovered_dupes=5)
-
-# Save our weights and predicates to disk.
-deduper.writeSettings(settings_file)
-
-# To run blocking on such a large set of data, we create a separate table
-# that contains blocking keys and record ids
-print 'creating blocking_map database'
-c.execute("DROP TABLE IF EXISTS blocking_map")
-c.execute("CREATE TABLE blocking_map "
-          "(block_key VARCHAR(200), donor_id INTEGER)")
+    # Notice our two arguments here
+    #
+    # `ppc` limits the Proportion of Pairs Covered that we allow a
+    # predicate to cover. If a predicate puts together a fraction of
+    # possible pairs greater than the ppc, that predicate will be removed
+    # from consideration. As the size of the data increases, the user
+    # will generally want to reduce ppc.
+    #
+    # `uncovered_dupes` is the number of true dupes pairs in our training
+    # data that we are willing to accept will never be put into any
+    # block. If true duplicates are never in the same block, we will never
+    # compare them, and may never declare them to be duplicates.
+    #
+    # However, requiring that we cover every single true dupe pair may
+    # mean that we have to use blocks that put together many, many
+    # distinct pairs that we'll have to expensively, compare as well.
+    blocker = deduper.blockingFunction(ppc=0.001, uncovered_dupes=5)
 
 
-# If dedupe learned a TF-IDF blocking rule, we have to take a pass
-# through the data and create TF-IDF canopies. This can take up to an
-# hour
-print 'creating inverted index'
-c.execute(DONOR_SELECT)
-full_data = ((row['donor_id'], row) for row in c.fetchall())
-blocker.tfIdfBlocks(full_data)
+    # To run blocking on such a large set of data, we create a separate table
+    # that contains blocking keys and record ids
+    print 'creating blocking_map database'
+    c.execute("DROP TABLE IF EXISTS blocking_map")
+    c.execute("CREATE TABLE blocking_map "
+              "(block_key VARCHAR(200), donor_id INTEGER)")
 
 
-# Now we are ready to write our blocking map table by creating a
-# generator that yields unique `(block_key, donor_id)` tuples.
-print 'writing blocking map'
-def block_data() :
+    # If dedupe learned a TF-IDF blocking rule, we have to take a pass
+    # through the data and create TF-IDF canopies. This can take up to an
+    # hour
+    print 'creating inverted index'
     c.execute(DONOR_SELECT)
     full_data = ((row['donor_id'], row) for row in c.fetchall())
-    for i, (donor_id, record) in enumerate(full_data) :
-        if i % 10000 == 0 :
-            print i, ',', time.time() - start_time, 'seconds'
-        for key in blocker((donor_id, record)) :
-            yield (key, donor_id)
-
-b_data = block_data()
-
-# MySQL has a hard limit on the size of a data object that can be passed to it. 
-# To get around this, we chunk the blocked data in to groups of 10,000 blocks
-step = 10000
-done = False
-while not done :
-    chunk = itertools.islice(b_data, step)
-    records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
-                                     chunk)
-    if records_written < step :
-        done = True
-
-    con.commit()
+    blocker.tfIdfBlocks(full_data)
 
 
-# Create an index on the blocking key for faster clustering
-print 'creating blocking map index. this will probably take a while ...'
-c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
-print 'created', time.time() - start_time, 'seconds'
+    # Now we are ready to write our blocking map table by creating a
+    # generator that yields unique `(block_key, donor_id)` tuples.
+    print 'writing blocking map'
+    def block_data() :
+        c.execute(DONOR_SELECT)
+        full_data = ((row['donor_id'], row) for row in c.fetchall())
+        for i, (donor_id, record) in enumerate(full_data) :
+            if i % 10000 == 0 :
+                print i, ',', time.time() - start_time, 'seconds'
+            for key in blocker((donor_id, record)) :
+                yield (key, donor_id)
+
+    b_data = block_data()
+
+    # MySQL has a hard limit on the size of a data object that can be
+    # passed to it.  To get around this, we chunk the blocked data in
+    # to groups of 10,000 blocks
+    step = 10000
+    done = False
+    while not done :
+        chunk = itertools.islice(b_data, step)
+        records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
+                                         chunk)
+        if records_written < step :
+            done = True
+
+        con.commit()
+
+
+    # Create an index on the blocking key for faster clustering
+    print 'creating blocking map index. this will probably take a while ...'
+    c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
+    print 'created', time.time() - start_time, 'seconds'
+
+    # Save our weights and predicates to disk.
+    deduper.writeSettings(settings_file)
+
 
 # ## Clustering
 

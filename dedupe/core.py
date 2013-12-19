@@ -11,7 +11,8 @@ from itertools import count
 import warnings
 from itertools import count, izip_longest, chain, izip, repeat
 import warnings
-from multiprocessing import Pool
+import multiprocessing
+import copy
 
 import numpy
 
@@ -155,13 +156,8 @@ def fieldDistances(record_pairs, data_model):
                                          missing_indicators),
                                         axis=1)
 
-
     return field_distances
 
-def _fieldDistances(args) :
-    record_pairs, data_model = args
-    return fieldDistances(record_pairs, data_model)
-    
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
@@ -175,39 +171,40 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
-def _scorePairs(args) :
-    field_distance_chunk, data_model = args
-    return scorePairs(field_distance_chunk, data_model)
+class ScoringFunction(object) :
+    def __init__(self, data_model) :
+        self.data_model = data_model
 
+    def __call__(self, record_pairs) :
+        return scorePairs(fieldDistances(record_pairs, 
+                                         self.data_model),
+                          self.data_model)
 
+        
 
-def scoreDuplicates(ids, records, id_type, data_model, threshold=None, num_processes=1):
-    pool = Pool(processes=num_processes)
-
+def scoreDuplicates(ids, records, id_type, data_model, threshold=None, pool=None):
+    
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
-    chunk_size = 10000
-    
-    record_chunks = grouper(records, chunk_size)
+    record_chunks = grouper(grouper(records, 1000), 100)
 
-    field_distances = pool.imap(_fieldDistances, 
-                                izip(record_chunks, 
-                                     repeat(data_model)))
+    scoring_function = ScoringFunction(data_model)
 
-    dupe_scores = pool.imap(_scorePairs,
-                            izip(field_distances, 
-                                 repeat(data_model)))
+    dupe_scores = (score
+                   for chunk in record_chunks
+                   for score in pool.imap(scoring_function,
+                                          chunk, 25))
 
-
-    dupe_scores = chain.from_iterable(dupe_scores)  
+    dupe_scores = chain.from_iterable(dupe_scores)
 
     scored_pairs = ((pair_id, score) 
-                    for pair_id, score in izip(ids, dupe_scores) 
+                    for pair_id, score in zip(ids, dupe_scores) 
                     if score > threshold)
 
     scored_pairs =  numpy.fromiter(scored_pairs,
                                    dtype=score_dtype)
 
+    pool.close()
 
     logging.info('all scores %d' % scored_pairs.shape)
     scored_pairs = numpy.unique(scored_pairs)
@@ -235,14 +232,30 @@ def split(iterable):
     for qi in q:
         yield proj(qi)
 
+
 class frozendict(dict):
     def _blocked_attribute(obj):
         raise AttributeError, "A frozendict cannot be modified."
 
-#    _blocked_attribute = property(_blocked_attribute)
+# _blocked_attribute = property(_blocked_attribute)
 
-#    __delitem__ = __setitem__ = clear = _blocked_attribute
-#    pop = popitem = setdefault = update = _blocked_attribute
+# __delitem__ = __setitem__ = clear = _blocked_attribute
+# pop = popitem = setdefault = update = _blocked_attribute
+
+    def __new__(cls, *args):
+        new = dict.__new__(cls)
+        dict.__init__(new, *args)
+        return new
+
+    def __init__(self, *args):
+        pass
+
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(tuple(sorted(self.items())))
+            return h
+
     def __repr__(self):
         return "frozendict(%s)" % dict.__repr__(self)
-

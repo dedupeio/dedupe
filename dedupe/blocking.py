@@ -5,6 +5,7 @@ from collections import defaultdict
 import itertools
 import types
 import logging
+from multiprocessing import Pool
 
 import dedupe.tfidf as tfidf
 
@@ -69,6 +70,18 @@ class Blocker:
         logging.info('creating TF/IDF canopies')
 
         num_thresholds = len(self.tfidf_predicates)
+
+        pool = Pool(processes=2)
+
+        # canopies = pool.imap(tfidf._createCanopies,
+        #                      ((field, threshold, token_vector, inverted_index)
+        #                       for threshold, field in self.tfidf_predicates))
+
+        # canopy_keys = (threshold.__name__ + field 
+        #                for threshold, field in self.tfidf_predicates)
+
+        # self.canpies = dict(zip(canopy_keys, canopies))
+        
 
         for (i, (threshold, field)) in enumerate(self.tfidf_predicates, 1):
             logging.info('%(i)i/%(num_thresholds)i field %(threshold)2.2f %(field)s',
