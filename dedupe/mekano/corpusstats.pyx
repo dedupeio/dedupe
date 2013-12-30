@@ -1,4 +1,4 @@
-cimport dedupe.mekano.atomvector as atomvector
+cimport atomvector
 import cPickle
 
 cdef class CorpusStats:

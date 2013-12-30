@@ -1,5 +1,5 @@
-cimport dedupe.mekano.atomvector as atomvector
-cimport dedupe.mekano.corpusstats as corpusstats
+cimport atomvector
+cimport corpusstats
 
 cdef extern from "math.h":
     double log(double x)

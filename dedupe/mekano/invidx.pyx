@@ -1,8 +1,8 @@
-cimport dedupe.mekano.atomvector as atomvector
-cimport dedupe.mekano.atomvectorstore as atomvectorstore
-from dedupe.mekano.corpusstats cimport CorpusStats
-import dedupe.mekano.atomvectorstore as atomvectorstore
-from dedupe.mekano.corpusstats import CorpusStats
+cimport atomvector
+cimport atomvectorstore
+import atomvectorstore
+from corpusstats cimport CorpusStats
+from corpusstats import CorpusStats
 import os
 
 cdef class InvertedIndex(CorpusStats):
