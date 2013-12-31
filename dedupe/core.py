@@ -12,6 +12,8 @@ import warnings
 from itertools import count, izip_longest, chain, izip, repeat
 import warnings
 import copy
+import multiprocessing
+import Queue
 
 import numpy
 
@@ -171,9 +173,10 @@ def scorePairs(field_distances, data_model):
     return scores
 
 class ScoringFunction(object) :
-    def __init__(self, data_model, threshold) :
+    def __init__(self, data_model, threshold, dtype) :
         self.data_model = data_model
         self.threshold = threshold
+        self.dtype = dtype
 
     def __call__(self, record_pairs) :
         ids = []
@@ -188,9 +191,13 @@ class ScoringFunction(object) :
                                            self.data_model),
                             self.data_model)
 
-        scored_pairs = [(pair_id, score) 
-                        for pair_id, score in zip(ids, scores) 
-                        if score > self.threshold]
+        filtered_scores = ((pair_id, score) 
+                           for pair_id, score in izip(ids, scores) 
+                           if score > self.threshold)
+
+
+        scored_pairs = numpy.fromiter(filtered_scores,
+                                      dtype=self.dtype)
 
 
         return scored_pairs
@@ -199,33 +206,41 @@ def scoreDuplicates(records, id_type, data_model, pool, threshold=None):
     
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
-    record_chunks = grouper(records, 100000)
+    scored_pairs = numpy.empty((0,), dtype=score_dtype)
 
-    scoring_function = ScoringFunction(data_model, threshold)
+    record_chunks = grouper(records, 1000000)
 
-    score_list = []
+    scoring_function = ScoringFunction(data_model, 
+                                       threshold,
+                                       score_dtype)
+
+    score_queue = multiprocessing.Queue()
 
     for chunk in record_chunks :
         pool.apply_async(scoring_function,
                          (chunk,),
-                         callback=score_list.append)
+                         callback=score_queue.put)
+
+    while True :
+        try :
+            # http://stackoverflow.com/questions/12427146/combine-two-arrays-and-sort
+            scored_pairs = numpy.concatenate((scored_pairs, 
+                                              score_queue.get(True, 1)))
+            scored_pairs.sort()
+            flag = numpy.ones(len(scored_pairs), dtype=bool)
+            numpy.not_equal(scored_pairs[1:], 
+                            scored_pairs[:-1], 
+                            out=flag[1:])
+            scored_pairs[flag]
+
+        except Queue.Empty :
+            break
+        
+    score_queue.close()
 
     pool.close()
     pool.join()
-        
 
-    
-    dupe_scores = chain.from_iterable(score_list)
-    
-
-    scored_pairs =  numpy.fromiter(dupe_scores,
-                                   dtype=score_dtype)
-
-    pool.close()
-
-    logging.info('all scores %d' % scored_pairs.shape)
-    scored_pairs = numpy.unique(scored_pairs)
-    logging.info('unique scores %d' % scored_pairs.shape)
 
     return scored_pairs
 
@@ -239,9 +254,10 @@ def blockedPairs(blocks) :
 
 
 def blockedPairs2(blocks) :
+    combinations = itertools.combinations
     for block in blocks :
 
-        block_pairs = itertools.combinations(block.items(), 2)
+        block_pairs = combinations(block.iteritems(), 2)
 
         for pair in block_pairs :
             yield pair

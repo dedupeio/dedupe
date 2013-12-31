@@ -276,8 +276,17 @@ else:
     c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
 
     c.execute("delete bm.* from blocking_map bm JOIN singletons USING (block_key)")
-
     c.execute("drop table singletons")
+
+    c.execute("create table sorted_blocking_map as select * from blocking_map order by block_key, donor_id")
+
+    c.execute("alter table sorted_blocking_map add column id int(8) unsigned primary key auto_increment")
+
+    c.execute("create index donor_idx on sorted_blocking_map (donor_id)")
+
+    c.execute("DROP TABLE blocking_map")
+
+    c.commit()
 
     # Save our weights and predicates to disk.
     deduper.writeSettings(settings_file)
@@ -307,8 +316,8 @@ def candidates_gen(block_keys) :
 def candidates_gen2() :
     c.execute("SELECT donor_id, city, name, zip, state, address, " \
               "occupation, employer, person, block_key from processed_donors " \
-              "INNER JOIN blocking_map using (donor_id) " \
-              "ORDER BY block_key")
+              "INNER JOIN sorted_blocking_map using (donor_id) " \
+              "ORDER BY sorted_blocking_map.id")
 
     block_key = None
     records = {}
