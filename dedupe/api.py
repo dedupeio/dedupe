@@ -99,7 +99,8 @@ class Dedupe:
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        self.pool = multiprocessing.Pool(processes=4)
+        self.num_processes = 4
+        self.pool = multiprocessing.Pool(processes=self.num_processes)
 
 
         if init.__class__ is dict and init:
@@ -125,7 +126,7 @@ class Dedupe:
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
-        self.num_processes = 2
+        self.num_processes = 4
 
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
@@ -388,26 +389,18 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
+
+        candidate_records = core.blockedPairs2(blocks)
+
+        peek = candidate_records.next()
+        id_type = type(peek[0][0])
+        candidate_records = itertools.chain([peek], candidate_records)
         
-        blocked_keys, blocked_records = core.split((block.keys(),
-                                                    block.values())
-                                                   for block in blocks)
-
-
-        candidate_keys = core.blockedPairs(blocked_keys)
-        candidate_records = core.blockedPairs(blocked_records)
-
-        candidate_keys, ids = itertools.tee(candidate_keys)
-        peek = ids.next()
-        id_type = type(peek[0])
-        ids = itertools.chain([peek], ids)
-        
-        self.dupes = core.scoreDuplicates(candidate_keys,
-                                          candidate_records,
+        self.dupes = core.scoreDuplicates(candidate_records,
                                           id_type,
                                           self.data_model,
-                                          threshold,
-                                          self.pool)
+                                          self.pool,
+                                          threshold)
         clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters

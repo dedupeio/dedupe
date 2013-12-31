@@ -1,3 +1,5 @@
+import cProfile
+
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
@@ -28,6 +30,15 @@ import MySQLdb.cursors
 
 import dedupe
 
+
+
+import inspect
+def my_zip(*iterables):
+    frame = inspect.currentframe().f_back
+    my_zip.callees.append(frame.f_code.co_name)
+    return my_zip.old_zip(*iterables)
+
+
 # ## Logging
 
 # Dedupe uses Python logging to show or suppress verbose output. Added
@@ -47,31 +58,6 @@ elif opts.verbose >= 2:
 logging.basicConfig(level=log_level)
 
 # ## Setup
-
-# We'll be using variations on this following select statement to pull
-# in campaign donor info.
-#
-# We are concatenating the first_name and last_name into a single name
-# field and the address_1 and address_2 into a single address field. In
-# this data, there is a lot of inconsitency of how these fields, so it
-# is better to create these composite fields
-#
-# If a field is NULL, then we'll have MySQL return an empty string and
-# if it's not null then we'll lower case the field
-#
-# Doing this preprocessing in MySQL is much faster than than in
-# Python.
-DONOR_SELECT = "SELECT donor_id, " \
-               "IFNULL(LOWER(city), '') AS city, " \
-               "LOWER(CONCAT_WS(' ', first_name, last_name)) AS name, " \
-               "IFNULL(LOWER(zip),'') AS zip, " \
-               "IFNULL(LOWER(state),'') AS state, " \
-               "LOWER(CONCAT_WS(' ', address_1, address_2)) AS address, " \
-               "IFNULL(LOWER(occupation), '') AS occupation, "\
-               "IFNULL(LOWER(employer), '') AS employer, "\
-               "ISNULL(first_name) AS person "\
-               "FROM donors"
-
 
 def getSample(cur, sample_size, id_column, table):
     '''
@@ -113,9 +99,41 @@ start_time = time.time()
 # information in `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
                       read_default_file = os.path.abspath('.') + '/mysql.cnf', 
-                      cursorclass=MySQLdb.cursors.DictCursor)
+                      cursorclass=MySQLdb.cursors.SSDictCursor)
 
 c = con.cursor()
+
+# We'll be using variations on this following select statement to pull
+# in campaign donor info.
+#
+# We are concatenating the first_name and last_name into a single name
+# field and the address_1 and address_2 into a single address field. In
+# this data, there is a lot of inconsitency of how these fields, so it
+# is better to create these composite fields
+#
+# If a field is NULL, then we'll have MySQL return an empty string and
+# if it's not null then we'll lower case the field
+#
+# Doing this preprocessing in MySQL is much faster than than in
+# Python.
+
+c.execute("CREATE TEMPORARY TABLE IF NOT EXISTS processed_donors AS " \
+          "(SELECT donor_id, " \
+          " IFNULL(LOWER(city), '') AS city, " \
+          " LOWER(CONCAT_WS(' ', first_name, last_name)) AS name, " \
+          " IFNULL(LOWER(zip),'') AS zip, " \
+          " IFNULL(LOWER(state),'') AS state, " \
+          " LOWER(CONCAT_WS(' ', address_1, address_2)) AS address, " \
+          " IFNULL(LOWER(occupation), '') AS occupation, "\
+          " IFNULL(LOWER(employer), '') AS employer, "\
+          " ISNULL(first_name) AS person "\
+          " FROM donors)")
+
+c.execute("CREATE INDEX donor_idx ON processed_donors (donor_id)")
+
+DONOR_SELECT = "SELECT donor_id, city, name, zip, state, address, " \
+               "occupation, employer, person from processed_donors"
+
 
 # ## Training
 
@@ -252,6 +270,15 @@ else:
     c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
     print 'created', time.time() - start_time, 'seconds'
 
+
+    c.execute("create temporary table singletons as (select block_key from blocking_map group by blocking_map having count(*) < 2)")
+
+    c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+
+    c.execute("delete bm.* from blocking_map bm JOIN singletons USING (block_key)")
+
+    c.execute("drop table singletons")
+
     # Save our weights and predicates to disk.
     deduper.writeSettings(settings_file)
 
@@ -277,6 +304,39 @@ def candidates_gen(block_keys) :
             records.update({row['donor_id'] : row})
         yield records
 
+def candidates_gen2() :
+    c.execute("SELECT donor_id, city, name, zip, state, address, " \
+              "occupation, employer, person, block_key from processed_donors " \
+              "INNER JOIN blocking_map using (donor_id) " \
+              "ORDER BY block_key")
+
+    block_key = None
+    records = {}
+    i = 0
+    for row in c :
+        if row['block_key'] != block_key :
+            if records :
+                yield records
+
+            block_key = row['block_key']
+            records = {}
+            i += 1
+
+            if i % 10000 == 0 :
+                print i, "blocks"
+                print time.time() - start_time, "seconds"
+
+            
+        records.update({row['donor_id'] : row})
+
+    if records :
+        yield records
+
+
+
+
+        
+        
 # Grab all the block keys with more than one record.
 # These records will make up a block of records we will cluster.
 blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
@@ -292,94 +352,96 @@ threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys), .5)
 
 # With our found threshold, and candidates generator, perform the
 # clustering operation
-c.execute(blocking_key_sql)
-block_keys = (row['block_key'] for row in c.fetchall())
+#c.execute(blocking_key_sql)
+#block_keys = (row['block_key'] for row in c.fetchall())
 
-print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
-                                            threshold)
+#print 'clustering...'
+#clustered_dupes = deduper.duplicateClusters(candidates_gen2(),
+#                                            threshold)
 
-# ## Writing out results
+cProfile.run('deduper.duplicateClusters(candidates_gen2(), threshold)', 
+             'output')
+# # ## Writing out results
 
-# We now have a sequence of tuples of donor ids that dedupe believes
-# all refer to the same entity. We write this out onto an entity map
-# table
-c.execute("DROP TABLE IF EXISTS entity_map")
+# # We now have a sequence of tuples of donor ids that dedupe believes
+# # all refer to the same entity. We write this out onto an entity map
+# # table
+# c.execute("DROP TABLE IF EXISTS entity_map")
 
-print 'creating entity_map database'
-c.execute("CREATE TABLE entity_map "
-          "(donor_id INTEGER, canon_id INTEGER, PRIMARY KEY(donor_id))")
+# print 'creating entity_map database'
+# c.execute("CREATE TABLE entity_map "
+#           "(donor_id INTEGER, canon_id INTEGER, PRIMARY KEY(donor_id))")
 
-for cluster in clustered_dupes :
-    cluster_head = str(cluster.pop())
-    c.execute('INSERT INTO entity_map VALUES (%s, %s)',
-                (cluster_head, cluster_head))
-    for key in cluster :
-        c.execute('INSERT INTO entity_map VALUES (%s, %s)',
-                    (str(key), cluster_head))
+# for cluster in clustered_dupes :
+#     cluster_head = str(cluster.pop())
+#     c.execute('INSERT INTO entity_map VALUES (%s, %s)',
+#                 (cluster_head, cluster_head))
+#     for key in cluster :
+#         c.execute('INSERT INTO entity_map VALUES (%s, %s)',
+#                     (str(key), cluster_head))
 
-con.commit()
+# con.commit()
 
-c.execute("CREATE INDEX head_index ON entity_map (canon_id)")
-con.commit()
+# c.execute("CREATE INDEX head_index ON entity_map (canon_id)")
+# con.commit()
 
-# Print out the number of duplicates found
-print '# duplicate sets'
-print len(clustered_dupes)
+# # Print out the number of duplicates found
+# print '# duplicate sets'
+# print len(clustered_dupes)
 
-# ## Payoff
+# # ## Payoff
 
-# With all this done, we can now begin to ask interesting questions
-# of the data
-#
-# For example, let's see who the top 10 donors are.
+# # With all this done, we can now begin to ask interesting questions
+# # of the data
+# #
+# # For example, let's see who the top 10 donors are.
 
-locale.setlocale(locale.LC_ALL, '') # for pretty printing numbers
+# locale.setlocale(locale.LC_ALL, '') # for pretty printing numbers
 
-# Create a temporary table so each group and unmatched record has a unique id
-c.execute("CREATE TEMPORARY TABLE e_map "
-          "SELECT IFNULL(canon_id, donor_id) AS canon_id, donor_id "
-          "FROM entity_map "
-          "RIGHT JOIN donors USING(donor_id)")
-
-
-c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) AS name, "
-          "donation_totals.totals AS totals "
-          "FROM donors INNER JOIN "
-          "(SELECT canon_id, SUM(amount) AS totals "
-          " FROM contributions INNER JOIN e_map "
-          " USING (donor_id) "
-          " GROUP BY (canon_id) "
-          " ORDER BY totals "
-          " DESC LIMIT 10) "
-          "AS donation_totals "
-          "WHERE donors.donor_id = donation_totals.canon_id")
+# # Create a temporary table so each group and unmatched record has a unique id
+# c.execute("CREATE TEMPORARY TABLE e_map "
+#           "SELECT IFNULL(canon_id, donor_id) AS canon_id, donor_id "
+#           "FROM entity_map "
+#           "RIGHT JOIN donors USING(donor_id)")
 
 
-print "Top Donors (deduped)"
-for row in c.fetchall() :
-    row['totals'] = locale.currency(row['totals'], grouping=True)
-    print '%(totals)20s: %(name)s' % row
-
-# Compare this to what we would have gotten if we hadn't done any
-# deduplication
-c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) as name, "
-          "SUM(contributions.amount) AS totals "
-          "FROM donors INNER JOIN contributions "
-          "USING (donor_id) "
-          "GROUP BY (donor_id) "
-          "ORDER BY totals DESC "
-          "LIMIT 10")
-
-print "Top Donors (raw)"
-for row in c.fetchall() :
-    row['totals'] = locale.currency(row['totals'], grouping=True)
-    print '%(totals)20s: %(name)s' % row
+# c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) AS name, "
+#           "donation_totals.totals AS totals "
+#           "FROM donors INNER JOIN "
+#           "(SELECT canon_id, SUM(amount) AS totals "
+#           " FROM contributions INNER JOIN e_map "
+#           " USING (donor_id) "
+#           " GROUP BY (canon_id) "
+#           " ORDER BY totals "
+#           " DESC LIMIT 10) "
+#           "AS donation_totals "
+#           "WHERE donors.donor_id = donation_totals.canon_id")
 
 
+# print "Top Donors (deduped)"
+# for row in c.fetchall() :
+#     row['totals'] = locale.currency(row['totals'], grouping=True)
+#     print '%(totals)20s: %(name)s' % row
 
-# Close our database connection
-c.close()
-con.close()
+# # Compare this to what we would have gotten if we hadn't done any
+# # deduplication
+# c.execute("SELECT CONCAT_WS(' ', donors.first_name, donors.last_name) as name, "
+#           "SUM(contributions.amount) AS totals "
+#           "FROM donors INNER JOIN contributions "
+#           "USING (donor_id) "
+#           "GROUP BY (donor_id) "
+#           "ORDER BY totals DESC "
+#           "LIMIT 10")
 
-print 'ran in', time.time() - start_time, 'seconds'
+# print "Top Donors (raw)"
+# for row in c.fetchall() :
+#     row['totals'] = locale.currency(row['totals'], grouping=True)
+#     print '%(totals)20s: %(name)s' % row
+
+
+
+# # Close our database connection
+# c.close()
+# con.close()
+
+# print 'ran in', time.time() - start_time, 'seconds'

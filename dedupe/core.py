@@ -11,7 +11,6 @@ from itertools import count
 import warnings
 from itertools import count, izip_longest, chain, izip, repeat
 import warnings
-import multiprocessing
 import copy
 
 import numpy
@@ -172,36 +171,54 @@ def scorePairs(field_distances, data_model):
     return scores
 
 class ScoringFunction(object) :
-    def __init__(self, data_model) :
+    def __init__(self, data_model, threshold) :
         self.data_model = data_model
+        self.threshold = threshold
 
     def __call__(self, record_pairs) :
-        return scorePairs(fieldDistances(record_pairs, 
-                                         self.data_model),
-                          self.data_model)
+        ids = []
 
-        
+        def split_records() :
+            for pair in record_pairs :
+                if pair :
+                    ids.append((pair[0][0], pair[1][0]))
+                    yield (pair[0][1], pair[1][1])
 
-def scoreDuplicates(ids, records, id_type, data_model, threshold=None, pool=None):
+        scores = scorePairs(fieldDistances(split_records(), 
+                                           self.data_model),
+                            self.data_model)
+
+        scored_pairs = [(pair_id, score) 
+                        for pair_id, score in zip(ids, scores) 
+                        if score > self.threshold]
+
+
+        return scored_pairs
+
+def scoreDuplicates(records, id_type, data_model, pool, threshold=None):
     
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
-    record_chunks = grouper(grouper(records, 1000), 100)
+    record_chunks = grouper(records, 100000)
 
-    scoring_function = ScoringFunction(data_model)
+    scoring_function = ScoringFunction(data_model, threshold)
 
-    dupe_scores = (score
-                   for chunk in record_chunks
-                   for score in pool.imap(scoring_function,
-                                          chunk, 25))
+    score_list = []
 
-    dupe_scores = chain.from_iterable(dupe_scores)
+    for chunk in record_chunks :
+        pool.apply_async(scoring_function,
+                         (chunk,),
+                         callback=score_list.append)
 
-    scored_pairs = ((pair_id, score) 
-                    for pair_id, score in zip(ids, dupe_scores) 
-                    if score > threshold)
+    pool.close()
+    pool.join()
+        
 
-    scored_pairs =  numpy.fromiter(scored_pairs,
+    
+    dupe_scores = chain.from_iterable(score_list)
+    
+
+    scored_pairs =  numpy.fromiter(dupe_scores,
                                    dtype=score_dtype)
 
     pool.close()
@@ -220,13 +237,23 @@ def blockedPairs(blocks) :
         for pair in block_pairs :
             yield pair
 
+
+def blockedPairs2(blocks) :
+    for block in blocks :
+
+        block_pairs = itertools.combinations(block.items(), 2)
+
+        for pair in block_pairs :
+            yield pair
+
+
 def split(iterable):
     it = iter(iterable)
     q = [collections.deque([x]) for x in it.next()] 
     def proj(qi):
         while True:
             if not qi:
-                for qj, xj in zip(q, it.next()):
+                for qj, xj in izip(q, it.next()):
                     qj.append(xj)
             yield qi.popleft()
     for qi in q:
