@@ -338,9 +338,8 @@ class Dedupe:
                          to 2.
         """
 
-        blocked_records = (block.values() for block in blocks)
-
-        candidates = core.blockedPairs(blocked_records)
+        candidates = ((pair[0][1], pair[1][1]) 
+                      for pair in core.blockedPairs(blocks))
 
         field_distances = core.fieldDistances(candidates, self.data_model)
         probability = core.scorePairs(field_distances, self.data_model)
@@ -390,7 +389,7 @@ class Dedupe:
         cluster_threshold = threshold * 0.7
 
 
-        candidate_records = core.blockedPairs2(blocks)
+        candidate_records = core.blockedPairs(blocks)
 
         peek = candidate_records.next()
         id_type = type(peek[0][0])

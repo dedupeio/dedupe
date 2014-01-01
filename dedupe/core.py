@@ -245,15 +245,6 @@ def scoreDuplicates(records, id_type, data_model, pool, threshold=None):
     return scored_pairs
 
 def blockedPairs(blocks) :
-    for block in blocks :
-
-        block_pairs = itertools.combinations(block, 2)
-
-        for pair in block_pairs :
-            yield pair
-
-
-def blockedPairs2(blocks) :
     combinations = itertools.combinations
     for block in blocks :
         for pair in combinations(block.iteritems(), 2) :
