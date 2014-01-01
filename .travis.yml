@@ -23,6 +23,6 @@ install:
 # command to run tests, e.g. python setup.py test
 script: 
   - coverage run -m nose -I canonical_test
-  - nosetests test/canonical_test*
+  - python test/canonical_test.py
 after_success:
     coveralls
