@@ -202,7 +202,7 @@ class ScoringFunction(object) :
 
         return scored_pairs
 
-def scoreDuplicates(records, id_type, data_model, pool, threshold=None):
+def scoreDuplicates(records, id_type, data_model, pool, threshold=0):
     
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
