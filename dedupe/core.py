@@ -216,10 +216,11 @@ def scoreDuplicates(records, id_type, data_model, pool, threshold=0):
 
     score_queue = multiprocessing.Queue()
 
-    for chunk in record_chunks :
-        pool.apply_async(scoring_function,
-                         (chunk,),
-                         callback=score_queue.put)
+
+    results = [pool.apply_async(scoring_function,
+                               (chunk,),
+                               callback=score_queue.put)
+               for chunk in record_chunks] 
 
     while True :
         try :
@@ -238,8 +239,8 @@ def scoreDuplicates(records, id_type, data_model, pool, threshold=0):
         
     score_queue.close()
 
-    pool.close()
-    pool.join()
+    for r in results :
+        r.wait()
 
 
     return scored_pairs

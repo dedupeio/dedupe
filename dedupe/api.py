@@ -46,7 +46,7 @@ class Dedupe:
 
     # === `Dedupe.__init__` ===
 
-    def __init__(self, init=None):
+    def __init__(self, init=None, num_processes=1):
         """
         Load or initialize a data model.
 
@@ -99,8 +99,7 @@ class Dedupe:
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        self.num_processes = 4
-        self.pool = multiprocessing.Pool(processes=self.num_processes)
+        self.pool = multiprocessing.Pool(processes=num_processes)
 
 
         if init.__class__ is dict and init:
@@ -126,7 +125,6 @@ class Dedupe:
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
-        self.num_processes = 4
 
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
@@ -337,12 +335,10 @@ class Dedupe:
                          recall as you do precision, set recall_weight
                          to 2.
         """
-
-        candidates = ((pair[0][1], pair[1][1]) 
-                      for pair in core.blockedPairs(blocks))
-
-        field_distances = core.fieldDistances(candidates, self.data_model)
-        probability = core.scorePairs(field_distances, self.data_model)
+        probability = core.scoreDuplicates(core.blockedPairs(blocks), 
+                                           'i4',
+                                           self.data_model, 
+                                           self.pool)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -387,7 +383,6 @@ class Dedupe:
         # Setting the cluster threshold this ways is not principled,
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
-
 
         candidate_records = core.blockedPairs(blocks)
 
