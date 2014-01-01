@@ -256,25 +256,8 @@ def blockedPairs(blocks) :
 def blockedPairs2(blocks) :
     combinations = itertools.combinations
     for block in blocks :
-
-        block_pairs = combinations(block.iteritems(), 2)
-
-        for pair in block_pairs :
+        for pair in combinations(block.iteritems(), 2) :
             yield pair
-
-
-def split(iterable):
-    it = iter(iterable)
-    q = [collections.deque([x]) for x in it.next()] 
-    def proj(qi):
-        while True:
-            if not qi:
-                for qj, xj in izip(q, it.next()):
-                    qj.append(xj)
-            yield qi.popleft()
-    for qi in q:
-        yield proj(qi)
-
 
 class frozendict(dict):
     def _blocked_attribute(obj):

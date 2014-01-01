@@ -317,7 +317,7 @@ class Dedupe:
         if not self.predicates:
             self.predicates = self._learnBlocking(ppc, uncovered_dupes)
 
-        blocker = blocking.Blocker(self.predicates)
+        blocker = blocking.Blocker(self.predicates, self.pool)
 
         return blocker
 
@@ -422,7 +422,8 @@ class Dedupe:
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
                                                            eta,
-                                                           epsilon)
+                                                           epsilon,
+                                                           self.pool)
 
         return learned_predicates
 

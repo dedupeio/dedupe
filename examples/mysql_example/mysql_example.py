@@ -30,15 +30,6 @@ import MySQLdb.cursors
 
 import dedupe
 
-
-
-import inspect
-def my_zip(*iterables):
-    frame = inspect.currentframe().f_back
-    my_zip.callees.append(frame.f_code.co_name)
-    return my_zip.old_zip(*iterables)
-
-
 # ## Logging
 
 # Dedupe uses Python logging to show or suppress verbose output. Added
@@ -68,6 +59,8 @@ def getSample(cur, sample_size, id_column, table):
     cur.execute("SELECT MAX(%s) FROM %s" % (id_column, table))
     num_records = cur.fetchone().values()[0]
 
+    cur.fetchall()
+
     # Dedupe expects the id column to contain unique, sequential
     # integers starting at 0 or 1
     random_pairs = dedupe.randomPairs(num_records,
@@ -77,7 +70,7 @@ def getSample(cur, sample_size, id_column, table):
     temp_d = {}
 
     cur.execute(DONOR_SELECT)
-    for row in cur.fetchall() :
+    for row in cur :
         temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
     def random_pair_generator():
@@ -236,140 +229,138 @@ else:
     blocker.tfIdfBlocks(full_data)
 
 
-    # Now we are ready to write our blocking map table by creating a
-    # generator that yields unique `(block_key, donor_id)` tuples.
-    print 'writing blocking map'
-    def block_data() :
-        c.execute(DONOR_SELECT)
-        full_data = ((row['donor_id'], row) for row in c.fetchall())
-        for i, (donor_id, record) in enumerate(full_data) :
-            if i % 10000 == 0 :
-                print i, ',', time.time() - start_time, 'seconds'
-            for key in blocker((donor_id, record)) :
-                yield (key, donor_id)
+#     # Now we are ready to write our blocking map table by creating a
+#     # generator that yields unique `(block_key, donor_id)` tuples.
+#     print 'writing blocking map'
+#     def block_data() :
+#         c.execute(DONOR_SELECT)
+#         full_data = ((row['donor_id'], row) for row in c.fetchall())
+#         for i, (donor_id, record) in enumerate(full_data) :
+#             if i % 10000 == 0 :
+#                 print i, ',', time.time() - start_time, 'seconds'
+#             for key in blocker((donor_id, record)) :
+#                 yield (key, donor_id)
 
-    b_data = block_data()
+#     b_data = block_data()
 
-    # MySQL has a hard limit on the size of a data object that can be
-    # passed to it.  To get around this, we chunk the blocked data in
-    # to groups of 10,000 blocks
-    step = 10000
-    done = False
-    while not done :
-        chunk = itertools.islice(b_data, step)
-        records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
-                                         chunk)
-        if records_written < step :
-            done = True
+#     # MySQL has a hard limit on the size of a data object that can be
+#     # passed to it.  To get around this, we chunk the blocked data in
+#     # to groups of 10,000 blocks
+#     step = 10000
+#     done = False
+#     while not done :
+#         chunk = itertools.islice(b_data, step)
+#         records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
+#                                          chunk)
+#         if records_written < step :
+#             done = True
 
-        con.commit()
-
-
-    # Create an index on the blocking key for faster clustering
-    print 'creating blocking map index. this will probably take a while ...'
-    c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
-    print 'created', time.time() - start_time, 'seconds'
+#         con.commit()
 
 
-    c.execute("create temporary table singletons as (select block_key from blocking_map group by blocking_map having count(*) < 2)")
-
-    c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
-
-    c.execute("delete bm.* from blocking_map bm JOIN singletons USING (block_key)")
-    c.execute("drop table singletons")
-
-    c.execute("create table sorted_blocking_map as select * from blocking_map order by block_key, donor_id")
-
-    c.execute("alter table sorted_blocking_map add column id int(8) unsigned primary key auto_increment")
-
-    c.execute("create index donor_idx on sorted_blocking_map (donor_id)")
-
-    c.execute("DROP TABLE blocking_map")
-
-    c.commit()
-
-    # Save our weights and predicates to disk.
-    deduper.writeSettings(settings_file)
+#     # Create an index on the blocking key for faster clustering
+#     print 'creating blocking map index. this will probably take a while ...'
+#     c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
+#     print 'created', time.time() - start_time, 'seconds'
 
 
-# ## Clustering
+#     c.execute("create temporary table singletons as (select block_key from blocking_map group by blocking_map having count(*) < 2)")
 
-# Grabs a block of records for comparison.
-block_select = (DONOR_SELECT + 
-                " INNER JOIN blocking_map USING (donor_id) " 
-                "WHERE block_key = %s ORDER BY donor_id")
+#     c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+
+#     c.execute("delete bm.* from blocking_map bm JOIN singletons USING (block_key)")
+#     c.execute("drop table singletons")
+
+#     c.execute("create table sorted_blocking_map as select * from blocking_map order by block_key, donor_id")
+
+#     c.execute("alter table sorted_blocking_map add column id int(8) unsigned primary key auto_increment")
+
+#     c.execute("create index donor_idx on sorted_blocking_map (donor_id)")
+
+#     c.execute("DROP TABLE blocking_map")
+
+#     c.commit()
+
+#     # Save our weights and predicates to disk.
+#     deduper.writeSettings(settings_file)
 
 
-# Generator function that yields records based on blocking map keys
-def candidates_gen(block_keys) :
-    for i, block_key in enumerate(block_keys) :
-        if i % 10000 == 0 :
-            print i, "blocks"
-            print time.time() - start_time, "seconds"
+# # ## Clustering
 
-        c.execute(block_select, (block_key,))
-        records = {}
-        for row in c.fetchall() :
-            records.update({row['donor_id'] : row})
-        yield records
+# # Grabs a block of records for comparison.
+# block_select = (DONOR_SELECT + 
+#                 " INNER JOIN blocking_map USING (donor_id) " 
+#                 "WHERE block_key = %s ORDER BY donor_id")
 
-def candidates_gen2() :
-    c.execute("SELECT donor_id, city, name, zip, state, address, " \
-              "occupation, employer, person, block_key from processed_donors " \
-              "INNER JOIN sorted_blocking_map using (donor_id) " \
-              "ORDER BY sorted_blocking_map.id")
 
-    block_key = None
-    records = {}
-    i = 0
-    for row in c :
-        if row['block_key'] != block_key :
-            if records :
-                yield records
+# # Generator function that yields records based on blocking map keys
+# def candidates_gen(block_keys) :
+#     for i, block_key in enumerate(block_keys) :
+#         if i % 10000 == 0 :
+#             print i, "blocks"
+#             print time.time() - start_time, "seconds"
 
-            block_key = row['block_key']
-            records = {}
-            i += 1
+#         c.execute(block_select, (block_key,))
+#         records = {}
+#         for row in c.fetchall() :
+#             records.update({row['donor_id'] : row})
+#         yield records
 
-            if i % 10000 == 0 :
-                print i, "blocks"
-                print time.time() - start_time, "seconds"
+# def candidates_gen2() :
+#     c.execute("SELECT donor_id, city, name, zip, state, address, " \
+#               "occupation, employer, person, block_key from processed_donors " \
+#               "INNER JOIN sorted_blocking_map using (donor_id) " \
+#               "ORDER BY sorted_blocking_map.id")
+
+#     block_key = None
+#     records = {}
+#     i = 0
+#     for row in c :
+#         if row['block_key'] != block_key :
+#             if records :
+#                 yield records
+
+#             block_key = row['block_key']
+#             records = {}
+#             i += 1
+
+#             if i % 10000 == 0 :
+#                 print i, "blocks"
+#                 print time.time() - start_time, "seconds"
 
             
-        records.update({row['donor_id'] : row})
+#         records.update({row['donor_id'] : row})
 
-    if records :
-        yield records
+#     if records :
+#         yield records
 
 
 
 
         
         
-# Grab all the block keys with more than one record.
-# These records will make up a block of records we will cluster.
-blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
-                   "FROM blocking_map " \
-                   "GROUP BY block_key " \
-                   "HAVING num_candidates > 1"
+# # Grab all the block keys with more than one record.
+# # These records will make up a block of records we will cluster.
+# blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
+#                    "FROM blocking_map " \
+#                    "GROUP BY block_key " \
+#                    "HAVING num_candidates > 1"
 
-# Using a random sample of blocks we find our clustering threshold
-# that maximizes the weighted average of our precision and recall
-c.execute(blocking_key_sql + " ORDER BY RAND() LIMIT 1000")
-sampled_block_keys = block_keys = (row['block_key'] for row in c.fetchall())
-threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys), .5)
+# # Using a random sample of blocks we find our clustering threshold
+# # that maximizes the weighted average of our precision and recall
+# c.execute(blocking_key_sql + " ORDER BY RAND() LIMIT 1000")
+# sampled_block_keys = block_keys = (row['block_key'] for row in c.fetchall())
+# threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys), .5)
 
-# With our found threshold, and candidates generator, perform the
-# clustering operation
-#c.execute(blocking_key_sql)
-#block_keys = (row['block_key'] for row in c.fetchall())
+# # With our found threshold, and candidates generator, perform the
+# # clustering operation
 
-#print 'clustering...'
-#clustered_dupes = deduper.duplicateClusters(candidates_gen2(),
-#                                            threshold)
+# print 'clustering...'
+# clustered_dupes = deduper.duplicateClusters(candidates_gen2(),
+#                                             threshold)
 
-cProfile.run('deduper.duplicateClusters(candidates_gen2(), threshold)', 
-             'output')
+#cProfile.run('deduper.duplicateClusters(candidates_gen2(), threshold)', 
+#             'output')
 # # ## Writing out results
 
 # # We now have a sequence of tuples of donor ids that dedupe believes

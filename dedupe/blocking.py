@@ -11,7 +11,9 @@ import dedupe.tfidf as tfidf
 
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
-    def __init__(self, predicates = None):
+    def __init__(self, predicates = None, pool=None):
+
+        self.pool = pool
 
         if predicates is None :
             self.simple_predicates = set([])
@@ -71,34 +73,27 @@ class Blocker:
 
         num_thresholds = len(self.tfidf_predicates)
 
-        pool = Pool(processes=2)
+        canopies = {}
 
-        # canopies = pool.imap(tfidf._createCanopies,
-        #                      ((field, threshold, token_vector, inverted_index)
-        #                       for threshold, field in self.tfidf_predicates))
+        results = [self.pool.apply_async(tfidf._createCanopies,
+                                         (inverted_index[field], 
+                                          token_vector[field], 
+                                          threshold,
+                                          field),
+                                         callback=canopies.update)
+                   for threshold, field in self.tfidf_predicates]
 
-        # canopy_keys = (threshold.__name__ + field 
-        #                for threshold, field in self.tfidf_predicates)
-
-        # self.canpies = dict(zip(canopy_keys, canopies))
+        for r in results :
+            r.wait()
+            
+        self.canopies = canopies
         
-
-        for (i, (threshold, field)) in enumerate(self.tfidf_predicates, 1):
-            logging.info('%(i)i/%(num_thresholds)i field %(threshold)2.2f %(field)s',
-                         {'i': i, 
-                          'num_thresholds': num_thresholds, 
-                          'threshold': threshold, 
-                          'field': field})
-
-            canopy = tfidf.createCanopies(field, threshold,
-                                          token_vector, inverted_index)
-            self.canopies[threshold.__name__ + field] = canopy
-
 
 def blockTraining(training_pairs,
                   predicate_set,
                   eta=.1,
-                  epsilon=.1):
+                  epsilon=.1,
+                  pool=None):
     '''
     Takes in a set of training pairs and predicates and tries to find
     a good set of blocking rules.
@@ -110,7 +105,8 @@ def blockTraining(training_pairs,
     training_distinct = (training_pairs[0])[:]
 
     coverage = Coverage(predicate_set,
-                        training_dupes + training_distinct)
+                        training_dupes + training_distinct,
+                        pool)
 
     coverage_threshold = eta * len(training_distinct)
     logging.info("coverage threshold: %s", coverage_threshold)
@@ -231,7 +227,9 @@ def findOptimumBlocking(uncovered_dupes,
 
 
 class Coverage() :
-    def __init__(self, predicate_set, pairs) :
+    def __init__(self, predicate_set, pairs, pool) :
+        self.pool = pool
+
         self.overlapping = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
 
@@ -280,7 +278,7 @@ class Coverage() :
         record_ids = dict(itertools.izip(docs, itertools.count()))
 
 
-        blocker = Blocker()
+        blocker = Blocker(pool=self.pool)
         blocker.tfidf_predicates = tfidf_predicates
         blocker.tfIdfBlocks(id_records)
 
