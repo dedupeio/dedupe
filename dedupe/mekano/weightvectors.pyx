@@ -57,7 +57,7 @@ cdef class WeightVectors:
 
             itr = vec.mydict.begin()
             end = vec.mydict.end()
-            while(itr.neq(end)):
+            while(itr != end):
                 a = itr.first
                 v = itr.second
                 df = self.cs.getDF(a)
