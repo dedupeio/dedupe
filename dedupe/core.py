@@ -1,30 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-
-import collections
 import random
 import json
 import itertools
 import logging
-from itertools import count
 import warnings
-from itertools import count, izip_longest, chain, izip, repeat
-import warnings
-import copy
 import multiprocessing
 import Queue
-
 import numpy
 
 import lr
-from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
 
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
     args = [iter(iterable)] * n
-    return izip_longest(fillvalue=fillvalue, *args)
+    return itertools.izip_longest(fillvalue=fillvalue, *args)
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
@@ -192,7 +184,7 @@ class ScoringFunction(object) :
                             self.data_model)
 
         filtered_scores = ((pair_id, score) 
-                           for pair_id, score in izip(ids, scores) 
+                           for pair_id, score in itertools.izip(ids, scores) 
                            if score > self.threshold)
 
 
@@ -224,6 +216,7 @@ def scoreDuplicates(records, id_type, data_model, pool, threshold=0):
 
     while True :
         try :
+            # equivalent to numpy.union1d(a,b)
             # http://stackoverflow.com/questions/12427146/combine-two-arrays-and-sort
             scored_pairs = numpy.concatenate((scored_pairs, 
                                               score_queue.get(True, 1)))
@@ -255,10 +248,10 @@ class frozendict(dict):
     def _blocked_attribute(obj):
         raise AttributeError, "A frozendict cannot be modified."
 
-# _blocked_attribute = property(_blocked_attribute)
+    _blocked_attribute = property(_blocked_attribute)
 
-# __delitem__ = __setitem__ = clear = _blocked_attribute
-# pop = popitem = setdefault = update = _blocked_attribute
+    __delitem__ = __setitem__ = clear = _blocked_attribute
+    pop = popitem = setdefault = update = _blocked_attribute
 
     def __new__(cls, *args):
         new = dict.__new__(cls)
