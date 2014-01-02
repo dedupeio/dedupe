@@ -4,18 +4,22 @@ import numpy
 import random
 import itertools
 import warnings
+import multiprocessing
 
 class CoreTest(unittest.TestCase):
   def setUp(self) :
     random.seed(123)
 
-    self.ids_str = iter([('1', '2'), ('2', '3'), ('4', '5'), ('6', '7'), ('8','9')])
-
-    self.records = iter([({'name': 'Margret', 'age': '32'}, {'name': 'Marga', 'age': '33'}), \
-                         ({'name': 'Marga', 'age': '33'}, {'name': 'Maria', 'age': '19'}), \
-                         ({'name': 'Maria', 'age': '19'}, {'name': 'Monica', 'age': '39'}), \
-                         ({'name': 'Monica', 'age': '39'}, {'name': 'Mira', 'age': '47'}), \
-                         ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
+    self.records = iter([(('1', {'name': 'Margret', 'age': '32'}), 
+                          ('2', {'name': 'Marga', 'age': '33'})), 
+                         (('2', {'name': 'Marga', 'age': '33'}), 
+                          ('3', {'name': 'Maria', 'age': '19'})), 
+                         (('4', {'name': 'Maria', 'age': '19'}), 
+                          ('5', {'name': 'Monica', 'age': '39'})), 
+                         (('6', {'name': 'Monica', 'age': '39'}), 
+                          ('7', {'name': 'Mira', 'age': '47'})),
+                         (('8', {'name': 'Mira', 'age': '47'}), 
+                          ('9', {'name': 'Mona', 'age': '9'})),
                         ])
 
     self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
@@ -45,10 +49,10 @@ class CoreTest(unittest.TestCase):
                                           [ 2,  9]]))
 
   def test_score_duplicates(self):
-    actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.ids_str,
-                                                          self.records,
+    actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.records,
                                                           'S1',
-                                                          self.data_model)
+                                                          self.data_model,
+                                                          multiprocessing.Pool(processes=1))
 
     scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
 

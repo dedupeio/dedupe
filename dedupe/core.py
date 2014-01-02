@@ -1,18 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import collections
 import random
 import json
 import itertools
 import logging
-from itertools import count
 import warnings
-
+import multiprocessing
+import Queue
 import numpy
 
 import lr
-from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
+    args = [iter(iterable)] * n
+    return itertools.izip_longest(fillvalue=fillvalue, *args)
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
@@ -106,7 +110,8 @@ def fieldDistances(record_pairs, data_model):
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 
-                                      for field, compare in field_comparators), 
+                                      for field, compare in field_comparators
+                                      if record_pair), 
                                      'f4')
     field_distances = field_distances.reshape(-1,len(field_comparators))
 
@@ -144,7 +149,6 @@ def fieldDistances(record_pairs, data_model):
                                          missing_indicators),
                                         axis=1)
 
-
     return field_distances
 
 
@@ -160,81 +164,109 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
+class ScoringFunction(object) :
+    def __init__(self, data_model, threshold, dtype) :
+        self.data_model = data_model
+        self.threshold = threshold
+        self.dtype = dtype
 
-def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
+    def __call__(self, record_pairs) :
+        ids = []
 
+        def split_records() :
+            for pair in record_pairs :
+                if pair :
+                    ids.append((pair[0][0], pair[1][0]))
+                    yield (pair[0][1], pair[1][1])
+
+        scores = scorePairs(fieldDistances(split_records(), 
+                                           self.data_model),
+                            self.data_model)
+
+        filtered_scores = ((pair_id, score) 
+                           for pair_id, score in itertools.izip(ids, scores) 
+                           if score > self.threshold)
+
+
+        scored_pairs = numpy.fromiter(filtered_scores,
+                                      dtype=self.dtype)
+
+
+        return scored_pairs
+
+def scoreDuplicates(records, id_type, data_model, pool, threshold=0):
+    
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
-    scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
-    complete = False
-    chunk_size = 5000
-    i = 1
-    while not complete:
-        id_slice = list(itertools.islice(ids, 0, chunk_size))
-        can_slice = list(itertools.islice(records, 0, chunk_size))
+    scored_pairs = numpy.empty((0,), dtype=score_dtype)
 
-        field_distances = fieldDistances(can_slice, data_model)
-        duplicate_scores = scorePairs(field_distances, data_model)
+    record_chunks = grouper(records, 1000000)
 
-        scored_pairs = numpy.append(scored_pairs,
-                                    numpy.array(zip(id_slice,
-                                                    duplicate_scores),
-                                                dtype=score_dtype)[duplicate_scores > threshold], 
-                                    axis=0)
-        i += 1
-        if len(field_distances) < chunk_size:
-            complete = True
-            logging.info('num chunks %d' % i)
+    scoring_function = ScoringFunction(data_model, 
+                                       threshold,
+                                       score_dtype)
 
-    logging.info('all scores %d' % scored_pairs.shape)
-    scored_pairs = numpy.unique(scored_pairs)
-    logging.info('unique scores %d' % scored_pairs.shape)
+    score_queue = multiprocessing.Queue()
+
+
+    results = [pool.apply_async(scoring_function,
+                               (chunk,),
+                               callback=score_queue.put)
+               for chunk in record_chunks] 
+
+    while True :
+        try :
+            # equivalent to numpy.union1d(a,b)
+            # http://stackoverflow.com/questions/12427146/combine-two-arrays-and-sort
+            scored_pairs = numpy.concatenate((scored_pairs, 
+                                              score_queue.get(True, 1)))
+            scored_pairs.sort()
+            flag = numpy.ones(len(scored_pairs), dtype=bool)
+            numpy.not_equal(scored_pairs[1:], 
+                            scored_pairs[:-1], 
+                            out=flag[1:])
+            scored_pairs[flag]
+
+        except Queue.Empty :
+            break
+        
+    score_queue.close()
+
+    for r in results :
+        r.wait()
+
 
     return scored_pairs
 
 def blockedPairs(blocks) :
+    combinations = itertools.combinations
     for block in blocks :
-
-        block_pairs = itertools.combinations(block, 2)
-
-        for pair in block_pairs :
+        for pair in combinations(block.iteritems(), 2) :
             yield pair
 
-def split(iterable):
-    it = iter(iterable)
-    q = [collections.deque([x]) for x in it.next()] 
-    def proj(qi):
-        while True:
-            if not qi:
-                for qj, xj in zip(q, it.next()):
-                    qj.append(xj)
-            yield qi.popleft()
-    for qi in q:
-        yield proj(qi)
+class frozendict(dict):
+    def _blocked_attribute(obj):
+        raise AttributeError, "A frozendict cannot be modified."
 
+    _blocked_attribute = property(_blocked_attribute)
 
-class frozendict(collections.Mapping):
-    """Don't forget the docstrings!!"""
+    __delitem__ = __setitem__ = clear = _blocked_attribute
+    pop = popitem = setdefault = update = _blocked_attribute
 
-    def __init__(self, *args, **kwargs):
-        self._d = dict(*args, **kwargs)
+    def __new__(cls, *args):
+        new = dict.__new__(cls)
+        dict.__init__(new, *args)
+        return new
 
-    def __iter__(self):
-        return iter(self._d)
-
-    def __len__(self):
-        return len(self._d)
-
-    def __getitem__(self, key):
-        return self._d[key]
-
-    def __repr__(self) :
-        return '<frozendict %s>' % repr(self._d)
+    def __init__(self, *args):
+        pass
 
     def __hash__(self):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(frozenset(self._d.iteritems()))
+            h = self._cached_hash = hash(tuple(sorted(self.items())))
             return h
 
+    def __repr__(self):
+        return "frozendict(%s)" % dict.__repr__(self)

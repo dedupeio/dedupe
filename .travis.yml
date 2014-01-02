@@ -18,9 +18,11 @@ install:
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then pip install --use-mirrors -r requirements.txt; fi
   - pip install coveralls
   - python setup.py develop
+  # Deal with issue on Travis builders re: multiprocessing.Queue :(
+  - "sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm"
 # command to run tests, e.g. python setup.py test
 script: 
   - coverage run -m nose -I canonical_test
-  - nosetests test/canonical_test*
+  - python test/canonical_test.py
 after_success:
     coveralls
