@@ -132,7 +132,7 @@ DONOR_SELECT = "SELECT donor_id, city, name, zip, state, address, " \
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
-    deduper = dedupe.Dedupe(settings_file)
+    deduper = dedupe.Dedupe(settings_file, num_processes=4)
 else:
 
     # Select a large sample of duplicate pairs.  As the dataset grows,
@@ -161,7 +161,7 @@ else:
               }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, num_processes=4)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -225,7 +225,7 @@ else:
     # hour
     print 'creating inverted index'
     c.execute(DONOR_SELECT)
-    full_data = ((row['donor_id'], row) for row in c.fetchall())
+    full_data = ((row['donor_id'], row) for row in c)
     blocker.tfIdfBlocks(full_data)
 
 
