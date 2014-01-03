@@ -15,6 +15,7 @@ import itertools
 import logging
 import types
 import pickle
+import multiprocessing
 
 import numpy
 
@@ -45,7 +46,7 @@ class Dedupe:
 
     # === `Dedupe.__init__` ===
 
-    def __init__(self, init=None):
+    def __init__(self, init=None, num_processes=1):
         """
         Load or initialize a data model.
 
@@ -98,6 +99,8 @@ class Dedupe:
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
+        self.pool = multiprocessing.Pool(processes=num_processes)
+
 
         if init.__class__ is dict and init:
             self.data_model = model_definition.initializeDataModel(init)
@@ -122,7 +125,6 @@ class Dedupe:
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
-        self.num_processes = 2
 
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
@@ -313,7 +315,7 @@ class Dedupe:
         if not self.predicates:
             self.predicates = self._learnBlocking(ppc, uncovered_dupes)
 
-        blocker = blocking.Blocker(self.predicates)
+        blocker = blocking.Blocker(self.predicates, self.pool)
 
         return blocker
 
@@ -333,13 +335,10 @@ class Dedupe:
                          recall as you do precision, set recall_weight
                          to 2.
         """
-
-        blocked_records = (block.values() for block in blocks)
-
-        candidates = core.blockedPairs(blocked_records)
-
-        field_distances = core.fieldDistances(candidates, self.data_model)
-        probability = core.scorePairs(field_distances, self.data_model)
+        probability = core.scoreDuplicates(core.blockedPairs(blocks), 
+                                           'i4',
+                                           self.data_model, 
+                                           self.pool)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -385,26 +384,17 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
+        candidate_records = core.blockedPairs(blocks)
+
+        peek = candidate_records.next()
+        id_type = type(peek[0][0])
+        candidate_records = itertools.chain([peek], candidate_records)
         
-        blocked_keys, blocked_records = core.split((block.keys(),
-                                                    block.values())
-                                                   for block in blocks)
-
-
-        candidate_keys = core.blockedPairs(blocked_keys)
-        candidate_records = core.blockedPairs(blocked_records)
-
-        candidate_keys, ids = itertools.tee(candidate_keys)
-        peek = ids.next()
-        id_type = type(peek[0])
-        ids = itertools.chain([peek], ids)
-        
-        self.dupes = core.scoreDuplicates(candidate_keys,
-                                          candidate_records,
+        self.dupes = core.scoreDuplicates(candidate_records,
                                           id_type,
                                           self.data_model,
-                                          threshold,
-                                          self.num_processes)
+                                          self.pool,
+                                          threshold)
         clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters
@@ -426,7 +416,8 @@ class Dedupe:
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
                                                            eta,
-                                                           epsilon)
+                                                           epsilon,
+                                                           self.pool)
 
         return learned_predicates
 
