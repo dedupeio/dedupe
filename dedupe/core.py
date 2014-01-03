@@ -13,6 +13,7 @@ import numpy
 
 import lr
 from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
+from dedupe.datamodel import DataModel
 
 def randomPairs(n_records, sample_size, zero_indexed=True):
     """
@@ -89,43 +90,17 @@ def trainModel(training_data, data_model, alpha=.001):
 
 
 def fieldDistances(record_pairs, data_model):
-    fields = data_model['fields']
-
-    field_comparators = [(field, v['comparator'])
-                         for field, v in fields.items()
-                         if v['type'] not in ('Missing Data',
-                                              'Interaction',
-                                              'Higher Categories')]
-
-    
-    missing_field_indices = [i for i, (field, v) 
-                             in enumerate(fields.items())
-                             if 'Has Missing' in v and v['Has Missing']]
-
-    field_names = fields.keys()
-  
-    interactions = []
-    categorical_indices = []
-
-    for field in fields :
-        if fields[field]['type'] == 'Interaction' :
-            interaction_indices = []
-            for interaction_field in fields[field]['Interaction Fields'] :
-                interaction_indices.append(field_names.index(interaction_field))
-            interactions.append(interaction_indices)
-        if fields[field]['type'] in ('Source', 'Categorical') :
-            categorical_indices.append((field_names.index(field), 
-                                        fields[field]['comparator'].length))
-
+    # Think about filling this in instead of concatenating
 
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 
-                                      for field, compare in field_comparators), 
+                                      for field, compare in data_model.field_comparators), 
                                      'f4')
-    field_distances = field_distances.reshape(-1,len(field_comparators))
 
-    for cat_index, length in categorical_indices :
+    field_distances = field_distances.reshape(-1,len(data_model.field_comparators))
+
+    for cat_index, length in data_model.categorical_indices :
         different_sources = field_distances[:, cat_index][...,None] == numpy.arange(2, length)[None,...]
 
 
@@ -136,9 +111,9 @@ def fieldDistances(record_pairs, data_model):
 
 
     interaction_distances = numpy.empty((field_distances.shape[0],
-                                         len(interactions)))
+                                         len(data_model.interactions)))
 
-    for i, interaction in enumerate(interactions) :
+    for i, interaction in enumerate(data_model.interactions) :
         a = numpy.prod(field_distances[...,interaction], axis=1)
         interaction_distances[...,i] = a
        
@@ -152,7 +127,7 @@ def fieldDistances(record_pairs, data_model):
 
     field_distances[missing_data] = 0
 
-    missing_indicators = 1-missing_data[:,missing_field_indices]
+    missing_indicators = 1-missing_data[:,data_model.missing_field_indices]
     
 
     field_distances = numpy.concatenate((field_distances,
