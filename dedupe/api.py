@@ -141,6 +141,12 @@ class Dedupe:
         self.blocker_types = {'String' : (string_predicates
                                           + tfidf_string_predicates)}
 
+        if self.constrained_matching :
+            self.blockedPairs = core.blockedPairsConstrained
+            self.cluster = lambda dupes, id_type, threshold : clustering.greedyMatching(dupes, threshold)
+        else :
+            self.blockedPairs = core.blockedPairs
+            self.cluster = clustering.cluster
 
     def _initializeTraining(self, training_file=None):
         """
@@ -336,7 +342,7 @@ class Dedupe:
 
         blocked_records = (block.values() for block in blocks)
 
-        candidates = core.blockedPairs(blocked_records, self.constrained_matching)
+        candidates = self.blockedPairs(blocked_records, None)
 
         field_distances = core.fieldDistances(candidates, self.data_model)
         probability = core.scorePairs(field_distances, self.data_model)
@@ -390,8 +396,8 @@ class Dedupe:
                                                    for block in blocks)
 
 
-        candidate_keys = core.blockedPairs(blocked_keys, self.constrained_matching, data)
-        candidate_records = core.blockedPairs(blocked_records, self.constrained_matching, data)
+        candidate_keys = self.blockedPairs(blocked_keys, data)
+        candidate_records = self.blockedPairs(blocked_records, data)
 
         candidate_keys, ids = itertools.tee(candidate_keys)
         peek = ids.next()
@@ -403,12 +409,9 @@ class Dedupe:
                                           id_type,
                                           self.data_model,
                                           threshold)
-        
-        if self.constrained_matching:
-            clusters = clustering.greedyMatching(self.dupes, cluster_threshold)
-        else:
-            clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
+        clusters = self.cluster(self.dupes, id_type, cluster_threshold)
+        
         return clusters
 
     def _learnBlocking(self, eta, epsilon):
@@ -499,8 +502,8 @@ class Dedupe:
         training_pairs = {0: [], 1: []}
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
-                training_pairs[int(label)].append((core.frozendict(pair[0]),
-                                                   core.frozendict(pair[1])))
+                training_pairs[int(label)].append((core.frozendict(pair[0], self.constrained_matching),
+                                                   core.frozendict(pair[1], self.constrained_matching)))
 
         training_data = training.addTrainingData(training_pairs,
                                                  self.data_model,

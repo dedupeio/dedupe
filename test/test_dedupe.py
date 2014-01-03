@@ -276,7 +276,7 @@ class TfidfTest(unittest.TestCase):
                   }
 
     self.data_d = dict((k, dedupe.core.frozendict(v)) 
-                       for k, v in self.data_d.items())
+                              for k, v in self.data_d.items())
 
     self.constrained_d = dict((k, dedupe.core.frozendict(v, constrained=True)) 
                               for k, v in self.data_d.items())

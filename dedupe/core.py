@@ -207,24 +207,27 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
 
     return scored_pairs
 
-
-def blockedPairs(blocks, constrained_matching=False, data={}) :
-
+def blockedPairsConstrained(blocks, data) :
     for block in blocks :
 
         block_pairs = itertools.combinations(block, 2)
 
-        if constrained_matching:
-            for pair in block_pairs :
-                if isinstance(pair[0],frozendict):
-                    if (pair[0]['dataset'] != pair[1]['dataset']):
-                        yield pair
-                else:
-                    if (data[pair[0]]['dataset'] != data[pair[1]]['dataset']):
-                        yield pair
-        else:
-            for pair in block_pairs :
-                yield pair
+        for pair in block_pairs :
+            if isinstance(pair[0],frozendict):
+                if (pair[0]['dataset'] != pair[1]['dataset']):
+                    yield pair
+            else:
+                if (data[pair[0]]['dataset'] != data[pair[1]]['dataset']):
+                    yield pair
+
+
+def blockedPairs(blocks, data={}) :
+    for block in blocks :
+
+        block_pairs = itertools.combinations(block, 2)
+        
+        for pair in block_pairs :
+            yield pair
 
 def split(iterable):
     it = iter(iterable)
