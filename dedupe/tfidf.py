@@ -64,38 +64,30 @@ def fieldToAtomVector(field, record_id, tokenfactory) :
     
     return av
 
-def unweightedIndex(data, fields, constrained_matching = False) :    
-    def unconstrained_record_tokenizer(record, field, record_id, av) :
-        tokenized_records[field][record_id] = av
-
-    def constrained_record_tokenizer(record, field, record_id, av) : 
-        if record['dataset'] == 0 : 
-            tokenized_center_records[field][record_id] = av
-        else : 
-            tokenized_records[field][record_id] = av
+def unweightedIndex(data, fields) :    
 
     tokenfactory = mk.AtomFactory("tokens")  
     tokenized_records = defaultdict(dict)
     tokenized_center_records = defaultdict(dict)
     inverted_indices = defaultdict(lambda : mk.InvertedIndex())
   
-    if constrained_matching :
-        tokenizer = constrained_record_tokenizer
-    else :
-        tokenizer = unconstrained_record_tokenizer
-
     for record_id, record in data:
         for field in fields:
             av = fieldToAtomVector(record[field], record_id, tokenfactory)
             inverted_indices[field].add(av) 
-            tokenizer(record, field, record_id, av)
+            if record.constrained and record['dataset'] == 0 :
+                tokenized_center_records[field][record_id] = av
+            else : 
+                tokenized_records[field][record_id] = av
+                
+                
 
     return tokenized_records, tokenized_center_records, inverted_indices
 
-def invertIndex(data, fields, constrained_matching= False):
+def invertIndex(data, fields):
     (tokenized_records, 
      tokenized_center_records,
-     inverted_indices) = unweightedIndex(data, fields, constrained_matching)
+     inverted_indices) = unweightedIndex(data, fields)
 
     num_docs = inverted_indices.values()[0].getN()
     stop_word_threshold = max(num_docs * 0.025, 500)
@@ -119,13 +111,13 @@ def invertIndex(data, fields, constrained_matching= False):
         weighted_inverted_indices[field] = tokensToInvertedIndex(weighted_records)
         weighted_records_d[field] = weighted_records
 
-        if constrained_matching :
+        if tokenized_center_records :
             weighted_center_records_d[field] = weightVectors(weighted_vectors,
                                                              tokenized_center_records[field],
                                                              stop_words)
 
 
-    if constrained_matching :
+    if tokenized_center_records :
         return weighted_inverted_indices, weighted_center_records_d
 
     else :

@@ -274,6 +274,13 @@ class TfidfTest(unittest.TestCase):
                      140 : {"name": "Martha", "age": "19", "dataset": 1},
                      145 : {"name": "Kyle", "age": "27", "dataset": 0},
                   }
+
+    self.data_d = dict((k, dedupe.core.frozendict(v)) 
+                       for k, v in self.data_d.items())
+
+    self.constrained_d = dict((k, dedupe.core.con_frozendict(v)) 
+                              for k, v in self.data_d.items())
+    
     self.tfidf_fields = set(["name"])
 
   def test_field_to_atom_vector(self):
@@ -284,14 +291,13 @@ class TfidfTest(unittest.TestCase):
 
 
   def test_constrained_inverted_index(self):
+
     inverted_index, token_vectors = dedupe.tfidf.invertIndex(
-                                              self.data_d.iteritems(),
-                                              self.tfidf_fields,
-                                              constrained_matching=True,
-                                                            )
+                                              self.constrained_d.iteritems(),
+                                              self.tfidf_fields)
+
 
     assert set(token_vectors['name'].keys()) == set([130, 125])
-    assert set(inverted_index['name'].keys()) == set([2,5])
 
     indexed_records = []
     for atomvectors in inverted_index['name'].values():
@@ -308,7 +314,6 @@ class TfidfTest(unittest.TestCase):
 
 
     assert set(token_vectors['name'].keys()) == set([120, 130, 125, 135])
-    assert set(inverted_index['name'].keys()) == set([2,5])
 
     indexed_records = []
     for atomvectors in inverted_index['name'].values():

@@ -21,3 +21,4 @@ possible_classifiers
 .DS_Store
 mysql.cnf
 *settings
+Dedupe.egg-info/

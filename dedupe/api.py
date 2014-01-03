@@ -427,7 +427,6 @@ class Dedupe:
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
-                                                           self.constrained_matching,
                                                            eta,
                                                            epsilon)
 

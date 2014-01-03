@@ -64,7 +64,7 @@ def canonicalImport(filenames):
                 clean_row = [(k, preProcess(v)) for (k, v) in
                              row.iteritems()]
                 clean_row.append(('dataset',fileno))
-                data_d[i] = dedupe.core.frozendict(clean_row)
+                data_d[i] = dedupe.core.con_frozendict(clean_row)
                 clusters.setdefault(row['unique_id'], []).append(i)
                 i = i + 1
 
@@ -153,7 +153,7 @@ else:
 
 print 'blocking...'
 blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockData(data_d, blocker, constrained_matching=True))
+blocked_data = tuple(dedupe.blockData(data_d, blocker))
 
 alpha = deduper.goodThreshold(blocked_data)
 

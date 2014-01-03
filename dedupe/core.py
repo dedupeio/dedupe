@@ -244,6 +244,7 @@ class frozendict(collections.Mapping):
 
     def __init__(self, *args, **kwargs):
         self._d = dict(*args, **kwargs)
+        self.constrained = False
 
     def __iter__(self):
         return iter(self._d)
@@ -264,3 +265,11 @@ class frozendict(collections.Mapping):
             h = self._cached_hash = hash(frozenset(self._d.iteritems()))
             return h
 
+class con_frozendict(frozendict) :
+
+    def __init__(self, *args, **kwargs):
+        frozendict.__init__(self, *args, **kwargs)
+        self.constrained = True
+
+    def __repr__(self) :
+        return '<con_frozendict %s>' % repr(self._d)
