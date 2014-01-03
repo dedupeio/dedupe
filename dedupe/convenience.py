@@ -7,6 +7,10 @@ Convenience functions for in memory deduplication
 
 import collections
 import dedupe.core
+try:
+    from collections import OrderedDict
+except ImportError :
+    from backport import OrderedDict
 
     
 
@@ -21,9 +25,9 @@ def dataSample(data, sample_size):
 
 def blockData(data_d, blocker):
 
-    blocks = dedupe.backport.OrderedDict({})
-    record_blocks = dedupe.backport.OrderedDict({})
-    key_blocks = dedupe.backport.OrderedDict({})
+    blocks = OrderedDict({})
+    record_blocks = OrderedDict({})
+    key_blocks = OrderedDict({})
 
     blocker.tfIdfBlocks(data_d.iteritems())
 
