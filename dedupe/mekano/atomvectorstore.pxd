@@ -1,4 +1,4 @@
-cimport dedupe.mekano.atomvector as atomvector
+cimport atomvector
 
 cdef extern from "CUtils.h":
 
