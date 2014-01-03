@@ -108,7 +108,7 @@ cdef class AtomVector:
         cdef double e
         cdef dictitr it = self.mydict.begin()
         cdef dictitr end = self.mydict.end()
-        while (it.neq(end)):
+        while (it != end):
             it.second /= d
             it.advance()
 
@@ -117,7 +117,7 @@ cdef class AtomVector:
         cdef dictitr it = self.mydict.begin()
         cdef dictitr end = self.mydict.end()
         ret = 0.0
-        while (it.neq(end)):
+        while (it != end):
             e = it.second
             ret += e*e
             it.advance()
@@ -145,7 +145,7 @@ cdef class AtomVector:
     cdef double get(AtomVector self, int a):
         # simply doing a .ele(a) will add a non-existant key
         cdef dictitr it = self.mydict.find(a)
-        if it.eq(self.mydict.end()):
+        if it == self.mydict.end():
             return 0.0
         else:
             return it.second
@@ -164,14 +164,14 @@ cdef class AtomVector:
         return self.contains(a)
 
     cpdef int contains(self, int a):
-        return self.mydict.find(a).neq(self.mydict.end())
+        return self.mydict.find(a) != self.mydict.end()
 
     def __len__(self):
         return self.mydict.size()
 
     def __delitem__(self, a):
         cdef dictitr it = self.mydict.find(a)
-        if it.neq(self.mydict.end()):
+        if it != self.mydict.end():
             self.mydict.erase(it)
 
     # Creation/Copying
@@ -179,7 +179,7 @@ cdef class AtomVector:
         cdef AtomVector ret = AtomVector()
         cdef dictitr it = self.mydict.begin()
         cdef dictitr end = self.mydict.end()
-        while (it.neq(end)):
+        while (it != end):
             ret.set(it.first, it.second)
             it.advance()
         return ret
@@ -209,7 +209,7 @@ cdef class AtomVectorKeysIterator:
         return self
 
     def __next__(self):
-        if self.itr.eq(self.end):
+        if self.itr == self.end:
             raise StopIteration
 
         v = self.itr.first
@@ -228,7 +228,7 @@ cdef class AtomVectorItemsIterator:
         return self
 
     def __next__(self):
-        if self.itr.eq(self.end):
+        if self.itr == self.end:
             raise StopIteration
 
         v = (self.itr.first, self.itr.second)

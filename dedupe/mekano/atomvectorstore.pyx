@@ -1,5 +1,5 @@
-cimport dedupe.mekano.atomvector as atomvector
-import dedupe.mekano.atomvector as atomvector
+cimport atomvector
+import atomvector
 
 cdef class AtomVectorStore:
     """

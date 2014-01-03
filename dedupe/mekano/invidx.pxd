@@ -1,6 +1,6 @@
-cimport atomvector
-cimport atomvectorstore
-cimport corpusstats
+cimport dedupe.mekano.atomvector as atomvector
+cimport dedupe.mekano.atomvectorstore as atomvectorstore
+from dedupe.mekano.corpusstats cimport CorpusStats
 
 cdef extern from "CUtils.h":
 
@@ -28,7 +28,7 @@ cdef extern from "CUtils.h":
     void set_a2avs(a2avs* dict, int a, void* v)
     void del_a2avs(a2avs* dict)
 
-cdef class InvertedIndex(corpusstats.CorpusStats):
+cdef class InvertedIndex(CorpusStats):
     cdef a2avs* ii
 
     cpdef add(self, atomvector.AtomVector vec)

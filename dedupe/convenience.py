@@ -36,9 +36,9 @@ def dataSample(data, sample_size, constrained_matching=False):
 
 def blockData(data_d, blocker, constrained_matching=False):
 
-    blocks = dedupe.core.OrderedDict({})
-    record_blocks = dedupe.core.OrderedDict({})
-    key_blocks = dedupe.core.OrderedDict({})
+    blocks = dedupe.backport.OrderedDict({})
+    record_blocks = dedupe.backport.OrderedDict({})
+    key_blocks = dedupe.backport.OrderedDict({})
 
     blocker.tfIdfBlocks(data_d.iteritems(), constrained_matching)
 
