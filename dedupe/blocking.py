@@ -65,6 +65,7 @@ class Blocker:
         vectors = tfidf.invertIndex(data, tfidf_fields)
         inverted_index, token_vector = vectors
 
+
         logging.info('creating TF/IDF canopies')
 
         num_thresholds = len(self.tfidf_predicates)
@@ -259,7 +260,6 @@ class Coverage() :
     def canopyOverlap(self,
                        tfidf_predicates,
                        record_pairs) :
-
 
         # uniquify records
         docs = list(set(itertools.chain(*record_pairs)))
