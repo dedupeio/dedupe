@@ -120,35 +120,26 @@ else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
               'cuisine': {'type': 'String'},
-              'city' : {'type' : 'String'}
+              'city' : {'type' : 'String'},
+              'dataset' : {'type' : 'Source', 'Source Names' : [0,1] }
               }
 
-    deduper = dedupe.Dedupe(fields, constrained_matching=True)
+    data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching=True)
+
+    deduper = dedupe.Dedupe(fields, data_sample, constrained_matching=True)
     deduper.num_iterations = num_iterations
 
     print "Using a random sample of training pairs..."
 
-    deduper._initializeTraining()
     deduper.training_pairs = randomTrainingPairs(data_d,
                                                  duplicates_s,
                                                  num_training_dupes,
                                                  num_training_distinct)
-    
-    deduper.data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching=True)
+
+    deduper._addTrainingData(deduper.training_pairs)
 
 
-    deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
-                                                            deduper.data_model,
-                                                            deduper.training_data)
-
-    deduper.alpha = dedupe.crossvalidation.gridSearch(deduper.training_data,
-                                                      dedupe.core.trainModel,
-                                                      deduper.data_model,
-                                                      k=10)
-
-    deduper.data_model = dedupe.core.trainModel(deduper.training_data,
-                                                deduper.data_model,
-                                                deduper.alpha)
+    deduper.train()
 
     deduper._logLearnedWeights()
 

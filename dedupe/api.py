@@ -149,7 +149,11 @@ class Dedupe:
                                           + tfidf_string_predicates)}
 
         if self.constrained_matching :
-            self.blockedPairs = core.blockedPairsConstrained
+            if not self.data_model.source :
+                raise ValueError('You must declare a Source field if '
+                                  'you are are doing constrained matching')
+
+            self.blockedPairs = self._blockedPairsConstrained
             self.cluster = lambda dupes, id_type, threshold : clustering.greedyMatching(dupes, threshold)
         else :
             self.blockedPairs = core.blockedPairs
@@ -385,6 +389,22 @@ class Dedupe:
         clusters = self.cluster(self.dupes, id_type, cluster_threshold)
         
         return clusters
+
+    def _blockedPairsConstrained(self, blocks, data) :
+        source = self.data_model.source
+
+        for block in blocks :
+            block_pairs = itertools.combinations(block, 2)
+
+            for pair in block_pairs :
+                if isinstance(pair[0],core.frozendict):
+                    if (pair[0][source] != pair[1][source]):
+                        yield pair
+                else:
+                    if (data[pair[0]][source] != data[pair[1]][source]):
+                        yield pair
+
+
 
     def _learnBlocking(self, eta, epsilon):
         """Learn a good blocking of the data"""
