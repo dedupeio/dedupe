@@ -202,8 +202,8 @@ class DataModelTest(unittest.TestCase) :
 
 class DedupeInitializeTest(unittest.TestCase) :
   def test_initialize_fields(self) :
-    self.assertRaises(AssertionError, dedupe.Dedupe)
-    self.assertRaises(AssertionError, dedupe.Dedupe, [])
+    self.assertRaises(ValueError, dedupe.Dedupe)
+    self.assertRaises(ValueError, dedupe.Dedupe, [])
 
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
@@ -409,12 +409,12 @@ class ClusteringTest(unittest.TestCase):
 
   def test_greedy_matching(self):
     greedyMatch = dedupe.clustering.greedyMatching
-    assert greedyMatch(self.bipartite_dupes, 0.5) == [set([4, 6]), set([2, 7]),
+    assert greedyMatch(self.bipartite_dupes, threshold=0.5) == [set([4, 6]), set([2, 7]),
                                                       set([3, 8])]
-    assert greedyMatch(self.bipartite_dupes, 0) == [set([4, 6]), set([2, 7]),
+    assert greedyMatch(self.bipartite_dupes, threshold=0) == [set([4, 6]), set([2, 7]),
                                                     set([8, 3]), set([1, 5])]
-    assert greedyMatch(self.bipartite_dupes, 0.8) == [set([4, 6])]
-    assert greedyMatch(self.bipartite_dupes, 1) == []
+    assert greedyMatch(self.bipartite_dupes, threshold=0.8) == [set([4, 6])]
+    assert greedyMatch(self.bipartite_dupes, threshold=1) == []
 
 
 class BlockingTest(unittest.TestCase):

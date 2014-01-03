@@ -28,7 +28,6 @@ import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
-
 class Dedupe:
     """
     Public methods:
@@ -100,64 +99,36 @@ class Dedupe:
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        assert init is not None, 'No Input: must supply either a field ' \
-                                 'definition or a settings file.'
 
-        assert init.__class__ in (dict, str), 'Incorrect Input Type: must supply ' \
-                                              'either a field definition or a ' \
-                                              'settings file.'
+        self._checkValidInit(init, data_sample)
 
         if init.__class__ is dict:
-            assert data_sample is not None, 'If you are not reading settings ' \
-                                            'a file, you must provide a sample ' \
-                                            'of the data'
             self.data_model = DataModel(init)
             self.predicates = None
             self.data_sample = data_sample
             self.constrained_matching = constrained_matching
+
         else :
-            (self.data_model,
-             self.predicates,
-             self.constrained_matching) = self._readSettings(init)
+            self._readSettings(init)
             self.data_sample = None
 
-        n_fields = len(self.data_model['fields'])
-        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
-
-        self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = {0: [], 1: []}
-
-        self.dupes = None
-        self.training_encoder = training_serializer._to_json
-        self.training_decoder = training_serializer.dedupe_decoder
-
-        string_predicates = (predicates.wholeFieldPredicate,
-                             predicates.tokenFieldPredicate,
-                             predicates.commonIntegerPredicate,
-                             predicates.sameThreeCharStartPredicate,
-                             predicates.sameFiveCharStartPredicate,
-                             predicates.sameSevenCharStartPredicate,
-                             predicates.nearIntegersPredicate,
-                             predicates.commonFourGram,
-                             predicates.commonSixGram)
-
-        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
-                                         for threshold
-                                         in [0.2, 0.4, 0.6, 0.8]])
-
-        self.blocker_types = {'String' : (string_predicates
-                                          + tfidf_string_predicates)}
+        self._initializePredicates()
 
         if self.constrained_matching :
-            if not self.data_model.source :
-                raise ValueError('You must declare a Source field if '
-                                  'you are are doing constrained matching')
-
             self.blockedPairs = self._blockedPairsConstrained
-            self.cluster = lambda dupes, id_type, threshold : clustering.greedyMatching(dupes, threshold)
+            self.cluster = clustering.greedyMatching
         else :
             self.blockedPairs = core.blockedPairs
             self.cluster = clustering.cluster
+
+        training_dtype = [('label', 'i4'), 
+                          ('distances', 'f4', 
+                           (len(self.data_model['fields']), ))]
+
+        self.training_data = numpy.zeros(0, dtype=training_dtype)
+        self.training_pairs = {0: [], 1: []}
+        self.dupes = None
+
 
     def trainFromFile(self, training_source) :
         assert training_source.__class__ is str
@@ -391,17 +362,15 @@ class Dedupe:
         return clusters
 
     def _blockedPairsConstrained(self, blocks, data) :
-        source = self.data_model.source
-
         for block in blocks :
             block_pairs = itertools.combinations(block, 2)
 
             for pair in block_pairs :
                 if isinstance(pair[0],core.frozendict):
-                    if (pair[0][source] != pair[1][source]):
+                    if (pair[0].constrained != pair[1].constrained):
                         yield pair
                 else:
-                    if (data[pair[0]][source] != data[pair[1]][source]):
+                    if (data[pair[0]].constrained != data[pair[1]].constrained):
                         yield pair
 
 
@@ -458,15 +427,13 @@ class Dedupe:
     def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
             try:
-                data_model = pickle.load(f)
-                predicates = pickle.load(f)
-                constrained_matching = pickle.load(f)
+                self.data_model = pickle.load(f)
+                self.predicates = pickle.load(f)
+                self.constrained_matching = pickle.load(f)
             except KeyError :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
-
-        return data_model, predicates, constrained_matching
 
 
     def writeTraining(self, file_name):
@@ -482,21 +449,23 @@ class Dedupe:
             d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for pair in pairs]
 
         with open(file_name, 'wb') as f:
-            json.dump(d_training_pairs, f, default=self.training_encoder)
+            json.dump(d_training_pairs, f, default=training_serializer._to_json)
 
 
 
     def _readTraining(self, file_name):
         """Read training pairs from a file"""
         with open(file_name, 'r') as f:
-            training_pairs_raw = json.load(f, cls=self.training_decoder)
+            training_pairs_raw = json.load(f, cls=training_serializer.dedupe_decoder)
 
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
-                self.training_pairs[int(label)].append((core.frozendict(pair[0],
-                                                                        self.constrained_matching),
-                                                   core.frozendict(pair[1], 
-                                                                   self.constrained_matching)))
+                pair = (core.frozendict(pair[0],
+                                        self.constrained_matching),
+                        core.frozendict(pair[1], 
+                                        self.constrained_matching))
+
+                self.training_pairs[int(label)].append(pair)
 
         self._addTrainingData(self.training_pairs)
 
@@ -519,6 +488,41 @@ class Dedupe:
 
         self.training_data = numpy.append(self.training_data, 
                                           new_training_data)
+
+
+    def _checkValidInit(self, init, data_sample) :
+        if init is None :
+            raise ValueError('No Input: must supply either a field '
+                             'definition or a settings file.')
+        if init.__class__ not in (dict, str) :
+            raise ValueError('Incorrect Input Type: must supply '
+                             'either a field definition or a '
+                             'settings file.')
+        if init.__class__ is dict and data_sample is None :
+            raise ValueError('If you are not reading settings from ' 
+                             'a file, you must provide a sample ' 
+                             'of the data')
+
+    def _initializePredicates(self) :
+        string_predicates = (predicates.wholeFieldPredicate,
+                             predicates.tokenFieldPredicate,
+                             predicates.commonIntegerPredicate,
+                             predicates.sameThreeCharStartPredicate,
+                             predicates.sameFiveCharStartPredicate,
+                             predicates.sameSevenCharStartPredicate,
+                             predicates.nearIntegersPredicate,
+                             predicates.commonFourGram,
+                             predicates.commonSixGram)
+
+        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
+                                         for threshold
+                                         in [0.2, 0.4, 0.6, 0.8]])
+
+        self.blocker_types = {'String' : (string_predicates
+                                          + tfidf_string_predicates)}
+
+
+
 
 
 class ActiveDedupe(Dedupe) :

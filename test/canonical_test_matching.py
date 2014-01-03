@@ -120,8 +120,7 @@ else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
               'cuisine': {'type': 'String'},
-              'city' : {'type' : 'String'},
-              'dataset' : {'type' : 'Source', 'Source Names' : [0,1] }
+              'city' : {'type' : 'String'}
               }
 
     data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching=True)

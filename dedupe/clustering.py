@@ -107,7 +107,7 @@ def cluster(dupes, id_type, threshold=.5):
     return clusters
 
 
-def greedyMatching(dupes, threshold=0.5):
+def greedyMatching(dupes, id_type = None, threshold=0.5):
     covered_vertex_A = set([])
     covered_vertex_B = set([])
     clusters = []

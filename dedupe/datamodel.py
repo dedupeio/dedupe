@@ -10,9 +10,7 @@ from dedupe.distance.categorical import CategoricalComparator
 
 
 class DataModel(dict) :
-    def __init__(self, fields, constrained_matching = False):
-        self.constrained_matching = constrained_matching
-        self.source = None
+    def __init__(self, fields):
 
         self['bias'] = 0
         self.comparison_fields = []
@@ -63,22 +61,16 @@ class DataModel(dict) :
                 if len(definition['Source Names']) != 2 :
                     raise ValueError("You must supply two and only " 
                                   "two source names")
-                if self.source :
-                    raise ValueError("You may declare only one Source field")
 
-                self.source = field
+                source_fields.append(field)
 
-                if not self.constrained_matching :
+                comparator = CategoricalComparator(definition['Source Names'])
+                for value, combo in sorted(comparator.combinations[2:]) :
+                    categoricals[str(combo)] = {'type' : 'Higher Categories',
+                                                'value' : value}
+                    source_fields.append(str(combo))
 
-                    source_fields.append(field)
-
-                    comparator = CategoricalComparator(definition['Source Names'])
-                    for value, combo in sorted(comparator.combinations[2:]) :
-                        categoricals[str(combo)] = {'type' : 'Higher Categories',
-                                                    'value' : value}
-                        source_fields.append(str(combo))
-
-                    definition['comparator'] = comparator
+                definition['comparator'] = comparator
             
             elif definition['type'] == 'Interaction' :
                 if 'Interaction Fields' not in definition :
