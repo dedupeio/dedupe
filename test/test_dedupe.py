@@ -278,9 +278,13 @@ class TfidfTest(unittest.TestCase):
     self.data_d = dict((k, dedupe.core.frozendict(v)) 
                               for k, v in self.data_d.items())
 
-    self.constrained_d = dict((k, dedupe.core.frozendict(v, constrained=True)) 
-                              for k, v in self.data_d.items())
-    
+    self.constrained_d = {}
+    for k, v in self.data_d.items() :
+      if v['dataset'] == 0 :
+        self.constrained_d[k] = dedupe.core.frozendict(v, constrained=True)
+      else :
+        self.constrained_d[k] = dedupe.core.frozendict(v)
+
     self.tfidf_fields = set(["name"])
 
   def test_field_to_atom_vector(self):

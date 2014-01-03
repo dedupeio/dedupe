@@ -57,14 +57,15 @@ def canonicalImport(filenames):
     duplicates = set([])
 
     i = 0
-    for fileno,filename in enumerate(filenames):
+    for fileno, (base_record_set, filename) in enumerate(filenames):
         with open(filename) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 clean_row = [(k, preProcess(v)) for (k, v) in
                              row.iteritems()]
                 clean_row.append(('dataset',fileno))
-                data_d[i] = dedupe.core.frozendict(clean_row, constrained=True)
+                data_d[i] = dedupe.core.frozendict(clean_row, 
+                                                   constrained=base_record_set)
                 clusters.setdefault(row['unique_id'], []).append(i)
                 i = i + 1
 
@@ -101,7 +102,8 @@ def printPairs(pairs):
 
 
 settings_file = 'canonical_data_matching_learned_settings'
-raw_data = ['test/datasets/restaurant-1.csv','test/datasets/restaurant-2.csv']
+raw_data = [(True, 'test/datasets/restaurant-1.csv'), 
+            (False, 'test/datasets/restaurant-2.csv')]
 num_training_dupes = 400
 num_training_distinct = 2000
 num_iterations = 10

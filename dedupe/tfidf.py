@@ -75,7 +75,7 @@ def unweightedIndex(data, fields) :
         for field in fields:
             av = fieldToAtomVector(record[field], record_id, tokenfactory)
             inverted_indices[field].add(av) 
-            if record.constrained and record['dataset'] == 0 :
+            if record.constrained :
                 tokenized_center_records[field][record_id] = av
             else : 
                 tokenized_records[field][record_id] = av
