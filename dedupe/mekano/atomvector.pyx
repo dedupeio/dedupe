@@ -59,7 +59,7 @@ cdef class AtomVector:
             self.set(k,v)
 
     def __repr__(self):
-        return "(" + self.name + "[" + ",".join(["%s:%5.3f" % (a,v) for a,v in self.iteritems()]) + "])"
+        return "(" + str(self.name) + "[" + ",".join(["%s:%5.3f" % (a,v) for a,v in self.iteritems()]) + "])"
         
     def tostring(self, af):
         """Return a pretty-formatted string.

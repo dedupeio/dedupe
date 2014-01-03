@@ -49,20 +49,24 @@ def randomTrainingPairs(data_d,
     return {0: nonduplicates, 1: duplicates}
 
 
-def canonicalImport(filename):
+def canonicalImport(filenames):
     preProcess = exampleIO.preProcess
 
     data_d = {}
     clusters = {}
     duplicates = set([])
 
-    with open(filename) as f:
-        reader = csv.DictReader(f)
-        for (i, row) in enumerate(reader):
-            clean_row = [(k, preProcess(v)) for (k, v) in
-                         row.iteritems()]
-            data_d[i] = dedupe.core.frozendict(clean_row)
-            clusters.setdefault(row['unique_id'], []).append(i)
+    i = 0
+    for fileno,filename in enumerate(filenames):
+        with open(filename) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                clean_row = [(k, preProcess(v)) for (k, v) in
+                             row.iteritems()]
+                clean_row.append(('dataset',fileno))
+                data_d[i] = dedupe.core.frozendict(clean_row)
+                clusters.setdefault(row['unique_id'], []).append(i)
+                i = i + 1
 
     for (unique_id, cluster) in clusters.iteritems():
         if len(cluster) > 1:
@@ -96,8 +100,8 @@ def printPairs(pairs):
             print data_d[instance].values()
 
 
-settings_file = 'canonical_learned_settings.json'
-raw_data = 'test/datasets/restaurant-nophone-training.csv'
+settings_file = 'canonical_data_matching_learned_settings'
+raw_data = ['test/datasets/restaurant-1.csv','test/datasets/restaurant-2.csv']
 num_training_dupes = 400
 num_training_distinct = 2000
 num_iterations = 10
@@ -117,31 +121,39 @@ else:
               'city' : {'type' : 'String'}
               }
 
-    data_sample = dedupe.dataSample(data_d, 1000000)
-
-    deduper = dedupe.Dedupe(fields, data_sample)
+    deduper = dedupe.Dedupe(fields, constrained_matching=True)
     deduper.num_iterations = num_iterations
 
     print "Using a random sample of training pairs..."
 
+    deduper._initializeTraining()
     deduper.training_pairs = randomTrainingPairs(data_d,
                                                  duplicates_s,
                                                  num_training_dupes,
                                                  num_training_distinct)
     
+    deduper.data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching=True)
 
 
-    deduper._addTrainingData(deduper.training_pairs)
+    deduper.training_data = dedupe.training.addTrainingData(deduper.training_pairs,
+                                                            deduper.data_model,
+                                                            deduper.training_data)
 
+    deduper.alpha = dedupe.crossvalidation.gridSearch(deduper.training_data,
+                                                      dedupe.core.trainModel,
+                                                      deduper.data_model,
+                                                      k=10)
 
-    deduper.train()
+    deduper.data_model = dedupe.core.trainModel(deduper.training_data,
+                                                deduper.data_model,
+                                                deduper.alpha)
 
     deduper._logLearnedWeights()
 
 
 print 'blocking...'
 blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockData(data_d, blocker))
+blocked_data = tuple(dedupe.blockData(data_d, blocker, constrained_matching=True))
 
 alpha = deduper.goodThreshold(blocked_data)
 

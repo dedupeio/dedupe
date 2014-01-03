@@ -15,11 +15,9 @@ import itertools
 import logging
 import types
 import pickle
-
 import numpy
 
 import dedupe
-import dedupe.model_definition as model_definition
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.training_serializer as training_serializer
@@ -28,6 +26,7 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
+from dedupe.datamodel import DataModel
 
 
 class Dedupe:
@@ -45,7 +44,7 @@ class Dedupe:
 
     # === `Dedupe.__init__` ===
 
-    def __init__(self, init=None):
+    def __init__(self, init=None, data_sample=None, constrained_matching=False):
         """
         Load or initialize a data model.
 
@@ -98,27 +97,37 @@ class Dedupe:
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
+        assert init is not None, 'No Input: must supply either a field ' \
+                                 'definition or a settings file.'
 
-        if init.__class__ is dict and init:
-            self.data_model = model_definition.initializeDataModel(init)
+        assert init.__class__ in (dict, str), 'Incorrect Input Type: must supply ' \
+                                              'either a field definition or a ' \
+                                              'settings file.'
+
+        if init.__class__ is dict:
+            assert data_sample is not None, 'If you are not reading settings ' \
+                                            'a file, you must provide a sample ' \
+                                            'of the data'
+            self.data_model = DataModel(init)
             self.predicates = None
+            self.constrained_matching = constrained_matching
+            self.data_sample = data_sample
         elif init.__class__ is str and init:
             (self.data_model,
-             self.predicates) = self._readSettings(init)
+             self.predicates,
+             self.constrained_matching) = self._readSettings(init)
+            self.data_sample = None
         elif init:
             raise ValueError('Incorrect Input Type: must supply either a '
                              'field definition or a settings file.'
                              )
-        else:
 
-            raise ValueError('No Input: must supply either a field '
-                             'definition or a settings file.'
-                             )
+        n_fields = len(self.data_model['fields'])
+        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
 
+        self.training_data = numpy.zeros(0, dtype=training_dtype)
+        self.training_pairs = {0: [], 1: []}
 
-        self.training_data = None
-        self.training_pairs = None
-        self.data_sample = None
         self.dupes = None
         self.training_encoder = training_serializer._to_json
         self.training_decoder = training_serializer.dedupe_decoder
@@ -141,29 +150,17 @@ class Dedupe:
                                           + tfidf_string_predicates)}
 
 
-    def _initializeTraining(self, training_file=None):
-        """
-        Loads labeled examples from file, if passed.
+    def trainFromFile(self, training_source) :
+        assert training_source.__class__ is str
 
-        Keyword arguments:
-        training_file -- path to a json file of labeled examples
+        logging.info('reading training from file')
 
-        """
+        self._readTraining(training_source)
 
-        n_fields = len(self.data_model['fields'])
-
-        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
-
-        self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = None
-
-        if training_file:
-            (self.training_pairs, self.training_data) = self._readTraining(training_file, self.training_data)
+        self.train()
 
     # === Dedupe.train ===
-    def train(self,
-              data_sample,
-              training_source=None):
+    def train(self, alpha=None) :
         """
         Learn field weights from file of labeled examples or round of 
         interactive labeling
@@ -235,43 +232,20 @@ class Dedupe:
         for this file see the method writeTraining.
         """
 
-        self.data_sample = data_sample
+        if alpha is None :
 
-        if training_source.__class__ is not str and not isinstance(training_source, types.FunctionType):
-            raise ValueError
+            n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
 
-        if training_source.__class__ is str:
-            logging.info('reading training from file')
-            if self.training_data is None :
-                self._initializeTraining(training_source)
+            n_folds = min(max(2,
+                              numpy.sum(self.training_data['label'])/3),
+                          20)
 
-            (self.training_pairs, self.training_data) = self._readTraining(training_source, self.training_data)
+            logging.info('%d folds', n_folds)
 
-        elif isinstance(training_source, types.FunctionType):
-
-            if self.training_data is None :
-                self._initializeTraining()
-
-            (self.training_data, 
-             self.training_pairs,
-             self.data_model) = training.activeLearning(self.data_sample,
-                                                        self.data_model,
-                                                        training_source,
-                                                        self.training_data,
-                                                        self.training_pairs)
-
-        n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
-
-        n_folds = min(max(2,
-                          numpy.sum(self.training_data['label'])/3),
-                      20)
-
-        logging.info('%d folds', n_folds)
-
-        alpha = crossvalidation.gridSearch(self.training_data,
-                                           core.trainModel, 
-                                           self.data_model, 
-                                           k=n_folds)
+            alpha = crossvalidation.gridSearch(self.training_data,
+                                               core.trainModel, 
+                                               self.data_model, 
+                                               k=n_folds)
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model, 
@@ -335,7 +309,7 @@ class Dedupe:
 
         blocked_records = (block.values() for block in blocks)
 
-        candidates = core.blockedPairs(blocked_records)
+        candidates = core.blockedPairs(blocked_records, self.constrained_matching)
 
         field_distances = core.fieldDistances(candidates, self.data_model)
         probability = core.scorePairs(field_distances, self.data_model)
@@ -359,7 +333,7 @@ class Dedupe:
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, threshold=.5):
+    def duplicateClusters(self, blocks, data, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -384,26 +358,29 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        
         blocked_keys, blocked_records = core.split((block.keys(),
                                                     block.values())
                                                    for block in blocks)
 
 
-        candidate_keys = core.blockedPairs(blocked_keys)
-        candidate_records = core.blockedPairs(blocked_records)
+        candidate_keys = core.blockedPairs(blocked_keys, self.constrained_matching, data)
+        candidate_records = core.blockedPairs(blocked_records, self.constrained_matching, data)
 
         candidate_keys, ids = itertools.tee(candidate_keys)
         peek = ids.next()
         id_type = type(peek[0])
         ids = itertools.chain([peek], ids)
-        
+
         self.dupes = core.scoreDuplicates(candidate_keys,
                                           candidate_records,
                                           id_type,
                                           self.data_model,
                                           threshold)
-        clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
+        
+        if self.constrained_matching:
+            clusters = clustering.greedyMatching(self.dupes, cluster_threshold)
+        else:
+            clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
 
         return clusters
 
@@ -423,6 +400,7 @@ class Dedupe:
         
         learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
                                                            predicate_set,
+                                                           self.constrained_matching,
                                                            eta,
                                                            epsilon)
 
@@ -454,18 +432,20 @@ class Dedupe:
         with open(file_name, 'w') as f:
             pickle.dump(self.data_model, f)
             pickle.dump(self.predicates, f)
+            pickle.dump(self.constrained_matching, f)
 
     def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
             try:
                 data_model = pickle.load(f)
                 predicates = pickle.load(f)
+                constrained_matching = pickle.load(f)
             except KeyError :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
 
-        return data_model, predicates
+        return data_model, predicates, constrained_matching
 
 
     def writeTraining(self, file_name):
@@ -485,22 +465,69 @@ class Dedupe:
 
 
 
-    def _readTraining(self, file_name, training_pairs):
+    def _readTraining(self, file_name):
         """Read training pairs from a file"""
         with open(file_name, 'r') as f:
             training_pairs_raw = json.load(f, cls=self.training_decoder)
 
-        training_pairs = {0: [], 1: []}
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
-                training_pairs[int(label)].append((core.frozendict(pair[0]),
+                self.training_pairs[int(label)].append((core.frozendict(pair[0]),
                                                    core.frozendict(pair[1])))
 
-        training_data = training.addTrainingData(training_pairs,
-                                                 self.data_model,
-                                                 self.training_data)
+        self._addTrainingData(self.training_pairs)
 
-        return (training_pairs, training_data)
+
+    def _addTrainingData(self, labeled_pairs) :
+        """
+        Appends training data to the training data collection.
+        """
+    
+        nondupes, dupes = labeled_pairs[0], labeled_pairs[1]
+        labels = ([0] * len(nondupes) 
+                  + [1] * len(dupes))
+
+        new_training_data = numpy.empty(len(labels),
+                                        dtype=self.training_data.dtype)
+
+        new_training_data['label'] = labels
+        new_training_data['distances'] = core.fieldDistances(nondupes + dupes, 
+                                                             self.data_model)
+
+        self.training_data = numpy.append(self.training_data, 
+                                          new_training_data)
+
+
+class ActiveDedupe(Dedupe) :
+
+    activeLearner = None
+
+    def _initializeActiveLearning(self) :
+        if self.training_data.shape[0] == 0 :
+            rand_int = random.randint(0, len(self.data_sample))
+            exact_match = self.data_sample[rand_int]
+            self.training_data = self._addTrainingData({1:[exact_match]*2,
+                                                        0:[]})
+
+        self.train(alpha=0.1)
+        self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                     self.data_model)
+
+    def getUncertainPair(self) :
+        if self.activeLearner is None :
+            self._initializeActiveLearning()
+        
+        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1.0)
+
+        return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
+
+    def markPairs(self, labeled_pairs) :
+        for label, pair in labeled_pairs.items() :
+            self.training_pairs[label].extend(pair)
+
+        self._addTrainingData(labeled_pairs) 
+
+        self.train(alpha=.1)
 
 
 

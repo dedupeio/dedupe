@@ -26,5 +26,3 @@ class CategoricalComparator(object):
             return numpy.nan
         else :
             raise ValueError("field not in Source Names")
-
-
