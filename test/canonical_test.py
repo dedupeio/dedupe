@@ -22,6 +22,7 @@ elif opts.verbose >= 2:
     log_level = logging.DEBUG
 logging.basicConfig(level=log_level)
 
+
 # create a random set of training pairs based on known duplicates
 
 def randomTrainingPairs(data_d,
@@ -157,7 +158,6 @@ alpha = deduper.goodThreshold(blocked_data)
 # print candidates
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data,
-                                            data_d,
                                             threshold=alpha)
 
 

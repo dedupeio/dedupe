@@ -207,7 +207,9 @@ with open(output_file, 'w') as f:
         heading_row = reader.next()
         heading_row.insert(0, 'Cluster ID')
         writer.writerow(heading_row)
+
         for row in reader:
+            row_id = int(row[0])
             cluster_id = cluster_membership[row_id]
             row.insert(0, cluster_id)
             writer.writerow(row)

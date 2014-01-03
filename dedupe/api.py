@@ -360,7 +360,7 @@ class Dedupe:
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, data, threshold=.5):
+    def duplicateClusters(self, blocks, data=None, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
