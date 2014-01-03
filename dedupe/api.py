@@ -44,11 +44,7 @@ class Dedupe:
 
     # === `Dedupe.__init__` ===
 
-<<<<<<< HEAD
-    def __init__(self, init=None, constrained_matching=False):
-=======
-    def __init__(self, init=None, data_sample=None):
->>>>>>> unlooped_learning
+    def __init__(self, init=None, data_sample=None, constrained_matching=False):
         """
         Load or initialize a data model.
 
@@ -114,24 +110,17 @@ class Dedupe:
                                             'of the data'
             self.data_model = DataModel(init)
             self.predicates = None
-<<<<<<< HEAD
             self.constrained_matching = constrained_matching
+            self.data_sample = data_sample
         elif init.__class__ is str and init:
             (self.data_model,
              self.predicates,
              self.constrained_matching) = self._readSettings(init)
+            self.data_sample = None
         elif init:
             raise ValueError('Incorrect Input Type: must supply either a '
                              'field definition or a settings file.'
                              )
-        else:
-=======
-            self.data_sample = data_sample
-        else :
-            (self.data_model,
-             self.predicates) = self._readSettings(init)
-            self.data_sample = None
->>>>>>> unlooped_learning
 
         n_fields = len(self.data_model['fields'])
         training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]

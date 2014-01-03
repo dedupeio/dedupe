@@ -379,7 +379,6 @@ class ClusteringTest(unittest.TestCase):
                                                       set(['4','5'])]
     assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
 
-<<<<<<< HEAD
   def test_hungarian(self):
     hungarian = dedupe.clustering.clusterConstrained
     assert hungarian(self.bipartite_dupes, 0.5) == [set([3, 8]), 
@@ -403,10 +402,6 @@ class ClusteringTest(unittest.TestCase):
 
 
 class BlockingTest(unittest.TestCase):
-=======
-
-class TfidfTest(unittest.TestCase):
->>>>>>> unlooped_learning
   def setUp(self):
     self.frozendict = dedupe.core.frozendict
     fields =  { 'name' : {'type': 'String'}, 
@@ -427,8 +422,6 @@ class TfidfTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
-<<<<<<< HEAD
-
 class TfidfTest(unittest.TestCase):
   def setUp(self):
     self.field = "Hello World world"
@@ -489,9 +482,6 @@ class TfidfTest(unittest.TestCase):
 
     assert set(indexed_records) == set([120, 130, 125, 135])
 
-
-=======
->>>>>>> unlooped_learning
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
