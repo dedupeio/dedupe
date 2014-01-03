@@ -1,8 +1,8 @@
-cimport dedupe.mekano.atomvector as atomvector
-cimport dedupe.mekano.atomvectorstore as atomvectorstore
-from dedupe.mekano.corpusstats cimport CorpusStats
-import dedupe.mekano.atomvectorstore as atomvectorstore
-from dedupe.mekano.corpusstats import CorpusStats
+cimport atomvector
+cimport atomvectorstore
+import atomvectorstore
+from corpusstats cimport CorpusStats
+from corpusstats import CorpusStats
 import os
 
 cdef class InvertedIndex(CorpusStats):
@@ -25,7 +25,7 @@ cdef class InvertedIndex(CorpusStats):
         cdef atomvectorstore.AtomVectorStore avs
         mymap = {}
 
-        while (it.neq(end)):
+        while (it != end):
             mymap[it.first] = <atomvectorstore.AtomVectorStore> it.second
             it.advance()
 
@@ -61,7 +61,7 @@ cdef class InvertedIndex(CorpusStats):
         self.N += 1
         itr = vec.mydict.begin()
         end = vec.mydict.end()
-        while(not itr.eq(end)):
+        while(not itr == end):
             a = itr.first
             v = itr.second
             if has_a2avs(self.ii, a):
@@ -106,7 +106,7 @@ cdef class InvertedIndex(CorpusStats):
         cdef a2avsitr it = self.ii.begin()
         cdef a2avsitr end = self.ii.end()
         ret = []
-        while (it.neq(end)):
+        while (it != end):
             ret.append(<int> it.first)
             it.advance()
         return ret

@@ -7,6 +7,18 @@ import warnings
 import dedupe.mekano as mk
 import collections
 
+DATA = {  100 : {"name": "Bob", "age": "50"},
+          105 : {"name": "Charlie", "age": "75"},
+          110 : {"name": "Meredith", "age": "40"},
+          115 : {"name": "Sue", "age": "10"}, 
+          120 : {"name": "Jimmy", "age": "20"},
+          125 : {"name": "Jimbo", "age": "21"},
+          130 : {"name": "Willy", "age": "35"},
+          135 : {"name": "William", "age": "35"},
+          140 : {"name": "Martha", "age": "19"},
+          145 : {"name": "Kyle", "age": "27"}
+        }
+
 class CoreTest(unittest.TestCase):
   def setUp(self) :
     random.seed(123)
@@ -22,7 +34,7 @@ class CoreTest(unittest.TestCase):
 
     self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
     self.data_model = {}
-    self.data_model['fields'] = dedupe.core.OrderedDict()
+    self.data_model['fields'] = dedupe.backport.OrderedDict()
     v = {}
     v.update({'Has Missing': False, 'type': 'String', 'comparator': self.normalizedAffineGapDistance, \
               'weight': -1.0302742719650269})
@@ -58,22 +70,9 @@ class CoreTest(unittest.TestCase):
     numpy.testing.assert_equal(self.desired_scored_pairs['pairs'], actual_scored_pairs_str['pairs'])
 
 class ConvenienceTest(unittest.TestCase):
-  def setUp(self):
-    self.data_d = {  100 : {"name": "Bob", "age": "50"},
-                     105 : {"name": "Charlie", "age": "75"},
-                     110 : {"name": "Meredith", "age": "40"},
-                     115 : {"name": "Sue", "age": "10"}, 
-                     120 : {"name": "Jimmy", "age": "20"},
-                     125 : {"name": "Jimbo", "age": "21"},
-                     130 : {"name": "Willy", "age": "35"},
-                     135 : {"name": "William", "age": "35"},
-                     140 : {"name": "Martha", "age": "19"},
-                     145 : {"name": "Kyle", "age": "27"},
-                  }
-    random.seed(123)
-
   def test_data_sample(self):
-    assert dedupe.convenience.dataSample(self.data_d,5) == \
+    random.seed(123)
+    assert dedupe.dataSample(DATA ,5) == \
             (({'age': '27', 'name': 'Kyle'}, {'age': '50', 'name': 'Bob'}),
             ({'age': '27', 'name': 'Kyle'}, {'age': '35', 'name': 'William'}),
             ({'age': '10', 'name': 'Sue'}, {'age': '35', 'name': 'William'}),
@@ -82,18 +81,121 @@ class ConvenienceTest(unittest.TestCase):
 
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      dedupe.convenience.dataSample(self.data_d,10000)
+      dedupe.dataSample(DATA,10000)
       assert len(w) == 1
       assert str(w[-1].message) == "Requested sample of size 10000, only returning 45 possible pairs"
 
+class DataModelTest(unittest.TestCase) :
 
-class DedupeClassTest(unittest.TestCase):
-  def test_initialize(self) :
+  def test_data_model(self) :
+    OrderedDict = dedupe.backport.OrderedDict
+    DataModel = dedupe.datamodel.DataModel
+    from dedupe.distance.affinegap import normalizedAffineGapDistance
+    from dedupe.distance.haversine import compareLatLong
+    from dedupe.distance.jaccard import compareJaccard
+    
+    self.assertRaises(TypeError, DataModel)
+    assert DataModel({}) == {'fields': OrderedDict(), 'bias': 0}
+    self.assertRaises(ValueError, DataModel, {'a' : 'String'})
+    self.assertRaises(ValueError, DataModel, {'a' : {'foo' : 'bar'}})
+    self.assertRaises(ValueError, DataModel, {'a' : {'type' : 'bar'}})
+    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Interaction'}})
+    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Custom'}})
+    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
+
+    self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction',
+                                                           'Interaction Fields' : ['a', 'b']}})
+    assert DataModel({'a' : {'type' : 'String'}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': False, 
+                                     'type': 'String', 
+                                     'comparator': normalizedAffineGapDistance})]),
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'LatLong'}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': False, 
+                                     'type': 'LatLong', 
+                                     'comparator': compareLatLong})]), 
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'Set'}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': False, 
+                                     'type': 'Set', 
+                                     'comparator': compareJaccard})]), 
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : True}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': True, 
+                                     'type': 'String', 
+                                     'comparator': normalizedAffineGapDistance}), 
+                              ('a: not_missing', {'type': 'Missing Data'})]), 
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : False}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': False, 
+                                     'type': 'String', 
+                                     'comparator': normalizedAffineGapDistance})]),
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'String'}, 'b' : {'type' : 'String'}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': False, 
+                                     'type': 'String', 
+                                     'comparator' : normalizedAffineGapDistance}), 
+                              ('b', {'Has Missing': False, 
+                                     'type': 'String', 
+                                     'comparator': normalizedAffineGapDistance})]),
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'String'}, 
+                      'b' : {'type' : 'String'},
+                      'a-b' : {'type' : 'Interaction', 
+                               'Interaction Fields' : ['a', 'b']}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': False, 
+                                     'type': 'String', 
+                                     'comparator': normalizedAffineGapDistance}), 
+                               ('b', {'Has Missing': False, 
+                                      'type': 'String', 
+                                      'comparator': normalizedAffineGapDistance}), 
+                               ('a-b', {'Has Missing': False, 
+                                        'type': 'Interaction', 
+                                        'Interaction Fields': ['a', 'b']})]), 
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : True}, 
+                      'b' : {'type' : 'String'},
+                      'a-b' : {'type' : 'Interaction', 
+                               'Interaction Fields' : ['a', 'b']}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': True, 
+                                     'type': 'String', 
+                                     'comparator': normalizedAffineGapDistance}), 
+                               ('b', {'Has Missing': False, 
+                                      'type': 'String', 
+                                      'comparator': normalizedAffineGapDistance}), 
+                               ('a-b', {'Has Missing': True, 
+                                        'type': 'Interaction', 
+                                        'Interaction Fields': ['a', 'b']}),
+                              ('a: not_missing', {'type': 'Missing Data'}), 
+                              ('a-b: not_missing', {'type': 'Missing Data'})]), 
+       'bias': 0}
+    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : False}, 
+                      'b' : {'type' : 'String'},
+                      'a-b' : {'type' : 'Interaction', 
+                               'Interaction Fields' : ['a', 'b']}}) == \
+      {'fields': OrderedDict([('a', {'Has Missing': False, 
+                                     'type': 'String', 
+                                     'comparator': normalizedAffineGapDistance}), 
+                               ('b', {'Has Missing': False, 
+                                      'type': 'String', 
+                                      'comparator': normalizedAffineGapDistance}), 
+                               ('a-b', {'Has Missing': False, 
+                                        'type': 'Interaction', 
+                                        'Interaction Fields': ['a', 'b']})]),
+       'bias': 0}
+
+class DedupeInitializeTest(unittest.TestCase) :
+  def test_initialize_fields(self) :
+    self.assertRaises(AssertionError, dedupe.Dedupe)
+    self.assertRaises(AssertionError, dedupe.Dedupe, [])
+
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
-            }
-    deduper = dedupe.Dedupe(fields)
+              }
+    deduper = dedupe.Dedupe(fields, [])
 
+  def test_base_predicates(self) :
+    deduper = dedupe.Dedupe({'name' : {'type' : 'String'}}, [])
     string_predicates = (dedupe.predicates.wholeFieldPredicate,
                          dedupe.predicates.tokenFieldPredicate,
                          dedupe.predicates.commonIntegerPredicate,
@@ -110,6 +212,90 @@ class DedupeClassTest(unittest.TestCase):
 
     assert deduper.blocker_types == {'String' : string_predicates + tfidf_string_predicates}
 
+
+class DedupeClassTest(unittest.TestCase):
+  def setUp(self) : 
+    random.seed(123) 
+    fields =  { 'name' : {'type': 'String'}, 
+                'age'  : {'type': 'String'},
+              }
+    data_sample = dedupe.dataSample(DATA, 6)
+    self.deduper = dedupe.Dedupe(fields, data_sample)
+
+  def test_add_training(self) :
+    training_pairs = {0 : self.deduper.data_sample[0:3],
+                      1 : self.deduper.data_sample[3:6]}
+    self.deduper._addTrainingData(training_pairs)
+    numpy.testing.assert_equal(self.deduper.training_data['label'],
+                               [0, 0, 0, 1, 1, 1])
+    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
+                                      numpy.array(
+                                        [[5.5, 5.0178], 
+                                         [5.5, 3.4431],
+                                         [3.0, 5.5],
+                                         [3.0, 5.125], 
+                                         [5.5, 5.1931],
+                                         [5.5, 5.0178]]),
+                                      4)
+    self.deduper._addTrainingData(training_pairs)
+    numpy.testing.assert_equal(self.deduper.training_data['label'],
+                               [0, 0, 0, 1, 1, 1]*2)
+    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
+                                      numpy.array(
+                                        [[5.5, 5.0178], 
+                                         [5.5, 3.4431],
+                                         [3.0, 5.5],
+                                         [3.0, 5.125], 
+                                         [5.5, 5.1931],
+                                         [5.5, 5.0178]]*2),
+                                      4)
+
+
+
+
+class CoreTest(unittest.TestCase):
+
+  def test_random_pair(self) :
+    random.seed(123)
+    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+    assert dedupe.core.randomPairs(10, 10).any()
+    assert dedupe.core.randomPairs(10*1000000000, 10).any()
+    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
+                             numpy.array([[ 1,  8],
+                                          [ 5,  7],
+                                          [ 1,  2],
+                                          [ 3,  7],
+                                          [ 2,  9]]))
+
+  def test_score_duplicates(self):
+    score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
+    desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
+                                        (['4', '5'], 0.78), (['6', '7'], 0.72), \
+                                        (['8', '9'], 0.84)], dtype=score_dtype)
+    ids_str = iter([('1', '2'), ('2', '3'), ('4', '5'), ('6', '7'), ('8','9')])
+    records = iter([({'name': 'Margret', 'age': '32'}, {'name': 'Marga', 'age': '33'}), \
+                    ({'name': 'Marga', 'age': '33'}, {'name': 'Maria', 'age': '19'}), \
+                    ({'name': 'Maria', 'age': '19'}, {'name': 'Monica', 'age': '39'}), \
+                    ({'name': 'Monica', 'age': '39'}, {'name': 'Mira', 'age': '47'}), \
+                    ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
+                  ])
+
+    data_model = dedupe.datamodel.DataModel({'name' : {'type' : 'String'}})
+    data_model['fields']['name']['weight'] = -1.0302742719650269
+    data_model['bias'] = 4.76
+
+
+    actual_scored_pairs_str = dedupe.core.scoreDuplicates(ids_str,
+                                                          records,
+                                                          'S1',
+                                                          data_model)
+
+    scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
+
+    numpy.testing.assert_almost_equal(desired_scored_pairs['score'], 
+                                      scores_str)
+    numpy.testing.assert_equal(desired_scored_pairs['pairs'], 
+                               actual_scored_pairs_str['pairs'])
   
 
 
@@ -138,6 +324,7 @@ class AffineGapTest(unittest.TestCase):
   def test_normalized_affine_gap_correctness(self):
     assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
     
+
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
     # Fully connected star network
@@ -192,6 +379,7 @@ class ClusteringTest(unittest.TestCase):
                                                       set(['4','5'])]
     assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
 
+<<<<<<< HEAD
   def test_hungarian(self):
     hungarian = dedupe.clustering.clusterConstrained
     assert hungarian(self.bipartite_dupes, 0.5) == [set([3, 8]), 
@@ -215,6 +403,10 @@ class ClusteringTest(unittest.TestCase):
 
 
 class BlockingTest(unittest.TestCase):
+=======
+
+class TfidfTest(unittest.TestCase):
+>>>>>>> unlooped_learning
   def setUp(self):
     self.frozendict = dedupe.core.frozendict
     fields =  { 'name' : {'type': 'String'}, 
@@ -235,6 +427,7 @@ class BlockingTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
+<<<<<<< HEAD
 
 class TfidfTest(unittest.TestCase):
   def setUp(self):
@@ -297,6 +490,8 @@ class TfidfTest(unittest.TestCase):
     assert set(indexed_records) == set([120, 130, 125, 135])
 
 
+=======
+>>>>>>> unlooped_learning
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
@@ -309,7 +504,118 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.nearIntegersPredicate(field) == (15, 16, 17, 122, 123, 124)
     assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
     assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
-        
+    assert dedupe.predicates.initials(field,12) == ()
+    assert dedupe.predicates.initials(field,7) == ('123 16t',)
+    assert dedupe.predicates.ngrams(field,3) == ('123','23 ','3 1',' 16','16t','6th','th ','h s',' st')
+
+class FieldDistances(unittest.TestCase):
+  def test_field_distance_simple(self) :
+    fieldDistances = dedupe.core.fieldDistances
+    deduper = dedupe.Dedupe({'name' : {'type' :'String'},
+                             'source' : {'type' : 'Source',
+                                         'Source Names' : ['a', 'b']}}, [])
+
+    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
+                     {'name' : 'steven', 'source' : 'a'}),)
+
+
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[0, 0.647, 0, 0, 0]]), 3)
+
+    record_pairs = (({'name' : 'steve', 'source' : 'b'}, 
+                     {'name' : 'steven', 'source' : 'b'}),)
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[1, 0.647, 0, 0.647, 0]]), 3)
+
+    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
+                     {'name' : 'steven', 'source' : 'b'}),)
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[0, 0.647, 1, 0, 0.647]]), 3)
+
+  def test_comparator(self) :
+    fieldDistances = dedupe.core.fieldDistances
+    deduper = dedupe.Dedupe({'type' : {'type' : 'Categorical',
+                                       'Categories' : ['a', 'b', 'c']}
+                             }, [])
+
+    record_pairs = (({'type' : 'a'},
+                     {'type' : 'b'}),
+                    ({'type' : 'a'},
+                     {'type' : 'c'}))
+
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[ 0, 0, 1, 0, 0],
+                                                         [ 0, 0, 0, 1, 0]]),
+                                            3)
+
+    deduper = dedupe.Dedupe({'type' : {'type' : 'Categorical',
+                                       'Categories' : ['a', 'b', 'c']},
+                             'source' : {'type' : 'Source',
+                                         'Source Names' : ['foo', 'bar']}
+                             }, [])
+
+    record_pairs = (({'type' : 'a',
+                      'source' : 'bar'},
+                     {'type' : 'b',
+                      'source' : 'bar'}),
+                    ({'type' : 'a', 
+                      'source' : 'foo'},
+                     {'type' : 'c',
+                      'source' : 'bar'}))
+
+
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.],
+                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.]]),
+                                            3)
+
+ 
+
+  def test_field_distance_interaction(self) :
+    fieldDistances = dedupe.core.fieldDistances
+    deduper = dedupe.Dedupe({'first_name' : {'type' :'String'},
+                             'last_name' : {'type' : 'String'},
+                             'first-last' : {'type' : 'Interaction', 
+                                             'Interaction Fields' : ['first_name', 
+                                                                     'last_name']},
+                             'source' : {'type' : 'Source',
+                                         'Source Names' : ['a', 'b']}
+                           }, [])
+
+    record_pairs = (({'first_name' : 'steve', 
+                      'last_name' : 'smith', 
+                      'source' : 'b'}, 
+                     {'first_name' : 'steven', 
+                      'last_name' : 'smith', 
+                      'source' : 'b'}),)
+
+    # ['source', 'first_name', 'last_name', 'different sources',
+    # 'first-last', 'source:first_name', 'different sources:first_name',
+    # 'source:last_name', 'different sources:last_name',
+    # 'source:first-last', 'different sources:first-last']
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[ 1.0,  
+                                                           0.647,  
+                                                           0.5,  
+                                                           0.0,
+                                                           0.323,
+                                                           0.647,
+                                                           0.0,
+                                                           0.5,
+                                                           0.0,
+                                                           0.323,
+                                                           0.0]]),
+                                            3)
+
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

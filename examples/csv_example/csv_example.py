@@ -127,25 +127,29 @@ else:
         }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.ActiveDedupe(fields, data_sample)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
     # __Note:__ if you want to train from scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        deduper.train(data_sample, training_file)
+        deduper.trainFromFile(training_file)
 
     # ## Active learning
-
-    # Starts the training loop. Dedupe will find the next pair of records
+    # Dedupe will find the next pair of records
     # it is least certain about and ask you to label them as duplicates
     # or not.
-
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
     print 'starting active labeling...'
-    deduper.train(data_sample, dedupe.training.consoleLabel)
+
+    finished = False
+    while not finished :
+        pairs_to_label, fields = deduper.getUncertainPair()
+        labeled_pairs, finished = dedupe.training.consoleLabel(pairs_to_label, fields)
+        if not finished :
+            deduper.markPairs(labeled_pairs)
 
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)

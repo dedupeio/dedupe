@@ -32,104 +32,35 @@ def findUncertainPairs(field_distances, data_model, bias=0.5):
     return numpy.argsort(-informativity)
 
 
-def activeLearning(candidates,
-                   data_model,
-                   labelPairFunction,
-                   training_data,
-                   training_pairs=None):
+class ActiveLearning(object) :
     """
     Ask the user to label the record pair we are most uncertain of. Train the
     data model, and update our uncertainty. Repeat until user tells us she is
     finished.
     """
+    def __init__(self, candidates, data_model) :
 
-    fields = [field for field in data_model['fields']
-              if data_model['fields'][field]['type'] not in ('Missing Data',
-                                                             'Interaction')]
+        self.candidates = candidates
+        self.fields = [field for field in data_model['fields']
+                       if data_model['fields'][field]['type'] not in ('Missing Data',
+                                                                      'Interaction',
+                                                                      'Higher Categories')]
+        self.field_distances = core.fieldDistances(self.candidates, data_model)
+        self.seen_indices = set()
 
-
-    duplicates = []
-    nonduplicates = []
-
-    if training_pairs:
-        nonduplicates.extend(training_pairs[0])
-        duplicates.extend(training_pairs[1])
-
-
-    if training_data.shape[0] == 0 :
-        rand_int = random.randint(0, len(candidates))
-        exact_match = candidates[rand_int]
-        training_data = addTrainingData({1:[exact_match]*2,
-                                         0:[]},
-                                        data_model,
-                                        training_data)
-
-    data_model = core.trainModel(training_data, data_model, .1)
-
-
-    finished = False
-
-    import time
-    t_train = time.time()
-    field_distances = core.fieldDistances(candidates, data_model)
-    logging.info('calculated fieldDistances in %s seconds',
-                 str(time.time() - t_train))
-
-    seen_indices = set()
-
-    while finished == False:
-        logging.info('finding the next uncertain pair ...')
-        uncertain_indices = findUncertainPairs(field_distances,
+    def getUncertainPair(self, data_model, dupe_ratio) :
+        uncertain_indices = findUncertainPairs(self.field_distances,
                                                data_model,
-                                               (len(duplicates)/
-                                                (len(nonduplicates)+1.0)))
+                                               dupe_ratio)
 
         for uncertain_index in uncertain_indices:
-            if uncertain_index not in seen_indices:
-                seen_indices.add(uncertain_index)
+            if uncertain_index not in self.seen_indices:
+                self.seen_indices.add(uncertain_index)
                 break
 
-        uncertain_pairs = [candidates[uncertain_index]]
+        uncertain_pairs = [self.candidates[uncertain_index]]
 
-        (labeled_pairs, finished) = labelPairFunction(uncertain_pairs, fields)
-
-        nonduplicates.extend(labeled_pairs[0])
-        duplicates.extend(labeled_pairs[1])
-
-        training_data = addTrainingData(labeled_pairs, data_model, training_data)
-
-        if len(training_data) > 0:
-
-            data_model = core.trainModel(training_data, data_model, .1)
-        else:
-            raise ValueError('No training pairs given')
-
-    training_pairs = {0: nonduplicates, 1: duplicates}
-
-    return (training_data, training_pairs, data_model)
-
-
-def addTrainingData(labeled_pairs, data_model, training_data=[]):
-    """
-    Appends training data to the training data collection.
-    """
-
-    fields = data_model['fields']
-
-    examples = [record_pair for example in labeled_pairs.values()
-                for record_pair in example]
-
-    new_training_data = numpy.empty(len(examples),
-                                    dtype=training_data.dtype)
-
-    new_training_data['label'] = [0] * len(labeled_pairs[0]) + [1] * len(labeled_pairs[1])
-    new_training_data['distances'] = core.fieldDistances(examples, data_model)
-
-
-    training_data = numpy.append(training_data, new_training_data)
-
-
-    return training_data
+        return(uncertain_pairs, self.fields)
 
 
 def consoleLabel(uncertain_pairs, fields):
