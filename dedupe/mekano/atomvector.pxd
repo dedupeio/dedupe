@@ -8,8 +8,6 @@ cdef extern from "CUtils.h":
         int first "operator->()->first"
         double second "operator->()->second"
         void advance "operator++" ()
-        int eq "operator==" (dictitr o)
-        int neq "operator!=" (dictitr o)
 
     # the hash map that internally stores the AtomVector
     ctypedef struct dicttype "IntDoubleMap":

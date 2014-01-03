@@ -17,6 +17,56 @@ DATA = {  100 : {"name": "Bob", "age": "50"},
           145 : {"name": "Kyle", "age": "27"}
         }
 
+class CoreTest(unittest.TestCase):
+  def setUp(self) :
+    random.seed(123)
+
+    self.ids_str = iter([('1', '2'), ('2', '3'), ('4', '5'), ('6', '7'), ('8','9')])
+
+    self.records = iter([({'name': 'Margret', 'age': '32'}, {'name': 'Marga', 'age': '33'}), \
+                         ({'name': 'Marga', 'age': '33'}, {'name': 'Maria', 'age': '19'}), \
+                         ({'name': 'Maria', 'age': '19'}, {'name': 'Monica', 'age': '39'}), \
+                         ({'name': 'Monica', 'age': '39'}, {'name': 'Mira', 'age': '47'}), \
+                         ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
+                        ])
+
+    self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
+    self.data_model = {}
+    self.data_model['fields'] = dedupe.backport.OrderedDict()
+    v = {}
+    v.update({'Has Missing': False, 'type': 'String', 'comparator': self.normalizedAffineGapDistance, \
+              'weight': -1.0302742719650269})
+    self.data_model['fields']['name'] = v
+    self.data_model['bias'] = 4.76
+
+    score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
+    self.desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
+                                             (['4', '5'], 0.78), (['6', '7'], 0.72), \
+                                             (['8', '9'], 0.84)], dtype=score_dtype)
+
+
+  def test_random_pair(self) :
+    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+    assert dedupe.core.randomPairs(10, 10).any()
+    assert dedupe.core.randomPairs(10*1000000000, 10).any()
+    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
+                             numpy.array([[ 1,  8],
+                                          [ 5,  7],
+                                          [ 1,  2],
+                                          [ 3,  7],
+                                          [ 2,  9]]))
+
+  def test_score_duplicates(self):
+    actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.ids_str,
+                                                          self.records,
+                                                          'S1',
+                                                          self.data_model)
+
+    scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
+
+    numpy.testing.assert_almost_equal(self.desired_scored_pairs['score'], scores_str)
+    numpy.testing.assert_equal(self.desired_scored_pairs['pairs'], actual_scored_pairs_str['pairs'])
+
 class ConvenienceTest(unittest.TestCase):
   def test_data_sample(self):
     random.seed(123)

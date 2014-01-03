@@ -26,7 +26,7 @@ def dataSample(data, sample_size):
 def blockData(data_d, blocker):
 
     blocks = OrderedDict({})
-    record_blocks =OrderedDict({})
+    record_blocks = OrderedDict({})
     key_blocks = OrderedDict({})
 
     blocker.tfIdfBlocks(data_d.iteritems())

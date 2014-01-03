@@ -1,4 +1,4 @@
-cimport dedupe.mekano.atomvector as atomvector
+cimport atomvector
 import cPickle
 
 cdef class CorpusStats:
@@ -43,7 +43,7 @@ cdef class CorpusStats:
         self.N += 1
         itr = vec.mydict.begin()
         end = vec.mydict.end()
-        while(itr.neq(end)):
+        while(itr != end):
             a = itr.first
             #self.df[a] = self.df[a] + 1
             self.df.set(a, self.df.get(a)+1)

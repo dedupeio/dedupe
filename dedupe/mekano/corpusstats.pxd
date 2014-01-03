@@ -1,4 +1,4 @@
-cimport dedupe.mekano.atomvector as atomvector
+cimport atomvector
 
 cdef class CorpusStats:
     cdef public atomvector.AtomVector df
