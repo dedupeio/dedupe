@@ -41,7 +41,6 @@ class ActiveLearning(object) :
     def __init__(self, candidates, data_model) :
 
         self.candidates = candidates
-        self.fields = data_model.comparison_fields
         self.field_distances = core.fieldDistances(self.candidates, data_model)
         self.seen_indices = set()
 
