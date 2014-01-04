@@ -21,6 +21,7 @@ import collections
 import logging
 import optparse
 from numpy import nan
+import math
 
 import AsciiDammit
 
@@ -56,10 +57,10 @@ training_file = 'data_matching_training.json'
 def comparePrice(price_1, price_2) :
     if price_1 == 0 :
         return nan
-    elif price_1 == 0 :
+    elif price_2 == 0 :
         return nan
     else :
-        return abs(price_1 - price_2)
+        return abs(math.log(price_1) - math.log(price_2))
 
 def preProcess(column):
     """
@@ -132,7 +133,7 @@ else:
     # __Note:__ if you want to train from scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        deduper.train(data_sample, training_file)
+        deduper.trainFromFile(training_file)
 
     # ## Active learning
 
@@ -195,11 +196,12 @@ for (cluster_id, cluster) in enumerate(clustered_dupes):
         cluster_membership[record_id] = cluster_id
 
 
+
 with open(output_file, 'w') as f:
     writer = csv.writer(f)
 
-    row_id = 0
-    for fileno, filename in enumerate(input_files) :
+    for fileno, filename in enumerate(('AbtBuy_Abt.csv', 'AbtBuy_Buy.csv')) :
+        row_id = 0
         with open(filename) as f_input :
             reader = csv.reader(f_input)
 
@@ -208,7 +210,7 @@ with open(output_file, 'w') as f:
             heading_row.insert(0, 'Cluster ID')
             writer.writerow(heading_row)
             for row in reader:
-                cluster_id = cluster_membership[row_id]
+                cluster_id = cluster_membership[filename + str(row_id)]
                 row.insert(0, fileno)
                 row.insert(0, cluster_id)
                 writer.writerow(row)
