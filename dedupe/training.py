@@ -132,5 +132,49 @@ def semiSupervisedNonDuplicates(data_sample,
     return islice(distinctPairs(), 0, sample_size)
 
     
+def consoleLabel(deduper):
+    '''Command line interface for presenting and labeling training pairs by the user'''
+
+
+    finished = False
+
+    while not finished :
+        uncertain_pairs = deduper.getUncertainPair()
+
+        labels = {0 : [], 1 : []}
+
+        for record_pair in uncertain_pairs:
+            label = ''
+
+            for pair in record_pair:
+                for field in deduper.data_model.comparison_fields:
+                    line = "%s : %s\n" % (field, pair[field])
+                    sys.stderr.write(line)
+                sys.stderr.write('\n')
+
+            sys.stderr.write('Do these records refer to the same thing?\n')
+
+            valid_response = False
+            while not valid_response:
+                sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
+                label = sys.stdin.readline().strip()
+                if label in ['y', 'n', 'u', 'f']:
+                    valid_response = True
+
+            if label == 'y' :
+                labels[1].append(record_pair)
+            elif label == 'n' :
+                labels[0].append(record_pair)
+            elif label == 'f':
+                sys.stderr.write('Finished labeling\n')
+                finished = True
+            elif label != 'u':
+                sys.stderr.write('Nonvalid response\n')
+                raise
+
+        deduper.markPairs(labels)
+
+    deduper.train()
+
 
 
