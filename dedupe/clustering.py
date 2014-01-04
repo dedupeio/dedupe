@@ -11,7 +11,6 @@ from networkx.algorithms.components.connected import connected_components
 from networkx.algorithms.bipartite.basic import biadjacency_matrix
 from networkx.algorithms import bipartite
 from networkx import connected_component_subgraphs
-from hungarian import _Hungarian
 
 
 def condensedDistance(dupes):
@@ -118,43 +117,8 @@ def greedyMatching(dupes, id_type = None, threshold=0.5):
     for dupe in dupes_list:
         vertices = dupe[0]
         if vertices[0] not in covered_vertex_A and vertices[1] not in covered_vertex_B:
-            clusters.append(set(vertices))
+            clusters.append(vertices)
             covered_vertex_A.update([vertices[0]])
             covered_vertex_B.update([vertices[1]])
-
-    return clusters
-
-
-def clusterConstrained(dupes,threshold=.6):
-
-    dupe_graph = networkx.Graph()
-    dupe_graph.add_weighted_edges_from(((x[0], x[1], y) for (x, y) in dupes), bipartite=1)
-    
-    dupe_sub_graphs = connected_component_subgraphs(dupe_graph)
-    clusters = []
-    for sub_graph in dupe_sub_graphs:
-        if len(sub_graph) > 2:
-            row_order, col_order = [list(b_set) for b_set in bipartite.sets(sub_graph)]
-            row_size, col_size = len(row_order), len(col_order)
-            scored_pairs = numpy.asarray(biadjacency_matrix(sub_graph, row_order, col_order))
-
-            inverted_scored_pairs = 1 - scored_pairs
-            row_prod = numpy.prod(inverted_scored_pairs, axis=0)
-            col_size = scored_pairs.shape[1]
-            row_size = scored_pairs.shape[0]
-            cost_matrix_row_prod = numpy.vstack((scored_pairs,numpy.tile(row_prod,(col_size,1))))
-            col_prod = numpy.prod(inverted_scored_pairs, axis=1)
-            col_prod.shape = (row_size,1)
-            col_prod = numpy.vstack((col_prod,numpy.zeros((col_size,1))))
-            cost_matrix = numpy.hstack((cost_matrix_row_prod, numpy.tile(col_prod, row_size)))
-            cost_matrix = 1 - cost_matrix
-            
-            m = _Hungarian()
-            clustering = m.compute(cost_matrix)
-
-            cluster = [set([row_order[l[0]], col_order[l[1]]]) for l in clustering if len(l) > 1 if (l[0] < row_size) and (l[1] < col_size)] 
-            clusters = clusters + cluster
-        else:
-            clusters.append(set(sub_graph.edges()[0]))
 
     return clusters

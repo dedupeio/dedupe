@@ -106,8 +106,8 @@ class Dedupe:
         if init.__class__ is dict:
             self.data_model = DataModel(init)
             self.predicates = None
-            self.data_sample = data_sample
             self.constrained_matching = constrained_matching
+            self.data_sample = data_sample
 
         else :
             self._readSettings(init)
@@ -117,7 +117,8 @@ class Dedupe:
 
         if self.constrained_matching :
             self.blockedPairs = core.blockedPairsConstrained
-            self.cluster = clustering.greedyMatching
+            self.cluster = clustering.clusterConstrained
+            #self.cluster = clustering.greedyMatching
         else :
             self.blockedPairs = core.blockedPairs
             self.cluster = clustering.cluster
@@ -452,8 +453,7 @@ class Dedupe:
             for pair in examples:
                 pair = (core.frozendict(pair[0],
                                         self.constrained_matching),
-                        core.frozendict(pair[1], 
-                                        self.constrained_matching))
+                        core.frozendict(pair[1]))
 
                 self.training_pairs[int(label)].append(pair)
 

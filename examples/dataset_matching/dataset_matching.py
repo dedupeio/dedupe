@@ -69,8 +69,13 @@ def preProcess(column):
     """
 
     column = AsciiDammit.asciiDammit(column)
-    column = re.sub('  +', ' ', column)
     column = re.sub('\n', ' ', column)
+    column = re.sub('-', '', column)
+    column = re.sub('/', ' ', column)
+    column = re.sub("'", '', column)
+    column = re.sub(",", '', column)
+    column = re.sub(":", ' ', column)
+    column = re.sub('  +', ' ', column)
     column = column.strip().strip('"').strip("'").lower().strip()
     return column
 

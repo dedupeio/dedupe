@@ -65,8 +65,9 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     set_pairs = set(pairs)
 
     if len(set_pairs) < sample_size:
-        return set.union(set_pairs,randomPairsMatch(n_records_A,n_records_B,
-                                                    (sample_size-len(set_pairs))))
+        return set.union(set_pairs,
+                         randomPairsMatch(n_records_A,n_records_B,
+                                          (sample_size-len(set_pairs))))
     else:
         return set_pairs
 
@@ -189,10 +190,16 @@ def blockedPairsConstrained(blocks, data) :
         for pair in block_pairs :
             if isinstance(pair[0],frozendict):
                 if (pair[0].constrained != pair[1].constrained):
-                    yield pair
+                    if pair[0].constrained :
+                        yield pair
+                    else :
+                        yield pair[1], pair[0]
             else:
                 if (data[pair[0]].constrained != data[pair[1]].constrained):
-                    yield pair
+                    if data[pair[0]].constrained :
+                        yield pair
+                    else :
+                        yield pair[1], pair[0]
 
 
 
