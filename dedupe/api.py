@@ -16,6 +16,8 @@ import logging
 import types
 import pickle
 import numpy
+import random
+import sys
 
 import dedupe
 import dedupe.core as core
@@ -115,7 +117,7 @@ class Dedupe:
         self._initializePredicates()
 
         if self.constrained_matching :
-            self.blockedPairs = self._blockedPairsConstrained
+            self.blockedPairs = core.blockedPairsConstrained
             self.cluster = clustering.greedyMatching
         else :
             self.blockedPairs = core.blockedPairs
@@ -349,6 +351,8 @@ class Dedupe:
         candidate_keys, ids = itertools.tee(candidate_keys)
         peek = ids.next()
         id_type = type(peek[0])
+        if id_type is str :
+            id_type = (str, len(peek[0]) + 5)
         ids = itertools.chain([peek], ids)
 
         self.dupes = core.scoreDuplicates(candidate_keys,
@@ -360,19 +364,6 @@ class Dedupe:
         clusters = self.cluster(self.dupes, id_type, cluster_threshold)
         
         return clusters
-
-    def _blockedPairsConstrained(self, blocks, data) :
-        for block in blocks :
-            block_pairs = itertools.combinations(block, 2)
-
-            for pair in block_pairs :
-                if isinstance(pair[0],core.frozendict):
-                    if (pair[0].constrained != pair[1].constrained):
-                        yield pair
-                else:
-                    if (data[pair[0]].constrained != data[pair[1]].constrained):
-                        yield pair
-
 
 
     def _learnBlocking(self, eta, epsilon):
@@ -533,12 +524,15 @@ class ActiveDedupe(Dedupe) :
         if self.training_data.shape[0] == 0 :
             rand_int = random.randint(0, len(self.data_sample))
             exact_match = self.data_sample[rand_int]
-            self.training_data = self._addTrainingData({1:[exact_match]*2,
-                                                        0:[]})
+            self._addTrainingData({1:[exact_match]*2,
+                                   0:[]})
+
 
         self.train(alpha=0.1)
         self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                      self.data_model)
+
+
 
     def getUncertainPair(self) :
         if self.activeLearner is None :
@@ -555,6 +549,52 @@ class ActiveDedupe(Dedupe) :
         self._addTrainingData(labeled_pairs) 
 
         self.train(alpha=.1)
+
+
+    def consoleLabel(self):
+        '''Command line interface for presenting and labeling training pairs by the user'''
+
+
+        finished = False
+
+        while not finished :
+            uncertain_pairs = self.getUncertainPair()
+            
+            labels = {0 : [], 1 : []}
+
+            for record_pair in uncertain_pairs:
+                label = ''
+
+                for pair in record_pair:
+                    for field in self.data_model.comparison_fields:
+                        line = "%s : %s\n" % (field, pair[field])
+                        sys.stderr.write(line)
+                    sys.stderr.write('\n')
+
+                sys.stderr.write('Do these records refer to the same thing?\n')
+
+                valid_response = False
+                while not valid_response:
+                    sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
+                    label = sys.stdin.readline().strip()
+                    if label in ['y', 'n', 'u', 'f']:
+                        valid_response = True
+
+                if label == 'y' :
+                    labels[1].append(record_pair)
+                elif label == 'n' :
+                    labels[0].append(record_pair)
+                elif label == 'f':
+                    sys.stderr.write('Finished labeling\n')
+                    finished = True
+                elif label != 'u':
+                    sys.stderr.write('Nonvalid response\n')
+                    raise
+            
+            self.markPairs(labels)
+    
+        self.train()
+
 
 
 

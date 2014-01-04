@@ -49,32 +49,19 @@ def randomTrainingPairs(data_d,
     return {0: nonduplicates, 1: duplicates}
 
 
-def canonicalImport(filenames):
+def canonicalImport(filename, base=False):
     preProcess = exampleIO.preProcess
-
     data_d = {}
-    clusters = {}
-    duplicates = set([])
+ 
+    with open(filename) as f:
+        reader = csv.DictReader(f)
+        for i, row in enumerate(reader):
+            clean_row = [(k, preProcess(v)) for (k, v) in
+                         row.iteritems()]
+            data_d[filename + str(i)] = dedupe.core.frozendict(clean_row, 
+                                               constrained=base)
 
-    i = 0
-    for fileno, (base_record_set, filename) in enumerate(filenames):
-        with open(filename) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                clean_row = [(k, preProcess(v)) for (k, v) in
-                             row.iteritems()]
-                clean_row.append(('dataset',fileno))
-                data_d[i] = dedupe.core.frozendict(clean_row, 
-                                                   constrained=base_record_set)
-                clusters.setdefault(row['unique_id'], []).append(i)
-                i = i + 1
-
-    for (unique_id, cluster) in clusters.iteritems():
-        if len(cluster) > 1:
-            for pair in combinations(cluster, 2):
-                duplicates.add(frozenset(pair))
-
-    return (data_d, reader.fieldnames, duplicates)
+    return data_d, reader.fieldnames
 
 
 def evaluateDuplicates(found_dupes, true_dupes):
@@ -102,13 +89,25 @@ def printPairs(pairs):
 
 
 settings_file = 'canonical_data_matching_learned_settings'
-raw_data = [(True, 'test/datasets/restaurant-1.csv'), 
-            (False, 'test/datasets/restaurant-2.csv')]
 num_training_dupes = 400
 num_training_distinct = 2000
 num_iterations = 10
 
-(data_d, header, duplicates_s) = canonicalImport(raw_data)
+data_d, header = canonicalImport('test/datasets/restaurant-1.csv', base=True)
+data_d.update(canonicalImport('test/datasets/restaurant-2.csv', base=False)[0])
+
+clusters = {}
+for k, row in data_d.items() :
+    clusters.setdefault(row['unique_id'], []).append(k)
+
+
+duplicates_s = set([])
+for (unique_id, cluster) in clusters.iteritems():
+    if len(cluster) > 1:
+        for pair in combinations(cluster, 2):
+            duplicates_s.add(frozenset(pair))
+
+
 
 t0 = time.time()
 

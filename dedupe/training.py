@@ -60,7 +60,7 @@ class ActiveLearning(object) :
 
         uncertain_pairs = [self.candidates[uncertain_index]]
 
-        return(uncertain_pairs, self.fields)
+        return uncertain_pairs
 
 
 def consoleLabel(uncertain_pairs, fields):

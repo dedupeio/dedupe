@@ -49,7 +49,6 @@ logging.basicConfig(level=log_level)
 # Switch to our working directory and set up our input and out put paths,
 # as well as our settings and training file locations
 os.chdir('./examples/dataset_matching/')
-input_files = ['AbtBuy_Abt.csv','AbtBuy_Buy.csv']
 output_file = 'data_matching_output.csv'
 settings_file = 'data_matching_learned_settings'
 training_file = 'data_matching_training.json'
@@ -75,7 +74,7 @@ def preProcess(column):
     return column
 
 
-def readData(filenames):
+def readData(filename, base=False):
     """
     Read in our data from a CSV file and create a dictionary of records, 
     where the key is a unique record ID and each value is a 
@@ -84,26 +83,22 @@ def readData(filenames):
     """
 
     data_d = {}
-    i = 0
-    for fileno, filename in enumerate(filenames) :
-        with open(filename) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                clean_row = dict([(k, preProcess(v)) for (k, v) in row.items()])
-                clean_row['dataset'] = fileno
-                try :
-                    clean_row['price'] = float(clean_row['price'][1:])
-                except ValueError :
-                    clean_row['price'] = 0
-                row_id = i
-                data_d[row_id] = dedupe.core.frozendict(clean_row)
-                i += 1
+
+    with open(filename) as f:
+        reader = csv.DictReader(f)
+        for i, row in enumerate(reader):
+            clean_row = dict([(k, preProcess(v)) for (k, v) in row.items()])
+            try :
+                clean_row['price'] = float(clean_row['price'][1:])
+            except ValueError :
+                clean_row['price'] = 0
+            data_d[filename + str(i)] = dedupe.core.frozendict(clean_row, base)
 
     return data_d
 
-
 print 'importing data ...'
-data_d = readData(input_files)
+data_d = readData('AbtBuy_Abt.csv', True)
+data_d.update(readData('AbtBuy_Buy.csv', False))
 
 # ## Training
 
@@ -128,8 +123,9 @@ else:
                   'Has Missing' : True}}
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields,
-                            constrained_matching = True)
+    deduper = dedupe.ActiveDedupe(fields,
+                                  data_sample,
+                                  constrained_matching = True)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -147,8 +143,7 @@ else:
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
     print 'starting active labeling...'
-    deduper.train(data_sample, dedupe.training.consoleLabel)
-
+    deduper.consoleLabel()
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
 
@@ -168,7 +163,7 @@ deduper.writeSettings(settings_file)
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = dedupe.blockData(data_d, blocker, constrained_matching=True)
+blocked_data = dedupe.blockData(data_d, blocker)
 
 # ## Clustering
 

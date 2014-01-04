@@ -24,7 +24,7 @@ def dataSample(data, sample_size, constrained_matching=False):
         data_list_B = []
 
         for record in data_list:
-            if record['dataset'] == 0:
+            if record.constrained :
                 data_list_A.append(record)
             else:
                 data_list_B.append(record)

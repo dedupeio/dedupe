@@ -42,7 +42,7 @@ class CoreTest(unittest.TestCase):
     self.data_model['bias'] = 4.76
 
     score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
-    self.desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
+    self.desired_scored_pairs = numpy.array([(('1', '2'), 0.96), (['2', '3'], 0.96), \
                                              (['4', '5'], 0.78), (['6', '7'], 0.72), \
                                              (['8', '9'], 0.84)], dtype=score_dtype)
 

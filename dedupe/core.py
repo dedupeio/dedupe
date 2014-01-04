@@ -152,8 +152,7 @@ def scorePairs(field_distances, data_model):
 
 
 def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
-
-    score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
+    score_dtype = numpy.dtype([('pairs', id_type, 2), ('score', 'f4', 1)])
     scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
     complete = False
@@ -171,6 +170,7 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
                                                     duplicate_scores),
                                                 dtype=score_dtype)[duplicate_scores > threshold], 
                                     axis=0)
+
         i += 1
         if len(field_distances) < chunk_size:
             complete = True
@@ -184,16 +184,17 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
 
 def blockedPairsConstrained(blocks, data) :
     for block in blocks :
-
         block_pairs = itertools.combinations(block, 2)
 
         for pair in block_pairs :
             if isinstance(pair[0],frozendict):
-                if (pair[0]['dataset'] != pair[1]['dataset']):
+                if (pair[0].constrained != pair[1].constrained):
                     yield pair
             else:
-                if (data[pair[0]]['dataset'] != data[pair[1]]['dataset']):
+                if (data[pair[0]].constrained != data[pair[1]].constrained):
                     yield pair
+
+
 
 
 def blockedPairs(blocks, data={}) :
