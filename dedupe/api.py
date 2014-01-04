@@ -17,7 +17,6 @@ import types
 import pickle
 import numpy
 import random
-import sys
 
 import dedupe
 import dedupe.core as core
@@ -549,8 +548,6 @@ class ActiveDedupe(Dedupe) :
         self._addTrainingData(labeled_pairs) 
 
         self.train(alpha=.1)
-
-
 
 
 

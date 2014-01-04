@@ -62,76 +62,6 @@ class ActiveLearning(object) :
 
         return uncertain_pairs
 
-
-def consoleLabel(uncertain_pairs, fields):
-    '''Command line interface for presenting and labeling training pairs by the user'''
-    duplicates = []
-    nonduplicates = []
-    finished = False
-
-
-    for record_pair in uncertain_pairs:
-        label = ''
-
-        for pair in record_pair:
-            for field in fields:
-                line = "%s : %s\n" % (field, pair[field])
-                sys.stderr.write(line)
-            sys.stderr.write('\n')
-
-        sys.stderr.write('Do these records refer to the same thing?\n')
-
-        valid_response = False
-        while not valid_response:
-            sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
-            label = sys.stdin.readline().strip()
-            if label in ['y', 'n', 'u', 'f']:
-                valid_response = True
-
-        if label == 'y':
-            duplicates.append(record_pair)
-        elif label == 'n':
-            nonduplicates.append(record_pair)
-        elif label == 'f':
-            sys.stderr.write('Finished labeling\n')
-            finished = True
-            break
-        elif label != 'u':
-            sys.stderr.write('Nonvalid response\n')
-            raise
-
-    return ({0: nonduplicates, 1: duplicates}, finished)
-
-
-def semiSupervisedNonDuplicates(data_sample,
-                                data_model,
-                                nonduplicate_confidence_threshold=.7,
-                                sample_size=2000):
-
-    confidence = 1 - nonduplicate_confidence_threshold
-
-    def distinctPairs() :
-        data_slice = data_sample[0:sample_size]
-        pair_distance = core.fieldDistances(data_slice, data_model)
-        scores = core.scorePairs(pair_distance, data_model)
-
-        sample_n = 0
-        for score, pair in zip(scores, data_sample) :
-            if score < confidence :
-                yield pair
-                sample_n += 1
-
-        if sample_n < sample_size and len(data_sample) > sample_size :
-            for pair in data_sample[sample_size:] :
-                pair_distance = core.fieldDistances([pair], data_model)
-                score = core.scorePairs(pair_distance, data_model)
-                
-                if score < confidence :
-                    yield (pair)
-
-    return islice(distinctPairs(), 0, sample_size)
-
-    
 def consoleLabel(deduper):
     '''Command line interface for presenting and labeling training pairs by the user'''
 
@@ -175,6 +105,36 @@ def consoleLabel(deduper):
         deduper.markPairs(labels)
 
     deduper.train()
+
+def semiSupervisedNonDuplicates(data_sample,
+                                data_model,
+                                nonduplicate_confidence_threshold=.7,
+                                sample_size=2000):
+
+    confidence = 1 - nonduplicate_confidence_threshold
+
+    def distinctPairs() :
+        data_slice = data_sample[0:sample_size]
+        pair_distance = core.fieldDistances(data_slice, data_model)
+        scores = core.scorePairs(pair_distance, data_model)
+
+        sample_n = 0
+        for score, pair in zip(scores, data_sample) :
+            if score < confidence :
+                yield pair
+                sample_n += 1
+
+        if sample_n < sample_size and len(data_sample) > sample_size :
+            for pair in data_sample[sample_size:] :
+                pair_distance = core.fieldDistances([pair], data_model)
+                score = core.scorePairs(pair_distance, data_model)
+                
+                if score < confidence :
+                    yield (pair)
+
+    return islice(distinctPairs(), 0, sample_size)
+
+    
 
 
 
