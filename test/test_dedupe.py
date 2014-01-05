@@ -4,6 +4,8 @@ import numpy
 import random
 import itertools
 import warnings
+import dedupe.mekano as mk
+import collections
 
 DATA = {  100 : {"name": "Bob", "age": "50"},
           105 : {"name": "Charlie", "age": "75"},
@@ -40,7 +42,7 @@ class CoreTest(unittest.TestCase):
     self.data_model['bias'] = 4.76
 
     score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
-    self.desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
+    self.desired_scored_pairs = numpy.array([(('1', '2'), 0.96), (['2', '3'], 0.96), \
                                              (['4', '5'], 0.78), (['6', '7'], 0.72), \
                                              (['8', '9'], 0.84)], dtype=score_dtype)
 
@@ -82,6 +84,22 @@ class ConvenienceTest(unittest.TestCase):
       dedupe.dataSample(DATA,10000)
       assert len(w) == 1
       assert str(w[-1].message) == "Requested sample of size 10000, only returning 45 possible pairs"
+
+class SourceComparatorTest(unittest.TestCase) :
+  def test_comparator(self) :
+    deduper = dedupe.Dedupe({'name' : {'type' : 'Source',
+                                       'Source Names' : ['a', 'b'],
+                                       'Has Missing' : True}}, ())
+
+    source_comparator = deduper.data_model['fields']['name']['comparator']
+    assert source_comparator('a', 'a') == 0
+    assert source_comparator('b', 'b') == 1
+    assert source_comparator('a', 'b') == 2
+    assert source_comparator('b', 'a') == 2
+    self.assertRaises(ValueError, source_comparator, 'b', 'c')
+    self.assertRaises(ValueError, source_comparator, '', 'c')
+    assert numpy.isnan(source_comparator('', 'b'))
+
 
 class DataModelTest(unittest.TestCase) :
 
@@ -184,8 +202,8 @@ class DataModelTest(unittest.TestCase) :
 
 class DedupeInitializeTest(unittest.TestCase) :
   def test_initialize_fields(self) :
-    self.assertRaises(AssertionError, dedupe.Dedupe)
-    self.assertRaises(AssertionError, dedupe.Dedupe, [])
+    self.assertRaises(ValueError, dedupe.Dedupe)
+    self.assertRaises(ValueError, dedupe.Dedupe, [])
 
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
@@ -336,6 +354,7 @@ class ClusteringTest(unittest.TestCase):
                   ((3,4), .3),
                   ((3,5), .5),
                   ((4,5), .72))
+
     #Dupes with Ids as String
     self.str_dupes = ((('1', '2'), .86),
                       (('1', '3'), .72),
@@ -348,18 +367,53 @@ class ClusteringTest(unittest.TestCase):
                       (('3', '5'), .5),
                       (('4', '5'), .72))
 
-            
+    self.bipartite_dupes = (((1,5), .1),
+                            ((1,6), .72),
+                            ((1,7), .2),
+                            ((1,8), .6),
+                            ((2,5), .2),
+                            ((2,6), .2),
+                            ((2,7), .72),
+                            ((2,8), .3),
+                            ((3,5), .24),
+                            ((3,6), .72),
+                            ((3,7), .24),
+                            ((3,8), .65),
+                            ((4,5), .63),
+                            ((4,6), .96),
+                            ((4,7), .23),
+                            ((4,8), .74))
+
+
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
     assert hierarchical(self.dupes, 'i4', 1) == []
     assert hierarchical(self.dupes, 'i4', 0.5) == [set([1, 2, 3]), set([4,5])]
     assert hierarchical(self.dupes, 'i4', 0) == [set([1, 2, 3, 4, 5])]
     assert hierarchical(self.str_dupes, 'S1', 1) == []
-    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), set(['4','5'])]
+    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), 
+                                                      set(['4','5'])]
     assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
 
+  def test_greedy_matching(self):
+    greedyMatch = dedupe.clustering.greedyMatching
+    assert greedyMatch(self.bipartite_dupes, 
+                       threshold=0.5) == [(4, 6), 
+                                          (2, 7),
+                                          (3, 8)]
+    
+    assert greedyMatch(self.bipartite_dupes, 
+                       threshold=0) == [(4, 6), 
+                                        (2, 7),
+                                        (3, 8), 
+                                        (1, 5)]
+    assert greedyMatch(self.bipartite_dupes, 
+                       threshold=0.8) == [(4, 6)]
+    assert greedyMatch(self.bipartite_dupes, 
+                       threshold=1) == []
 
-class TfidfTest(unittest.TestCase):
+
+class BlockingTest(unittest.TestCase):
   def setUp(self):
     self.frozendict = dedupe.core.frozendict
     fields =  { 'name' : {'type': 'String'}, 
@@ -380,6 +434,61 @@ class TfidfTest(unittest.TestCase):
       }
     self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
     
+class TfidfTest(unittest.TestCase):
+  def setUp(self):
+    self.field = "Hello World world"
+    self.tokenfactory = mk.AtomFactory("tokens")
+    self.record_id = 20
+    self.data_d = {
+                     100 : {"name": "Bob", "age": "50", "dataset": 0},
+                     105 : {"name": "Charlie", "age": "75", "dataset": 1},
+                     110 : {"name": "Meredith", "age": "40", "dataset": 1},
+                     115 : {"name": "Sue", "age": "10", "dataset": 0},
+                     120 : {"name": "Jimbo", "age": "21","dataset": 1},
+                     125 : {"name": "Jimbo", "age": "21", "dataset": 0},
+                     130 : {"name": "Willy", "age": "35", "dataset": 0},
+                     135 : {"name": "Willy", "age": "35", "dataset": 1},
+                     140 : {"name": "Martha", "age": "19", "dataset": 1},
+                     145 : {"name": "Kyle", "age": "27", "dataset": 0},
+                  }
+
+    self.data_d = dict((k, dedupe.core.frozendict(v)) 
+                              for k, v in self.data_d.items())
+
+    
+    self.tfidf_fields = set(["name"])
+
+  def test_field_to_atom_vector(self):
+
+    av = dedupe.tfidf.fieldToAtomVector(self.field, self.record_id, self.tokenfactory)
+    assert av[self.tokenfactory["hello"]] == 1.0
+    assert av[self.tokenfactory["world"]] == 2.0
+
+
+  def test_inverted_index(self):
+    ii = dedupe.tfidf.InvertedIndex(self.tfidf_fields)
+
+    token_vectors = ii.unweightedIndex(self.data_d.items())
+    name_index = mk.WeightVectors(ii.inverted_indices['name'])
+
+    stop_words = dedupe.tfidf.stopWords(ii.inverted_indices['name'], 
+                                        500)
+
+    name_vectors = dedupe.tfidf.weightVectors(name_index, 
+                                              token_vectors['name'],
+                                              stop_words)
+
+    assert set(name_vectors.keys()) == set([120, 130, 125, 135])
+
+    ii = dedupe.tfidf.tokensToInvertedIndex(name_vectors)
+
+    indexed_records = []
+    for atomvectors in ii.values() :
+      for av in atomvectors:
+        indexed_records.append(av.name)
+
+    assert set(indexed_records) == set([120, 130, 125, 135])
+
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'

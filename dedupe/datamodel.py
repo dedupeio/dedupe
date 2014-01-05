@@ -11,6 +11,7 @@ from dedupe.distance.categorical import CategoricalComparator
 
 class DataModel(dict) :
     def __init__(self, fields):
+
         self['bias'] = 0
         self.comparison_fields = []
 
@@ -59,11 +60,11 @@ class DataModel(dict) :
                     raise ValueError('No "Source Names" defined')
                 if len(definition['Source Names']) != 2 :
                     raise ValueError("You must supply two and only " 
-                                  "two source names")  
+                                  "two source names")
+
                 source_fields.append(field)
 
                 comparator = CategoricalComparator(definition['Source Names'])
-                
                 for value, combo in sorted(comparator.combinations[2:]) :
                     categoricals[str(combo)] = {'type' : 'Higher Categories',
                                                 'value' : value}

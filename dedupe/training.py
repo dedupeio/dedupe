@@ -41,10 +41,6 @@ class ActiveLearning(object) :
     def __init__(self, candidates, data_model) :
 
         self.candidates = candidates
-        self.fields = [field for field in data_model['fields']
-                       if data_model['fields'][field]['type'] not in ('Missing Data',
-                                                                      'Interaction',
-                                                                      'Higher Categories')]
         self.field_distances = core.fieldDistances(self.candidates, data_model)
         self.seen_indices = set()
 
@@ -60,48 +56,51 @@ class ActiveLearning(object) :
 
         uncertain_pairs = [self.candidates[uncertain_index]]
 
-        return(uncertain_pairs, self.fields)
+        return uncertain_pairs
 
-
-def consoleLabel(uncertain_pairs, fields):
+def consoleLabel(deduper):
     '''Command line interface for presenting and labeling training pairs by the user'''
-    duplicates = []
-    nonduplicates = []
+
+
     finished = False
 
+    while not finished :
+        uncertain_pairs = deduper.getUncertainPair()
 
-    for record_pair in uncertain_pairs:
-        label = ''
+        labels = {0 : [], 1 : []}
 
-        for pair in record_pair:
-            for field in fields:
-                line = "%s : %s\n" % (field, pair[field])
-                sys.stderr.write(line)
-            sys.stderr.write('\n')
+        for record_pair in uncertain_pairs:
+            label = ''
 
-        sys.stderr.write('Do these records refer to the same thing?\n')
+            for pair in record_pair:
+                for field in deduper.data_model.comparison_fields:
+                    line = "%s : %s\n" % (field, pair[field])
+                    sys.stderr.write(line)
+                sys.stderr.write('\n')
 
-        valid_response = False
-        while not valid_response:
-            sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
-            label = sys.stdin.readline().strip()
-            if label in ['y', 'n', 'u', 'f']:
-                valid_response = True
+            sys.stderr.write('Do these records refer to the same thing?\n')
 
-        if label == 'y':
-            duplicates.append(record_pair)
-        elif label == 'n':
-            nonduplicates.append(record_pair)
-        elif label == 'f':
-            sys.stderr.write('Finished labeling\n')
-            finished = True
-            break
-        elif label != 'u':
-            sys.stderr.write('Nonvalid response\n')
-            raise
+            valid_response = False
+            while not valid_response:
+                sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
+                label = sys.stdin.readline().strip()
+                if label in ['y', 'n', 'u', 'f']:
+                    valid_response = True
 
-    return ({0: nonduplicates, 1: duplicates}, finished)
+            if label == 'y' :
+                labels[1].append(record_pair)
+            elif label == 'n' :
+                labels[0].append(record_pair)
+            elif label == 'f':
+                sys.stderr.write('Finished labeling\n')
+                finished = True
+            elif label != 'u':
+                sys.stderr.write('Nonvalid response\n')
+                raise
 
+        deduper.markPairs(labels)
+
+    deduper.train()
 
 def semiSupervisedNonDuplicates(data_sample,
                                 data_model,
@@ -132,5 +131,6 @@ def semiSupervisedNonDuplicates(data_sample,
     return islice(distinctPairs(), 0, sample_size)
 
     
+
 
 

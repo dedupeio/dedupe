@@ -54,6 +54,22 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
 
     return numpy.column_stack((x, y)).astype(int)
 
+def randomPairsMatch(n_records_A, n_records_B, sample_size):
+    """
+    Return random combinations of indices for record list A and B
+    """
+
+    A_samples = numpy.random.randint(n_records_A, size=sample_size)
+    B_samples = numpy.random.randint(n_records_B, size=sample_size)
+    pairs = zip(A_samples,B_samples)
+    set_pairs = set(pairs)
+
+    if len(set_pairs) < sample_size:
+        return set.union(set_pairs,
+                         randomPairsMatch(n_records_A,n_records_B,
+                                          (sample_size-len(set_pairs))))
+    else:
+        return set_pairs
 
 
 def trainModel(training_data, data_model, alpha=.001):
@@ -137,8 +153,7 @@ def scorePairs(field_distances, data_model):
 
 
 def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
-
-    score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
+    score_dtype = numpy.dtype([('pairs', id_type, 2), ('score', 'f4', 1)])
     scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
     complete = False
@@ -156,6 +171,7 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
                                                     duplicate_scores),
                                                 dtype=score_dtype)[duplicate_scores > threshold], 
                                     axis=0)
+
         i += 1
         if len(field_distances) < chunk_size:
             complete = True
@@ -167,13 +183,24 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
 
     return scored_pairs
 
+def blockedPairsConstrained(blocks) :
+    for block in blocks :
+        base, target = block
+        block_pairs = itertools.product(base.items(), target.items())
+
+        for pair in block_pairs :
+            yield dict(pair)
+
+
+
+
 def blockedPairs(blocks) :
     for block in blocks :
 
-        block_pairs = itertools.combinations(block, 2)
-
+        block_pairs = itertools.combinations(block.items(), 2)
+        
         for pair in block_pairs :
-            yield pair
+            yield dict(pair)
 
 def split(iterable):
     it = iter(iterable)
@@ -191,8 +218,8 @@ def split(iterable):
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
-    def __init__(self, *args, **kwargs):
-        self._d = dict(*args, **kwargs)
+    def __init__(self, d):
+        self._d = dict(d)
 
     def __iter__(self):
         return iter(self._d)

@@ -19,79 +19,87 @@ class TfidfPredicate(float):
         return self.__name__
 
 
-def weightVectors(inverted_index, token_vectors, stop_word_threshold) :
+def stopWords(inverted_index, stop_word_threshold) :
+    stop_words= set([])
 
-
-    for field in token_vectors :
-        singletons = set([])
-        stop_words = set([])
-        for atom in inverted_index[field].atoms() :
-            df = inverted_index[field].getDF(atom)
-            if df < 2 :
-                singletons.add(atom)
-            elif df > stop_word_threshold :
-                stop_words.add(atom)
-                
-        
-
-        wv = mk.WeightVectors(inverted_index[field])
-        ii = defaultdict(set)
-        for record_id, vector in token_vectors[field].iteritems() :
-            w_vector = wv[vector]
-            w_vector.name = vector.name
-            for atom in w_vector :
-                if atom in singletons or atom in stop_words :
-                    del w_vector[atom]
-            token_vectors[field][record_id] = w_vector
-            for token in w_vector :
-                ii[token].add(w_vector)
-            
-            
-
-        inverted_index[field] = ii
-
-    return token_vectors, inverted_index
-
-def invertIndex(data, tfidf_fields, df_index=None):
-
-    tokenfactory = mk.AtomFactory("tokens")  
-    inverted_index = {}
-
-    for field in tfidf_fields :
-        inverted_index[field] = mk.InvertedIndex()
-
-    token_vector = defaultdict(dict)
-
-    for record_id, record in data:
-        for field in tfidf_fields:
-            tokens = words.findall(record[field].lower())
-            av = mk.AtomVector(name=record_id)
-            for token in tokens :
-                av[tokenfactory[token]] += 1
-            inverted_index[field].add(av)
-
-            token_vector[field][record_id] = av
-
-    num_docs = inverted_index.values()[0].getN()
-
-    stop_word_threshold = max(num_docs * 0.025, 500)
-    logging.info('Stop word threshold: %(stop_thresh)d',
-                 {'stop_thresh' :stop_word_threshold})
-
-
-    token_vectors, inverted_index = weightVectors(inverted_index, 
-                                                  token_vector,
-                                                  stop_word_threshold)
+    for atom in inverted_index.atoms() :
+        df = inverted_index.getDF(atom)
+        if df < 2 :
+            stop_words.add(atom)
+        elif df > stop_word_threshold :
+            stop_words.add(atom)
     
+    return stop_words
 
-    return (inverted_index, token_vector)
+        
+def weightVectors(weight_vectors, tokenized_records, stop_words) :
+    weighted_records = {}
+
+    for record_id, vector in tokenized_records.iteritems() :
+        weighted_vector = weight_vectors[vector]
+        weighted_vector.name = vector.name
+        for atom in weighted_vector :
+            if atom in stop_words :
+                del weighted_vector[atom]
+        if weighted_vector :
+            weighted_records[record_id] = weighted_vector
+
+    return weighted_records
+
+def tokensToInvertedIndex(token_vectors) :
+    i_index = defaultdict(set)
+    for record_id, vector in token_vectors.iteritems() :
+        for token in vector :
+            i_index[token].add(vector)
+    
+    return i_index
+            
+
+
+def fieldToAtomVector(field, record_id, tokenfactory) :
+    tokens = words.findall(field.lower())
+    av = mk.AtomVector(name=record_id)
+    for token in tokens :
+        av[tokenfactory[token]] += 1
+    
+    return av
+
+
+class InvertedIndex(object) :
+    def __init__(self, fields) :
+        self.fields = fields
+        self.inverted_indices = defaultdict(lambda : mk.InvertedIndex())
+        self.tokenfactory = mk.AtomFactory("tokens")  
+        self.stop_word_threshold = 500
+
+    def unweightedIndex(self, data) :
+        tokenized_records = defaultdict(dict)
+  
+        for record_id, record in data:
+            for field in self.fields:
+                av = fieldToAtomVector(record[field], 
+                                       record_id, 
+                                       self.tokenfactory)
+                self.inverted_indices[field].add(av) 
+                tokenized_records[field][record_id] = av
+                
+        return tokenized_records
+        
+    def stopWordThreshold(self) :
+        num_docs = self.inverted_indices.values()[0].getN()
+        self.stop_word_threshold = max(num_docs * 0.025, 500)
+        logging.info('Stop word threshold: %(stop_thresh)d',
+                     {'stop_thresh' :self.stop_word_threshold})
+
+
+
+
 
 #@profile
 def makeCanopy(inverted_index, token_vector, threshold) :
     canopies = defaultdict(lambda:None)
     seen = set([])
     corpus_ids = set(token_vector.keys())
-
 
     while corpus_ids:
         center_id = corpus_ids.pop()
@@ -109,14 +117,13 @@ def makeCanopy(inverted_index, token_vector, threshold) :
         candidates = candidates - seen
 
         for candidate_vector in candidates :
-
-            similarity = candidate_vector * center_vector         
+            similarity = candidate_vector * center_vector        
 
             if similarity > threshold :
                 candidate_id = candidate_vector.name
                 canopies[candidate_id] = center_id
                 seen.add(candidate_vector)
-                corpus_ids.remove(candidate_id)
+                corpus_ids.difference_update([candidate_vector.name])
 
     return canopies
 
