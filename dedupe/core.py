@@ -185,21 +185,11 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
 
 def blockedPairsConstrained(blocks, data) :
     for block in blocks :
-        block_pairs = itertools.combinations(block, 2)
+        base, target = block
+        block_pairs = itertools.product(base.items(), target.items())
 
         for pair in block_pairs :
-            if isinstance(pair[0],frozendict):
-                if (pair[0].constrained != pair[1].constrained):
-                    if pair[0].constrained :
-                        yield pair
-                    else :
-                        yield pair[1], pair[0]
-            else:
-                if (data[pair[0]].constrained != data[pair[1]].constrained):
-                    if data[pair[0]].constrained :
-                        yield pair
-                    else :
-                        yield pair[1], pair[0]
+            yield dict(pair)
 
 
 
@@ -207,10 +197,10 @@ def blockedPairsConstrained(blocks, data) :
 def blockedPairs(blocks, data={}) :
     for block in blocks :
 
-        block_pairs = itertools.combinations(block, 2)
+        block_pairs = itertools.combinations(block.items(), 2)
         
         for pair in block_pairs :
-            yield pair
+            yield dict(pair)
 
 def split(iterable):
     it = iter(iterable)
@@ -228,9 +218,8 @@ def split(iterable):
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
-    def __init__(self, d, constrained=False):
+    def __init__(self, d):
         self._d = dict(d)
-        self.constrained = constrained
 
     def __iter__(self):
         return iter(self._d)

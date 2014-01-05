@@ -29,7 +29,8 @@ import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
-class Dedupe:
+
+class Matching(object):
     """
     Public methods:
 
@@ -46,8 +47,7 @@ class Dedupe:
 
     def __init__(self, 
                  init=None, 
-                 data_sample=None, 
-                 constrained_matching = False):
+                 data_sample=None) :
         """
         Load or initialize a data model.
 
@@ -106,7 +106,6 @@ class Dedupe:
         if init.__class__ is dict:
             self.data_model = DataModel(init)
             self.predicates = None
-            self.constrained_matching = constrained_matching
             self.data_sample = data_sample
 
         else :
@@ -114,14 +113,6 @@ class Dedupe:
             self.data_sample = None
 
         self._initializePredicates()
-
-        if self.constrained_matching :
-            self.blockedPairs = core.blockedPairsConstrained
-            self.cluster = clustering.clusterConstrained
-            #self.cluster = clustering.greedyMatching
-        else :
-            self.blockedPairs = core.blockedPairs
-            self.cluster = clustering.cluster
 
         training_dtype = [('label', 'i4'), 
                           ('distances', 'f4', 
@@ -268,7 +259,7 @@ class Dedupe:
         if not self.predicates:
             self.predicates = self._learnBlocking(ppc, uncovered_dupes)
 
-        blocker = blocking.Blocker(self.predicates)
+        blocker = self._Blocker(self.predicates)
 
         return blocker
 
@@ -289,11 +280,12 @@ class Dedupe:
                          to 2.
         """
 
-        blocked_records = (block.values() for block in blocks)
+        candidates = self._blockedPairs(blocks, None)
 
-        candidates = self.blockedPairs(blocked_records, None)
+        candidates = (pair.values() for pair in candidates)
 
-        field_distances = core.fieldDistances(candidates, self.data_model)
+        field_distances = core.fieldDistances(candidates, 
+                                              self.data_model)
         probability = core.scorePairs(field_distances, self.data_model)
 
         probability.sort()
@@ -340,13 +332,12 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        blocked_keys, blocked_records = core.split((block.keys(),
-                                                    block.values())
-                                                   for block in blocks)
-
-
-        candidate_keys = self.blockedPairs(blocked_keys, data)
-        candidate_records = self.blockedPairs(blocked_records, data)
+        (candidate_keys, 
+         candidate_records) = core.split((pair.keys(),
+                                          pair.values())
+                                         for pair 
+                                         in self._blockedPairs(blocks, None))
+                                                   
 
         candidate_keys, ids = itertools.tee(candidate_keys)
         peek = ids.next()
@@ -361,31 +352,10 @@ class Dedupe:
                                           self.data_model,
                                           threshold)
 
-        clusters = self.cluster(self.dupes, id_type, cluster_threshold)
+        clusters = self._cluster(self.dupes, id_type, cluster_threshold)
         
         return clusters
 
-
-    def _learnBlocking(self, eta, epsilon):
-        """Learn a good blocking of the data"""
-
-        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model,
-                                                                       sample_size=32000)
-
-        self.training_pairs[0].extend(confident_nonduplicates)
-
-
-        predicate_set = predicateGenerator(self.blocker_types, self.data_model)
-
-
-        
-        learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
-                                                           predicate_set,
-                                                           eta,
-                                                           epsilon)
-
-        return learned_predicates
 
     def _logLearnedWeights(self):
         """
@@ -413,14 +383,12 @@ class Dedupe:
         with open(file_name, 'w') as f:
             pickle.dump(self.data_model, f)
             pickle.dump(self.predicates, f)
-            pickle.dump(self.constrained_matching, f)
 
     def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
             try:
                 self.data_model = pickle.load(f)
                 self.predicates = pickle.load(f)
-                self.constrained_matching = pickle.load(f)
             except KeyError :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
@@ -444,6 +412,26 @@ class Dedupe:
 
 
 
+
+
+    def getUncertainPair(self) :
+        if self.activeLearner is None :
+            self._initializeActiveLearning()
+        
+        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1.0)
+
+        return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
+
+    def markPairs(self, labeled_pairs) :
+        for label, pair in labeled_pairs.items() :
+            self.training_pairs[label].extend(pair)
+
+        self._addTrainingData(labeled_pairs) 
+
+        self.train(alpha=.1)
+
+
+
     def _readTraining(self, file_name):
         """Read training pairs from a file"""
         with open(file_name, 'r') as f:
@@ -451,8 +439,7 @@ class Dedupe:
 
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
-                pair = (core.frozendict(pair[0],
-                                        self.constrained_matching),
+                pair = (core.frozendict(pair[0]),
                         core.frozendict(pair[1]))
 
                 self.training_pairs[int(label)].append(pair)
@@ -512,13 +499,6 @@ class Dedupe:
                                           + tfidf_string_predicates)}
 
 
-
-
-
-class ActiveDedupe(Dedupe) :
-
-    activeLearner = None
-
     def _initializeActiveLearning(self) :
         if self.training_data.shape[0] == 0 :
             rand_int = random.randint(0, len(self.data_sample))
@@ -531,23 +511,55 @@ class ActiveDedupe(Dedupe) :
         self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                      self.data_model)
 
+    def _learnBlocking(self, eta, epsilon):
+        """Learn a good blocking of the data"""
+
+        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
+                                                                       self.data_model,
+                                                                       sample_size=32000)
+
+        self.training_pairs[0].extend(confident_nonduplicates)
 
 
-    def getUncertainPair(self) :
-        if self.activeLearner is None :
-            self._initializeActiveLearning()
+        predicate_set = predicateGenerator(self.blocker_types, self.data_model)
+
+
         
-        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1.0)
+        learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
+                                                           predicate_set,
+                                                           eta,
+                                                           epsilon,
+                                                           self._linkage_type)
 
-        return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
+        return learned_predicates
 
-    def markPairs(self, labeled_pairs) :
-        for label, pair in labeled_pairs.items() :
-            self.training_pairs[label].extend(pair)
 
-        self._addTrainingData(labeled_pairs) 
 
-        self.train(alpha=.1)
+class Dedupe(Matching) :
+    def __init__(self, *args, **kwargs) :
+        super(Dedupe, self).__init__(*args, **kwargs)
+
+        self._blockedPairs = core.blockedPairs
+        self._cluster = clustering.cluster
+        self._Blocker = blocking.Blocker
+        self._linkage_type = "Dedupe"
+
+
+
+
+
+class RecordLink(Matching) :
+    def __init__(self, *args, **kwargs) :
+        super(RecordLink, self).__init__(*args, **kwargs)
+
+        self._blockedPairs = core.blockedPairsConstrained
+        self._cluster = clustering.greedyMatching
+        self._Blocker = blocking.ConstrainedBlocker
+        self._linkage_type = "RecordLink"
+
+
+
+
 
 
 

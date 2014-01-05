@@ -5,6 +5,7 @@ from collections import defaultdict
 import itertools
 import types
 import logging
+import mekano
 
 import dedupe.tfidf as tfidf
 
@@ -28,7 +29,6 @@ class Blocker:
             raise ValueError("No canopies defined, but tf-idf predicate "
                              "learned. Did you run the tfIdfBlocks method "
                              "of the blocker?")
-
         (record_id, record) = instance
 
         record_keys = []
@@ -52,19 +52,7 @@ class Blocker:
 
         return set([str(key) for key in record_keys])
 
-    def tfIdfBlocks(self, data):
-        '''Creates TF/IDF canopy of a given set of data'''
-        
-        if not self.tfidf_predicates:
-            return
-            
-        tfidf_fields = set([])
-        for predicate, field in self.tfidf_predicates :
-            tfidf_fields.add(field)
-
-        vectors = tfidf.invertIndex(data, tfidf_fields)
-        inverted_index, token_vector = vectors
-
+    def createCanopies(self) :
 
         logging.info('creating TF/IDF canopies')
 
@@ -78,14 +66,91 @@ class Blocker:
                           'field': field})
 
             canopy = tfidf.createCanopies(field, threshold,
-                                          token_vector, inverted_index)
+                                          self.base_tokens, self.target_ii)
             self.canopies[threshold.__name__ + field] = canopy
+
+
+    def tfIdfBlocks(self, data):
+        '''Creates TF/IDF canopy of a given set of data'''
+        
+        if not self.tfidf_predicates:
+            return
+            
+        tfidf_fields = set([])
+        for predicate, field in self.tfidf_predicates :
+            tfidf_fields.add(field)
+
+        ii = tfidf.InvertedIndex(tfidf_fields)
+
+        self.base_tokens = ii.unweightedIndex(data)
+
+        self.target_ii = {}
+
+        for field, index in ii.inverted_indices.items() :
+            weighted_vectors = mekano.WeightVectors(index)
+            stop_words = tfidf.stopWords(index, 
+                                         ii.stop_word_threshold)
+
+            targets = tfidf.weightVectors(weighted_vectors,
+                                          self.base_tokens[field],
+                                          stop_words)
+
+            self.base_tokens[field] = targets
+
+            self.target_ii[field] = tfidf.tokensToInvertedIndex(targets)
+
+        self.createCanopies()
+
+
+
+class ConstrainedBlocker(Blocker) :
+    
+
+
+    def tfIdfBlocks(self, data_1, data_2):
+        '''Creates TF/IDF canopy of a given set of data'''
+        
+        if not self.tfidf_predicates:
+            return
+            
+        tfidf_fields = set([])
+        for predicate, field in self.tfidf_predicates :
+            tfidf_fields.add(field)
+
+        ii = tfidf.InvertedIndex(tfidf_fields)
+
+        self.base_tokens = ii.unweightedIndex(data_1)
+        target_tokens = ii.unweightedIndex(data_2)
+
+        self.target_ii = {}
+
+        for field, index in ii.inverted_indices.items() :
+            weighted_vectors = mekano.WeightVectors(index)
+            stop_words = tfidf.stopWords(index, 
+                                          ii.stop_word_threshold)
+
+            self.base_tokens[field] = tfidf.weightVectors(weighted_vectors,
+                                                          self.base_tokens[field],
+                                                          stop_words)
+
+            targets = tfidf.weightVectors(weighted_vectors,
+                                          target_tokens[field],
+                                          stop_words)
+
+            self.target_ii[field] = tfidf.tokensToInvertedIndex(targets)
+
+
+        self.createCanopies()
+
+    
+
 
 
 def blockTraining(training_pairs,
                   predicate_set,
                   eta=.1,
-                  epsilon=.1):
+                  epsilon=.1,
+                  matching = "Dedupe"):
     '''
     Takes in a set of training pairs and predicates and tries to find
     a good set of blocking rules.
@@ -96,8 +161,13 @@ def blockTraining(training_pairs,
     training_dupes = (training_pairs[1])[:]
     training_distinct = (training_pairs[0])[:]
 
-    coverage = Coverage(predicate_set,
-                        training_dupes + training_distinct)
+    if matching == "RecordLink" :
+        coverage = RecordLinkCoverage(predicate_set,
+                                      training_dupes + training_distinct)
+
+    else :
+        coverage = Coverage(predicate_set,
+                            training_dupes + training_distinct)
 
     coverage_threshold = eta * len(training_distinct)
     logging.info("coverage threshold: %s", coverage_threshold)
@@ -217,7 +287,7 @@ def findOptimumBlocking(uncovered_dupes,
 
 
 
-class Coverage() :
+class Coverage(object) :
     def __init__(self, predicate_set, pairs) :
         self.overlapping = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
@@ -321,6 +391,45 @@ class Coverage() :
             predicate_blocks[predicate] = block_groups
 
         return predicate_blocks
+
+class RecordLinkCoverage(Coverage) :
+    def __init__(self, *args, **kwargs) :
+        super(RecordLinkCoverage, self).__init__(*args, **kwargs)
+
+
+    def canopyOverlap(self,
+                       tfidf_predicates,
+                       record_pairs) :
+
+        data_1 = set([])
+        data_2 = set([])
+        for record_1, record_2 in record_pairs :
+            data_1.add(record_1)
+            data_2.add(record_2)
+
+        data_1 = list(itertools.izip(itertools.count(), data_1))
+        data_2 = list(itertools.izip(itertools.count(), data_2))
+
+
+        # uniquify records
+        docs = list(set(itertools.chain(*record_pairs)))
+        record_ids = dict(itertools.izip(docs, itertools.count()))
+
+        blocker = ConstrainedBlocker()
+        blocker.tfidf_predicates = tfidf_predicates
+
+        blocker.tfIdfBlocks(data_1, data_2)
+
+        for (threshold, field) in blocker.tfidf_predicates:
+            canopy = blocker.canopies[threshold.__name__ + field]
+            for record_1, record_2 in record_pairs :
+                id_1 = record_ids[record_1]
+                id_2 = record_ids[record_2]
+                if canopy[id_1] == canopy[id_2]:
+                    self.overlapping[(threshold, field)].add((record_1, record_2))
+                    self.blocks[(threshold, field)][canopy[id_1]].add((record_1, record_2))
+    
+
 
 
 def predicateTypes(predicates) :

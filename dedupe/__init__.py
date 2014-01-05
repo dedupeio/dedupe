@@ -26,8 +26,8 @@ import crossvalidation
 import datamodel
 import backport
 from api import Dedupe
-from api import ActiveDedupe
+from api import RecordLink
 from core import randomPairs
-from convenience import dataSample
-from convenience import blockData
+from convenience import dataSample, dataSampleConstrained
+from convenience import blockData, blockDataConstrained
 import backport

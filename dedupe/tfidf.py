@@ -66,7 +66,6 @@ def fieldToAtomVector(field, record_id, tokenfactory) :
 
 def unweightedIndex(data, fields) :    
 
-    tokenfactory = mk.AtomFactory("tokens")  
     tokenized_records = defaultdict(dict)
     tokenized_center_records = defaultdict(dict)
     inverted_indices = defaultdict(lambda : mk.InvertedIndex())
@@ -75,53 +74,38 @@ def unweightedIndex(data, fields) :
         for field in fields:
             av = fieldToAtomVector(record[field], record_id, tokenfactory)
             inverted_indices[field].add(av) 
-            if record.constrained :
-                tokenized_center_records[field][record_id] = av
-            else : 
+            tokenized_records[field][record_id] = av
+                
+    return tokenized_records, inverted_indices
+
+class InvertedIndex(object) :
+    def __init__(self, fields) :
+        self.fields = fields
+        self.inverted_indices = defaultdict(lambda : mk.InvertedIndex())
+        self.tokenfactory = mk.AtomFactory("tokens")  
+        self.stop_word_threshold = 500
+
+    def unweightedIndex(self, data) :
+        tokenized_records = defaultdict(dict)
+  
+        for record_id, record in data:
+            for field in self.fields:
+                av = fieldToAtomVector(record[field], 
+                                       record_id, 
+                                       self.tokenfactory)
+                self.inverted_indices[field].add(av) 
                 tokenized_records[field][record_id] = av
                 
-                
-
-    return tokenized_records, tokenized_center_records, inverted_indices
-
-def invertIndex(data, fields):
-    (tokenized_records, 
-     tokenized_center_records,
-     inverted_indices) = unweightedIndex(data, fields)
-
-    num_docs = inverted_indices.values()[0].getN()
-    stop_word_threshold = max(num_docs * 0.025, 500)
-    logging.info('Stop word threshold: %(stop_thresh)d',
-                 {'stop_thresh' :stop_word_threshold})
-
-    weighted_records_d = defaultdict(dict)
-    weighted_center_records_d = defaultdict(dict)
-    weighted_inverted_indices = {}
-
-    for field in fields :
-        inverted_index = inverted_indices[field]
-
-        weighted_vectors = mk.WeightVectors(inverted_index)
-        stop_words = stopWords(inverted_index, stop_word_threshold)
-
-        weighted_records = weightVectors(weighted_vectors,
-                                         tokenized_records[field],
-                                         stop_words)
-
-        weighted_inverted_indices[field] = tokensToInvertedIndex(weighted_records)
-        weighted_records_d[field] = weighted_records
-
-        if tokenized_center_records :
-            weighted_center_records_d[field] = weightVectors(weighted_vectors,
-                                                             tokenized_center_records[field],
-                                                             stop_words)
+        return tokenized_records
+        
+    def stopWordThreshold(self) :
+        num_docs = self.inverted_indices.values()[0].getN()
+        self.stop_word_threshold = max(num_docs * 0.025, 500)
+        logging.info('Stop word threshold: %(stop_thresh)d',
+                     {'stop_thresh' :self.stop_word_threshold})
 
 
-    if tokenized_center_records :
-        return weighted_inverted_indices, weighted_center_records_d
 
-    else :
-        return weighted_inverted_indices, weighted_records_d
 
 
 #@profile

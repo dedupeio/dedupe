@@ -104,7 +104,8 @@ def readData(filename, base=False):
 
 print 'importing data ...'
 data_d = readData('AbtBuy_Abt.csv', True)
-data_d.update(readData('AbtBuy_Buy.csv', False))
+data_d_2 = readData('AbtBuy_Buy.csv', False)
+data_d.update(data_d_2)
 
 # ## Training
 
@@ -114,7 +115,7 @@ if os.path.exists(settings_file):
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 150000, constrained_matching=True)
+    data_sample = dedupe.dataSampleConstrained(data_d, data_d_2, 150000)
 
     # Define the fields dedupe will pay attention to
     #

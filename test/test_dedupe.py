@@ -455,13 +455,7 @@ class TfidfTest(unittest.TestCase):
     self.data_d = dict((k, dedupe.core.frozendict(v)) 
                               for k, v in self.data_d.items())
 
-    self.constrained_d = {}
-    for k, v in self.data_d.items() :
-      if v['dataset'] == 0 :
-        self.constrained_d[k] = dedupe.core.frozendict(v, constrained=True)
-      else :
-        self.constrained_d[k] = dedupe.core.frozendict(v)
-
+    
     self.tfidf_fields = set(["name"])
 
   def test_field_to_atom_vector(self):
@@ -471,33 +465,25 @@ class TfidfTest(unittest.TestCase):
     assert av[self.tokenfactory["world"]] == 2.0
 
 
-  def test_constrained_inverted_index(self):
+  def test_inverted_index(self):
+    ii = dedupe.tfidf.InvertedIndex(self.tfidf_fields)
 
-    inverted_index, token_vectors = dedupe.tfidf.invertIndex(
-                                              self.constrained_d.iteritems(),
-                                              self.tfidf_fields)
+    token_vectors = ii.unweightedIndex(self.data_d.items())
+    name_index = mk.WeightVectors(ii.inverted_indices['name'])
 
+    stop_words = dedupe.tfidf.stopWords(ii.inverted_indices['name'], 
+                                        500)
 
-    assert set(token_vectors['name'].keys()) == set([130, 125])
+    name_vectors = dedupe.tfidf.weightVectors(name_index, 
+                                              token_vectors['name'],
+                                              stop_words)
 
-    indexed_records = []
-    for atomvectors in inverted_index['name'].values():
-      for av in atomvectors:
-        indexed_records.append(av.name)
+    assert set(name_vectors.keys()) == set([120, 130, 125, 135])
 
-    assert set(indexed_records) == set([120,135])
-
-
-  def test_unconstrained_inverted_index(self):
-    inverted_index, token_vectors = dedupe.tfidf.invertIndex(
-                                              self.data_d.iteritems(),
-                                              self.tfidf_fields)
-
-
-    assert set(token_vectors['name'].keys()) == set([120, 130, 125, 135])
+    ii = dedupe.tfidf.tokensToInvertedIndex(name_vectors)
 
     indexed_records = []
-    for atomvectors in inverted_index['name'].values():
+    for atomvectors in ii.values() :
       for av in atomvectors:
         indexed_records.append(av.name)
 

@@ -12,44 +12,33 @@ try:
 except ImportError :
     from backport import OrderedDict
 
-    
 
-def dataSample(data, sample_size, constrained_matching=False):
-    '''Randomly sample pairs of records from a data dictionary'''
+def dataSampleConstrained(data_1, data_2, sample_size) :
+     '''Randomly select pairs between two data dictionaries'''
+     d_1 = dict((i, v) for i, v in enumerate(data_1.values()))
+     d_2 = dict((i, v) for i, v in enumerate(data_2.values()))
 
-    data_list = data.values()
+     random_pairs = dedupe.core.randomPairsMatch(len(d_1),
+                                                 len(d_2), 
+                                                 sample_size)
 
-    if constrained_matching:
-        data_list_A = []
-        data_list_B = []
+     return tuple((d_1[int(k1)], 
+                   d_2[int(k2)]) 
+                  for k1, k2 in random_pairs)
 
-        for record in data_list:
-            if record.constrained :
-                data_list_A.append(record)
-            else:
-                data_list_B.append(record)
 
-        random_pairs = dedupe.core.randomPairsMatch(len(data_list_A),
-                                                    len(data_list_B), 
-                                                    sample_size)
+def dataSample(data, sample_size):
+    random_pairs = dedupe.core.randomPairs(len(data), 
+                                           sample_size)
 
-        return tuple((data_list_A[int(k1)], 
-                      data_list_B[int(k2)]) 
-                     for k1, k2 in random_pairs)
-    else:
-        random_pairs = dedupe.core.randomPairs(len(data_list), 
-                                               sample_size)
-
-        return tuple((data_list[int(k1)], 
-                      data_list[int(k2)]) 
-                     for k1, k2 in random_pairs)
+    return tuple((data.values()[int(k1)], 
+                  data.values()[int(k2)]) 
+                 for k1, k2 in random_pairs)
 
 
 def blockData(data_d, blocker):
 
     blocks = OrderedDict({})
-    record_blocks = OrderedDict({})
-    key_blocks = OrderedDict({})
 
     blocker.tfIdfBlocks(data_d.iteritems())
 
@@ -60,6 +49,26 @@ def blockData(data_d, blocker):
     blocked_records = tuple(block for block in blocks.values())
 
     return blocked_records
+
+def blockDataConstrained(data_1, data_2, blocker):
+
+    blocks = OrderedDict({})
+
+    blocker.tfIdfBlocks(data_1, data_2)
+
+    for (record_id, record) in data_1.iteritems():
+        for key in blocker((record_id, record)):
+            blocks.setdefault(key, ({},{}))[0].update({record_id : record})
+
+    for (record_id, record) in data_2.iteritems():
+        for key in blocker((record_id, record)):
+            if key in blocks :
+                blocks[key][1].update({record_id : record})
+
+    for block in blocks.values () :
+        yield block 
+
+
         
 
         

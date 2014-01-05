@@ -58,8 +58,8 @@ def canonicalImport(filename, base=False):
         for i, row in enumerate(reader):
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
-            data_d[filename + str(i)] = dedupe.core.frozendict(clean_row, 
-                                               constrained=base)
+            data_d[filename + str(i)] = dedupe.core.frozendict(clean_row) 
+
 
     return data_d, reader.fieldnames
 
@@ -93,8 +93,9 @@ num_training_dupes = 400
 num_training_distinct = 2000
 num_iterations = 10
 
-data_d, header = canonicalImport('test/datasets/restaurant-1.csv', base=True)
-data_d.update(canonicalImport('test/datasets/restaurant-2.csv', base=False)[0])
+data_1, header = canonicalImport('test/datasets/restaurant-1.csv', base=True)
+data_2, _ = canonicalImport('test/datasets/restaurant-2.csv', base=False)
+data_d = dict(data_1.items() + data_2.items())
 
 clusters = {}
 for k, row in data_d.items() :
@@ -114,7 +115,7 @@ t0 = time.time()
 print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
-    deduper = dedupe.Dedupe(settings_file)
+    deduper = dedupe.RecordLink(settings_file)
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
@@ -122,9 +123,12 @@ else:
               'city' : {'type' : 'String'}
               }
 
-    data_sample = dedupe.dataSample(data_d, 1000000, constrained_matching=True)
+    data_sample = dedupe.dataSampleConstrained(data_1,
+                                               data_2,
+                                               10000)
+#                                               1000000) 
 
-    deduper = dedupe.Dedupe(fields, data_sample, constrained_matching=True)
+    deduper = dedupe.RecordLink(fields, data_sample)
     deduper.num_iterations = num_iterations
 
     print "Using a random sample of training pairs..."
@@ -144,7 +148,7 @@ else:
 
 print 'blocking...'
 blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockData(data_d, blocker))
+blocked_data = tuple(dedupe.blockDataConstrained(data_1, data_2, blocker))
 
 alpha = deduper.goodThreshold(blocked_data)
 
