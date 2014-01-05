@@ -28,6 +28,6 @@ import backport
 from api import Dedupe
 from api import RecordLink
 from core import randomPairs
-from convenience import dataSample, dataSampleConstrained
-from convenience import blockData, blockDataConstrained
+from convenience import dataSample, dataSampleRecordLink
+from convenience import blockData, blockDataRecordLink
 import backport

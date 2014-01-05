@@ -38,7 +38,7 @@ class Matching(object):
     - `train`
     - `blockingFunction`
     - `goodThreshold`
-    - `duplicateClusters`
+    - `match`
     - `writeTraining`
     - `writeSettings`
     """
@@ -120,7 +120,7 @@ class Matching(object):
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = {0: [], 1: []}
-        self.dupes = None
+        self.matches = None
 
         self.activeLearner = None
 
@@ -281,7 +281,7 @@ class Matching(object):
                          to 2.
         """
 
-        candidates = self._blockedPairs(blocks)
+        candidates = self.blockedPairs(blocks)
 
         candidates = (pair.values() for pair in candidates)
 
@@ -308,7 +308,7 @@ class Matching(object):
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, threshold=.5):
+    def match(self, blocks, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -337,7 +337,7 @@ class Matching(object):
          candidate_records) = core.split((pair.keys(),
                                           pair.values())
                                          for pair 
-                                         in self._blockedPairs(blocks))
+                                         in self.blockedPairs(blocks))
                                                    
 
         candidate_keys, ids = itertools.tee(candidate_keys)
@@ -347,13 +347,13 @@ class Matching(object):
             id_type = (str, len(peek[0]) + 5)
         ids = itertools.chain([peek], ids)
 
-        self.dupes = core.scoreDuplicates(candidate_keys,
+        self.matches = core.scoreDuplicates(candidate_keys,
                                           candidate_records,
                                           id_type,
                                           self.data_model,
                                           threshold)
 
-        clusters = self._cluster(self.dupes, id_type, cluster_threshold)
+        clusters = self._cluster(self.matches, id_type, cluster_threshold)
         
         return clusters
 
@@ -406,7 +406,9 @@ class Matching(object):
 
         d_training_pairs = {}
         for (label, pairs) in self.training_pairs.iteritems():
-            d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for pair in pairs]
+            d_training_pairs[label] = [(dict(pair[0]), 
+                                        dict(pair[1])) 
+                                       for pair in pairs]
 
         with open(file_name, 'wb') as f:
             json.dump(d_training_pairs, f, default=training_serializer._to_json)
@@ -522,7 +524,8 @@ class Matching(object):
         self.training_pairs[0].extend(confident_nonduplicates)
 
 
-        predicate_set = predicateGenerator(self.blocker_types, self.data_model)
+        predicate_set = blocking.predicateGenerator(self.blocker_types, 
+                                                    self.data_model)
 
 
         
@@ -535,58 +538,37 @@ class Matching(object):
         return learned_predicates
 
 
-
 class Dedupe(Matching) :
     def __init__(self, *args, **kwargs) :
         super(Dedupe, self).__init__(*args, **kwargs)
 
-        self._blockedPairs = core.blockedPairs
         self._cluster = clustering.cluster
-        self._Blocker = blocking.Blocker
+        self._Blocker = blocking.DedupeBlocker
         self._linkage_type = "Dedupe"
 
+    def blockedPairs(self, blocks) :
+        for block in blocks :
 
+            block_pairs = itertools.combinations(block.items(), 2)
 
+            for pair in block_pairs :
+                yield dict(pair)
 
 
 class RecordLink(Matching) :
     def __init__(self, *args, **kwargs) :
         super(RecordLink, self).__init__(*args, **kwargs)
 
-        self._blockedPairs = core.blockedPairsConstrained
         self._cluster = clustering.greedyMatching
-        self._Blocker = blocking.ConstrainedBlocker
+        self._Blocker = blocking.RecordLinkBlocker
         self._linkage_type = "RecordLink"
 
 
+    def blockedPairs(self, blocks) :
+        for block in blocks :
+            base, target = block
+            block_pairs = itertools.product(base.items(), target.items())
 
-
-
-
-
-def predicateGenerator(blocker_types, data_model) :
-    predicate_set = []
-    for record_type, predicate_functions in blocker_types.items() :
-        fields = [field_name for field_name, details
-                  in data_model['fields'].items()
-                  if details['type'] == record_type]
-        predicate_set.extend(list(itertools.product(predicate_functions, fields)))
-    predicate_set = disjunctivePredicates(predicate_set)
-
-    return predicate_set
-
-
-def disjunctivePredicates(predicate_set):
-
-    disjunctive_predicates = list(itertools.combinations(predicate_set, 2))
-
-    # filter out disjunctive predicates that operate on same field
-
-    disjunctive_predicates = [predicate for predicate in disjunctive_predicates 
-                              if predicate[0][1] != predicate[1][1]]
-
-    predicate_set = [(predicate, ) for predicate in predicate_set]
-    predicate_set.extend(disjunctive_predicates)
-
-    return predicate_set
+            for pair in block_pairs :
+                yield dict(pair)
 

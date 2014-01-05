@@ -127,7 +127,7 @@ else:
         }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.ActiveDedupe(fields, data_sample)
+    deduper = dedupe.Dedupe(fields, data_sample)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -144,12 +144,7 @@ else:
     # press 'f' when you are finished
     print 'starting active labeling...'
 
-    finished = False
-    while not finished :
-        pairs_to_label, fields = deduper.getUncertainPair()
-        labeled_pairs, finished = dedupe.training.consoleLabel(pairs_to_label, fields)
-        if not finished :
-            deduper.markPairs(labeled_pairs)
+    dedupe.training.consoleLabel(deduper)
 
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
@@ -187,7 +182,7 @@ threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, threshold)
+clustered_dupes = deduper.match(blocked_data, threshold)
 
 print '# duplicate sets', len(clustered_dupes)
 

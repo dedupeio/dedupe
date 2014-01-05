@@ -70,6 +70,8 @@ class Blocker:
             self.canopies[threshold.__name__ + field] = canopy
 
 
+
+class DedupeBlocker(Blocker) :
     def tfIdfBlocks(self, data):
         '''Creates TF/IDF canopy of a given set of data'''
         
@@ -103,10 +105,8 @@ class Blocker:
 
 
 
-class ConstrainedBlocker(Blocker) :
-    
 
-
+class RecordLinkBlocker(Blocker) :
     def tfIdfBlocks(self, data_1, data_2):
         '''Creates TF/IDF canopy of a given set of data'''
         
@@ -166,8 +166,8 @@ def blockTraining(training_pairs,
                                       training_dupes + training_distinct)
 
     else :
-        coverage = Coverage(predicate_set,
-                            training_dupes + training_distinct)
+        coverage = DedupeCoverage(predicate_set,
+                                  training_dupes + training_distinct)
 
     coverage_threshold = eta * len(training_distinct)
     logging.info("coverage threshold: %s", coverage_threshold)
@@ -327,28 +327,6 @@ class Coverage(object) :
                         for field_pred in field_preds :
                             self.blocks[basic_predicate][field_pred].add(pair)
 
-    def canopyOverlap(self,
-                       tfidf_predicates,
-                       record_pairs) :
-
-        # uniquify records
-        docs = list(set(itertools.chain(*record_pairs)))
-        id_records = list(itertools.izip(itertools.count(), docs))
-        record_ids = dict(itertools.izip(docs, itertools.count()))
-
-
-        blocker = Blocker()
-        blocker.tfidf_predicates = tfidf_predicates
-        blocker.tfIdfBlocks(id_records)
-
-        for (threshold, field) in blocker.tfidf_predicates:
-            canopy = blocker.canopies[threshold.__name__ + field]
-            for record_1, record_2 in record_pairs :
-                id_1 = record_ids[record_1]
-                id_2 = record_ids[record_2]
-                if canopy[id_1] == canopy[id_2]:
-                    self.overlapping[(threshold, field)].add((record_1, record_2))
-                    self.blocks[(threshold, field)][canopy[id_1]].add((record_1, record_2))
 
 
     def predicateCoverage(self,
@@ -392,10 +370,34 @@ class Coverage(object) :
 
         return predicate_blocks
 
-class RecordLinkCoverage(Coverage) :
-    def __init__(self, *args, **kwargs) :
-        super(RecordLinkCoverage, self).__init__(*args, **kwargs)
 
+class DedupeCoverage(Coverage) :
+    def canopyOverlap(self,
+                       tfidf_predicates,
+                       record_pairs) :
+
+        # uniquify records
+        docs = list(set(itertools.chain(*record_pairs)))
+        id_records = list(itertools.izip(itertools.count(), docs))
+        record_ids = dict(itertools.izip(docs, itertools.count()))
+
+
+        blocker = DedupeBlocker()
+        blocker.tfidf_predicates = tfidf_predicates
+        blocker.tfIdfBlocks(id_records)
+
+        for (threshold, field) in blocker.tfidf_predicates:
+            canopy = blocker.canopies[threshold.__name__ + field]
+            for record_1, record_2 in record_pairs :
+                id_1 = record_ids[record_1]
+                id_2 = record_ids[record_2]
+                if canopy[id_1] == canopy[id_2]:
+                    self.overlapping[(threshold, field)].add((record_1, record_2))
+                    self.blocks[(threshold, field)][canopy[id_1]].add((record_1, record_2))
+
+
+
+class RecordLinkCoverage(Coverage) :
 
     def canopyOverlap(self,
                        tfidf_predicates,
@@ -407,15 +409,15 @@ class RecordLinkCoverage(Coverage) :
             data_1.add(record_1)
             data_2.add(record_2)
 
-        data_1 = list(itertools.izip(itertools.count(), data_1))
-        data_2 = list(itertools.izip(itertools.count(), data_2))
+        data_1 = list(itertools.izip(itertools.count(), 
+                                     data_1))
+        data_2 = list(itertools.izip(itertools.count(len(data_1)), 
+                                     data_2))
 
+        record_ids = dict((v, k) for k, v in data_1)
+        record_ids.update(dict((v, k) for k, v in data_2))
 
-        # uniquify records
-        docs = list(set(itertools.chain(*record_pairs)))
-        record_ids = dict(itertools.izip(docs, itertools.count()))
-
-        blocker = ConstrainedBlocker()
+        blocker = RecordLinkBlocker()
         blocker.tfidf_predicates = tfidf_predicates
 
         blocker.tfIdfBlocks(data_1, data_2)
@@ -445,4 +447,28 @@ def predicateTypes(predicates) :
 
     return simple_predicates, tfidf_predicates
 
+def predicateGenerator(blocker_types, data_model) :
+    predicate_set = []
+    for record_type, predicate_functions in blocker_types.items() :
+        fields = [field_name for field_name, details
+                  in data_model['fields'].items()
+                  if details['type'] == record_type]
+        predicate_set.extend(list(itertools.product(predicate_functions, fields)))
+    predicate_set = disjunctivePredicates(predicate_set)
 
+    return predicate_set
+
+
+def disjunctivePredicates(predicate_set):
+
+    disjunctive_predicates = list(itertools.combinations(predicate_set, 2))
+
+    # filter out disjunctive predicates that operate on same field
+
+    disjunctive_predicates = [predicate for predicate in disjunctive_predicates 
+                              if predicate[0][1] != predicate[1][1]]
+
+    predicate_set = [(predicate, ) for predicate in predicate_set]
+    predicate_set.extend(disjunctive_predicates)
+
+    return predicate_set

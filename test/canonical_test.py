@@ -149,14 +149,13 @@ alpha = deduper.goodThreshold(blocked_data)
 
 # print candidates
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data,
-                                            threshold=alpha)
+clustered_dupes = deduper.match(blocked_data, threshold=alpha)
 
 
 deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
-found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
+found_dupes = set([frozenset(pair) for (pair, score) in deduper.matches
                   if score > alpha])
 
 evaluateDuplicates(found_dupes, duplicates_s)

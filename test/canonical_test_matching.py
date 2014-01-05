@@ -128,9 +128,9 @@ else:
               'city' : {'type' : 'String'}
               }
 
-    data_sample = dedupe.dataSampleConstrained(data_1,
-                                               data_2,
-                                               100000) 
+    data_sample = dedupe.dataSampleRecordLink(data_1,
+                                              data_2,
+                                              100000) 
 
     deduper = dedupe.RecordLink(fields, data_sample)
     deduper.num_iterations = num_iterations
@@ -152,21 +152,20 @@ else:
 
 print 'blocking...'
 blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockDataConstrained(data_1, data_2, blocker))
+blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, blocker))
 
 alpha = deduper.goodThreshold(blocked_data)
 
 
 # print candidates
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data,
-                                            threshold=alpha)
+clustered_dupes = deduper.match(blocked_data, threshold=alpha)
 
 
 deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
-found_dupes = set([frozenset(pair) for (pair, score) in deduper.dupes
+found_dupes = set([frozenset(pair) for (pair, score) in deduper.matches
                   if score > alpha])
 
 evaluateDuplicates(found_dupes, duplicates_s)

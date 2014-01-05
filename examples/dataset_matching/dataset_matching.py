@@ -114,7 +114,7 @@ if os.path.exists(settings_file):
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSampleConstrained(data_1, data_2, 150000)
+    data_sample = dedupe.dataSampleRecordLink(data_1, data_2, 150000)
 
     # Define the fields dedupe will pay attention to
     #
@@ -168,7 +168,7 @@ linker.writeSettings(settings_file)
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = dedupe.blockDataConstrained(data_1, data_2, blocker)
+blocked_data = tuple(dedupe.blockDataRecordLinkdata_1, data_2, blocker))
 
 # ## Clustering
 
@@ -180,8 +180,6 @@ blocked_data = dedupe.blockDataConstrained(data_1, data_2, blocker)
 # this function but a representative sample.
 
 threshold = linker.goodThreshold(blocked_data, recall_weight=3)
-
-blocked_data = dedupe.blockDataConstrained(data_1, data_2, blocker)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.

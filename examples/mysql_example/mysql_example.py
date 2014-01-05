@@ -141,7 +141,7 @@ else:
               }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, data_sample)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -150,7 +150,7 @@ else:
     # scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        deduper.train(data_sample, training_file)
+        deduper.trainFromFile(training_file)
 
     # ## Active learning
 
@@ -161,7 +161,7 @@ else:
 
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
-    deduper.train(data_sample, dedupe.training.consoleLabel)
+    dedupe.training.consoleLabel(deduper)
 
     # When finished, save our labeled, training pairs to disk
     deduper.writeTraining(training_file)
@@ -284,8 +284,8 @@ c.execute(blocking_key_sql)
 block_keys = (row['block_key'] for row in c.fetchall())
 
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
-                                            threshold)
+clustered_dupes = deduper.match(candidates_gen(block_keys),
+                                threshold)
 
 # ## Writing out results
 

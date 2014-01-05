@@ -13,20 +13,6 @@ except ImportError :
     from backport import OrderedDict
 
 
-def dataSampleConstrained(data_1, data_2, sample_size) :
-     '''Randomly select pairs between two data dictionaries'''
-     d_1 = dict((i, v) for i, v in enumerate(data_1.values()))
-     d_2 = dict((i, v) for i, v in enumerate(data_2.values()))
-
-     random_pairs = dedupe.core.randomPairsMatch(len(d_1),
-                                                 len(d_2), 
-                                                 sample_size)
-
-     return tuple((d_1[int(k1)], 
-                   d_2[int(k2)]) 
-                  for k1, k2 in random_pairs)
-
-
 def dataSample(data, sample_size):
     random_pairs = dedupe.core.randomPairs(len(data), 
                                            sample_size)
@@ -50,7 +36,21 @@ def blockData(data_d, blocker):
 
     return blocked_records
 
-def blockDataConstrained(data_1, data_2, blocker):
+def dataSampleRecordLink(data_1, data_2, sample_size) :
+     '''Randomly select pairs between two data dictionaries'''
+     d_1 = dict((i, v) for i, v in enumerate(data_1.values()))
+     d_2 = dict((i, v) for i, v in enumerate(data_2.values()))
+
+     random_pairs = dedupe.core.randomPairsMatch(len(d_1),
+                                                 len(d_2), 
+                                                 sample_size)
+
+     return tuple((d_1[int(k1)], 
+                   d_2[int(k2)]) 
+                  for k1, k2 in random_pairs)
+
+
+def blockDataRecordLink(data_1, data_2, blocker):
 
     blocks = OrderedDict({})
 
