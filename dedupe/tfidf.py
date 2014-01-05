@@ -64,19 +64,6 @@ def fieldToAtomVector(field, record_id, tokenfactory) :
     
     return av
 
-def unweightedIndex(data, fields) :    
-
-    tokenized_records = defaultdict(dict)
-    tokenized_center_records = defaultdict(dict)
-    inverted_indices = defaultdict(lambda : mk.InvertedIndex())
-  
-    for record_id, record in data:
-        for field in fields:
-            av = fieldToAtomVector(record[field], record_id, tokenfactory)
-            inverted_indices[field].add(av) 
-            tokenized_records[field][record_id] = av
-                
-    return tokenized_records, inverted_indices
 
 class InvertedIndex(object) :
     def __init__(self, fields) :

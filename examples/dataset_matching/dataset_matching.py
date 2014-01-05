@@ -80,7 +80,7 @@ def preProcess(column):
     return column
 
 
-def readData(filename, base=False):
+def readData(filename):
     """
     Read in our data from a CSV file and create a dictionary of records, 
     where the key is a unique record ID and each value is a 
@@ -98,24 +98,23 @@ def readData(filename, base=False):
                 clean_row['price'] = float(clean_row['price'][1:])
             except ValueError :
                 clean_row['price'] = 0
-            data_d[filename + str(i)] = dedupe.core.frozendict(clean_row, base)
+            data_d[filename + str(i)] = dedupe.core.frozendict(clean_row)
 
     return data_d
 
 print 'importing data ...'
-data_d = readData('AbtBuy_Abt.csv', True)
-data_d_2 = readData('AbtBuy_Buy.csv', False)
-data_d.update(data_d_2)
+data_1 = readData('AbtBuy_Abt.csv')
+data_2 = readData('AbtBuy_Buy.csv')
 
 # ## Training
 
 if os.path.exists(settings_file):
     print 'reading from', settings_file
-    deduper = dedupe.Dedupe(settings_file)
+    linker = dedupe.RecordLink(settings_file)
 
 else:
     # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSampleConstrained(data_d, data_d_2, 150000)
+    data_sample = dedupe.dataSampleConstrained(data_1, data_2, 150000)
 
     # Define the fields dedupe will pay attention to
     #
@@ -129,17 +128,16 @@ else:
                   'comparator' : comparePrice,
                   'Has Missing' : True}}
 
-    # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.ActiveDedupe(fields,
-                                  data_sample,
-                                  constrained_matching = True)
+    # Create a new linker object and pass our data model to it.
+    linker = dedupe.RecordLink(fields,
+                                data_sample)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
     # __Note:__ if you want to train from scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        deduper.trainFromFile(training_file)
+        linker.trainFromFile(training_file)
 
     # ## Active learning
 
@@ -150,27 +148,27 @@ else:
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
     print 'starting active labeling...'
-    dedupe.training.consoleLabel(deduper)
+    dedupe.training.consoleLabel(linker)
     # When finished, save our training away to disk
-    deduper.writeTraining(training_file)
+    linker.writeTraining(training_file)
 
 # ## Blocking
 
 print 'blocking...'
 # Initialize our blocker. We'll learn our blocking rules if we haven't
 # loaded them from a saved settings file.
-blocker = deduper.blockingFunction()
+blocker = linker.blockingFunction()
 
 # Save our weights and predicates to disk.  If the settings file
 # exists, we will skip all the training and learning next time we run
 # this file.
-deduper.writeSettings(settings_file)
+linker.writeSettings(settings_file)
 
 # Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = dedupe.blockData(data_d, blocker)
+blocked_data = dedupe.blockDataConstrained(data_1, data_2, blocker)
 
 # ## Clustering
 
@@ -181,13 +179,15 @@ blocked_data = dedupe.blockData(data_d, blocker)
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-threshold = deduper.goodThreshold(blocked_data, recall_weight=3)
+threshold = linker.goodThreshold(blocked_data, recall_weight=3)
+
+blocked_data = dedupe.blockDataConstrained(data_1, data_2, blocker)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(blocked_data, data_d, threshold)
+clustered_dupes = linker.duplicateClusters(blocked_data, threshold)
 
 print '# duplicate sets', len(clustered_dupes)
 

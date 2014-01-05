@@ -54,7 +54,8 @@ def blockDataConstrained(data_1, data_2, blocker):
 
     blocks = OrderedDict({})
 
-    blocker.tfIdfBlocks(data_1, data_2)
+    if not blocker.canopies : 
+        blocker.tfIdfBlocks(data_1.items(), data_2.items())
 
     for (record_id, record) in data_1.iteritems():
         for key in blocker((record_id, record)):

@@ -122,6 +122,7 @@ class Matching(object):
         self.training_pairs = {0: [], 1: []}
         self.dupes = None
 
+        self.activeLearner = None
 
     def trainFromFile(self, training_source) :
         assert training_source.__class__ is str
@@ -280,7 +281,7 @@ class Matching(object):
                          to 2.
         """
 
-        candidates = self._blockedPairs(blocks, None)
+        candidates = self._blockedPairs(blocks)
 
         candidates = (pair.values() for pair in candidates)
 
@@ -307,7 +308,7 @@ class Matching(object):
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, data=None, threshold=.5):
+    def duplicateClusters(self, blocks, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -336,7 +337,7 @@ class Matching(object):
          candidate_records) = core.split((pair.keys(),
                                           pair.values())
                                          for pair 
-                                         in self._blockedPairs(blocks, None))
+                                         in self._blockedPairs(blocks))
                                                    
 
         candidate_keys, ids = itertools.tee(candidate_keys)

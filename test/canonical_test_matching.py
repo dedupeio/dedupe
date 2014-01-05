@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from itertools import combinations
+import itertools
 import csv
 import exampleIO
 import dedupe
@@ -9,6 +9,7 @@ import time
 import random
 import optparse
 import logging
+from collections import defaultdict
 
 optp = optparse.OptionParser()
 optp.add_option('-v', '--verbose', dest='verbose', action='count',
@@ -38,7 +39,7 @@ def randomTrainingPairs(data_d,
     duplicates = [(data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
                   for pair in duplicates]
 
-    all_pairs = list(combinations(data_d, 2))
+    all_pairs = list(itertools.combinations(data_d, 2))
     all_nonduplicates = set(all_pairs) - set(duplicates_s)
 
     nonduplicates = random.sample(all_nonduplicates, n_training_distinct)
@@ -97,15 +98,19 @@ data_1, header = canonicalImport('test/datasets/restaurant-1.csv', base=True)
 data_2, _ = canonicalImport('test/datasets/restaurant-2.csv', base=False)
 data_d = dict(data_1.items() + data_2.items())
 
-clusters = {}
-for k, row in data_d.items() :
-    clusters.setdefault(row['unique_id'], []).append(k)
+clusters_1 = {}
+for k, row in data_1.items() :
+    clusters_1.setdefault(row['unique_id'], []).append(k)
 
+clusters_2 = defaultdict(list)
+for k, row in data_2.items() :
+    clusters_2.setdefault(row['unique_id'], []).append(k)
 
 duplicates_s = set([])
-for (unique_id, cluster) in clusters.iteritems():
-    if len(cluster) > 1:
-        for pair in combinations(cluster, 2):
+for (unique_id, cluster_1) in clusters_1.iteritems():
+    cluster_2 = clusters_2[unique_id]
+    if cluster_2 :
+        for pair in itertools.product(cluster_1, cluster_2):
             duplicates_s.add(frozenset(pair))
 
 
@@ -125,8 +130,7 @@ else:
 
     data_sample = dedupe.dataSampleConstrained(data_1,
                                                data_2,
-                                               10000)
-#                                               1000000) 
+                                               100000) 
 
     deduper = dedupe.RecordLink(fields, data_sample)
     deduper.num_iterations = num_iterations
@@ -156,7 +160,6 @@ alpha = deduper.goodThreshold(blocked_data)
 # print candidates
 print 'clustering...'
 clustered_dupes = deduper.duplicateClusters(blocked_data,
-                                            data_d,
                                             threshold=alpha)
 
 
@@ -175,7 +178,7 @@ for dupe_set in clustered_dupes:
     if len(dupe_set) == 2:
         confirm_dupes.add(frozenset(dupe_set))
     else:
-        for pair in combinations(dupe_set, 2):
+        for pair in itertools.combinations(dupe_set, 2):
             confirm_dupes.add(frozenset(pair))
 
 evaluateDuplicates(confirm_dupes, duplicates_s)
