@@ -183,25 +183,6 @@ def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
 
     return scored_pairs
 
-def blockedPairsConstrained(blocks) :
-    for block in blocks :
-        base, target = block
-        block_pairs = itertools.product(base.items(), target.items())
-
-        for pair in block_pairs :
-            yield dict(pair)
-
-
-
-
-def blockedPairs(blocks) :
-    for block in blocks :
-
-        block_pairs = itertools.combinations(block.items(), 2)
-        
-        for pair in block_pairs :
-            yield dict(pair)
-
 def split(iterable):
     it = iter(iterable)
     q = [collections.deque([x]) for x in it.next()] 
