@@ -8,6 +8,9 @@ import fastcluster
 import hcluster
 import networkx
 from networkx.algorithms.components.connected import connected_components
+from networkx.algorithms.bipartite.basic import biadjacency_matrix
+from networkx.algorithms import bipartite
+from networkx import connected_component_subgraphs
 
 
 def condensedDistance(dupes):
@@ -50,7 +53,7 @@ def condensedDistance(dupes):
     return (i_to_id, condensed_distances)
 
 
-def cluster(dupes, id_type, threshold=.5):
+def cluster(dupes, threshold=.5):
     '''
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
@@ -64,8 +67,6 @@ def cluster(dupes, id_type, threshold=.5):
 
     threshold = 1 - threshold
 
-    score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
-
     dupe_graph = networkx.Graph()
     dupe_graph.add_weighted_edges_from((x[0], x[1], y) for (x, y) in dupes)
 
@@ -78,7 +79,7 @@ def cluster(dupes, id_type, threshold=.5):
             pair_gen = ((sorted(x[0:2]), x[2]['weight'])
                         for x in dupe_graph.edges_iter(sub_graph, data=True))
 
-            pairs = numpy.fromiter(pair_gen, dtype=score_dtype)
+            pairs = numpy.fromiter(pair_gen, dtype=dupes.dtype)
 
             (i_to_id, condensed_distances) = condensedDistance(pairs)
             linkage = fastcluster.linkage(condensed_distances,
@@ -99,5 +100,23 @@ def cluster(dupes, id_type, threshold=.5):
             cluster_id += 1
 
     clusters = [set(l) for l in clustering.values() if len(l) > 1]
+
+    return clusters
+
+
+def greedyMatching(dupes, threshold=0.5):
+    covered_vertex_A = set([])
+    covered_vertex_B = set([])
+    clusters = []
+
+    sorted_dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
+    dupes_list = [dupe for dupe in sorted_dupes if dupe[1] >= threshold]
+
+    for dupe in dupes_list:
+        vertices = dupe[0]
+        if vertices[0] not in covered_vertex_A and vertices[1] not in covered_vertex_B:
+            clusters.append(vertices)
+            covered_vertex_A.update([vertices[0]])
+            covered_vertex_B.update([vertices[1]])
 
     return clusters

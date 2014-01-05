@@ -23,8 +23,11 @@ import lr
 import predicates
 import training
 import crossvalidation
+import datamodel
+import backport
 from api import Dedupe
+from api import RecordLink
 from core import randomPairs
-from convenience import dataSample
-from convenience import blockData
+from convenience import dataSample, dataSampleRecordLink
+from convenience import blockData, blockDataRecordLink
 import backport

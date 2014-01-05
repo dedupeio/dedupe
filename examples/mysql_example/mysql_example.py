@@ -161,7 +161,7 @@ else:
               }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields, num_processes=4)
+    deduper = dedupe.Dedupe(fields, data_sample, num_processes=4)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -170,7 +170,7 @@ else:
     # scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        deduper.train(data_sample, training_file)
+        deduper.trainFromFile(training_file)
 
     # ## Active learning
 
@@ -181,7 +181,7 @@ else:
 
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
-    deduper.train(data_sample, dedupe.training.consoleLabel)
+    dedupe.training.consoleLabel(deduper)
 
     # When finished, save our labeled, training pairs to disk
     deduper.writeTraining(training_file)
@@ -225,6 +225,7 @@ else:
     # hour
     print 'creating inverted index'
     c.execute(DONOR_SELECT)
+<<<<<<< HEAD
     full_data = ((row['donor_id'], row) for row in c)
     blocker.tfIdfBlocks(full_data)
 
@@ -242,6 +243,7 @@ else:
 #                 yield (key, donor_id)
 
 #     b_data = block_data()
+
 
 #     # MySQL has a hard limit on the size of a data object that can be
 #     # passed to it.  To get around this, we chunk the blocked data in

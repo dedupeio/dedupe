@@ -16,11 +16,10 @@ import logging
 import types
 import pickle
 import multiprocessing
-
 import numpy
+import random
 
 import dedupe
-import dedupe.model_definition as model_definition
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.training_serializer as training_serializer
@@ -29,9 +28,10 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
+from dedupe.datamodel import DataModel
 
 
-class Dedupe:
+class Matching(object):
     """
     Public methods:
 
@@ -39,14 +39,17 @@ class Dedupe:
     - `train`
     - `blockingFunction`
     - `goodThreshold`
-    - `duplicateClusters`
+    - `match`
     - `writeTraining`
     - `writeSettings`
     """
 
     # === `Dedupe.__init__` ===
 
-    def __init__(self, init=None, num_processes=1):
+    def __init__(self, 
+                 init=None, 
+                 data_sample=None,
+                 num_processes=1) :
         """
         Load or initialize a data model.
 
@@ -102,71 +105,40 @@ class Dedupe:
         self.pool = multiprocessing.Pool(processes=num_processes)
 
 
-        if init.__class__ is dict and init:
-            self.data_model = model_definition.initializeDataModel(init)
+        self._checkValidInit(init, data_sample)
+
+        if init.__class__ is dict:
+            self.data_model = DataModel(init)
             self.predicates = None
-        elif init.__class__ is str and init:
-            (self.data_model,
-             self.predicates) = self._readSettings(init)
-        elif init:
-            raise ValueError('Incorrect Input Type: must supply either a '
-                             'field definition or a settings file.'
-                             )
-        else:
+            self.data_sample = data_sample
 
-            raise ValueError('No Input: must supply either a field '
-                             'definition or a settings file.'
-                             )
+        else :
+            self._readSettings(init)
+            self.data_sample = None
 
+        self._initializePredicates()
 
-        self.training_data = None
-        self.training_pairs = None
-        self.data_sample = None
-        self.dupes = None
-        self.training_encoder = training_serializer._to_json
-        self.training_decoder = training_serializer.dedupe_decoder
-
-        string_predicates = (predicates.wholeFieldPredicate,
-                             predicates.tokenFieldPredicate,
-                             predicates.commonIntegerPredicate,
-                             predicates.sameThreeCharStartPredicate,
-                             predicates.sameFiveCharStartPredicate,
-                             predicates.sameSevenCharStartPredicate,
-                             predicates.nearIntegersPredicate,
-                             predicates.commonFourGram,
-                             predicates.commonSixGram)
-
-        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
-                                         for threshold
-                                         in [0.2, 0.4, 0.6, 0.8]])
-
-        self.blocker_types = {'String' : (string_predicates
-                                          + tfidf_string_predicates)}
-
-
-    def _initializeTraining(self, training_file=None):
-        """
-        Loads labeled examples from file, if passed.
-
-        Keyword arguments:
-        training_file -- path to a json file of labeled examples
-
-        """
-
-        n_fields = len(self.data_model['fields'])
-
-        training_dtype = [('label', 'i4'), ('distances', 'f4', (n_fields, ))]
+        training_dtype = [('label', 'i4'), 
+                          ('distances', 'f4', 
+                           (len(self.data_model['fields']), ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = None
+        self.training_pairs = {0: [], 1: []}
+        self.matches = None
 
-        if training_file:
-            (self.training_pairs, self.training_data) = self._readTraining(training_file, self.training_data)
+        self.activeLearner = None
+
+    def trainFromFile(self, training_source) :
+        assert training_source.__class__ is str
+
+        logging.info('reading training from file')
+
+        self._readTraining(training_source)
+
+        self.train()
 
     # === Dedupe.train ===
-    def train(self,
-              data_sample,
-              training_source=None):
+    def train(self, alpha=None) :
         """
         Learn field weights from file of labeled examples or round of 
         interactive labeling
@@ -238,43 +210,20 @@ class Dedupe:
         for this file see the method writeTraining.
         """
 
-        self.data_sample = data_sample
+        if alpha is None :
 
-        if training_source.__class__ is not str and not isinstance(training_source, types.FunctionType):
-            raise ValueError
+            n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
 
-        if training_source.__class__ is str:
-            logging.info('reading training from file')
-            if self.training_data is None :
-                self._initializeTraining(training_source)
+            n_folds = min(max(2,
+                              numpy.sum(self.training_data['label'])/3),
+                          20)
 
-            (self.training_pairs, self.training_data) = self._readTraining(training_source, self.training_data)
+            logging.info('%d folds', n_folds)
 
-        elif isinstance(training_source, types.FunctionType):
-
-            if self.training_data is None :
-                self._initializeTraining()
-
-            (self.training_data, 
-             self.training_pairs,
-             self.data_model) = training.activeLearning(self.data_sample,
-                                                        self.data_model,
-                                                        training_source,
-                                                        self.training_data,
-                                                        self.training_pairs)
-
-        n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
-
-        n_folds = min(max(2,
-                          numpy.sum(self.training_data['label'])/3),
-                      20)
-
-        logging.info('%d folds', n_folds)
-
-        alpha = crossvalidation.gridSearch(self.training_data,
-                                           core.trainModel, 
-                                           self.data_model, 
-                                           k=n_folds)
+            alpha = crossvalidation.gridSearch(self.training_data,
+                                               core.trainModel, 
+                                               self.data_model, 
+                                               k=n_folds)
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model, 
@@ -315,7 +264,7 @@ class Dedupe:
         if not self.predicates:
             self.predicates = self._learnBlocking(ppc, uncovered_dupes)
 
-        blocker = blocking.Blocker(self.predicates, self.pool)
+        blocker = self._Blocker(self.predicates, self.pool)
 
         return blocker
 
@@ -335,8 +284,7 @@ class Dedupe:
                          recall as you do precision, set recall_weight
                          to 2.
         """
-        probability = core.scoreDuplicates(core.blockedPairs(blocks), 
-                                           'i4',
+        probability = core.scoreDuplicates(self.blockedPairs(blocks), 
                                            self.data_model, 
                                            self.pool)['score']
 
@@ -359,7 +307,7 @@ class Dedupe:
 
         return probability[i]
 
-    def duplicateClusters(self, blocks, threshold=.5):
+    def match(self, blocks, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -384,42 +332,16 @@ class Dedupe:
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        candidate_records = core.blockedPairs(blocks)
-
-        peek = candidate_records.next()
-        id_type = type(peek[0][0])
-        candidate_records = itertools.chain([peek], candidate_records)
+        candidate_records = self.blockedPairs(blocks)
         
-        self.dupes = core.scoreDuplicates(candidate_records,
-                                          id_type,
-                                          self.data_model,
-                                          self.pool,
-                                          threshold)
-        clusters = clustering.cluster(self.dupes, id_type, cluster_threshold)
+        self.matches = core.scoreDuplicates(candidate_records,
+                                            self.data_model,
+                                            self.pool,
+                                            threshold)
 
+        clusters = self._cluster(self.matches, cluster_threshold)
+        
         return clusters
-
-    def _learnBlocking(self, eta, epsilon):
-        """Learn a good blocking of the data"""
-
-        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model,
-                                                                       sample_size=32000)
-
-        self.training_pairs[0].extend(confident_nonduplicates)
-
-
-        predicate_set = predicateGenerator(self.blocker_types, self.data_model)
-
-
-        
-        learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
-                                                           predicate_set,
-                                                           eta,
-                                                           epsilon,
-                                                           self.pool)
-
-        return learned_predicates
 
     def _logLearnedWeights(self):
         """
@@ -451,14 +373,12 @@ class Dedupe:
     def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
             try:
-                data_model = pickle.load(f)
-                predicates = pickle.load(f)
+                self.data_model = pickle.load(f)
+                self.predicates = pickle.load(f)
             except KeyError :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
-
-        return data_model, predicates
 
 
     def writeTraining(self, file_name):
@@ -471,55 +391,170 @@ class Dedupe:
 
         d_training_pairs = {}
         for (label, pairs) in self.training_pairs.iteritems():
-            d_training_pairs[label] = [(dict(pair[0]), dict(pair[1])) for pair in pairs]
+            d_training_pairs[label] = [(dict(pair[0]), 
+                                        dict(pair[1])) 
+                                       for pair in pairs]
 
         with open(file_name, 'wb') as f:
-            json.dump(d_training_pairs, f, default=self.training_encoder)
+            json.dump(d_training_pairs, f, default=training_serializer._to_json)
 
 
 
-    def _readTraining(self, file_name, training_pairs):
+
+
+    def getUncertainPair(self) :
+        if self.activeLearner is None :
+            self._initializeActiveLearning()
+        
+        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1.0)
+
+        return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
+
+    def markPairs(self, labeled_pairs) :
+        for label, pair in labeled_pairs.items() :
+            self.training_pairs[label].extend(pair)
+
+        self._addTrainingData(labeled_pairs) 
+
+        self.train(alpha=.1)
+
+
+
+    def _readTraining(self, file_name):
         """Read training pairs from a file"""
         with open(file_name, 'r') as f:
-            training_pairs_raw = json.load(f, cls=self.training_decoder)
+            training_pairs_raw = json.load(f, cls=training_serializer.dedupe_decoder)
 
-        training_pairs = {0: [], 1: []}
         for (label, examples) in training_pairs_raw.iteritems():
             for pair in examples:
-                training_pairs[int(label)].append((core.frozendict(pair[0]),
-                                                   core.frozendict(pair[1])))
+                pair = (core.frozendict(pair[0]),
+                        core.frozendict(pair[1]))
 
-        training_data = training.addTrainingData(training_pairs,
-                                                 self.data_model,
-                                                 self.training_data)
+                self.training_pairs[int(label)].append(pair)
 
-        return (training_pairs, training_data)
+        self._addTrainingData(self.training_pairs)
 
 
+    def _addTrainingData(self, labeled_pairs) :
+        """
+        Appends training data to the training data collection.
+        """
+    
+        nondupes, dupes = labeled_pairs[0], labeled_pairs[1]
+        labels = ([0] * len(nondupes) 
+                  + [1] * len(dupes))
 
-def predicateGenerator(blocker_types, data_model) :
-    predicate_set = []
-    for record_type, predicate_functions in blocker_types.items() :
-        fields = [field_name for field_name, details
-                  in data_model['fields'].items()
-                  if details['type'] == record_type]
-        predicate_set.extend(list(itertools.product(predicate_functions, fields)))
-    predicate_set = disjunctivePredicates(predicate_set)
+        new_training_data = numpy.empty(len(labels),
+                                        dtype=self.training_data.dtype)
 
-    return predicate_set
+        new_training_data['label'] = labels
+        new_training_data['distances'] = core.fieldDistances(nondupes + dupes, 
+                                                             self.data_model)
+
+        self.training_data = numpy.append(self.training_data, 
+                                          new_training_data)
 
 
-def disjunctivePredicates(predicate_set):
+    def _checkValidInit(self, init, data_sample) :
+        if init is None :
+            raise ValueError('No Input: must supply either a field '
+                             'definition or a settings file.')
+        if init.__class__ not in (dict, str) :
+            raise ValueError('Incorrect Input Type: must supply '
+                             'either a field definition or a '
+                             'settings file.')
+        if init.__class__ is dict and data_sample is None :
+            raise ValueError('If you are not reading settings from ' 
+                             'a file, you must provide a sample ' 
+                             'of the data')
 
-    disjunctive_predicates = list(itertools.combinations(predicate_set, 2))
+    def _initializePredicates(self) :
+        string_predicates = (predicates.wholeFieldPredicate,
+                             predicates.tokenFieldPredicate,
+                             predicates.commonIntegerPredicate,
+                             predicates.sameThreeCharStartPredicate,
+                             predicates.sameFiveCharStartPredicate,
+                             predicates.sameSevenCharStartPredicate,
+                             predicates.nearIntegersPredicate,
+                             predicates.commonFourGram,
+                             predicates.commonSixGram)
 
-    # filter out disjunctive predicates that operate on same field
+        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
+                                         for threshold
+                                         in [0.2, 0.4, 0.6, 0.8]])
 
-    disjunctive_predicates = [predicate for predicate in disjunctive_predicates 
-                              if predicate[0][1] != predicate[1][1]]
+        self.blocker_types = {'String' : (string_predicates
+                                          + tfidf_string_predicates)}
 
-    predicate_set = [(predicate, ) for predicate in predicate_set]
-    predicate_set.extend(disjunctive_predicates)
 
-    return predicate_set
+    def _initializeActiveLearning(self) :
+        if self.training_data.shape[0] == 0 :
+            rand_int = random.randint(0, len(self.data_sample))
+            exact_match = self.data_sample[rand_int]
+            self._addTrainingData({1:[exact_match]*2,
+                                   0:[]})
+
+
+        self.train(alpha=0.1)
+        self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                     self.data_model)
+
+    def _learnBlocking(self, eta, epsilon):
+        """Learn a good blocking of the data"""
+
+        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
+                                                                       self.data_model,
+                                                                       sample_size=32000)
+
+        self.training_pairs[0].extend(confident_nonduplicates)
+
+
+        predicate_set = blocking.predicateGenerator(self.blocker_types, 
+                                                    self.data_model)
+
+
+        
+        learned_predicates = dedupe.blocking.blockTraining(self.training_pairs,
+                                                           predicate_set,
+                                                           eta,
+                                                           epsilon,
+                                                           self.pool,
+                                                           self._linkage_type)
+
+        return learned_predicates
+
+
+class Dedupe(Matching) :
+    def __init__(self, *args, **kwargs) :
+        super(Dedupe, self).__init__(*args, **kwargs)
+
+        self._cluster = clustering.cluster
+        self._Blocker = blocking.DedupeBlocker
+        self._linkage_type = "Dedupe"
+
+    def blockedPairs(self, blocks) :
+        for block in blocks :
+
+            block_pairs = itertools.combinations(block.items(), 2)
+
+            for pair in block_pairs :
+                yield pair
+
+
+class RecordLink(Matching) :
+    def __init__(self, *args, **kwargs) :
+        super(RecordLink, self).__init__(*args, **kwargs)
+
+        self._cluster = clustering.greedyMatching
+        self._Blocker = blocking.RecordLinkBlocker
+        self._linkage_type = "RecordLink"
+
+
+    def blockedPairs(self, blocks) :
+        for block in blocks :
+            base, target = block
+            block_pairs = itertools.product(base.items(), target.items())
+
+            for pair in block_pairs :
+                yield pair
 
