@@ -429,7 +429,15 @@ class TfidfTest(unittest.TestCase):
                   }
 
     self.data_d = dict((k, dedupe.core.frozendict(v)) 
-                              for k, v in self.data_d.items())
+                       for k, v in self.data_d.items())
+
+    self.d_1 = {}
+    self.d_2 = {}
+    for k, v in self.data_d.items() :
+      if v['dataset'] == 0 :
+        self.d_1[k] = v
+      else :
+        self.d_2[k] = v
 
     
     self.tfidf_fields = set(["name"])
@@ -441,7 +449,7 @@ class TfidfTest(unittest.TestCase):
     assert av[self.tokenfactory["world"]] == 2.0
 
 
-  def test_inverted_index(self):
+  def test_unconstrained_inverted_index(self):
     ii = dedupe.tfidf.InvertedIndex(self.tfidf_fields)
 
     token_vectors = ii.unweightedIndex(self.data_d.items())
@@ -449,6 +457,8 @@ class TfidfTest(unittest.TestCase):
 
     stop_words = dedupe.tfidf.stopWords(ii.inverted_indices['name'], 
                                         500)
+
+    assert stop_words == set([2, 3, 4, 5, 6, 7])
 
     name_vectors = dedupe.tfidf.weightVectors(name_index, 
                                               token_vectors['name'],
@@ -464,6 +474,53 @@ class TfidfTest(unittest.TestCase):
         indexed_records.append(av.name)
 
     assert set(indexed_records) == set([120, 130, 125, 135])
+
+
+    canopy = dedupe.tfidf.makeCanopy(ii, name_vectors, 0)
+    assert canopy == {120: 120, 130: 130, 125: 120, 135: 130}
+
+  def test_constrained_inverted_index(self):
+    ii = dedupe.tfidf.InvertedIndex(self.tfidf_fields)
+
+    base_tokens = ii.unweightedIndex(self.d_1.items())
+
+    target_tokens = ii.unweightedIndex(self.d_2.items())
+
+    name_index = mk.WeightVectors(ii.inverted_indices['name'])
+
+    stop_words = dedupe.tfidf.stopWords(ii.inverted_indices['name'], 
+                                        500)
+
+    assert stop_words == set([1, 3, 4, 6, 7, 8])
+
+    base_tokens = dedupe.tfidf.weightVectors(name_index, 
+                                             base_tokens['name'],
+                                             stop_words)
+
+    assert set(base_tokens.keys()) == set([130, 125])
+
+    target_tokens = dedupe.tfidf.weightVectors(name_index, 
+                                               target_tokens['name'],
+                                               stop_words)
+
+    assert set(target_tokens.keys()) == set([135, 120])
+
+    ii = dedupe.tfidf.tokensToInvertedIndex(target_tokens)
+
+    indexed_records = []
+    for atomvectors in ii.values() :
+      for av in atomvectors:
+        indexed_records.append(av.name)
+
+    assert set(indexed_records) == set([120, 135])
+
+    canopy = dedupe.tfidf.makeCanopy(ii, base_tokens, 0)
+
+    assert set(canopy.values()) <= set(base_tokens.keys())
+
+    assert canopy == {120: 125, 130: 130, 125: 125, 135: 130}
+
+
 
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
