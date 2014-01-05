@@ -5,13 +5,16 @@ from collections import defaultdict
 import itertools
 import types
 import logging
+from multiprocessing import Pool
 import mekano
 
 import dedupe.tfidf as tfidf
 
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
-    def __init__(self, predicates = None):
+    def __init__(self, predicates = None, pool=None):
+
+        self.pool = pool
 
         if predicates is None :
             self.simple_predicates = set([])
@@ -54,21 +57,24 @@ class Blocker:
 
     def createCanopies(self) :
 
+        canopies = {}
+
         logging.info('creating TF/IDF canopies')
 
-        num_thresholds = len(self.tfidf_predicates)
+        results = [self.pool.apply_async(tfidf._createCanopies,
+                                         (self.target_ii[field], 
+                                          self.base_tokens[field], 
+                                          threshold,
+                                          field),
+                                         callback=canopies.update)
+                   for threshold, field in self.tfidf_predicates]
 
-        for (i, (threshold, field)) in enumerate(self.tfidf_predicates, 1):
-            logging.info('%(i)i/%(num_thresholds)i field %(threshold)2.2f %(field)s',
-                         {'i': i, 
-                          'num_thresholds': num_thresholds, 
-                          'threshold': threshold, 
-                          'field': field})
+        for r in results :
+            r.wait()
 
-            canopy = tfidf.createCanopies(field, threshold,
-                                          self.base_tokens, self.target_ii)
-            self.canopies[threshold.__name__ + field] = canopy
-
+ 
+        self.canopies = canopies
+        
 
 
 class DedupeBlocker(Blocker) :
@@ -142,14 +148,13 @@ class RecordLinkBlocker(Blocker) :
 
         self.createCanopies()
 
-    
-
 
 
 def blockTraining(training_pairs,
                   predicate_set,
                   eta=.1,
                   epsilon=.1,
+                  pool=None,
                   matching = "Dedupe"):
     '''
     Takes in a set of training pairs and predicates and tries to find
@@ -163,11 +168,13 @@ def blockTraining(training_pairs,
 
     if matching == "RecordLink" :
         coverage = RecordLinkCoverage(predicate_set,
-                                      training_dupes + training_distinct)
+                                      training_dupes + training_distinct,
+                                      pool)
 
     else :
         coverage = DedupeCoverage(predicate_set,
-                                  training_dupes + training_distinct)
+                                  training_dupes + training_distinct,
+                                  pool)
 
     coverage_threshold = eta * len(training_distinct)
     logging.info("coverage threshold: %s", coverage_threshold)
@@ -287,8 +294,11 @@ def findOptimumBlocking(uncovered_dupes,
 
 
 
+
 class Coverage(object) :
-    def __init__(self, predicate_set, pairs) :
+    def __init__(self, predicate_set, pairs, pool) :
+        self.pool = pool
+
         self.overlapping = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
 
@@ -326,7 +336,6 @@ class Coverage(object) :
 
                         for field_pred in field_preds :
                             self.blocks[basic_predicate][field_pred].add(pair)
-
 
 
     def predicateCoverage(self,
@@ -382,7 +391,7 @@ class DedupeCoverage(Coverage) :
         record_ids = dict(itertools.izip(docs, itertools.count()))
 
 
-        blocker = DedupeBlocker()
+        blocker = DedupeBlocker(pool=self.pool)
         blocker.tfidf_predicates = tfidf_predicates
         blocker.tfIdfBlocks(id_records)
 
@@ -417,7 +426,7 @@ class RecordLinkCoverage(Coverage) :
         record_ids = dict((v, k) for k, v in data_1)
         record_ids.update(dict((v, k) for k, v in data_2))
 
-        blocker = RecordLinkBlocker()
+        blocker = RecordLinkBlocker(pool=self.pool)
         blocker.tfidf_predicates = tfidf_predicates
 
         blocker.tfIdfBlocks(data_1, data_2)

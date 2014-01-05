@@ -142,10 +142,11 @@ else:
 
 print 'blocking...'
 blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
+
 blocked_data = tuple(dedupe.blockData(data_d, blocker))
 
 alpha = deduper.goodThreshold(blocked_data)
-
+print "hello"
 
 # print candidates
 print 'clustering...'

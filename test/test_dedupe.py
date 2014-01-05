@@ -4,6 +4,7 @@ import numpy
 import random
 import itertools
 import warnings
+import multiprocessing
 import dedupe.mekano as mk
 import collections
 
@@ -23,13 +24,16 @@ class CoreTest(unittest.TestCase):
   def setUp(self) :
     random.seed(123)
 
-    self.ids_str = iter([('1', '2'), ('2', '3'), ('4', '5'), ('6', '7'), ('8','9')])
-
-    self.records = iter([({'name': 'Margret', 'age': '32'}, {'name': 'Marga', 'age': '33'}), \
-                         ({'name': 'Marga', 'age': '33'}, {'name': 'Maria', 'age': '19'}), \
-                         ({'name': 'Maria', 'age': '19'}, {'name': 'Monica', 'age': '39'}), \
-                         ({'name': 'Monica', 'age': '39'}, {'name': 'Mira', 'age': '47'}), \
-                         ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
+    self.records = iter([(('1', {'name': 'Margret', 'age': '32'}), 
+                          ('2', {'name': 'Marga', 'age': '33'})), 
+                         (('2', {'name': 'Marga', 'age': '33'}), 
+                          ('3', {'name': 'Maria', 'age': '19'})), 
+                         (('4', {'name': 'Maria', 'age': '19'}), 
+                          ('5', {'name': 'Monica', 'age': '39'})), 
+                         (('6', {'name': 'Monica', 'age': '39'}), 
+                          ('7', {'name': 'Mira', 'age': '47'})),
+                         (('8', {'name': 'Mira', 'age': '47'}), 
+                          ('9', {'name': 'Mona', 'age': '9'})),
                         ])
 
     self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
@@ -59,10 +63,9 @@ class CoreTest(unittest.TestCase):
                                           [ 2,  9]]))
 
   def test_score_duplicates(self):
-    actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.ids_str,
-                                                          self.records,
-                                                          'S1',
-                                                          self.data_model)
+    actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.records,
+                                                          self.data_model,
+                                                          multiprocessing.Pool(processes=1))
 
     scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
 
@@ -283,36 +286,6 @@ class CoreTest(unittest.TestCase):
                                           [ 3,  7],
                                           [ 2,  9]]))
 
-  def test_score_duplicates(self):
-    score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
-    desired_scored_pairs = numpy.array([(['1', '2'], 0.96), (['2', '3'], 0.96), \
-                                        (['4', '5'], 0.78), (['6', '7'], 0.72), \
-                                        (['8', '9'], 0.84)], dtype=score_dtype)
-    ids_str = iter([('1', '2'), ('2', '3'), ('4', '5'), ('6', '7'), ('8','9')])
-    records = iter([({'name': 'Margret', 'age': '32'}, {'name': 'Marga', 'age': '33'}), \
-                    ({'name': 'Marga', 'age': '33'}, {'name': 'Maria', 'age': '19'}), \
-                    ({'name': 'Maria', 'age': '19'}, {'name': 'Monica', 'age': '39'}), \
-                    ({'name': 'Monica', 'age': '39'}, {'name': 'Mira', 'age': '47'}), \
-                    ({'name': 'Mira', 'age': '47'}, {'name': 'Mona', 'age': '9'}),
-                  ])
-
-    data_model = dedupe.datamodel.DataModel({'name' : {'type' : 'String'}})
-    data_model['fields']['name']['weight'] = -1.0302742719650269
-    data_model['bias'] = 4.76
-
-
-    actual_scored_pairs_str = dedupe.core.scoreDuplicates(ids_str,
-                                                          records,
-                                                          'S1',
-                                                          data_model)
-
-    scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
-
-    numpy.testing.assert_almost_equal(desired_scored_pairs['score'], 
-                                      scores_str)
-    numpy.testing.assert_equal(desired_scored_pairs['pairs'], 
-                               actual_scored_pairs_str['pairs'])
-  
 
 
 class AffineGapTest(unittest.TestCase):
@@ -344,28 +317,31 @@ class AffineGapTest(unittest.TestCase):
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
     # Fully connected star network
-    self.dupes = (((1,2), .86),
-                  ((1,3), .72),
-                  ((1,4), .2),
-                  ((1,5), .6),                 
-                  ((2,3), .86),
-                  ((2,4), .2),
-                  ((2,5), .72),
-                  ((3,4), .3),
-                  ((3,5), .5),
-                  ((4,5), .72))
+    self.dupes = numpy.array([((1,2), .86),
+                              ((1,3), .72),
+                              ((1,4), .2),
+                              ((1,5), .6),                 
+                              ((2,3), .86),
+                              ((2,4), .2),
+                              ((2,5), .72),
+                              ((3,4), .3),
+                              ((3,5), .5),
+                              ((4,5), .72)],
+                             dtype = [('pairs', 'i4', 2), 
+                                      ('score', 'f4', 1)])
 
     #Dupes with Ids as String
-    self.str_dupes = ((('1', '2'), .86),
-                      (('1', '3'), .72),
-                      (('1', '4'), .2),
-                      (('1', '5'), .6),
-                      (('2', '3'), .86),
-                      (('2', '4'), .2),
-                      (('2', '5'), .72),
-                      (('3', '4'), .3),
-                      (('3', '5'), .5),
-                      (('4', '5'), .72))
+    self.str_dupes = numpy.array([(('1', '2'), .86),
+                                  (('1', '3'), .72),
+                                  (('1', '4'), .2),
+                                  (('1', '5'), .6),
+                                  (('2', '3'), .86),
+                                  (('2', '4'), .2),
+                                  (('2', '5'), .72),
+                                  (('3', '4'), .3),
+                                  (('3', '5'), .5),
+                                  (('4', '5'), .72)],
+                                 dtype = [('pairs', 'S4', 2), ('score', 'f4', 1)])
 
     self.bipartite_dupes = (((1,5), .1),
                             ((1,6), .72),
@@ -387,13 +363,13 @@ class ClusteringTest(unittest.TestCase):
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 'i4', 1) == []
-    assert hierarchical(self.dupes, 'i4', 0.5) == [set([1, 2, 3]), set([4,5])]
-    assert hierarchical(self.dupes, 'i4', 0) == [set([1, 2, 3, 4, 5])]
-    assert hierarchical(self.str_dupes, 'S1', 1) == []
-    assert hierarchical(self.str_dupes,'S1', 0.5) == [set(['1', '2', '3']), 
+    assert hierarchical(self.dupes, 1) == []
+    assert hierarchical(self.dupes, 0.5) == [set([1, 2, 3]), set([4,5])]
+    assert hierarchical(self.dupes, 0) == [set([1, 2, 3, 4, 5])]
+    assert hierarchical(self.str_dupes, 1) == []
+    assert hierarchical(self.str_dupes, 0.5) == [set(['1', '2', '3']), 
                                                       set(['4','5'])]
-    assert hierarchical(self.str_dupes,'S1', 0) == [set(['1', '2', '3', '4', '5'])]
+    assert hierarchical(self.str_dupes, 0) == [set(['1', '2', '3', '4', '5'])]
 
   def test_greedy_matching(self):
     greedyMatch = dedupe.clustering.greedyMatching

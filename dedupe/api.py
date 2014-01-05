@@ -15,6 +15,7 @@ import itertools
 import logging
 import types
 import pickle
+import multiprocessing
 import numpy
 import random
 
@@ -47,7 +48,8 @@ class Matching(object):
 
     def __init__(self, 
                  init=None, 
-                 data_sample=None) :
+                 data_sample=None,
+                 num_processes=1) :
         """
         Load or initialize a data model.
 
@@ -100,6 +102,8 @@ class Matching(object):
         learned in a previous session. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
+        self.pool = multiprocessing.Pool(processes=num_processes)
+
 
         self._checkValidInit(init, data_sample)
 
@@ -260,7 +264,7 @@ class Matching(object):
         if not self.predicates:
             self.predicates = self._learnBlocking(ppc, uncovered_dupes)
 
-        blocker = self._Blocker(self.predicates)
+        blocker = self._Blocker(self.predicates, self.pool)
 
         return blocker
 
@@ -280,14 +284,9 @@ class Matching(object):
                          recall as you do precision, set recall_weight
                          to 2.
         """
-
-        candidates = self.blockedPairs(blocks)
-
-        candidates = (pair.values() for pair in candidates)
-
-        field_distances = core.fieldDistances(candidates, 
-                                              self.data_model)
-        probability = core.scorePairs(field_distances, self.data_model)
+        probability = core.scoreDuplicates(self.blockedPairs(blocks), 
+                                           self.data_model, 
+                                           self.pool)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -333,30 +332,16 @@ class Matching(object):
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        (candidate_keys, 
-         candidate_records) = core.split((pair.keys(),
-                                          pair.values())
-                                         for pair 
-                                         in self.blockedPairs(blocks))
-                                                   
+        candidate_records = self.blockedPairs(blocks)
+        
+        self.matches = core.scoreDuplicates(candidate_records,
+                                            self.data_model,
+                                            self.pool,
+                                            threshold)
 
-        candidate_keys, ids = itertools.tee(candidate_keys)
-        peek = ids.next()
-        id_type = type(peek[0])
-        if id_type is str :
-            id_type = (str, len(peek[0]) + 5)
-        ids = itertools.chain([peek], ids)
-
-        self.matches = core.scoreDuplicates(candidate_keys,
-                                          candidate_records,
-                                          id_type,
-                                          self.data_model,
-                                          threshold)
-
-        clusters = self._cluster(self.matches, id_type, cluster_threshold)
+        clusters = self._cluster(self.matches, cluster_threshold)
         
         return clusters
-
 
     def _logLearnedWeights(self):
         """
@@ -533,6 +518,7 @@ class Matching(object):
                                                            predicate_set,
                                                            eta,
                                                            epsilon,
+                                                           self.pool,
                                                            self._linkage_type)
 
         return learned_predicates
@@ -552,7 +538,7 @@ class Dedupe(Matching) :
             block_pairs = itertools.combinations(block.items(), 2)
 
             for pair in block_pairs :
-                yield dict(pair)
+                yield pair
 
 
 class RecordLink(Matching) :
@@ -570,5 +556,5 @@ class RecordLink(Matching) :
             block_pairs = itertools.product(base.items(), target.items())
 
             for pair in block_pairs :
-                yield dict(pair)
+                yield pair
 

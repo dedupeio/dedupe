@@ -97,7 +97,7 @@ class InvertedIndex(object) :
 
 #@profile
 def makeCanopy(inverted_index, token_vector, threshold) :
-    canopies = defaultdict(lambda:None)
+    canopies = defaultdict(str)
     seen = set([])
     corpus_ids = set(token_vector.keys())
 
@@ -127,19 +127,17 @@ def makeCanopy(inverted_index, token_vector, threshold) :
 
     return canopies
 
+def _createCanopies(field_inverted_index,
+                    token_vector,
+                    threshold,
+                    field) : 
+
+    canopy = makeCanopy(field_inverted_index, token_vector, threshold)
+
+    logging.info("Canopy: %s", threshold.__name__ + field)
+    return {str(threshold.__name__ + field) :  canopy}
+
     
 
-def createCanopies(field,
-                   threshold,
-                   token_vector,
-                   inverted_index):
-    """
-    A function that returns a field value of a record with a
-    particular doc_id, doc_id is the only argument that must be
-    accepted by select_function
-    """
-
-    field_inverted_index = inverted_index[field]
-    token_vectors = token_vector[field]
-
-    return makeCanopy(field_inverted_index, token_vectors, threshold)
+    
+    

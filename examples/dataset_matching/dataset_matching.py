@@ -168,7 +168,7 @@ linker.writeSettings(settings_file)
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = tuple(dedupe.blockDataRecordLinkdata_1, data_2, blocker))
+blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, blocker))
 
 # ## Clustering
 
@@ -185,7 +185,7 @@ threshold = linker.goodThreshold(blocked_data, recall_weight=3)
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = linker.duplicateClusters(blocked_data, threshold)
+clustered_dupes = linker.match(blocked_data, threshold)
 
 print '# duplicate sets', len(clustered_dupes)
 
