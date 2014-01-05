@@ -110,7 +110,7 @@ data_2 = readData('AbtBuy_Buy.csv')
 
 if os.path.exists(settings_file):
     print 'reading from', settings_file
-    linker = dedupe.RecordLink(settings_file)
+    linker = dedupe.StaticRecordLink(settings_file)
 
 else:
     # To train dedupe, we feed it a random sample of records.
@@ -129,8 +129,7 @@ else:
                   'Has Missing' : True}}
 
     # Create a new linker object and pass our data model to it.
-    linker = dedupe.RecordLink(fields,
-                                data_sample)
+    linker = dedupe.RecordLink(fields, data_sample)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -152,23 +151,19 @@ else:
     # When finished, save our training away to disk
     linker.writeTraining(training_file)
 
+    # Save our weights and predicates to disk.  If the settings file
+    # exists, we will skip all the training and learning next time we run
+    # this file.
+    linker.writeSettings(settings_file)
+
+
 # ## Blocking
-
-print 'blocking...'
-# Initialize our blocker. We'll learn our blocking rules if we haven't
-# loaded them from a saved settings file.
-blocker = linker.blockingFunction()
-
-# Save our weights and predicates to disk.  If the settings file
-# exists, we will skip all the training and learning next time we run
-# this file.
-linker.writeSettings(settings_file)
 
 # Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, blocker))
+blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, linker.blocker))
 
 # ## Clustering
 

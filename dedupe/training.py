@@ -100,7 +100,8 @@ def consoleLabel(deduper):
 
         deduper.markPairs(labels)
 
-    deduper.train()
+    deduper.trainClassifier()
+    deduper.trainBlocker()
 
 def semiSupervisedNonDuplicates(data_sample,
                                 data_model,

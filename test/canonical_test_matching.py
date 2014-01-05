@@ -120,7 +120,7 @@ t0 = time.time()
 print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
-    deduper = dedupe.RecordLink(settings_file)
+    deduper = dedupe.StaticRecordLink(settings_file)
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
@@ -145,14 +145,17 @@ else:
     deduper._addTrainingData(deduper.training_pairs)
 
 
-    deduper.train()
+    deduper.trainClassifier()
+    deduper.trainBlocker()
 
     deduper._logLearnedWeights()
 
+    deduper.writeSettings(settings_file)
+
+
 
 print 'blocking...'
-blocker = deduper.blockingFunction(ppc=.0001, uncovered_dupes=0)
-blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, blocker))
+blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, deduper.blocker))
 
 alpha = deduper.goodThreshold(blocked_data)
 
@@ -162,7 +165,6 @@ print 'clustering...'
 clustered_dupes = deduper.match(blocked_data, threshold=alpha)
 
 
-deduper.writeSettings(settings_file)
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.matches

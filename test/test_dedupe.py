@@ -205,8 +205,8 @@ class DataModelTest(unittest.TestCase) :
 
 class DedupeInitializeTest(unittest.TestCase) :
   def test_initialize_fields(self) :
-    self.assertRaises(ValueError, dedupe.Dedupe)
-    self.assertRaises(ValueError, dedupe.Dedupe, [])
+    self.assertRaises(TypeError, dedupe.Dedupe)
+    self.assertRaises(TypeError, dedupe.Dedupe, [])
 
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
@@ -229,7 +229,7 @@ class DedupeInitializeTest(unittest.TestCase) :
                                      for threshold
                                      in [0.2, 0.4, 0.6, 0.8]])
 
-    assert deduper.blocker_types == {'String' : string_predicates + tfidf_string_predicates}
+    assert deduper.blockerTypes() == {'String' : string_predicates + tfidf_string_predicates}
 
 
 class DedupeClassTest(unittest.TestCase):

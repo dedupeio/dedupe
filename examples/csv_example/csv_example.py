@@ -107,7 +107,7 @@ data_d = readData(input_file)
 
 if os.path.exists(settings_file):
     print 'reading from', settings_file
-    deduper = dedupe.Dedupe(settings_file)
+    deduper = dedupe.StaticDedupe(settings_file)
 
 else:
     # To train dedupe, we feed it a random sample of records.
@@ -149,23 +149,21 @@ else:
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
 
+    # Save our weights and predicates to disk.  If the settings file
+    # exists, we will skip all the training and learning next time we run
+    # this file.
+    deduper.writeSettings(settings_file)
+
+
 # ## Blocking
 
 print 'blocking...'
-# Initialize our blocker. We'll learn our blocking rules if we haven't
-# loaded them from a saved settings file.
-blocker = deduper.blockingFunction()
-
-# Save our weights and predicates to disk.  If the settings file
-# exists, we will skip all the training and learning next time we run
-# this file.
-deduper.writeSettings(settings_file)
 
 # Load all the original data in to memory and place
 # them in to blocks. Each record can be blocked in many ways, so for
 # larger data, memory will be a limiting factor.
 
-blocked_data = dedupe.blockData(data_d, blocker)
+blocked_data = dedupe.blockData(data_d, deduper.blocker)
 
 # ## Clustering
 
