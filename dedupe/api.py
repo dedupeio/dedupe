@@ -179,7 +179,7 @@ class RecordLinkMatching(Matching) :
         
     def _checkBlock(self, block) :
         try :
-            base, target = first_block
+            base, target = block
             base.items() and target.items()
         except :
             raise ValueError("Each block must be a made up of two "
