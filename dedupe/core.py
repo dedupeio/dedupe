@@ -14,7 +14,7 @@ import collections
 
 import lr
 
-def grouper(iterable, n, fillvalue=None):
+def grouper(iterable, n, fillvalue=None): # pragma : no cover
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
     args = [iter(iterable)] * n
