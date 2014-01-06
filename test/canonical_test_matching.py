@@ -47,7 +47,7 @@ def randomTrainingPairs(data_d,
     nonduplicates = [(data_d[pair[0]], data_d[pair[1]])
                      for pair in nonduplicates]
 
-    return {0: nonduplicates, 1: duplicates}
+    return {'distinct': nonduplicates, 'match': duplicates}
 
 
 def canonicalImport(filename, base=False):

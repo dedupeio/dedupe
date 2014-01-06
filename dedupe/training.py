@@ -67,10 +67,11 @@ def consoleLabel(deduper):
     while not finished :
         uncertain_pairs = deduper.getUncertainPair()
 
-        labels = {0 : [], 1 : []}
+        labels = {'distinct' : [], 'match' : []}
 
         for record_pair in uncertain_pairs:
             label = ''
+            labeled = False
 
             for pair in record_pair:
                 for field in deduper.data_model.comparison_fields:
@@ -88,9 +89,11 @@ def consoleLabel(deduper):
                     valid_response = True
 
             if label == 'y' :
-                labels[1].append(record_pair)
+                labels['match'].append(record_pair)
+                labeled = True
             elif label == 'n' :
-                labels[0].append(record_pair)
+                labels['distinct'].append(record_pair)
+                labeled = True
             elif label == 'f':
                 sys.stderr.write('Finished labeling\n')
                 finished = True
@@ -98,7 +101,8 @@ def consoleLabel(deduper):
                 sys.stderr.write('Nonvalid response\n')
                 raise
 
-        deduper.markPairs(labels)
+        if labeled :
+            deduper.markPairs(labels)
 
     deduper.trainClassifier()
     deduper.trainBlocker()

@@ -18,11 +18,13 @@ import pickle
 import multiprocessing
 import numpy
 import random
+import warnings
+import copy
 
 import dedupe
 import dedupe.core as core
 import dedupe.training as training
-import dedupe.training_serializer as training_serializer
+import dedupe.serializer as serializer
 import dedupe.crossvalidation as crossvalidation
 import dedupe.predicates as predicates
 import dedupe.blocking as blocking
@@ -36,12 +38,8 @@ class Matching(object):
     Public methods:
 
     - `__init__`
-    - `train`
-    - `blockingFunction`
     - `goodThreshold`
     - `match`
-    - `writeTraining`
-    - `writeSettings`
     """
 
     def __init__(self) :
@@ -123,6 +121,15 @@ class Matching(object):
         
         return clusters
 
+    def _checkRecordType(self, record) :
+        for k in self.data_model.comparison_fields :
+            if k not in record :
+                raise ValueError("Records do not line up with data model. "
+                                 "The field '%s' is in data_model but not "
+                                 "in a record" % k)
+
+
+
 class DedupeMatching(Matching) :
     def __init__(self, *args, **kwargs) :
         super(DedupeMatching, self).__init__(*args, **kwargs)
@@ -132,6 +139,22 @@ class DedupeMatching(Matching) :
         
 
     def blockedPairs(self, blocks) :
+        try :
+            first_block = blocks.next()
+        except AttributeError :
+            blocks = iter(blocks)
+            first_block = blocks.next()
+        
+        try :
+            first_block.items()
+        except :
+            raise ValueError("Each block must be a dictionary")
+
+        self._checkRecordType(first_block.values()[0])
+
+        for pair in itertools.combinations(first_block.items(), 2) :
+            yield pair
+            
         for block in blocks :
 
             block_pairs = itertools.combinations(block.items(), 2)
@@ -150,6 +173,28 @@ class RecordLinkMatching(Matching) :
 
 
     def blockedPairs(self, blocks) :
+        try :
+            first_block = blocks.next()
+        except AttributeError :
+            blocks = iter(blocks)
+            first_block = blocks.next()
+
+        try :
+            base, target = first_block
+            base.items() and target.items()
+        except :
+            raise ValueError("Each block must be a made up of two "
+                             "dictionaries, (base_dict, target_dict)")
+
+        if base :
+            self._checkRecordType(base.values()[0])
+        if target :
+            self._checkRecordType(target.values()[0])
+
+        for pair in itertools.product(base.items(), target.items()) :
+            yield pair
+
+
         for block in blocks :
             base, target = block
             block_pairs = itertools.product(base.items(), target.items())
@@ -186,9 +231,6 @@ class StaticMatching(Matching) :
 
         self.pool = multiprocessing.Pool(processes=num_processes)
 
-        self._readSettings(settings_file)
-
-    def _readSettings(self, file_name):
         with open(file_name, 'rb') as f:
             try:
                 self.data_model = pickle.load(f)
@@ -267,29 +309,52 @@ class ActiveMatching(Matching) :
             raise ValueError('Incorrect Input Type: must supply '
                              'a field definition.')
 
+        try :
+            len(data_sample)
+        except TypeError :
+            raise ValueError("data_sample must be a sequence")
+
+        self.data_model = DataModel(field_definition)
+
+        if len(data_sample) :
+            self._checkRecordPairType(data_sample[0])
+        else :
+            warnings.warn("You submitted an empty data_sample")
+
+        self.data_sample = self._freezeData(data_sample)
 
         self.pool = multiprocessing.Pool(processes=num_processes)
 
-        self.data_model = DataModel(field_definition)
-        self.data_sample = data_sample
 
-        training_dtype = [('label', 'i4'), 
+        training_dtype = [('label', 'S8'), 
                           ('distances', 'f4', 
                            (len(self.data_model['fields']), ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = {0: [], 1: []}
+        self.training_pairs = {'distinct': [], 'match': []}
 
         self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                      self.data_model)
 
 
     def trainFromFile(self, training_source) :
-        assert training_source.__class__ is str
 
         logging.info('reading training from file')
 
-        self._readTraining(training_source)
+        with open(training_source, 'r') as f:
+            training_pairs = json.load(f, 
+                                       cls=serializer.dedupe_decoder)
+
+        for (label, examples) in training_pairs.items():
+            if examples :
+                self._checkRecordPairType(examples[0])
+
+            examples = self._freezeData(examples)
+
+            training_pairs[label] = examples
+            self.training_pairs[label].extend(examples)
+
+        self._addTrainingData(training_pairs)
 
         self.trainClassifier()
 
@@ -297,11 +362,10 @@ class ActiveMatching(Matching) :
     def trainClassifier(self, alpha=None) :
         if alpha is None :
 
-            n_folds = min(numpy.sum(self.training_data['label'])/3, 20)
-
-            n_folds = min(max(2,
-                              numpy.sum(self.training_data['label'])/3),
+            n_folds = min(numpy.sum(self.training_data['label']=='match')/3,
                           20)
+            n_folds = max(n_folds,
+                          2)
 
             logging.info('%d folds', n_folds)
 
@@ -342,6 +406,7 @@ class ActiveMatching(Matching) :
                            blocks that put together many, many distinct pairs
                            that we'll have to expensively, compare as well.
         """
+        training_pairs = copy.deepcopy(self.training_pairs)
 
         blocker_types = self.blockerTypes()
 
@@ -349,14 +414,12 @@ class ActiveMatching(Matching) :
                                                                        self.data_model,
                                                                        sample_size=32000)
 
-        self.training_pairs[0].extend(confident_nonduplicates)
-
+        training_pairs['distinct'].extend(confident_nonduplicates)
 
         predicate_set = blocking.predicateGenerator(blocker_types, 
                                                     self.data_model)
 
-        
-        self.predicates = dedupe.blocking.blockTraining(self.training_pairs,
+        self.predicates = dedupe.blocking.blockTraining(training_pairs,
                                                         predicate_set,
                                                         ppc,
                                                         uncovered_dupes,
@@ -409,53 +472,74 @@ class ActiveMatching(Matching) :
         file_name -- path to a json file
         """
 
-        d_training_pairs = {}
-        for (label, pairs) in self.training_pairs.iteritems():
-            d_training_pairs[label] = [(dict(pair[0]), 
-                                        dict(pair[1])) 
-                                       for pair in pairs]
-
         with open(file_name, 'wb') as f:
-            json.dump(d_training_pairs, f, default=training_serializer._to_json)
+            json.dump(self.training_pairs, 
+                      f, 
+                      default=serializer._to_json)
 
 
     def getUncertainPair(self) :
         if self.training_data.shape[0] == 0 :
             rand_int = random.randint(0, len(self.data_sample))
             exact_match = self.data_sample[rand_int]
-            self._addTrainingData({1:[exact_match, exact_match],
-                                   0:[]})
+            self._addTrainingData({'match':[exact_match, exact_match],
+                                   'distinct':[]})
 
 
             self.trainClassifier(alpha=0.1)
 
         
-        dupe_ratio = len(self.training_pairs[1])/(len(self.training_pairs[0]) + 1.0)
+        dupe_ratio = (len(self.training_pairs['match'])
+                      /(len(self.training_pairs['distinct']) + 1.0))
 
         return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
 
     def markPairs(self, labeled_pairs) :
-        for label, pair in labeled_pairs.items() :
-            self.training_pairs[label].extend(pair)
+        try :
+            labeled_pairs.items()
+            labeled_pairs['match']
+            labeled_pairs['distinct']
+        except :
+            raise ValueError('labeled_pairs must be a dictionary with keys '
+                             '"distinct" and "match"')
+
+        if labeled_pairs['match'] :
+            pair = labeled_pairs['match'][0]
+            self._checkRecordPairType(pair)
+        elif labeled_pairs['distinct'] :
+            pair = labeled_pairs['distinct'][0]
+            self._checkRecordPairType(pair)
+        else :
+            warnings.warn("Didn't return any labeled record pairs")
+        
+
+        for label, pairs in labeled_pairs.items() :
+            self.training_pairs[label].extend(self._freezeData(pairs))
 
         self._addTrainingData(labeled_pairs) 
 
         self.trainClassifier(alpha=.1)
 
 
-    def _readTraining(self, file_name):
-        """Read training pairs from a file"""
-        with open(file_name, 'r') as f:
-            training_pairs_raw = json.load(f, cls=training_serializer.dedupe_decoder)
 
-        for (label, examples) in training_pairs_raw.iteritems():
-            for pair in examples:
-                pair = (core.frozendict(pair[0]),
-                        core.frozendict(pair[1]))
+    def _checkRecordPairType(self, record_pair) :
+        try :
+            record_pair[0]
+        except :
+            raise ValueError("The elements of data_sample must be pairs "
+                             "of record_pairs (ordered sequences of length 2)")
 
-                self.training_pairs[int(label)].append(pair)
+        if len(record_pair) != 2 :
+            raise ValueError("The elements of data_sample must be pairs "
+                             "of record_pairs")
+        try :
+            record_pair[0].keys() and record_pair[1].keys()
+        except :
+            raise ValueError("A pair of record_pairs must be made up of two "
+                             "dictionaries ")
 
-        self._addTrainingData(self.training_pairs)
+        self._checkRecordType(record_pair[0])
+        self._checkRecordType(record_pair[1])
 
 
     def _addTrainingData(self, labeled_pairs) :
@@ -463,9 +547,9 @@ class ActiveMatching(Matching) :
         Appends training data to the training data collection.
         """
     
-        nondupes, dupes = labeled_pairs[0], labeled_pairs[1]
-        labels = ([0] * len(nondupes) 
-                  + [1] * len(dupes))
+        nondupes, dupes = labeled_pairs['distinct'], labeled_pairs['match']
+        labels = (['distinct'] * len(nondupes) 
+                  + ['match'] * len(dupes))
 
         new_training_data = numpy.empty(len(labels),
                                         dtype=self.training_data.dtype)
@@ -489,6 +573,11 @@ class ActiveMatching(Matching) :
                     logging.info((k2, v2['weight']))
             except AttributeError:
                 logging.info((k1, v1))
+
+    def _freezeData(self, data) :
+        return [(core.frozendict(record_1), 
+                 core.frozendict(record_2))
+                for record_1, record_2 in data]
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :

@@ -34,7 +34,7 @@ def gridSearch(training_data,
                                   for field in fields])
             bias = data_model['bias']
 
-            labels = validation['label']
+            labels = validation['label'] == 'match'
             predictions = numpy.dot(validation['distances'], weight) + bias
 
             true_dupes = numpy.sum(labels == 1)

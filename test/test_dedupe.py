@@ -242,11 +242,12 @@ class DedupeClassTest(unittest.TestCase):
     self.deduper = dedupe.Dedupe(fields, data_sample)
 
   def test_add_training(self) :
-    training_pairs = {0 : self.deduper.data_sample[0:3],
-                      1 : self.deduper.data_sample[3:6]}
+    training_pairs = {'distinct' : self.deduper.data_sample[0:3],
+                      'match' : self.deduper.data_sample[3:6]}
     self.deduper._addTrainingData(training_pairs)
     numpy.testing.assert_equal(self.deduper.training_data['label'],
-                               [0, 0, 0, 1, 1, 1])
+                               ['distinct', 'distinct', 'distinct', 
+                                'match', 'match', 'match'])
     numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
                                       numpy.array(
                                         [[5.5, 5.0178], 
@@ -258,7 +259,9 @@ class DedupeClassTest(unittest.TestCase):
                                       4)
     self.deduper._addTrainingData(training_pairs)
     numpy.testing.assert_equal(self.deduper.training_data['label'],
-                               [0, 0, 0, 1, 1, 1]*2)
+                               ['distinct', 'distinct', 'distinct', 
+                                'match', 'match', 'match']*2)
+
     numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
                                       numpy.array(
                                         [[5.5, 5.0178], 

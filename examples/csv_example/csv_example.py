@@ -84,9 +84,7 @@ def preProcess(column):
 def readData(filename):
     """
     Read in our data from a CSV file and create a dictionary of records, 
-    where the key is a unique record ID and each value is a 
-    [frozendict](http://code.activestate.com/recipes/414283-frozen-dictionaries/) 
-    (hashable dictionary) of the row fields.
+    where the key is a unique record ID and each value is dict
     """
 
     data_d = {}
@@ -95,7 +93,7 @@ def readData(filename):
         for row in reader:
             clean_row = [(k, preProcess(v)) for (k, v) in row.items()]
             row_id = int(row['Id'])
-            data_d[row_id] = dedupe.core.frozendict(clean_row)
+            data_d[row_id] = dict(clean_row)
 
     return data_d
 

@@ -163,8 +163,8 @@ def blockTraining(training_pairs,
 
     # Setup
 
-    training_dupes = (training_pairs[1])[:]
-    training_distinct = (training_pairs[0])[:]
+    training_dupes = (training_pairs['match'])[:]
+    training_distinct = (training_pairs['distinct'])[:]
 
     if matching == "RecordLink" :
         coverage = RecordLinkCoverage(predicate_set,

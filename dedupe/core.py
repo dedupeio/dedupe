@@ -10,6 +10,7 @@ import multiprocessing
 import Queue
 import numpy
 import time
+import collections
 
 import lr
 
@@ -81,7 +82,7 @@ def trainModel(training_data, data_model, alpha=.001):
     Use logistic regression to train weights for all fields in the data model
     """
     
-    labels = training_data['label']
+    labels = numpy.array(training_data['label'] == 'match', dtype='i4')
     examples = training_data['distances']
 
     (weight, bias) = lr.lr(labels, examples, alpha)
@@ -236,27 +237,53 @@ def idType(records) :
     return numpy.dtype(id_type), itertools.chain([peek], records)
 
 
+class frozendict(collections.Mapping):
+    """Don't forget the docstrings!!"""
 
+    def __init__(self, *args, **kwargs):
+        self._d = dict(*args, **kwargs)
 
-class frozendict(dict):
-    def _blocked_attribute(obj):
-        raise AttributeError, "A frozendict cannot be modified."
+    def __iter__(self):
+        return iter(self._d)
 
-    def __new__(cls, *args):
-        new = dict.__new__(cls)
-        dict.__init__(new, *args)
-        return new
+    def __len__(self):
+        return len(self._d)
 
-    def __init__(self, *args):
-        pass
+    def __getitem__(self, key):
+        return self._d[key]
+
+    def __repr__(self) :
+        return '<frozendict %s>' % repr(self._d)
 
     def __hash__(self):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(tuple(sorted(self.items())))
+            h = self._cached_hash = hash(frozenset(self._d.iteritems()))
             return h
 
-    def __repr__(self):
-        return "frozendict(%s)" % dict.__repr__(self)
+
+
+
+# class frozendict(dict):
+#     def _blocked_attribute(obj):
+#         raise AttributeError, "A frozendict cannot be modified."
+
+#     def __new__(cls, *args):
+#         new = dict.__new__(cls)
+#         dict.__init__(new, *args)
+#         return new
+
+#     def __init__(self, *args):
+#         pass
+
+#     def __hash__(self):
+#         try:
+#             return self._cached_hash
+#         except AttributeError:
+#             h = self._cached_hash = hash(tuple(sorted(self.items())))
+#             return h
+
+#     def __repr__(self):
+#         return "frozendict(%s)" % dict.__repr__(self)
 
