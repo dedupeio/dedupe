@@ -145,7 +145,11 @@ else:
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
     print 'starting active labeling...'
-    dedupe.training.consoleLabel(linker)
+    dedupe.consoleLabel(linker)
+
+    linker.trainClassifier()
+    linker.trainBlocker()
+
     # When finished, save our training away to disk
     linker.writeTraining(training_file)
 

@@ -142,7 +142,10 @@ else:
     # press 'f' when you are finished
     print 'starting active labeling...'
 
-    dedupe.training.consoleLabel(deduper)
+    dedupe.consoleLabel(deduper)
+
+    deduper.trainClassifier()
+    deduper.trainBlocker()
 
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
