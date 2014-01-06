@@ -131,9 +131,13 @@ class Matching(object):
     def blockedPairs(self, blocks) :
         block, blocks = core.peek(blocks)
         self._checkBlock(block)
-        for block in blocks :
-            for pair in self._blockPairs(block) :
-                yield pair
+
+        def pair_gen() :
+            for block in blocks :
+                for pair in self._blockPairs(block) :
+                    yield pair
+
+        return pair_gen()
 
 
 class DedupeMatching(Matching) :
@@ -143,16 +147,21 @@ class DedupeMatching(Matching) :
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
-    def _blockPairs(self, block) :
+    def _blockPairs(self, block) : 
         return itertools.combinations(block.items(), 2)
         
     def _checkBlock(self, block) :
-        try :
-            block.items()
-        except :
-            raise ValueError("Each block must be a dictionary")
+        if block is None :
+            warnings.warn("You have not provided any data blocks")
+        else :
+            try :
+                block.items()
+                block.values()[0].items()
+            except :
+                raise ValueError("Each block must be a dictionary of records "
+                                 "and the records also must be dictionaries")
 
-        self._checkRecordType(block.values()[0])
+            self._checkRecordType(block.values()[0])
 
 
 
@@ -207,6 +216,9 @@ class StaticMatching(Matching) :
         learned from ActiveMatching. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
+        super(StaticMatching, self).__init__()
+
+
         if settings_file.__class__ is not str :
             raise ValueError("Must supply a settings file name")
 
@@ -286,6 +298,8 @@ class ActiveMatching(Matching) :
         In in the record dictionary the keys are the names of the
         record field and values are the record values.
         """
+        super(ActiveMatching, self).__init__()
+
         if field_definition.__class__ is not dict :
             raise ValueError('Incorrect Input Type: must supply '
                              'a field definition.')

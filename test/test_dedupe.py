@@ -213,6 +213,10 @@ class DedupeInitializeTest(unittest.TestCase) :
               }
     deduper = dedupe.Dedupe(fields, [])
 
+    assert deduper.matches is None
+    assert deduper.blocker is None
+
+
   def test_base_predicates(self) :
     deduper = dedupe.Dedupe({'name' : {'type' : 'String'}}, [])
     string_predicates = (dedupe.predicates.wholeFieldPredicate,
@@ -240,6 +244,23 @@ class DedupeClassTest(unittest.TestCase):
               }
     data_sample = dedupe.dataSample(DATA, 6)
     self.deduper = dedupe.Dedupe(fields, data_sample)
+
+  def test_blockPairs(self) :
+    self.assertRaises(ValueError, self.deduper.blockedPairs, ((),))
+    self.assertRaises(ValueError, self.deduper.blockedPairs, ({1:2},))
+    self.assertRaises(ValueError, self.deduper.blockedPairs, ({'name':'Frank', 'age':21},))
+    self.assertRaises(ValueError, self.deduper.blockedPairs, ({'1' : {'name' : 'Frank',
+                                                                      'height' : 72}},))
+    assert [] == list(self.deduper.blockedPairs(({'1' : {'name' : 'Frank',
+                                                         'age' : 72}},)))
+    assert list(self.deduper.blockedPairs(({'1' : {'name' : 'Frank',
+                                                   'age' : 72},
+                                            '2' : {'name' : 'Bob',
+                                                   'age' : 27}},))) == \
+                  [(('1', {'age': 72, 'name': 'Frank'}), 
+                    ('2', {'age': 27, 'name': 'Bob'}))]
+
+                                    
 
   def test_add_training(self) :
     training_pairs = {'distinct' : self.deduper.data_sample[0:3],

@@ -244,8 +244,12 @@ def peek(records) :
     except AttributeError as e:
         if "has no attribute 'next'" not in str(e) :
             raise
-        records = iter(records)
-        record = records.next()
+        try :
+            records = iter(records)
+            record = records.next()
+        except StopIteration :
+            return None, records
+
 
     return record, itertools.chain([record], records)
 
