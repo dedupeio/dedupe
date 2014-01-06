@@ -157,18 +157,18 @@ else:
 print 'blocking...'
 blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, deduper.blocker))
 
-deduper.goodThreshold(blocked_data, 2)
+alpha = deduper.goodThreshold(blocked_data)
 
 
 # print candidates
 print 'clustering...'
-clustered_dupes = deduper.match(blocked_data)
+clustered_dupes = deduper.match(blocked_data, threshold=alpha)
 
 
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.matches
-                   if score > deduper.pairwise_threshold])
+                  if score > alpha])
 
 evaluateDuplicates(found_dupes, duplicates_s)
 

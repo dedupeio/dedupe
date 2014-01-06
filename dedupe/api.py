@@ -46,7 +46,7 @@ class Matching(object):
         self.matches = None
         self.blocker = None
 
-    def goodThreshold(self, blocks, recall_weight=1):
+    def goodThreshold(self, blocks, recall_weight=1.5):
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -62,58 +62,30 @@ class Matching(object):
                          recall as you do precision, set recall_weight
                          to 2.
         """
-        all_pairs = core.scoreDuplicates(self.blockedPairs(blocks), 
-                                         self.data_model, 
-                                         self.pool)
+        probability = core.scoreDuplicates(self.blockedPairs(blocks), 
+                                           self.data_model, 
+                                           self.pool)['score']
 
-        all_dupes = numpy.sum(all_pairs['score'])
+        probability.sort()
+        probability = probability[::-1]
 
-        import math
+        expected_dupes = numpy.cumsum(probability)
 
-        expit = lambda x : 1/(1 + math.exp(-x))
-        
-        best_F = 0
-        best_threshold = (0,0)
+        recall = expected_dupes / expected_dupes[-1]
+        precision = expected_dupes / numpy.arange(1, len(expected_dupes) + 1)
 
+        score = recall * precision / (recall + recall_weight ** 2 * precision)
 
-        for i in range(-10, 11) :
-            pairwise_threshold = expit(i/3)
-            scored_pairs = all_pairs[all_pairs['score'] > pairwise_threshold]
-            if not len(scored_pairs) : continue
-            for j in self._cluster_threshold_range :
-                cluster_threshold = expit(j/3)
-                clusters = self._cluster(scored_pairs, cluster_threshold)
-                clustered_pairs = set([])
-                for cluster in clusters :
-                    clustered_pairs.update(itertools.combinations(cluster, 2))
+        i = numpy.argmax(score)
 
-                clustered = numpy.array([tuple(pair) in clustered_pairs 
-                                         for pair in scored_pairs['pairs']])
-                filtered_scores = scored_pairs['score'][clustered]
+        logging.info('Maximum expected recall and precision')
+        logging.info('recall: %2.3f', recall[i])
+        logging.info('precision: %2.3f', precision[i])
+        logging.info('With threshold: %2.3f', probability[i])
 
-                recall = numpy.sum(filtered_scores)/all_dupes
-                precision = numpy.average(filtered_scores)
+        return probability[i]
 
-                F = recall * precision / (recall + recall_weight ** 2 * precision)
-                if F > best_F :
-                    best_F = F
-                    fixed_recall = recall
-                    fixed_precision = precision
-                    best_pairwise_threshold = pairwise_threshold
-                    best_cluster_threshold = cluster_threshold
-
- 
-        logging.info('Maximum F Score: %2.3f', best_F * (1+recall_weight**2))
-        logging.info('Precision: %2.3f', fixed_precision)
-        logging.info('Recall: %2.3f', fixed_recall)
-        logging.info('With pairwise threshold: %2.3f', best_pairwise_threshold)
-        logging.info('With cluster threshold: %2.3f', best_cluster_threshold)
-
-        self.pairwise_threshold = best_pairwise_threshold
-        self.cluster_threshold = best_cluster_threshold
-
-
-    def match(self, blocks, pairwise_threshold=0, cluster_threshold=0) :
+    def match(self, blocks, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -133,19 +105,17 @@ class Matching(object):
                               
 
         """
-        if not pairwise_threshold :
-            pairwise_threshold = self.pairwise_threshold
 
-        if not cluster_threshold :
-            cluster_threshold = self.cluster_threshold
-
+        # Setting the cluster threshold this ways is not principled,
+        # but seems to reliably help performance
+        cluster_threshold = threshold * 0.7
 
         candidate_records = self.blockedPairs(blocks)
         
         self.matches = core.scoreDuplicates(candidate_records,
                                             self.data_model,
                                             self.pool,
-                                            pairwise_threshold)
+                                            threshold)
 
         clusters = self._cluster(self.matches, cluster_threshold)
         
@@ -176,7 +146,6 @@ class DedupeMatching(Matching) :
         self._Blocker = blocking.DedupeBlocker
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
-        self._cluster_threshold_range = range(-10, 11)
 
     def _blockPairs(self, block) : 
         return itertools.combinations(block.items(), 2)
@@ -203,7 +172,6 @@ class RecordLinkMatching(Matching) :
         self._cluster = clustering.greedyMatching
         self._Blocker = blocking.RecordLinkBlocker
         self._linkage_type = "RecordLink"
-        self._cluster_threshold_range = [0]
 
     def _blockPairs(self, block) :
         base, target = block
@@ -211,7 +179,7 @@ class RecordLinkMatching(Matching) :
         
     def _checkBlock(self, block) :
         try :
-            base, target = block
+            base, target = first_block
             base.items() and target.items()
         except :
             raise ValueError("Each block must be a made up of two "

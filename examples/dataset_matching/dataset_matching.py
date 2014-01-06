@@ -176,13 +176,13 @@ blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, linker.blocker))
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-linker.goodThreshold(blocked_data, recall_weight=3)
+threshold = linker.goodThreshold(blocked_data, recall_weight=3)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = linker.match(blocked_data)
+clustered_dupes = linker.match(blocked_data, threshold)
 
 print '# duplicate sets', len(clustered_dupes)
 
