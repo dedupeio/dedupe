@@ -258,10 +258,16 @@ def peek(records) :
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs): # pragma : no cover
         self._d = dict(*args, **kwargs)
 
-    def __getitem__(self, key):
+    def __iter__(self):                  # pragma : no cover
+        return iter(self._d)
+
+    def __len__(self):                   # pragma : no cover
+        return len(self._d)
+
+    def __getitem__(self, key):          # pragma : no cover
         return self._d[key]
 
     def __repr__(self) :
@@ -273,3 +279,29 @@ class frozendict(collections.Mapping):
         except AttributeError:
             h = self._cached_hash = hash(frozenset(self._d.iteritems()))
             return h
+
+
+
+
+# class frozendict(dict):
+#     def _blocked_attribute(obj):
+#         raise AttributeError, "A frozendict cannot be modified."
+
+#     def __new__(cls, *args):
+#         new = dict.__new__(cls)
+#         dict.__init__(new, *args)
+#         return new
+
+#     def __init__(self, *args):
+#         pass
+
+#     def __hash__(self):
+#         try:
+#             return self._cached_hash
+#         except AttributeError:
+#             h = self._cached_hash = hash(tuple(sorted(self.items())))
+#             return h
+
+#     def __repr__(self):
+#         return "frozendict(%s)" % dict.__repr__(self)
+
