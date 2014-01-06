@@ -312,7 +312,8 @@ class ActiveMatching(Matching) :
                            (len(self.data_model['fields']), ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = {'distinct': [], 'match': []}
+        self.training_pairs = dedupe.backport.OrderedDict({'distinct': [], 
+                                                           'match': []})
 
         self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                      self.data_model)
@@ -530,7 +531,7 @@ class ActiveMatching(Matching) :
     
         for label, examples in labeled_pairs.items () :
             n_examples = len(examples)
-            labels = ['label'] * n_examples
+            labels = [label] * n_examples
 
             new_data = numpy.empty(n_examples,
                                    dtype=self.training_data.dtype)
