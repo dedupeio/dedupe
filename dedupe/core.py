@@ -20,7 +20,7 @@ def grouper(iterable, n, fillvalue=None): # pragma : no cover
     args = [iter(iterable)] * n
     return itertools.izip_longest(fillvalue=fillvalue, *args)
 
-def randomPairs(n_records, sample_size, zero_indexed=True):
+def randomPairs(n_records, sample_size):
     """
     Return random combinations of indices for a square matrix of size
     n records
@@ -52,10 +52,6 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
 
     x = numpy.trunc((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2)
     y = random_indices + x * (b + x + 2) / 2 + 1
-
-    if not zero_indexed:
-        x += 1
-        y += 1
 
     return numpy.column_stack((x, y)).astype(int)
 
