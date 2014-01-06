@@ -128,6 +128,12 @@ class Matching(object):
                                  "The field '%s' is in data_model but not "
                                  "in a record" % k)
 
+    def blockedPairs(self, blocks) :
+        block, blocks = core.peek(blocks)
+        self._checkBlock(block)
+        for block in blocks :
+            for pair in self._blockPairs(block) :
+                yield pair
 
 
 class DedupeMatching(Matching) :
@@ -136,31 +142,18 @@ class DedupeMatching(Matching) :
         self._Blocker = blocking.DedupeBlocker
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
-        
 
-    def blockedPairs(self, blocks) :
-        try :
-            first_block = blocks.next()
-        except AttributeError :
-            blocks = iter(blocks)
-            first_block = blocks.next()
+    def _blockPairs(self, block) :
+        return itertools.combinations(block.items(), 2)
         
+    def _checkBlock(self, block) :
         try :
-            first_block.items()
+            block.items()
         except :
             raise ValueError("Each block must be a dictionary")
 
-        self._checkRecordType(first_block.values()[0])
+        self._checkRecordType(block.values()[0])
 
-        for pair in itertools.combinations(first_block.items(), 2) :
-            yield pair
-            
-        for block in blocks :
-
-            block_pairs = itertools.combinations(block.items(), 2)
-
-            for pair in block_pairs :
-                yield pair
 
 
 class RecordLinkMatching(Matching) :
@@ -171,14 +164,11 @@ class RecordLinkMatching(Matching) :
         self._Blocker = blocking.RecordLinkBlocker
         self._linkage_type = "RecordLink"
 
-
-    def blockedPairs(self, blocks) :
-        try :
-            first_block = blocks.next()
-        except AttributeError :
-            blocks = iter(blocks)
-            first_block = blocks.next()
-
+    def _blockPairs(self, block) :
+        base, target = block
+        return itertools.product(base.items(), target.items())
+        
+    def _checkBlock(self, block) :
         try :
             base, target = first_block
             base.items() and target.items()
@@ -191,16 +181,7 @@ class RecordLinkMatching(Matching) :
         if target :
             self._checkRecordType(target.values()[0])
 
-        for pair in itertools.product(base.items(), target.items()) :
-            yield pair
 
-
-        for block in blocks :
-            base, target = block
-            block_pairs = itertools.product(base.items(), target.items())
-
-            for pair in block_pairs :
-                yield pair
 
 
         

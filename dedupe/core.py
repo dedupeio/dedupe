@@ -189,7 +189,9 @@ class ScoringFunction(object) :
 
 def scoreDuplicates(records, data_model, pool, threshold=0):
 
-    id_type, records = idType(records)
+    record, records = peek(records)
+
+    id_type = idType(record)
     
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
@@ -228,13 +230,25 @@ def scoreDuplicates(records, data_model, pool, threshold=0):
             
     return scored_pairs
 
-def idType(records) :
-    peek = records.next()
-    id_type = type(peek[0][0])
+def idType(record) :
+    id_type = type(record[0][0])
     if id_type is str :
-        id_type = (str, len(peek[0][0]) + 5)
+        id_type = (str, len(record[0][0]) + 5)
 
-    return numpy.dtype(id_type), itertools.chain([peek], records)
+    return numpy.dtype(id_type)
+
+
+def peek(records) :
+    try :
+        record = records.next()
+    except AttributeError as e:
+        if "has no attribute 'next'" not in str(e) :
+            raise
+        records = iter(records)
+        record = records.next()
+
+    return record, itertools.chain([record], records)
+
 
 
 class frozendict(collections.Mapping):
