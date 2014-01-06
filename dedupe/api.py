@@ -544,7 +544,7 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-    def _logLearnedWeights(self):
+    def _logLearnedWeights(self): # pragma: no cover
         """
         Log learned weights and bias terms
         """
