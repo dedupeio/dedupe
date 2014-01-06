@@ -231,7 +231,7 @@ class StaticMatching(Matching) :
 
         self.pool = multiprocessing.Pool(processes=num_processes)
 
-        with open(file_name, 'rb') as f:
+        with open(settings_file, 'rb') as f:
             try:
                 self.data_model = pickle.load(f)
                 self.predicates = pickle.load(f)
@@ -547,19 +547,19 @@ class ActiveMatching(Matching) :
         Appends training data to the training data collection.
         """
     
-        nondupes, dupes = labeled_pairs['distinct'], labeled_pairs['match']
-        labels = (['distinct'] * len(nondupes) 
-                  + ['match'] * len(dupes))
+        for label, examples in labeled_pairs.items () :
+            n_examples = len(examples)
+            labels = ['label'] * n_examples
 
-        new_training_data = numpy.empty(len(labels),
-                                        dtype=self.training_data.dtype)
+            new_data = numpy.empty(n_examples,
+                                   dtype=self.training_data.dtype)
 
-        new_training_data['label'] = labels
-        new_training_data['distances'] = core.fieldDistances(nondupes + dupes, 
-                                                             self.data_model)
+            new_data['label'] = labels
+            new_data['distances'] = core.fieldDistances(examples, 
+                                                        self.data_model)
 
-        self.training_data = numpy.append(self.training_data, 
-                                          new_training_data)
+            self.training_data = numpy.append(self.training_data, 
+                                              new_data)
 
 
     def _logLearnedWeights(self):
