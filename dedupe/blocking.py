@@ -6,15 +6,16 @@ import itertools
 import types
 import logging
 from multiprocessing import Pool
-import mekano
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.lexicon import Splitter
+from zope.index.text.lexicon import StopWordRemover
 import time
 
 import tfidf
 from backport import OrderedDict
+
 
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
@@ -25,7 +26,10 @@ class Blocker:
         self.canopies = defaultdict(dict)
 
         self.pool = pool
+
         self.stop_words = defaultdict(set, stop_words)
+
+        logging.info(self.stop_words)
 
         if predicates is None :
             self.simple_predicates = set([])
@@ -101,27 +105,32 @@ class Blocker:
                 yield (key, record_id)
 
             if i % 10000 == 0 :
-                print i, ',', time.time() - start_time, 'seconds'
-
-
-
+                logging.info('%(iteration)d, %(elapsed)f2 seconds', 
+                             {'iteration' :i, 
+                              'elapsed' :time.time() - start_time})
 
 
 class DedupeBlocker(Blocker) :
-    def tfIdfBlock(self, data, field, filter_frequent_tokens=False): 
+    def tfIdfBlock(self, data, field): 
         '''Creates TF/IDF canopy of a given set of data'''
-        
-        index = TextIndex(Lexicon(Splitter()))
+
+        class CustomStopWordRemover(object):
+            stop_words = self.stop_words[field].copy()
+
+            def process(self, lst):
+                return [w for w in lst if not w in self.stop_words]
+
+        index = TextIndex(Lexicon(Splitter(), CustomStopWordRemover()))
 
         index.index = CosineIndex(index.lexicon)
 
-        def indexing_gen() :
-            for record_id, doc in data :
-                record_id = int(record_id)
-                index.index_doc(record_id, doc)
-                yield (record_id, doc)
-        
-        base_tokens = dict(indexing_gen())
+        index_to_id = {}
+        base_tokens = {}
+
+        for i, (record_id, doc) in enumerate(data, 1) :
+            index_to_id[i] = record_id
+            base_tokens[i] = doc
+            index.index_doc(i, doc)
 
         canopies = (apply(tfidf._createCanopies,
                           (index,
@@ -131,7 +140,10 @@ class DedupeBlocker(Blocker) :
                     for threshold in self.tfidf_fields[field])
 
         for canopy in canopies :
-            self.canopies.update(canopy)
+            key, index_canopy = canopy
+            id_canopy = dict((index_to_id[k], index_to_id[v]) 
+                             for k,v in index_canopy.iteritems())
+            self.canopies[key] = defaultdict(str, id_canopy)
 
         # TextIndex is a highly recursive data structure, and there
         # are some hard limits in our ability to pickle such an object.
@@ -160,46 +172,44 @@ class DedupeBlocker(Blocker) :
 
 
 class RecordLinkBlocker(Blocker) :
-    def tfIdfBlocks(self, data_1, data_2):
+    def tfIdfBlock(self, data_1, data_2, field): 
         '''Creates TF/IDF canopy of a given set of data'''
-        
-        if not self.tfidf_predicates:
-            return
-            
-        tfidf_fields = set([])
-        for predicate, field in self.tfidf_predicates :
-            tfidf_fields.add(field)
 
-        ii = tfidf.InvertedIndex(tfidf_fields)
+        class CustomStopWordRemover(object):
+            stop_words = self.stop_words[field].copy()
 
-        self.base_tokens = ii.unweightedIndex(data_1)
-        target_tokens = ii.unweightedIndex(data_2)
+            def process(self, lst):
+                return [w for w in lst if not w in self.stop_words]
 
-        self.target_ii = {}
+        index = TextIndex(Lexicon(Splitter(), CustomStopWordRemover()))
 
-        for field, index in ii.inverted_indices.items() :
-            weighted_vectors = mekano.WeightVectors(index)
-            stop_words = tfidf.stopWords(index, 
-                                          ii.stop_word_threshold)
+        index.index = CosineIndex(index.lexicon)
 
-            self.base_tokens[field] = tfidf.weightVectors(weighted_vectors,
-                                                          self.base_tokens[field],
-                                                          stop_words)
+        index_to_id = {}
+        base_tokens = {}
 
-            print "hiya"
+        for i, (record_id, doc) in enumerate(data_1, 1) :
+            index_to_id[i] = record_id
+            base_tokens[i] = doc
 
-            self.target_ii = tfidf.removeStopWords(weighted_index)
+        for j, (record_id, doc) in enumerate(data_2, i+1) :
+            index_to_id[j] = record_id
+            index.index_doc(j, doc)
 
-            #targets = tfidf.weightVectors(weighted_vectors,
-            #                              target_tokens[field],
-            #                              stop_words)
-
-            #self.target_ii[field] = tfidf.tokensToInvertedIndex(targets)
+        canopies = [apply(tfidf._createCanopies,
+                          (index,
+                           base_tokens, 
+                           threshold, 
+                           field,
+                           False))
+                    for threshold in self.tfidf_fields[field]]
 
 
-        self.createCanopies()
-
-
+        for canopy in canopies :
+            key, index_canopy = canopy
+            id_canopy = dict((index_to_id[k], index_to_id[v]) 
+                             for k,v in index_canopy.iteritems())
+            self.canopies[key] = defaultdict(str, id_canopy)
 
 def blockTraining(training_pairs,
                   predicate_set,
@@ -432,6 +442,15 @@ class Coverage(object) :
 
         return predicate_blocks
 
+    def _calculateOverlap(self, blocker, record_pairs, record_ids) :
+        for canopy_id, canopy in blocker.canopies.items() :
+            for record_1, record_2 in record_pairs :
+                id_1 = record_ids[record_1]
+                id_2 = record_ids[record_2]
+                if canopy[id_1] == canopy[id_2]:
+                    self.overlapping[canopy_id].add((record_1, record_2))
+                    self.blocks[canopy_id][canopy[id_1]].add((record_1, record_2))
+
 
 class DedupeCoverage(Coverage) :
     def canopyOverlap(self,
@@ -453,20 +472,15 @@ class DedupeCoverage(Coverage) :
             id_records = zip(itertools.count(), 
                              (record[field] for record in docs))
 
+            self.stop_words[field] = stopWords(id_records)
+            blocker.stop_words[field] = self.stop_words[field]
                                         
             # uniquify records
 
-            blocker.tfIdfBlock(id_records, field, True)
+            blocker.tfIdfBlock(id_records, field)
 
+        self._calculateOverlap(blocker, record_pairs, record_ids)
 
-        for canopy_id, canopy in blocker.canopies.items() :
-            for record_1, record_2 in record_pairs :
-                id_1 = record_ids[record_1]
-                id_2 = record_ids[record_2]
-                if canopy[id_1] == canopy[id_2]:
-                    self.overlapping[canopy_id].add((record_1, record_2))
-                    self.blocks[canopy_id][canopy[id_1]].add((record_1, record_2))
-        self.stop_words = blocker.stop_words
 
 
 class RecordLinkCoverage(Coverage) :
@@ -475,34 +489,46 @@ class RecordLinkCoverage(Coverage) :
                        tfidf_predicates,
                        record_pairs) :
 
-        data_1 = set([])
-        data_2 = set([])
+        data_1_set = set([])
+        data_2_set = set([])
         for record_1, record_2 in record_pairs :
-            data_1.add(record_1)
-            data_2.add(record_2)
+            data_1_set.add(record_1)
+            data_2_set.add(record_2)
 
-        data_1 = list(itertools.izip(itertools.count(), 
-                                     data_1))
-        data_2 = list(itertools.izip(itertools.count(len(data_1)), 
-                                     data_2))
+        data_1 = {}
+        for i, record in enumerate(data_1_set) :
+            data_1[i] = record
 
-        record_ids = dict((v, k) for k, v in data_1)
-        record_ids.update(dict((v, k) for k, v in data_2))
+        data_2 = {}
+        for j, record in enumerate(data_2_set, i+1) :
+            data_2[j] = record
+
+        record_ids = dict((v,k) for k,v in data_1.iteritems())
+        record_ids.update((v,k) for k,v in data_2.iteritems())
+
+        tfidf_fields = defaultdict(list)
+
+        for threshold, field in tfidf_predicates :
+            tfidf_fields[field].append(threshold)
 
         blocker = RecordLinkBlocker(pool=self.pool)
-        blocker.tfidf_predicates = tfidf_predicates
+        blocker.tfidf_fields = tfidf_fields
 
-        blocker.tfIdfBlocks(data_1, data_2)
+        for field in blocker.tfidf_fields :
+            id_records_1 = [(record_id, record[field]) 
+                            for record_id, record in data_1.iteritems()]
 
-        for (threshold, field) in blocker.tfidf_predicates:
-            canopy = blocker.canopies[threshold.__name__ + field]
-            for record_1, record_2 in record_pairs :
-                id_1 = record_ids[record_1]
-                id_2 = record_ids[record_2]
-                if canopy[id_1] == canopy[id_2]:
-                    self.overlapping[(threshold, field)].add((record_1, record_2))
-                    self.blocks[(threshold, field)][canopy[id_1]].add((record_1, record_2))
-    
+            id_records_2 = [(record_id, record[field]) 
+                            for record_id, record in data_2.iteritems()]
+
+            self.stop_words[field] = stopWords(id_records_2)
+            blocker.stop_words[field] = self.stop_words[field]
+                                        
+            # uniquify records
+
+            blocker.tfIdfBlock(id_records_1, id_records_2, field)
+
+        self._calculateOverlap(blocker, record_pairs, record_ids)
 
 
 
@@ -544,3 +570,32 @@ def disjunctivePredicates(predicate_set):
     predicate_set.extend(disjunctive_predicates)
 
     return predicate_set
+
+def stopWords(data) :
+        index = TextIndex(Lexicon(Splitter()))
+
+        for i, (record_id, doc) in enumerate(data, 1) :
+            index.index_doc(i, doc)
+
+        doc_freq = [(len(index.index._wordinfo[wid]), word) 
+                    for word, wid in index.lexicon.items()]
+
+        doc_freq.sort(reverse=True)
+
+        N = float(index.index.documentCount())
+        threshold = int(max(1000, N * 0.05))
+
+        stop_words = set([])
+
+        for frequency, word in doc_freq :
+            if frequency > threshold :
+                print frequency, word
+                stop_words.add(word)
+            else :
+                break
+
+        return stop_words
+
+
+
+

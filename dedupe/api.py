@@ -595,8 +595,9 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     def __init__(self, *args, **kwargs) :
         super(StaticRecordLink, self).__init__(*args, **kwargs)
 
-        self.blocker = self._Blocker(self.predicates, self.pool)
-
+        self.blocker = self._Blocker(self.predicates, 
+                                     self.pool,
+                                     self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
     pass

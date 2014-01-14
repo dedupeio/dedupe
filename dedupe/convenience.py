@@ -65,17 +65,24 @@ def blockDataRecordLink(data_1, data_2, blocker):
 
     blocks = OrderedDict({})
 
-    if not blocker.canopies : 
-        blocker.tfIdfBlocks(data_1.items(), data_2.items())
+    for field in blocker.tfidf_fields :
+        fields_1 = ((record_id, record[field])
+                    for record_id, record 
+                    in data_1.iteritems())
+        fields_2 = ((record_id, record[field])
+                    for record_id, record 
+                    in data_2.iteritems())
 
-    for (record_id, record) in data_1.iteritems():
-        for key in blocker((record_id, record)):
-            blocks.setdefault(key, ({},{}))[0].update({record_id : record})
+        blocker.tfIdfBlock(fields_1, fields_2, field)
 
-    for (record_id, record) in data_2.iteritems():
-        for key in blocker((record_id, record)):
-            if key in blocks :
-                blocks[key][1].update({record_id : record})
+
+    for block_key, record_id in blocker(data_1.iteritems()) :
+        blocks.setdefault(block_key, ({},{}))[0].update({record_id : 
+                                                         data_1[record_id]})
+
+    for block_key, record_id in blocker(data_2.iteritems()) :
+        if block_key in blocks :
+            blocks[block_key][1].update({record_id : data_2[record_id]})
 
     for block in blocks.values () :
         yield block 
