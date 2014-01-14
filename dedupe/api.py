@@ -189,10 +189,6 @@ class RecordLinkMatching(Matching) :
             self._checkRecordType(base.values()[0])
         if target :
             self._checkRecordType(target.values()[0])
-
-
-
-
         
 
 class StaticMatching(Matching) :
@@ -228,6 +224,7 @@ class StaticMatching(Matching) :
             try:
                 self.data_model = pickle.load(f)
                 self.predicates = pickle.load(f)
+                self.stop_words = pickle.load(f)
             except KeyError :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
@@ -304,19 +301,25 @@ class ActiveMatching(Matching) :
             raise ValueError('Incorrect Input Type: must supply '
                              'a field definition.')
 
+        self.data_model = DataModel(field_definition)
+
         try :
             len(data_sample)
         except TypeError :
             raise ValueError("data_sample must be a sequence")
 
-        self.data_model = DataModel(field_definition)
-
         if len(data_sample) :
             self._checkRecordPairType(data_sample[0])
+            try :
+                hash(data_sample[0][0])
+            except :
+                raise ValueError("Records in data_sample must be hashable "
+                                 "see dedupe.core.frozendict")
+
         else :
             warnings.warn("You submitted an empty data_sample")
 
-        self.data_sample = self._freezeData(data_sample)
+        self.data_sample = data_sample
 
         self.pool = multiprocessing.Pool(processes=num_processes)
 
@@ -345,7 +348,7 @@ class ActiveMatching(Matching) :
             if examples :
                 self._checkRecordPairType(examples[0])
 
-            examples = self._freezeData(examples)
+            examples = core.freezeData(examples)
 
             training_pairs[label] = examples
             self.training_pairs[label].extend(examples)
@@ -415,14 +418,18 @@ class ActiveMatching(Matching) :
         predicate_set = blocking.predicateGenerator(blocker_types, 
                                                     self.data_model)
 
-        self.predicates = dedupe.blocking.blockTraining(training_pairs,
-                                                        predicate_set,
-                                                        ppc,
-                                                        uncovered_dupes,
-                                                        self.pool,
-                                                        self._linkage_type)
+        (self.predicates, 
+         self.stop_words) = dedupe.blocking.blockTraining(training_pairs,
+                                                          predicate_set,
+                                                          ppc,
+                                                          uncovered_dupes,
+                                                          self.pool,
+                                                          self._linkage_type)
 
-        self.blocker = self._Blocker(self.predicates, self.pool)
+        self.blocker = self._Blocker(self.predicates,
+                                     self.pool,
+                                     self.stop_words) 
+
 
     def blockerTypes(self) :
         string_predicates = (predicates.wholeFieldPredicate,
@@ -459,6 +466,7 @@ class ActiveMatching(Matching) :
         with open(file_name, 'w') as f:
             pickle.dump(self.data_model, f)
             pickle.dump(self.predicates, f)
+            pickle.dump(self.stop_words, f)
 
     def writeTraining(self, file_name):
         """
@@ -510,7 +518,7 @@ class ActiveMatching(Matching) :
         
 
         for label, pairs in labeled_pairs.items() :
-            self.training_pairs[label].extend(self._freezeData(pairs))
+            self.training_pairs[label].extend(core.freezeData(pairs))
 
         self._addTrainingData(labeled_pairs) 
 
@@ -570,17 +578,15 @@ class ActiveMatching(Matching) :
             except AttributeError:
                 logging.info((k1, v1))
 
-    def _freezeData(self, data) :
-        return [(core.frozendict(record_1), 
-                 core.frozendict(record_2))
-                for record_1, record_2 in data]
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
     def __init__(self, *args, **kwargs) :
         super(StaticDedupe, self).__init__(*args, **kwargs)
 
-        self.blocker = self._Blocker(self.predicates, self.pool)
+        self.blocker = self._Blocker(self.predicates, 
+                                     self.pool,
+                                     self.stop_words)
 
 class Dedupe(DedupeMatching, ActiveMatching) :
     pass
@@ -589,8 +595,9 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     def __init__(self, *args, **kwargs) :
         super(StaticRecordLink, self).__init__(*args, **kwargs)
 
-        self.blocker = self._Blocker(self.predicates, self.pool)
-
+        self.blocker = self._Blocker(self.predicates, 
+                                     self.pool,
+                                     self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
     pass
