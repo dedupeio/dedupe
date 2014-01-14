@@ -16,11 +16,14 @@ except ImportError :
 
 
 def dataSample(data, sample_size):
-    random_pairs = dedupe.core.randomPairs(len(data), 
+    d = dict((i, dedupe.core.frozendict(v)) 
+             for i, v in enumerate(data.values()))
+
+    random_pairs = dedupe.core.randomPairs(len(d), 
                                            sample_size)
 
-    return tuple((data.values()[int(k1)], 
-                  data.values()[int(k2)]) 
+    return tuple((d[int(k1)], 
+                  d[int(k2)]) 
                  for k1, k2 in random_pairs)
 
 
@@ -28,11 +31,15 @@ def blockData(data_d, blocker):
 
     blocks = OrderedDict({})
 
-    blocker.tfIdfBlocks(data_d.iteritems())
+    for field in blocker.tfidf_fields :
+        blocker.tfIdfBlock(((record_id, record[field])
+                            for record_id, record 
+                            in data_d.iteritems()),
+                           field)
 
-    for (record_id, record) in data_d.iteritems():
-        for key in blocker((record_id, record)):
-            blocks.setdefault(key, {}).update({record_id : record})
+    for block_key, record_id in blocker(data_d.iteritems()) :
+        blocks.setdefault(block_key, {}).update({record_id : 
+                                                 data_d[record_id]})
 
     blocked_records = tuple(block for block in blocks.values())
 
@@ -40,8 +47,10 @@ def blockData(data_d, blocker):
 
 def dataSampleRecordLink(data_1, data_2, sample_size) :
      '''Randomly select pairs between two data dictionaries'''
-     d_1 = dict((i, v) for i, v in enumerate(data_1.values()))
-     d_2 = dict((i, v) for i, v in enumerate(data_2.values()))
+     d_1 = dict((i, dedupe.core.frozendict(v)) 
+                for i, v in enumerate(data_1.values()))
+     d_2 = dict((i, dedupe.core.frozendict(v)) 
+                for i, v in enumerate(data_2.values()))
 
      random_pairs = dedupe.core.randomPairsMatch(len(d_1),
                                                  len(d_2), 

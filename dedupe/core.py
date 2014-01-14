@@ -178,10 +178,11 @@ class ScoringFunction(object) :
 
         filtered_scores = list(filtered_scores)
 
-        scored_pairs = numpy.fromiter(filtered_scores,
-                                      dtype=self.dtype)
+        scored_pairs = numpy.array(filtered_scores,
+                                   dtype=self.dtype)
 
         return scored_pairs
+
 
 def scoreDuplicates(records, data_model, pool, threshold=0):
 
@@ -191,45 +192,34 @@ def scoreDuplicates(records, data_model, pool, threshold=0):
     
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
-    scored_pairs = numpy.empty((0,), dtype=score_dtype)
-
-    record_chunks = grouper(records, 1000000)
+    record_chunks = grouper(records, 100000)
 
     scoring_function = ScoringFunction(data_model, 
                                        threshold,
                                        score_dtype)
 
-    score_queue = multiprocessing.Queue()
-
     results = [pool.apply_async(scoring_function,
-                               (chunk,),
-                               callback=score_queue.put)
-               for chunk in record_chunks] 
+                               (chunk,))
+              for chunk in record_chunks] 
 
-    while not all([r.ready() for r in results]) :
-        try :
-            # equivalent to numpy.union1d(a,b)
-            # http://stackoverflow.com/questions/12427146/combine-two-arrays-and-sort
-            scored_pairs = numpy.concatenate((scored_pairs, 
-                                              score_queue.get(True, 1)))
-            scored_pairs.sort()
-            flag = numpy.ones(len(scored_pairs), dtype=bool)
-            numpy.not_equal(scored_pairs[1:], 
-                            scored_pairs[:-1], 
-                            out=flag[1:])
-            scored_pairs[flag]
+    for r in results :
+       r.wait()
 
-        except Queue.Empty :
-            pass
+    scored_pairs = numpy.concatenate([r.get() for r in results])
 
-    score_queue.close()
-            
-    return scored_pairs
+    scored_pairs.sort()
+    flag = numpy.ones(len(scored_pairs), dtype=bool)
+    numpy.not_equal(scored_pairs[1:], 
+                    scored_pairs[:-1], 
+                    out=flag[1:])
+
+    return scored_pairs[flag]
+
 
 def idType(record) :
     id_type = type(record[0][0])
-    if id_type is str :
-        id_type = (str, len(record[0][0]) + 5)
+    if id_type is str or id_type is unicode :
+        id_type = (unicode, len(record[0][0]) + 5)
 
     return numpy.dtype(id_type)
 
@@ -248,6 +238,12 @@ def peek(records) :
 
 
     return record, itertools.chain([record], records)
+
+
+def freezeData(data) :
+    return [(frozendict(record_1), 
+             frozendict(record_2))
+            for record_1, record_2 in data]
 
 
 

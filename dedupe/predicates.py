@@ -27,7 +27,9 @@ def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
     ints = sorted([int(i) for i in integers.findall(field)])
     near_ints = set([])
-    [near_ints.update((i - 1, i, i + 1)) for i in ints]
+    [near_ints.update((unicode(i - 1), 
+                       unicode(i), 
+                       unicode(i + 1))) for i in ints]
     return tuple(near_ints)
 
 def ngrams(field, n):
