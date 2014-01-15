@@ -13,7 +13,6 @@ except ImportError:
     import simplejson as json
 import itertools
 import logging
-import types
 import pickle
 import multiprocessing
 import numpy

@@ -19,57 +19,6 @@ DATA = {  100 : {"name": "Bob", "age": "50"},
           145 : {"name": "Kyle", "age": "27"}
         }
 
-class CoreTest(unittest.TestCase):
-  def setUp(self) :
-    random.seed(123)
-
-    self.records = iter([(('1', {'name': 'Margret', 'age': '32'}), 
-                          ('2', {'name': 'Marga', 'age': '33'})), 
-                         (('2', {'name': 'Marga', 'age': '33'}), 
-                          ('3', {'name': 'Maria', 'age': '19'})), 
-                         (('4', {'name': 'Maria', 'age': '19'}), 
-                          ('5', {'name': 'Monica', 'age': '39'})), 
-                         (('6', {'name': 'Monica', 'age': '39'}), 
-                          ('7', {'name': 'Mira', 'age': '47'})),
-                         (('8', {'name': 'Mira', 'age': '47'}), 
-                          ('9', {'name': 'Mona', 'age': '9'})),
-                        ])
-
-    self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
-    self.data_model = {}
-    self.data_model['fields'] = dedupe.backport.OrderedDict()
-    v = {}
-    v.update({'Has Missing': False, 'type': 'String', 'comparator': self.normalizedAffineGapDistance, \
-              'weight': -1.0302742719650269})
-    self.data_model['fields']['name'] = v
-    self.data_model['bias'] = 4.76
-
-    score_dtype = [('pairs', 'S1', 2), ('score', 'f4', 1)]
-    self.desired_scored_pairs = numpy.array([(('1', '2'), 0.96), (['2', '3'], 0.96), \
-                                             (['4', '5'], 0.78), (['6', '7'], 0.72), \
-                                             (['8', '9'], 0.84)], dtype=score_dtype)
-
-
-  def test_random_pair(self) :
-    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-    assert dedupe.core.randomPairs(10, 10).any()
-    assert dedupe.core.randomPairs(10*1000000000, 10).any()
-    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
-                             numpy.array([[ 1,  8],
-                                          [ 5,  7],
-                                          [ 1,  2],
-                                          [ 3,  7],
-                                          [ 2,  9]]))
-
-  def test_score_duplicates(self):
-    actual_scored_pairs_str = dedupe.core.scoreDuplicates(self.records,
-                                                          self.data_model,
-                                                          multiprocessing.Pool(processes=1))
-
-    scores_str = numpy.around(actual_scored_pairs_str['score'], decimals=2)
-
-    numpy.testing.assert_almost_equal(self.desired_scored_pairs['score'], scores_str)
-    numpy.testing.assert_equal(self.desired_scored_pairs['pairs'], actual_scored_pairs_str['pairs'])
 
 class ConvenienceTest(unittest.TestCase):
   def test_data_sample(self):
@@ -295,21 +244,6 @@ class DedupeClassTest(unittest.TestCase):
 
 
 
-class CoreTest(unittest.TestCase):
-
-  def test_random_pair(self) :
-    random.seed(123)
-    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-    assert dedupe.core.randomPairs(10, 10).any()
-    assert dedupe.core.randomPairs(10*1000000000, 10).any()
-    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
-                             numpy.array([[ 1,  8],
-                                          [ 5,  7],
-                                          [ 1,  2],
-                                          [ 3,  7],
-                                          [ 2,  9]]))
-
-
 
 class AffineGapTest(unittest.TestCase):
   def setUp(self):
@@ -509,110 +443,6 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
     assert dedupe.predicates.ngrams(field,3) == ('123','23 ','3 1',' 16','16t','6th','th ','h s',' st')
 
-class FieldDistances(unittest.TestCase):
-  def test_field_distance_simple(self) :
-    fieldDistances = dedupe.core.fieldDistances
-    deduper = dedupe.Dedupe({'name' : {'type' :'String'},
-                             'source' : {'type' : 'Source',
-                                         'Source Names' : ['a', 'b']}}, [])
-
-    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
-                     {'name' : 'steven', 'source' : 'a'}),)
-
-
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[0, 0.647, 0, 0, 0]]), 3)
-
-    record_pairs = (({'name' : 'steve', 'source' : 'b'}, 
-                     {'name' : 'steven', 'source' : 'b'}),)
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[1, 0.647, 0, 0.647, 0]]), 3)
-
-    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
-                     {'name' : 'steven', 'source' : 'b'}),)
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[0, 0.647, 1, 0, 0.647]]), 3)
-
-  def test_comparator(self) :
-    fieldDistances = dedupe.core.fieldDistances
-    deduper = dedupe.Dedupe({'type' : {'type' : 'Categorical',
-                                       'Categories' : ['a', 'b', 'c']}
-                             }, [])
-
-    record_pairs = (({'type' : 'a'},
-                     {'type' : 'b'}),
-                    ({'type' : 'a'},
-                     {'type' : 'c'}))
-
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[ 0, 0, 1, 0, 0],
-                                                         [ 0, 0, 0, 1, 0]]),
-                                            3)
-
-    deduper = dedupe.Dedupe({'type' : {'type' : 'Categorical',
-                                       'Categories' : ['a', 'b', 'c']},
-                             'source' : {'type' : 'Source',
-                                         'Source Names' : ['foo', 'bar']}
-                             }, [])
-
-    record_pairs = (({'type' : 'a',
-                      'source' : 'bar'},
-                     {'type' : 'b',
-                      'source' : 'bar'}),
-                    ({'type' : 'a', 
-                      'source' : 'foo'},
-                     {'type' : 'c',
-                      'source' : 'bar'}))
-
-
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.],
-                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.]]),
-                                            3)
-
- 
-
-  def test_field_distance_interaction(self) :
-    fieldDistances = dedupe.core.fieldDistances
-    deduper = dedupe.Dedupe({'first_name' : {'type' :'String'},
-                             'last_name' : {'type' : 'String'},
-                             'first-last' : {'type' : 'Interaction', 
-                                             'Interaction Fields' : ['first_name', 
-                                                                     'last_name']},
-                             'source' : {'type' : 'Source',
-                                         'Source Names' : ['a', 'b']}
-                           }, [])
-
-    record_pairs = (({'first_name' : 'steve', 
-                      'last_name' : 'smith', 
-                      'source' : 'b'}, 
-                     {'first_name' : 'steven', 
-                      'last_name' : 'smith', 
-                      'source' : 'b'}),)
-
-    # ['source', 'first_name', 'last_name', 'different sources',
-    # 'first-last', 'source:first_name', 'different sources:first_name',
-    # 'source:last_name', 'different sources:last_name',
-    # 'source:first-last', 'different sources:first-last']
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[ 1.0,  
-                                                           0.647,  
-                                                           0.5,  
-                                                           0.0,
-                                                           0.323,
-                                                           0.647,
-                                                           0.0,
-                                                           0.5,
-                                                           0.0,
-                                                           0.323,
-                                                           0.0]]),
-                                            3)
 
 
 
