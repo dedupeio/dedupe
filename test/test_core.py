@@ -32,8 +32,13 @@ class RandomPairsTest(unittest.TestCase) :
             assert str(w[-1].message) == "There may be duplicates in the sample"
 
     def test_random_pair_match(self) :
+        self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 1, 0, 10)
+        self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 0, 0, 10)
+        self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 0, 1, 10)
+
         assert len(dedupe.core.randomPairsMatch(100, 100, 100)) == 100
-        assert len(dedupe.core.randomPairsMatch(10, 10, 100)) == 100
+        assert len(dedupe.core.randomPairsMatch(10, 10, 99)) == 99
+
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
@@ -42,6 +47,13 @@ class RandomPairsTest(unittest.TestCase) :
             assert str(w[-1].message) == "Requested sample of size 200, only returning 100 possible pairs"
 
         assert len(pairs) == 100
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            pairs = dedupe.core.randomPairsMatch(10, 10, 200)
+            assert len(w) == 1
+            assert str(w[-1].message) == "Requested sample of size 200, only returning 100 possible pairs"
+
 
         random.seed(123)
         numpy.random.seed(123)

@@ -63,6 +63,8 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     """
     Return random combinations of indices for record list A and B
     """
+    if not n_records_A or not n_records_B :
+        raise ValueError("There must be at least one record in A and in B")
 
     if sample_size >= n_records_A * n_records_B :
 
@@ -77,9 +79,9 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     pairs = zip(A_samples,B_samples)
     set_pairs = set(pairs)
 
-    if len(set_pairs) < sample_size:
-        return set.union(set_pairs,
-                         randomPairsMatch(n_records_A,n_records_B,
+    while len(set_pairs) < sample_size:
+        set_pairs.update(randomPairsMatch(n_records_A,
+                                          n_records_B,
                                           (sample_size-len(set_pairs))))
     else:
         return set_pairs
