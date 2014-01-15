@@ -11,6 +11,7 @@ import Queue
 import numpy
 import time
 import collections
+import backport
 
 import lr
 
@@ -31,10 +32,10 @@ def randomPairs(n_records, sample_size):
     n = n_records * (n_records - 1) / 2
 
     if sample_size >= n:
-        warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
+        if sample_size > n :
+            warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
 
         random_indices = numpy.arange(n)
-        numpy.random.shuffle(random_indices)
     else:
         try:
             random_indices = numpy.random.randint(n, size=sample_size)
@@ -63,15 +64,13 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     Return random combinations of indices for record list A and B
     """
 
-    if sample_size >= n_records_A * n_record_B :
-        # look at http://stackoverflow.com/questions/1208118/using-numpy-to-build-an-array-of-all-combinations-of-two-arrays
+    if sample_size >= n_records_A * n_records_B :
 
-        warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n_records_A * n_records_B))
+        if sample_size > n_records_A * n_records_B :
+            warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n_records_A * n_records_B))
 
-        pairs = itertools.combinations
-        A_samples = numpy.random.shuffle(numpy.arange(n_records_A))
-        B_samples = numpy.random.shuffle(numpy.arange(n_records_B))
-        
+        return backport.cartesian((numpy.arange(n_records_A),
+                                   numpy.arange(n_records_B)))
 
     A_samples = numpy.random.randint(n_records_A, size=sample_size)
     B_samples = numpy.random.randint(n_records_B, size=sample_size)
