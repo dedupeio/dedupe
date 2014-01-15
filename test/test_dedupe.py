@@ -32,22 +32,6 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 
 
 
-class ConvenienceTest(unittest.TestCase):
-  def test_data_sample(self):
-    random.seed(123)
-    numpy.random.seed(123)
-    assert dedupe.dataSample(DATA ,5) == \
-      (({'age': '27', 'name': 'Kyle'}, 
-        {'age': '50', 'name': 'Bob'}), 
-       ({'age': '50', 'name': 'Bob'}, 
-        {'age': '21', 'name': 'Jimbo'}), 
-       ({'age': '35', 'name': 'William'}, 
-        {'age': '40', 'name': 'Meredith'}), 
-       ({'age': '20', 'name': 'Jimmy'}, 
-        {'age': '40', 'name': 'Meredith'}), 
-       ({'age': '10', 'name': 'Sue'}, 
-        {'age': '50', 'name': 'Bob'}))
-
 
 class SourceComparatorTest(unittest.TestCase) :
   def test_comparator(self) :
@@ -164,93 +148,6 @@ class DataModelTest(unittest.TestCase) :
                                         'Interaction Fields': ['a', 'b']})]),
        'bias': 0}
 
-class DedupeInitializeTest(unittest.TestCase) :
-  def test_initialize_fields(self) :
-    self.assertRaises(TypeError, dedupe.Dedupe)
-    self.assertRaises(TypeError, dedupe.Dedupe, [])
-
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-              }
-    deduper = dedupe.Dedupe(fields, [])
-
-    assert deduper.matches is None
-    assert deduper.blocker is None
-
-
-  def test_base_predicates(self) :
-    deduper = dedupe.Dedupe({'name' : {'type' : 'String'}}, [])
-    string_predicates = (dedupe.predicates.wholeFieldPredicate,
-                         dedupe.predicates.tokenFieldPredicate,
-                         dedupe.predicates.commonIntegerPredicate,
-                         dedupe.predicates.sameThreeCharStartPredicate,
-                         dedupe.predicates.sameFiveCharStartPredicate,
-                         dedupe.predicates.sameSevenCharStartPredicate,
-                         dedupe.predicates.nearIntegersPredicate,
-                         dedupe.predicates.commonFourGram,
-                         dedupe.predicates.commonSixGram)
-
-    tfidf_string_predicates = tuple([dedupe.tfidf.TfidfPredicate(threshold)
-                                     for threshold
-                                     in [0.2, 0.4, 0.6, 0.8]])
-
-    assert deduper.blockerTypes() == {'String' : string_predicates + tfidf_string_predicates}
-
-
-class DedupeClassTest(unittest.TestCase):
-  def setUp(self) : 
-    random.seed(123) 
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-              }
-    data_sample = DATA_SAMPLE
-    self.deduper = dedupe.Dedupe(fields, data_sample)
-
-  def test_blockPairs(self) :
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ((),))
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ({1:2},))
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ({'name':'Frank', 'age':21},))
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ({'1' : {'name' : 'Frank',
-                                                                      'height' : 72}},))
-    assert [] == list(self.deduper.blockedPairs(({'1' : {'name' : 'Frank',
-                                                         'age' : 72}},)))
-    assert list(self.deduper.blockedPairs(({'1' : {'name' : 'Frank',
-                                                   'age' : 72},
-                                            '2' : {'name' : 'Bob',
-                                                   'age' : 27}},))) == \
-                  [(('1', {'age': 72, 'name': 'Frank'}), 
-                    ('2', {'age': 27, 'name': 'Bob'}))]
-
-                                    
-
-  def test_add_training(self) :
-    training_pairs = {'distinct' : self.deduper.data_sample[0:3],
-                      'match' : self.deduper.data_sample[3:6]}
-    self.deduper._addTrainingData(training_pairs)
-    numpy.testing.assert_equal(self.deduper.training_data['label'],
-                               ['distinct', 'distinct', 'distinct', 
-                                'match', 'match'])
-    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
-                                      numpy.array(
-                                        [[ 5.5, 5.0178],
-                                         [ 5.5, 3.4431],
-                                         [ 5.5, 3.7750],
-                                         [ 3.0, 5.125 ],
-                                         [ 5.5, 4.8333]]),
-                                      4)
-    self.deduper._addTrainingData(training_pairs)
-    numpy.testing.assert_equal(self.deduper.training_data['label'],
-                               ['distinct', 'distinct', 'distinct', 
-                                'match', 'match']*2)
-
-    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
-                                      numpy.array(
-                                        [[ 5.5, 5.0178],
-                                         [ 5.5, 3.4431],
-                                         [ 5.5, 3.7750],
-                                         [ 3.0, 5.125 ],
-                                         [ 5.5, 4.8333]]*2),
-                                      4)
 
 
 
@@ -355,86 +252,6 @@ class ClusteringTest(unittest.TestCase):
                        threshold=0.8) == [(4, 6)]
     assert greedyMatch(self.bipartite_dupes, 
                        threshold=1) == []
-
-
-class BlockingTest(unittest.TestCase):
-  def setUp(self):
-    self.frozendict = dedupe.core.frozendict
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-              }
-    self.deduper = dedupe.Dedupe(fields)
-    self.wholeFieldPredicate = dedupe.predicates.wholeFieldPredicate
-    self.sameThreeCharStartPredicate = dedupe.predicates.sameThreeCharStartPredicate
-    self.training_pairs = {
-        0: [(self.frozendict({"name": "Bob", "age": "50"}),
-             self.frozendict({"name": "Charlie", "age": "75"})),
-            (self.frozendict({"name": "Meredith", "age": "40"}),
-             self.frozendict({"name": "Sue", "age": "10"}))], 
-        1: [(self.frozendict({"name": "Jimmy", "age": "20"}),
-             self.frozendict({"name": "Jimbo", "age": "21"})),
-            (self.frozendict({"name": "Willy", "age": "35"}),
-             self.frozendict({"name": "William", "age": "35"}))]
-      }
-    self.predicate_functions = (self.wholeFieldPredicate, self.sameThreeCharStartPredicate)
-    
-class TfidfTest(unittest.TestCase):
-  def setUp(self):
-    self.field = "Hello World world"
-    self.record_id = 20
-    self.data_d = {
-                     100 : {"name": "Bob", "age": "50", "dataset": 0},
-                     105 : {"name": "Charlie", "age": "75", "dataset": 1},
-                     110 : {"name": "Meredith", "age": "40", "dataset": 1},
-                     115 : {"name": "Sue", "age": "10", "dataset": 0},
-                     120 : {"name": "Jimbo", "age": "21","dataset": 1},
-                     125 : {"name": "Jimbo", "age": "21", "dataset": 0},
-                     130 : {"name": "Willy", "age": "35", "dataset": 0},
-                     135 : {"name": "Willy", "age": "35", "dataset": 1},
-                     140 : {"name": "Martha", "age": "19", "dataset": 1},
-                     145 : {"name": "Kyle", "age": "27", "dataset": 0},
-                  }
-    
-    self.tfidf_fields = ["name"]
-
-
-
-  def test_unconstrained_inverted_index(self):
-
-    blocker = dedupe.blocking.DedupeBlocker()
-    blocker.tfidf_fields = {"name" : [dedupe.tfidf.TfidfPredicate(0.0)]}
-
-    blocker.tfIdfBlock(((record_id, record["name"]) 
-                        for record_id, record 
-                        in self.data_d.iteritems()),
-                       "name")
-
-    canopy = blocker.canopies.values()[0]
-
-    assert canopy == {120: 120, 130: 130, 125: 120, 135: 130}
-
-  def test_constrained_inverted_index(self):
-
-    blocker = dedupe.blocking.RecordLinkBlocker()
-    blocker.tfidf_fields = {"name" : [dedupe.tfidf.TfidfPredicate(0.0)]}
-
-    fields_1 = dict((record_id, record["name"]) 
-                    for record_id, record 
-                    in self.data_d.iteritems()
-                    if record["dataset"] == 0)
-
-    fields_2 = dict((record_id, record["name"]) 
-                    for record_id, record 
-                    in self.data_d.iteritems()
-                    if record["dataset"] == 1)
-
-    blocker.tfIdfBlock(fields_1.items(), fields_2.items(), "name")
-
-    canopy = blocker.canopies.values()[0]
-
-    assert set(canopy.values()) <= set(fields_1.keys())
-
-    assert canopy == {120: 125, 135: 130, 130: 130, 125: 125}
 
 
 
