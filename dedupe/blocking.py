@@ -200,8 +200,7 @@ class RecordLinkBlocker(Blocker) :
                           (index,
                            base_tokens, 
                            threshold, 
-                           field,
-                           False))
+                           field))
                     for threshold in self.tfidf_fields[field]]
 
 
@@ -348,13 +347,7 @@ def findOptimumBlocking(uncovered_dupes,
                        'uncovered' : len(uncovered_dupes)
                        })
 
-
-
-
     return final_predicate_set
-
-
-
 
 class Coverage(object) :
     def __init__(self, predicate_set, pairs, pool) :
@@ -368,38 +361,16 @@ class Coverage(object) :
         basic_preds, tfidf_preds = predicateTypes(predicate_set)
 
         logging.info("Calculating coverage of simple predicates")
-        self.simplePredicateOverlap(basic_preds, pairs)
+        self._simplePredicateOverlap(basic_preds, pairs)
 
         logging.info("Calculating coverage of tf-idf predicates")
-        self.canopyOverlap(tfidf_preds, pairs)
+        self._canopyOverlap(tfidf_preds, pairs)
 
         for predicate in predicate_set :
             covered_pairs = set.intersection(*(self.overlapping[basic_predicate]
                                                for basic_predicate
                                                in predicate))
             self.overlapping[predicate] = covered_pairs
-
-
-    def simplePredicateOverlap(self,
-                                basic_predicates,
-                                pairs) :
-
-        for basic_predicate in basic_predicates :
-            (F, field) = basic_predicate        
-            for pair in pairs :
-                field_predicate_1 = F(pair[0][field])
-
-                if field_predicate_1:
-                    field_predicate_2 = F(pair[1][field])
-
-                    if field_predicate_2 :
-                        field_preds = set(field_predicate_2) & set(field_predicate_1)
-                        if field_preds :
-                            self.overlapping[basic_predicate].add(pair)
-
-                        for field_pred in field_preds :
-                            self.blocks[basic_predicate][field_pred].add(pair)
-
 
     def predicateCoverage(self,
                           predicate_set,
@@ -414,6 +385,7 @@ class Coverage(object) :
                 coverage[predicate] = covered_pairs
 
         return coverage
+
 
     def predicateBlocks(self,
                         predicate_set,
@@ -442,6 +414,31 @@ class Coverage(object) :
 
         return predicate_blocks
 
+
+
+    def _simplePredicateOverlap(self,
+                                basic_predicates,
+                                pairs) :
+
+        for basic_predicate in basic_predicates :
+            (F, field) = basic_predicate        
+            for pair in pairs :
+                field_predicate_1 = F(pair[0][field])
+
+                if field_predicate_1:
+                    field_predicate_2 = F(pair[1][field])
+
+                    if field_predicate_2 :
+                        field_preds = set(field_predicate_2) & set(field_predicate_1)
+                        if field_preds :
+                            self.overlapping[basic_predicate].add(pair)
+
+                        for field_pred in field_preds :
+                            self.blocks[basic_predicate][field_pred].add(pair)
+
+
+
+
     def _calculateOverlap(self, blocker, record_pairs, record_ids) :
         for canopy_id, canopy in blocker.canopies.items() :
             for record_1, record_2 in record_pairs :
@@ -453,7 +450,7 @@ class Coverage(object) :
 
 
 class DedupeCoverage(Coverage) :
-    def canopyOverlap(self,
+    def _canopyOverlap(self,
                        tfidf_predicates,
                        record_pairs) :
 
@@ -485,7 +482,7 @@ class DedupeCoverage(Coverage) :
 
 class RecordLinkCoverage(Coverage) :
 
-    def canopyOverlap(self,
+    def _canopyOverlap(self,
                        tfidf_predicates,
                        record_pairs) :
 
@@ -529,8 +526,6 @@ class RecordLinkCoverage(Coverage) :
             blocker.tfIdfBlock(id_records_1, id_records_2, field)
 
         self._calculateOverlap(blocker, record_pairs, record_ids)
-
-
 
 def predicateTypes(predicates) :
     tfidf_predicates = set([])

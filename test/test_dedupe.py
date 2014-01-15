@@ -488,11 +488,10 @@ class TfidfTest(unittest.TestCase):
     blocker.tfIdfBlock(fields_1.items(), fields_2.items(), "name")
 
     canopy = blocker.canopies.values()[0]
-    print canopy
 
     assert set(canopy.values()) <= set(fields_1.keys())
 
-    assert canopy == {120: 125, 135: 130}
+    assert canopy == {120: 125, 135: 130, 130: 130, 125: 125}
 
 
 

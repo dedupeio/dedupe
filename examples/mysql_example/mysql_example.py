@@ -225,83 +225,83 @@ else:
 
 # # ## Blocking
 
-print 'blocking...'
+# print 'blocking...'
 
-# To run blocking on such a large set of data, we create a separate table
-# that contains blocking keys and record ids
-print 'creating blocking_map database'
-c.execute("DROP TABLE IF EXISTS blocking_map")
-c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
-c.execute("CREATE TABLE blocking_map "
-          "(block_key VARCHAR(200), donor_id INTEGER)")
-
-
-# If dedupe learned a TF-IDF blocking rule, we have to take a pass
-# through the data and create TF-IDF canopies. This can take up to an
-# hour
-print 'creating inverted index'
+# # To run blocking on such a large set of data, we create a separate table
+# # that contains blocking keys and record ids
+# print 'creating blocking_map database'
+# c.execute("DROP TABLE IF EXISTS blocking_map")
+# c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
+# c.execute("CREATE TABLE blocking_map "
+#           "(block_key VARCHAR(200), donor_id INTEGER)")
 
 
-c2 = con2.cursor()
+# # If dedupe learned a TF-IDF blocking rule, we have to take a pass
+# # through the data and create TF-IDF canopies. This can take up to an
+# # hour
+# print 'creating inverted index'
 
 
-for field in deduper.blocker.tfidf_fields :
-    c2.execute("SELECT donor_id, %s FROM processed_donors" % field)
-    field_data = (row for row in c2)
-    deduper.blocker.tfIdfBlock(field_data, field)
-
-# Now we are ready to write our blocking map table by creating a
-# generator that yields unique `(block_key, donor_id)` tuples.
-print 'writing blocking map'
-
-c.execute(DONOR_SELECT)
-full_data = ((row['donor_id'], row) for row in c)
-b_data = deduper.blocker(full_data)
-
-# MySQL has a hard limit on the size of a data object that can be
-# passed to it.  To get around this, we chunk the blocked data in
-# to groups of 30,000 blocks
-step_size = 30000
-done = False
-while not done :
-    chunks = (list(itertools.islice(b_data, step)) for step in [step_size]*100)
-
-    results =[pool.apply_async(dbWriter,
-                               ("INSERT INTO blocking_map VALUES (%s, %s)", 
-                                chunk))
-              for chunk in chunks]
-
-    for r in results :
-        r.wait()
-
-    if len(chunk) < step_size :
-        done = True
+# c2 = con2.cursor()
 
 
-# Create an index on the blocking key for faster clustering
-print 'creating blocking map index. this will probably take a while ...'
-c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
-print 'created', time.time() - start_time, 'seconds'
+# for field in deduper.blocker.tfidf_fields :
+#     c2.execute("SELECT donor_id, %s FROM processed_donors" % field)
+#     field_data = (row for row in c2)
+#     deduper.blocker.tfIdfBlock(field_data, field)
 
-print "calculating singletons"
+# # Now we are ready to write our blocking map table by creating a
+# # generator that yields unique `(block_key, donor_id)` tuples.
+# print 'writing blocking map'
 
-c.execute("create temporary table singletons as (select block_key from blocking_map group by block_key having count(*) < 2)")
+# c.execute(DONOR_SELECT)
+# full_data = ((row['donor_id'], row) for row in c)
+# b_data = deduper.blocker(full_data)
 
-c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+# # MySQL has a hard limit on the size of a data object that can be
+# # passed to it.  To get around this, we chunk the blocked data in
+# # to groups of 30,000 blocks
+# step_size = 30000
+# done = False
+# while not done :
+#     chunks = (list(itertools.islice(b_data, step)) for step in [step_size]*100)
 
-print "removing singletons"
-c.execute("delete bm.* from blocking_map bm JOIN singletons USING (block_key)")
-c.execute("CREATE INDEX sorting_key ON blocking_map (block_key, donor_id)")
-c.execute("drop table singletons")
+#     results =[pool.apply_async(dbWriter,
+#                                ("INSERT INTO blocking_map VALUES (%s, %s)", 
+#                                 chunk))
+#               for chunk in chunks]
 
-c.execute("create table sorted_blocking_map as select * from blocking_map order by block_key, donor_id")
+#     for r in results :
+#         r.wait()
 
-c.execute("alter table sorted_blocking_map add column id int(8) unsigned primary key auto_increment")
+#     if len(chunk) < step_size :
+#         done = True
 
-c.execute("create index donor_idx on sorted_blocking_map (donor_id)")
+
+# # Create an index on the blocking key for faster clustering
+# print 'creating blocking map index. this will probably take a while ...'
+# c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
+# print 'created', time.time() - start_time, 'seconds'
+
+# print "calculating singletons"
+
+# c.execute("create temporary table singletons as (select block_key from blocking_map group by block_key having count(*) < 2)")
+
+# c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+
+# print "removing singletons"
+# c.execute("delete bm.* from blocking_map bm JOIN singletons USING (block_key)")
+# c.execute("CREATE INDEX sorting_key ON blocking_map (block_key, donor_id)")
+# c.execute("drop table singletons")
+
+# c.execute("create table sorted_blocking_map as select * from blocking_map order by block_key, donor_id")
+
+# c.execute("alter table sorted_blocking_map add column id int(8) unsigned primary key auto_increment")
+
+# c.execute("create index donor_idx on sorted_blocking_map (donor_id)")
 
 
-con.commit()
+# con.commit()
 
 
 ## Clustering
