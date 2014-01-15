@@ -5,7 +5,6 @@ import random
 import itertools
 import warnings
 import multiprocessing
-import dedupe.mekano as mk
 import collections
 
 DATA = {  100 : {"name": "Bob", "age": "50"},
@@ -437,7 +436,6 @@ class BlockingTest(unittest.TestCase):
 class TfidfTest(unittest.TestCase):
   def setUp(self):
     self.field = "Hello World world"
-    self.tokenfactory = mk.AtomFactory("tokens")
     self.record_id = 20
     self.data_d = {
                      100 : {"name": "Bob", "age": "50", "dataset": 0},
