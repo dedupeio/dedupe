@@ -37,14 +37,17 @@ def randomPairs(n_records, sample_size):
         numpy.random.shuffle(random_indices)
     else:
         try:
-            random_indices = numpy.array(random.sample(xrange(n), sample_size))
+            random_indices = numpy.random.randint(n, size=sample_size)
         except OverflowError:
             # If the population is very large relative to the sample
             # size than we'll get very few duplicates by chance
-            logging.warning("There may be duplicates in the sample")
-            sample = numpy.array([random.sample(xrange(n_records), 2)
-                                  for _ in xrange(sample_size)])
-            return numpy.sort(sample, axis=1)
+            warnings.warn("There may be duplicates in the sample")
+            random_indices = numpy.random.randint(n_records, 
+                                                  size=sample_size*2)
+            random_indices = random_indices.reshape((-1, 2))
+            random_indices.sort(axis=1)
+
+            return random_indices
 
 
 
@@ -59,6 +62,16 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     """
     Return random combinations of indices for record list A and B
     """
+
+    if sample_size >= n_records_A * n_record_B :
+        # look at http://stackoverflow.com/questions/1208118/using-numpy-to-build-an-array-of-all-combinations-of-two-arrays
+
+        warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n_records_A * n_records_B))
+
+        pairs = itertools.combinations
+        A_samples = numpy.random.shuffle(numpy.arange(n_records_A))
+        B_samples = numpy.random.shuffle(numpy.arange(n_records_B))
+        
 
     A_samples = numpy.random.randint(n_records_A, size=sample_size)
     B_samples = numpy.random.randint(n_records_B, size=sample_size)

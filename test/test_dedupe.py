@@ -3,7 +3,6 @@ import unittest
 import numpy
 import random
 import itertools
-import warnings
 import multiprocessing
 import collections
 
@@ -19,22 +18,36 @@ DATA = {  100 : {"name": "Bob", "age": "50"},
           145 : {"name": "Kyle", "age": "27"}
         }
 
+DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
+                dedupe.core.frozendict({'age': '50', 'name': 'Bob'})),
+               (dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
+                dedupe.core.frozendict({'age': '35', 'name': 'William'})),
+               (dedupe.core.frozendict({'age': '10', 'name': 'Sue'}), 
+                dedupe.core.frozendict({'age': '35', 'name': 'William'})),
+               (dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
+                dedupe.core.frozendict({'age': '20', 'name': 'Jimmy'})),
+               (dedupe.core.frozendict({'age': '75', 'name': 'Charlie'}), 
+                dedupe.core.frozendict({'age': '21', 'name': 'Jimbo'})))
+
+
+
 
 class ConvenienceTest(unittest.TestCase):
   def test_data_sample(self):
     random.seed(123)
+    numpy.random.seed(123)
     assert dedupe.dataSample(DATA ,5) == \
-            (({'age': '27', 'name': 'Kyle'}, {'age': '50', 'name': 'Bob'}),
-            ({'age': '27', 'name': 'Kyle'}, {'age': '35', 'name': 'William'}),
-            ({'age': '10', 'name': 'Sue'}, {'age': '35', 'name': 'William'}),
-            ({'age': '27', 'name': 'Kyle'}, {'age': '20', 'name': 'Jimmy'}),
-            ({'age': '75', 'name': 'Charlie'}, {'age': '21', 'name': 'Jimbo'}))
+      (({'age': '27', 'name': 'Kyle'}, 
+        {'age': '50', 'name': 'Bob'}), 
+       ({'age': '50', 'name': 'Bob'}, 
+        {'age': '21', 'name': 'Jimbo'}), 
+       ({'age': '35', 'name': 'William'}, 
+        {'age': '40', 'name': 'Meredith'}), 
+       ({'age': '20', 'name': 'Jimmy'}, 
+        {'age': '40', 'name': 'Meredith'}), 
+       ({'age': '10', 'name': 'Sue'}, 
+        {'age': '50', 'name': 'Bob'}))
 
-    with warnings.catch_warnings(record=True) as w:
-      warnings.simplefilter("always")
-      dedupe.dataSample(DATA,10000)
-      assert len(w) == 1
-      assert str(w[-1].message) == "Requested sample of size 10000, only returning 45 possible pairs"
 
 class SourceComparatorTest(unittest.TestCase) :
   def test_comparator(self) :
@@ -190,7 +203,7 @@ class DedupeClassTest(unittest.TestCase):
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
               }
-    data_sample = dedupe.dataSample(DATA, 6)
+    data_sample = DATA_SAMPLE
     self.deduper = dedupe.Dedupe(fields, data_sample)
 
   def test_blockPairs(self) :
@@ -216,29 +229,27 @@ class DedupeClassTest(unittest.TestCase):
     self.deduper._addTrainingData(training_pairs)
     numpy.testing.assert_equal(self.deduper.training_data['label'],
                                ['distinct', 'distinct', 'distinct', 
-                                'match', 'match', 'match'])
+                                'match', 'match'])
     numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
                                       numpy.array(
-                                        [[5.5, 5.0178], 
-                                         [5.5, 3.4431],
-                                         [3.0, 5.5],
-                                         [3.0, 5.125], 
-                                         [5.5, 5.1931],
-                                         [5.5, 5.0178]]),
+                                        [[ 5.5, 5.0178],
+                                         [ 5.5, 3.4431],
+                                         [ 5.5, 3.7750],
+                                         [ 3.0, 5.125 ],
+                                         [ 5.5, 4.8333]]),
                                       4)
     self.deduper._addTrainingData(training_pairs)
     numpy.testing.assert_equal(self.deduper.training_data['label'],
                                ['distinct', 'distinct', 'distinct', 
-                                'match', 'match', 'match']*2)
+                                'match', 'match']*2)
 
     numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
                                       numpy.array(
-                                        [[5.5, 5.0178], 
-                                         [5.5, 3.4431],
-                                         [3.0, 5.5],
-                                         [3.0, 5.125], 
-                                         [5.5, 5.1931],
-                                         [5.5, 5.0178]]*2),
+                                        [[ 5.5, 5.0178],
+                                         [ 5.5, 3.4431],
+                                         [ 5.5, 3.7750],
+                                         [ 3.0, 5.125 ],
+                                         [ 5.5, 4.8333]]*2),
                                       4)
 
 

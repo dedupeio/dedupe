@@ -3,19 +3,33 @@ import dedupe
 import numpy
 import random
 import multiprocessing
+import warnings
 
 class RandomPairsTest(unittest.TestCase) :
-  def test_random_pair(self) :
-    random.seed(123)
-    self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-    assert dedupe.core.randomPairs(10, 10).any()
-    assert dedupe.core.randomPairs(10*1000000000, 10).any()
-    assert numpy.array_equal(dedupe.core.randomPairs(10, 5), 
-                             numpy.array([[ 1,  8],
-                                          [ 5,  7],
-                                          [ 1,  2],
-                                          [ 3,  7],
-                                          [ 2,  9]]))
+    def test_random_pair(self) :
+        self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
+        assert dedupe.core.randomPairs(10, 10).any()
+        random.seed(123)
+        numpy.random.seed(123)
+        random_pairs = dedupe.core.randomPairs(10, 5)
+        assert numpy.array_equal(random_pairs, 
+                                 numpy.array([[ 0,  3],
+                                              [ 3,  8],
+                                              [ 4,  9],
+                                              [ 5,  9],
+                                              [ 2,  3]]))
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            dedupe.core.randomPairs(10, 10**6)
+            assert len(w) == 1
+            assert str(w[-1].message) == "Requested sample of size 1000000, only returning 45 possible pairs"
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            dedupe.core.randomPairs(10**10, 10)
+            assert len(w) == 1
+            assert str(w[-1].message) == "There may be duplicates in the sample"
 
 
 
