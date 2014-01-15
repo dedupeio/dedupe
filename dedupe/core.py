@@ -254,7 +254,7 @@ def peek(records) :
     return record, itertools.chain([record], records)
 
 
-def freezeData(data) :
+def freezeData(data) : # pragma : no cover
     return [(frozendict(record_1), 
              frozendict(record_2))
             for record_1, record_2 in data]
