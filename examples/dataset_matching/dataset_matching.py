@@ -22,8 +22,8 @@ import logging
 import optparse
 from numpy import nan
 import math
-
-import AsciiDammit
+import itertools
+import random
 
 import dedupe
 
@@ -68,7 +68,7 @@ def preProcess(column):
     and Regex. Things like casing, extra spaces, quotes and new lines can be ignored.
     """
 
-    column = AsciiDammit.asciiDammit(column)
+    column = dedupe.asciiDammit(column)
     column = re.sub('\n', ' ', column)
     column = re.sub('-', '', column)
     column = re.sub('/', ' ', column)
@@ -100,9 +100,38 @@ def readData(filename):
 
     return data_d
 
+def trainingData(data_1, data_2, common_key) :
+    identified_records = collections.defaultdict(lambda: [[],[]])
+    matched_pairs = set()
+    distinct_pairs = set()
+
+    for record_id, record in data_1.items() :
+        identified_records[record[common_key]][0].append(record_id)
+
+    for record_id, record in data_2.items() :
+        identified_records[record[common_key]][1].append(record_id)
+
+    for keys_1, keys_2 in identified_records.values() :
+        if keys_1 and keys_2 :
+            matched_pairs.update(itertools.product(keys_1, keys_2))
+
+    distinct_pairs = set(itertools.product(data_1.keys(), data_2.keys()))
+    distinct_pairs -= matched_pairs
+
+
+    distinct_pairs = random.sample(distinct_pairs, 50000)
+
+    training_pairs = {'match' : [(data_1[key_1], data_2[key_2]) 
+                                 for key_1, key_2 in matched_pairs], 
+                      'distinct' : [(data_1[key_1], data_2[key_2]) 
+                                    for key_1, key_2 in distinct_pairs]} 
+
+    return training_pairs        
+    
 print 'importing data ...'
 data_1 = readData('AbtBuy_Abt.csv')
 data_2 = readData('AbtBuy_Buy.csv')
+
 
 # ## Training
 
@@ -128,23 +157,9 @@ else:
     # To train dedupe, we feed it a random sample of records.
     linker.sample(data_1, data_2, 150000)
 
-    # If we have training data saved from a previous run of dedupe,
-    # look for it an load it in.
-    # __Note:__ if you want to train from scratch, delete the training_file
-    if os.path.exists(training_file):
-        print 'reading labeled examples from ', training_file
-        linker.readTraining(training_file)
+    training_pairs = trainingData(data_1, data_2, 'unique_id')
 
-    # ## Active learning
-
-    # Starts the training loop. Dedupe will find the next pair of records
-    # it is least certain about and ask you to label them as duplicates
-    # or not.
-
-    # use 'y', 'n' and 'u' keys to flag duplicates
-    # press 'f' when you are finished
-    print 'starting active labeling...'
-    dedupe.consoleLabel(linker)
+    linker.markPairs(training_pairs)
 
     linker.train()
 
@@ -168,7 +183,7 @@ else:
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-threshold = linker.threshold(data_1, data_2, recall_weight=20)
+threshold = linker.threshold(data_1, data_2, recall_weight=10)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
