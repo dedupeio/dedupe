@@ -113,6 +113,10 @@ for (unique_id, cluster_1) in clusters_1.iteritems():
         for pair in itertools.product(cluster_1, cluster_2):
             duplicates_s.add(frozenset(pair))
 
+training_pairs = randomTrainingPairs(data_d,
+                                     duplicates_s,
+                                     num_training_dupes,
+                                     num_training_distinct)
 
 
 t0 = time.time()
@@ -130,23 +134,8 @@ else:
 
     deduper = dedupe.RecordLink(fields)
     deduper.sample(data_1, data_2, 100000) 
-    deduper.num_iterations = num_iterations
-
-    print "Using a random sample of training pairs..."
-
-    deduper.training_pairs = randomTrainingPairs(data_d,
-                                                 duplicates_s,
-                                                 num_training_dupes,
-                                                 num_training_distinct)
-
-    deduper._addTrainingData(deduper.training_pairs)
-
-
-    deduper.trainClassifier()
-    deduper.trainBlocker()
-
-    deduper._logLearnedWeights()
-
+    deduper.markPairs(training_pairs)
+    deduper.train()
     deduper.writeSettings(settings_file)
 
 

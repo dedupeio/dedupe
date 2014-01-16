@@ -104,6 +104,12 @@ num_training_distinct = 2000
 num_iterations = 10
 
 (data_d, header, duplicates_s) = canonicalImport(raw_data)
+training_pairs = randomTrainingPairs(data_d,
+                                     duplicates_s,
+                                     num_training_dupes,
+                                     num_training_distinct)
+
+
 
 t0 = time.time()
 
@@ -119,30 +125,10 @@ else:
               }
 
     deduper = dedupe.Dedupe(fields)
-
     deduper.sample(data_d, 1000000)
-    deduper.num_iterations = num_iterations
-
-    print "Using a random sample of training pairs..."
-
-    deduper.training_pairs = randomTrainingPairs(data_d,
-                                                 duplicates_s,
-                                                 num_training_dupes,
-                                                 num_training_distinct)
-    
-
-
-    deduper._addTrainingData(deduper.training_pairs)
-
-
-    deduper.trainClassifier()
-    deduper.trainBlocker()
-
-    deduper._logLearnedWeights()
-
-
+    deduper.markPairs(training_pairs)
+    deduper.train()
     deduper.writeSettings(settings_file)
-
 
 
 alpha = deduper.threshold(data_d)
@@ -150,7 +136,6 @@ alpha = deduper.threshold(data_d)
 # print candidates
 print 'clustering...'
 clustered_dupes = deduper.match(data_d, threshold=alpha)
-
 
 print 'Evaluate Scoring'
 found_dupes = set([frozenset(pair) for (pair, score) in deduper.matches

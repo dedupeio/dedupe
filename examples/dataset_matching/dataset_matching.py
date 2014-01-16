@@ -146,8 +146,7 @@ else:
     print 'starting active labeling...'
     dedupe.consoleLabel(linker)
 
-    linker.trainClassifier()
-    linker.trainBlocker()
+    linker.train()
 
     # When finished, save our training away to disk
     linker.writeTraining(training_file)

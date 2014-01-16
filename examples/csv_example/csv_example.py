@@ -145,8 +145,7 @@ else:
 
     dedupe.consoleLabel(deduper)
 
-    deduper.trainClassifier()
-    deduper.trainBlocker()
+    deduper.train()
 
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)

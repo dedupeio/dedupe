@@ -410,33 +410,9 @@ class ActiveMatching(Matching) :
 
         self._addTrainingData(training_pairs)
 
-        self.trainClassifier()
+        self._trainClassifier()
 
-    # === Dedupe.trainClassifier ===
-    def trainClassifier(self, alpha=None) :
-        if alpha is None :
-
-            n_folds = min(numpy.sum(self.training_data['label']=='match')/3,
-                          20)
-            n_folds = max(n_folds,
-                          2)
-
-            logging.info('%d folds', n_folds)
-
-            alpha = crossvalidation.gridSearch(self.training_data,
-                                               core.trainModel, 
-                                               self.data_model, 
-                                               k=n_folds)
-
-        self.data_model = core.trainModel(self.training_data,
-                                          self.data_model, 
-                                          alpha)
-
-        self._logLearnedWeights()
-
-    
-    # === Dedupe.trainBlocker ===
-    def trainBlocker(self, ppc=1, uncovered_dupes=1) :
+    def train(self, ppc=1, uncovered_dupes=1) :
         """
         Keyword arguments:
         ppc -- Limits the Proportion of Pairs Covered that we allow a
@@ -460,6 +436,35 @@ class ActiveMatching(Matching) :
                            blocks that put together many, many distinct pairs
                            that we'll have to expensively, compare as well.
         """
+        n_folds = min(numpy.sum(self.training_data['label']=='match')/3,
+                      20)
+        n_folds = max(n_folds,
+                      2)
+
+        logging.info('%d folds', n_folds)
+
+        alpha = crossvalidation.gridSearch(self.training_data,
+                                           core.trainModel, 
+                                           self.data_model, 
+                                           k=n_folds)
+
+
+        self._trainClassifier(alpha)
+        self._trainBlocker(ppc, uncovered_dupes)
+
+
+    # === Dedupe.trainClassifier ===
+    def _trainClassifier(self, alpha=.1) :
+
+        self.data_model = core.trainModel(self.training_data,
+                                          self.data_model, 
+                                          alpha)
+
+        self._logLearnedWeights()
+
+    
+    # === Dedupe.trainBlocker ===
+    def _trainBlocker(self, ppc=1, uncovered_dupes=1) :
         training_pairs = copy.deepcopy(self.training_pairs)
 
         blocker_types = self.blockerTypes()
@@ -545,7 +550,7 @@ class ActiveMatching(Matching) :
                                    'distinct':[]})
 
 
-            self.trainClassifier(alpha=0.1)
+            self._trainClassifier(alpha=0.1)
 
         
         dupe_ratio = (len(self.training_pairs['match'])
@@ -577,7 +582,7 @@ class ActiveMatching(Matching) :
 
         self._addTrainingData(labeled_pairs) 
 
-        self.trainClassifier(alpha=.1)
+        self._trainClassifier(alpha=.1)
 
 
 
