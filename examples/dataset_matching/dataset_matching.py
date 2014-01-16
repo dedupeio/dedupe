@@ -100,37 +100,12 @@ def readData(filename):
 
     return data_d
 
-def trainingData(data_1, data_2, common_key) :
-    identified_records = collections.defaultdict(lambda: [[],[]])
-    matched_pairs = set()
-    distinct_pairs = set()
-
-    for record_id, record in data_1.items() :
-        identified_records[record[common_key]][0].append(record_id)
-
-    for record_id, record in data_2.items() :
-        identified_records[record[common_key]][1].append(record_id)
-
-    for keys_1, keys_2 in identified_records.values() :
-        if keys_1 and keys_2 :
-            matched_pairs.update(itertools.product(keys_1, keys_2))
-
-    distinct_pairs = set(itertools.product(data_1.keys(), data_2.keys()))
-    distinct_pairs -= matched_pairs
-
-
-    distinct_pairs = random.sample(distinct_pairs, 50000)
-
-    training_pairs = {'match' : [(data_1[key_1], data_2[key_2]) 
-                                 for key_1, key_2 in matched_pairs], 
-                      'distinct' : [(data_1[key_1], data_2[key_2]) 
-                                    for key_1, key_2 in distinct_pairs]} 
-
-    return training_pairs        
     
 print 'importing data ...'
 data_1 = readData('AbtBuy_Abt.csv')
 data_2 = readData('AbtBuy_Buy.csv')
+
+training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
 
 
 # ## Training
@@ -156,8 +131,6 @@ else:
     linker = dedupe.RecordLink(fields)
     # To train dedupe, we feed it a random sample of records.
     linker.sample(data_1, data_2, 150000)
-
-    training_pairs = trainingData(data_1, data_2, 'unique_id')
 
     linker.markPairs(training_pairs)
 

@@ -27,6 +27,6 @@ import backport
 from api import StaticDedupe, Dedupe
 from api import StaticRecordLink, RecordLink
 from core import randomPairs
-from convenience import consoleLabel
+from convenience import consoleLabel, trainingDataDedupe, trainingDataLink
 from AsciiDammit import asciiDammit
 import backport

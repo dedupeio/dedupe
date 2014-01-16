@@ -6,7 +6,6 @@ import exampleIO
 import dedupe
 import os
 import time
-import random
 import optparse
 import logging
 
@@ -23,39 +22,10 @@ elif opts.verbose >= 2:
 logging.basicConfig(level=log_level)
 
 
-# create a random set of training pairs based on known duplicates
-
-def randomTrainingPairs(data_d,
-                        duplicates_s,
-                        n_training_dupes,
-                        n_training_distinct,
-                        ):
-
-    if n_training_dupes < len(duplicates_s):
-        duplicates = random.sample(duplicates_s, n_training_dupes)
-    else:
-        duplicates = duplicates_s
-
-    duplicates = [(data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
-                  for pair in duplicates]
-
-    all_pairs = list(combinations(data_d, 2))
-    all_nonduplicates = set(all_pairs) - set(duplicates_s)
-
-    nonduplicates = random.sample(all_nonduplicates, n_training_distinct)
-
-    nonduplicates = [(data_d[pair[0]], data_d[pair[1]])
-                     for pair in nonduplicates]
-
-    return {'distinct': nonduplicates, 'match': duplicates}
-
-
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
 
     data_d = {}
-    clusters = {}
-    duplicates = set([])
 
     with open(filename) as f:
         reader = csv.DictReader(f)
@@ -63,14 +33,8 @@ def canonicalImport(filename):
             clean_row = [(k, preProcess(v)) for (k, v) in
                          row.iteritems()]
             data_d[i] = dedupe.core.frozendict(clean_row)
-            clusters.setdefault(row['unique_id'], []).append(i)
 
-    for (unique_id, cluster) in clusters.iteritems():
-        if len(cluster) > 1:
-            for pair in combinations(cluster, 2):
-                duplicates.add(frozenset(pair))
-
-    return (data_d, reader.fieldnames, duplicates)
+    return data_d, reader.fieldnames
 
 
 def evaluateDuplicates(found_dupes, true_dupes):
@@ -88,28 +52,16 @@ def evaluateDuplicates(found_dupes, true_dupes):
     print len(true_positives) / float(len(true_dupes))
 
 
-    # eturn uncovered_dupes, false_positives
-
-def printPairs(pairs):
-    for pair in pairs:
-        print ''
-        for instance in tuple(pair):
-            print data_d[instance].values()
-
-
 settings_file = 'canonical_learned_settings.json'
 raw_data = 'test/datasets/restaurant-nophone-training.csv'
-num_training_dupes = 400
-num_training_distinct = 2000
-num_iterations = 10
 
-(data_d, header, duplicates_s) = canonicalImport(raw_data)
-training_pairs = randomTrainingPairs(data_d,
-                                     duplicates_s,
-                                     num_training_dupes,
-                                     num_training_distinct)
+data_d, header = canonicalImport(raw_data)
 
+training_pairs = dedupe.trainingDataDedupe(data_d, 
+                                           'unique_id', 
+                                           5000)
 
+duplicates_s = set(frozenset(pair) for pair in training_pairs['match'])
 
 t0 = time.time()
 
@@ -138,8 +90,9 @@ print 'clustering...'
 clustered_dupes = deduper.match(data_d, threshold=alpha)
 
 print 'Evaluate Scoring'
-found_dupes = set([frozenset(pair) for (pair, score) in deduper.matches
-                  if score > alpha])
+found_dupes = set([frozenset((data_d[pair[0]], data_d[pair[1]])) 
+                   for (pair, score) in deduper.matches
+                   if score > alpha])
 
 evaluateDuplicates(found_dupes, duplicates_s)
 
@@ -147,11 +100,8 @@ print 'Evaluate Clustering'
 
 confirm_dupes = set([])
 for dupe_set in clustered_dupes:
-    if len(dupe_set) == 2:
-        confirm_dupes.add(frozenset(dupe_set))
-    else:
-        for pair in combinations(dupe_set, 2):
-            confirm_dupes.add(frozenset(pair))
+    for pair in combinations(dupe_set, 2):
+        confirm_dupes.add(frozenset((data_d[pair[0]], data_d[pair[1]])))
 
 evaluateDuplicates(confirm_dupes, duplicates_s)
 
