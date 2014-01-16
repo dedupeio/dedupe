@@ -108,9 +108,6 @@ if os.path.exists(settings_file):
     deduper = dedupe.StaticDedupe(settings_file)
 
 else:
-    # To train dedupe, we feed it a random sample of records.
-    data_sample = dedupe.dataSample(data_d, 150000)
-
     # Define the fields dedupe will pay attention to
     #
     # Notice how we are telling dedupe to use a custom field comparator
@@ -125,7 +122,11 @@ else:
         }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields, data_sample)
+    deduper = dedupe.Dedupe(fields)
+
+    # To train dedupe, we feed it a random sample of records.
+    deduper.sample(data_d, 150000)
+
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -160,12 +161,6 @@ else:
 
 print 'blocking...'
 
-# Load all the original data in to memory and place
-# them in to blocks. Each record can be blocked in many ways, so for
-# larger data, memory will be a limiting factor.
-
-blocked_data = dedupe.blockData(data_d, deduper.blocker)
-
 # ## Clustering
 
 # Find the threshold that will maximize a weighted average of our precision and recall. 
@@ -175,13 +170,13 @@ blocked_data = dedupe.blockData(data_d, deduper.blocker)
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-threshold = deduper.goodThreshold(blocked_data, recall_weight=2)
+threshold = deduper.threshold(data_d, recall_weight=2)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = deduper.match(blocked_data, threshold)
+clustered_dupes = deduper.match(data_d, threshold)
 
 print '# duplicate sets', len(clustered_dupes)
 

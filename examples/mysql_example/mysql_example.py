@@ -336,7 +336,7 @@ print "finding good threshold"
 c.execute("select donor_id, city, name, zip, state, address, " \
           "occupation, employer, person, block_key from processed_donors inner join (select * from sorted_blocking_map order by rand() limit 1000) rb using (donor_id) order by rb.id")
 
-threshold = deduper.goodThreshold(candidates_gen(c), .5)
+threshold = deduper.thresholdBlocks(candidates_gen(c), .5)
 threshold = 0.5
 
 # With our found threshold, and candidates generator, perform the
@@ -348,8 +348,8 @@ c.execute("SELECT donor_id, city, name, zip, state, address, " \
           "ORDER BY sorted_blocking_map.id")
 
 print 'clustering...'
-clustered_dupes = deduper.match(candidates_gen(c),
-                                threshold)
+clustered_dupes = deduper.matchBlocks(candidates_gen(c),
+                                      threshold)
 
 # ## Writing out results
 

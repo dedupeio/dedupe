@@ -19,6 +19,11 @@ import numpy
 import random
 import warnings
 import copy
+try:
+    from collections import OrderedDict
+except ImportError :
+    from backport import OrderedDict
+
 
 import dedupe
 import dedupe.core as core
@@ -37,7 +42,7 @@ class Matching(object):
     Public methods:
 
     - `__init__`
-    - `goodThreshold`
+    - `thresholdBlocks`
     - `match`
     """
 
@@ -45,7 +50,7 @@ class Matching(object):
         self.matches = None
         self.blocker = None
 
-    def goodThreshold(self, blocks, recall_weight=1.5):
+    def thresholdBlocks(self, blocks, recall_weight=1.5):
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -61,6 +66,8 @@ class Matching(object):
                          recall as you do precision, set recall_weight
                          to 2.
         """
+
+
         probability = core.scoreDuplicates(self.blockedPairs(blocks), 
                                            self.data_model, 
                                            self.pool)['score']
@@ -84,7 +91,7 @@ class Matching(object):
 
         return probability[i]
 
-    def match(self, blocks, threshold=.5):
+    def matchBlocks(self, blocks, threshold=.5):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -138,6 +145,8 @@ class Matching(object):
 
         return pair_gen()
 
+    
+
 
 class DedupeMatching(Matching) :
     def __init__(self, *args, **kwargs) :
@@ -145,6 +154,14 @@ class DedupeMatching(Matching) :
         self._Blocker = blocking.DedupeBlocker
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
+
+    def match(self, data, threshold = 0.5) :
+        blocked_pairs = self._blockData(data)
+        return self.matchBlocks(blocked_pairs, threshold)
+
+    def threshold(self, data, recall_weight = 1.5) :
+        blocked_pairs = self._blockData(data)
+        return self.thresholdBlocks(blocked_pairs, recall_weight)
 
     def _blockPairs(self, block) : 
         return itertools.combinations(block.items(), 2)
@@ -162,6 +179,22 @@ class DedupeMatching(Matching) :
 
             self._checkRecordType(block.values()[0])
 
+    def _blockData(self, data_d):
+
+        blocks = OrderedDict({})
+
+        for field in self.blocker.tfidf_fields :
+            self.blocker.tfIdfBlock(((record_id, record[field])
+                                     for record_id, record 
+                                     in data_d.iteritems()),
+                                    field)
+
+        for block_key, record_id in self.blocker(data_d.iteritems()) :
+            blocks.setdefault(block_key, {}).update({record_id : 
+                                                     data_d[record_id]})
+
+        for block in blocks.values() :
+            yield block
 
 
 class RecordLinkMatching(Matching) :
@@ -171,6 +204,14 @@ class RecordLinkMatching(Matching) :
         self._cluster = clustering.greedyMatching
         self._Blocker = blocking.RecordLinkBlocker
         self._linkage_type = "RecordLink"
+
+    def match(self, data_1, data_2, threshold = 1.5) :
+        blocked_pairs = self._blockData(data_1, data_2)
+        return self.matchBlocks(blocked_pairs, threshold)
+
+    def threshold(self, data_1, data_2, recall_weight = 1.5) :
+        blocked_pairs = self._blockData(data_1, data_2)
+        return self.thresholdBlocks(blocked_pairs, recall_weight)
 
     def _blockPairs(self, block) :
         base, target = block
@@ -188,7 +229,32 @@ class RecordLinkMatching(Matching) :
             self._checkRecordType(base.values()[0])
         if target :
             self._checkRecordType(target.values()[0])
-        
+
+    def _blockData(self, data_1, data_2) :
+
+        blocks = OrderedDict({})
+
+        for field in self.blocker.tfidf_fields :
+            fields_1 = ((record_id, record[field])
+                        for record_id, record 
+                        in data_1.iteritems())
+            fields_2 = ((record_id, record[field])
+                        for record_id, record 
+                        in data_2.iteritems())
+
+            self.blocker.tfIdfBlock(fields_1, fields_2, field)
+
+
+        for block_key, record_id in self.blocker(data_1.iteritems()) :
+            blocks.setdefault(block_key, ({},{}))[0].update({record_id : 
+                                                             data_1[record_id]})
+
+        for block_key, record_id in self.blocker(data_2.iteritems()) :
+            if block_key in blocks :
+                blocks[block_key][1].update({record_id : data_2[record_id]})
+
+        for block in blocks.values () :
+            yield block 
 
 class StaticMatching(Matching) :
     def __init__(self, 
@@ -233,8 +299,8 @@ class StaticMatching(Matching) :
 class ActiveMatching(Matching) :
     def __init__(self, 
                  field_definition, 
-                 data_sample,
-                 num_processes=1) :
+                 data_sample = None,
+                 num_processes = 1) :
         """
         Initialize from a data model and data sample.
 
@@ -302,23 +368,15 @@ class ActiveMatching(Matching) :
 
         self.data_model = DataModel(field_definition)
 
-        try :
-            len(data_sample)
-        except TypeError :
-            raise ValueError("data_sample must be a sequence")
+        self.data_sample = data_sample
 
-        if len(data_sample) :
-            self._checkRecordPairType(data_sample[0])
-            try :
-                hash(data_sample[0][0])
-            except :
-                raise ValueError("Records in data_sample must be hashable "
-                                 "see dedupe.core.frozendict")
+        if self.data_sample :
+            self._checkDataSample(self.data_sample)
+            self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                         self.data_model)
 
         else :
-            warnings.warn("You submitted an empty data_sample")
-
-        self.data_sample = data_sample
+            self.activeLearner = None
 
         self.pool = multiprocessing.Pool(processes=num_processes)
 
@@ -331,8 +389,6 @@ class ActiveMatching(Matching) :
         self.training_pairs = dedupe.backport.OrderedDict({'distinct': [], 
                                                            'match': []})
 
-        self.activeLearner = training.ActiveLearning(self.data_sample, 
-                                                     self.data_model)
 
 
     def trainFromFile(self, training_source) :
@@ -544,6 +600,25 @@ class ActiveMatching(Matching) :
         self._checkRecordType(record_pair[0])
         self._checkRecordType(record_pair[1])
 
+    def  _checkDataSample(self, data_sample) :
+        try :
+            len(data_sample)
+        except TypeError :
+            raise ValueError("data_sample must be a sequence")
+
+        if len(data_sample) :
+            self._checkRecordPairType(data_sample[0])
+            try :
+                hash(data_sample[0][0])
+            except :
+                raise ValueError("Records in data_sample must be hashable "
+                                 "see dedupe.core.frozendict")
+
+        else :
+            warnings.warn("You submitted an empty data_sample")
+
+
+
 
     def _addTrainingData(self, labeled_pairs) :
         """
@@ -588,7 +663,27 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
                                      self.stop_words)
 
 class Dedupe(DedupeMatching, ActiveMatching) :
-    pass
+    def sample(self, data, sample_size) :
+
+        d = dict((i, dedupe.core.frozendict(v)) 
+                 for i, v in enumerate(data.values()))
+
+        random_pairs = dedupe.core.randomPairs(len(d), 
+                                               sample_size)
+
+        data_sample = tuple((d[int(k1)], 
+                             d[int(k2)]) 
+                            for k1, k2 in random_pairs)
+
+        self._checkDataSample(data_sample) 
+
+        self.data_sample = data_sample
+
+        self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                     self.data_model)
+
+
+
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     def __init__(self, *args, **kwargs) :
@@ -599,5 +694,27 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
                                      self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
-    pass
+    def sample(self, data_1, data_2, sample_size) :
+        '''Randomly select pairs between two data dictionaries'''
+        d_1 = dict((i, dedupe.core.frozendict(v)) 
+                    for i, v in enumerate(data_1.values()))
+        d_2 = dict((i, dedupe.core.frozendict(v)) 
+                   for i, v in enumerate(data_2.values()))
+
+        random_pairs = dedupe.core.randomPairsMatch(len(d_1),
+                                                    len(d_2), 
+                                                    sample_size)
+        
+        data_sample = tuple((d_1[int(k1)], 
+                             d_2[int(k2)]) 
+                            for k1, k2 in random_pairs)
+
+        self._checkDataSample(data_sample) 
+
+        self.data_sample = data_sample
+
+        self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                     self.data_model)
+
+
 

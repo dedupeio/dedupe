@@ -118,9 +118,9 @@ else:
               'city' : {'type' : 'String'}
               }
 
-    data_sample = dedupe.dataSample(data_d, 1000000)
+    deduper = dedupe.Dedupe(fields)
 
-    deduper = dedupe.Dedupe(fields, data_sample)
+    deduper.sample(data_d, 1000000)
     deduper.num_iterations = num_iterations
 
     print "Using a random sample of training pairs..."
@@ -145,13 +145,11 @@ else:
 
 
 
-blocked_data = tuple(dedupe.blockData(data_d, deduper.blocker))
-
-alpha = deduper.goodThreshold(blocked_data)
+alpha = deduper.threshold(data_d)
 
 # print candidates
 print 'clustering...'
-clustered_dupes = deduper.match(blocked_data, threshold=alpha)
+clustered_dupes = deduper.match(data_d, threshold=alpha)
 
 
 print 'Evaluate Scoring'

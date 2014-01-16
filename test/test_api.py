@@ -19,11 +19,11 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 class DedupeInitializeTest(unittest.TestCase) :
   def test_initialize_fields(self) :
     self.assertRaises(TypeError, dedupe.Dedupe)
-    self.assertRaises(TypeError, dedupe.Dedupe, [])
+    self.assertRaises(ValueError, dedupe.Dedupe, [])
 
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
-              }
+               }
     deduper = dedupe.Dedupe(fields, [])
 
     assert deduper.matches is None
@@ -77,7 +77,7 @@ class DedupeClassTest(unittest.TestCase):
 
   def test_add_training(self) :
     training_pairs = {'distinct' : self.deduper.data_sample[0:3],
-                      'match' : self.deduper.data_sample[3:6]}
+                      'match' : self.deduper.data_sample[3:5]}
     self.deduper._addTrainingData(training_pairs)
     numpy.testing.assert_equal(self.deduper.training_data['label'],
                                ['distinct', 'distinct', 'distinct', 
