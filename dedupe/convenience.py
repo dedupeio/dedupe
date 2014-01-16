@@ -4,8 +4,10 @@
 import sys
 
 def consoleLabel(deduper): # pragma : no cover
-    '''Command line interface for presenting and labeling training pairs by the user'''
-
+    '''
+    Command line interface for presenting and labeling training pairs
+    by the user
+    '''
 
     finished = False
 

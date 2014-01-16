@@ -128,11 +128,8 @@ else:
               'city' : {'type' : 'String'}
               }
 
-    data_sample = dedupe.dataSampleRecordLink(data_1,
-                                              data_2,
-                                              100000) 
-
-    deduper = dedupe.RecordLink(fields, data_sample)
+    deduper = dedupe.RecordLink(fields)
+    deduper.sample(data_1, data_2, 100000) 
     deduper.num_iterations = num_iterations
 
     print "Using a random sample of training pairs..."
@@ -154,15 +151,13 @@ else:
 
 
 
-print 'blocking...'
-blocked_data = tuple(dedupe.blockDataRecordLink(data_1, data_2, deduper.blocker))
 
-alpha = deduper.goodThreshold(blocked_data)
+alpha = deduper.threshold(data_1, data_2)
 
 
 # print candidates
 print 'clustering...'
-clustered_dupes = deduper.match(blocked_data, threshold=alpha)
+clustered_dupes = deduper.match(data_1, data_2, threshold=alpha)
 
 
 

@@ -186,7 +186,7 @@ else:
     # scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        deduper.trainFromFile(training_file)
+        deduper.readTraining(training_file)
 
     # ## Active learning
 

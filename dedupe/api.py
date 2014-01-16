@@ -391,7 +391,7 @@ class ActiveMatching(Matching) :
 
 
 
-    def trainFromFile(self, training_source) :
+    def readTraining(self, training_source) :
 
         logging.info('reading training from file')
 

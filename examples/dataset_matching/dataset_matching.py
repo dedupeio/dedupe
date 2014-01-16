@@ -133,7 +133,7 @@ else:
     # __Note:__ if you want to train from scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        linker.trainFromFile(training_file)
+        linker.readTraining(training_file)
 
     # ## Active learning
 
