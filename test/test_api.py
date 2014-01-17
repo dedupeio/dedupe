@@ -14,49 +14,73 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
                (dedupe.core.frozendict({'age': '75', 'name': 'Charlie'}), 
                 dedupe.core.frozendict({'age': '21', 'name': 'Jimbo'})))
 
-
-
-class DedupeInitializeTest(unittest.TestCase) :
+class Match(unittest.TestCase) :
   def test_initialize_fields(self) :
-    self.assertRaises(TypeError, dedupe.Dedupe)
-    self.assertRaises(ValueError, dedupe.Dedupe, [])
+    matcher = dedupe.api.Matching()
 
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-               }
-    deduper = dedupe.Dedupe(fields, [])
-
-    assert deduper.matches is None
-    assert deduper.blocker is None
+    assert matcher.matches is None
+    assert matcher.blocker is None
 
 
-  def test_base_predicates(self) :
-    deduper = dedupe.Dedupe({'name' : {'type' : 'String'}}, [])
-    string_predicates = (dedupe.predicates.wholeFieldPredicate,
-                         dedupe.predicates.tokenFieldPredicate,
-                         dedupe.predicates.commonIntegerPredicate,
-                         dedupe.predicates.sameThreeCharStartPredicate,
-                         dedupe.predicates.sameFiveCharStartPredicate,
-                         dedupe.predicates.sameSevenCharStartPredicate,
-                         dedupe.predicates.nearIntegersPredicate,
-                         dedupe.predicates.commonFourGram,
-                         dedupe.predicates.commonSixGram)
 
-    tfidf_string_predicates = tuple([dedupe.tfidf.TfidfPredicate(threshold)
-                                     for threshold
-                                     in [0.2, 0.4, 0.6, 0.8]])
+class ActiveMatch(unittest.TestCase) :
+  def test_initialize_fields(self) :
+    self.assertRaises(TypeError, dedupe.api.ActiveMatching)
+    self.assertRaises(ValueError, dedupe.api.ActiveMatching, [])
 
-    assert deduper.blockerTypes() == {'String' : string_predicates + tfidf_string_predicates}
+    matcher = dedupe.api.ActiveMatching({},)
+
+    assert matcher.matches is None
+    assert matcher.blocker is None
 
 
-class DedupeClassTest(unittest.TestCase):
+  def test_add_training(self) :
+    training_pairs = {'distinct' : DATA_SAMPLE[0:3],
+                      'match' : DATA_SAMPLE[3:5]}
+    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
+                                          'age'  : {'type': 'String'}})
+
+    matcher._addTrainingData(training_pairs)
+    numpy.testing.assert_equal(matcher.training_data['label'],
+                               ['distinct', 'distinct', 'distinct', 
+                                'match', 'match'])
+    numpy.testing.assert_almost_equal(matcher.training_data['distances'],
+                                      numpy.array(
+                                        [[ 5.5, 5.0178],
+                                         [ 5.5, 3.4431],
+                                         [ 5.5, 3.7750],
+                                         [ 3.0, 5.125 ],
+                                         [ 5.5, 4.8333]]),
+                                      4)
+
+    matcher._addTrainingData(training_pairs)
+    numpy.testing.assert_equal(matcher.training_data['label'],
+                               ['distinct', 'distinct', 'distinct', 
+                                'match', 'match']*2)
+
+    numpy.testing.assert_almost_equal(matcher.training_data['distances'],
+                                      numpy.array(
+                                        [[ 5.5, 5.0178],
+                                         [ 5.5, 3.4431],
+                                         [ 5.5, 3.7750],
+                                         [ 3.0, 5.125 ],
+                                         [ 5.5, 4.8333]]*2),
+                                      4)
+
+
+
+
+
+
+
+
+class DedupeTest(unittest.TestCase):
   def setUp(self) : 
     random.seed(123) 
     fields =  { 'name' : {'type': 'String'}, 
                 'age'  : {'type': 'String'},
               }
-    data_sample = DATA_SAMPLE
-    self.deduper = dedupe.Dedupe(fields, data_sample)
+    self.deduper = dedupe.Dedupe(fields)
 
   def test_blockPairs(self) :
     self.assertRaises(ValueError, self.deduper.blockedPairs, ((),))
@@ -73,36 +97,10 @@ class DedupeClassTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}), 
                     ('2', {'age': 27, 'name': 'Bob'}))]
 
-                                    
+    #def test_sample(self) :
+      
 
-  def test_add_training(self) :
-    training_pairs = {'distinct' : self.deduper.data_sample[0:3],
-                      'match' : self.deduper.data_sample[3:5]}
-    self.deduper._addTrainingData(training_pairs)
-    numpy.testing.assert_equal(self.deduper.training_data['label'],
-                               ['distinct', 'distinct', 'distinct', 
-                                'match', 'match'])
-    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
-                                      numpy.array(
-                                        [[ 5.5, 5.0178],
-                                         [ 5.5, 3.4431],
-                                         [ 5.5, 3.7750],
-                                         [ 3.0, 5.125 ],
-                                         [ 5.5, 4.8333]]),
-                                      4)
-    self.deduper._addTrainingData(training_pairs)
-    numpy.testing.assert_equal(self.deduper.training_data['label'],
-                               ['distinct', 'distinct', 'distinct', 
-                                'match', 'match']*2)
 
-    numpy.testing.assert_almost_equal(self.deduper.training_data['distances'],
-                                      numpy.array(
-                                        [[ 5.5, 5.0178],
-                                         [ 5.5, 3.4431],
-                                         [ 5.5, 3.7750],
-                                         [ 3.0, 5.125 ],
-                                         [ 5.5, 4.8333]]*2),
-                                      4)
 
 if __name__ == "__main__":
     unittest.main()

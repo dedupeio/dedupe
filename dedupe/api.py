@@ -491,7 +491,7 @@ class ActiveMatching(Matching) :
                                      self.stop_words) 
 
 
-    def blockerTypes(self) :
+    def blockerTypes(self) : # pragma : no cover
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
                              predicates.commonIntegerPredicate,
