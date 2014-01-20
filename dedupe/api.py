@@ -285,7 +285,7 @@ class StaticMatching(Matching) :
 
         self.pool = multiprocessing.Pool(processes=num_processes)
 
-        with open(settings_file, 'rb') as f:
+        with open(settings_file, 'rb') as f: # pragma : no cover
             try:
                 self.data_model = pickle.load(f)
                 self.predicates = pickle.load(f)
@@ -454,7 +454,7 @@ class ActiveMatching(Matching) :
 
 
     # === Dedupe.trainClassifier ===
-    def _trainClassifier(self, alpha=.1) :
+    def _trainClassifier(self, alpha=.1) : # pragma : no cover
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model, 
