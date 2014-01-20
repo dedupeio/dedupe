@@ -8,7 +8,7 @@ Dedupe class
 try:
     from json.scanner import py_make_scanner
     import json
-except ImportError:
+except ImportError: # pragma : no cover
     from simplejson.scanner import py_make_scanner
     import simplejson as json
 import itertools
@@ -155,20 +155,20 @@ class DedupeMatching(Matching) :
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
-    def match(self, data, threshold = 0.5) :
+    def match(self, data, threshold = 0.5) : # pragma : no cover
         blocked_pairs = self._blockData(data)
         return self.matchBlocks(blocked_pairs, threshold)
 
-    def threshold(self, data, recall_weight = 1.5) :
+    def threshold(self, data, recall_weight = 1.5) : # pragma : no cover 
         blocked_pairs = self._blockData(data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) : 
+    def _blockPairs(self, block) :  # pragma : no cover
         return itertools.combinations(block.items(), 2)
         
     def _checkBlock(self, block) :
-        if block is None :
-            warnings.warn("You have not provided any data blocks")
+        if not block :
+            raise ValueError("You have not provided any data blocks")
         else :
             try :
                 block.items()
@@ -205,15 +205,15 @@ class RecordLinkMatching(Matching) :
         self._Blocker = blocking.RecordLinkBlocker
         self._linkage_type = "RecordLink"
 
-    def match(self, data_1, data_2, threshold = 1.5) :
+    def match(self, data_1, data_2, threshold = 1.5) : # pragma : no cover
         blocked_pairs = self._blockData(data_1, data_2)
         return self.matchBlocks(blocked_pairs, threshold)
 
-    def threshold(self, data_1, data_2, recall_weight = 1.5) :
+    def threshold(self, data_1, data_2, recall_weight = 1.5) : # pragma : no cover
         blocked_pairs = self._blockData(data_1, data_2)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) :
+    def _blockPairs(self, block) : # pragma : no cover
         base, target = block
         return itertools.product(base.items(), target.items())
         
@@ -391,7 +391,7 @@ class ActiveMatching(Matching) :
 
 
 
-    def readTraining(self, training_source) :
+    def readTraining(self, training_source) : # pragma : no cover
 
         logging.info('reading training from file')
 
@@ -514,7 +514,7 @@ class ActiveMatching(Matching) :
 
     # === writeSettings === 
 
-    def writeSettings(self, file_name):
+    def writeSettings(self, file_name): # pragma : no cover
         """
         Write a settings file that contains the 
         data model and predicates
@@ -528,7 +528,7 @@ class ActiveMatching(Matching) :
             pickle.dump(self.predicates, f)
             pickle.dump(self.stop_words, f)
 
-    def writeTraining(self, file_name):
+    def writeTraining(self, file_name): # pragma : no cover
         """
         Write to a json file that contains labeled examples
 

@@ -69,11 +69,6 @@ class ActiveMatch(unittest.TestCase) :
 
 
 
-
-
-
-
-
 class DedupeTest(unittest.TestCase):
   def setUp(self) : 
     random.seed(123) 
@@ -97,11 +92,10 @@ class DedupeTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}), 
                     ('2', {'age': 27, 'name': 'Bob'}))]
 
-    #def test_sample(self) :
+      
       
 
 
 
 if __name__ == "__main__":
     unittest.main()
-
