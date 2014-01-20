@@ -92,6 +92,26 @@ class DedupeTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}), 
                     ('2', {'age': 27, 'name': 'Bob'}))]
 
+  def test_sample(self) :
+    data_sample = self.deduper._sample(
+      {'1' : {'name' : 'Frank', 'age' : '72'},
+       '2' : {'name' : 'Bob', 'age' : '27'},
+       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+
+
+    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
+    assert set(names) == set([("Frank", "Bob"), 
+                              ("Frank", "Jane"),
+                              ("Jane", "Bob")])
+
+    self.deduper.sample({'1' : {'name' : 'Frank', 'age' : '72'},
+                         '2' : {'name' : 'Bob', 'age' : '27'},
+                         '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+
+    assert self.deduper.data_sample == data_sample
+
+
+
 
 class LinkTest(unittest.TestCase):
   def setUp(self) : 
@@ -116,6 +136,21 @@ class LinkTest(unittest.TestCase):
                                                    'age' : 27}}),))) == \
                   [(('1', {'age': 72, 'name': 'Frank'}), 
                     ('2', {'age': 27, 'name': 'Bob'}))]
+
+  def test_sample(self) :
+    data_sample = self.linker._sample(
+      {'1' : {'name' : 'Frank', 'age' : '72'}},
+      {'2' : {'name' : 'Bob', 'age' : '27'},
+       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+
+    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
+    assert set(names) == set([("Frank", "Bob"), ("Frank", "Jane")])
+
+    self.linker.sample({'1' : {'name' : 'Frank', 'age' : '72'}},
+                       {'2' : {'name' : 'Bob', 'age' : '27'},
+                        '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+
+    assert self.linker.data_sample == data_sample
 
       
       

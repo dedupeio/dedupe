@@ -8,7 +8,7 @@ Dedupe class
 try:
     from json.scanner import py_make_scanner
     import json
-except ImportError: # pragma : no cover
+except ImportError: 
     from simplejson.scanner import py_make_scanner
     import simplejson as json
 import itertools
@@ -657,6 +657,17 @@ class ActiveMatching(Matching) :
             except AttributeError:
                 logging.info((k1, v1))
 
+    def sample(self, *args, **kwargs) : # pragma : no cover
+
+        data_sample = self._sample(*args, **kwargs)
+
+        self._checkDataSample(data_sample) 
+
+        self.data_sample = data_sample
+
+        self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                     self.data_model)
+
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
@@ -668,7 +679,8 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
                                      self.stop_words)
 
 class Dedupe(DedupeMatching, ActiveMatching) :
-    def sample(self, data, sample_size) :
+
+    def _sample(self, data, sample_size) :
 
         d = dict((i, dedupe.core.frozendict(v)) 
                  for i, v in enumerate(data.values()))
@@ -680,12 +692,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                              d[int(k2)]) 
                             for k1, k2 in random_pairs)
 
-        self._checkDataSample(data_sample) 
-
-        self.data_sample = data_sample
-
-        self.activeLearner = training.ActiveLearning(self.data_sample, 
-                                                     self.data_model)
+        return data_sample
 
 
 
@@ -699,8 +706,9 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
                                      self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
-    def sample(self, data_1, data_2, sample_size) :
-        '''Randomly select pairs between two data dictionaries'''
+
+    def _sample(self, data_1, data_2, sample_size) :
+
         d_1 = dict((i, dedupe.core.frozendict(v)) 
                     for i, v in enumerate(data_1.values()))
         d_2 = dict((i, dedupe.core.frozendict(v)) 
@@ -714,12 +722,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
                              d_2[int(k2)]) 
                             for k1, k2 in random_pairs)
 
-        self._checkDataSample(data_sample) 
+        return data_sample
 
-        self.data_sample = data_sample
-
-        self.activeLearner = training.ActiveLearning(self.data_sample, 
-                                                     self.data_model)
 
 
 
