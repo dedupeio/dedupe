@@ -74,6 +74,7 @@ class ActiveMatch(unittest.TestCase) :
 
     self.assertRaises(ValueError, matcher._checkRecordPairType, ())
     self.assertRaises(ValueError, matcher._checkRecordPairType, (1,2))
+    self.assertRaises(ValueError, matcher._checkRecordPairType, (1,2,3))
     self.assertRaises(ValueError, matcher._checkRecordPairType, ({},{}))
 
     matcher._checkRecordPairType(({'name' : 'Frank', 'age' : '72'},
@@ -89,6 +90,8 @@ class ActiveMatch(unittest.TestCase) :
 
     self.assertRaises(ValueError, 
                       matcher._checkDataSample, ((1, 2),))
+
+
 
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
