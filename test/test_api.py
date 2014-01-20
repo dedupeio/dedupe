@@ -92,6 +92,31 @@ class DedupeTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}), 
                     ('2', {'age': 27, 'name': 'Bob'}))]
 
+
+class LinkTest(unittest.TestCase):
+  def setUp(self) : 
+    random.seed(123) 
+    fields =  { 'name' : {'type': 'String'}, 
+                'age'  : {'type': 'String'},
+              }
+    self.linker = dedupe.RecordLink(fields)
+
+  def test_blockPairs(self) :
+    self.assertRaises(ValueError, self.linker.blockedPairs, ((),))
+    self.assertRaises(ValueError, self.linker.blockedPairs, ({1:2},))
+    self.assertRaises(ValueError, self.linker.blockedPairs, ({'name':'Frank', 'age':21},))
+    self.assertRaises(ValueError, self.linker.blockedPairs, ({'1' : {'name' : 'Frank',
+                                                                      'height' : 72}},))
+    assert [] == list(self.linker.blockedPairs((({'1' : {'name' : 'Frank',
+                                                         'age' : 72}},
+                                                 {}),)))
+    assert list(self.linker.blockedPairs((({'1' : {'name' : 'Frank',
+                                                   'age' : 72}},
+                                           {'2' : {'name' : 'Bob',
+                                                   'age' : 27}}),))) == \
+                  [(('1', {'age': 72, 'name': 'Frank'}), 
+                    ('2', {'age': 27, 'name': 'Bob'}))]
+
       
       
 
