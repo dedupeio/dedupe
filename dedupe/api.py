@@ -613,11 +613,6 @@ class ActiveMatching(Matching) :
 
         if len(data_sample) :
             self._checkRecordPairType(data_sample[0])
-            try :
-                hash(data_sample[0][0])
-            except :
-                raise ValueError("Records in data_sample must be hashable "
-                                 "see dedupe.core.frozendict")
 
         else :
             warnings.warn("You submitted an empty data_sample")
