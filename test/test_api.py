@@ -35,6 +35,37 @@ class ActiveMatch(unittest.TestCase) :
     assert matcher.blocker is None
 
 
+  def test_check_record(self) :
+    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
+                                          'age'  : {'type': 'String'}})
+
+    self.assertRaises(ValueError, matcher._checkRecordPairType, ())
+    self.assertRaises(ValueError, matcher._checkRecordPairType, (1,2))
+    self.assertRaises(ValueError, matcher._checkRecordPairType, (1,2,3))
+    self.assertRaises(ValueError, matcher._checkRecordPairType, ({},{}))
+
+    matcher._checkRecordPairType(({'name' : 'Frank', 'age' : '72'},
+                                  {'name' : 'Bob', 'age' : '27'}))
+
+
+  def test_check_sample(self) :
+    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
+                                          'age'  : {'type': 'String'}})
+
+    self.assertRaises(ValueError, 
+                      matcher._checkDataSample, (i for i in range(10)))
+
+    self.assertRaises(ValueError, 
+                      matcher._checkDataSample, ((1, 2),))
+
+
+
+    with warnings.catch_warnings(record=True) as w:
+      warnings.simplefilter("always")
+      matcher._checkDataSample([])
+      assert len(w) == 1
+      assert str(w[-1].message) == "You submitted an empty data_sample"
+
   def test_add_training(self) :
     training_pairs = {'distinct' : DATA_SAMPLE[0:3],
                       'match' : DATA_SAMPLE[3:5]}
@@ -68,36 +99,15 @@ class ActiveMatch(unittest.TestCase) :
                                          [ 5.5, 4.8333]]*2),
                                       4)
 
-  def test_check_record(self) :
+  def test_markPair(self) :
+    training_pairs = {'distinct' : DATA_SAMPLE[0:3],
+                      'match' : DATA_SAMPLE[3:5]}
+    bad_training_pairs = {'non_dupes' : DATA_SAMPLE[0:3],
+                      'match' : DATA_SAMPLE[3:5]}
     matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
                                           'age'  : {'type': 'String'}})
 
-    self.assertRaises(ValueError, matcher._checkRecordPairType, ())
-    self.assertRaises(ValueError, matcher._checkRecordPairType, (1,2))
-    self.assertRaises(ValueError, matcher._checkRecordPairType, (1,2,3))
-    self.assertRaises(ValueError, matcher._checkRecordPairType, ({},{}))
-
-    matcher._checkRecordPairType(({'name' : 'Frank', 'age' : '72'},
-                                  {'name' : 'Bob', 'age' : '27'}))
-
-
-  def test_check_sample(self) :
-    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
-                                          'age'  : {'type': 'String'}})
-
-    self.assertRaises(ValueError, 
-                      matcher._checkDataSample, (i for i in range(10)))
-
-    self.assertRaises(ValueError, 
-                      matcher._checkDataSample, ((1, 2),))
-
-
-
-    with warnings.catch_warnings(record=True) as w:
-      warnings.simplefilter("always")
-      matcher._checkDataSample([])
-      assert len(w) == 1
-      assert str(w[-1].message) == "You submitted an empty data_sample"
+    self.assertRaises(ValueError, matcher.markPairs, bad_training_pairs)
 
     
 
