@@ -570,10 +570,12 @@ class ActiveMatching(Matching) :
         if labeled_pairs['match'] :
             pair = labeled_pairs['match'][0]
             self._checkRecordPairType(pair)
-        elif labeled_pairs['distinct'] :
+        
+        if labeled_pairs['distinct'] :
             pair = labeled_pairs['distinct'][0]
             self._checkRecordPairType(pair)
-        else :
+        
+        if not labeled_pairs['distinct'] and not labeled_pairs['match'] :
             warnings.warn("Didn't return any labeled record pairs")
         
 
