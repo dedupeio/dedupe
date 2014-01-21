@@ -106,7 +106,7 @@ We are trying to figure out a range of typical runtimes for diferent hardware. P
 
 Unit tests of core dedupe functions
 ```bash
-python tests/test_dedupe.py
+nosetests
 ```
 
 #### Test using canonical dataset from Bilenko's research
@@ -114,11 +114,6 @@ python tests/test_dedupe.py
 Using random sample data for training
 ```bash
 python tests/canonical_test.py
-```
-
-Using active learning for training
-```bash
-python tests/canonical_test.py --active True
 ```
 
 ## Team
