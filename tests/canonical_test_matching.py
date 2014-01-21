@@ -57,8 +57,8 @@ def evaluateDuplicates(found_dupes, true_dupes):
 
 settings_file = 'canonical_data_matching_learned_settings'
 
-data_1, header = canonicalImport('test/datasets/restaurant-1.csv')
-data_2, _ = canonicalImport('test/datasets/restaurant-2.csv')
+data_1, header = canonicalImport('tests/datasets/restaurant-1.csv')
+data_2, _ = canonicalImport('tests/datasets/restaurant-2.csv')
 
 training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
                                          

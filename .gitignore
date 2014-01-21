@@ -23,3 +23,5 @@ possible_classifiers
 mysql.cnf
 *settings
 Dedupe.egg-info/
+ENV
+dist
