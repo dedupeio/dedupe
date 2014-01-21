@@ -584,7 +584,6 @@ def stopWords(data) :
 
         for frequency, word in doc_freq :
             if frequency > threshold :
-                print frequency, word
                 stop_words.add(word)
             else :
                 break
