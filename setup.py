@@ -42,4 +42,3 @@ setup(
     install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx'],
     long_description=open('README.md').read(),
     )
-
