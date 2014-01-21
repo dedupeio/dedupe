@@ -123,7 +123,11 @@ class ActiveMatch(unittest.TestCase) :
                                          [ 5.5, 4.8333]]),
                                       4)
 
-
+    with warnings.catch_warnings(record=True) as w:
+      warnings.simplefilter("always")
+      matcher.markPairs({'match' : [], 'distinct' : []})
+      assert len(w) == 1
+      assert str(w[-1].message) == "Didn't return any labeled record pairs"
 
     
 
