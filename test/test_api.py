@@ -100,7 +100,7 @@ class ActiveMatch(unittest.TestCase) :
                                       4)
 
   def test_markPair(self) :
-    training_pairs = {'distinct' : DATA_SAMPLE[0:3],
+    good_training_pairs = {'distinct' : DATA_SAMPLE[0:3],
                       'match' : DATA_SAMPLE[3:5]}
     bad_training_pairs = {'non_dupes' : DATA_SAMPLE[0:3],
                       'match' : DATA_SAMPLE[3:5]}
@@ -108,6 +108,22 @@ class ActiveMatch(unittest.TestCase) :
                                           'age'  : {'type': 'String'}})
 
     self.assertRaises(ValueError, matcher.markPairs, bad_training_pairs)
+
+    matcher.markPairs(good_training_pairs)
+
+    numpy.testing.assert_equal(matcher.training_data['label'],
+                               ['distinct', 'distinct', 'distinct', 
+                                'match', 'match'])
+    numpy.testing.assert_almost_equal(matcher.training_data['distances'],
+                                      numpy.array(
+                                        [[ 5.5, 5.0178],
+                                         [ 5.5, 3.4431],
+                                         [ 5.5, 3.7750],
+                                         [ 3.0, 5.125 ],
+                                         [ 5.5, 4.8333]]),
+                                      4)
+
+
 
     
 
