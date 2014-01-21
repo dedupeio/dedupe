@@ -22,8 +22,8 @@ import logging
 import optparse
 from numpy import nan
 import math
-
-import AsciiDammit
+import itertools
+import random
 
 import dedupe
 
@@ -68,7 +68,7 @@ def preProcess(column):
     and Regex. Things like casing, extra spaces, quotes and new lines can be ignored.
     """
 
-    column = AsciiDammit.asciiDammit(column)
+    column = dedupe.asciiDammit(column)
     column = re.sub('\n', ' ', column)
     column = re.sub('-', '', column)
     column = re.sub('/', ' ', column)
@@ -100,9 +100,13 @@ def readData(filename):
 
     return data_d
 
+    
 print 'importing data ...'
 data_1 = readData('AbtBuy_Abt.csv')
 data_2 = readData('AbtBuy_Buy.csv')
+
+training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
+
 
 # ## Training
 
@@ -128,23 +132,7 @@ else:
     # To train dedupe, we feed it a random sample of records.
     linker.sample(data_1, data_2, 150000)
 
-    # If we have training data saved from a previous run of dedupe,
-    # look for it an load it in.
-    # __Note:__ if you want to train from scratch, delete the training_file
-    if os.path.exists(training_file):
-        print 'reading labeled examples from ', training_file
-        linker.readTraining(training_file)
-
-    # ## Active learning
-
-    # Starts the training loop. Dedupe will find the next pair of records
-    # it is least certain about and ask you to label them as duplicates
-    # or not.
-
-    # use 'y', 'n' and 'u' keys to flag duplicates
-    # press 'f' when you are finished
-    print 'starting active labeling...'
-    dedupe.consoleLabel(linker)
+    linker.markPairs(training_pairs)
 
     linker.train()
 
@@ -168,7 +156,7 @@ else:
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
-threshold = linker.threshold(data_1, data_2, recall_weight=20)
+threshold = linker.threshold(data_1, data_2, recall_weight=10)
 
 # `duplicateClusters` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.

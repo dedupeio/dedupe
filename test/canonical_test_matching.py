@@ -25,32 +25,7 @@ logging.basicConfig(level=log_level)
 
 # create a random set of training pairs based on known duplicates
 
-def randomTrainingPairs(data_d,
-                        duplicates_s,
-                        n_training_dupes,
-                        n_training_distinct,
-                        ):
-
-    if n_training_dupes < len(duplicates_s):
-        duplicates = random.sample(duplicates_s, n_training_dupes)
-    else:
-        duplicates = duplicates_s
-
-    duplicates = [(data_d[tuple(pair)[0]], data_d[tuple(pair)[1]])
-                  for pair in duplicates]
-
-    all_pairs = list(itertools.combinations(data_d, 2))
-    all_nonduplicates = set(all_pairs) - set(duplicates_s)
-
-    nonduplicates = random.sample(all_nonduplicates, n_training_distinct)
-
-    nonduplicates = [(data_d[pair[0]], data_d[pair[1]])
-                     for pair in nonduplicates]
-
-    return {'distinct': nonduplicates, 'match': duplicates}
-
-
-def canonicalImport(filename, base=False):
+def canonicalImport(filename):
     preProcess = exampleIO.preProcess
     data_d = {}
  
@@ -80,44 +55,14 @@ def evaluateDuplicates(found_dupes, true_dupes):
     print len(true_positives) / float(len(true_dupes))
 
 
-    # eturn uncovered_dupes, false_positives
-
-def printPairs(pairs):
-    for pair in pairs:
-        print ''
-        for instance in tuple(pair):
-            print data_d[instance].values()
-
-
 settings_file = 'canonical_data_matching_learned_settings'
-num_training_dupes = 400
-num_training_distinct = 2000
-num_iterations = 10
 
-data_1, header = canonicalImport('test/datasets/restaurant-1.csv', base=True)
-data_2, _ = canonicalImport('test/datasets/restaurant-2.csv', base=False)
-data_d = dict(data_1.items() + data_2.items())
+data_1, header = canonicalImport('test/datasets/restaurant-1.csv')
+data_2, _ = canonicalImport('test/datasets/restaurant-2.csv')
 
-clusters_1 = {}
-for k, row in data_1.items() :
-    clusters_1.setdefault(row['unique_id'], []).append(k)
-
-clusters_2 = defaultdict(list)
-for k, row in data_2.items() :
-    clusters_2.setdefault(row['unique_id'], []).append(k)
-
-duplicates_s = set([])
-for (unique_id, cluster_1) in clusters_1.iteritems():
-    cluster_2 = clusters_2[unique_id]
-    if cluster_2 :
-        for pair in itertools.product(cluster_1, cluster_2):
-            duplicates_s.add(frozenset(pair))
-
-training_pairs = randomTrainingPairs(data_d,
-                                     duplicates_s,
-                                     num_training_dupes,
-                                     num_training_distinct)
-
+training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
+                                         
+duplicates_s = set(frozenset(pair) for pair in training_pairs['match'])
 
 t0 = time.time()
 
@@ -139,8 +84,6 @@ else:
     deduper.writeSettings(settings_file)
 
 
-
-
 alpha = deduper.threshold(data_1, data_2)
 
 
@@ -149,22 +92,17 @@ print 'clustering...'
 clustered_dupes = deduper.match(data_1, data_2, threshold=alpha)
 
 
-
 print 'Evaluate Scoring'
-found_dupes = set([frozenset(pair) for (pair, score) in deduper.matches
-                  if score > alpha])
+found_dupes = set(frozenset((data_1[pair[0]], data_2[pair[1]])) 
+                   for (pair, score) in deduper.matches
+                   if score > alpha)
 
 evaluateDuplicates(found_dupes, duplicates_s)
 
 print 'Evaluate Clustering'
 
-confirm_dupes = set([])
-for dupe_set in clustered_dupes:
-    if len(dupe_set) == 2:
-        confirm_dupes.add(frozenset(dupe_set))
-    else:
-        for pair in itertools.combinations(dupe_set, 2):
-            confirm_dupes.add(frozenset(pair))
+confirm_dupes = set(frozenset((data_1[pair[0]], data_2[pair[1]])) 
+                    for pair in clustered_dupes)
 
 evaluateDuplicates(confirm_dupes, duplicates_s)
 

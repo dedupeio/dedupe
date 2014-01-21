@@ -1,7 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 import sys
+import collections
+import itertools
+import random
 
 def consoleLabel(deduper): # pragma : no cover
     '''
@@ -52,4 +54,61 @@ def consoleLabel(deduper): # pragma : no cover
             deduper.markPairs(labels)
         
 
+def trainingDataLink(data_1, data_2, common_key, sample_size=50000) :
+    identified_records = collections.defaultdict(lambda: [[],[]])
+    matched_pairs = set()
+    distinct_pairs = set()
+
+    for record_id, record in data_1.items() :
+        identified_records[record[common_key]][0].append(record_id)
+
+    for record_id, record in data_2.items() :
+        identified_records[record[common_key]][1].append(record_id)
+
+    for keys_1, keys_2 in identified_records.values() :
+        if keys_1 and keys_2 :
+            matched_pairs.update(itertools.product(keys_1, keys_2))
+
+    distinct_pairs = set(itertools.product(data_1.keys(), data_2.keys()))
+    distinct_pairs -= matched_pairs
+    distinct_pairs = random.sample(distinct_pairs, sample_size)
+
+    matched_records = [(data_1[key_1], data_2[key_2])
+                       for key_1, key_2 in matched_pairs]
+
+    distinct_records = [(data_1[key_1], data_2[key_2])
+                        for key_1, key_2 in distinct_pairs]
+
+    training_pairs = {'match' : matched_records, 
+                      'distinct' : distinct_records} 
+
+    return training_pairs        
         
+
+def trainingDataDedupe(data, common_key, sample_size=50000) :
+    identified_records = collections.defaultdict(list)
+    matched_pairs = set()
+    distinct_pairs = set()
+
+    for record_id, record in data.items() :
+        identified_records[record[common_key]].append(record_id)
+
+    for record_ids in identified_records.values() :
+        if len(record_ids) > 1 :
+            matched_pairs.update(itertools.combinations(sorted(record_ids), 2))
+
+    distinct_pairs.update(itertools.combinations(sorted(data.keys()), 2))
+    distinct_pairs -= matched_pairs
+
+    distinct_pairs = random.sample(distinct_pairs, sample_size)
+
+    matched_records = [(data[key_1], data[key_2])
+                       for key_1, key_2 in matched_pairs]
+
+    distinct_records = [(data[key_1], data[key_2])
+                        for key_1, key_2 in distinct_pairs]
+
+    training_pairs = {'match' : matched_records, 
+                      'distinct' : distinct_records} 
+
+    return training_pairs

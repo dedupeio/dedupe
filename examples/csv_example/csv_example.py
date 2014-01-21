@@ -22,8 +22,6 @@ import logging
 import optparse
 from numpy import nan
 
-import AsciiDammit
-
 import dedupe
 
 # ## Logging
@@ -70,11 +68,13 @@ def sameOrNotComparator(field_1, field_2) :
 
 def preProcess(column):
     """
-    Do a little bit of data cleaning with the help of [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) 
-    and Regex. Things like casing, extra spaces, quotes and new lines can be ignored.
+    Do a little bit of data cleaning with the help of
+    [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) and
+    Regex. Things like casing, extra spaces, quotes and new lines can
+    be ignored.
     """
 
-    column = AsciiDammit.asciiDammit(column)
+    column = dedupe.asciiDammit(column)
     column = re.sub('  +', ' ', column)
     column = re.sub('\n', ' ', column)
     column = column.strip().strip('"').strip("'").lower().strip()
