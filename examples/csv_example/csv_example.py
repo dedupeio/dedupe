@@ -21,8 +21,20 @@ import collections
 import logging
 import optparse
 from numpy import nan
+import threading
+import datetime
+        
 
 import dedupe
+
+class ThreadClass(threading.Thread):
+    deduper = None
+
+    def run(self):
+        self.deduper.train()
+
+        now = datetime.datetime.now()
+        print "%s says Hello World at time: %s" % (self.getName(), now)
 
 # ## Logging
 
@@ -72,6 +84,7 @@ def preProcess(column):
     [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) and
     Regex. Things like casing, extra spaces, quotes and new lines can
     be ignored.
+
     """
 
     column = dedupe.asciiDammit(column)
@@ -145,7 +158,10 @@ else:
 
     dedupe.consoleLabel(deduper)
 
-    deduper.train()
+    t = ThreadClass()
+    t.deduper = deduper
+
+    t.start()
 
     # When finished, save our training away to disk
     deduper.writeTraining(training_file)
@@ -154,6 +170,7 @@ else:
     # exists, we will skip all the training and learning next time we run
     # this file.
     deduper.writeSettings(settings_file)
+
 
 
 # ## Blocking
