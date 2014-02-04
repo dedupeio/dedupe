@@ -39,11 +39,14 @@ from dedupe.datamodel import DataModel
 
 class Matching(object):
     """
+    Base Class for Record Matching Classes
+    
     Public methods:
 
     - `__init__`
+    - `blockedPairs`
     - `thresholdBlocks`
-    - `match`
+    - `matchBlocks`
     """
 
     def __init__(self) :
@@ -145,10 +148,17 @@ class Matching(object):
 
         return pair_gen()
 
-    
-
-
 class DedupeMatching(Matching) :
+    """
+    Base Class for Deduplication, extends Matching
+    
+    Public methods:
+
+    - `__init__`
+    - `match`
+    - `threshold`
+    """
+    
     def __init__(self, *args, **kwargs) :
         super(DedupeMatching, self).__init__(*args, **kwargs)
         self._Blocker = blocking.DedupeBlocker
