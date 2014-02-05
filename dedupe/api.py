@@ -673,7 +673,7 @@ class ActiveMatching(Matching) :
 
     def getUncertainPair(self) :
         '''
-        Provide the pair of records that dedupe is most curious to learn 
+        Provides a list of the pairs of records that dedupe is most curious to learn 
         if they are matches or distinct.
         
         Useful for user labeling.
@@ -835,7 +835,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
 
     
-    def sample(self, data, sample_size) :
+    def sample(self, data, sample_size=150000) :
         '''
         Draw a random sample of combinations of records from 
         the the dataset, and initialize active learning with this sample
@@ -887,7 +887,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
 
-    def sample(self, data_1, data_2, sample_size) :
+    def sample(self, data_1, data_2, sample_size=150000) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
