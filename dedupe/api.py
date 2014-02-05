@@ -159,8 +159,8 @@ class DedupeMatching(Matching) :
     """
     Class for Deduplication, extends Matching.
     
-    Use DedupeMatching when you have a dataset that can contain multiple references to the same 
-    entity.
+    Use DedupeMatching when you have a dataset that can contain 
+    multiple references to the same entity.
     
     Public methods:
 
@@ -286,18 +286,19 @@ class RecordLinkMatching(Matching) :
         for larger data, use matchBlocks
         
         Arguments:
-        data_1    --  Dictionary of records from first dataset, where the keys 
-                      are record_ids and the values are dictionaries with the keys 
-                      being field names
+        data_1    -- Dictionary of records from first dataset, where the 
+                     keys are record_ids and the values are dictionaries
+                     with the keys being field names
 
-        data_2    --  Dictionary of records from second dataset, same form as data_1
+        data_2    -- Dictionary of records from second dataset, same form 
+                     as data_1
                                           
-        threshold --  Number between 0 and 1 (default is .5). We will consider
-                      records as potential duplicates if the predicted probability
-                      of being a duplicate is above the threshold.
+        threshold -- Number between 0 and 1 (default is .5). We will consider
+                     records as potential duplicates if the predicted 
+                     probability of being a duplicate is above the threshold.
 
-                      Lowering the number will increase recall, raising it
-                      will increase precision
+                     Lowering the number will increase recall, raising it
+                     will increase precision
         """
 
         blocked_pairs = self._blockData(data_1, data_2)
@@ -834,16 +835,15 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
 
     
-    def sample(data, sample_size) :
+    def sample(self, data, sample_size) :
         '''
         Draw a random sample of combinations of records from 
         the the dataset, and initialize active learning with this sample
         
         Arguments:
-        
-        data         --  Dictionary of records, where the keys are record_ids 
-                         and the values are dictionaries with the keys being 
-                         field names
+        data        -- Dictionary of records, where the keys are record_ids 
+                       and the values are dictionaries with the keys being 
+                       field names
         
         sample_size -- Size of the sample to draw
         '''
@@ -887,7 +887,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
 
-    def sample(data_1, data_2, sample_size) :
+    def sample(self, data_1, data_2, sample_size) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -895,10 +895,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         Arguments:
         
-        data_1       --  Dictionary of records from first dataset, where the keys 
-                         are record_ids and the values are dictionaries with the keys 
-                         being field names
-        data_2       --  Dictionary of records from second dataset, same form as data_1
+        data_1      -- Dictionary of records from first dataset, where the 
+                       keys are record_ids and the values are dictionaries 
+                       with the keys being field names
+        data_2      -- Dictionary of records from second dataset, same 
+                       form as data_1
         
         sample_size -- Size of the sample to draw
         '''

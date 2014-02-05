@@ -64,19 +64,23 @@ def trainingDataLink(data_1, data_2, common_key, training_size=50000) :
     
     Arguments : 
     data_1        -- Dictionary of records from first dataset, where the keys
-                     are record_ids and the values are dictionaries with the keys
-                     being field names
+                     are record_ids and the values are dictionaries with the 
+                     keys being field names
 
-    data_2        -- Dictionary of records from second dataset, same form as data_1
+    data_2        -- Dictionary of records from second dataset, same form as 
+                     data_1
     
-    common_key    -- The name of the record field that uniquely identifies a match
+    common_key    -- The name of the record field that uniquely identifies 
+                     a match
     
-    training_size -- the rough limit of the number of training examples, defaults to 50000
+    training_size -- the rough limit of the number of training examples, 
+                     defaults to 50000
     
     Warning:
     
-    Every match must be identified by the sharing of a common key. This function assumes
-    that if two records do not share a common key then they are distinct records. 
+    Every match must be identified by the sharing of a common key. 
+    This function assumes that if two records do not share a common key 
+    then they are distinct records. 
     '''
     
     
@@ -116,17 +120,21 @@ def trainingDataDedupe(data, common_key, training_size=50000) :
     markPairs method from an already deduplicated dataset.
     
     Arguments : 
-    data          -- Dictionary of records, where the keys are record_ids and the 
-                     values are dictionaries with the keys being field names
+    data          -- Dictionary of records, where the keys are record_ids and 
+                     the values are dictionaries with the keys being 
+                     field names
 
-    common_key    -- The name of the record field that uniquely identifies a match
+    common_key    -- The name of the record field that uniquely identifies 
+                     a match
     
-    training_size -- the rough limit of the number of training examples, defaults to 50000
+    training_size -- the rough limit of the number of training examples, 
+                     defaults to 50000
     
     Warning:
     
-    Every match must be identified by the sharing of a common key. This function assumes
-    that if two records do not share a common key then they are distinct records. 
+    Every match must be identified by the sharing of a common key. 
+    This function assumes that if two records do not share a common key 
+    then they are distinct records. 
     '''
 
     
