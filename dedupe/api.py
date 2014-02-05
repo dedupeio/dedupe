@@ -114,7 +114,6 @@ class Matching(object):
                               
 
         """
-
         # Setting the cluster threshold this ways is not principled,
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
@@ -138,6 +137,14 @@ class Matching(object):
                                  "in a record" % k)
 
     def blockedPairs(self, blocks) :
+        """
+        Generate tuples of pairs of records from a block of records
+        
+        Arguments:
+        
+        blocks -- an iterable sequence of blocked records
+        """
+        
         block, blocks = core.peek(blocks)
         self._checkBlock(block)
 
@@ -150,7 +157,10 @@ class Matching(object):
 
 class DedupeMatching(Matching) :
     """
-    Base Class for Deduplication, extends Matching
+    Class for Deduplication, extends Matching.
+    
+    Use DedupeMatching when you have a dataset that can contain multiple references to the same 
+    entity.
     
     Public methods:
 
@@ -166,10 +176,48 @@ class DedupeMatching(Matching) :
         self._linkage_type = "Dedupe"
 
     def match(self, data, threshold = 0.5) : # pragma : no cover
+        """
+        Identifies records that all refer to the same entity, returns tuples
+        of record ids, where the record_ids within each tuple should refer
+        to the same entity
+        
+        This method should only used for small to moderately sized datasets
+        for larger data, use matchBlocks
+        
+        Arguments:
+        data      --  Dictionary of records, where the keys are record_ids
+                      and the values are dictionaries with the keys being
+                      field names
+                                          
+        threshold --  Number between 0 and 1 (default is .5). We will consider
+                      records as potential duplicates if the predicted probability
+                      of being a duplicate is above the threshold.
+
+                      Lowering the number will increase recall, raising it
+                      will increase precision
+                             
+        """
         blocked_pairs = self._blockData(data)
         return self.matchBlocks(blocked_pairs, threshold)
 
-    def threshold(self, data, recall_weight = 1.5) : # pragma : no cover 
+    def threshold(self, data, recall_weight = 1.5) : # pragma : no cover
+        """
+        Returns the threshold that maximizes the expected F score,
+        a weighted average of precision and recall for a sample of
+        data. 
+
+        Arguments:
+        data          -- Dictionary of records, where the keys are record_ids
+                         and the values are dictionaries with the keys being
+                         field names
+
+        recall_weight -- Sets the tradeoff between precision and
+                         recall. I.e. if you care twice as much about
+                         recall as you do precision, set recall_weight
+                         to 2.
+        """
+
+    
         blocked_pairs = self._blockData(data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
@@ -208,6 +256,19 @@ class DedupeMatching(Matching) :
 
 
 class RecordLinkMatching(Matching) :
+    """
+    Class for Record Linkage, extends Matching.
+    
+    Use RecordLinkMatching when you have two datasets that you want to merge
+    where each dataset, individually, contains no duplicates.
+    
+    Public methods:
+
+    - `__init__`
+    - `match`
+    - `threshold`
+    """
+
     def __init__(self, *args, **kwargs) :
         super(RecordLinkMatching, self).__init__(*args, **kwargs)
 
@@ -216,10 +277,51 @@ class RecordLinkMatching(Matching) :
         self._linkage_type = "RecordLink"
 
     def match(self, data_1, data_2, threshold = 1.5) : # pragma : no cover
+        """
+        Identifies pairs of records that refer to the same entity, returns tuples
+        of record ids, where both record_ids within a tuple should refer
+        to the same entity
+        
+        This method should only used for small to moderately sized datasets
+        for larger data, use matchBlocks
+        
+        Arguments:
+        data_1    --  Dictionary of records from first dataset, where the keys 
+                      are record_ids and the values are dictionaries with the keys 
+                      being field names
+
+        data_2    --  Dictionary of records from second dataset, same form as data_1
+                                          
+        threshold --  Number between 0 and 1 (default is .5). We will consider
+                      records as potential duplicates if the predicted probability
+                      of being a duplicate is above the threshold.
+
+                      Lowering the number will increase recall, raising it
+                      will increase precision
+        """
+
         blocked_pairs = self._blockData(data_1, data_2)
         return self.matchBlocks(blocked_pairs, threshold)
 
     def threshold(self, data_1, data_2, recall_weight = 1.5) : # pragma : no cover
+        """
+        Returns the threshold that maximizes the expected F score,
+        a weighted average of precision and recall for a sample of
+        data. 
+
+        Arguments:
+        data_1        --  Dictionary of records from first dataset, where the keys 
+                          are record_ids and the values are dictionaries with the keys 
+                          being field names
+
+        data_2        --  Dictionary of records from second dataset, same form as data_1
+
+        recall_weight -- Sets the tradeoff between precision and
+                         recall. I.e. if you care twice as much about
+                         recall as you do precision, set recall_weight
+                         to 2.
+        """
+
         blocked_pairs = self._blockData(data_1, data_2)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
@@ -267,6 +369,13 @@ class RecordLinkMatching(Matching) :
             yield block 
 
 class StaticMatching(Matching) :
+    """
+    Class for initializing a dedupe object from a settings file, extends Matching.
+    
+    Public methods:
+    - __init__
+    """
+
     def __init__(self, 
                  settings_file, 
                  num_processes=1) :
@@ -307,6 +416,19 @@ class StaticMatching(Matching) :
 
 
 class ActiveMatching(Matching) :
+    """
+    Class for training dedupe extends Matching.
+    
+    Public methods:
+    - __init__
+    - readTraining
+    - train
+    - writeSettings
+    - writeTraining
+    - getUncertainPair
+    - markPairs
+    """
+
     def __init__(self, 
                  field_definition, 
                  data_sample = None,
@@ -463,7 +585,6 @@ class ActiveMatching(Matching) :
         self._trainBlocker(ppc, uncovered_dupes)
 
 
-    # === Dedupe.trainClassifier ===
     def _trainClassifier(self, alpha=.1) : # pragma : no cover
 
         self.data_model = core.trainModel(self.training_data,
@@ -473,11 +594,10 @@ class ActiveMatching(Matching) :
         self._logLearnedWeights()
 
     
-    # === Dedupe.trainBlocker ===
     def _trainBlocker(self, ppc=1, uncovered_dupes=1) :
         training_pairs = copy.deepcopy(self.training_pairs)
 
-        blocker_types = self.blockerTypes()
+        blocker_types = self._blockerTypes()
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model,
@@ -501,7 +621,7 @@ class ActiveMatching(Matching) :
                                      self.stop_words) 
 
 
-    def blockerTypes(self) : # pragma : no cover
+    def _blockerTypes(self) : # pragma : no cover
         string_predicates = (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
                              predicates.commonIntegerPredicate,
@@ -521,8 +641,6 @@ class ActiveMatching(Matching) :
 
 
 
-
-    # === writeSettings === 
 
     def writeSettings(self, file_name): # pragma : no cover
         """
@@ -553,6 +671,14 @@ class ActiveMatching(Matching) :
 
 
     def getUncertainPair(self) :
+        '''
+        Provide the pair of records that dedupe is most curious to learn 
+        if they are matches or distinct.
+        
+        Useful for user labeling.
+        '''
+        
+        
         if self.training_data.shape[0] == 0 :
             rand_int = random.randint(0, len(self.data_sample))
             exact_match = self.data_sample[rand_int]
@@ -569,6 +695,16 @@ class ActiveMatching(Matching) :
         return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
 
     def markPairs(self, labeled_pairs) :
+        '''
+        Add a labeled pairs of record to dedupes training set and update the
+        matching model
+        
+        Argument :
+
+        labeled_pairs -- A dictionary with two keys, `match` and `distinct`
+                         the values are lists that can contain pairs of records
+                         
+        '''
         try :
             labeled_pairs.items()
             labeled_pairs['match']
@@ -664,7 +800,7 @@ class ActiveMatching(Matching) :
             except AttributeError:
                 logging.info((k1, v1))
 
-    def sample(self, *args, **kwargs) : # pragma : no cover
+    def _loadSample(self, *args, **kwargs) : # pragma : no cover
 
         data_sample = self._sample(*args, **kwargs)
 
@@ -678,6 +814,10 @@ class ActiveMatching(Matching) :
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
+    """
+    Mixin Class for Static Deduplication
+    """
+
     def __init__(self, *args, **kwargs) :
         super(StaticDedupe, self).__init__(*args, **kwargs)
 
@@ -686,6 +826,29 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
                                      self.stop_words)
 
 class Dedupe(DedupeMatching, ActiveMatching) :
+    """
+    Mixin Class for Active Learning Deduplication
+    
+    Public Methods
+    - sample
+    """
+
+    
+    def sample(data, sample_size) :
+        '''
+        Draw a random sample of combinations of records from 
+        the the dataset, and initialize active learning with this sample
+        
+        Arguments:
+        
+        data         --  Dictionary of records, where the keys are record_ids 
+                         and the values are dictionaries with the keys being 
+                         field names
+        
+        sample_size -- Size of the sample to draw
+        '''
+        
+        self._loadSample(data, sample_size)
 
     def _sample(self, data, sample_size) :
 
@@ -705,6 +868,10 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
+    """
+    Mixin Class for Static Record Linkage
+    """
+
     def __init__(self, *args, **kwargs) :
         super(StaticRecordLink, self).__init__(*args, **kwargs)
 
@@ -713,6 +880,30 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
                                      self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
+    """
+    Mixin Class for Active Learning Record Linkage
+    
+    Public Methods
+    - sample
+    """
+
+    def sample(data_1, data_2, sample_size) :
+        '''
+        Draws a random sample of combinations of records from 
+        the first and second datasets, and initializes active
+        learning with this sample
+        
+        Arguments:
+        
+        data_1       --  Dictionary of records from first dataset, where the keys 
+                         are record_ids and the values are dictionaries with the keys 
+                         being field names
+        data_2       --  Dictionary of records from second dataset, same form as data_1
+        
+        sample_size -- Size of the sample to draw
+        '''
+        
+        self._loadSample(data_1, data_2, sample_size)
 
     def _sample(self, data_1, data_2, sample_size) :
 
