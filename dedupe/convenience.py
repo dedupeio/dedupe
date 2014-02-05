@@ -9,6 +9,9 @@ def consoleLabel(deduper): # pragma : no cover
     '''
     Command line interface for presenting and labeling training pairs
     by the user
+    
+    Argument :
+    A deduper object
     '''
 
     finished = False
@@ -54,7 +57,29 @@ def consoleLabel(deduper): # pragma : no cover
             deduper.markPairs(labels)
         
 
-def trainingDataLink(data_1, data_2, common_key, sample_size=50000) :
+def trainingDataLink(data_1, data_2, common_key, training_size=50000) :
+    '''
+    Construct training data for consumption by the ActiveLearning 
+    markPairs method from already linked datasets.
+    
+    Arguments : 
+    data_1        -- Dictionary of records from first dataset, where the keys
+                     are record_ids and the values are dictionaries with the keys
+                     being field names
+
+    data_2        -- Dictionary of records from second dataset, same form as data_1
+    
+    common_key    -- The name of the record field that uniquely identifies a match
+    
+    training_size -- the rough limit of the number of training examples, defaults to 50000
+    
+    Warning:
+    
+    Every match must be identified by the sharing of a common key. This function assumes
+    that if two records do not share a common key then they are distinct records. 
+    '''
+    
+    
     identified_records = collections.defaultdict(lambda: [[],[]])
     matched_pairs = set()
     distinct_pairs = set()
@@ -71,7 +96,7 @@ def trainingDataLink(data_1, data_2, common_key, sample_size=50000) :
 
     distinct_pairs = set(itertools.product(data_1.keys(), data_2.keys()))
     distinct_pairs -= matched_pairs
-    distinct_pairs = random.sample(distinct_pairs, sample_size)
+    distinct_pairs = random.sample(distinct_pairs, training_size)
 
     matched_records = [(data_1[key_1], data_2[key_2])
                        for key_1, key_2 in matched_pairs]
@@ -85,7 +110,26 @@ def trainingDataLink(data_1, data_2, common_key, sample_size=50000) :
     return training_pairs        
         
 
-def trainingDataDedupe(data, common_key, sample_size=50000) :
+def trainingDataDedupe(data, common_key, training_size=50000) :
+    '''
+    Construct training data for consumption by the ActiveLearning 
+    markPairs method from an already deduplicated dataset.
+    
+    Arguments : 
+    data          -- Dictionary of records, where the keys are record_ids and the 
+                     values are dictionaries with the keys being field names
+
+    common_key    -- The name of the record field that uniquely identifies a match
+    
+    training_size -- the rough limit of the number of training examples, defaults to 50000
+    
+    Warning:
+    
+    Every match must be identified by the sharing of a common key. This function assumes
+    that if two records do not share a common key then they are distinct records. 
+    '''
+
+    
     identified_records = collections.defaultdict(list)
     matched_pairs = set()
     distinct_pairs = set()
@@ -100,7 +144,7 @@ def trainingDataDedupe(data, common_key, sample_size=50000) :
     distinct_pairs.update(itertools.combinations(sorted(data.keys()), 2))
     distinct_pairs -= matched_pairs
 
-    distinct_pairs = random.sample(distinct_pairs, sample_size)
+    distinct_pairs = random.sample(distinct_pairs, training_size)
 
     matched_records = [(data[key_1], data[key_2])
                        for key_1, key_2 in matched_pairs]
