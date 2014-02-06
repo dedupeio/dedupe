@@ -59,6 +59,7 @@ easy_install "numpy>=1.6"
 easy_install "fastcluster>=1.1.8"
 easy_install "hcluster>=0.2.0"
 easy_install networkx
+easy_install zope.index
 python setup.py install
 ```
 
@@ -96,6 +97,13 @@ python examples/mysql_example/mysql_example.py
 
 We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
 [run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
+
+### [Record Linkage example](http://open-city.github.com/dedupe/doc/recod_linkage_example.html) 
+This example links two datasets, where each dataset, individually has no duplicates.
+
+```bash
+python examples/record_linkage_example/record_linkage_example.py 
+```
 
 ## Documentation
 [The documentation for the dedupe library is on our wiki](https://github.com/open-city/dedupe/wiki/API-documentation).
