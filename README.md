@@ -36,6 +36,7 @@ After numpy is set up, then install the following:
 * [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html)
 * [hcluster](http://code.google.com/p/scipy-cluster/)
 * [networkx](http://networkx.github.com/)
+* [zope.index](https://pypi.python.org/pypi/zope.index)
 
 Using pip:
 
