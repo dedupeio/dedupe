@@ -525,6 +525,13 @@ class ActiveMatching(Matching) :
 
 
     def readTraining(self, training_source) : # pragma : no cover
+        '''
+        Read training from previously saved training data file
+        
+        Arguments:
+        
+        training_source -- the path of the training data file
+        '''
 
         logging.info('reading training from file')
 
