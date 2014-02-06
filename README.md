@@ -105,6 +105,9 @@ This example links two datasets, where each dataset, individually has no duplica
 python examples/record_linkage_example/record_linkage_example.py 
 ```
 
+**To see how you might use dedupe for linking datasets, see the [annotated source code for record_linkage_example.py](http://open-city.github.com/dedupe/doc/record_linkage_example.html).**
+
+
 ## Documentation
 [The documentation for the dedupe library is on our wiki](https://github.com/open-city/dedupe/wiki/API-documentation).
 
