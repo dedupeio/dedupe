@@ -123,10 +123,16 @@ nosetests
 
 #### Test using canonical dataset from Bilenko's research
   
-Using random sample data for training
+Using Deduplication
 ```bash
 python tests/canonical_test.py
 ```
+
+Using Record Linkage
+```bash
+python tests/canonical_test_matching.py
+```
+
 
 ## Team
 
