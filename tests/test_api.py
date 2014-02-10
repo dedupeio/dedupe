@@ -141,14 +141,14 @@ class DedupeTest(unittest.TestCase):
     self.deduper = dedupe.Dedupe(fields)
 
   def test_blockPairs(self) :
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ((),))
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ({1:2},))
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ({'name':'Frank', 'age':21},))
-    self.assertRaises(ValueError, self.deduper.blockedPairs, ({'1' : {'name' : 'Frank',
+    self.assertRaises(ValueError, self.deduper._blockedPairs, ((),))
+    self.assertRaises(ValueError, self.deduper._blockedPairs, ({1:2},))
+    self.assertRaises(ValueError, self.deduper._blockedPairs, ({'name':'Frank', 'age':21},))
+    self.assertRaises(ValueError, self.deduper._blockedPairs, ({'1' : {'name' : 'Frank',
                                                                       'height' : 72}},))
-    assert [] == list(self.deduper.blockedPairs(({'1' : {'name' : 'Frank',
+    assert [] == list(self.deduper._blockedPairs(({'1' : {'name' : 'Frank',
                                                          'age' : 72}},)))
-    assert list(self.deduper.blockedPairs(({'1' : {'name' : 'Frank',
+    assert list(self.deduper._blockedPairs(({'1' : {'name' : 'Frank',
                                                    'age' : 72},
                                             '2' : {'name' : 'Bob',
                                                    'age' : 27}},))) == \
@@ -185,15 +185,15 @@ class LinkTest(unittest.TestCase):
     self.linker = dedupe.RecordLink(fields)
 
   def test_blockPairs(self) :
-    self.assertRaises(ValueError, self.linker.blockedPairs, ((),))
-    self.assertRaises(ValueError, self.linker.blockedPairs, ({1:2},))
-    self.assertRaises(ValueError, self.linker.blockedPairs, ({'name':'Frank', 'age':21},))
-    self.assertRaises(ValueError, self.linker.blockedPairs, ({'1' : {'name' : 'Frank',
+    self.assertRaises(ValueError, self.linker._blockedPairs, ((),))
+    self.assertRaises(ValueError, self.linker._blockedPairs, ({1:2},))
+    self.assertRaises(ValueError, self.linker._blockedPairs, ({'name':'Frank', 'age':21},))
+    self.assertRaises(ValueError, self.linker._blockedPairs, ({'1' : {'name' : 'Frank',
                                                                       'height' : 72}},))
-    assert [] == list(self.linker.blockedPairs((({'1' : {'name' : 'Frank',
+    assert [] == list(self.linker._blockedPairs((({'1' : {'name' : 'Frank',
                                                          'age' : 72}},
                                                  {}),)))
-    assert list(self.linker.blockedPairs((({'1' : {'name' : 'Frank',
+    assert list(self.linker._blockedPairs((({'1' : {'name' : 'Frank',
                                                    'age' : 72}},
                                            {'2' : {'name' : 'Bob',
                                                    'age' : 27}}),))) == \
