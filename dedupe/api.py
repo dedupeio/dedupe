@@ -44,7 +44,6 @@ class Matching(object):
     Public methods:
 
     - `__init__`
-    - `blockedPairs`
     - `thresholdBlocks`
     - `matchBlocks`
     """
@@ -71,7 +70,7 @@ class Matching(object):
         """
 
 
-        probability = core.scoreDuplicates(self.blockedPairs(blocks), 
+        probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
                                            self.pool)['score']
 
@@ -118,7 +117,7 @@ class Matching(object):
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
 
-        candidate_records = self.blockedPairs(blocks)
+        candidate_records = self._blockedPairs(blocks)
         
         self.matches = core.scoreDuplicates(candidate_records,
                                             self.data_model,
@@ -136,7 +135,7 @@ class Matching(object):
                                  "The field '%s' is in data_model but not "
                                  "in a record" % k)
 
-    def blockedPairs(self, blocks) :
+    def _blockedPairs(self, blocks) :
         """
         Generate tuples of pairs of records from a block of records
         
