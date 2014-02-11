@@ -99,7 +99,6 @@ def getSample(cur, sample_size, id_column, table):
 
 # Switch to our working directory and set up our settings and training
 # file locations
-os.chdir('./examples/mysql_example/')
 settings_file = 'mysql_example_settings'
 training_file = 'mysql_example_training.json'
 
@@ -109,7 +108,7 @@ start_time = time.time()
 # `examples/mysql_example/mysql.cnf` and fill in your mysql database
 # information in `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
-                      read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+                      read_default_file = 'mysql.cnf', 
                       cursorclass=MySQLdb.cursors.DictCursor)
 
 c = con.cursor()

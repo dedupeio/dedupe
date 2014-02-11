@@ -1,7 +1,6 @@
 import csv
 import collections
 import itertools
-import os
 
 def evaluateDuplicates(found_dupes, true_dupes):
     true_positives = found_dupes.intersection(true_dupes)
@@ -36,8 +35,6 @@ def dupePairs(filename, rowname) :
                 dupe_s.add(frozenset(pair))
 
     return dupe_s
-
-os.chdir('./examples/csv_example/')
 
 manual_clusters = 'csv_example_input_with_true_ids.csv'
 dedupe_clusters = 'csv_example_output.csv'
