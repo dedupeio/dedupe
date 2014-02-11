@@ -51,7 +51,6 @@ def dbWriter(sql, rows) :
 
 # Switch to our working directory and set up our settings and training
 # file locations
-os.chdir('./examples/mysql_example/')
 settings_file = 'mysql_example_settings'
 training_file = 'mysql_example_training.json'
 
@@ -107,7 +106,6 @@ def getSample(cur, sample_size, id_column, table):
     return tuple(pair for pair in random_pair_generator())
 
 
-
 start_time = time.time()
 
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
@@ -115,12 +113,12 @@ start_time = time.time()
 # information in `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
                       charset='ascii',
-                      read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+                      read_default_file = '/mysql.cnf', 
                       cursorclass=MySQLdb.cursors.SSDictCursor)
 
 con2 = MySQLdb.connect(db='contributions',
                        charset='ascii',
-                       read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+                       read_default_file = '/mysql.cnf', 
                        cursorclass=MySQLdb.cursors.SSCursor)
 
 c = con.cursor()

@@ -70,7 +70,8 @@ Dedupe is a library and not a stand-alone command line tool. To demonstrate its 
 
 ### [CSV example](http://open-city.github.com/dedupe/doc/csv_example.html) (<10,000 rows)
 ```bash
-python examples/csv_example/csv_example.py
+cd examples/csv_example
+python csv_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished)
   
@@ -89,8 +90,9 @@ To follow this example you need to
 Once that's all done you can run the example:
 
 ```bash
-python examples/mysql_example/mysql_init_db.py 
-python examples/mysql_example/mysql_example.py
+cd examples/mysql_example
+python mysql_init_db.py 
+python mysql_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 

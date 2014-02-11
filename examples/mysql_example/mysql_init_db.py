@@ -24,8 +24,6 @@ import MySQLdb
 
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
 
-os.chdir('./examples/mysql_example/')
-
 contributions_zip_file = 'Illinois-campaign-contributions.txt.zip'
 contributions_txt_file = 'Illinois-campaign-contributions.txt'
 
@@ -45,7 +43,7 @@ if not os.path.exists(contributions_txt_file) :
             zip_file.extract(f)
     zip_file.close()
 
-conn = MySQLdb.connect(read_default_file = os.path.abspath('.') + '/mysql.cnf', 
+conn = MySQLdb.connect(read_default_file = 'mysql.cnf', 
                        local_infile = 1,
                        db='contributions')
 c = conn.cursor()
@@ -90,7 +88,7 @@ c.execute("LOAD DATA LOCAL INFILE %s INTO TABLE raw_table "
           " election_year, "
           " report_period_begin, report_period_end, "
           " committee_name, committee_id, @dummy)",
-          (os.path.abspath('.') + '/' + contributions_txt_file))
+          (contributions_txt_file,))
 conn.commit()
 
 print 'creating donors table...'
