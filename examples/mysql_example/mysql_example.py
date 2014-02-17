@@ -80,7 +80,7 @@ logging.basicConfig(level=log_level)
 
 # ## Setup
 
-def getSample(cur, sample_size, id_column, table):
+def getSample(cur, sql, sample_size, id_column, table):
     '''
     Returns a random sample of a given size of records pairs from a given
     MySQL table.
@@ -97,7 +97,7 @@ def getSample(cur, sample_size, id_column, table):
 
     temp_d = {}
 
-    cur.execute(DONOR_SELECT)
+    cur.execute(sql + " LIMIT 10000")
     for row in cur :
         temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
 
@@ -139,10 +139,8 @@ c = con.cursor()
 # Doing this preprocessing in MySQL is much faster than than in
 # Python.
 
-
 DONOR_SELECT = "SELECT donor_id, city, name, zip, state, address, " \
                "occupation, employer, person from processed_donors"
-
 
 # ## Training
 
@@ -155,7 +153,7 @@ else:
     # duplicate pairs become relatively more rare so we have to take a
     # fairly large sample compared to `csv_example.py`
     print 'selecting random sample from donors table...'
-    data_sample = getSample(c, 750000, 'donor_id', 'donors')
+    data_sample = getSample(c, DONOR_SELECT, 7500, 'donor_id', 'donors')
 
 
     # Define the fields dedupe will pay attention to
