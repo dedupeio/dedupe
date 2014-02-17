@@ -118,6 +118,11 @@ python examples/record_linkage_example/record_linkage_example.py
 
 [<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)[![Coverage Status](https://coveralls.io/repos/open-city/dedupe/badge.png?branch=master)](https://coveralls.io/r/open-city/dedupe?branch=master)
 
+Build extensions in place
+```bash
+python setup.py build_ext --inplace
+```
+
 Unit tests of core dedupe functions
 ```bash
 nosetests
