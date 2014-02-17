@@ -39,7 +39,7 @@ import dedupe
 def dbWriter(sql, rows) :
     conn = MySQLdb.connect(db='contributions',
                            charset='ascii',
-                           read_default_file = os.path.abspath('.') + '/mysql.cnf') 
+                           read_default_file = '/mysql.cnf') 
 
     cursor = conn.cursor()
     # Need to do this since AUTOCOMMIT = 0 by default (wtf?)
