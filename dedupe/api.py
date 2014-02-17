@@ -425,7 +425,7 @@ class ActiveMatching(Matching) :
     - train
     - writeSettings
     - writeTraining
-    - getUncertainPair
+    - getUncertainPairs
     - markPairs
     """
 
@@ -677,7 +677,7 @@ class ActiveMatching(Matching) :
                       default=serializer._to_json)
 
 
-    def getUncertainPair(self) :
+    def getUncertainPairs(self) :
         '''
         Provides a list of the pairs of records that dedupe is most curious to learn 
         if they are matches or distinct.
@@ -688,7 +688,8 @@ class ActiveMatching(Matching) :
         
         if self.training_data.shape[0] == 0 :
             rand_int = random.randint(0, len(self.data_sample))
-            exact_match = self.data_sample[rand_int]
+            random_pair = self.data_sample[rand_int]
+            exact_match = (random_pair[0], random_pair[0]) 
             self._addTrainingData({'match':[exact_match, exact_match],
                                    'distinct':[]})
 
@@ -699,7 +700,7 @@ class ActiveMatching(Matching) :
         dupe_ratio = (len(self.training_pairs['match'])
                       /(len(self.training_pairs['distinct']) + 1.0))
 
-        return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
+        return self.activeLearner.getUncertainPairs(self.data_model, dupe_ratio)
 
     def markPairs(self, labeled_pairs) :
         '''
