@@ -39,7 +39,7 @@ import dedupe
 def dbWriter(sql, rows) :
     conn = MySQLdb.connect(db='contributions',
                            charset='ascii',
-                           read_default_file = '/mysql.cnf') 
+                           read_default_file = 'mysql.cnf') 
 
     cursor = conn.cursor()
     # Need to do this since AUTOCOMMIT = 0 by default (wtf?)
@@ -113,12 +113,12 @@ start_time = time.time()
 # information in `examples/mysql_example/mysql.cnf`
 con = MySQLdb.connect(db='contributions',
                       charset='ascii',
-                      read_default_file = '/mysql.cnf', 
+                      read_default_file = 'mysql.cnf', 
                       cursorclass=MySQLdb.cursors.SSDictCursor)
 
 con2 = MySQLdb.connect(db='contributions',
                        charset='ascii',
-                       read_default_file = '/mysql.cnf', 
+                       read_default_file = 'mysql.cnf', 
                        cursorclass=MySQLdb.cursors.SSCursor)
 
 c = con.cursor()
