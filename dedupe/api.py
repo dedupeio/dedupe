@@ -929,6 +929,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         return data_sample
 
+class Gazetteer(RecordLink):
+    _cluster = clustering.gazetteMatching
 
-
-
+class StaticGazetteer(StaticRecordLink):
+    _cluster = clustering.gazetteMatching
