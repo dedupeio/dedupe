@@ -44,7 +44,7 @@ class ActiveLearning(object) :
         self.field_distances = core.fieldDistances(self.candidates, data_model)
         self.seen_indices = set()
 
-    def getUncertainPair(self, data_model, dupe_ratio) :
+    def uncertainPairs(self, data_model, dupe_ratio) :
         uncertain_indices = findUncertainPairs(self.field_distances,
                                                data_model,
                                                dupe_ratio)
