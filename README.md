@@ -14,11 +14,11 @@ __Dedupe is an open source python library that quickly de-duplicates large sets 
  * __open source__ - anyone can use, modify or add to it
 
 #### How it works
-* [Overview](https://github.com/open-city/dedupe/wiki/Home)
-* [Matching records](https://github.com/open-city/dedupe/wiki/Matching-records)
-* [Making smart comparisons](https://github.com/open-city/dedupe/wiki/Making-smart-comparisons)
-* [Grouping duplicates](https://github.com/open-city/dedupe/wiki/Grouping-duplicates)
-* [Choosing a good threshold](https://github.com/open-city/dedupe/wiki/Choosing-a-good-threshold)
+* [Overview](https://github.com/datamade/dedupe/wiki/Home)
+* [Matching records](https://github.com/datamade/dedupe/wiki/Matching-records)
+* [Making smart comparisons](https://github.com/datamade/dedupe/wiki/Making-smart-comparisons)
+* [Grouping duplicates](https://github.com/datamade/dedupe/wiki/Grouping-duplicates)
+* [Choosing a good threshold](https://github.com/datamade/dedupe/wiki/Choosing-a-good-threshold)
 
 #### Community
 * [Dedupe Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
@@ -41,7 +41,7 @@ After numpy is set up, then install the following:
 Using pip:
 
 ```bash
-git clone git://github.com/open-city/dedupe.git
+git clone git://github.com/datamade/dedupe.git
 cd dedupe
 pip install "numpy>=1.6"
 # for python 2.7
@@ -54,7 +54,7 @@ python setup.py install
 Using easy_install:
 
 ```bash
-git clone git://github.com/open-city/dedupe.git
+git clone git://github.com/datamade/dedupe.git
 cd dedupe
 easy_install "numpy>=1.6"
 easy_install "fastcluster>=1.1.8"
@@ -69,16 +69,16 @@ python setup.py install
 
 Dedupe is a library and not a stand-alone command line tool. To demonstrate its usage, we have come up with a few example recipes for different sized datasets.
 
-### [CSV example](http://open-city.github.com/dedupe/doc/csv_example.html) (<10,000 rows)
+### [CSV example](http://datamade.github.com/dedupe/doc/csv_example.html) (<10,000 rows)
 ```bash
 cd examples/csv_example
 python csv_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished)
   
-**To see how you might use dedupe with smallish data, see the [annotated source code for csv_example.py](http://open-city.github.com/dedupe/doc/csv_example.html).**
+**To see how you might use dedupe with smallish data, see the [annotated source code for csv_example.py](http://datamade.github.com/dedupe/doc/csv_example.html).**
 
-### [MySQL example](http://open-city.github.com/dedupe/doc/mysql_example.html) (10,000 - 1,000,000+ rows)
+### [MySQL example](http://datamade.github.com/dedupe/doc/mysql_example.html) (10,000 - 1,000,000+ rows)
 This can take a few hours and will noticeably tax your laptop. You might want to run it overnight.
 
 To follow this example you need to 
@@ -97,27 +97,27 @@ python mysql_example.py
 ```
   (use 'y', 'n' and 'u' keys to flag duplicates for active learning, 'f' when you are finished) 
 
-**To see how you might use dedupe with bigish data, see the [annotated source code for mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html).** 
+**To see how you might use dedupe with bigish data, see the [annotated source code for mysql_example](http://datamade.github.com/dedupe/doc/mysql_example.html).** 
 
 We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
-[run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
+[run time for the MySQL example](https://github.com/datamade/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
-### [Record Linkage example](http://open-city.github.com/dedupe/doc/record_linkage_example.html) 
+### [Record Linkage example](http://datamade.github.com/dedupe/doc/record_linkage_example.html) 
 This example links two datasets, where each dataset, individually has no duplicates.
 
 ```bash
 python examples/record_linkage_example/record_linkage_example.py 
 ```
 
-**To see how you might use dedupe for linking datasets, see the [annotated source code for record_linkage_example.py](http://open-city.github.com/dedupe/doc/record_linkage_example.html).**
+**To see how you might use dedupe for linking datasets, see the [annotated source code for record_linkage_example.py](http://datamade.github.com/dedupe/doc/record_linkage_example.html).**
 
 
 ## Documentation
-[The documentation for the dedupe library is on our wiki](https://github.com/open-city/dedupe/wiki/API-documentation).
+[The documentation for the dedupe library is on our wiki](https://github.com/datamade/dedupe/wiki/API-documentation).
 
 ## Testing
 
-[<img src="https://travis-ci.org/open-city/dedupe.png" />](https://travis-ci.org/open-city/dedupe)[![Coverage Status](https://coveralls.io/repos/open-city/dedupe/badge.png?branch=master)](https://coveralls.io/r/open-city/dedupe?branch=master)
+[<img src="https://travis-ci.org/datamade/dedupe.png" />](https://travis-ci.org/datamade/dedupe)[![Coverage Status](https://coveralls.io/repos/datamade/dedupe/badge.png?branch=master)](https://coveralls.io/r/datamade/dedupe?branch=master)
 
 Build extensions in place
 ```bash
@@ -154,7 +154,7 @@ Dedupe is based on Mikhail Yuryevich Bilenko's Ph.D. dissertation: [*Learnable S
 ## Errors / Bugs
 
 If something is not behaving intuitively, it is a bug, and should be reported.
-[Report it here](https://github.com/open-city/dedupe/issues)
+[Report it here](https://github.com/datamade/dedupe/issues)
 
 
 ## Note on Patches/Pull Requests
@@ -167,13 +167,13 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 Copyright (c) 2013 Forest Gregg and Derek Eder. Released under the MIT License.
 
-[See LICENSE for details](https://github.com/open-city/dedupe/wiki/License)
+[See LICENSE for details](https://github.com/datamade/dedupe/wiki/License)
 
 Third-party copyright in this distribution is noted where applicable.
 
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 
-Gregg, Forest, and Derek Eder. 2013. Dedupe. https://github.com/open-city/dedupe.
+Gregg, Forest, and Derek Eder. 2013. Dedupe. https://github.com/datamade/dedupe.
 
-[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/861a8f3ec74c8928e0baad77640ab042 "githalytics.com")](http://githalytics.com/open-city/dedupe)
+[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/861a8f3ec74c8928e0baad77640ab042 "githalytics.com")](http://githalytics.com/datamade/dedupe)
