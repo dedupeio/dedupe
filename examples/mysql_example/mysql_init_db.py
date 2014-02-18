@@ -1,5 +1,5 @@
- #!/usr/bin/python
- # -*- coding: utf-8 -*-
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 This is a setup script for mysql_example.  It downloads a zip file of
 Illinois campaign contributions and loads them in t aMySQL database
