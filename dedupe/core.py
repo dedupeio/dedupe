@@ -1,20 +1,27 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import collections
 import random
 import json
 import itertools
 import logging
-from itertools import count
 import warnings
-
+import multiprocessing
+import Queue
 import numpy
+import time
+import collections
+import backport
 
 import lr
-from dedupe.distance.affinegap import normalizedAffineGapDistance as stringDistance
 
-def randomPairs(n_records, sample_size, zero_indexed=True):
+def grouper(iterable, n, fillvalue=None): # pragma : no cover
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
+    args = [iter(iterable)] * n
+    return itertools.izip_longest(fillvalue=fillvalue, *args)
+
+def randomPairs(n_records, sample_size):
     """
     Return random combinations of indices for a square matrix of size
     n records
@@ -25,20 +32,23 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
     n = n_records * (n_records - 1) / 2
 
     if sample_size >= n:
-        warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
+        if sample_size > n :
+            warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
 
         random_indices = numpy.arange(n)
-        numpy.random.shuffle(random_indices)
     else:
         try:
-            random_indices = numpy.array(random.sample(xrange(n), sample_size))
+            random_indices = numpy.random.randint(n, size=sample_size)
         except OverflowError:
             # If the population is very large relative to the sample
             # size than we'll get very few duplicates by chance
-            logging.warning("There may be duplicates in the sample")
-            sample = numpy.array([random.sample(xrange(n_records), 2)
-                                  for _ in xrange(sample_size)])
-            return numpy.sort(sample, axis=1)
+            warnings.warn("There may be duplicates in the sample")
+            random_indices = numpy.random.randint(n_records, 
+                                                  size=sample_size*2)
+            random_indices = random_indices.reshape((-1, 2))
+            random_indices.sort(axis=1)
+
+            return random_indices
 
 
 
@@ -47,12 +57,34 @@ def randomPairs(n_records, sample_size, zero_indexed=True):
     x = numpy.trunc((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2)
     y = random_indices + x * (b + x + 2) / 2 + 1
 
-    if not zero_indexed:
-        x += 1
-        y += 1
-
     return numpy.column_stack((x, y)).astype(int)
 
+def randomPairsMatch(n_records_A, n_records_B, sample_size):
+    """
+    Return random combinations of indices for record list A and B
+    """
+    if not n_records_A or not n_records_B :
+        raise ValueError("There must be at least one record in A and in B")
+
+    if sample_size >= n_records_A * n_records_B :
+
+        if sample_size > n_records_A * n_records_B :
+            warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n_records_A * n_records_B))
+
+        return backport.cartesian((numpy.arange(n_records_A),
+                                   numpy.arange(n_records_B)))
+
+    A_samples = numpy.random.randint(n_records_A, size=sample_size)
+    B_samples = numpy.random.randint(n_records_B, size=sample_size)
+    pairs = zip(A_samples,B_samples)
+    set_pairs = set(pairs)
+
+    while len(set_pairs) < sample_size:
+        set_pairs.update(randomPairsMatch(n_records_A,
+                                          n_records_B,
+                                          (sample_size-len(set_pairs))))
+    else:
+        return set_pairs
 
 
 def trainModel(training_data, data_model, alpha=.001):
@@ -60,7 +92,7 @@ def trainModel(training_data, data_model, alpha=.001):
     Use logistic regression to train weights for all fields in the data model
     """
     
-    labels = training_data['label']
+    labels = numpy.array(training_data['label'] == 'match', dtype='i4')
     examples = training_data['distances']
 
     (weight, bias) = lr.lr(labels, examples, alpha)
@@ -74,43 +106,19 @@ def trainModel(training_data, data_model, alpha=.001):
 
 
 def fieldDistances(record_pairs, data_model):
-    fields = data_model['fields']
-
-    field_comparators = [(field, v['comparator'])
-                         for field, v in fields.items()
-                         if v['type'] not in ('Missing Data',
-                                              'Interaction',
-                                              'Higher Categories')]
-
-    
-    missing_field_indices = [i for i, (field, v) 
-                             in enumerate(fields.items())
-                             if 'Has Missing' in v and v['Has Missing']]
-
-    field_names = fields.keys()
-  
-    interactions = []
-    categorical_indices = []
-
-    for field in fields :
-        if fields[field]['type'] == 'Interaction' :
-            interaction_indices = []
-            for interaction_field in fields[field]['Interaction Fields'] :
-                interaction_indices.append(field_names.index(interaction_field))
-            interactions.append(interaction_indices)
-        if fields[field]['type'] in ('Source', 'Categorical') :
-            categorical_indices.append((field_names.index(field), 
-                                        fields[field]['comparator'].length))
-
+    # Think about filling this in instead of concatenating
 
     field_distances = numpy.fromiter((compare(record_pair[0][field],
                                               record_pair[1][field]) 
                                       for record_pair in record_pairs 
-                                      for field, compare in field_comparators), 
+                                      for field, compare in data_model.field_comparators
+                                      if record_pair), 
                                      'f4')
-    field_distances = field_distances.reshape(-1,len(field_comparators))
 
-    for cat_index, length in categorical_indices :
+    field_distances = field_distances.reshape(-1,
+                                              len(data_model.field_comparators))
+
+    for cat_index, length in data_model.categorical_indices :
         different_sources = field_distances[:, cat_index][...,None] == numpy.arange(2, length)[None,...]
 
 
@@ -121,9 +129,9 @@ def fieldDistances(record_pairs, data_model):
 
 
     interaction_distances = numpy.empty((field_distances.shape[0],
-                                         len(interactions)))
+                                         len(data_model.interactions)))
 
-    for i, interaction in enumerate(interactions) :
+    for i, interaction in enumerate(data_model.interactions) :
         a = numpy.prod(field_distances[...,interaction], axis=1)
         interaction_distances[...,i] = a
        
@@ -137,13 +145,12 @@ def fieldDistances(record_pairs, data_model):
 
     field_distances[missing_data] = 0
 
-    missing_indicators = 1-missing_data[:,missing_field_indices]
+    missing_indicators = 1-missing_data[:,data_model.missing_field_indices]
     
 
     field_distances = numpy.concatenate((field_distances,
                                          missing_indicators),
                                         axis=1)
-
 
     return field_distances
 
@@ -160,72 +167,113 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
+class ScoringFunction(object) :
+    def __init__(self, data_model, threshold, dtype) :
+        self.data_model = data_model
+        self.threshold = threshold
+        self.dtype = dtype
 
-def scoreDuplicates(ids, records, id_type, data_model, threshold=None):
+    def __call__(self, record_pairs) :
+        ids = []
 
+        def split_records() :
+            for pair in record_pairs :
+                if pair :
+                    ids.append((pair[0][0], pair[1][0]))
+                    yield (pair[0][1], pair[1][1])
+
+        scores = scorePairs(fieldDistances(split_records(), 
+                                           self.data_model),
+                            self.data_model)
+
+        filtered_scores = ((pair_id, score) 
+                           for pair_id, score in itertools.izip(ids, scores) 
+                           if score > self.threshold)
+
+        filtered_scores = list(filtered_scores)
+
+        scored_pairs = numpy.array(filtered_scores,
+                                   dtype=self.dtype)
+
+        return scored_pairs
+
+
+def scoreDuplicates(records, data_model, pool, threshold=0):
+
+    record, records = peek(records)
+
+    id_type = idType(record)
+    
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
-    scored_pairs = numpy.zeros(0, dtype=score_dtype)
 
-    complete = False
-    chunk_size = 5000
-    i = 1
-    while not complete:
-        id_slice = list(itertools.islice(ids, 0, chunk_size))
-        can_slice = list(itertools.islice(records, 0, chunk_size))
+    record_chunks = grouper(records, 100000)
 
-        field_distances = fieldDistances(can_slice, data_model)
-        duplicate_scores = scorePairs(field_distances, data_model)
+    scoring_function = ScoringFunction(data_model, 
+                                       threshold,
+                                       score_dtype)
 
-        scored_pairs = numpy.append(scored_pairs,
-                                    numpy.array(zip(id_slice,
-                                                    duplicate_scores),
-                                                dtype=score_dtype)[duplicate_scores > threshold], 
-                                    axis=0)
-        i += 1
-        if len(field_distances) < chunk_size:
-            complete = True
-            logging.info('num chunks %d' % i)
+    results = [pool.apply_async(scoring_function,
+                               (chunk,))
+              for chunk in record_chunks] 
 
-    logging.info('all scores %d' % scored_pairs.shape)
-    scored_pairs = numpy.unique(scored_pairs)
-    logging.info('unique scores %d' % scored_pairs.shape)
+    for r in results :
+       r.wait()
 
-    return scored_pairs
+    scored_pairs = numpy.concatenate([r.get() for r in results])
 
-def blockedPairs(blocks) :
-    for block in blocks :
+    scored_pairs.sort()
+    flag = numpy.ones(len(scored_pairs), dtype=bool)
+    numpy.not_equal(scored_pairs[1:], 
+                    scored_pairs[:-1], 
+                    out=flag[1:])
 
-        block_pairs = itertools.combinations(block, 2)
+    return scored_pairs[flag]
 
-        for pair in block_pairs :
-            yield pair
 
-def split(iterable):
-    it = iter(iterable)
-    q = [collections.deque([x]) for x in it.next()] 
-    def proj(qi):
-        while True:
-            if not qi:
-                for qj, xj in zip(q, it.next()):
-                    qj.append(xj)
-            yield qi.popleft()
-    for qi in q:
-        yield proj(qi)
+def idType(record) :
+    id_type = type(record[0][0])
+    if id_type is str or id_type is unicode :
+        id_type = (unicode, len(record[0][0]) + 5)
+
+    return numpy.dtype(id_type)
+
+
+def peek(records) :
+    try :
+        record = records.next()
+    except AttributeError as e:
+        if "has no attribute 'next'" not in str(e) :
+            raise
+        try :
+            records = iter(records)
+            record = records.next()
+        except StopIteration :
+            return None, records
+
+
+    return record, itertools.chain([record], records)
+
+
+def freezeData(data) : # pragma : no cover
+    return [(frozendict(record_1), 
+             frozendict(record_2))
+            for record_1, record_2 in data]
+
 
 
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs): # pragma : no cover
         self._d = dict(*args, **kwargs)
 
-    def __iter__(self):
+    def __iter__(self):                  # pragma : no cover
         return iter(self._d)
 
-    def __len__(self):
+    def __len__(self):                   # pragma : no cover
         return len(self._d)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key):          # pragma : no cover
         return self._d[key]
 
     def __repr__(self) :
@@ -237,4 +285,3 @@ class frozendict(collections.Mapping):
         except AttributeError:
             h = self._cached_hash = hash(frozenset(self._d.iteritems()))
             return h
-

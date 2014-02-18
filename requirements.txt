@@ -1,3 +1,5 @@
 fastcluster>=1.1.8
 hcluster>=0.2.0
 networkx
+zope.interface
+zope.index

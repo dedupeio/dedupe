@@ -15,7 +15,6 @@ __all__ = ['affinegap',
 #from distance import affinegap
 from distance import affinegap
 import distance 
-import mekano
 import blocking
 import clustering
 import core
@@ -23,8 +22,11 @@ import lr
 import predicates
 import training
 import crossvalidation
-from api import Dedupe
+import datamodel
+import backport
+from api import StaticDedupe, Dedupe
+from api import StaticRecordLink, RecordLink
 from core import randomPairs
-from convenience import dataSample
-from convenience import blockData
+from convenience import consoleLabel, trainingDataDedupe, trainingDataLink
+from AsciiDammit import asciiDammit
 import backport

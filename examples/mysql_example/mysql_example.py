@@ -1,3 +1,10 @@
+import cProfile
+import multiprocessing
+
+
+
+    
+
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
@@ -22,11 +29,36 @@ import time
 import logging
 import optparse
 import locale
+import pickle
 
 import MySQLdb
 import MySQLdb.cursors
 
 import dedupe
+
+MYSQL_CNF = os.path.abspath('.') + '/mysql.cnf'
+
+def dbWriter(sql, rows) :
+    conn = MySQLdb.connect(db='contributions',
+                           charset='ascii',
+                           read_default_file = MYSQL_CNF) 
+
+    cursor = conn.cursor()
+    # Need to do this since AUTOCOMMIT = 0 by default (wtf?)
+    records_written = cursor.executemany(sql, rows)
+    cursor.close()
+    conn.commit()
+    conn.close()
+
+
+# Switch to our working directory and set up our settings and training
+# file locations
+settings_file = 'mysql_example_settings'
+training_file = 'mysql_example_training.json'
+
+
+pool = multiprocessing.Pool(processes=2)
+
 
 # ## Logging
 
@@ -48,6 +80,51 @@ logging.basicConfig(level=log_level)
 
 # ## Setup
 
+def getSample(cur, sample_size, id_column, table):
+    '''
+    Returns a random sample of a given size of records pairs from a given
+    MySQL table.
+    '''
+
+    cur.execute("SELECT MAX(%s) FROM %s" % (id_column, table))
+    num_records = cur.fetchone().values()[0]
+
+    cur.fetchall()
+
+    random_pairs = dedupe.randomPairs(num_records,
+                                      sample_size) 
+    random_pairs += 1
+
+    temp_d = {}
+
+    cur.execute(DONOR_SELECT)
+    for row in cur :
+        temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
+
+    def random_pair_generator():
+        for k1, k2 in random_pairs:
+            yield (temp_d[k1], temp_d[k2])
+
+    return tuple(pair for pair in random_pair_generator())
+
+
+start_time = time.time()
+
+# You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
+# `examples/mysql_example/mysql.cnf` and fill in your mysql database
+# information in `examples/mysql_example/mysql.cnf`
+con = MySQLdb.connect(db='contributions',
+                      charset='ascii',
+                      read_default_file = MYSQL_CNF, 
+                      cursorclass=MySQLdb.cursors.SSDictCursor)
+
+con2 = MySQLdb.connect(db='contributions',
+                       charset='ascii',
+                       read_default_file = MYSQL_CNF, 
+                       cursorclass=MySQLdb.cursors.SSCursor)
+
+c = con.cursor()
+
 # We'll be using variations on this following select statement to pull
 # in campaign donor info.
 #
@@ -61,63 +138,17 @@ logging.basicConfig(level=log_level)
 #
 # Doing this preprocessing in MySQL is much faster than than in
 # Python.
-DONOR_SELECT = "SELECT donor_id, " \
-               "IFNULL(LOWER(city), '') AS city, " \
-               "LOWER(CONCAT_WS(' ', first_name, last_name)) AS name, " \
-               "IFNULL(LOWER(zip),'') AS zip, " \
-               "IFNULL(LOWER(state),'') AS state, " \
-               "LOWER(CONCAT_WS(' ', address_1, address_2)) AS address " \
-               "FROM donors"
 
 
-def getSample(cur, sample_size, id_column, table):
-    '''
-    Returns a random sample of a given size of records pairs from a given
-    MySQL table.
-    '''
+DONOR_SELECT = "SELECT donor_id, city, name, zip, state, address, " \
+               "occupation, employer, person from processed_donors"
 
-    cur.execute("SELECT MAX(%s) FROM %s" % (id_column, table))
-    num_records = cur.fetchone().values()[0]
-
-    # Dedupe expects the id column to contain unique, sequential
-    # integers starting at 0 or 1
-    random_pairs = dedupe.randomPairs(num_records,
-                                      sample_size,
-                                      zero_indexed=False)
-
-    temp_d = {}
-
-    cur.execute(DONOR_SELECT)
-    for row in cur.fetchall() :
-        temp_d[int(row[id_column])] = dedupe.core.frozendict(row)
-
-    def random_pair_generator():
-        for k1, k2 in random_pairs:
-            yield (temp_d[k1], temp_d[k2])
-
-    return tuple(pair for pair in random_pair_generator())
-
-# Switch to our working directory and set up our settings and training
-# file locations
-settings_file = 'mysql_example_settings'
-training_file = 'mysql_example_training.json'
-
-start_time = time.time()
-
-# You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
-# `examples/mysql_example/mysql.cnf` and fill in your mysql database
-# information in `examples/mysql_example/mysql.cnf`
-con = MySQLdb.connect(db='contributions',
-                      read_default_file = 'mysql.cnf', 
-                      cursorclass=MySQLdb.cursors.DictCursor)
-
-c = con.cursor()
 
 # ## Training
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
-    deduper = dedupe.Dedupe(settings_file)
+    deduper = dedupe.StaticDedupe(settings_file, num_processes=4)
 else:
 
     # Select a large sample of duplicate pairs.  As the dataset grows,
@@ -137,10 +168,16 @@ else:
               'city': {'type': 'String', 'Has Missing' : True},
               'state': {'type': 'String'},
               'zip': {'type': 'String', 'Has Missing' : True},
+              'employer' : {'type' : 'String', 'Has Missing' : True},
+              'occupation' : {'type' : 'String', 'Has Missing' : True},
+              'person' : {'type' : 'Source', 
+                          'Source Names' : [0, 1]},
+              'name-address' : {'type' : 'Interaction', 
+                                'Interaction Fields' : ['name', 'address']}
               }
 
     # Create a new deduper object and pass our data model to it.
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, data_sample, num_processes=4)
 
     # If we have training data saved from a previous run of dedupe,
     # look for it an load it in.
@@ -149,7 +186,7 @@ else:
     # scratch, delete the training_file
     if os.path.exists(training_file):
         print 'reading labeled examples from ', training_file
-        deduper.train(data_sample, training_file)
+        deduper.readTraining(training_file)
 
     # ## Active learning
 
@@ -160,43 +197,39 @@ else:
 
     # use 'y', 'n' and 'u' keys to flag duplicates
     # press 'f' when you are finished
-    deduper.train(data_sample, dedupe.training.consoleLabel)
+    dedupe.convenience.consoleLabel(deduper)
+
+    # Notice our two arguments here
+    #
+    # `ppc` limits the Proportion of Pairs Covered that we allow a
+    # predicate to cover. If a predicate puts together a fraction of
+    # possible pairs greater than the ppc, that predicate will be removed
+    # from consideration. As the size of the data increases, the user
+    # will generally want to reduce ppc.
+    #
+    # `uncovered_dupes` is the number of true dupes pairs in our training
+    # data that we are willing to accept will never be put into any
+    # block. If true duplicates are never in the same block, we will never
+    # compare them, and may never declare them to be duplicates.
+    #
+    # However, requiring that we cover every single true dupe pair may
+    # mean that we have to use blocks that put together many, many
+    # distinct pairs that we'll have to expensively, compare as well.
+    deduper.train(ppc=001, uncovered_dupes=5)
 
     # When finished, save our labeled, training pairs to disk
     deduper.writeTraining(training_file)
+    deduper.writeSettings(settings_file)
 
 # ## Blocking
 
 print 'blocking...'
-# If we didn't read saved blocking rules from a settings file, then
-# we will try to find good blocking rules now. In either case we'll
-# initialize our blocker
-
-# Notice our two arguments here
-#
-# `ppc` limits the Proportion of Pairs Covered that we allow a
-# predicate to cover. If a predicate puts together a fraction of
-# possible pairs greater than the ppc, that predicate will be removed
-# from consideration. As the size of the data increases, the user
-# will generally want to reduce ppc.
-#
-# `uncovered_dupes` is the number of true dupes pairs in our training
-# data that we are willing to accept will never be put into any
-# block. If true duplicates are never in the same block, we will never
-# compare them, and may never declare them to be duplicates.
-#
-# However, requiring that we cover every single true dupe pair may
-# mean that we have to use blocks that put together many, many
-# distinct pairs that we'll have to expensively, compare as well.
-blocker = deduper.blockingFunction(ppc=0.001, uncovered_dupes=5)
-
-# Save our weights and predicates to disk.
-deduper.writeSettings(settings_file)
 
 # To run blocking on such a large set of data, we create a separate table
 # that contains blocking keys and record ids
 print 'creating blocking_map database'
 c.execute("DROP TABLE IF EXISTS blocking_map")
+c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
 c.execute("CREATE TABLE blocking_map "
           "(block_key VARCHAR(200), donor_id INTEGER)")
 
@@ -205,86 +238,122 @@ c.execute("CREATE TABLE blocking_map "
 # through the data and create TF-IDF canopies. This can take up to an
 # hour
 print 'creating inverted index'
-c.execute(DONOR_SELECT)
-full_data = ((row['donor_id'], row) for row in c.fetchall())
-blocker.tfIdfBlocks(full_data)
 
+
+c2 = con2.cursor()
+
+
+for field in deduper.blocker.tfidf_fields :
+    c2.execute("SELECT donor_id, %s FROM processed_donors" % field)
+    field_data = (row for row in c2)
+    deduper.blocker.tfIdfBlock(field_data, field)
 
 # Now we are ready to write our blocking map table by creating a
 # generator that yields unique `(block_key, donor_id)` tuples.
 print 'writing blocking map'
-def block_data() :
-    c.execute(DONOR_SELECT)
-    full_data = ((row['donor_id'], row) for row in c.fetchall())
-    for i, (donor_id, record) in enumerate(full_data) :
-        if i % 10000 == 0 :
-            print i, ',', time.time() - start_time, 'seconds'
-        for key in blocker((donor_id, record)) :
-            yield (key, donor_id)
 
-b_data = block_data()
+c.execute(DONOR_SELECT)
+full_data = ((row['donor_id'], row) for row in c)
+b_data = deduper.blocker(full_data)
 
-# MySQL has a hard limit on the size of a data object that can be passed to it. 
-# To get around this, we chunk the blocked data in to groups of 10,000 blocks
-step = 10000
+# MySQL has a hard limit on the size of a data object that can be
+# passed to it.  To get around this, we chunk the blocked data in
+# to groups of 30,000 blocks
+step_size = 30000
 done = False
 while not done :
-    chunk = itertools.islice(b_data, step)
-    records_written =  c.executemany("INSERT INTO blocking_map VALUES (%s, %s)",
-                                     chunk)
-    if records_written < step :
-        done = True
+    chunks = (list(itertools.islice(b_data, step)) for step in [step_size]*100)
 
-    con.commit()
+    results =[pool.apply_async(dbWriter,
+                               ("INSERT INTO blocking_map VALUES (%s, %s)", 
+                                chunk))
+              for chunk in chunks]
+
+    for r in results :
+        r.wait()
+
+    if len(chunk) < step_size :
+        done = True
 
 
 # Create an index on the blocking key for faster clustering
 print 'creating blocking map index. this will probably take a while ...'
+
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
 print 'created', time.time() - start_time, 'seconds'
 
-# ## Clustering
+print "calculating singletons"
+c.execute("CREATE TEMPORARY TABLE singletons "
+          "(SELECT block_key FROM blocking_map "
+          " GROUP BY block_key HAVING COUNT(*) < 2)")
 
-# Grabs a block of records for comparison.
-block_select = (DONOR_SELECT + 
-                " INNER JOIN blocking_map USING (donor_id) " 
-                "WHERE block_key = %s ORDER BY donor_id")
+c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+
+print "removing singletons"
+c.execute("DELETE bm.* FROM blocking_map bm JOIN singletons "
+          "USING (block_key)")
+c.execute("CREATE INDEX sorting_key "
+          "ON blocking_map (block_key, donor_id)")
+c.execute("DROP TABLE singletons")
+
+c.execute("CREATE TABLE sorted_blocking_map "
+          "AS SELECT * FROM blocking_map "
+          "ORDER BY block_key, donor_id")
+
+c.execute("ALTER TABLE sorted_blocking_map ADD COLUMN id "
+          "INT(8) UNSIGNED PRIMARY KEY AUTO_INCREMENT")
+c.execute("CREATE INDEX donor_idx ON sorted_blocking_map (donor_id)")
 
 
-# Generator function that yields records based on blocking map keys
-def candidates_gen(block_keys) :
-    for i, block_key in enumerate(block_keys) :
-        if i % 10000 == 0 :
-            print i, "blocks"
-            print time.time() - start_time, "seconds"
+con.commit()
 
-        c.execute(block_select, (block_key,))
-        records = {}
-        for row in c.fetchall() :
-            records.update({row['donor_id'] : row})
+
+## Clustering
+
+def candidates_gen(result_set) :
+
+    block_key = None
+    records = {}
+    i = 0
+    for row in result_set :
+        if row['block_key'] != block_key :
+            if records :
+                yield records
+
+            block_key = row['block_key']
+            records = {}
+            i += 1
+
+            if i % 10000 == 0 :
+                print i, "blocks"
+                print time.time() - start_time, "seconds"
+
+            
+        records.update({row['donor_id'] : row})
+
+    if records :
         yield records
 
-# Grab all the block keys with more than one record.
-# These records will make up a block of records we will cluster.
-blocking_key_sql = "SELECT block_key, COUNT(*) AS num_candidates " \
-                   "FROM blocking_map " \
-                   "GROUP BY block_key " \
-                   "HAVING num_candidates > 1"
-
+print "finding good threshold"
 # Using a random sample of blocks we find our clustering threshold
 # that maximizes the weighted average of our precision and recall
-c.execute(blocking_key_sql + " ORDER BY RAND() LIMIT 1000")
-sampled_block_keys = block_keys = (row['block_key'] for row in c.fetchall())
-threshold = deduper.goodThreshold(candidates_gen(sampled_block_keys), .5)
+c.execute("select donor_id, city, name, zip, state, address, " \
+          "occupation, employer, person, block_key from processed_donors inner join (select * from sorted_blocking_map order by rand() limit 1000) rb using (donor_id) order by rb.id")
+
+threshold = deduper.thresholdBlocks(candidates_gen(c), .5)
+threshold = 0.5
 
 # With our found threshold, and candidates generator, perform the
 # clustering operation
-c.execute(blocking_key_sql)
-block_keys = (row['block_key'] for row in c.fetchall())
+
+c.execute("SELECT donor_id, city, name, zip, state, address, " \
+          "occupation, employer, person, block_key from processed_donors " \
+          "INNER JOIN sorted_blocking_map using (donor_id) " \
+          "ORDER BY sorted_blocking_map.id")
 
 print 'clustering...'
-clustered_dupes = deduper.duplicateClusters(candidates_gen(block_keys),
-                                            threshold)
+clustered_dupes = deduper.matchBlocks(candidates_gen(c),
+                                      threshold)
 
 # ## Writing out results
 

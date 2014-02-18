@@ -5,6 +5,7 @@ except ImportError:
     from simplejson.scanner import py_make_scanner
     import simplejson as json
 
+import dedupe.core
     
 
 
@@ -12,6 +13,9 @@ def _to_json(python_object):
     if isinstance(python_object, frozenset):                                
         return {'__class__': 'frozenset',
                 '__value__': list(python_object)}
+    if isinstance(python_object, dedupe.core.frozendict) :
+        return dict(python_object)
+
     raise TypeError(repr(python_object) + ' is not JSON serializable') 
 
 def _from_json(json_object):                                   

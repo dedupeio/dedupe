@@ -36,6 +36,7 @@ After numpy is set up, then install the following:
 * [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html)
 * [hcluster](http://code.google.com/p/scipy-cluster/)
 * [networkx](http://networkx.github.com/)
+* [zope.index](https://pypi.python.org/pypi/zope.index)
 
 Using pip:
 
@@ -59,6 +60,7 @@ easy_install "numpy>=1.6"
 easy_install "fastcluster>=1.1.8"
 easy_install "hcluster>=0.2.0"
 easy_install networkx
+easy_install zope.index
 python setup.py install
 ```
 
@@ -99,6 +101,16 @@ python mysql_example.py
 We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
 [run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
+### [Record Linkage example](http://open-city.github.com/dedupe/doc/recod_linkage_example.html) 
+This example links two datasets, where each dataset, individually has no duplicates.
+
+```bash
+python examples/record_linkage_example/record_linkage_example.py 
+```
+
+**To see how you might use dedupe for linking datasets, see the [annotated source code for record_linkage_example.py](http://open-city.github.com/dedupe/doc/record_linkage_example.html).**
+
+
 ## Documentation
 [The documentation for the dedupe library is on our wiki](https://github.com/open-city/dedupe/wiki/API-documentation).
 
@@ -113,20 +125,21 @@ python setup.py build_ext --inplace
 
 Unit tests of core dedupe functions
 ```bash
-python test/test_dedupe.py
+nosetests
 ```
 
 #### Test using canonical dataset from Bilenko's research
   
-Using random sample data for training
+Using Deduplication
 ```bash
-python test/canonical_test.py
+python tests/canonical_test.py
 ```
 
-Using active learning for training
+Using Record Linkage
 ```bash
-python test/canonical_test.py --active True
+python tests/canonical_test_matching.py
 ```
+
 
 ## Team
 
