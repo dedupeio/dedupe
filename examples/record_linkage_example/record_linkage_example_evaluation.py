@@ -37,8 +37,6 @@ def dupePairs(filename, rowname) :
 
     return dupe_s
 
-os.chdir('./examples/dataset_matching/')
-
 clusters = 'data_matching_output.csv'
 
 true_dupes = dupePairs(clusters, 'unique_id')
