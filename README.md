@@ -60,6 +60,7 @@ easy_install "numpy>=1.6"
 easy_install "fastcluster>=1.1.8"
 easy_install "hcluster>=0.2.0"
 easy_install networkx
+easy_install zope.interface
 easy_install zope.index
 python setup.py install
 ```
