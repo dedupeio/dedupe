@@ -283,7 +283,7 @@ c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
 print 'created', time.time() - start_time, 'seconds'
 
 print "calculating singletons"
-c.execute("CREATE TEMPORARY TABLE singeltons "
+c.execute("CREATE TEMPORARY TABLE singletons "
           "(SELECT block_key FROM blocking_map "
           " GROUP BY block_key HAVING COUNT(*) < 2)")
 
@@ -302,7 +302,7 @@ c.execute("CREATE TABLE sorted_blocking_map "
 
 c.execute("ALTER TABLE sorted_blocking_map ADD COLUMN id "
           "INT(8) UNSIGNED PRIMARY KEY AUTO_INCREMENT")
-c.execute("CREATE INDEX donor_idx ON SORTED_BLOCKING_MAP (donor_id)")
+c.execute("CREATE INDEX donor_idx ON sorted_blocking_map (donor_id)")
 
 
 con.commit()
