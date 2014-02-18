@@ -1,17 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-This code demonstrates how to use dedupe with a comma separated values
-(CSV) file. All operations are performed in memory, so will run very
-quickly on datasets up to ~10,000 rows.
+This code demonstrates how to use RecordLink with two comma separated
+values (CSV) files. We have listings of products from two different
+online stores. The task is to link products between the datasets.
 
-We start with a CSV file containing our messy data. In this example,
-it is listings of early childhood education centers in Chicago
-compiled from several different sources.
+The output will be a CSV with our linkded results.
 
-The output will be a CSV with our clustered results.
-
-For larger datasets, see our [mysql_example](http://open-city.github.com/dedupe/doc/mysql_example.html)
 """
 
 import os
@@ -29,7 +24,7 @@ import dedupe
 
 # ## Logging
 
-# Dedupe uses Python logging to show or suppress verbose output. Added for convenience.
+# dedupe uses Python logging to show or suppress verbose output. Added for convenience.
 # To enable verbose logging, run `python examples/csv_example/csv_example.py -v`
 
 optp = optparse.OptionParser()
@@ -47,9 +42,6 @@ logging.basicConfig(level=log_level)
 
 # ## Setup
 
-# Switch to our working directory and set up our input and out put paths,
-# as well as our settings and training file locations
-os.chdir('./examples/dataset_matching/')
 output_file = 'data_matching_output.csv'
 settings_file = 'data_matching_learned_settings'
 training_file = 'data_matching_training.json'
@@ -64,8 +56,10 @@ def comparePrice(price_1, price_2) :
 
 def preProcess(column):
     """
-    Do a little bit of data cleaning with the help of [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) 
-    and Regex. Things like casing, extra spaces, quotes and new lines can be ignored.
+    Do a little bit of data cleaning with the help of
+    [AsciiDammit](https://github.com/tnajdek/ASCII--Dammit) and
+    Regex. Things like cases, extra spaces, quotes and new lines can
+    be ignored.
     """
 
     column = dedupe.asciiDammit(column)
@@ -105,6 +99,10 @@ print 'importing data ...'
 data_1 = readData('AbtBuy_Abt.csv')
 data_2 = readData('AbtBuy_Buy.csv')
 
+# These data have already been linked by hand, and linked records
+# share the value of the field 'unique_id'. We are exploiting this work
+# to create training data. This function also assume that if all pairs of
+# records that DO NOT share a 'unique_id' value are distinct.
 training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
 
 
@@ -115,9 +113,9 @@ if os.path.exists(settings_file):
     linker = dedupe.StaticRecordLink(settings_file)
 
 else:
-    # Define the fields dedupe will pay attention to
+    # Define the fields the linker will pay attention to
     #
-    # Notice how we are telling dedupe to use a custom field comparator
+    # Notice how we are telling the linker to use a custom field comparator
     # for the 'Zip' field. 
     fields = {
         'title': {'type': 'String'},
@@ -129,9 +127,11 @@ else:
 
     # Create a new linker object and pass our data model to it.
     linker = dedupe.RecordLink(fields)
-    # To train dedupe, we feed it a random sample of records.
+    # To train the linker, we feed it a random sample of records.
     linker.sample(data_1, data_2, 150000)
 
+    # This is how we provide the constructed training data to the
+    # linker
     linker.markPairs(training_pairs)
 
     linker.train()
@@ -149,22 +149,22 @@ else:
 
 # ## Clustering
 
-# Find the threshold that will maximize a weighted average of our precision and recall. 
-# When we set the recall weight to 2, we are saying we care twice as much
-# about recall as we do precision.
+# Find the threshold that will maximize a weighted average of our
+# precision and recall.  When we set the recall weight to 2, we are
+# saying we care twice as much about recall as we do precision.
 #
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
 
 threshold = linker.threshold(data_1, data_2, recall_weight=10)
 
-# `duplicateClusters` will return sets of record IDs that dedupe
+# `match` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
 print 'clustering...'
-clustered_dupes = linker.match(data_1, data_2, threshold)
+linked_records = linker.match(data_1, data_2, threshold)
 
-print '# duplicate sets', len(clustered_dupes)
+print '# duplicate sets', len(linked_records)
 
 # ## Writing Results
 
@@ -172,7 +172,8 @@ print '# duplicate sets', len(clustered_dupes)
 # 'Cluster ID' which indicates which records refer to each other.
 
 cluster_membership = collections.defaultdict(lambda : 'x')
-for (cluster_id, cluster) in enumerate(clustered_dupes):
+
+for (cluster_id, cluster) in enumerate(linked_records):
     for record_id in cluster:
         cluster_membership[record_id] = cluster_id
 

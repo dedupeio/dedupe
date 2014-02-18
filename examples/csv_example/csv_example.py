@@ -170,7 +170,7 @@ print 'blocking...'
 
 threshold = deduper.threshold(data_d, recall_weight=2)
 
-# `duplicateClusters` will return sets of record IDs that dedupe
+# `match` will return sets of record IDs that dedupe
 # believes are all referring to the same entity.
 
 print 'clustering...'
