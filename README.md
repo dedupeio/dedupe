@@ -102,7 +102,7 @@ python mysql_example.py
 We are trying to figure out a range of typical runtimes for diferent hardware. Please let us know your 
 [run time for the MySQL example](https://github.com/open-city/dedupe/wiki/Reported-MySQL-Example-Run-Times).
 
-### [Record Linkage example](http://open-city.github.com/dedupe/doc/recod_linkage_example.html) 
+### [Record Linkage example](http://open-city.github.com/dedupe/doc/record_linkage_example.html) 
 This example links two datasets, where each dataset, individually has no duplicates.
 
 ```bash
