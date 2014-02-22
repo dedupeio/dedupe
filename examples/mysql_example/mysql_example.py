@@ -181,7 +181,7 @@ else:
     # However, requiring that we cover every single true dupe pair may
     # mean that we have to use blocks that put together many, many
     # distinct pairs that we'll have to expensively, compare as well.
-    deduper.train(ppc=001, uncovered_dupes=5)
+    deduper.train(ppc=0.001, uncovered_dupes=5)
 
     # When finished, save our labeled, training pairs to disk
     deduper.writeTraining(training_file)
