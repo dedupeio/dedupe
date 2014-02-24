@@ -16,6 +16,8 @@ import time
 import tfidf
 from backport import OrderedDict
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
@@ -29,7 +31,7 @@ class Blocker:
 
         self.stop_words = defaultdict(set, stop_words)
 
-        logging.info(self.stop_words)
+        logger.info(self.stop_words)
 
         if predicates is None :
             self.simple_predicates = set([])
@@ -105,7 +107,7 @@ class Blocker:
                 yield (key, record_id)
 
             if i % 10000 == 0 :
-                logging.info('%(iteration)d, %(elapsed)f2 seconds', 
+                logger.info('%(iteration)d, %(elapsed)f2 seconds', 
                              {'iteration' :i, 
                               'elapsed' :time.time() - start_time})
 
@@ -237,7 +239,7 @@ def blockTraining(training_pairs,
                                   pool)
 
     coverage_threshold = eta * len(training_distinct)
-    logging.info("coverage threshold: %s", coverage_threshold)
+    logger.info("coverage threshold: %s", coverage_threshold)
 
     # Only consider predicates that cover at least one duplicate pair
     dupe_coverage = coverage.predicateCoverage(predicate_set,
@@ -249,14 +251,14 @@ def blockTraining(training_pairs,
     distinct_blocks = coverage.predicateBlocks(predicate_set,
                                                training_distinct)
 
-    logging.info("Before removing liberal predicates, %s predicates",
+    logger.info("Before removing liberal predicates, %s predicates",
                  len(predicate_set))
 
     for (pred, blocks) in distinct_blocks.iteritems():
         if any(len(block) >= coverage_threshold for block in blocks if block):
             predicate_set.remove(pred)
 
-    logging.info("After removing liberal predicates, %s predicates",
+    logger.info("After removing liberal predicates, %s predicates",
                  len(predicate_set))
 
     distinct_coverage = coverage.predicateCoverage(predicate_set, 
@@ -268,9 +270,9 @@ def blockTraining(training_pairs,
                                               epsilon,
                                               coverage)
 
-    logging.info('Final predicate set:')
+    logger.info('Final predicate set:')
     for predicate in final_predicate_set :
-        logging.info([(pred.__name__, field) for pred, field in predicate])
+        logger.info([(pred.__name__, field) for pred, field in predicate])
 
     if final_predicate_set:
         return final_predicate_set, coverage.stop_words
@@ -325,7 +327,7 @@ def findOptimumBlocking(uncovered_dupes,
 
 
         if not best_predicate:
-            logging.warning('Ran out of predicates')
+            logger.warning('Ran out of predicates')
             break
 
         final_predicate_set.append(best_predicate)
@@ -336,9 +338,9 @@ def findOptimumBlocking(uncovered_dupes,
                                                    uncovered_dupes)
 
 
-        logging.debug([(pred.__name__, field)
+        logger.debug([(pred.__name__, field)
                       for pred, field in best_predicate])
-        logging.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
+        logger.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
                       'found_distinct: %(found_distinct)d, '
                       'uncovered dupes: %(uncovered)d',
                       {'cover' : best_cover,
@@ -360,10 +362,10 @@ class Coverage(object) :
 
         basic_preds, tfidf_preds = predicateTypes(predicate_set)
 
-        logging.info("Calculating coverage of simple predicates")
+        logger.info("Calculating coverage of simple predicates")
         self._simplePredicateOverlap(basic_preds, pairs)
 
-        logging.info("Calculating coverage of tf-idf predicates")
+        logger.info("Calculating coverage of tf-idf predicates")
         self._canopyOverlap(tfidf_preds, pairs)
 
         for predicate in predicate_set :

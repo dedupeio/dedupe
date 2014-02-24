@@ -3,6 +3,9 @@
 import logging
 from zope.index.text.parsetree import ParseError
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class TfidfPredicate(float):
     def __new__(self, threshold):
         return float.__new__(self, threshold)
@@ -60,7 +63,7 @@ def _createCanopies(field_inverted_index,
 
     canopy = makeCanopy(field_inverted_index, token_vector, threshold)
 
-    logging.info("Canopy: %s", threshold.__name__ + field)
+    logger.info("Canopy: %s", threshold.__name__ + field)
 
     return ((threshold, field),  canopy)
 

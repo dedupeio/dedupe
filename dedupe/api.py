@@ -36,6 +36,8 @@ import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Matching(object):
     """
@@ -86,10 +88,10 @@ class Matching(object):
 
         i = numpy.argmax(score)
 
-        logging.info('Maximum expected recall and precision')
-        logging.info('recall: %2.3f', recall[i])
-        logging.info('precision: %2.3f', precision[i])
-        logging.info('With threshold: %2.3f', probability[i])
+        logger.info('Maximum expected recall and precision')
+        logger.info('recall: %2.3f', recall[i])
+        logger.info('precision: %2.3f', precision[i])
+        logger.info('With threshold: %2.3f', probability[i])
 
         return probability[i]
 
@@ -532,7 +534,7 @@ class ActiveMatching(Matching) :
         training_source -- the path of the training data file
         '''
 
-        logging.info('reading training from file')
+        logger.info('reading training from file')
 
         with open(training_source, 'r') as f:
             training_pairs = json.load(f, 
@@ -580,7 +582,7 @@ class ActiveMatching(Matching) :
         n_folds = max(n_folds,
                       2)
 
-        logging.info('%d folds', n_folds)
+        logger.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
@@ -800,13 +802,13 @@ class ActiveMatching(Matching) :
         """
         Log learned weights and bias terms
         """
-        logging.info('Learned Weights')
+        logger.info('Learned Weights')
         for (k1, v1) in self.data_model.items():
             try:
                 for (k2, v2) in v1.items():
-                    logging.info((k2, v2['weight']))
+                    logger.info((k2, v2['weight']))
             except AttributeError:
-                logging.info((k1, v1))
+                logger.info((k1, v1))
 
     def _loadSample(self, *args, **kwargs) : # pragma : no cover
 
