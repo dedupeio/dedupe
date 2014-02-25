@@ -10,6 +10,8 @@ import numpy
 import logging
 import random
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def findUncertainPairs(field_distances, data_model, bias=0.5):
     """
@@ -22,7 +24,7 @@ def findUncertainPairs(field_distances, data_model, bias=0.5):
     probability = core.scorePairs(field_distances, data_model)
 
     p_max = (1.0 - bias)
-    logging.info(p_max)
+    logger.info(p_max)
 
     informativity = numpy.copy(probability)
     informativity[probability < p_max] /= p_max
