@@ -15,6 +15,7 @@ import itertools
 import logging
 import pickle
 import multiprocessing
+import multiprocessing.dummy
 import numpy
 import random
 import warnings
@@ -23,7 +24,6 @@ try:
     from collections import OrderedDict
 except ImportError :
     from backport import OrderedDict
-
 
 import dedupe
 import dedupe.core as core
@@ -36,6 +36,18 @@ import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
+def Pool(processes) :
+    config_info = str([value for key, value in
+                       numpy.__config__.__dict__.iteritems()
+                       if key.endswith("_info")]).lower()
+
+    if "accelerate" in config_info or "veclib" in config_info:
+        warnings.warn("NumPy linked against 'Accelerate.framework'. "
+                      "Multiprocessing will be disabled."
+                      " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
+        return multiprocessing.dummy.Pool(processes=1)
+    else :
+        return multiprocessing.Pool(processes=processes)
 
 class Matching(object):
     """
@@ -402,7 +414,7 @@ class StaticMatching(Matching) :
         if settings_file.__class__ is not str :
             raise ValueError("Must supply a settings file name")
 
-        self.pool = multiprocessing.Pool(processes=num_processes)
+        self.pool = Pool(processes=num_processes)
 
         with open(settings_file, 'rb') as f: # pragma : no cover
             try:
@@ -510,7 +522,7 @@ class ActiveMatching(Matching) :
         else :
             self.activeLearner = None
 
-        self.pool = multiprocessing.Pool(processes=num_processes)
+        self.pool = Pool(processes=num_processes)
 
 
         training_dtype = [('label', 'S8'), 
