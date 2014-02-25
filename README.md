@@ -141,6 +141,34 @@ Using Record Linkage
 python tests/canonical_test_matching.py
 ```
 
+## OS X Install Notes
+
+Apple’s implementation of [BLAS](http://en.wikipedia.org/wiki/BLAS) does not
+support using [BLAS calls on both sides of a
+fork](http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html).
+The upshot of this is that, when using NumPy functions that rely on BLAS calls
+within a forked process (such as ones created when you push a job into a
+multiprocessing pool) the fork might never actually fully exit. Which means you
+end up with orphaned processes until the process that was originally forked
+exits. Since under the hood Dedupe relies upon NumPy calls within a
+multiprocessing pool, this can be an issue if you are planning on running
+something like a daemon process that then forks off processes that run Dedupe.
+
+One way to get around this is to compile NumPy against a different implementation of BLAS such as [OpenBLAS](https://github.com/xianyi/OpenBLAS). Here’s how you might go about that:
+
+1. Clone and build OpenBLAS source with ``USE_OPENMP=0`` flag
+
+``` bash
+$ git clone https://github.com/xianyi/OpenBLAS.git
+$ cd OpenBLAS
+$ make USE_OPENMP=0
+$ mkdir /usr/local/opt/openblas # Change this to suit your needs
+$ make PREFIX=/usr/local/opt/openblas install # Make sure this matches the path above
+```
+
+2. Clone and build NumPy making sure it knows where you just built OpenBLAS. This involves editing the site.cfg file within the NumPy source (see http://stackoverflow.com/a/14391693/1907889 for details). The paths that you’ll enter in there are relative to the ones use used in step one above. 
+
+The [Homebrew Science](https://github.com/Homebrew/homebrew-science) formulae also offer an OpenBLAS formula but as of this writing it [was still referencing](https://github.com/Homebrew/homebrew-science/blob/master/openblas.rb) the current release of OpenBLAS (0.2.8) which does not include a fix for [a bug](https://github.com/xianyi/OpenBLAS/issues/294) which is the whole reason this is necessary in the first place. Once that fix is rolled into a release and the Homebrew formula is updated, this will be a better approach to getting this setup.
 
 ## Team
 
