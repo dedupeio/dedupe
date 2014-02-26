@@ -69,29 +69,11 @@ python setup.py install
 
 With default configurations, dedupe cannot do parallel processing on Mac OS X. 
 
-One way to get around this is to install numpy without BLAS support, which means that some of its operations will run a little slower.
+One way to get around this is to install numpy without BLAS support, which means that some things will run a little slower.
 ``` bash
 $ export BLAS=None
 $ pip install numpy
 ```
-
-#### Alternatively, clone and build OpenBLAS
-
-If you BLAS support **and** parallel processing, you need to install [OpenBLAS](https://github.com/xianyi/OpenBLAS). 
-
-Here’s how you might go about that
-
-``` bash 
-$ git clone https://github.com/xianyi/OpenBLAS.git 
-$ cd OpenBLAS 
-$ make USE_OPENMP=0 # This compile flag is key
-$ mkdir /usr/local/opt/openblas # Change this to suit your needs 
-$ make PREFIX=/usr/local/opt/openblas install # Make sure this matches the path above 
-```
-
-#### Clone and build NumPy 
-
-Make sure it knows where you just built OpenBLAS. This involves editing the site.cfg file within the NumPy source (see http://stackoverflow.com/a/14391693/1907889 for details). The paths that you’ll enter in there are relative to the ones used in step one above.
 
 
 
