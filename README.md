@@ -75,7 +75,7 @@ $ export BLAS=None
 $ pip install numpy
 ```
 
-
+For more details about this or to see a way to install an alternative BLAS implementation for OS X, [refer to the wiki](https://github.com/datamade/dedupe/wiki/OSX-Install-Notes).
 
 ## Usage examples
 
