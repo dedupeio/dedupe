@@ -65,6 +65,18 @@ easy_install zope.index
 python setup.py install
 ```
 
+### OS X Install Notes
+
+With default configurations, dedupe cannot do parallel processing on Mac OS X. 
+
+One way to get around this is to install numpy without BLAS support, which means that some things will run a little slower.
+``` bash
+$ export BLAS=None
+$ pip install numpy
+```
+
+
+
 ## Usage examples
 
 Dedupe is a library and not a stand-alone command line tool. To demonstrate its usage, we have come up with a few example recipes for different sized datasets.
