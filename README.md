@@ -143,42 +143,28 @@ python tests/canonical_test_matching.py
 
 ## OS X Install Notes
 
-With default settings, dedupe cannot do parallel processing on Mac OS X. If you
-want to enable parallel processing you need to install some additional software
-libraries. One way to get around this is to compile NumPy against a different
-implementation of BLAS such as [OpenBLAS](https://github.com/xianyi/OpenBLAS).
-Here’s how you might go about that:
+With default settings, dedupe cannot do parallel processing on Mac OS X. According to their documentation, NumPy does not actually require Linear Algebra libraries (such as OpenBLAS) to be installed. To compile NumPy without BLAS support:
 
-#### Clone and build OpenBLAS source with ``USE_OPENMP=0`` flag
+``` bash
+$ export BLAS=None
+$ pip install numpy
+```
 
-``` bash $ git clone https://github.com/xianyi/OpenBLAS.git $ cd OpenBLAS $ make
-USE_OPENMP=0 $ mkdir /usr/local/opt/openblas # Change this to suit your needs $
-make PREFIX=/usr/local/opt/openblas install # Make sure this matches the path
-above ```
+#### Alternatively, clone and build OpenBLAS
+
+If you want to enable parallel processing you need to install some additional software libraries. One way to get around this is to compile NumPy against a different implementation of BLAS such as [OpenBLAS](https://github.com/xianyi/OpenBLAS). Here’s how you might go about that
+
+``` bash 
+$ git clone https://github.com/xianyi/OpenBLAS.git 
+$ cd OpenBLAS 
+$ make USE_OPENMP=0 # This compile flag is key
+$ mkdir /usr/local/opt/openblas # Change this to suit your needs 
+$ make PREFIX=/usr/local/opt/openblas install # Make sure this matches the path above 
+```
 
 #### Clone and build NumPy 
 
-Make sure it knows where you just built OpenBLAS. This involves editing the
-site.cfg file within the NumPy source (see
-http://stackoverflow.com/a/14391693/1907889 for details). The paths that you’ll
-enter in there are relative to the ones used in step one above. 
-
-#### Alternatively, compile NumPy with no BLAS support
-
-According to their documentation, NumPy does not actually require Linear Algebra
-libraries (such as OpenBLAS) to be installed. But, since by default it is
-configured to look for and use these libraries (and since OS X technically ships
-with one), you’ll need to tell NumPy to compile without looking them. To
-accomplish this, you can use environmental variables like so:
-
-``` bash 
-$ export BLAS=None
-$ export LAPACK=None
-$ export ATLAS=None
-$ cd /path/to/numpy/source
-$ python setup.py build
-$ python setup.py install
-```
+Make sure it knows where you just built OpenBLAS. This involves editing the site.cfg file within the NumPy source (see http://stackoverflow.com/a/14391693/1907889 for details). The paths that you’ll enter in there are relative to the ones used in step one above.
 
 ## Team
 
