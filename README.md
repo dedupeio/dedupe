@@ -67,15 +67,9 @@ python setup.py install
 
 ### OS X Install Notes
 
-With default configurations, dedupe cannot do parallel processing on Mac OS X. 
-
-One way to get around this is to install numpy without BLAS support, which means that some things will run a little slower.
-``` bash
-$ export BLAS=None
-$ pip install numpy
-```
-
-For more details about this or to see a way to install an alternative BLAS implementation for OS X, [refer to the wiki](https://github.com/datamade/dedupe/wiki/OSX-Install-Notes).
+With default configurations, dedupe cannot do parallel processing on Mac OS X.
+For more information and for instructions on how to enable this, [refer to the
+wiki](https://github.com/datamade/dedupe/wiki/OSX-Install-Notes).
 
 ## Usage examples
 
