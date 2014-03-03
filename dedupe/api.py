@@ -35,6 +35,8 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
+import weakref
+import threading
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,6 +50,9 @@ def Pool(processes) :
         warnings.warn("NumPy linked against 'Accelerate.framework'. "
                       "Multiprocessing will be disabled."
                       " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
+        
+        if not hasattr(threading.current_thread(), "_children"): 
+          threading.current_thread()._children = weakref.WeakKeyDictionary()
         return multiprocessing.dummy.Pool(processes=1)
     else :
         return multiprocessing.Pool(processes=processes)
