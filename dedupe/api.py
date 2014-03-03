@@ -46,10 +46,11 @@ def Pool(processes) :
                        numpy.__config__.__dict__.iteritems()
                        if key.endswith("_info")]).lower()
 
-    if "accelerate" in config_info or "veclib" in config_info:
-        warnings.warn("NumPy linked against 'Accelerate.framework'. "
-                      "Multiprocessing will be disabled."
-                      " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
+    if "accelerate" in config_info or "veclib" in config_info :
+        if processes > 1 :
+            warnings.warn("NumPy linked against 'Accelerate.framework'. "
+                          "Multiprocessing will be disabled."
+                          " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
         
         if not hasattr(threading.current_thread(), "_children"): 
           threading.current_thread()._children = weakref.WeakKeyDictionary()
