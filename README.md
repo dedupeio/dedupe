@@ -23,7 +23,7 @@ __Dedupe is an open source python library that quickly de-duplicates large sets 
 #### Community
 * [Dedupe Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
 * [ChiPy presentation](http://pyvideo.org/video/973/big-data-de-duping)
-* IRC channel, #dedupe on irc.freenode.net
+* IRC channel, [#dedupe on irc.freenode.net](http://webchat.freenode.net/?channels=dedupe)
 
 ## Installation and dependencies
 
