@@ -99,13 +99,6 @@ print 'importing data ...'
 data_1 = readData('AbtBuy_Abt.csv')
 data_2 = readData('AbtBuy_Buy.csv')
 
-# These data have already been linked by hand, and linked records
-# share the value of the field 'unique_id'. We are exploiting this work
-# to create training data. This function also assume that if all pairs of
-# records that DO NOT share a 'unique_id' value are distinct.
-training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
-
-
 # ## Training
 
 if os.path.exists(settings_file):
@@ -130,9 +123,22 @@ else:
     # To train the linker, we feed it a random sample of records.
     linker.sample(data_1, data_2, 150000)
 
-    # This is how we provide the constructed training data to the
-    # linker
-    linker.markPairs(training_pairs)
+    # If we have training data saved from a previous run of linker,
+    # look for it an load it in.
+    # __Note:__ if you want to train from scratch, delete the training_file
+    if os.path.exists(training_file):
+        print 'reading labeled examples from ', training_file
+        linker.readTraining(training_file)
+
+    # ## Active learning
+    # Dedupe will find the next pair of records
+    # it is least certain about and ask you to label them as matches
+    # or not.
+    # use 'y', 'n' and 'u' keys to flag duplicates
+    # press 'f' when you are finished
+    print 'starting active labeling...'
+
+    dedupe.consoleLabel(linker)
 
     linker.train()
 
