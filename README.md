@@ -44,7 +44,7 @@ Using pip:
 git clone git://github.com/datamade/dedupe.git
 cd dedupe
 pip install "numpy>=1.6"
-# for python 2.7
+for python 2.7
 pip install -r requirements.txt
 # OR for python 2.6
 pip install -r py26_requirements.txt
@@ -66,6 +66,12 @@ python setup.py install
 ```
 
 ### OS X Install Notes
+
+You may need to set the following environmental variables from the command line
+```bash
+export CFLAGS=-Qunused-arguments
+export CPPFLAGS=-Qunused-arguments
+```
 
 With default configurations, dedupe cannot do parallel processing on Mac OS X.
 For more information and for instructions on how to enable this, [refer to the
