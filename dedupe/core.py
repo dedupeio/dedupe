@@ -21,6 +21,19 @@ def grouper(iterable, n, fillvalue=None): # pragma : no cover
     args = [iter(iterable)] * n
     return itertools.izip_longest(fillvalue=fillvalue, *args)
 
+def randomPairsWithReplacement(n_records, sample_size) :
+    # If the population is very large relative to the sample
+    # size than we'll get very few duplicates by chance
+    warnings.warn("There may be duplicates in the sample")
+
+    random_indices = numpy.random.randint(n_records, 
+                                          size=sample_size*2)
+    random_indices = random_indices.reshape((-1, 2))
+    random_indices.sort(axis=1)
+
+    return random_indices
+
+
 def randomPairs(n_records, sample_size):
     """
     Return random combinations of indices for a square matrix of size
@@ -36,20 +49,14 @@ def randomPairs(n_records, sample_size):
             warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
 
         random_indices = numpy.arange(n)
-    else:
+    elif 8 * n > numpy.iinfo('uint').max :
+        return randomPairsWithReplacement(n_records, sample_size)
+    else :
         try:
             random_indices = numpy.random.randint(n, size=sample_size)
+            random_indices.dtype = 'uint'
         except OverflowError:
-            # If the population is very large relative to the sample
-            # size than we'll get very few duplicates by chance
-            warnings.warn("There may be duplicates in the sample")
-            random_indices = numpy.random.randint(n_records, 
-                                                  size=sample_size*2)
-            random_indices = random_indices.reshape((-1, 2))
-            random_indices.sort(axis=1)
-
-            return random_indices
-
+            return randomPairsWithReplacement(n_records, sample_size)
 
 
     b = 1 - 2 * n_records
