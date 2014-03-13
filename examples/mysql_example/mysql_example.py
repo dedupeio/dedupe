@@ -62,8 +62,7 @@ start_time = time.time()
 # information in `examples/mysql_example/mysql.cnf`
 
 # We use Server Side cursors (SSDictCursor and SSCursor) to (avoid
-# having to have enormous result sets in 
-# memory)[http://stackoverflow.com/questions/1808150/how-to-efficiently-use-mysqldb-sscursor].
+# having to have enormous result sets in memory)[http://stackoverflow.com/questions/1808150/how-to-efficiently-use-mysqldb-sscursor].
 con = MySQLdb.connect(db='contributions',
                       charset='ascii',
                       read_default_file = MYSQL_CNF, 
