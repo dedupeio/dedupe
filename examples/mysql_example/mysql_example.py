@@ -229,7 +229,7 @@ step_size = 30000
 
 # We will also speed up the writing by of blocking map by using 
 # parallel database writers
-pool = multiprocessing.Pool(processes=2)
+pool = dedupe.Pool(processes=2)
 
 def dbWriter(sql, rows) :
     conn = MySQLdb.connect(db='contributions',

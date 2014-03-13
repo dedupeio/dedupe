@@ -24,6 +24,7 @@ import training
 import crossvalidation
 import datamodel
 import backport
+from api import Pool
 from api import StaticDedupe, Dedupe
 from api import StaticRecordLink, RecordLink
 from core import randomPairs
