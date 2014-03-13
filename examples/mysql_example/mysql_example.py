@@ -60,6 +60,10 @@ start_time = time.time()
 # You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
 # `examples/mysql_example/mysql.cnf` and fill in your mysql database
 # information in `examples/mysql_example/mysql.cnf`
+
+# We use Server Side cursors (SSDictCursor and SSCursor) to avoid
+# having to have enormous result sets in memory. 
+# http://stackoverflow.com/questions/1808150/how-to-efficiently-use-mysqldb-sscursor
 con = MySQLdb.connect(db='contributions',
                       charset='ascii',
                       read_default_file = MYSQL_CNF, 
