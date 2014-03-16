@@ -109,7 +109,7 @@ else:
     # Define the fields the linker will pay attention to
     #
     # Notice how we are telling the linker to use a custom field comparator
-    # for the 'Zip' field. 
+    # for the 'price' field. 
     fields = {
         'title': {'type': 'String'},
         'description': {'type': 'String',
