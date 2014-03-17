@@ -15,10 +15,7 @@ import re
 import collections
 import logging
 import optparse
-from numpy import nan
-import math
-import itertools
-import random
+import numpy
 
 import dedupe
 
@@ -48,11 +45,11 @@ training_file = 'data_matching_training.json'
 
 def comparePrice(price_1, price_2) :
     if price_1 == 0 :
-        return nan
+        return numpy.nan
     elif price_2 == 0 :
-        return nan
+        return numpy.nan
     else :
-        return abs(math.log(price_1) - math.log(price_2))
+        return abs(numpy.log(price_1) - numpy.log(price_2))
 
 def preProcess(column):
     """
