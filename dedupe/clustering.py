@@ -89,19 +89,43 @@ def cluster(dupes, threshold=.5):
             partition = hcluster.fcluster(linkage, 
                                           threshold,
                                           criterion='distance')
+            
+            cophenetic_distances = hcluster.cophenet(linkage)
+            print cophenetic_distances
+            print partition
+            
+            clusters = {}
 
             for (i, sub_cluster_id) in enumerate(partition):
-                clustering.setdefault(cluster_id + sub_cluster_id, []).append(i_to_id[i])
-            
+                clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
+
+            for cluster_id, items in clusters.iteritems() :
+                new_items = []
+                for item in items :
+                    max_score = 0
+                    for index_1, index_2 in itertools.product([item], items) :
+                        if index_1 == index_2 : continue
+                        if index_1 > index_2 :
+                            index_1, index_2 = index_2, index_1
+                        N = len(partition)
+                        ij = (N * (N-1))/2 - ((N-index_1)*(N-index_1-1))/2 + index_2 - index_1 - 1
+                        score = cophenetic_distances[ij]
+                        if score > max_score :
+                            max_score = score
+                    print item, max_score
+                    item = i_to_id[item]
+                    new_items.append(item)
+                clustering[cluster_id] = new_items
+
             cluster_id += max(partition)
         else:
 
             clustering[cluster_id] = sub_graph
             cluster_id += 1
 
-    clusters = [set(l) for l in clustering.values() if len(l) > 1]
+    valid_clusters = [set(l) for l in clustering.values() if len(l) > 1]
 
-    return clusters
+    return valid_clusters
 
 
 def greedyMatching(dupes, threshold=0.5):
