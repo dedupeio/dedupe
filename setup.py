@@ -39,6 +39,6 @@ setup(
                  
 
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
-    install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx'],
+    install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx', 'zope.interface', 'zope.index'],
     long_description=open('README.md').read(),
     )

@@ -1,12 +1,6 @@
-import cProfile
-import multiprocessing
-
-
-
-    
-
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 """
 This is an example of working with very large data. There are about
 700,000 unduplicated donors in this database of Illinois political
@@ -30,33 +24,12 @@ import logging
 import optparse
 import locale
 import pickle
+import multiprocessing
 
 import MySQLdb
 import MySQLdb.cursors
 
 import dedupe
-
-def dbWriter(sql, rows) :
-    conn = MySQLdb.connect(db='contributions',
-                           charset='ascii',
-                           read_default_file = os.path.abspath('.') + '/mysql.cnf') 
-
-    cursor = conn.cursor()
-    # Need to do this since AUTOCOMMIT = 0 by default (wtf?)
-    records_written = cursor.executemany(sql, rows)
-    cursor.close()
-    conn.commit()
-    conn.close()
-
-
-# Switch to our working directory and set up our settings and training
-# file locations
-settings_file = 'mysql_example_settings'
-training_file = 'mysql_example_training.json'
-
-
-pool = multiprocessing.Pool(processes=2)
-
 
 # ## Logging
 
@@ -77,6 +50,40 @@ elif opts.verbose >= 2:
 logging.basicConfig(level=log_level)
 
 # ## Setup
+MYSQL_CNF = os.path.abspath('.') + '/mysql.cnf'
+
+settings_file = 'mysql_example_settings'
+training_file = 'mysql_example_training.json'
+
+start_time = time.time()
+
+# You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
+# `examples/mysql_example/mysql.cnf` and fill in your mysql database
+# information in `examples/mysql_example/mysql.cnf`
+
+# We use Server Side cursors (SSDictCursor and SSCursor) to [avoid
+# having to have enormous result sets in memory](http://stackoverflow.com/questions/1808150/how-to-efficiently-use-mysqldb-sscursor).
+con = MySQLdb.connect(db='contributions',
+                      charset='ascii',
+                      read_default_file = MYSQL_CNF, 
+                      cursorclass=MySQLdb.cursors.SSDictCursor)
+
+con2 = MySQLdb.connect(db='contributions',
+                       charset='ascii',
+                       read_default_file = MYSQL_CNF, 
+                       cursorclass=MySQLdb.cursors.SSCursor)
+
+c = con.cursor()
+
+# We'll be using variations on this following select statement to pull
+# in campaign donor info.
+#
+# We did a fair amount of preprocessing of the fields in
+# `mysql_init_db.py`
+
+DONOR_SELECT = "SELECT donor_id, city, name, zip, state, address, " \
+               "occupation, employer, person from processed_donors"
+
 
 def getSample(cur, sample_size, id_column, table):
     '''
@@ -104,42 +111,6 @@ def getSample(cur, sample_size, id_column, table):
             yield (temp_d[k1], temp_d[k2])
 
     return tuple(pair for pair in random_pair_generator())
-
-
-start_time = time.time()
-
-# You'll need to copy `examples/mysql_example/mysql.cnf_LOCAL` to
-# `examples/mysql_example/mysql.cnf` and fill in your mysql database
-# information in `examples/mysql_example/mysql.cnf`
-con = MySQLdb.connect(db='contributions',
-                      charset='ascii',
-                      read_default_file = '/mysql.cnf', 
-                      cursorclass=MySQLdb.cursors.SSDictCursor)
-
-con2 = MySQLdb.connect(db='contributions',
-                       charset='ascii',
-                       read_default_file = '/mysql.cnf', 
-                       cursorclass=MySQLdb.cursors.SSCursor)
-
-c = con.cursor()
-
-# We'll be using variations on this following select statement to pull
-# in campaign donor info.
-#
-# We are concatenating the first_name and last_name into a single name
-# field and the address_1 and address_2 into a single address field. In
-# this data, there is a lot of inconsitency of how these fields, so it
-# is better to create these composite fields
-#
-# If a field is NULL, then we'll have MySQL return an empty string and
-# if it's not null then we'll lower case the field
-#
-# Doing this preprocessing in MySQL is much faster than than in
-# Python.
-
-
-DONOR_SELECT = "SELECT donor_id, city, name, zip, state, address, " \
-               "occupation, employer, person from processed_donors"
 
 
 # ## Training
@@ -213,91 +184,119 @@ else:
     # However, requiring that we cover every single true dupe pair may
     # mean that we have to use blocks that put together many, many
     # distinct pairs that we'll have to expensively, compare as well.
-    deduper.train(ppc=001, uncovered_dupes=5)
+    deduper.train(ppc=0.001, uncovered_dupes=5)
 
     # When finished, save our labeled, training pairs to disk
     deduper.writeTraining(training_file)
     deduper.writeSettings(settings_file)
 
-# # ## Blocking
+# ## Blocking
 
-# print 'blocking...'
+print 'blocking...'
 
-# # To run blocking on such a large set of data, we create a separate table
-# # that contains blocking keys and record ids
-# print 'creating blocking_map database'
-# c.execute("DROP TABLE IF EXISTS blocking_map")
-# c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
-# c.execute("CREATE TABLE blocking_map "
-#           "(block_key VARCHAR(200), donor_id INTEGER)")
-
-
-# # If dedupe learned a TF-IDF blocking rule, we have to take a pass
-# # through the data and create TF-IDF canopies. This can take up to an
-# # hour
-# print 'creating inverted index'
+# To run blocking on such a large set of data, we create a separate table
+# that contains blocking keys and record ids
+print 'creating blocking_map database'
+c.execute("DROP TABLE IF EXISTS blocking_map")
+c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
+c.execute("CREATE TABLE blocking_map "
+          "(block_key VARCHAR(200), donor_id INTEGER)")
 
 
-# c2 = con2.cursor()
+# If dedupe learned a TF-IDF blocking rule, we have to take a pass
+# through the data and create TF-IDF canopies. This can take up to an
+# hour
+print 'creating inverted index'
 
 
-# for field in deduper.blocker.tfidf_fields :
-#     c2.execute("SELECT donor_id, %s FROM processed_donors" % field)
-#     field_data = (row for row in c2)
-#     deduper.blocker.tfIdfBlock(field_data, field)
-
-# # Now we are ready to write our blocking map table by creating a
-# # generator that yields unique `(block_key, donor_id)` tuples.
-# print 'writing blocking map'
-
-# c.execute(DONOR_SELECT)
-# full_data = ((row['donor_id'], row) for row in c)
-# b_data = deduper.blocker(full_data)
-
-# # MySQL has a hard limit on the size of a data object that can be
-# # passed to it.  To get around this, we chunk the blocked data in
-# # to groups of 30,000 blocks
-# step_size = 30000
-# done = False
-# while not done :
-#     chunks = (list(itertools.islice(b_data, step)) for step in [step_size]*100)
-
-#     results =[pool.apply_async(dbWriter,
-#                                ("INSERT INTO blocking_map VALUES (%s, %s)", 
-#                                 chunk))
-#               for chunk in chunks]
-
-#     for r in results :
-#         r.wait()
-
-#     if len(chunk) < step_size :
-#         done = True
+c2 = con2.cursor()
 
 
-# # Create an index on the blocking key for faster clustering
-# print 'creating blocking map index. this will probably take a while ...'
-# c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
-# print 'created', time.time() - start_time, 'seconds'
+for field in deduper.blocker.tfidf_fields :
+    c2.execute("SELECT donor_id, %s FROM processed_donors" % field)
+    field_data = (row for row in c2)
+    deduper.blocker.tfIdfBlock(field_data, field)
 
-# print "calculating singletons"
+# Now we are ready to write our blocking map table by creating a
+# generator that yields unique `(block_key, donor_id)` tuples.
+print 'writing blocking map'
 
-# c.execute("create temporary table singletons as (select block_key from blocking_map group by block_key having count(*) < 2)")
+c.execute(DONOR_SELECT)
+full_data = ((row['donor_id'], row) for row in c)
+b_data = deduper.blocker(full_data)
 
-# c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+# MySQL has a hard limit on the size of a data object that can be
+# passed to it.  To get around this, we chunk the blocked data in
+# to groups of 30,000 blocks
+step_size = 30000
 
-# print "removing singletons"
-# c.execute("delete bm.* from blocking_map bm JOIN singletons USING (block_key)")
-# c.execute("CREATE INDEX sorting_key ON blocking_map (block_key, donor_id)")
-# c.execute("drop table singletons")
+# We will also speed up the writing by of blocking map by using 
+# parallel database writers
+pool = dedupe.Pool(processes=2)
 
-# c.execute("create table sorted_blocking_map as select * from blocking_map order by block_key, donor_id")
+def dbWriter(sql, rows) :
+    conn = MySQLdb.connect(db='contributions',
+                           charset='ascii',
+                           read_default_file = MYSQL_CNF) 
 
-# c.execute("alter table sorted_blocking_map add column id int(8) unsigned primary key auto_increment")
+    cursor = conn.cursor()
+    cursor.executemany(sql, rows)
+    cursor.close()
+    conn.commit()
+    conn.close()
 
-# c.execute("create index donor_idx on sorted_blocking_map (donor_id)")
+done = False
+
+while not done :
+    chunks = (list(itertools.islice(b_data, step)) for step in [step_size]*100)
+
+    results =[pool.apply_async(dbWriter,
+                               ("INSERT INTO blocking_map VALUES (%s, %s)", 
+                                chunk))
+              for chunk in chunks]
+
+    for r in results :
+        r.wait()
+
+    if len(chunk) < step_size :
+        done = True
+
+pool.close()
+
+# Remove blocks that contain only one record, sort by block key and
+# donor, key and index blocking map.
+#
+# These steps, particularly the sorting will let us quickly create
+# blocks of data for comparison
+print 'creating blocking map index. this will probably take a while ...'
+
+c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
+print 'created', time.time() - start_time, 'seconds'
+
+print "calculating singletons"
+c.execute("CREATE TEMPORARY TABLE singletons "
+          "(SELECT block_key FROM blocking_map "
+          " GROUP BY block_key HAVING COUNT(*) < 2)")
+
+c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+
+print "removing singletons"
+c.execute("DELETE bm.* FROM blocking_map bm JOIN singletons "
+          "USING (block_key)")
+c.execute("CREATE INDEX sorting_key "
+          "ON blocking_map (block_key, donor_id)")
+c.execute("DROP TABLE singletons")
+
+c.execute("CREATE TABLE sorted_blocking_map "
+          "AS SELECT * FROM blocking_map "
+          "ORDER BY block_key, donor_id")
+
+c.execute("ALTER TABLE sorted_blocking_map ADD COLUMN id "
+          "INT(8) UNSIGNED PRIMARY KEY AUTO_INCREMENT")
+c.execute("CREATE INDEX donor_idx ON sorted_blocking_map (donor_id)")
 
 
-# con.commit()
+con.commit()
 
 
 ## Clustering

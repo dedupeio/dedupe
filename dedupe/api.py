@@ -15,6 +15,7 @@ import itertools
 import logging
 import pickle
 import multiprocessing
+import multiprocessing.dummy
 import numpy
 import random
 import warnings
@@ -23,7 +24,6 @@ try:
     from collections import OrderedDict
 except ImportError :
     from backport import OrderedDict
-
 
 import dedupe
 import dedupe.core as core
@@ -35,7 +35,28 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
+import weakref
+import threading
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def Pool(processes) :
+    config_info = str([value for key, value in
+                       numpy.__config__.__dict__.iteritems()
+                       if key.endswith("_info")]).lower()
+
+    if "accelerate" in config_info or "veclib" in config_info :
+        if processes > 1 :
+            warnings.warn("NumPy linked against 'Accelerate.framework'. "
+                          "Multiprocessing will be disabled."
+                          " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
+        
+        if not hasattr(threading.current_thread(), "_children"): 
+          threading.current_thread()._children = weakref.WeakKeyDictionary()
+        return multiprocessing.dummy.Pool(processes=1)
+    else :
+        return multiprocessing.Pool(processes=processes)
 
 class Matching(object):
     """
@@ -86,10 +107,10 @@ class Matching(object):
 
         i = numpy.argmax(score)
 
-        logging.info('Maximum expected recall and precision')
-        logging.info('recall: %2.3f', recall[i])
-        logging.info('precision: %2.3f', precision[i])
-        logging.info('With threshold: %2.3f', probability[i])
+        logger.info('Maximum expected recall and precision')
+        logger.info('recall: %2.3f', recall[i])
+        logger.info('precision: %2.3f', precision[i])
+        logger.info('With threshold: %2.3f', probability[i])
 
         return probability[i]
 
@@ -402,7 +423,7 @@ class StaticMatching(Matching) :
         if settings_file.__class__ is not str :
             raise ValueError("Must supply a settings file name")
 
-        self.pool = multiprocessing.Pool(processes=num_processes)
+        self.pool = Pool(processes=num_processes)
 
         with open(settings_file, 'rb') as f: # pragma : no cover
             try:
@@ -425,7 +446,7 @@ class ActiveMatching(Matching) :
     - train
     - writeSettings
     - writeTraining
-    - getUncertainPair
+    - uncertainPairs
     - markPairs
     """
 
@@ -510,7 +531,7 @@ class ActiveMatching(Matching) :
         else :
             self.activeLearner = None
 
-        self.pool = multiprocessing.Pool(processes=num_processes)
+        self.pool = Pool(processes=num_processes)
 
 
         training_dtype = [('label', 'S8'), 
@@ -532,7 +553,7 @@ class ActiveMatching(Matching) :
         training_source -- the path of the training data file
         '''
 
-        logging.info('reading training from file')
+        logger.info('reading training from file')
 
         with open(training_source, 'r') as f:
             training_pairs = json.load(f, 
@@ -580,7 +601,7 @@ class ActiveMatching(Matching) :
         n_folds = max(n_folds,
                       2)
 
-        logging.info('%d folds', n_folds)
+        logger.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
@@ -677,7 +698,7 @@ class ActiveMatching(Matching) :
                       default=serializer._to_json)
 
 
-    def getUncertainPair(self) :
+    def uncertainPairs(self) :
         '''
         Provides a list of the pairs of records that dedupe is most curious to learn 
         if they are matches or distinct.
@@ -688,7 +709,8 @@ class ActiveMatching(Matching) :
         
         if self.training_data.shape[0] == 0 :
             rand_int = random.randint(0, len(self.data_sample))
-            exact_match = self.data_sample[rand_int]
+            random_pair = self.data_sample[rand_int]
+            exact_match = (random_pair[0], random_pair[0]) 
             self._addTrainingData({'match':[exact_match, exact_match],
                                    'distinct':[]})
 
@@ -699,7 +721,7 @@ class ActiveMatching(Matching) :
         dupe_ratio = (len(self.training_pairs['match'])
                       /(len(self.training_pairs['distinct']) + 1.0))
 
-        return self.activeLearner.getUncertainPair(self.data_model, dupe_ratio)
+        return self.activeLearner.uncertainPairs(self.data_model, dupe_ratio)
 
     def markPairs(self, labeled_pairs) :
         '''
@@ -799,13 +821,13 @@ class ActiveMatching(Matching) :
         """
         Log learned weights and bias terms
         """
-        logging.info('Learned Weights')
+        logger.info('Learned Weights')
         for (k1, v1) in self.data_model.items():
             try:
                 for (k2, v2) in v1.items():
-                    logging.info((k2, v2['weight']))
+                    logger.info((k2, v2['weight']))
             except AttributeError:
-                logging.info((k1, v1))
+                logger.info((k1, v1))
 
     def _loadSample(self, *args, **kwargs) : # pragma : no cover
 

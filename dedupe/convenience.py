@@ -17,7 +17,7 @@ def consoleLabel(deduper): # pragma : no cover
     finished = False
 
     while not finished :
-        uncertain_pairs = deduper.getUncertainPair()
+        uncertain_pairs = deduper.uncertainPairs()
 
         labels = {'distinct' : [], 'match' : []}
 

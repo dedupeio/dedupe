@@ -1,5 +1,5 @@
- #!/usr/bin/python
- # -*- coding: utf-8 -*-
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 This is a setup script for mysql_example.  It downloads a zip file of
 Illinois campaign contributions and loads them in t aMySQL database
@@ -43,7 +43,7 @@ if not os.path.exists(contributions_txt_file) :
             zip_file.extract(f)
     zip_file.close()
 
-conn = MySQLdb.connect(read_default_file = 'mysql.cnf', 
+conn = MySQLdb.connect(read_default_file = os.path.abspath('.') + '/mysql.cnf', 
                        local_infile = 1,
                        db='contributions')
 c = conn.cursor()
@@ -53,7 +53,7 @@ c.execute("DROP TABLE IF EXISTS raw_table")
 c.execute("DROP TABLE IF EXISTS donors")
 c.execute("DROP TABLE IF EXISTS recipients")
 c.execute("DROP TABLE IF EXISTS contributions")
-
+c.execute("DROP TABLE IF EXISTS processed_donors")
 
 c.execute("CREATE TABLE raw_table "
           "(reciept_id INT, last_name VARCHAR(70), first_name VARCHAR(35), "
@@ -190,6 +190,19 @@ c.execute("UPDATE donors "
 
 conn.commit()
 
+c.execute("CREATE TABLE processed_donors AS " 
+          "(SELECT donor_id, " 
+          " IFNULL(LOWER(city), '') AS city, " 
+          " LOWER(CONCAT_WS(' ', first_name, last_name)) AS name, " 
+          " IFNULL(LOWER(zip),'') AS zip, " 
+          " IFNULL(LOWER(state),'') AS state, " 
+          " LOWER(CONCAT_WS(' ', address_1, address_2)) AS address, " 
+          " IFNULL(LOWER(occupation), '') AS occupation, "
+          " IFNULL(LOWER(employer), '') AS employer, "
+          " ISNULL(first_name) AS person "
+          " FROM donors)")
+ 
+c.execute("CREATE INDEX donor_idx ON processed_donors (donor_id)")
 
 c.close()
 conn.close()
