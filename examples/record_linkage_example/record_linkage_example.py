@@ -175,11 +175,12 @@ print '# duplicate sets', len(linked_records)
 # 'Cluster ID' which indicates which records refer to each other.
 
 cluster_membership = collections.defaultdict(lambda : 'x')
+cluster_scores = collections.defaultdict(int)
 
-for (cluster_id, cluster) in enumerate(linked_records):
+for cluster_id, (cluster, score) in enumerate(linked_records):
     for record_id in cluster:
         cluster_membership[record_id] = cluster_id
-
+        cluster_scores[cluster_id] = score
 
 
 with open(output_file, 'w') as f:
@@ -191,12 +192,15 @@ with open(output_file, 'w') as f:
             reader = csv.reader(f_input)
 
             heading_row = reader.next()
-            heading_row.insert(0, 'source file')
             heading_row.insert(0, 'Cluster ID')
+            heading_row.insert(1, 'Cluster Score')
+            heading_row.insert(2, 'source file')
             writer.writerow(heading_row)
             for row in reader:
                 cluster_id = cluster_membership[filename + str(row_id)]
-                row.insert(0, fileno)
+                cluster_score = cluster_scores[cluster_id]
                 row.insert(0, cluster_id)
+                row.insert(1, fileno)
+                row.insert(2, cluster_score)
                 writer.writerow(row)
                 row_id += 1

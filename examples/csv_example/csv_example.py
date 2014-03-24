@@ -26,8 +26,9 @@ import dedupe
 
 # ## Logging
 
-# Dedupe uses Python logging to show or suppress verbose output. Added for convenience.
-# To enable verbose logging, run `python examples/csv_example/csv_example.py -v`
+# Dedupe uses Python logging to show or suppress verbose output. Added
+# for convenience.  To enable verbose logging, run `python
+# examples/csv_example/csv_example.py -v`
 
 optp = optparse.OptionParser()
 optp.add_option('-v', '--verbose', dest='verbose', action='count',
@@ -161,9 +162,9 @@ print 'blocking...'
 
 # ## Clustering
 
-# Find the threshold that will maximize a weighted average of our precision and recall. 
-# When we set the recall weight to 2, we are saying we care twice as much
-# about recall as we do precision.
+# Find the threshold that will maximize a weighted average of our
+# precision and recall. When we set the recall weight to 2, we are
+# saying we care twice as much about recall as we do precision.
 #
 # If we had more data, we would not pass in all the blocked data into
 # this function but a representative sample.
@@ -184,10 +185,12 @@ print '# duplicate sets', len(clustered_dupes)
 # 'Cluster ID' which indicates which records refer to each other.
 
 cluster_membership = collections.defaultdict(lambda : 'x')
-for (cluster_id, cluster) in enumerate(clustered_dupes):
+cluster_scores = collections.defaultdict(int)
+
+for cluster_id, (cluster, score) in enumerate(clustered_dupes):
     for record_id in cluster:
         cluster_membership[record_id] = cluster_id
-
+        cluster_scores[cluster_id] = score
 
 with open(output_file, 'w') as f:
     writer = csv.writer(f)
@@ -197,10 +200,13 @@ with open(output_file, 'w') as f:
 
         heading_row = reader.next()
         heading_row.insert(0, 'Cluster ID')
+        heading_row.insert(1, 'Cluster Score')
         writer.writerow(heading_row)
 
         for row in reader:
             row_id = int(row[0])
             cluster_id = cluster_membership[row_id]
+            cluster_score = cluster_scores[cluster_id]
             row.insert(0, cluster_id)
+            row.insert(1, cluster_score)
             writer.writerow(row)

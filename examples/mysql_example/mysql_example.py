@@ -355,15 +355,15 @@ c.execute("DROP TABLE IF EXISTS entity_map")
 
 print 'creating entity_map database'
 c.execute("CREATE TABLE entity_map "
-          "(donor_id INTEGER, canon_id INTEGER, PRIMARY KEY(donor_id))")
+          "(donor_id INTEGER, canon_id INTEGER, score FLOAT, PRIMARY KEY(donor_id))")
 
-for cluster in clustered_dupes :
+for cluster, score in clustered_dupes :
     cluster_head = str(cluster.pop())
-    c.execute('INSERT INTO entity_map VALUES (%s, %s)',
-                (cluster_head, cluster_head))
+    c.execute('INSERT INTO entity_map VALUES (%s, %s, %s)',
+                (cluster_head, cluster_head, score))
     for key in cluster :
-        c.execute('INSERT INTO entity_map VALUES (%s, %s)',
-                    (str(key), cluster_head))
+        c.execute('INSERT INTO entity_map VALUES (%s, %s, %s)',
+                    (str(key), cluster_head, str(score)))
 
 con.commit()
 
