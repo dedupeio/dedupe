@@ -48,7 +48,7 @@ def condensedDistance(dupes):
     index = matrix_length - row_step + col - row - 1
 
     condensed_distances = numpy.ones(matrix_length, 'f4')
-    condensed_distances[index] = 1 - dupes['score']
+    condensed_distances[index] = dupes['score']
 
     return (i_to_id, condensed_distances)
 
@@ -75,10 +75,12 @@ def cluster(dupes, threshold=.5):
     clustering = {}
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
-        if len(sub_graph) > 2:
-            pair_gen = ((sorted(x[0:2]), x[2]['weight'])
-                        for x in dupe_graph.edges_iter(sub_graph, data=True))
+        pair_gen = ((sorted(x[0:2]), 
+                     1 - x[2]['weight'])
+                    for x in dupe_graph.edges_iter(sub_graph, data=True))
 
+        N = len(sub_graph)
+        if N > 2 :
             pairs = numpy.fromiter(pair_gen, dtype=dupes.dtype)
 
             (i_to_id, condensed_distances) = condensedDistance(pairs)
@@ -89,41 +91,40 @@ def cluster(dupes, threshold=.5):
             partition = hcluster.fcluster(linkage, 
                                           threshold,
                                           criterion='distance')
-            
-            cophenetic_distances = hcluster.cophenet(linkage)
-            print cophenetic_distances
-            print partition
-            
+
             clusters = {}
 
             for (i, sub_cluster_id) in enumerate(partition):
                 clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
 
+            cophenetic_distances = hcluster.cophenet(linkage)
+
             for cluster_id, items in clusters.iteritems() :
-                new_items = []
-                for item in items :
-                    max_score = 0
-                    for index_1, index_2 in itertools.product([item], items) :
-                        if index_1 == index_2 : continue
-                        if index_1 > index_2 :
-                            index_1, index_2 = index_2, index_1
-                        N = len(partition)
-                        ij = (N * (N-1))/2 - ((N-index_1)*(N-index_1-1))/2 + index_2 - index_1 - 1
+                max_score = 0
+                if len(items) > 1 :
+                    i, other_items = items[0], items[1:] 
+                    condensor = (N * (N-1))/2 - ((N-i)*(N-i-1))/2 - i - 1
+                    for j in other_items :
+                        ij =  condensor + j
                         score = cophenetic_distances[ij]
                         if score > max_score :
                             max_score = score
-                    print item, max_score
-                    item = i_to_id[item]
-                    new_items.append(item)
-                clustering[cluster_id] = new_items
+                    
+                clustering[cluster_id] = ([i_to_id[item] for item in items],
+                                          max_score)
+
+
 
             cluster_id += max(partition)
         else:
 
-            clustering[cluster_id] = sub_graph
+            clustering[cluster_id] = pair_gen.next()
             cluster_id += 1
 
-    valid_clusters = [set(l) for l in clustering.values() if len(l) > 1]
+    valid_clusters = [(set(l), 1 - score) 
+                      for l, score 
+                      in clustering.values() 
+                      if len(l) > 1]
 
     return valid_clusters
 
@@ -139,7 +140,7 @@ def greedyMatching(dupes, threshold=0.5):
     for dupe in dupes_list:
         vertices = dupe[0]
         if vertices[0] not in covered_vertex_A and vertices[1] not in covered_vertex_B:
-            clusters.append(vertices)
+            clusters.append(dupe)
             covered_vertex_A.update([vertices[0]])
             covered_vertex_B.update([vertices[1]])
 
