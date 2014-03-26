@@ -4,6 +4,7 @@ import sys
 import collections
 import itertools
 import random
+import dedupe
 
 def consoleLabel(deduper): # pragma : no cover
     '''
@@ -113,7 +114,7 @@ def trainingDataLink(data_1, data_2, common_key, training_size=50000) :
 
     return training_pairs        
         
-
+        
 def trainingDataDedupe(data, common_key, training_size=50000) :
     '''
     Construct training data for consumption by the ActiveLearning 
@@ -142,17 +143,23 @@ def trainingDataDedupe(data, common_key, training_size=50000) :
     matched_pairs = set()
     distinct_pairs = set()
 
+    unique_record_ids = set()
     for record_id, record in data.items() :
+        unique_record_ids.add(record_id)
         identified_records[record[common_key]].append(record_id)
 
     for record_ids in identified_records.values() :
         if len(record_ids) > 1 :
             matched_pairs.update(itertools.combinations(sorted(record_ids), 2))
 
-    distinct_pairs.update(itertools.combinations(sorted(data.keys()), 2))
-    distinct_pairs -= matched_pairs
+    unique_record_ids = list(unique_record_ids)
+    pair_indices = dedupe.core.randomPairs(len(unique_record_ids), training_size)
+    distinct_pairs = set()
+    for i, j in pair_indices:
+        distinct_pairs.add((unique_record_ids[i],
+                            unique_record_ids[j]))
 
-    distinct_pairs = random.sample(distinct_pairs, training_size)
+    distinct_pairs -= matched_pairs
 
     matched_records = [(data[key_1], data[key_2])
                        for key_1, key_2 in matched_pairs]
