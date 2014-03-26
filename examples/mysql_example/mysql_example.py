@@ -67,13 +67,16 @@ con = MySQLdb.connect(db='contributions',
                       charset='ascii',
                       read_default_file = MYSQL_CNF, 
                       cursorclass=MySQLdb.cursors.SSDictCursor)
+c = con.cursor()
+c.execute("SET net_write_timeout = 3600")
 
 con2 = MySQLdb.connect(db='contributions',
                        charset='ascii',
                        read_default_file = MYSQL_CNF, 
                        cursorclass=MySQLdb.cursors.SSCursor)
+c2 = con2.cursor()
+c2.execute("SET net_write_timeout = 3600")
 
-c = con.cursor()
 
 # We'll be using variations on this following select statement to pull
 # in campaign donor info.
@@ -117,7 +120,7 @@ def getSample(cur, sample_size, id_column, table):
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
-    deduper = dedupe.StaticDedupe(settings_file, num_processes=4)
+    deduper = dedupe.StaticDedupe(settings_file, num_processes=2)
 else:
 
     # Select a large sample of duplicate pairs.  As the dataset grows,
@@ -137,10 +140,10 @@ else:
               'city': {'type': 'String', 'Has Missing' : True},
               'state': {'type': 'String'},
               'zip': {'type': 'String', 'Has Missing' : True},
-              'employer' : {'type' : 'String', 'Has Missing' : True},
-              'occupation' : {'type' : 'String', 'Has Missing' : True},
-              'person' : {'type' : 'Source', 
-                          'Source Names' : [0, 1]},
+              'person' : {'type' : 'Categorical', 
+                          'Categories' : [0, 1]},
+              'person-address' : {'type' : 'Interaction',
+                                  'Interaction Fields' : ['person', 'address']},
               'name-address' : {'type' : 'Interaction', 
                                 'Interaction Fields' : ['name', 'address']}
               }
@@ -200,16 +203,14 @@ print 'creating blocking_map database'
 c.execute("DROP TABLE IF EXISTS blocking_map")
 c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
 c.execute("CREATE TABLE blocking_map "
-          "(block_key VARCHAR(200), donor_id INTEGER)")
+          "(block_key VARCHAR(200), donor_id INTEGER) "
+          "CHARACTER SET utf8 COLLATE utf8_unicode_ci")
 
 
 # If dedupe learned a TF-IDF blocking rule, we have to take a pass
 # through the data and create TF-IDF canopies. This can take up to an
 # hour
 print 'creating inverted index'
-
-
-c2 = con2.cursor()
 
 
 for field in deduper.blocker.tfidf_fields :
@@ -232,8 +233,6 @@ step_size = 30000
 
 # We will also speed up the writing by of blocking map by using 
 # parallel database writers
-pool = dedupe.Pool(processes=2)
-
 def dbWriter(sql, rows) :
     conn = MySQLdb.connect(db='contributions',
                            charset='ascii',
@@ -244,6 +243,8 @@ def dbWriter(sql, rows) :
     cursor.close()
     conn.commit()
     conn.close()
+
+pool = dedupe.Pool(processes=2)
 
 done = False
 
@@ -273,28 +274,33 @@ print 'creating blocking map index. this will probably take a while ...'
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
 print 'created', time.time() - start_time, 'seconds'
 
-print "calculating singletons"
-c.execute("CREATE TEMPORARY TABLE singletons "
+print "calculating plural_key"
+c.execute("CREATE TABLE plural_key "
           "(SELECT block_key FROM blocking_map "
-          " GROUP BY block_key HAVING COUNT(*) < 2)")
+          " GROUP BY block_key HAVING COUNT(*) > 1)")
 
-c.execute("CREATE INDEX block_key_idx ON singletons (block_key)")
+c.execute("CREATE INDEX block_key_idx ON plural_key (block_key)")
 
-print "removing singletons"
-c.execute("DELETE bm.* FROM blocking_map bm JOIN singletons "
-          "USING (block_key)")
+print "filtering singleton blocks"
+c.execute("CREATE TABLE plural_block "
+          "(SELECT block_key, donor_id FROM blocking_map INNER JOIN plural_key "
+          " USING (block_key))")
+
 c.execute("CREATE INDEX sorting_key "
-          "ON blocking_map (block_key, donor_id)")
-c.execute("DROP TABLE singletons")
+          "ON plural_block (block_key, donor_id)")
 
+print "creating sorted_blocking_map"
 c.execute("CREATE TABLE sorted_blocking_map "
-          "AS SELECT * FROM blocking_map "
-          "ORDER BY block_key, donor_id")
+          "(block_key VARCHAR(200), donor_id INTEGER, "
+          " id INT(8) UNSIGNED AUTO_INCREMENT, "
+          " PRIMARY KEY (id)) "
+          "(SELECT block_key, donor_id FROM plural_block "
+          " ORDER BY block_key, donor_id)")
 
-c.execute("ALTER TABLE sorted_blocking_map ADD COLUMN id "
-          "INT(8) UNSIGNED PRIMARY KEY AUTO_INCREMENT")
 c.execute("CREATE INDEX donor_idx ON sorted_blocking_map (donor_id)")
 
+c.execute("DROP TABLE plural_key")
+c.execute("DROP TABLE plural_block")
 
 con.commit()
 
@@ -325,26 +331,14 @@ def candidates_gen(result_set) :
     if records :
         yield records
 
-print "finding good threshold"
-# Using a random sample of blocks we find our clustering threshold
-# that maximizes the weighted average of our precision and recall
-c.execute("select donor_id, city, name, zip, state, address, " \
-          "occupation, employer, person, block_key from processed_donors inner join (select * from sorted_blocking_map order by rand() limit 1000) rb using (donor_id) order by rb.id")
-
-threshold = deduper.thresholdBlocks(candidates_gen(c), .5)
-threshold = 0.5
-
-# With our found threshold, and candidates generator, perform the
-# clustering operation
-
-c.execute("SELECT donor_id, city, name, zip, state, address, " \
-          "occupation, employer, person, block_key from processed_donors " \
-          "INNER JOIN sorted_blocking_map using (donor_id) " \
+c.execute("SELECT donor_id, city, name, zip, state, address, "
+          "occupation, employer, person, block_key from processed_donors "
+          "INNER JOIN sorted_blocking_map using (donor_id) "
           "ORDER BY sorted_blocking_map.id")
 
 print 'clustering...'
 clustered_dupes = deduper.matchBlocks(candidates_gen(c),
-                                      threshold)
+                                      threshold=0.5)
 
 # ## Writing out results
 
