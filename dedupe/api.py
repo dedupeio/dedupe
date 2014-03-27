@@ -114,7 +114,8 @@ class Matching(object):
 
         return probability[i]
 
-    def matchBlocks(self, blocks, threshold=.5):
+
+    def matchBlocks(self, blocks, threshold=.5, chunk_size=10000):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -132,19 +133,27 @@ class Matching(object):
                       Lowering the number will increase recall, raising it
                       will increase precision
                               
+        chunk_size -- Number of blocks to score at a time. This is a memory
+                      usage optimization.
 
         """
         # Setting the cluster threshold this ways is not principled,
         # but seems to reliably help performance
         cluster_threshold = threshold * 0.7
-
-        candidate_records = self._blockedPairs(blocks)
         
-        self.matches = core.scoreDuplicates(candidate_records,
-                                            self.data_model,
-                                            self.pool,
-                                            threshold)
+        block_groups = core.chunk(chunk_size, blocks)
 
+        for block_group in block_groups:
+            candidate_records = self._blockedPairs(block_group)
+            matches = core.scoreDuplicates(candidate_records,
+                                                self.data_model,
+                                                self.pool,
+                                                threshold)
+            if self.matches == None:
+                self.matches = matches
+            else:
+                self.matches = numpy.concatenate([self.matches, matches])
+                
         clusters = self._cluster(self.matches, cluster_threshold)
         
         return clusters
