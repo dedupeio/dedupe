@@ -93,7 +93,7 @@ class Matching(object):
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
-                                           self.pool)['score']
+                                           self.num_processes)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -142,7 +142,7 @@ class Matching(object):
         
         self.matches = core.scoreDuplicates(candidate_records,
                                             self.data_model,
-                                            self.pool,
+                                            self.num_processes,
                                             threshold)
 
         clusters = self._cluster(self.matches, cluster_threshold)
@@ -423,7 +423,7 @@ class StaticMatching(Matching) :
         if settings_file.__class__ is not str :
             raise ValueError("Must supply a settings file name")
 
-        self.pool = Pool(processes=num_processes)
+        self.num_processes = num_processes
 
         with open(settings_file, 'rb') as f: # pragma : no cover
             try:
@@ -531,7 +531,7 @@ class ActiveMatching(Matching) :
         else :
             self.activeLearner = None
 
-        self.pool = Pool(processes=num_processes)
+        self.num_processes = num_processes
 
 
         training_dtype = [('label', 'S8'), 
@@ -641,11 +641,9 @@ class ActiveMatching(Matching) :
                                                           predicate_set,
                                                           ppc,
                                                           uncovered_dupes,
-                                                          self.pool,
                                                           self._linkage_type)
 
         self.blocker = self._Blocker(self.predicates,
-                                     self.pool,
                                      self.stop_words) 
 
 
@@ -851,7 +849,6 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
         super(StaticDedupe, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
-                                     self.pool,
                                      self.stop_words)
 
 class Dedupe(DedupeMatching, ActiveMatching) :
@@ -904,7 +901,6 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
         super(StaticRecordLink, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
-                                     self.pool,
                                      self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :

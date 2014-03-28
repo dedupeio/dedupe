@@ -180,7 +180,17 @@ class ScoringFunction(object) :
         self.threshold = threshold
         self.dtype = dtype
 
-    def __call__(self, record_pairs) :
+    def __call__(self, chunk_queue, scored_pairs_queue) :
+        while True :
+            record_pairs = chunk_queue.get()
+            if record_pairs is None :
+                chunk_queue.put(None)
+                scored_pairs_queue.put(None)
+                break
+            scored_pairs = self.scoreRecords(record_pairs)
+            scored_pairs_queue.put(scored_pairs)
+
+    def scoreRecords(self, record_pairs) :
         ids = []
 
         def split_records() :
@@ -204,8 +214,29 @@ class ScoringFunction(object) :
 
         return scored_pairs
 
+def collector(scored_pairs_queue, child_conn, num_scorers) :
+    all_scored_pairs = None
+    while True :
+        scored_pairs = scored_pairs_queue.get()
+        if scored_pairs == None :
+            num_scorers -= 1
+            if num_scorers == 0 :
+                child_conn.send(all_scored_pairs)
+                child_conn.close()
+                break
+            else :
+                continue
+        if all_scored_pairs is None :
+            all_scored_pairs = scored_pairs 
+        else :
+            all_scored_pairs = numpy.concatenate(scored_pairs, 
+                                                 all_scored_pairs)
 
-def scoreDuplicates(records, data_model, pool, threshold=0):
+
+def scoreDuplicates(records, data_model, num_processes, threshold=0):
+    record_pairs_queue = multiprocessing.Queue()
+    scored_pairs_queue = multiprocessing.JoinableQueue()
+    parent_conn, child_conn = multiprocessing.Pipe()
 
     record, records = peek(records)
 
@@ -213,20 +244,26 @@ def scoreDuplicates(records, data_model, pool, threshold=0):
     
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
-    record_chunks = grouper(records, 100000)
-
     scoring_function = ScoringFunction(data_model, 
                                        threshold,
                                        score_dtype)
 
-    results = [pool.apply_async(scoring_function,
-                               (chunk,))
-              for chunk in record_chunks] 
+    # Start processes
+    for i in xrange(num_processes) :
+        multiprocessing.Process(target=scoring_function, 
+                                args=(record_pairs_queue, 
+                                      scored_pairs_queue)).start()
 
-    for r in results :
-       r.wait()
+    
+    multiprocessing.Process(target=collector,
+                            args=(scored_pairs_queue, child_conn, num_processes)).start()
 
-    scored_pairs = numpy.concatenate([r.get() for r in results])
+    for chunk in grouper(records, 100000) :
+        record_pairs_queue.put(chunk)
+    
+    record_pairs_queue.put(None)
+
+    scored_pairs = parent_conn.recv()
 
     scored_pairs.sort()
     flag = numpy.ones(len(scored_pairs), dtype=bool)

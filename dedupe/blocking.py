@@ -5,7 +5,6 @@ from collections import defaultdict
 import itertools
 import types
 import logging
-from multiprocessing import Pool
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
@@ -22,12 +21,9 @@ logger = logging.getLogger(__name__)
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
     def __init__(self, predicates = None, 
-                 pool=None,
                  stop_words = {}) :
 
         self.canopies = defaultdict(dict)
-
-        self.pool = pool
 
         self.stop_words = defaultdict(set, stop_words)
 
@@ -216,7 +212,6 @@ def blockTraining(training_pairs,
                   predicate_set,
                   eta=.1,
                   epsilon=.1,
-                  pool=None,
                   matching = "Dedupe"):
     '''
     Takes in a set of training pairs and predicates and tries to find
@@ -230,13 +225,11 @@ def blockTraining(training_pairs,
 
     if matching == "RecordLink" :
         coverage = RecordLinkCoverage(predicate_set,
-                                      training_dupes + training_distinct,
-                                      pool)
+                                      training_dupes + training_distinct)
 
     else :
         coverage = DedupeCoverage(predicate_set,
-                                  training_dupes + training_distinct,
-                                  pool)
+                                  training_dupes + training_distinct)
 
     coverage_threshold = eta * len(training_distinct)
     logger.info("coverage threshold: %s", coverage_threshold)
@@ -352,8 +345,7 @@ def findOptimumBlocking(uncovered_dupes,
     return final_predicate_set
 
 class Coverage(object) :
-    def __init__(self, predicate_set, pairs, pool) :
-        self.pool = pool
+    def __init__(self, predicate_set, pairs) :
 
         self.stop_words = {}
         
@@ -461,7 +453,7 @@ class DedupeCoverage(Coverage) :
         for threshold, field in tfidf_predicates :
             tfidf_fields[field].append(threshold)
 
-        blocker = DedupeBlocker(pool=self.pool)
+        blocker = DedupeBlocker()
         blocker.tfidf_fields = tfidf_fields
 
         docs = list(set(itertools.chain(*record_pairs)))
@@ -510,7 +502,7 @@ class RecordLinkCoverage(Coverage) :
         for threshold, field in tfidf_predicates :
             tfidf_fields[field].append(threshold)
 
-        blocker = RecordLinkBlocker(pool=self.pool)
+        blocker = RecordLinkBlocker()
         blocker.tfidf_fields = tfidf_fields
 
         for field in blocker.tfidf_fields :

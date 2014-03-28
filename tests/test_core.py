@@ -96,7 +96,7 @@ class ScoreDuplicates(unittest.TestCase):
   def test_score_duplicates(self):
     scores = dedupe.core.scoreDuplicates(self.records,
                                          self.data_model,
-                                         multiprocessing.Pool(processes=1))
+                                         2)
 
     numpy.testing.assert_equal(scores['pairs'], 
                                self.desired_scored_pairs['pairs'])
