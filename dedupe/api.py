@@ -145,8 +145,6 @@ class Matching(object):
                                             self.num_processes,
                                             threshold)
 
-        logger.info("number of pairs to cluster: %s", self.matches.shape[0])
-
         clusters = self._cluster(self.matches, cluster_threshold)
         
         return clusters

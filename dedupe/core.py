@@ -187,7 +187,6 @@ class ScoringFunction(object) :
                 # put the poison bill back in the queue so that other
                 # scorers will know to stop
                 chunk_queue.put(None)
-                scored_pairs_queue.put(None)
                 break
             scored_pairs = self.scoreRecords(record_pairs)
             scored_pairs_queue.put(scored_pairs)
@@ -216,39 +215,11 @@ class ScoringFunction(object) :
 
         return scored_pairs
 
-
-def collector(scored_pairs_queue, child_conn, num_scorers) :
-    all_scored_pairs = None
-    while True :
-        scored_pairs = scored_pairs_queue.get()
-        if scored_pairs == None :
-            num_scorers -= 1
-            if num_scorers == 0 :
-                child_conn.send(all_scored_pairs)
-                child_conn.close()
-                break
-            else :
-                continue
-        if all_scored_pairs is None :
-            all_scored_pairs = numpy.unique(scored_pairs)
-        else :
-            #http://stackoverflow.com/questions/12427146/combine-two-arrays-and-sort
-            c = numpy.concatenate((all_scored_pairs, scored_pairs)) 
-            c.sort(kind="mergesort")
-            flag = numpy.ones(len(c), dtype=bool)
-            numpy.not_equal(c[1:], c[:-1], out=flag[1:])
-
-            all_scored_pairs = c[flag]
-
-
-
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     chunk_size = 100000
-    #chunk_size = 1
 
     record_pairs_queue = multiprocessing.Queue()
     scored_pairs_queue = multiprocessing.JoinableQueue()
-    parent_conn, child_conn = multiprocessing.Pipe()
 
     record, records = peek(records)
 
@@ -266,20 +237,28 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
                                 args=(record_pairs_queue, 
                                       scored_pairs_queue)).start()
 
-    multiprocessing.Process(target=collector,
-                            args=(scored_pairs_queue, 
-                                  child_conn, 
-                                  num_processes)).start()
-
-    for chunk in grouper(records, chunk_size) :
+    for j, chunk in enumerate(grouper(records, chunk_size)) :
         record_pairs_queue.put(chunk)
 
     # put poison pill in queue to tell scorers that they are done
     record_pairs_queue.put(None)
+         
+    num_chunks = j + 1
 
-    scored_pairs = parent_conn.recv()
+    scored_pairs = numpy.concatenate([scored_pairs_queue.get() 
+                                      for k in xrange(num_chunks)])
+    
+    # deduplicate scored_pairs
+    logging.info("# undeduplicated scored_pairs %s", scored_pairs.shape[0])
 
-    return scored_pairs
+    scored_pairs.sort()
+    flag = numpy.concatenate(([True], scored_pairs[1:] != scored_pairs[:-1]))
+
+    deduplicated = scored_pairs[flag]
+
+    logging.info("# deduplicated scored_pairs %s", deduplicated.shape[0])
+
+    return deduplicated
 
 
 def idType(record) :
