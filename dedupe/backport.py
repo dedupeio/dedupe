@@ -1,4 +1,6 @@
 import numpy
+import weakref
+import threading
 
 # Deal with Mac OS X issuse
 config_info = str([value for key, value in
