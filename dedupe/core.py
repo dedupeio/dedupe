@@ -214,29 +214,10 @@ class ScoringFunction(object) :
 
         return scored_pairs
 
-def collector(scored_pairs_queue, child_conn, num_scorers) :
-    all_scored_pairs = None
-    while True :
-        scored_pairs = scored_pairs_queue.get()
-        if scored_pairs == None :
-            num_scorers -= 1
-            if num_scorers == 0 :
-                child_conn.send(all_scored_pairs)
-                child_conn.close()
-                break
-            else :
-                continue
-        if all_scored_pairs is None :
-            all_scored_pairs = scored_pairs 
-        else :
-            all_scored_pairs = numpy.concatenate(scored_pairs, 
-                                                 all_scored_pairs)
-
 
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     record_pairs_queue = multiprocessing.Queue()
     scored_pairs_queue = multiprocessing.JoinableQueue()
-    parent_conn, child_conn = multiprocessing.Pipe()
 
     record, records = peek(records)
 
@@ -255,15 +236,26 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
                                       scored_pairs_queue)).start()
 
     
-    multiprocessing.Process(target=collector,
-                            args=(scored_pairs_queue, child_conn, num_processes)).start()
-
     for chunk in grouper(records, 100000) :
         record_pairs_queue.put(chunk)
-    
     record_pairs_queue.put(None)
+        
 
-    scored_pairs = parent_conn.recv()
+    def scored_pairs_generator(num_scorers) :
+        while True :
+            scored_pairs = scored_pairs_queue.get()
+            if scored_pairs == None :
+                num_scorers -= 1
+                if num_scorers == 0 :
+                    break
+                else :
+                    continue
+            yield scored_pairs
+
+    
+    scored_pairs = numpy.concatenate([scored_pairs 
+                                      for scored_pairs 
+                                      in scored_pairs_generator(num_processes)])
 
     scored_pairs.sort()
     flag = numpy.ones(len(scored_pairs), dtype=bool)
