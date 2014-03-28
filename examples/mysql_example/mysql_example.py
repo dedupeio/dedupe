@@ -244,7 +244,7 @@ def dbWriter(sql, rows) :
     conn.commit()
     conn.close()
 
-pool = dedupe.Pool(processes=2)
+pool = dedupe.backport.Pool(processes=2)
 
 done = False
 

@@ -41,23 +41,6 @@ import threading
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def Pool(processes) :
-    config_info = str([value for key, value in
-                       numpy.__config__.__dict__.iteritems()
-                       if key.endswith("_info")]).lower()
-
-    if "accelerate" in config_info or "veclib" in config_info :
-        if processes > 1 :
-            warnings.warn("NumPy linked against 'Accelerate.framework'. "
-                          "Multiprocessing will be disabled."
-                          " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
-        
-        if not hasattr(threading.current_thread(), "_children"): 
-          threading.current_thread()._children = weakref.WeakKeyDictionary()
-        return multiprocessing.dummy.Pool(processes=1)
-    else :
-        return multiprocessing.Pool(processes=processes)
-
 class Matching(object):
     """
     Base Class for Record Matching Classes

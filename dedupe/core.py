@@ -11,8 +11,8 @@ import Queue
 import numpy
 import time
 import collections
-import backport
 
+import backport
 import lr
 
 def grouper(iterable, n, fillvalue=None): # pragma : no cover
@@ -161,7 +161,6 @@ def fieldDistances(record_pairs, data_model):
 
     return field_distances
 
-
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
 
@@ -218,8 +217,8 @@ class ScoringFunction(object) :
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     chunk_size = 100000
 
-    record_pairs_queue = multiprocessing.Queue()
-    scored_pairs_queue = multiprocessing.JoinableQueue()
+    record_pairs_queue = backport.Queue()
+    scored_pairs_queue = backport.Queue()
 
     record, records = peek(records)
 
@@ -233,9 +232,9 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
 
     # Start processes
     for i in xrange(num_processes) :
-        multiprocessing.Process(target=scoring_function, 
-                                args=(record_pairs_queue, 
-                                      scored_pairs_queue)).start()
+        backport.Process(target=scoring_function, 
+                         args=(record_pairs_queue, 
+                               scored_pairs_queue)).start()
 
     for j, chunk in enumerate(grouper(records, chunk_size)) :
         record_pairs_queue.put(chunk)
