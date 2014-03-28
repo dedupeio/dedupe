@@ -184,8 +184,9 @@ class ScoringFunction(object) :
         while True :
             record_pairs = chunk_queue.get()
             if record_pairs is None :
+                # put the poison bill back in the queue so that other
+                # scorers will know to stop
                 chunk_queue.put(None)
-                scored_pairs_queue.put(None)
                 break
             scored_pairs = self.scoreRecords(record_pairs)
             scored_pairs_queue.put(scored_pairs)
@@ -214,8 +215,9 @@ class ScoringFunction(object) :
 
         return scored_pairs
 
-
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
+    chunk_size = 100000
+
     record_pairs_queue = multiprocessing.Queue()
     scored_pairs_queue = multiprocessing.JoinableQueue()
 
@@ -235,35 +237,28 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
                                 args=(record_pairs_queue, 
                                       scored_pairs_queue)).start()
 
-    
-    for chunk in grouper(records, 100000) :
+    for j, chunk in enumerate(grouper(records, chunk_size)) :
         record_pairs_queue.put(chunk)
+
+    # put poison pill in queue to tell scorers that they are done
     record_pairs_queue.put(None)
-        
+         
+    num_chunks = j + 1
 
-    def scored_pairs_generator(num_scorers) :
-        while True :
-            scored_pairs = scored_pairs_queue.get()
-            if scored_pairs == None :
-                num_scorers -= 1
-                if num_scorers == 0 :
-                    break
-                else :
-                    continue
-            yield scored_pairs
-
+    scored_pairs = numpy.concatenate([scored_pairs_queue.get() 
+                                      for k in xrange(num_chunks)])
     
-    scored_pairs = numpy.concatenate([scored_pairs 
-                                      for scored_pairs 
-                                      in scored_pairs_generator(num_processes)])
+    # deduplicate scored_pairs
+    logging.info("# undeduplicated scored_pairs %s", scored_pairs.shape[0])
 
     scored_pairs.sort()
-    flag = numpy.ones(len(scored_pairs), dtype=bool)
-    numpy.not_equal(scored_pairs[1:], 
-                    scored_pairs[:-1], 
-                    out=flag[1:])
+    flag = numpy.concatenate(([True], scored_pairs[1:] != scored_pairs[:-1]))
 
-    return scored_pairs[flag]
+    deduplicated = scored_pairs[flag]
+
+    logging.info("# deduplicated scored_pairs %s", deduplicated.shape[0])
+
+    return deduplicated
 
 
 def idType(record) :
