@@ -219,12 +219,16 @@ class ScoringFunction(object) :
 
 def collector(scored_pairs_queue, child_conn, num_scorers) :
     all_scored_pairs = None
-    while num_scorers :
+    while True :
         scored_pairs = scored_pairs_queue.get()
         if scored_pairs == None :
             num_scorers -= 1
-            continue
-
+            if num_scorers == 0 :
+                child_conn.send(all_scored_pairs)
+                child_conn.close()
+                break
+            else :
+                continue
         if all_scored_pairs is None :
             all_scored_pairs = numpy.unique(scored_pairs)
         else :
@@ -236,12 +240,11 @@ def collector(scored_pairs_queue, child_conn, num_scorers) :
 
             all_scored_pairs = c[flag]
 
-    child_conn.send(all_scored_pairs)
-    child_conn.close()
 
 
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     chunk_size = 100000
+    #chunk_size = 1
 
     record_pairs_queue = multiprocessing.Queue()
     scored_pairs_queue = multiprocessing.JoinableQueue()
