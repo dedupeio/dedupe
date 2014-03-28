@@ -251,10 +251,7 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
     # deduplicate scored_pairs
     logging.info("# undeduplicated scored_pairs %s", scored_pairs.shape[0])
 
-    scored_pairs.sort()
-    flag = numpy.concatenate(([True], scored_pairs[1:] != scored_pairs[:-1]))
-
-    deduplicated = scored_pairs[flag]
+    deduplicated = numpy.unique(scored_pairs)
 
     logging.info("# deduplicated scored_pairs %s", deduplicated.shape[0])
 
