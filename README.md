@@ -155,13 +155,9 @@ Do these records refer to the same thing?
 
 [<img src="https://travis-ci.org/datamade/dedupe.png" />](https://travis-ci.org/datamade/dedupe)[![Coverage Status](https://coveralls.io/repos/datamade/dedupe/badge.png?branch=master)](https://coveralls.io/r/datamade/dedupe?branch=master)
 
-Build extensions in place
-```bash
-python setup.py build_ext --inplace
-```
-
 Unit tests of core dedupe functions
 ```bash
+python setup.py build_ext --inplace # compile the C extensions inplace
 nosetests
 ```
 
