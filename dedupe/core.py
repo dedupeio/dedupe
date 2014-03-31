@@ -217,8 +217,8 @@ class ScoringFunction(object) :
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     chunk_size = 100000
 
-    record_pairs_queue = backport.Queue()
-    scored_pairs_queue = backport.Queue()
+    record_pairs_queue = backport.SimpleQueue()
+    scored_pairs_queue = backport.SimpleQueue()
 
     record, records = peek(records)
 
@@ -231,10 +231,12 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
                                        score_dtype)
 
     # Start processes
-    for i in xrange(num_processes) :
-        backport.Process(target=scoring_function, 
-                         args=(record_pairs_queue, 
-                               scored_pairs_queue)).start()
+    processes = [backport.Process(target=scoring_function, 
+                                   args=(record_pairs_queue, 
+                                         scored_pairs_queue))
+                 for i in xrange(num_processes)]
+
+    [process.start() for process in processes]
 
     for j, chunk in enumerate(grouper(records, chunk_size)) :
         record_pairs_queue.put(chunk)
@@ -246,6 +248,9 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
 
     scored_pairs = numpy.concatenate([scored_pairs_queue.get() 
                                       for k in xrange(num_chunks)])
+
+    [process.join() for process in processes]
+
     
     # deduplicate scored_pairs
     logging.info("# undeduplicated scored_pairs %s", scored_pairs.shape[0])

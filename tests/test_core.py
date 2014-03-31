@@ -2,7 +2,6 @@ import unittest
 import dedupe
 import numpy
 import random
-import multiprocessing
 import warnings
 
 class RandomPairsTest(unittest.TestCase) :
