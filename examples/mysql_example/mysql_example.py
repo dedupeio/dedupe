@@ -69,7 +69,6 @@ con = MySQLdb.connect(db='contributions',
                       cursorclass=MySQLdb.cursors.SSDictCursor)
 c = con.cursor()
 c.execute("SET net_write_timeout = 3600")
-c.execute("SET group_concat_max_len = 2048")
 
 con2 = MySQLdb.connect(db='contributions',
                        charset='ascii',
