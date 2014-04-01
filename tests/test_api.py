@@ -146,12 +146,18 @@ class DedupeTest(unittest.TestCase):
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({'name':'Frank', 'age':21},))
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({'1' : {'name' : 'Frank',
                                                                       'height' : 72}},))
-    assert [] == list(self.deduper._blockedPairs(({'1' : {'name' : 'Frank',
-                                                         'age' : 72}},)))
-    assert list(self.deduper._blockedPairs(({'1' : {'name' : 'Frank',
-                                                   'age' : 72},
-                                            '2' : {'name' : 'Bob',
-                                                   'age' : 27}},))) == \
+    assert [] == list(self.deduper._blockedPairs(([('1', 
+                                                    {'name' : 'Frank',
+                                                     'age' : 72}, 
+                                                    set([]))],)))
+    assert list(self.deduper._blockedPairs(([('1', 
+                                              {'name' : 'Frank',
+                                               'age' : 72},
+                                              set([])),
+                                             ('2',
+                                              {'name' : 'Bob',
+                                               'age' : 27},
+                                              set([]))],))) == \
                   [(('1', {'age': 72, 'name': 'Frank'}), 
                     ('2', {'age': 27, 'name': 'Bob'}))]
 
@@ -190,13 +196,15 @@ class LinkTest(unittest.TestCase):
     self.assertRaises(ValueError, self.linker._blockedPairs, ({'name':'Frank', 'age':21},))
     self.assertRaises(ValueError, self.linker._blockedPairs, ({'1' : {'name' : 'Frank',
                                                                       'height' : 72}},))
-    assert [] == list(self.linker._blockedPairs((({'1' : {'name' : 'Frank',
-                                                         'age' : 72}},
-                                                 {}),)))
-    assert list(self.linker._blockedPairs((({'1' : {'name' : 'Frank',
-                                                   'age' : 72}},
-                                           {'2' : {'name' : 'Bob',
-                                                   'age' : 27}}),))) == \
+    assert [] == list(self.linker._blockedPairs((([('1', 
+                                                    {'name' : 'Frank',
+                                                     'age' : 72}, 
+                                                    set([]))],
+                                                  []),)))
+    assert list(self.linker._blockedPairs((([('1', {'name' : 'Frank',
+                                                    'age' : 72}, set([]))],
+                                            [('2', {'name' : 'Bob',
+                                                    'age' : 27}, set([]))]),))) == \
                   [(('1', {'age': 72, 'name': 'Frank'}), 
                     ('2', {'age': 27, 'name': 'Bob'}))]
 

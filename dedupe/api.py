@@ -231,17 +231,21 @@ class DedupeMatching(Matching) :
     def _checkBlock(self, block) :
         if not block :
             raise ValueError("You have not provided any data blocks")
-        elif len(block[0]) < 3 :
-            raise ValueError("Each item in a block must be a "
+        try :
+            if len(block[0]) < 3 :
+                raise ValueError("Each item in a block must be a "
+                                 "sequence of record_id, record, and smaller ids "
+                                 "and the records also must be dictionaries")
+        except :
+            raise ValueError("sandwich Each item in a block must be a "
                              "sequence of record_id, record, and smaller ids "
                              "and the records also must be dictionaries")
-        else :
-            try :
-                block[0][1].items()
-                block[0][2].isdisjoint([])
-            except :
-                raise ValueError("The record must be a dictionary and "
-                                 "smaller_ids must be a set")
+        try :
+            block[0][1].items()
+            block[0][2].isdisjoint([])
+        except :
+            raise ValueError("The record must be a dictionary and "
+                             "smaller_ids must be a set")
 
         
             self._checkRecordType(block[0][1])
@@ -261,7 +265,9 @@ class DedupeMatching(Matching) :
             blocks.setdefault(block_key, []).append((record_id, 
                                                      data_d[record_id]))
 
-        # from Kolb et al, Redundant Free Blocking Scheme
+        # Redundant-free Comparisons from Kolb et al, "Dedoop:
+        # Efficient Deduplication with Hadoop"
+        # http://dbs.uni-leipzig.de/file/Dedoop.pdf
         for block_id, (block, records) in enumerate(blocks.iteritems()) :
             for record_id, record in records :
                 coverage.setdefault(record_id, []).append(block_id)
@@ -355,14 +361,20 @@ class RecordLinkMatching(Matching) :
     def _checkBlock(self, block) :
         try :
             base, target = block
-            base[0][1].items() and target[0][1].items()
         except :
             raise ValueError("Each block must be a made up of two "
                              "sequences, (base_sequence, target_sequence)")
 
         if base :
+            if len(base[0]) < 3 :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
             self._checkRecordType(base[0][1])
         if target :
+            if len(target[0]) < 3 :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
+                
             self._checkRecordType(target[0][1])
 
     def _blockData(self, data_1, data_2) :
@@ -389,7 +401,6 @@ class RecordLinkMatching(Matching) :
             if block_key in blocks :
                 blocks[block_key][1].append((record_id, data_2[record_id]))
 
-        # from Kolb et al, Redundant Free Blocking Scheme
         for block_id, (block, sources) in enumerate(blocks.iteritems()) :
             for source in sources :
                 for record_id, record in source :

@@ -69,6 +69,7 @@ con = MySQLdb.connect(db='contributions',
                       cursorclass=MySQLdb.cursors.SSDictCursor)
 c = con.cursor()
 c.execute("SET net_write_timeout = 3600")
+c.execute("SET group_concat_max_len = 2048")
 
 con2 = MySQLdb.connect(db='contributions',
                        charset='ascii',
@@ -120,7 +121,7 @@ def getSample(cur, sample_size, id_column, table):
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
-    deduper = dedupe.StaticDedupe(settings_file, num_processes=2)
+    deduper = dedupe.StaticDedupe(settings_file, num_processes=8)
 else:
 
     # Select a large sample of duplicate pairs.  As the dataset grows,
@@ -193,7 +194,7 @@ else:
     deduper.writeTraining(training_file)
     deduper.writeSettings(settings_file)
 
-# ## Blocking
+## Blocking
 
 print 'blocking...'
 
@@ -201,7 +202,6 @@ print 'blocking...'
 # that contains blocking keys and record ids
 print 'creating blocking_map database'
 c.execute("DROP TABLE IF EXISTS blocking_map")
-c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
 c.execute("CREATE TABLE blocking_map "
           "(block_key VARCHAR(200), donor_id INTEGER) "
           "CHARACTER SET utf8 COLLATE utf8_unicode_ci")
@@ -269,38 +269,66 @@ pool.close()
 #
 # These steps, particularly the sorting will let us quickly create
 # blocks of data for comparison
-print 'creating blocking map index. this will probably take a while ...'
+print 'prepare blocking table. this will probably take a while ...'
 
+logging.info("indexing block_key")
 c.execute("CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)")
-print 'created', time.time() - start_time, 'seconds'
 
-print "calculating plural_key"
+c.execute("DROP TABLE IF EXISTS plural_key")
+c.execute("DROP TABLE IF EXISTS plural_block")
+c.execute("DROP TABLE IF EXISTS covered_blocks")
+c.execute("DROP TABLE IF EXISTS smaller_coverage")
+c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
+
+logging.info("calculating plural_key")
 c.execute("CREATE TABLE plural_key "
+          "(block_key VARCHAR(200), "
+          " block_id INTEGER UNSIGNED AUTO_INCREMENT, "
+          " PRIMARY KEY (block_id)) " 
           "(SELECT block_key FROM blocking_map "
           " GROUP BY block_key HAVING COUNT(*) > 1)")
 
-c.execute("CREATE INDEX block_key_idx ON plural_key (block_key)")
+logging.info("creating block_id index")
+c.execute("CREATE INDEX block_idx ON plural_key (block_id)")
 
-print "filtering singleton blocks"
+logging.info("calculating plural_block")
 c.execute("CREATE TABLE plural_block "
-          "(SELECT block_key, donor_id FROM blocking_map INNER JOIN plural_key "
+          "(SELECT block_id, donor_id "
+          "FROM blocking_map INNER JOIN plural_key "
           " USING (block_key))")
 
-c.execute("CREATE INDEX sorting_key "
-          "ON plural_block (block_key, donor_id)")
+logging.info("adding donor_id index and sorting index")
+c.execute("ALTER TABLE plural_block "
+          "ADD INDEX (donor_id), "
+          "ADD INDEX (block_id, donor_id)")
 
-print "creating sorted_blocking_map"
+logging.info("creating covered_blocks")
+c.execute("CREATE TABLE covered_blocks "
+          "(SELECT donor_id, "
+          " GROUP_CONCAT(block_id ORDER BY block_id) AS sorted_ids "
+          " FROM plural_block GROUP BY donor_id)")
+
+logging.info("creating smaller_coverage")
+c.execute("CREATE TABLE smaller_coverage "
+          "(SELECT donor_id, block_id, "
+          " TRIM(',' FROM SUBSTRING_INDEX(sorted_ids, block_id, 1)) AS smaller_ids "
+          " FROM plural_block INNER JOIN covered_blocks "
+          " USING (donor_id))")
+
+logging.info("creating sorting index")
+c.execute("CREATE INDEX sorting_index "
+          "ON smaller_coverage (block_id, donor_id)")
+
+logging.info("creating sorted_blocking_map")
 c.execute("CREATE TABLE sorted_blocking_map "
-          "(block_key VARCHAR(200), donor_id INTEGER, "
-          " id INT(8) UNSIGNED AUTO_INCREMENT, "
-          " PRIMARY KEY (id)) "
-          "(SELECT block_key, donor_id FROM plural_block "
-          " ORDER BY block_key, donor_id)")
+          "(block_id INTEGER, donor_id INTEGER, smaller_ids LONGBLOB, "
+          " id INTEGER UNSIGNED AUTO_INCREMENT, PRIMARY KEY (id)) "
+          "(SELECT block_id, donor_id, smaller_ids "
+          " FROM smaller_coverage "
+          " ORDER BY block_id, donor_id)")
 
 c.execute("CREATE INDEX donor_idx ON sorted_blocking_map (donor_id)")
 
-c.execute("DROP TABLE plural_key")
-c.execute("DROP TABLE plural_block")
 
 con.commit()
 
@@ -309,31 +337,38 @@ con.commit()
 
 def candidates_gen(result_set) :
 
-    block_key = None
-    records = {}
+    block_id = None
+    records = []
     i = 0
     for row in result_set :
-        if row['block_key'] != block_key :
+        if row['block_id'] != block_id :
             if records :
                 yield records
 
-            block_key = row['block_key']
-            records = {}
+            block_id = row['block_id']
+            records = []
             i += 1
 
             if i % 10000 == 0 :
                 print i, "blocks"
                 print time.time() - start_time, "seconds"
 
+        smaller_ids = row['smaller_ids']
+        
+        if smaller_ids :
+            smaller_ids = set(smaller_ids.split(','))
+        else :
+            smaller_ids = set([])
             
-        records.update({row['donor_id'] : row})
+        records.append((row['donor_id'], row, smaller_ids))
 
     if records :
         yield records
 
 c.execute("SELECT donor_id, city, name, zip, state, address, "
-          "occupation, employer, person, block_key from processed_donors "
-          "INNER JOIN sorted_blocking_map using (donor_id) "
+          "occupation, employer, person, block_id, smaller_ids "
+          "FROM processed_donors "
+          "INNER JOIN sorted_blocking_map USING (donor_id) "
           "ORDER BY sorted_blocking_map.id")
 
 print 'clustering...'
