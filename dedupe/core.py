@@ -252,14 +252,8 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
     [process.join() for process in processes]
 
     
-    # deduplicate scored_pairs
-    logging.info("# undeduplicated scored_pairs %s", scored_pairs.shape[0])
 
-    deduplicated = numpy.unique(scored_pairs)
-
-    logging.info("# deduplicated scored_pairs %s", deduplicated.shape[0])
-
-    return deduplicated
+    return scored_pairs
 
 
 def idType(record) :
