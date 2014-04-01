@@ -316,36 +316,21 @@ logging.info("creating covered_blocks")
 c.execute("CREATE TABLE covered_blocks "
           "(SELECT donor_id, "
           " GROUP_CONCAT(block_id ORDER BY block_id) AS sorted_ids "
-          " FROM plural_block GROUP BY donor_id)")
+          " FROM plural_block "
+          " GROUP BY donor_id)")
 
 c.execute("CREATE UNIQUE INDEX donor_idx ON covered_blocks (donor_id)")
 
-# In particular, for every block of records, we only need to keep
+# In particular, for every block of records, we need to keep
 # track of a donor records's associated block_ids that are SMALLER than
 # the current block's id. Because we ordered the ids when we did the
-# GROUP_CONCAT we can achieve this objective by using some string hacks.
+# GROUP_CONCAT we can achieve this by using some string hacks.
 logging.info("creating smaller_coverage")
 c.execute("CREATE TABLE smaller_coverage "
           "(SELECT donor_id, block_id, "
           " TRIM(',' FROM SUBSTRING_INDEX(sorted_ids, block_id, 1)) AS smaller_ids "
           " FROM plural_block INNER JOIN covered_blocks "
           " USING (donor_id))")
-
-# We need return donor records sorted by block_id. It's not necessary
-# to have donors sorted within blocks, but it makes some parts of the
-# code easier to reason about. If we sort the blocking map ahead of time
-# it can save us from doing an expensive ORDER BY later
-logging.info("creating sorting index")
-c.execute("CREATE UNIQUE INDEX sorting_index "
-          "ON smaller_coverage (block_id, donor_id)")
-
-logging.info("creating sorted_blocking_map")
-c.execute("CREATE TABLE sorted_blocking_map "
-          "(block_id INTEGER, donor_id INTEGER, smaller_ids LONGBLOB, "
-          " id INTEGER UNSIGNED AUTO_INCREMENT, PRIMARY KEY (id)) "
-          "(SELECT block_id, donor_id, smaller_ids "
-          " FROM smaller_coverage "
-          " ORDER BY block_id, donor_id)")
 
 con.commit()
 
@@ -382,15 +367,13 @@ def candidates_gen(result_set) :
     if records :
         yield records
 
-# We need the donors to be ordered the way we have already done 
-# for the sorted_blocking_map. By using STRAIGHT_JOIN we can preserve
-# that ordering
-c.execute("SELECT processed_donors.donor_id, city, name, "
+c.execute("SELECT donor_id, city, name, "
           "zip, state, address, "
           "occupation, employer, person, block_id, smaller_ids "
           "FROM sorted_blocking_map "
-          "STRAIGHT_JOIN processed_donors "
-          "ON processed_donors.donor_id = sorted_blocking_map.donor_id")
+          "INNER JOIN processed_donors "
+          "USING (donor_id) "
+          "ORDER BY (block_id)")
 
 print 'clustering...'
 clustered_dupes = deduper.matchBlocks(candidates_gen(c),
