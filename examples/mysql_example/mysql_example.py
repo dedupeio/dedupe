@@ -121,7 +121,7 @@ def getSample(cur, sample_size, id_column, table):
 
 if os.path.exists(settings_file):
     print 'reading from ', settings_file
-    deduper = dedupe.StaticDedupe(settings_file, num_processes=8)
+    deduper = dedupe.StaticDedupe(settings_file, num_processes=4)
 else:
 
     # Select a large sample of duplicate pairs.  As the dataset grows,
@@ -288,25 +288,27 @@ c.execute("CREATE TABLE plural_key "
           "(SELECT block_key FROM blocking_map "
           " GROUP BY block_key HAVING COUNT(*) > 1)")
 
-logging.info("creating block_id index")
-c.execute("CREATE INDEX block_idx ON plural_key (block_id)")
+logging.info("creating block_key index")
+c.execute("CREATE UNIQUE INDEX block_key_idx ON plural_key (block_key)")
 
 logging.info("calculating plural_block")
 c.execute("CREATE TABLE plural_block "
           "(SELECT block_id, donor_id "
-          "FROM blocking_map INNER JOIN plural_key "
+          " FROM blocking_map INNER JOIN plural_key "
           " USING (block_key))")
 
 logging.info("adding donor_id index and sorting index")
 c.execute("ALTER TABLE plural_block "
           "ADD INDEX (donor_id), "
-          "ADD INDEX (block_id, donor_id)")
+          "ADD UNIQUE INDEX (block_id, donor_id)")
 
 logging.info("creating covered_blocks")
 c.execute("CREATE TABLE covered_blocks "
           "(SELECT donor_id, "
           " GROUP_CONCAT(block_id ORDER BY block_id) AS sorted_ids "
           " FROM plural_block GROUP BY donor_id)")
+
+c.execute("CREATE UNIQUE INDEX donor_idx ON covered_blocks (donor_id)")
 
 logging.info("creating smaller_coverage")
 c.execute("CREATE TABLE smaller_coverage "
@@ -316,7 +318,7 @@ c.execute("CREATE TABLE smaller_coverage "
           " USING (donor_id))")
 
 logging.info("creating sorting index")
-c.execute("CREATE INDEX sorting_index "
+c.execute("CREATE UNIQUE INDEX sorting_index "
           "ON smaller_coverage (block_id, donor_id)")
 
 logging.info("creating sorted_blocking_map")
@@ -365,17 +367,18 @@ def candidates_gen(result_set) :
     if records :
         yield records
 
-c.execute("SELECT donor_id, city, name, zip, state, address, "
+c.execute("SELECT processed_donors.donor_id, city, name, "
+          "zip, state, address, "
           "occupation, employer, person, block_id, smaller_ids "
-          "FROM processed_donors "
-          "INNER JOIN sorted_blocking_map USING (donor_id) "
-          "ORDER BY sorted_blocking_map.id")
+          "FROM sorted_blocking_map "
+          "STRAIGHT_JOIN processed_donors "
+          "ON processed_donors.donor_id = sorted_blocking_map.donor_id")
 
 print 'clustering...'
 clustered_dupes = deduper.matchBlocks(candidates_gen(c),
                                       threshold=0.5)
 
-# ## Writing out results
+## Writing out results
 
 # We now have a sequence of tuples of donor ids that dedupe believes
 # all refer to the same entity. We write this out onto an entity map

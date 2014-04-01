@@ -217,8 +217,8 @@ class ScoringFunction(object) :
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     chunk_size = 100000
 
-    record_pairs_queue = backport.SimpleQueue()
-    scored_pairs_queue = backport.SimpleQueue()
+    record_pairs_queue = backport.Queue()
+    scored_pairs_queue = backport.Queue()
 
     record, records = peek(records)
 

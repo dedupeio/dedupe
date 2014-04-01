@@ -150,11 +150,13 @@ class Matching(object):
         self._checkBlock(block)
 
         def pair_gen() :
+            disjoint = set.isdisjoint
+            blockPairs = self._blockPairs
             for block in blocks :
-                for pair in self._blockPairs(block) :
+                for pair in blockPairs(block) :
                     ((key_1, record_1, smaller_ids_1), 
                      (key_2, record_2, smaller_ids_2)) = pair
-                    if smaller_ids_1.isdisjoint(smaller_ids_2) :
+                    if disjoint(smaller_ids_1, smaller_ids_2) :
                         yield (key_1, record_1), (key_2, record_2)
 
         return pair_gen()
