@@ -277,7 +277,6 @@ c.execute("DROP TABLE IF EXISTS plural_key")
 c.execute("DROP TABLE IF EXISTS plural_block")
 c.execute("DROP TABLE IF EXISTS covered_blocks")
 c.execute("DROP TABLE IF EXISTS smaller_coverage")
-c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
 
 # Many block_keys will only form blocks that contain a single
 # record. Since there are no comparisons possible withing such a
@@ -370,7 +369,7 @@ def candidates_gen(result_set) :
 c.execute("SELECT donor_id, city, name, "
           "zip, state, address, "
           "occupation, employer, person, block_id, smaller_ids "
-          "FROM sorted_blocking_map "
+          "FROM smaller_coverage "
           "INNER JOIN processed_donors "
           "USING (donor_id) "
           "ORDER BY (block_id)")
