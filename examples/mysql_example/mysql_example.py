@@ -280,6 +280,9 @@ c.execute("DROP TABLE IF EXISTS covered_blocks")
 c.execute("DROP TABLE IF EXISTS smaller_coverage")
 c.execute("DROP TABLE IF EXISTS sorted_blocking_map")
 
+# Many block_keys will only form blocks that contain a single
+# record. Since there are no comparisons possible withing such a
+# singleton block we can ignore them. 
 logging.info("calculating plural_key")
 c.execute("CREATE TABLE plural_key "
           "(block_key VARCHAR(200), "
@@ -302,6 +305,14 @@ c.execute("ALTER TABLE plural_block "
           "ADD INDEX (donor_id), "
           "ADD UNIQUE INDEX (block_id, donor_id)")
 
+# To use Kolb, et.al's Redundant Free Comparison scheme, we need to
+# keep track of all the block_ids that are associated with a
+# particular donor records. We'll use MySQL's GROUP_CONCAT function to
+# do this. This function will truncate very long lists of associated
+# ids, so we'll also increase the maximum string length to try to
+# avoid this.
+c.execute("SET group_concat_max_len = 2048")
+
 logging.info("creating covered_blocks")
 c.execute("CREATE TABLE covered_blocks "
           "(SELECT donor_id, "
@@ -310,6 +321,10 @@ c.execute("CREATE TABLE covered_blocks "
 
 c.execute("CREATE UNIQUE INDEX donor_idx ON covered_blocks (donor_id)")
 
+# In particular, for every block of records, we only need to keep
+# track of a donor records's associated block_ids that are SMALLER than
+# the current block's id. Because we ordered the ids when we did the
+# GROUP_CONCAT we can achieve this objective by using some string hacks.
 logging.info("creating smaller_coverage")
 c.execute("CREATE TABLE smaller_coverage "
           "(SELECT donor_id, block_id, "
@@ -317,6 +332,10 @@ c.execute("CREATE TABLE smaller_coverage "
           " FROM plural_block INNER JOIN covered_blocks "
           " USING (donor_id))")
 
+# We need return donor records sorted by block_id. It's not necessary
+# to have donors sorted within blocks, but it makes some parts of the
+# code easier to reason about. If we sort the blocking map ahead of time
+# it can save us from doing an expensive ORDER BY later
 logging.info("creating sorting index")
 c.execute("CREATE UNIQUE INDEX sorting_index "
           "ON smaller_coverage (block_id, donor_id)")
@@ -328,9 +347,6 @@ c.execute("CREATE TABLE sorted_blocking_map "
           "(SELECT block_id, donor_id, smaller_ids "
           " FROM smaller_coverage "
           " ORDER BY block_id, donor_id)")
-
-c.execute("CREATE INDEX donor_idx ON sorted_blocking_map (donor_id)")
-
 
 con.commit()
 
@@ -367,6 +383,9 @@ def candidates_gen(result_set) :
     if records :
         yield records
 
+# We need the donors to be ordered the way we have already done 
+# for the sorted_blocking_map. By using STRAIGHT_JOIN we can preserve
+# that ordering
 c.execute("SELECT processed_donors.donor_id, city, name, "
           "zip, state, address, "
           "occupation, employer, person, block_id, smaller_ids "
