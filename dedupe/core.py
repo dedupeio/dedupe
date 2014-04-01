@@ -4,6 +4,7 @@
 import random
 import json
 import itertools
+import operator
 import logging
 import warnings
 import multiprocessing
@@ -20,6 +21,15 @@ def grouper(iterable, n, fillvalue=None): # pragma : no cover
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
     args = [iter(iterable)] * n
     return itertools.izip_longest(fillvalue=fillvalue, *args)
+
+    
+def chunk(N, items):
+    "Group items in chunks of N"
+    def clump((n, _)):
+        return n // N
+    for _, group in itertools.groupby(enumerate(items), clump):
+        yield itertools.imap(operator.itemgetter(1), group)
+            
 
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
