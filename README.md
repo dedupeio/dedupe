@@ -194,5 +194,3 @@ Third-party copyright in this distribution is noted where applicable.
 If you use Dedupe in an academic work, please give this citation:
 
 Gregg, Forest, and Derek Eder. 2013. Dedupe. https://github.com/datamade/dedupe.
-
-[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/861a8f3ec74c8928e0baad77640ab042 "githalytics.com")](http://githalytics.com/datamade/dedupe)
