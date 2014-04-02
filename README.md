@@ -32,12 +32,6 @@ Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to in
 If you are installing numpy for the first time, 
 [follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html). You'll need to version 1.6 of numpy or higher.
 
-After numpy is set up, then install the following:
-* [fastcluster](http://math.stanford.edu/~muellner/fastcluster.html)
-* [hcluster](http://code.google.com/p/scipy-cluster/)
-* [networkx](http://networkx.github.com/)
-* [zope.index](https://pypi.python.org/pypi/zope.index)
-
 Using pip:
 
 ```bash
@@ -55,8 +49,12 @@ easy_install deduper
 ### OS X Install Notes
 
 Before installing, you may need to set the following environmental
-variables from the command line ```bash export
-CFLAGS=-Qunused-arguments export CPPFLAGS=-Qunused-arguments ```
+variables from the command line 
+
+```bash 
+export CFLAGS=-Qunused-arguments 
+export CPPFLAGS=-Qunused-arguments
+```
 
 With default configurations, dedupe cannot do parallel processing on Mac OS X.
 For more information and for instructions on how to enable this, [refer to the
