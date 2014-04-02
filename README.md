@@ -43,36 +43,20 @@ Using pip:
 ```bash
 pip install "numpy>=1.6"
 pip install deduper
-git clone git://github.com/datamade/dedupe.git
-cd dedupe
-for python 2.7
-pip install -r requirements.txt
-# OR for python 2.6
-pip install -r py26_requirements.txt
-python setup.py install
 ```
 
 Using easy_install:
 
 ```bash
-git clone git://github.com/datamade/dedupe.git
-cd dedupe
 easy_install "numpy>=1.6"
-easy_install "fastcluster>=1.1.8"
-easy_install "hcluster>=0.2.0"
-easy_install networkx
-easy_install zope.interface
-easy_install zope.index
-python setup.py install
+easy_install deduper
 ```
 
 ### OS X Install Notes
 
-You may need to set the following environmental variables from the command line
-```bash
-export CFLAGS=-Qunused-arguments
-export CPPFLAGS=-Qunused-arguments
-```
+Before installing, you may need to set the following environmental
+variables from the command line ```bash export
+CFLAGS=-Qunused-arguments export CPPFLAGS=-Qunused-arguments ```
 
 With default configurations, dedupe cannot do parallel processing on Mac OS X.
 For more information and for instructions on how to enable this, [refer to the
