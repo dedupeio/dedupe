@@ -40,7 +40,7 @@ except ImportError:
 setup(
     name='deduper',
     url='https://github.com/datamade/dedupe',
-    version='0.5.0.5',
+    version='0.5.0.5.2',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance'],
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
@@ -52,5 +52,21 @@ setup(
                  
 
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
-    install_requires=install_requires
+    install_requires=install_requires,
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Programming Language :: Cython', 
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 2 :: Only',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Information Analysis']
     )
