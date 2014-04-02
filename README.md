@@ -41,9 +41,10 @@ After numpy is set up, then install the following:
 Using pip:
 
 ```bash
+pip install "numpy>=1.6"
+pip install deduper
 git clone git://github.com/datamade/dedupe.git
 cd dedupe
-pip install "numpy>=1.6"
 for python 2.7
 pip install -r requirements.txt
 # OR for python 2.6

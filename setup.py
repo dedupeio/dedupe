@@ -6,7 +6,6 @@ try:
 except ImportError :
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
-
 # from Michael Hoffman's http://www.ebi.ac.uk/~hoffman/software/sunflower/
 
 class NumpyExtension(Extension):
@@ -25,10 +24,24 @@ class NumpyExtension(Extension):
 
         return self._include_dirs + [get_include()]
 
+install_requires=['numpy', 
+                  'fastcluster', 
+                  'hcluster', 
+                  'networkx', 
+                  'zope.interface', 
+                  'zope.index']
+
+try:
+    import json
+except ImportError:
+    install_requires.append('simplejson')
+
+
 setup(
-    name='Dedupe',
-    url='https://github.com/open-city/dedupe',
-    version='0.5',
+    name='deduper',
+    url='https://github.com/datamade/dedupe',
+    version='0.5.0.5',
+    description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance'],
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
                  Extension('dedupe.distance.jaccard', ['src/jaccard.c']),
@@ -39,6 +52,5 @@ setup(
                  
 
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
-    install_requires=['numpy', 'fastcluster', 'hcluster', 'networkx', 'zope.interface', 'zope.index'],
-    long_description=open('README.md').read(),
+    install_requires=install_requires
     )
