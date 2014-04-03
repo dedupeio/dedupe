@@ -38,7 +38,7 @@ except ImportError:
 
 
 setup(
-    name='deduper',
+    name='dedupe',
     url='https://github.com/datamade/dedupe',
     version='0.5.0.5.2',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
