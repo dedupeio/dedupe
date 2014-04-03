@@ -35,28 +35,9 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
-import weakref
-import threading
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-def Pool(processes) :
-    config_info = str([value for key, value in
-                       numpy.__config__.__dict__.iteritems()
-                       if key.endswith("_info")]).lower()
-
-    if "accelerate" in config_info or "veclib" in config_info :
-        if processes > 1 :
-            warnings.warn("NumPy linked against 'Accelerate.framework'. "
-                          "Multiprocessing will be disabled."
-                          " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
-        
-        if not hasattr(threading.current_thread(), "_children"): 
-          threading.current_thread()._children = weakref.WeakKeyDictionary()
-        return multiprocessing.dummy.Pool(processes=1)
-    else :
-        return multiprocessing.Pool(processes=processes)
 
 class Matching(object):
     """
@@ -93,7 +74,7 @@ class Matching(object):
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
-                                           self.pool)['score']
+                                           self.num_processes)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -142,7 +123,7 @@ class Matching(object):
         
         self.matches = core.scoreDuplicates(candidate_records,
                                             self.data_model,
-                                            self.pool,
+                                            self.num_processes,
                                             threshold)
 
         clusters = self._cluster(self.matches, cluster_threshold)
@@ -169,9 +150,14 @@ class Matching(object):
         self._checkBlock(block)
 
         def pair_gen() :
+            disjoint = set.isdisjoint
+            blockPairs = self._blockPairs
             for block in blocks :
-                for pair in self._blockPairs(block) :
-                    yield pair
+                for pair in blockPairs(block) :
+                    ((key_1, record_1, smaller_ids_1), 
+                     (key_2, record_2, smaller_ids_2)) = pair
+                    if disjoint(smaller_ids_1, smaller_ids_2) :
+                        yield (key_1, record_1), (key_2, record_2)
 
         return pair_gen()
 
@@ -242,24 +228,34 @@ class DedupeMatching(Matching) :
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
     def _blockPairs(self, block) :  # pragma : no cover
-        return itertools.combinations(block.items(), 2)
+        return itertools.combinations(block, 2)
         
     def _checkBlock(self, block) :
         if not block :
             raise ValueError("You have not provided any data blocks")
-        else :
-            try :
-                block.items()
-                block.values()[0].items()
-            except :
-                raise ValueError("Each block must be a dictionary of records "
+        try :
+            if len(block[0]) < 3 :
+                raise ValueError("Each item in a block must be a "
+                                 "sequence of record_id, record, and smaller ids "
                                  "and the records also must be dictionaries")
+        except :
+            raise ValueError("sandwich Each item in a block must be a "
+                             "sequence of record_id, record, and smaller ids "
+                             "and the records also must be dictionaries")
+        try :
+            block[0][1].items()
+            block[0][2].isdisjoint([])
+        except :
+            raise ValueError("The record must be a dictionary and "
+                             "smaller_ids must be a set")
 
-            self._checkRecordType(block.values()[0])
+        
+            self._checkRecordType(block[0][1])
 
     def _blockData(self, data_d):
 
         blocks = OrderedDict({})
+        coverage = {}
 
         for field in self.blocker.tfidf_fields :
             self.blocker.tfIdfBlock(((record_id, record[field])
@@ -268,11 +264,25 @@ class DedupeMatching(Matching) :
                                     field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
-            blocks.setdefault(block_key, {}).update({record_id : 
-                                                     data_d[record_id]})
+            blocks.setdefault(block_key, []).append((record_id, 
+                                                     data_d[record_id]))
 
-        for block in blocks.values() :
-            yield block
+        # Redundant-free Comparisons from Kolb et al, "Dedoop:
+        # Efficient Deduplication with Hadoop"
+        # http://dbs.uni-leipzig.de/file/Dedoop.pdf
+        for block_id, (block, records) in enumerate(blocks.iteritems()) :
+            for record_id, record in records :
+                coverage.setdefault(record_id, []).append(block_id)
+
+        for block_id, (block_key, records) in enumerate(blocks.iteritems()) :
+            tuple_records = []
+            for record_id, record in records :
+                smaller_ids = set([covered_id for covered_id 
+                                   in coverage[record_id] 
+                                   if covered_id < block_id])
+                tuple_records.append((record_id, record, smaller_ids))
+
+            yield tuple_records
 
 
 class RecordLinkMatching(Matching) :
@@ -348,24 +358,31 @@ class RecordLinkMatching(Matching) :
 
     def _blockPairs(self, block) : # pragma : no cover
         base, target = block
-        return itertools.product(base.items(), target.items())
+        return itertools.product(base, target)
         
     def _checkBlock(self, block) :
         try :
             base, target = block
-            base.items() and target.items()
         except :
             raise ValueError("Each block must be a made up of two "
-                             "dictionaries, (base_dict, target_dict)")
+                             "sequences, (base_sequence, target_sequence)")
 
         if base :
-            self._checkRecordType(base.values()[0])
+            if len(base[0]) < 3 :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
+            self._checkRecordType(base[0][1])
         if target :
-            self._checkRecordType(target.values()[0])
+            if len(target[0]) < 3 :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
+                
+            self._checkRecordType(target[0][1])
 
     def _blockData(self, data_1, data_2) :
 
         blocks = OrderedDict({})
+        coverage = {}
 
         for field in self.blocker.tfidf_fields :
             fields_1 = ((record_id, record[field])
@@ -379,15 +396,30 @@ class RecordLinkMatching(Matching) :
 
 
         for block_key, record_id in self.blocker(data_1.iteritems()) :
-            blocks.setdefault(block_key, ({},{}))[0].update({record_id : 
-                                                             data_1[record_id]})
+            blocks.setdefault(block_key, ([],[]))[0].append((record_id, 
+                                                             data_1[record_id]))
 
         for block_key, record_id in self.blocker(data_2.iteritems()) :
             if block_key in blocks :
-                blocks[block_key][1].update({record_id : data_2[record_id]})
+                blocks[block_key][1].append((record_id, data_2[record_id]))
 
-        for block in blocks.values () :
-            yield block 
+        for block_id, (block, sources) in enumerate(blocks.iteritems()) :
+            for source in sources :
+                for record_id, record in source :
+                    coverage.setdefault(record_id, []).append(block_id)
+
+        for block_id, (block_key, sources) in enumerate(blocks.iteritems()) :
+            tuple_block = []
+            for source in sources :
+                tuple_source = []
+                for record_id, record in source :
+                    smaller_ids = set([covered_id for covered_id 
+                                       in coverage[record_id] 
+                                       if covered_id < block_id])
+                    tuple_source.append((record_id, record, smaller_ids))
+                tuple_block.append(tuple_source)
+
+            yield tuple_block
 
 class StaticMatching(Matching) :
     """
@@ -423,7 +455,7 @@ class StaticMatching(Matching) :
         if settings_file.__class__ is not str :
             raise ValueError("Must supply a settings file name")
 
-        self.pool = Pool(processes=num_processes)
+        self.num_processes = num_processes
 
         with open(settings_file, 'rb') as f: # pragma : no cover
             try:
@@ -531,7 +563,7 @@ class ActiveMatching(Matching) :
         else :
             self.activeLearner = None
 
-        self.pool = Pool(processes=num_processes)
+        self.num_processes = num_processes
 
 
         training_dtype = [('label', 'S8'), 
@@ -641,11 +673,9 @@ class ActiveMatching(Matching) :
                                                           predicate_set,
                                                           ppc,
                                                           uncovered_dupes,
-                                                          self.pool,
                                                           self._linkage_type)
 
         self.blocker = self._Blocker(self.predicates,
-                                     self.pool,
                                      self.stop_words) 
 
 
@@ -851,7 +881,6 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
         super(StaticDedupe, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
-                                     self.pool,
                                      self.stop_words)
 
 class Dedupe(DedupeMatching, ActiveMatching) :
@@ -904,7 +933,6 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
         super(StaticRecordLink, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
-                                     self.pool,
                                      self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :

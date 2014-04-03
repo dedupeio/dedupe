@@ -3,7 +3,6 @@ import unittest
 import numpy
 import random
 import itertools
-import multiprocessing
 import collections
 
 DATA = {  100 : {"name": "Bob", "age": "50"},

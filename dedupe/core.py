@@ -11,8 +11,8 @@ import Queue
 import numpy
 import time
 import collections
-import backport
 
+import backport
 import lr
 
 def grouper(iterable, n, fillvalue=None): # pragma : no cover
@@ -161,7 +161,6 @@ def fieldDistances(record_pairs, data_model):
 
     return field_distances
 
-
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
 
@@ -180,7 +179,18 @@ class ScoringFunction(object) :
         self.threshold = threshold
         self.dtype = dtype
 
-    def __call__(self, record_pairs) :
+    def __call__(self, chunk_queue, scored_pairs_queue) :
+        while True :
+            record_pairs = chunk_queue.get()
+            if record_pairs is None :
+                # put the poison bill back in the queue so that other
+                # scorers will know to stop
+                chunk_queue.put(None)
+                break
+            scored_pairs = self.scoreRecords(record_pairs)
+            scored_pairs_queue.put(scored_pairs)
+
+    def scoreRecords(self, record_pairs) :
         ids = []
 
         def split_records() :
@@ -204,8 +214,11 @@ class ScoringFunction(object) :
 
         return scored_pairs
 
+def scoreDuplicates(records, data_model, num_processes, threshold=0):
+    chunk_size = 100000
 
-def scoreDuplicates(records, data_model, pool, threshold=0):
+    record_pairs_queue = backport.Queue()
+    scored_pairs_queue = backport.Queue()
 
     record, records = peek(records)
 
@@ -213,28 +226,34 @@ def scoreDuplicates(records, data_model, pool, threshold=0):
     
     score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
 
-    record_chunks = grouper(records, 100000)
-
     scoring_function = ScoringFunction(data_model, 
                                        threshold,
                                        score_dtype)
 
-    results = [pool.apply_async(scoring_function,
-                               (chunk,))
-              for chunk in record_chunks] 
+    # Start processes
+    processes = [backport.Process(target=scoring_function, 
+                                   args=(record_pairs_queue, 
+                                         scored_pairs_queue))
+                 for i in xrange(num_processes)]
 
-    for r in results :
-       r.wait()
+    [process.start() for process in processes]
 
-    scored_pairs = numpy.concatenate([r.get() for r in results])
+    for j, chunk in enumerate(grouper(records, chunk_size)) :
+        record_pairs_queue.put(chunk)
 
-    scored_pairs.sort()
-    flag = numpy.ones(len(scored_pairs), dtype=bool)
-    numpy.not_equal(scored_pairs[1:], 
-                    scored_pairs[:-1], 
-                    out=flag[1:])
+    # put poison pill in queue to tell scorers that they are done
+    record_pairs_queue.put(None)
+         
+    num_chunks = j + 1
 
-    return scored_pairs[flag]
+    scored_pairs = numpy.concatenate([scored_pairs_queue.get() 
+                                      for k in xrange(num_chunks)])
+
+    [process.join() for process in processes]
+
+    
+
+    return scored_pairs
 
 
 def idType(record) :
