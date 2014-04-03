@@ -36,14 +36,14 @@ Using pip:
 
 ```bash
 pip install "numpy>=1.6"
-pip install deduper
+pip install dedupe
 ```
 
 Using easy_install:
 
 ```bash
 easy_install "numpy>=1.6"
-easy_install deduper
+easy_install dedupe
 ```
 
 ### OS X Install Notes
