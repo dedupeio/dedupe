@@ -29,6 +29,11 @@ Features
  * **extensible** - supports adding custom data types, string comparators and blocking rules
  * **open source** - anyone can use, modify or add to it
 
+Installation
+============
+pip install numpy
+pip install dedupe
+
 
 Indices and tables
 ==================
