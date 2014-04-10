@@ -9,10 +9,21 @@ Welcome to dedupe's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 0
 
    API-documentation  
    Choosing-a-good-threshold   
+   Bibliography
+   Matching-records
+   Choosing-a-good-threshold
+   OSX-Install-Notes
+   Grouping-duplicates
+   Special-Cases
+   Home             
+   Making-smart-comparisons
+
+   
+
 
 
 
@@ -26,14 +37,6 @@ As different research communities encountered this problem, they each
 gave it a new name but, ultimately, its all about trying to figure out
 what records are referring to the same thing.
 
-   Bibliography.rst
-   Matching-records.rst
-   Choosing-a-good-threshold.rst  
-   OSX-Install-Notes.rst
-   Grouping-duplicates.rst        
-   Special-Cases.rst
-   Home.rst             
-   Making-smart-comparisons.rst
 
 
 Features

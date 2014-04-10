@@ -1,3 +1,7 @@
+=============
+Special Cases
+=============
+
 The process we have been describing is for the most general case--when
 you have a dataset where an arbitrary number of records can all refer to
 the same entity.

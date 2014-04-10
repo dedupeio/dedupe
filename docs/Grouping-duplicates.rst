@@ -1,3 +1,7 @@
+===================
+Grouping Duplicates
+===================
+
 Once we have calculated the probability that pairs of record are
 duplicates or not, we still have a kind of thorny problem because it's
 not just pairs of records that can be duplicates. Three, four, thousands
