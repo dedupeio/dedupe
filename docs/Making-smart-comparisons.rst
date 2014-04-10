@@ -11,18 +11,19 @@ to return.
 
 How long would it take to duplicate a thousand records?
 
-Within a data set of thousand records, there are 1,000×999⁄2 = 499,500
-unique possible pair of records. If we compared all of them using our
-magic function it would take six days.
+Within a data set of thousand records, there are :math:`\frac{1,000
+\times 999}{2} = 499,500` unique possible pair of records. If we
+compared all of them using our magic function it would take six days.
 
 But, one second is a **long** time, let's say we sped it up so that we
 can make 10,000 comparisons per second. Now we can get through our
 thousand record long dataset in less than a minute
 
 Feeling good about our super fast comparison function, let's take on a
-data set of 100,000 records. Now there are 100,000×99,999⁄2 =
-4,999,950,000 unique possible pairs. If compare all of them with our
-super fast comparison function, it will take six days again.
+data set of 100,000 records. Now there are
+:math:`\frac{100,000 \times 99,999}{2} = 4,999,950,000` unique possible
+pairs. If compare all of them with our super fast comparison function,
+it will take six days again.
 
 If we want to work with moderately sized data, we have to find a of
 making fewer comparisons.
