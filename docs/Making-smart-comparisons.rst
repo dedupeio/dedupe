@@ -112,10 +112,17 @@ address field in our data, the function outputs the following features -
 160, 160, 123, 123 - and then we group together the records that have
 identical features into "blocks".
 
-Others simple predicates Dedupe uses include: \* whole field \* token
-field \* common integer \* same three char start \* same five char start
-\* same seven char start \* near integers \* common four gram \* common
-six gram
+Others simple predicates Dedupe uses include: 
+
+* whole field 
+* token field 
+* common integer 
+* same three char start 
+* same five char start
+* same seven char start 
+* near integers 
+* common four gram 
+* common six gram
 
 Canopies
 ~~~~~~~~
