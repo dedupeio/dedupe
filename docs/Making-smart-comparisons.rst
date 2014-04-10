@@ -149,7 +149,3 @@ algorithm <http://www.cs.ucr.edu/~neal/Papers/Young08SetCover.pdf>`__.
 With a set of pairs that are labeled as distinct pairs or duplicate
 pairs, and we try to find the best set of predicates.
 
-**Back:** `Matching
-records <https://github.com/open-city/dedupe/wiki/Matching-records>`__
-\| **Next:** `Grouping
-duplicates <https://github.com/open-city/dedupe/wiki/Grouping-duplicates>`__

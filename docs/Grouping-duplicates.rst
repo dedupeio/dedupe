@@ -42,7 +42,3 @@ membership--the distance of the points to the centroid. Depending on how
 we choose that threshold, we'll get very different groups, and we will
 want to choose this threshold wisely.
 
-**Back:** `Making smart
-comparisons <https://github.com/open-city/dedupe/wiki/Making-smart-comparisons>`__
-\| **Next:** `Choosing a good
-threshold <https://github.com/open-city/dedupe/wiki/Choosing-a-good-threshold>`__

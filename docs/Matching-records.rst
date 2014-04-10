@@ -128,7 +128,3 @@ metrics or other distance measures. For example, if records had reliable
 geographic point information, we could define a field distance that was
 the distance between two geographic points.
 
-**Back:** `Dedupe
-overview <https://github.com/open-city/dedupe/wiki/Home/>`__ \|
-**Next:** `Making smart
-comparisons <https://github.com/open-city/dedupe/wiki/Making-smart-comparisons>`__

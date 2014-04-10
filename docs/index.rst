@@ -9,23 +9,17 @@ Welcome to dedupe's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 0
+   :maxdepth: 1
 
    API-documentation  
-   Choosing-a-good-threshold   
-   Bibliography
-   Matching-records
-   Choosing-a-good-threshold
    OSX-Install-Notes
-   Grouping-duplicates
-   Special-Cases
    Home             
+   Matching-records
    Making-smart-comparisons
-
-   
-
-
-
+   Grouping-duplicates
+   Choosing-a-good-threshold
+   Special-Cases
+   Bibliography
 
 *Dedupe is an open source python library that quickly de-duplicates
 large sets of data.*

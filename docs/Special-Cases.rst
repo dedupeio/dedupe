@@ -17,5 +17,3 @@ uniqueness assumption holds, than A. two records can only refer to the
 same entity if they are from different datasets and B. no other record
 can match either of those two records.
 
-**Back:** `Choosing a good
-threshold <https://github.com/open-city/dedupe/wiki/Choosing-a-good-threshold>`__

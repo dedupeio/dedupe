@@ -34,7 +34,3 @@ duplicates within each block. From these probabilities we can calculate
 the expected number of duplicates and distinct pairs, so we can
 calculate the expected precision and recall.
 
-**Back:** `Grouping
-duplicates <https://github.com/open-city/dedupe/wiki/Grouping-duplicates>`__
-**Next:** `Special
-cases <https://github.com/open-city/dedupe/wiki/Special-cases>`__
