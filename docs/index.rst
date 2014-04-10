@@ -11,6 +11,11 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   API-documentation  
+   Choosing-a-good-threshold   
+
+
+
 *Dedupe is an open source python library that quickly de-duplicates
 large sets of data.*
 
@@ -20,6 +25,16 @@ disambiguation, and others ...
 As different research communities encountered this problem, they each
 gave it a new name but, ultimately, its all about trying to figure out
 what records are referring to the same thing.
+
+   Bibliography.rst
+   Matching-records.rst
+   Choosing-a-good-threshold.rst  
+   OSX-Install-Notes.rst
+   Grouping-duplicates.rst        
+   Special-Cases.rst
+   Home.rst             
+   Making-smart-comparisons.rst
+
 
 Features
 ========
