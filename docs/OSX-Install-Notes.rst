@@ -1,3 +1,8 @@
+======================
+Mac OS X Install Notes
+======================
+
+
 Apple’s implementation of `BLAS <http://en.wikipedia.org/wiki/BLAS>`__
 does not support using `BLAS calls on both sides of a
 fork <http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html>`__.
