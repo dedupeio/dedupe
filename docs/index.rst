@@ -9,7 +9,7 @@ Welcome to dedupe's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
    API-documentation  
    OSX-Install-Notes
