@@ -14,12 +14,6 @@ Contents:
    API-documentation  
    OSX-Install-Notes
    Home             
-   Matching-records
-   Making-smart-comparisons
-   Grouping-duplicates
-   Choosing-a-good-threshold
-   Special-Cases
-   Bibliography
 
 *Dedupe is an open source python library that quickly de-duplicates
 large sets of data.*

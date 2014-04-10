@@ -67,20 +67,12 @@ We get into more details on all of this below:
 Table of Contents
 -----------------
 
--  `Matching
-   records <https://github.com/datamade/dedupe/wiki/Matching-records>`__
--  `Making smart
-   comparisons <https://github.com/datamade/dedupe/wiki/Making-smart-comparisons>`__
--  `Grouping
-   duplicates <https://github.com/datamade/dedupe/wiki/Grouping-duplicates>`__
--  `Choosing a good
-   threshold <https://github.com/datamade/dedupe/wiki/Choosing-a-good-threshold>`__
--  `Special
-   cases <https://github.com/datamade/dedupe/wiki/Special-cases>`__
+.. toctree::
+   :maxdepth: 1
 
-Technical Considerations
-------------------------
-
--  `OS X Install
-   Notes <https://github.com/datamade/dedupe/wiki/OSX-Install-Notes>`__
-
+   Matching-records
+   Making-smart-comparisons
+   Grouping-duplicates
+   Choosing-a-good-threshold
+   Special-Cases
+   Bibliography
