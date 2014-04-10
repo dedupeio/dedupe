@@ -1,8 +1,17 @@
--  `API
-   Documentation <https://github.com/datamade/dedupe/wiki/API-documentation>`__
-
+######################
 Introduction to dedupe
-======================
+######################
+
+.. toctree::
+   :maxdepth: 1
+
+   Matching-records
+   Making-smart-comparisons
+   Grouping-duplicates
+   Choosing-a-good-threshold
+   Special-Cases
+   Bibliography
+
 
 Problems with real-world data
 -----------------------------
@@ -64,15 +73,4 @@ trade-off between them.
 
 We get into more details on all of this below:
 
-Table of Contents
------------------
 
-.. toctree::
-   :maxdepth: 1
-
-   Matching-records
-   Making-smart-comparisons
-   Grouping-duplicates
-   Choosing-a-good-threshold
-   Special-Cases
-   Bibliography
