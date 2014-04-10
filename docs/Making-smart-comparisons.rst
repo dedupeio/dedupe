@@ -11,8 +11,8 @@ to return.
 
 How long would it take to duplicate a thousand records?
 
-Within a data set of thousand records, there are :math:`\frac{1,000
-\times 999}{2} = 499,500` unique possible pair of records. If we
+Within a data set of thousand records, there are :math:`\frac{1{,}000
+\times 999}{2} = 499{,}500` unique possible pair of records. If we
 compared all of them using our magic function it would take six days.
 
 But, one second is a **long** time, let's say we sped it up so that we
@@ -21,7 +21,7 @@ thousand record long dataset in less than a minute
 
 Feeling good about our super fast comparison function, let's take on a
 data set of 100,000 records. Now there are
-:math:`\frac{100,000 \times 99,999}{2} = 4,999,950,000` unique possible
+:math:`\frac{100{,}000 \times 99{,}999}{2} = 4{,}999{,}950{,}000` unique possible
 pairs. If compare all of them with our super fast comparison function,
 it will take six days again.
 
@@ -40,14 +40,18 @@ pairs of records that are not duplicates. This typical fraction of true
 duplicate pairs gets very small, very quickly as the length of a dataset
 grows.
 
-::
++-------------+-----------+--------------------------+--------------+----------+
+|  first name | last name | address                  | phone        | record_id|
++=============+===========+==========================+==============+==========+
+|  bob        | roberts   | 1600 pennsylvania ave.   | 555-0123     | 1        |
++-------------+-----------+--------------------------+--------------+----------+
+|  Robert     | Roberts   | 1600 Pensylvannia Avenue |              | 2        |
++-------------+-----------+--------------------------+--------------+----------+
+|  steve      | Jones     | 123 Cowabunga Lane       | 555-0000     | 3        |
++-------------+-----------+--------------------------+--------------+----------+
+|  Stephen    | Janes     | 123 Cawabunga Ln         | 444-555-0000 | 4        |
++-------------+-----------+--------------------------+--------------+----------+
 
-    first name | last name | address                  | phone        | record_id|
-    -----------------------------------------------------------------------------
-    bob        | roberts   | 1600 pennsylvania ave.   | 555-0123     | 1        |
-    Robert     | Roberts   | 1600 Pensylvannia Avenue |              | 2        |
-    steve      | Jones     | 123 Cowabunga Lane       | 555-0000     | 3        |
-    Stephen    | Janes     | 123 Cawabunga Ln         | 444-555-0000 | 4        |
 
 If we could only compare records that were true duplicates we would not
 run into the explosion of comparisons. Of course if already knew where
@@ -82,14 +86,17 @@ same feature become part of a block.
 Let's take an example. Let's use use a "first 3 character" predicate on
 the **address field** below..
 
-::
-
-    first name | last name | address                  | phone        | record_id|
-    -----------------------------------------------------------------------------
-    bob        | roberts   | 1600 pennsylvania ave.   | 555-0123     | 1        |
-    Robert     | Roberts   | 1600 Pensylvannia Avenue |              | 2        |
-    steve      | Jones     | 123 Cowabunga Lane       | 555-0000     | 3        |
-    Stephen    | Janes     | 123 Cawabunga Ln         | 444-555-0000 | 4        |
++-------------+-----------+--------------------------+--------------+----------+
+|  first name | last name | address                  | phone        | record_id|
++=============+===========+==========================+==============+==========+
+|  bob        | roberts   | 1600 pennsylvania ave.   | 555-0123     | 1        |
++-------------+-----------+--------------------------+--------------+----------+
+|  Robert     | Roberts   | 1600 Pensylvannia Avenue |              | 2        |
++-------------+-----------+--------------------------+--------------+----------+
+|  steve      | Jones     | 123 Cowabunga Lane       | 555-0000     | 3        |
++-------------+-----------+--------------------------+--------------+----------+
+|  Stephen    | Janes     | 123 Cawabunga Ln         | 444-555-0000 | 4        |
++-------------+-----------+--------------------------+--------------+----------+
 
 That leaves us with two blocks - The '160' block, which contains records
 1 and 2, and the '123' block, which contains records 3 and 4.
