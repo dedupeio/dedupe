@@ -1,3 +1,7 @@
+========================
+Making Smart Comparisons
+========================
+
 Say we have magic function that takes in a pair of records and always
 returns a ``False`` if a pair of records are distinct and ``True`` if a
 pair of records refer to the same person or organization.
