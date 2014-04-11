@@ -11,7 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 1
 
-   API-documentation  
+   API-documentation
+   Field-definition
    OSX-Install-Notes
    Home             
 
