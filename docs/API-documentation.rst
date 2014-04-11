@@ -63,8 +63,8 @@ API Documentation
 -  `trainingDataLink <#wiki-trainingDataLink>`__
 -  `trainingDataDedupe <#wiki-trainingDedupe>`__
 
-Dedupe
-======
+.. py:class:: Dedupe
+
 
 Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
@@ -77,6 +77,37 @@ For larger datasets, you will need to use the ``thresholdBlocks`` and
 For Dedupe, each blocks should be a dictionary of records. Each block
 consists of all the records that share a particular predicate, as output
 by the blocker method of Dedupe.
+
+
+.. py:method:: Dedupe.__init__(field_definition, [data_sample=None, [num_processes]])
+
+   Initialize a Dedupe object with a field definition
+
+   :param dict field_definition: A field definition is a dictionary
+				 where the keys are the fields that
+				 will be used for training a model
+				 and the values are the field
+				 specification
+   :param data_sample: is an optional argument that `we'll discuss fully
+		       below <#wiki-sample-dedupe>`__
+   :param int num_processes: the number of processes to use for parallel
+			     processing, defaults to 1
+
+
+.. code:: python
+
+    # initialize from a defined set of fields
+    fields = {
+              'Site name': {'type': 'String'},
+              'Address': {'type': 'String'},
+              'Zip': {'type': 'String', 'Has Missing':True},
+              'Phone': {'type': 'String', 'Has Missing':True},
+              }
+
+    deduper = dedupe.Dedupe(fields)
+
+or ``deduper = dedupe.Dedupe(fields, data_sample)``
+
 
 Within a block, the dictionary should consist of records from the data,
 with the keys being record ids and the values being the record.
@@ -99,39 +130,9 @@ Example
     [{'A1' : {'name' : 'howard'},
       'B1' : {'name' : 'howie'}}]
 
-Defining a model, \_\ *init\_*\ (field\_definition, data\_sample=None)
-----------------------------------------------------------------------
-
-Initialize a Dedupe object with a field definition
-
-.. code:: python
-
-    # initialize from a defined set of fields
-    fields = {
-              'Site name': {'type': 'String'},
-              'Address': {'type': 'String'},
-              'Zip': {'type': 'String', 'Has Missing':True},
-              'Phone': {'type': 'String', 'Has Missing':True},
-              }
-
-    deduper = dedupe.Dedupe(fields)
-
-or ``deduper = dedupe.Dedupe(fields, data_sample)``
-
-``data_sample`` is an optional argument that `we'll discuss fully
-below <#wiki-sample-dedupe>`__
-
-``num_processes`` should be the number of processes to use for parallel
-processing, defaults to 1
-
-Field Definitions
-~~~~~~~~~~~~~~~~~
-
-A field definition is a dictionary where the keys are the fields that
-will be used for training a model and the values are the field
-specification
-
 Field types include \* String \* Custom \* LatLong \* Set \* Interaction
+
+
 
 String Types
 ^^^^^^^^^^^^
