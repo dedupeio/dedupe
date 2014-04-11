@@ -77,6 +77,7 @@
    :param str file_name: Path to a json file.
 
    .. code:: python
+
       deduper.writeTraining('./my_training.json')
 
 .. py:method:: readTraining(training_source)
@@ -86,6 +87,7 @@
    :param str training_source: the path of a training data file
 
    .. code:: python
+
       deduper.readTraining('./my_training.json')
 
 .. py:method:: writeSettings(file_name)
@@ -95,4 +97,5 @@
    :param str file_name: Path to file.
 
    .. code:: python
+
       deduper.writeSettings('my_learned_settings')

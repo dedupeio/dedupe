@@ -98,7 +98,7 @@ entity.
 Class for deduplication using saved settings. If you have already
 trained dedupe, you can load the saved settings with StaticDedupe.
 
-.. py:class:: Dedupe(settings_file, [num_processes])
+.. py:class:: StaticDedupe(settings_file, [num_processes])
 
    Initialize a Dedupe object with saved settings
 
@@ -279,3 +279,4 @@ Convenience Functions
    Every match must be identified by the sharing of a common key. his
    function assumes that if two records do not share a common key then
    they are distinct records.
+

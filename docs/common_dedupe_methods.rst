@@ -1,4 +1,3 @@
-
 .. py:method:: threshold(data[, recall_weight=1.5])
 
    Returns the threshold that maximizes the expected F score, a weighted
@@ -55,6 +54,7 @@
 		      where the values are dictionaries representing records.
 
    .. code:: python
+
       > blocked_ids = deduper.blocker(data)
       > print list(blocked_ids)
       [('foo:1', 1), ..., ('bar:1', 100)]
