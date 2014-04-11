@@ -228,7 +228,7 @@ StaticDedupe.
 Convenience Functions
 ---------------------
 
-.. py:function:: consoleLable(matcher)
+.. py:function:: consoleLabel(matcher)
 
    Train a matcher instance (Dedupe or RecordLink) from the command line.
    Example
