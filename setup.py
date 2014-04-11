@@ -68,5 +68,22 @@ setup(
         'Programming Language :: Python :: 2 :: Only',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Information Analysis']
+        'Topic :: Scientific/Engineering :: Information Analysis'],
+    long_description="""
+    *Dedupe is an open source python library that quickly de-duplicates
+    large sets of data.*
+    
+    Deduplication, entity resolution, record linkage, author
+    disambiguation, and others ...
+    
+    As different research communities encountered this problem, they each
+    gave it a new name but, ultimately, its all about trying to figure out
+    what records are referring to the same thing.
+    
+    Important links:
+    
+    * Documentation: http://dedupe.rtfd.org/
+    * Repository: https://github.com/datamade/dedupe
+    * Issues: https://github.com/datamade/dedupe/issues
+    """
     )
