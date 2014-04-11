@@ -40,7 +40,7 @@ except ImportError:
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.5.0.5.2',
+    version='0.5.0.5.4',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance'],
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
@@ -70,9 +70,6 @@ setup(
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Information Analysis'],
     long_description="""
-    *Dedupe is an open source python library that quickly de-duplicates
-    large sets of data.*
-    
     Deduplication, entity resolution, record linkage, author
     disambiguation, and others ...
     
@@ -85,5 +82,6 @@ setup(
     * Documentation: http://dedupe.rtfd.org/
     * Repository: https://github.com/datamade/dedupe
     * Issues: https://github.com/datamade/dedupe/issues
+    * Examples: https://github.com/datamade/dedupe-examples
     """
     )
