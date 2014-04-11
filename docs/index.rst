@@ -3,18 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to dedupe's documentation!
-==================================
-
-Contents:
-
-.. toctree::
-   :maxdepth: 1
-
-   API-documentation
-   Field-definition
-   OSX-Install-Notes
-   Home             
+================
+Dedupe |release|
+================
 
 *Dedupe is an open source python library that quickly de-duplicates
 large sets of data.*
@@ -26,6 +17,21 @@ As different research communities encountered this problem, they each
 gave it a new name but, ultimately, its all about trying to figure out
 what records are referring to the same thing.
 
+Important links:
+
+* Documentation: http://dedupe.rtfd.org/
+* Repository: https://github.com/datamade/dedupe
+* Issues: https://github.com/datamade/dedupe/issues
+
+Contents:
+
+.. toctree::
+   :maxdepth: 1
+
+   API-documentation
+   Field-definition
+   OSX-Install-Notes
+   Home             
 
 
 Features
@@ -38,74 +44,62 @@ Features
 
 Installation
 ============
+
+Dedupe requires `numpy <http://numpy.scipy.org/>`__, which can be
+complicated to install.  If you are installing numpy for the first
+time, `follow these instructions
+<http://docs.scipy.org/doc/numpy/user/install.html>`__. You'll need to
+version 1.6 of numpy or higher.
+
+
 .. code-block:: bash
 
    pip install "numpy>=1.6"
    pip install dedupe
 
-Intro
-=====
+Mac OS X Install Notes
+----------------------
 
-Problems with real-world data
------------------------------
+Before installing, you may need to set the following environmental
+variables from the command line
 
-Journalists, academics, and businesses work hard to get big masses of
-data to learn about what people or organizations are doing.
-Unfortunately, once we get the data, we often can't answer our questions
-because we can't tell who is who.
+.. code-block:: bash
 
-In much real-world data, we do not have a way of absolutely deciding
-whether two records, say ``John Smith`` and ``J. Smith`` are referring
-to the same person. If these were records of campaign contribution data,
-did a ``John Smith`` give two donations or did ``John Smith`` and maybe
-``Jane Smith`` give one contribution apiece?
+   export CFLAGS=-Qunused-arguments 
+   export CPPFLAGS=-Qunused-arguments
 
-People are pretty good at making these calls, if they have enough
-information. For example, I would be pretty confident that the following
-two records are the about the same person.
+With default configurations, dedupe cannot do parallel processing on Mac OS X.
+:doc:`Read about instructions on how to enable this <OSX-Install-Notes>`.
 
-::
+Using dedupe
+============
 
-    first name | last name | address                   | phone   |
-    --------------------------------------------------------------
-    bob        | roberts   | 1600 pennsylvania ave.   | 555-0123 |
-    Robert     | Roberts   | 1600 Pensylvannia Avenue |          |
+Dedupe is a library and not a stand-alone command line tool. To
+demonstrate its usage, we have come up with a `few example recipes for
+different sized datasets for you
+<https://github.com/datamade/dedupe-examples/archive/0.5.zip>`__
+(`repo <https://github.com/datamade/dedupe-examples>`__, as well as
+annotated source code:
 
-If we have to decide which records in our data are about the same person
-or organization, then we could just go through by hand, compare every
-record, and decide which records are about the same entity.
+* `Small data deduplication <http://datamade.github.com/dedupe/doc/csv_example.html>`__
+* `Bigger data deduplication ~700K <http://datamade.github.com/dedupe/doc/mysql_example.html>`__
+* `Record Linkage  <http://datamade.github.com/dedupe/doc/record_linkage_example.html>`__
 
-This is very, very boring and can takes a **long** time. Dedupe is a
-software library that can make these decisions about whether records are
-about the same thing about as good as a person can, but quickly.
+Errors / Bugs
+=============
 
-Blocking
---------
+If something is not behaving intuitively, it is a bug, and should be
+reported. `Report it here <https://github.com/datamade/dedupe/issues>`__
 
-The first thing we do is define a way that a computer can calculate
-whether two records are similar, and if they are similar whether they
-are about the same thing. Unfortunately, even if we had the perfect way
-to decide whether a pair of records are distinct or duplicates, there
-are so many possible comparisons it would take years or millenia to
-compute. So, next, we find a means to only compare records that we think
-have a chance of being duplicates and avoid the great number of
-fruitless comparisons of records that are very different.
+Contributing to dedupe
+======================
 
-Clustering
-----------
+Check out `dedupe <https://github.com/datamade/dedupe>`__
+repo for how to contribute to the library.
 
-Once we have decided whether pairs of records are duplicates, we have to
-decide whether groups of three records or more are all duplicates. This
-ends up being trickier than you might expect.
-
-If all of the above steps are not perfect, and they won't be, we'll end
-up saying some records are duplicates when they really are not and that
-some records are not duplicates when they really are. We'll have to
-decide which of these errors we care about more, and find a good way to
-trade-off between them.
-
-We get into more details on all of this below:
-
+Check out `dedupe-examples
+<https://github.com/datamade/dedupe-examples>`__ for how to contribute
+a useful example of using dedupe.
 
 
 
