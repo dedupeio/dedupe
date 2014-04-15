@@ -35,7 +35,7 @@ from dedupe.datamodel import DataModel
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
-class Matching(object):
+class MatchingMixin(object):
     """
     Base Class for Record Matching Classes
     
@@ -157,7 +157,7 @@ class Matching(object):
 
         return pair_gen()
 
-class DedupeMatching(Matching) :
+class DedupeMatchingMixin(Matching) :
     """
     Class for Deduplication, extends Matching.
     
@@ -281,7 +281,7 @@ class DedupeMatching(Matching) :
             yield tuple_records
 
 
-class RecordLinkMatching(Matching) :
+class RecordLinkMatchingMixin(Matching) :
     """
     Class for Record Linkage, extends Matching.
     
@@ -417,7 +417,7 @@ class RecordLinkMatching(Matching) :
 
             yield tuple_block
 
-class StaticMatching(Matching) :
+class StaticMatchingMixin(Matching) :
     """
     Class for initializing a dedupe object from a settings file, extends Matching.
     
@@ -464,7 +464,7 @@ class StaticMatching(Matching) :
                                  "settings file and try again")
 
 
-class ActiveMatching(Matching) :
+class ActiveMatchingMixin(Matching) :
     """
     Class for training dedupe extends Matching.
     
@@ -867,7 +867,7 @@ class ActiveMatching(Matching) :
 
 
 
-class StaticDedupe(DedupeMatching, StaticMatching) :
+class StaticDedupe(DedupeMatchingMixin, StaticMatchingMixin) :
     """
     Mixin Class for Static Deduplication
     """
@@ -878,7 +878,7 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
         self.blocker = self._Blocker(self.predicates, 
                                      self.stop_words)
 
-class Dedupe(DedupeMatching, ActiveMatching) :
+class Dedupe(DedupeMatchingMixin, ActiveMatchingMixin) :
     """
     Mixin Class for Active Learning Deduplication
     
@@ -919,7 +919,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
 
 
-class StaticRecordLink(RecordLinkMatching, StaticMatching) :
+class StaticRecordLink(RecordLinkMatchingMixin, StaticMatchingMixin) :
     """
     Mixin Class for Static Record Linkage
     """
