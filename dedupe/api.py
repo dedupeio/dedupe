@@ -35,8 +35,7 @@ from dedupe.datamodel import DataModel
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
-#pylint: disable=E1101
-class Matching(object):
+class MatchingMixin(object):
     """
     Base Class for Record Matching Classes
     
@@ -173,7 +172,7 @@ class DedupeMatchingMixin(Matching) :
     """
     
     def __init__(self, *args, **kwargs) :
-        super(DedupeMatchingMixin, self).__init__(*args, **kwargs)
+        super(DedupeMatching, self).__init__(*args, **kwargs)
         self._Blocker = blocking.DedupeBlocker
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
@@ -267,7 +266,7 @@ class DedupeMatchingMixin(Matching) :
         # Redundant-free Comparisons from Kolb et al, "Dedoop:
         # Efficient Deduplication with Hadoop"
         # http://dbs.uni-leipzig.de/file/Dedoop.pdf
-        for block_id, (_, records) in enumerate(blocks.iteritems()) :
+        for block_id, (block, records) in enumerate(blocks.iteritems()) :
             for record_id, record in records :
                 coverage.setdefault(record_id, []).append(block_id)
 
@@ -297,7 +296,7 @@ class RecordLinkMatchingMixin(Matching) :
     """
 
     def __init__(self, *args, **kwargs) :
-        super(RecordLinkMatchingMixin, self).__init__(*args, **kwargs)
+        super(RecordLinkMatching, self).__init__(*args, **kwargs)
 
         self._cluster = clustering.greedyMatching
         self._Blocker = blocking.RecordLinkBlocker
@@ -446,7 +445,8 @@ class StaticMatchingMixin(Matching) :
         learned from ActiveMatching. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        super(StaticMatchingMixin, self).__init__()
+        super(StaticMatching, self).__init__()
+
 
         if settings_file.__class__ is not str :
             raise ValueError("Must supply a settings file name")
@@ -541,7 +541,7 @@ class ActiveMatchingMixin(Matching) :
         In in the record dictionary the keys are the names of the
         record field and values are the record values.
         """
-        super(ActiveMatchingMixin, self).__init__()
+        super(ActiveMatching, self).__init__()
 
         if field_definition.__class__ is not dict :
             raise ValueError('Incorrect Input Type: must supply '
@@ -930,7 +930,7 @@ class StaticRecordLink(RecordLinkMatchingMixin, StaticMatchingMixin) :
         self.blocker = self._Blocker(self.predicates, 
                                      self.stop_words)
 
-class RecordLink(RecordLinkMatchingMixin, ActiveMatchingMixin) :
+class RecordLink(RecordLinkMatching, ActiveMatching) :
     """
     Mixin Class for Active Learning Record Linkage
     
