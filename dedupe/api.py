@@ -35,7 +35,7 @@ from dedupe.datamodel import DataModel
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
-class MatchingMixin(object):
+class Matching(object):
     """
     Base Class for Record Matching Classes
     
@@ -157,7 +157,7 @@ class MatchingMixin(object):
 
         return pair_gen()
 
-class DedupeMatchingMixin(Matching) :
+class DedupeMatching(Matching) :
     """
     Class for Deduplication, extends Matching.
     
@@ -281,7 +281,7 @@ class DedupeMatchingMixin(Matching) :
             yield tuple_records
 
 
-class RecordLinkMatchingMixin(Matching) :
+class RecordLinkMatching(Matching) :
     """
     Class for Record Linkage, extends Matching.
     
@@ -417,7 +417,7 @@ class RecordLinkMatchingMixin(Matching) :
 
             yield tuple_block
 
-class StaticMatchingMixin(Matching) :
+class StaticMatching(Matching) :
     """
     Class for initializing a dedupe object from a settings file, extends Matching.
     
@@ -464,7 +464,7 @@ class StaticMatchingMixin(Matching) :
                                  "settings file and try again")
 
 
-class ActiveMatchingMixin(Matching) :
+class ActiveMatching(Matching) :
     """
     Class for training dedupe extends Matching.
     
@@ -867,7 +867,7 @@ class ActiveMatchingMixin(Matching) :
 
 
 
-class StaticDedupe(DedupeMatchingMixin, StaticMatchingMixin) :
+class StaticDedupe(DedupeMatching, StaticMatching) :
     """
     Mixin Class for Static Deduplication
     """
@@ -878,7 +878,7 @@ class StaticDedupe(DedupeMatchingMixin, StaticMatchingMixin) :
         self.blocker = self._Blocker(self.predicates, 
                                      self.stop_words)
 
-class Dedupe(DedupeMatchingMixin, ActiveMatchingMixin) :
+class Dedupe(DedupeMatching, ActiveMatching) :
     """
     Mixin Class for Active Learning Deduplication
     
@@ -919,7 +919,7 @@ class Dedupe(DedupeMatchingMixin, ActiveMatchingMixin) :
 
 
 
-class StaticRecordLink(RecordLinkMatchingMixin, StaticMatchingMixin) :
+class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
     Mixin Class for Static Record Linkage
     """
