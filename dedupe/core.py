@@ -1,19 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import random
-import json
 import itertools
-import logging
 import warnings
-import multiprocessing
-import Queue
 import numpy
-import time
 import collections
 
-import backport
-import lr
+import dedupe.backport as backport
+import dedupe.lr as lr
 
 def grouper(iterable, n, fillvalue=None): # pragma : no cover
     "Collect data into fixed-length chunks or blocks"
@@ -234,20 +228,20 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
     processes = [backport.Process(target=scoring_function, 
                                    args=(record_pairs_queue, 
                                          scored_pairs_queue))
-                 for i in xrange(num_processes)]
+                 for _ in xrange(num_processes)]
 
     [process.start() for process in processes]
 
-    for j, chunk in enumerate(grouper(records, chunk_size)) :
+    for i, chunk in enumerate(grouper(records, chunk_size)) :
         record_pairs_queue.put(chunk)
 
     # put poison pill in queue to tell scorers that they are done
     record_pairs_queue.put(None)
          
-    num_chunks = j + 1
+    num_chunks = i + 1
 
     scored_pairs = numpy.concatenate([scored_pairs_queue.get() 
-                                      for k in xrange(num_chunks)])
+                                      for _ in xrange(num_chunks)])
 
     [process.join() for process in processes]
 

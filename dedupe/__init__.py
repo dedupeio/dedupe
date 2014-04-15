@@ -6,9 +6,7 @@ __all__ = ['affinegap',
            'core',
            'lr',
            'predicates',
-           'training_sample',
            'crossvalidation',
-           'dedupe',
            'distance'
            ]
 

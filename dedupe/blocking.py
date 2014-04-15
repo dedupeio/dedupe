@@ -9,11 +9,9 @@ from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.lexicon import Splitter
-from zope.index.text.lexicon import StopWordRemover
 import time
 
-import tfidf
-from backport import OrderedDict
+import dedupe.tfidf as tfidf
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,7 +19,10 @@ logger = logging.getLogger(__name__)
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
     def __init__(self, predicates = None, 
-                 stop_words = {}) :
+                 stop_words = None) :
+
+        if stop_words is None :
+            stop_words = {}
 
         self.canopies = defaultdict(dict)
 
@@ -130,11 +131,10 @@ class DedupeBlocker(Blocker) :
             base_tokens[i] = doc
             index.index_doc(i, doc)
 
-        canopies = (apply(tfidf._createCanopies,
-                          (index,
-                           base_tokens, 
-                           threshold, 
-                           field))
+        canopies = (tfidf._createCanopies(index,
+                                          base_tokens, 
+                                          threshold, 
+                                          field)
                     for threshold in self.tfidf_fields[field])
 
         for canopy in canopies :
@@ -561,28 +561,28 @@ def disjunctivePredicates(predicate_set):
     return predicate_set
 
 def stopWords(data) :
-        index = TextIndex(Lexicon(Splitter()))
+    index = TextIndex(Lexicon(Splitter()))
 
-        for i, (record_id, doc) in enumerate(data, 1) :
-            index.index_doc(i, doc)
+    for i, (_, doc) in enumerate(data, 1) :
+        index.index_doc(i, doc)
 
-        doc_freq = [(len(index.index._wordinfo[wid]), word) 
-                    for word, wid in index.lexicon.items()]
+    doc_freq = [(len(index.index._wordinfo[wid]), word) 
+                for word, wid in index.lexicon.items()]
 
-        doc_freq.sort(reverse=True)
+    doc_freq.sort(reverse=True)
 
-        N = float(index.index.documentCount())
-        threshold = int(max(1000, N * 0.05))
+    N = float(index.index.documentCount())
+    threshold = int(max(1000, N * 0.05))
 
-        stop_words = set([])
+    stop_words = set([])
 
-        for frequency, word in doc_freq :
-            if frequency > threshold :
-                stop_words.add(word)
-            else :
-                break
+    for frequency, word in doc_freq :
+        if frequency > threshold :
+            stop_words.add(word)
+        else :
+            break
 
-        return stop_words
+    return stop_words
 
 
 

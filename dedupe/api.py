@@ -6,16 +6,12 @@ Dedupe class
 """
 
 try:
-    from json.scanner import py_make_scanner
     import json
 except ImportError: 
-    from simplejson.scanner import py_make_scanner
     import simplejson as json
 import itertools
 import logging
 import pickle
-import multiprocessing
-import multiprocessing.dummy
 import numpy
 import random
 import warnings
@@ -23,7 +19,7 @@ import copy
 try:
     from collections import OrderedDict
 except ImportError :
-    from backport import OrderedDict
+    from dedupe.backport import OrderedDict
 
 import dedupe
 import dedupe.core as core
@@ -37,7 +33,7 @@ import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 class Matching(object):
     """
@@ -88,10 +84,10 @@ class Matching(object):
 
         i = numpy.argmax(score)
 
-        logger.info('Maximum expected recall and precision')
-        logger.info('recall: %2.3f', recall[i])
-        logger.info('precision: %2.3f', precision[i])
-        logger.info('With threshold: %2.3f', probability[i])
+        LOGGER.info('Maximum expected recall and precision')
+        LOGGER.info('recall: %2.3f', recall[i])
+        LOGGER.info('precision: %2.3f', precision[i])
+        LOGGER.info('With threshold: %2.3f', probability[i])
 
         return probability[i]
 
@@ -250,7 +246,7 @@ class DedupeMatching(Matching) :
                              "smaller_ids must be a set")
 
         
-            self._checkRecordType(block[0][1])
+        self._checkRecordType(block[0][1])
 
     def _blockData(self, data_d):
 
@@ -396,14 +392,14 @@ class RecordLinkMatching(Matching) :
 
 
         for block_key, record_id in self.blocker(data_1.iteritems()) :
-            blocks.setdefault(block_key, ([],[]))[0].append((record_id, 
-                                                             data_1[record_id]))
+            blocks.setdefault(block_key, ([], []))[0].append((record_id, 
+                                                              data_1[record_id]))
 
         for block_key, record_id in self.blocker(data_2.iteritems()) :
             if block_key in blocks :
                 blocks[block_key][1].append((record_id, data_2[record_id]))
 
-        for block_id, (block, sources) in enumerate(blocks.iteritems()) :
+        for block_id, (_, sources) in enumerate(blocks.iteritems()) :
             for source in sources :
                 for record_id, record in source :
                     coverage.setdefault(record_id, []).append(block_id)
@@ -559,7 +555,6 @@ class ActiveMatching(Matching) :
             self._checkDataSample(self.data_sample)
             self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                          self.data_model)
-
         else :
             self.activeLearner = None
 
@@ -585,7 +580,7 @@ class ActiveMatching(Matching) :
         training_source -- the path of the training data file
         '''
 
-        logger.info('reading training from file')
+        LOGGER.info('reading training from file')
 
         with open(training_source, 'r') as f:
             training_pairs = json.load(f, 
@@ -633,7 +628,7 @@ class ActiveMatching(Matching) :
         n_folds = max(n_folds,
                       2)
 
-        logger.info('%d folds', n_folds)
+        LOGGER.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
@@ -851,13 +846,13 @@ class ActiveMatching(Matching) :
         """
         Log learned weights and bias terms
         """
-        logger.info('Learned Weights')
-        for (k1, v1) in self.data_model.items():
+        LOGGER.info('Learned Weights')
+        for (key_1, value_1) in self.data_model.items():
             try:
-                for (k2, v2) in v1.items():
-                    logger.info((k2, v2['weight']))
+                for (key_2, value_2) in value_1.items():
+                    LOGGER.info((key_2, value_2['weight']))
             except AttributeError:
-                logger.info((k1, v1))
+                LOGGER.info((key_1, value_1))
 
     def _loadSample(self, *args, **kwargs) : # pragma : no cover
 
@@ -909,14 +904,14 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
     def _sample(self, data, sample_size) :
 
-        d = dict((i, dedupe.core.frozendict(v)) 
-                 for i, v in enumerate(data.values()))
+        indexed_data = dict((i, dedupe.core.frozendict(v)) 
+                            for i, v in enumerate(data.values()))
 
-        random_pairs = dedupe.core.randomPairs(len(d), 
+        random_pairs = dedupe.core.randomPairs(len(indexed_data), 
                                                sample_size)
 
-        data_sample = tuple((d[int(k1)], 
-                             d[int(k2)]) 
+        data_sample = tuple((indexed_data[int(k1)], 
+                             indexed_data[int(k2)]) 
                             for k1, k2 in random_pairs)
 
         return data_sample
