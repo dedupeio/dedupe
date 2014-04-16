@@ -337,6 +337,8 @@ con.commit()
 ## Clustering
 
 def candidates_gen(result_set) :
+    split = str.split
+    lset = set
 
     block_id = None
     records = []
@@ -354,12 +356,12 @@ def candidates_gen(result_set) :
                 print i, "blocks"
                 print time.time() - start_time, "seconds"
 
-        smaller_ids = row['smaller_ids']
+        smaller_ids_string = row['smaller_ids']
         
         if smaller_ids :
-            smaller_ids = set(smaller_ids.split(','))
+            smaller_ids = lset(split(smaller_ids, ','))
         else :
-            smaller_ids = set([])
+            smaller_ids = lset([])
             
         records.append((row['donor_id'], row, smaller_ids))
 
