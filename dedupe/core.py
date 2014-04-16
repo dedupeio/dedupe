@@ -198,12 +198,13 @@ class ScoringFunction(object) :
                                            self.data_model)
 
         scored_pairs = scored_pairs[scored_pairs['score'] > self.threshold]   
+
         return scored_pairs
 
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     records = iter(records)
 
-    chunk_size = 100000
+    chunk_size = 1000
 
     record_pairs_queue = backport.Queue(num_processes)
     scored_pairs_queue = backport.Queue()
