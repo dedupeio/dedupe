@@ -181,39 +181,23 @@ class ScoringFunction(object) :
             scored_pairs_queue.put(scored_pairs)
 
     def scoreRecords(self, record_pairs) :
-        ids = []
-
         num_records = len(record_pairs)
 
+        scored_pairs = numpy.empty(num_records,
+                                   dtype = self.dtype)
+
         def split_records() :
-            for pair in record_pairs :
+            for i, pair in enumerate(record_pairs) :
                 record_1, record_2 = pair
-                ids.append((record_1[0], record_2[0]))
+                scored_pairs['pairs'][i] = (record_1[0], record_2[0])
                 yield (record_1[1], record_2[1])
 
-        scores = scorePairs(fieldDistances(split_records(), 
-                                           self.data_model,
-                                           num_records),
-                            self.data_model)
+        scored_pairs['score'] = scorePairs(fieldDistances(split_records(), 
+                                                          self.data_model,
+                                                          num_records),
+                                           self.data_model)
 
-        if self.threshold :
-            threshold = self.threshold
-            filtered_scores = ((pair_id, score) 
-                               for pair_id, score 
-                               in itertools.izip(ids, scores) 
-                               if score > threshold)
-            scored_pairs = numpy.fromiter(filtered_scores,
-                                          dtype=self.dtype)
-
-        else :
-            filtered_scores = ((pair_id, score) 
-                               for pair_id, score 
-                               in itertools.izip(ids, scores))
-
-            scored_pairs = numpy.fromiter(filtered_scores,
-                                          dtype=self.dtype,
-                                          count=num_records)
-
+        scored_pairs = scored_pairs[scored_pairs['score'] > self.threshold]   
         return scored_pairs
 
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
