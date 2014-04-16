@@ -356,7 +356,7 @@ def candidates_gen(result_set) :
                 print i, "blocks"
                 print time.time() - start_time, "seconds"
 
-        smaller_ids_string = row['smaller_ids']
+        smaller_ids = row['smaller_ids']
         
         if smaller_ids :
             smaller_ids = lset(split(smaller_ids, ','))
