@@ -106,59 +106,50 @@ def trainModel(training_data, data_model, alpha=.001):
     return data_model
 
 
-def fieldDistances(record_pairs, data_model, num_records=-1):
-    # Think about filling this in instead of concatenating
+def fieldDistances(record_pairs, data_model, num_records=None):
+
+    if num_records is None :
+        num_records = len(record_pairs)
+    
+    distances = numpy.empty((num_records, data_model.total_fields))
+    
+    current_column = 0
+
     field_comparators = data_model.field_comparators
-    n_comparators = len(field_comparators)
+    for i, (record_1, record_2) in enumerate(record_pairs) :
+        for j, (field, compare) in enumerate(field_comparators) :
+            distances[i,j] = compare(record_1[field],
+                                     record_2[field])
 
-    if num_records != -1 :
-        array_size = num_records * n_comparators
-    else :
-        array_size = -1
-        
-
-    field_distances = numpy.fromiter((compare(record_1[field],
-                                              record_2[field]) 
-                                      for record_1, record_2 in record_pairs 
-                                      for field, compare in field_comparators),
-                                     'f4',
-                                     array_size)
-
-    field_distances = field_distances.reshape(num_records,
-                                              n_comparators)
+    current_column += len(field_comparators)
 
     for cat_index, length in data_model.categorical_indices :
-        different_sources = field_distances[:, cat_index][...,None] == numpy.arange(2, length)[None,...]
+        start = current_column
+        end = start + (length - 2)
+        
+        distances[:,start:end] =\
+                (distances[:, cat_index][:,None] 
+                 == numpy.arange(2, length)[None,:])
+
+        distances[:,cat_index][distances[:,cat_index] > 1] = 0
+                             
+        current_column = end
 
 
-        field_distances[:, cat_index][field_distances[:, cat_index] > 1] = 0
-        field_distances = numpy.concatenate((field_distances,
-                                             different_sources.astype(float)),
-                                            axis=1)
+    for interaction in data_model.interactions :
+        distances[:,current_column] =\
+                numpy.prod(distances[:,interaction], axis=1)
 
+        current_column += 1
 
-    interaction_distances = numpy.empty((field_distances.shape[0],
-                                         len(data_model.interactions)))
+    missing_data = numpy.isnan(distances[:,:current_column])
 
-    for i, interaction in enumerate(data_model.interactions) :
-        a = numpy.prod(field_distances[...,interaction], axis=1)
-        interaction_distances[...,i] = a
-       
-    field_distances = numpy.concatenate((field_distances,
-                                         interaction_distances),
-                                        axis=1)
+    distances[:,:current_column][missing_data] = 0
 
-    missing_data = numpy.isnan(field_distances)
+    distances[:,current_column:] =\
+            1 - missing_data[:,data_model.missing_field_indices]
 
-    field_distances[missing_data] = 0
-
-    missing_indicators = 1 - missing_data[:,data_model.missing_field_indices]
-    
-    field_distances = numpy.concatenate((field_distances,
-                                         missing_indicators),
-                                        axis=1)
-
-    return field_distances
+    return distances
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
@@ -261,9 +252,18 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
             # done
             record_pairs_queue.put(None)
             break
-         
-    scored_pairs = numpy.concatenate([scored_pairs_queue.get() 
-                                      for k in xrange(num_chunks)])
+
+    scored_pairs = numpy.empty(num_chunks * chunk_size,
+                               dtype=score_dtype)
+
+    start = 0
+    for _ in xrange(num_chunks) :
+        score_chunk = scored_pairs_queue.get()
+        end = start + len(score_chunk)
+        scored_pairs[start:end,] = score_chunk
+        start = end
+
+    scored_pairs.resize((end,))
 
     [process.join() for process in processes]
 

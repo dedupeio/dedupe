@@ -190,7 +190,7 @@ class RecordLinkBlocker(Blocker) :
             index_to_id[i] = record_id
             base_tokens[i] = doc
 
-        for j, (record_id, doc) in enumerate(data_2, i+1) :
+        for j, (record_id, doc) in enumerate(data_2, len(data_1)+1) :
             index_to_id[j] = record_id
             index.index_doc(j, doc)
 
@@ -491,7 +491,7 @@ class RecordLinkCoverage(Coverage) :
             data_1[i] = record
 
         data_2 = {}
-        for j, record in enumerate(data_2_set, i+1) :
+        for j, record in enumerate(data_2_set, len(data_1_set)) :
             data_2[j] = record
 
         record_ids = dict((v,k) for k,v in data_1.iteritems())
