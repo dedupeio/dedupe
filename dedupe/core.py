@@ -206,7 +206,8 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
 
     chunk_size = 1000
 
-    record_pairs_queue = backport.Queue(num_processes)
+    queue_size = num_processes
+    record_pairs_queue = backport.Queue(queue_size)
     scored_pairs_queue = backport.Queue()
 
     id_type, records = idType(records)
@@ -226,19 +227,32 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
     [process.start() for process in processes]
 
     num_chunks = 0
+    num_records = 0
 
     while True :
         chunk = list(itertools.islice(records, chunk_size))
         if chunk :
             record_pairs_queue.put(chunk)
             num_chunks += 1
+            num_records += chunk_size
+
+            if num_chunks > queue_size :
+                if record_pairs_queue.full() :
+                    if chunk_size < 100000 :
+                        if num_chunks % 10 == 0 :
+                            chunk_size = int(chunk_size * 1.1)
+                else :
+                    if chunk_size > 100 :
+                        chunk_size = int(chunk_size * 0.9)
+
+
         else :
             # put poison pill in queue to tell scorers that they are
             # done
             record_pairs_queue.put(None)
             break
 
-    scored_pairs = numpy.empty(num_chunks * chunk_size,
+    scored_pairs = numpy.empty(num_records,
                                dtype=score_dtype)
 
     start = 0
