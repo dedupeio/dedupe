@@ -1,19 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import random
-import json
 import itertools
-import logging
 import warnings
-import multiprocessing
-import Queue
 import numpy
-import time
 import collections
 
-import backport
-import lr
+import dedupe.backport as backport
+import dedupe.lr as lr
 
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
@@ -244,8 +238,6 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
                 else :
                     if chunk_size > 100 :
                         chunk_size = int(chunk_size * 0.9)
-
-
         else :
             # put poison pill in queue to tell scorers that they are
             # done
