@@ -1,9 +1,20 @@
 Field definitions
 =================
 
-A field definition is a dictionary where the keys are the fields that
-will be used for training a model and the values are the field
-specification
+A field definition describes the records that you want to match. It is
+a dictionary where the keys are the fields and the values are the
+field specification
+
+
+.. code:: python
+
+   fields = {
+             'Site name': {'type': 'String'},
+	     'Address': {'type': 'String'},
+	     'Zip': {'type': 'String', 'Has Missing':True},
+	     'Phone': {'type': 'String', 'Has Missing':True},
+	     }
+
 
 
 Field types include 

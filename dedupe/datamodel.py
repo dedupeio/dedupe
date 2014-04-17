@@ -23,6 +23,11 @@ class DataModel(dict) :
         
         self.fieldDistanceVariables()
 
+        self.total_fields = (
+            len(self.field_comparators)
+            + sum((length - 2) for _, length in self.categorical_indices)
+            + len(self.interactions) 
+            + len(self.missing_field_indices))
 
     def assignComparators(self, fields) :
         field_model = OrderedDict()

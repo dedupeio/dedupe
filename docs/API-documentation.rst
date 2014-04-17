@@ -10,8 +10,7 @@ entity.
 
 .. py:class:: Dedupe(field_definition, [data_sample=None, [num_processes]])
 
-   Initialize a Dedupe object with a :doc:`field definition
-   <Field-definition.rst>`
+   Initialize a Dedupe object with a :doc:`field definition <Field-definition>`
 
    :param dict field_definition: A field definition is a dictionary
 				 where the keys are the fields that
@@ -66,7 +65,7 @@ entity.
 	               )
 	              ]
 
-      deduper = dedupe.Dedupe(fields)
+      deduper = dedupe.Dedupe(fields, data_sample)
       
    See `MySQL
    <http://open-city.github.com/dedupe/doc/mysql_example.html>`__ for
