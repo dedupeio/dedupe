@@ -24,7 +24,7 @@ Important links
 * Repository: https://github.com/datamade/dedupe
 * Issues: https://github.com/datamade/dedupe/issues
 * Examples: https://github.com/datamade/dedupe-examples
-* IRC channel, #dedupe on irc.freenode.net
+* IRC channel, `#dedupe on irc.freenode.net <http://webchat.freenode.net/?channels=dedupe>`__
 
 Contents
 ========
