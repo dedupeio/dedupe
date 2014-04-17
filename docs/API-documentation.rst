@@ -10,18 +10,23 @@ entity.
 
 .. py:class:: Dedupe(field_definition, [data_sample=None, [num_processes]])
 
-   Initialize a Dedupe object with a field definition
+   Initialize a Dedupe object with a :doc:`field definition
+   <Field-definition.rst>`
 
    :param dict field_definition: A field definition is a dictionary
 				 where the keys are the fields that
 				 will be used for training a model
 				 and the values are the field
-				 specification
-   :param data_sample: is an optional argument that `we'll discuss fully
-		       below <#wiki-sample-dedupe>`__
+				 specifications 
+   :param data_sample: is an optional argument that we discuss below
    :param int num_processes: the number of processes to use for parallel
 			     processing, defaults to 1
 
+   In order to learn how to deduplicate records, dedupe needs a sample
+   of records you are trying to deduplicate. If your data is not too
+   large (fits in memory), you can pass your data to the
+   :py:meth:`~Dedupe.sample` method and dedupe will take a sample for
+   you.
 
    .. code:: python
 
@@ -35,40 +40,37 @@ entity.
 
       deduper = dedupe.Dedupe(fields)
 
-   If can't use this method because of the size your data (see the
-   `MySQL
-   <http://open-city.github.com/dedupe/doc/mysql_example.html>`__),
-   you'll need to initialize Dedupe with the sample
+      deduper.sample(your_data)
 
-   .. code:: python
-	  
-      deduper = Dedupe(field_definition, data_sample)
+   If your data won't fit in memory, you'll have to prepare a sample
+   of the data yourself and pass it to Dedupe.
 
    ``data_sample`` should be a sequence of tuples, where each tuple
    contains a pair of records, and each record is a dictionary-like
    object that contains the field names you declared in
    field\_definitions as keys.
 
-   For example, a data\_sample with only one pair of records,
+   For example, a data_sample with only one pair of records,
 
    .. code:: python
 
-      [
-      (
-       (854, {'city': 'san francisco',
-              'address': '300 de haro st.',
-              'name': "sally's cafe & bakery",
-              'cuisine': 'american'}),
-       (855, {'city': 'san francisco',
-             'address': '1328 18th st.',
-             'name': 'san francisco bbq',
-             'cuisine': 'thai'})
-       )
-       ]
+      data_sample = [(
+                      (854, {'city': 'san francisco',
+	                     'address': '300 de haro st.',
+		             'name': "sally's cafe & bakery",
+		             'cuisine': 'american'}),
+	               (855, {'city': 'san francisco',
+	                      'address': '1328 18th st.',
+                              'name': 'san francisco bbq',
+                              'cuisine': 'thai'})
+	               )
+	              ]
 
-
-   or ``deduper = dedupe.Dedupe(fields, data_sample)``
-
+      deduper = dedupe.Dedupe(fields)
+      
+   See `MySQL
+   <http://open-city.github.com/dedupe/doc/mysql_example.html>`__ for
+   an example of how to create a data sample yourself.
 
    .. py:method:: sample(data[, sample_size=150000])
 
