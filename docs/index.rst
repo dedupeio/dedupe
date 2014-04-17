@@ -7,7 +7,7 @@
 Dedupe |release|
 ================
 
-(dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data.*
+*dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data.*
 
 **dedupe** will help you: 
 
