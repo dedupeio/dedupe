@@ -10,11 +10,9 @@ How it works
    Grouping-duplicates
    Choosing-a-good-threshold
    Special-Cases
-   Bibliography
 
 
-Problems with real-world data
------------------------------
+**Problems with real-world data**
 
 Journalists, academics, and businesses work hard to get big masses of
 data to learn about what people or organizations are doing.
@@ -45,31 +43,3 @@ record, and decide which records are about the same entity.
 This is very, very boring and can takes a **long** time. Dedupe is a
 software library that can make these decisions about whether records are
 about the same thing about as good as a person can, but quickly.
-
-Blocking
---------
-
-The first thing we do is define a way that a computer can calculate
-whether two records are similar, and if they are similar whether they
-are about the same thing. Unfortunately, even if we had the perfect way
-to decide whether a pair of records are distinct or duplicates, there
-are so many possible comparisons it would take years or millenia to
-compute. So, next, we find a means to only compare records that we think
-have a chance of being duplicates and avoid the great number of
-fruitless comparisons of records that are very different.
-
-Clustering
-----------
-
-Once we have decided whether pairs of records are duplicates, we have to
-decide whether groups of three records or more are all duplicates. This
-ends up being trickier than you might expect.
-
-If all of the above steps are not perfect, and they won't be, we'll end
-up saying some records are duplicates when they really are not and that
-some records are not duplicates when they really are. We'll have to
-decide which of these errors we care about more, and find a good way to
-trade-off between them.
-
-We get into more details on all of this below:
-
