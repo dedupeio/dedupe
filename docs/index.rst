@@ -35,7 +35,8 @@ Contents
    API-documentation
    Field-definition
    OSX-Install-Notes
-   Home             
+   How-it-works
+   Bibliography
 
 
 Features
