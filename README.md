@@ -19,8 +19,8 @@ dedupe takes in human training data and comes up with the best rules for your da
 
 ## Tools built with dedupe
 
-* **[csvdedupe](https://github.com/datamade/csvdedupe)** a command line tool for de-duplicating and [linking](https://github.com/datamade/csvdedupe#csvlink-usage) CSV files
-* **[Spreadsheet Deduper](http://dedupe.datamade.us/)** a web interface for de-duplicating spreadsheets with up to 10,000 rows. [Read more](http://datamade.us/blog/introducing-spreadsheet-deduper/)
+* **[csvdedupe](https://github.com/datamade/csvdedupe)** a command line tool for de-duplicating and [linking](https://github.com/datamade/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
+* **[Spreadsheet Deduper](http://dedupe.datamade.us/)** a web interface for de-duplicating spreadsheets with up to 10,000 rows. Read about it on the [DataMade blog](http://datamade.us/blog/introducing-spreadsheet-deduper/).
 
 ## Installation
 
@@ -50,7 +50,7 @@ pip install -r py26_requirements.txt
 python setup.py develop
 ```
 
-### OS X Install Notes
+#### OS X Install Notes
 
 Before installing, you may need to set the following environmental
 variables from the command line 
@@ -109,9 +109,7 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 ## Copyright
 
-Copyright (c) 2014 Forest Gregg and Derek Eder. Released under the MIT License.
-
-[See LICENSE for details](https://github.com/datamade/dedupe/wiki/License)
+Copyright (c) 2014 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/datamade/dedupe/blob/master/LICENSE).
 
 Third-party copyright in this distribution is noted where applicable.
 
