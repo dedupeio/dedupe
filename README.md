@@ -59,11 +59,6 @@ With default configurations, dedupe cannot do parallel processing on Mac OS X.
 For more information and for instructions on how to enable this, [refer to the
 wiki](http://dedupe.readthedocs.org/en/latest/OSX-Install-Notes.html).
 
-## Documentation 
-
-The source files for the documentation for the dedupe
-library are in the docs directory. The compiled documentation [lives on ReadTheDocs](http://dedupe.readthedocs.org/). Every time a change to the documentation is committed to github, the documentation is rebuilt on ReadTheDocs.
-
 ## Testing
 
 [<img src="https://travis-ci.org/datamade/dedupe.png" />](https://travis-ci.org/datamade/dedupe)[![Coverage Status](https://coveralls.io/repos/datamade/dedupe/badge.png?branch=master)](https://coveralls.io/r/datamade/dedupe?branch=master)
