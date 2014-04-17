@@ -23,6 +23,8 @@ Important links
 * Documentation: http://dedupe.rtfd.org/
 * Repository: https://github.com/datamade/dedupe
 * Issues: https://github.com/datamade/dedupe/issues
+* Examples: https://github.com/datamade/dedupe-examples
+* IRC channel, #dedupe on irc.freenode.net
 
 Contents
 ========
