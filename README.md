@@ -19,8 +19,11 @@ dedupe takes in human training data and comes up with the best rules for your da
 
 ## Tools built with dedupe
 
-* **[csvdedupe](https://github.com/datamade/csvdedupe)** a command line tool for de-duplicating and [linking](https://github.com/datamade/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
-* **[Spreadsheet Deduper](http://dedupe.datamade.us/)** a web interface for de-duplicating spreadsheets with up to 10,000 rows. Read about it on the [DataMade blog](http://datamade.us/blog/introducing-spreadsheet-deduper/).
+### [csvdedupe](https://github.com/datamade/csvdedupe)
+Command line tool for de-duplicating and [linking](https://github.com/datamade/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
+
+###[Spreadsheet Deduper](http://dedupe.datamade.us/)
+Web interface for de-duplicating spreadsheets with up to 10,000 rows. Read about it on the [DataMade blog](http://datamade.us/blog/introducing-spreadsheet-deduper/).
 
 ## Installation
 
