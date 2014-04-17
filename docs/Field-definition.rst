@@ -37,7 +37,18 @@ number, appropriate when a distance is not well defined, as when one of
 the fields is missing).
 
 Example custom comparator:
-``python def sameOrNotComparator(field_1, field_2) :     if field_1 and field_2 :         if field_1 == field_2 :             return 1         else:             return 0     else :         return numpy.nan``
+
+.. code:: python
+
+  python def sameOrNotComparator(field_1, field_2) :     
+    if field_1 and field_2 :         
+        if field_1 == field_2 :             
+            return 1         
+        else:             
+            return 0     
+    else :         
+        return numpy.nan
+``
 
 Field definition:
 
@@ -118,7 +129,14 @@ A categorical field declaration must include a list of all the different
 strings that you want to treat as different categories.
 
 So if you data looks like this
-``'Name'          'Business Type' AAA Taxi        taxi AA1 Taxi        taxi Hindelbert Esq  lawyer``
+
+::
+
+    'Name'          'Business Type' 
+    AAA Taxi        taxi 
+    AA1 Taxi        taxi 
+    Hindelbert Esq  lawyer
+
 You would create a definition like:
 
 .. code:: python
