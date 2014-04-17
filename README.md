@@ -10,41 +10,25 @@ __dedupe__ will help you:
 
 dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
 
-#### Features
- * __machine learning__ - reads in human labeled data to automatically create optimum weights and blocking rules
- * __runs on a laptop__ - makes intelligent comparisons so you don't need a powerful server to run it
- * __built as a library__ - so it can be integrated in to your applications or import scripts
- * __extensible__ - supports adding custom data types, string comparators and blocking rules
- * __open source__ - anyone can use, modify or add to it
-
-For installing and using dedupe, [check out the documentation](http://dedupe.rtfd.org/)
-
-This rest of this README describes what you need to for developing dedupe.
-
+## Important links
+* Documentation: http://dedupe.rtfd.org/
 * Repository: https://github.com/datamade/dedupe
 * Issues: https://github.com/datamade/dedupe/issues
+* Examples: https://github.com/datamade/dedupe-examples
+* IRC channel, #dedupe on irc.freenode.net
 
+## Installation
 
-Deduplication, entity resolution, record linkage, author disambiguation, and others ...
+### Users
 
-As different research communities encountered this problem, they each gave it a new name but, ultimately, its all about trying to figure out what records are referring to the same thing.
+If you only want to use dedupe, install it this way:
 
-__Dedupe is an open source python library that quickly de-duplicates large sets of data.__
+```bash
+pip install "numpy>=1.6"
+pip install dedupe
+```
 
-
-#### How it works
-* [Overview](https://github.com/datamade/dedupe/wiki/Home)
-* [Matching records](https://github.com/datamade/dedupe/wiki/Matching-records)
-* [Making smart comparisons](https://github.com/datamade/dedupe/wiki/Making-smart-comparisons)
-* [Grouping duplicates](https://github.com/datamade/dedupe/wiki/Grouping-duplicates)
-* [Choosing a good threshold](https://github.com/datamade/dedupe/wiki/Choosing-a-good-threshold)
-
-#### Community
-* [Dedupe Google group](https://groups.google.com/forum/?fromgroups=#!forum/open-source-deduplication)
-* [ChiPy presentation](http://pyvideo.org/video/973/big-data-de-duping)
-* IRC channel, [#dedupe on irc.freenode.net](http://webchat.freenode.net/?channels=dedupe)
-
-## Installation and dependencies
+### Developers
 
 Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to install. 
 If you are installing numpy for the first time, 
@@ -125,7 +109,7 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 ## Copyright
 
-Copyright (c) 2013 Forest Gregg and Derek Eder. Released under the MIT License.
+Copyright (c) 2014 Forest Gregg and Derek Eder. Released under the MIT License.
 
 [See LICENSE for details](https://github.com/datamade/dedupe/wiki/License)
 
@@ -134,4 +118,4 @@ Third-party copyright in this distribution is noted where applicable.
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 
-Gregg, Forest, and Derek Eder. 2013. Dedupe. https://github.com/datamade/dedupe.
+Gregg, Forest, and Derek Eder. 2014. Dedupe. https://github.com/datamade/dedupe.
