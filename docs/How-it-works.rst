@@ -1,6 +1,6 @@
-######################
-Introduction to dedupe
-######################
+############
+How it works
+############
 
 .. toctree::
    :maxdepth: 1
