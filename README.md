@@ -1,14 +1,14 @@
 # Dedupe Python Library
 
-*Dedupe is an open source python library that quickly de-duplicates
-large sets of data.*
+_dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data._
 
-Deduplication, entity resolution, record linkage, author
-disambiguation, and others ...
+__dedupe__ will help you: 
 
-As different research communities encountered this problem, they each
-gave it a new name but, ultimately, its all about trying to figure out
-what records are referring to the same thing.
+* __remove duplicate entries__ from a spreadsheet of names and addresses
+* __link a list__ with customer information to another with order history, even without unique customer id's
+* take a database of campaign contributions and __figure out how much money was given__ by each person, even if the names were entered slightly differently for each record
+
+dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
 
 #### Features
  * __machine learning__ - reads in human labeled data to automatically create optimum weights and blocking rules
