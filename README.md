@@ -15,12 +15,12 @@ dedupe takes in human training data and comes up with the best rules for your da
 * Repository: https://github.com/datamade/dedupe
 * Issues: https://github.com/datamade/dedupe/issues
 * Examples: https://github.com/datamade/dedupe-examples
-* IRC channel, #dedupe on irc.freenode.net
+* IRC channel, [#dedupe on irc.freenode.net](http://webchat.freenode.net/?channels=dedupe)
 
 ## Tools built with dedupe
 
 * **[csvdedupe](https://github.com/datamade/csvdedupe)** a command line tool for de-duplicating and [linking](https://github.com/datamade/csvdedupe#csvlink-usage) CSV files
-* **[Spreadsheet Deduper](http://dedupe.datamade.us/)** a web interface for de-duplicating spreadsheets with up to 10,000 rows. [Read more &raquo;](http://datamade.us/blog/introducing-spreadsheet-deduper/)
+* **[Spreadsheet Deduper](http://dedupe.datamade.us/)** a web interface for de-duplicating spreadsheets with up to 10,000 rows. [Read more](http://datamade.us/blog/introducing-spreadsheet-deduper/)
 
 ## Installation
 
