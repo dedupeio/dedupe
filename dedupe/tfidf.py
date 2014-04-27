@@ -37,7 +37,8 @@ def makeCanopy(index, token_vector, threshold) :
             continue
 
         try :
-            candidates = index.apply('"%s"' % center_vector).byValue(threshold)
+            search_string = ' OR '.join(center_vector)
+            candidates = index.apply(search_string).byValue(threshold)
         except ParseError :
             continue
 
@@ -60,10 +61,9 @@ def _createCanopies(field_inverted_index,
                     threshold,
                     field) :
                      
-
+    logger.info("Canopy: %s", threshold.__name__ + field)
     canopy = makeCanopy(field_inverted_index, token_vector, threshold)
 
-    logger.info("Canopy: %s", threshold.__name__ + field)
 
     return ((threshold, field),  canopy)
 

@@ -119,16 +119,19 @@ class DedupeBlocker(Blocker) :
             def process(self, lst):
                 return [w for w in lst if not w in self.stop_words]
 
-        index = TextIndex(Lexicon(Splitter(), CustomStopWordRemover()))
+        splitter = Splitter()
+
+        index = TextIndex(Lexicon(splitter, CustomStopWordRemover()))
 
         index.index = CosineIndex(index.lexicon)
+
 
         index_to_id = {}
         base_tokens = {}
 
         for i, (record_id, doc) in enumerate(data, 1) :
             index_to_id[i] = record_id
-            base_tokens[i] = doc
+            base_tokens[i] = splitter.process([doc])
             index.index_doc(i, doc)
 
         canopies = (tfidf._createCanopies(index,
@@ -168,7 +171,6 @@ class DedupeBlocker(Blocker) :
         # sys.setrecursionlimit(recursion_limit)
 
 
-
 class RecordLinkBlocker(Blocker) :
     def tfIdfBlock(self, data_1, data_2, field): 
         '''Creates TF/IDF canopy of a given set of data'''
@@ -179,20 +181,26 @@ class RecordLinkBlocker(Blocker) :
             def process(self, lst):
                 return [w for w in lst if not w in self.stop_words]
 
-        index = TextIndex(Lexicon(Splitter(), CustomStopWordRemover()))
+        splitter = Splitter()
+
+        index = TextIndex(Lexicon(splitter, CustomStopWordRemover()))
 
         index.index = CosineIndex(index.lexicon)
 
         index_to_id = {}
         base_tokens = {}
 
-        for i, (record_id, doc) in enumerate(data_1, 1) :
-            index_to_id[i] = record_id
-            base_tokens[i] = doc
+        i = 1
 
-        for j, (record_id, doc) in enumerate(data_2, len(data_1)+1) :
-            index_to_id[j] = record_id
-            index.index_doc(j, doc)
+        for record_id, doc in data_1 :
+            index_to_id[i] = record_id
+            base_tokens[i] = splitter.process([doc])
+            i += 1
+
+        for record_id, doc in data_2  :
+            index_to_id[i] = record_id
+            index.index_doc(i, doc)
+            i += 1
 
         canopies = [apply(tfidf._createCanopies,
                           (index,
@@ -207,6 +215,7 @@ class RecordLinkBlocker(Blocker) :
             id_canopy = dict((index_to_id[k], index_to_id[v]) 
                              for k,v in index_canopy.iteritems())
             self.canopies[key] = defaultdict(str, id_canopy)
+
 
 def blockTraining(training_pairs,
                   predicate_set,
@@ -434,13 +443,16 @@ class Coverage(object) :
 
 
     def _calculateOverlap(self, blocker, record_pairs, record_ids) :
-        for canopy_id, canopy in blocker.canopies.items() :
-            for record_1, record_2 in record_pairs :
-                id_1 = record_ids[record_1]
-                id_2 = record_ids[record_2]
-                if canopy[id_1] == canopy[id_2]:
-                    self.overlapping[canopy_id].add((record_1, record_2))
-                    self.blocks[canopy_id][canopy[id_1]].add((record_1, record_2))
+        for canopy_name, canopy in blocker.canopies.items() :
+            for pair in record_pairs :
+                id_1, id_2 = [record_ids[record] for record in pair]
+                #if canopy[id_1] and canopy[id_2] :
+                #    print pair
+                canopy_center = canopy[id_1]
+                if canopy_center and canopy[id_2] == canopy_center :
+                    self.overlapping[canopy_name].add(pair)
+                    self.blocks[canopy_name][canopy_center].add(pair)
+
 
 
 class DedupeCoverage(Coverage) :
@@ -487,12 +499,17 @@ class RecordLinkCoverage(Coverage) :
             data_2_set.add(record_2)
 
         data_1 = {}
-        for i, record in enumerate(data_1_set) :
-            data_1[i] = record
-
         data_2 = {}
-        for j, record in enumerate(data_2_set, len(data_1_set)) :
-            data_2[j] = record
+
+        i = 0
+
+        for record in data_1_set :
+            data_1[i] = record
+            i += 1
+
+        for record in data_2_set :
+            data_2[i] = record
+            i += 1
 
         record_ids = dict((v,k) for k,v in data_1.iteritems())
         record_ids.update((v,k) for k,v in data_2.iteritems())
@@ -514,8 +531,6 @@ class RecordLinkCoverage(Coverage) :
 
             self.stop_words[field] = stopWords(id_records_2)
             blocker.stop_words[field] = self.stop_words[field]
-                                        
-            # uniquify records
 
             blocker.tfIdfBlock(id_records_1, id_records_2, field)
 
