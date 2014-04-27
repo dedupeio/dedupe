@@ -1,33 +1,37 @@
 branches:
   only:
-    - master
-    - development
-
+  - master
+  - development
 language: python
 notifications:
-  email: 
+  email:
     on_success: change
     on_failure: always
-  irc : "chat.freenode.net#dedupe"
-    
-  
+  irc: chat.freenode.net#dedupe
 python:
-  - "2.7"
-  - "2.6"
+- '2.7'
+- '2.6'
 virtualenv:
-    system_site_packages: true
+  system_site_packages: true
 before_install:
-  - sudo apt-get install python-zope.index
+- sudo apt-get install python-zope.index
 install:
-  - if [ "$TRAVIS_PYTHON_VERSION" == "2.6" ]; then pip install --use-mirrors -r py26_requirements.txt; fi
-  - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then pip install --use-mirrors -r requirements.txt; fi
-  - pip install coveralls
-  - python setup.py develop
-  # Deal with issue on Travis builders re: multiprocessing.Queue :(
-  - "sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm"
-# command to run tests, e.g. python setup.py test
-script: 
-  - coverage run -m nose -I canonical_test
-  - python tests/canonical_test.py
-after_success:
-    coveralls
+- if [ "$TRAVIS_PYTHON_VERSION" == "2.6" ]; then pip install --use-mirrors -r py26_requirements.txt;
+  fi
+- if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then pip install --use-mirrors -r requirements.txt;
+  fi
+- pip install coveralls
+- python setup.py develop
+- sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
+script:
+- coverage run -m nose -I canonical_test
+- python tests/canonical_test.py
+after_success: coveralls
+deploy:
+  provider: pypi
+  user: fgregg
+  password:
+    secure: O/EwutOV8DmlYJ7dPJ2st7nGDKEaTaA/gwx7mxzFQYYlyJ7Iu87QXwEY3gPGFOGDh6eyg2qMqtKPTJnXTnltb8ROFX61WKu3F/do1cORFPDQneOAzyzL7ID+a7RaMaeUQ1gRFDo5nJuGGW8wmC8LZUjwcrtrx2zlYcEydq1CW+A=
+  on:
+    tags: true
+    repo: datamade/dedupe
