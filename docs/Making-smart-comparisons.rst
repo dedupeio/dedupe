@@ -12,7 +12,7 @@ to return.
 How long would it take to duplicate a thousand records?
 
 Within a data set of thousand records, there are :math:`\frac{1{,}000
-\times 999}{2} = 499{,}500` unique possible pair of records. If we
+\times 999}{2} = 499{,}500` unique pairs of records. If we
 compared all of them using our magic function it would take six days.
 
 But, one second is a **long** time, let's say we sped it up so that we
@@ -22,10 +22,10 @@ thousand record long dataset in less than a minute
 Feeling good about our super fast comparison function, let's take on a
 data set of 100,000 records. Now there are
 :math:`\frac{100{,}000 \times 99{,}999}{2} = 4{,}999{,}950{,}000` unique possible
-pairs. If compare all of them with our super fast comparison function,
+pairs. If we compare all of them with our super fast comparison function,
 it will take six days again.
 
-If we want to work with moderately sized data, we have to find a of
+If we want to work with moderately sized data, we have to find a way of
 making fewer comparisons.
 
 Duplicates are rare
@@ -35,10 +35,10 @@ In real world data, nearly all possible pairs of records are not
 duplicates.
 
 In this four record example below, only two pairs of records are
-duplicates (the first two and the last two), while there are four unique
-pairs of records that are not duplicates. This typical fraction of true
-duplicate pairs gets very small, very quickly as the length of a dataset
-grows.
+duplicates--(1, 2) and (3, 4), while there are four unique
+pairs of records that are not duplicates--(1,3), (1,4), (2,3), and (2,4). 
+Typically, as the size of the dataset grows, the fraction of pairs of records
+that are duplicates gets very small very quickly.
 
 +-------------+-----------+--------------------------+--------------+----------+
 |  first name | last name | address                  | phone        | record_id|
@@ -57,7 +57,7 @@ If we could only compare records that were true duplicates we would not
 run into the explosion of comparisons. Of course if already knew where
 the true duplicates were, we wouldn't need to compare any individual
 records. Unfortunately we don't but we do quite well if just compare
-records that were somewhat similar.
+records that are somewhat similar.
 
 Blocking
 --------
