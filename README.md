@@ -1,6 +1,6 @@
 # Dedupe Python Library
 
-_dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data._
+_dedupe is a python library that uses machine learning to perform de-duplication and entity resolution quickly on structured data._
 
 __dedupe__ will help you: 
 
