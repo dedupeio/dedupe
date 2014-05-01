@@ -78,7 +78,7 @@ class ScoreDuplicates(unittest.TestCase):
                         ])
 
     self.data_model = dedupe.Dedupe({"name" : {'type' : 'String'}}, ()).data_model
-    self.data_model['fields']['name']['weight'] = -1.0302742719650269
+    self.data_model['fields']['name'].weight = -1.0302742719650269
     self.data_model['bias'] = 4.76
 
     score_dtype = [('pairs', 'S4', 2), ('score', 'f4', 1)]
@@ -114,7 +114,6 @@ class FieldDistances(unittest.TestCase):
 
     record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
                      {'name' : 'steven', 'source' : 'a'}),)
-
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
@@ -167,8 +166,8 @@ class FieldDistances(unittest.TestCase):
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.],
-                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.]]),
+         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0.],
+                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.]]),
                                             3)
 
  

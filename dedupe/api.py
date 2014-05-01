@@ -126,7 +126,7 @@ class Matching(object):
         return clusters
 
     def _checkRecordType(self, record) :
-        for k in self.data_model.comparison_fields :
+        for k in self.data_model.field_comparators :
             if k not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "
@@ -252,7 +252,7 @@ class DedupeMatching(Matching) :
         blocks = OrderedDict({})
         coverage = {}
 
-        for field in self.blocker.tfidf_fields :
+        for field in self.blocker.canopies :
             self.blocker.tfIdfBlock(((record_id, record[field])
                                      for record_id, record 
                                      in data_d.iteritems()),
@@ -651,16 +651,13 @@ class ActiveMatching(Matching) :
     def _trainBlocker(self, ppc=1, uncovered_dupes=1) :
         training_pairs = copy.deepcopy(self.training_pairs)
 
-        blocker_types = self._blockerTypes()
-
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model,
                                                                        sample_size=32000)
 
         training_pairs['distinct'].extend(confident_nonduplicates)
 
-        predicate_set = blocking.predicateGenerator(blocker_types, 
-                                                    self.data_model)
+        predicate_set = predicateGenerator(self.data_model)
 
         (self.predicates, 
          self.stop_words) = dedupe.blocking.blockTraining(training_pairs,
@@ -674,7 +671,10 @@ class ActiveMatching(Matching) :
 
 
     def _blockerTypes(self) : # pragma : no cover
-        string_predicates = (predicates.wholeFieldPredicate,
+                            
+        string_predicates = [blocking.SimplePredicate(pred) 
+                             for pred in
+                             (predicates.wholeFieldPredicate,
                              predicates.tokenFieldPredicate,
                              predicates.commonIntegerPredicate,
                              predicates.sameThreeCharStartPredicate,
@@ -682,11 +682,11 @@ class ActiveMatching(Matching) :
                              predicates.sameSevenCharStartPredicate,
                              predicates.nearIntegersPredicate,
                              predicates.commonFourGram,
-                             predicates.commonSixGram)
+                             predicates.commonSixGram)]
 
-        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
-                                         for threshold
-                                         in [0.2, 0.4, 0.6, 0.8]])
+        tfidf_string_predicates = [tfidf.TfidfPredicate(threshold)
+                                   for threshold
+                                   in [0.2, 0.4, 0.6, 0.8]]
 
         return {'String' : (string_predicates
                             + tfidf_string_predicates)}
@@ -849,7 +849,7 @@ class ActiveMatching(Matching) :
         for (key_1, value_1) in self.data_model.items():
             try:
                 for (key_2, value_2) in value_1.items():
-                    LOGGER.info((key_2, value_2['weight']))
+                    LOGGER.info((key_2, value_2.weight))
             except AttributeError:
                 LOGGER.info((key_1, value_1))
 
@@ -974,5 +974,30 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return data_sample
 
 
+def predicateGenerator(data_model) :
+    predicate_set = []
+    for field, definition in data_model['fields'].items() :
+        if definition.predicates :
+            predicate_set.extend(definition.predicates)
+    
+    predicate_set = disjunctivePredicates(predicate_set)
+
+    return predicate_set
+
+def disjunctivePredicates(predicate_set):
+
+    disjunctive_predicates = list(itertools.combinations(predicate_set, 2))
+
+    # filter out disjunctive predicates that operate on same field
+
+    disjunctive_predicates = [blocking.CompoundPredicate(predicate) 
+                              for predicate in disjunctive_predicates 
+                              if predicate[0].field != predicate[1].field]
 
 
+    predicate_set = [blocking.CompoundPredicate((predicate,))
+                     for predicate in predicate_set]
+
+    predicate_set.extend(disjunctive_predicates)
+
+    return predicate_set

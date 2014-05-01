@@ -93,7 +93,7 @@ def trainModel(training_data, data_model, alpha=.001):
     (weight, bias) = lr.lr(labels, examples, alpha)
 
     for i, name in enumerate(data_model['fields']) :
-        data_model['fields'][name]['weight'] = float(weight[i])
+        data_model['fields'][name].weight = float(weight[i])
 
     data_model['bias'] = bias
 
@@ -109,7 +109,7 @@ def fieldDistances(record_pairs, data_model, num_records=None):
     
     current_column = 0
 
-    field_comparators = data_model.field_comparators
+    field_comparators = data_model.field_comparators.items()
     for i, (record_1, record_2) in enumerate(record_pairs) :
         for j, (field, compare) in enumerate(field_comparators) :
             distances[i,j] = compare(record_1[field],
@@ -119,16 +119,15 @@ def fieldDistances(record_pairs, data_model, num_records=None):
 
     for cat_index, length in data_model.categorical_indices :
         start = current_column
-        end = start + (length - 2)
+        end = start + length
         
         distances[:,start:end] =\
                 (distances[:, cat_index][:,None] 
-                 == numpy.arange(2, length)[None,:])
+                 == numpy.arange(2, 2 + length)[None,:])
 
         distances[:,cat_index][distances[:,cat_index] > 1] = 0
                              
         current_column = end
-
 
     for interaction in data_model.interactions :
         distances[:,current_column] =\
@@ -148,7 +147,7 @@ def fieldDistances(record_pairs, data_model, num_records=None):
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
 
-    field_weights = [fields[name]['weight'] for name in fields]
+    field_weights = [fields[name].weight for name in fields]
     bias = data_model['bias']
 
     scores = numpy.dot(field_distances, field_weights)
@@ -162,7 +161,6 @@ class ScoringFunction(object) :
         self.data_model = data_model
         self.threshold = threshold
         self.dtype = dtype
-
     def __call__(self, chunk_queue, scored_pairs_queue) :
         while True :
             record_pairs = chunk_queue.get()

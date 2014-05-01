@@ -38,7 +38,7 @@ class SourceComparatorTest(unittest.TestCase) :
                                        'Source Names' : ['a', 'b'],
                                        'Has Missing' : True}}, ())
 
-    source_comparator = deduper.data_model['fields']['name']['comparator']
+    source_comparator = deduper.data_model['fields']['name'].comparator
     assert source_comparator('a', 'a') == 0
     assert source_comparator('b', 'b') == 1
     assert source_comparator('a', 'b') == 2
@@ -53,100 +53,38 @@ class DataModelTest(unittest.TestCase) :
   def test_data_model(self) :
     OrderedDict = dedupe.backport.OrderedDict
     DataModel = dedupe.datamodel.DataModel
-    from dedupe.distance.affinegap import normalizedAffineGapDistance
-    from dedupe.distance.haversine import compareLatLong
-    from dedupe.distance.jaccard import compareJaccard
     
     self.assertRaises(TypeError, DataModel)
     assert DataModel({}) == {'fields': OrderedDict(), 'bias': 0}
     self.assertRaises(ValueError, DataModel, {'a' : 'String'})
     self.assertRaises(ValueError, DataModel, {'a' : {'foo' : 'bar'}})
     self.assertRaises(ValueError, DataModel, {'a' : {'type' : 'bar'}})
-    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Interaction'}})
+    self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction'}})
     self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Custom'}})
     self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
 
     self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction',
                                                            'Interaction Fields' : ['a', 'b']}})
-    assert DataModel({'a' : {'type' : 'String'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance})]),
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'LatLong'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'LatLong', 
-                                     'comparator': compareLatLong})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'Set'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'Set', 
-                                     'comparator': compareJaccard})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : True}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': True, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                              ('a: not_missing', {'type': 'Missing Data'})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : False}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance})]),
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String'}, 'b' : {'type' : 'String'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator' : normalizedAffineGapDistance}), 
-                              ('b', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance})]),
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String'}, 
-                      'b' : {'type' : 'String'},
-                      'a-b' : {'type' : 'Interaction', 
-                               'Interaction Fields' : ['a', 'b']}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                               ('b', {'Has Missing': False, 
-                                      'type': 'String', 
-                                      'comparator': normalizedAffineGapDistance}), 
-                               ('a-b', {'Has Missing': False, 
-                                        'type': 'Interaction', 
-                                        'Interaction Fields': ['a', 'b']})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : True}, 
-                      'b' : {'type' : 'String'},
-                      'a-b' : {'type' : 'Interaction', 
-                               'Interaction Fields' : ['a', 'b']}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': True, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                               ('b', {'Has Missing': False, 
-                                      'type': 'String', 
-                                      'comparator': normalizedAffineGapDistance}), 
-                               ('a-b', {'Has Missing': True, 
-                                        'type': 'Interaction', 
-                                        'Interaction Fields': ['a', 'b']}),
-                              ('a: not_missing', {'type': 'Missing Data'}), 
-                              ('a-b: not_missing', {'type': 'Missing Data'})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : False}, 
-                      'b' : {'type' : 'String'},
-                      'a-b' : {'type' : 'Interaction', 
-                               'Interaction Fields' : ['a', 'b']}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                               ('b', {'Has Missing': False, 
-                                      'type': 'String', 
-                                      'comparator': normalizedAffineGapDistance}), 
-                               ('a-b', {'Has Missing': False, 
-                                        'type': 'Interaction', 
-                                        'Interaction Fields': ['a', 'b']})]),
-       'bias': 0}
+    data_model = DataModel({'a' : {'type' : 'String'}, 
+                            'b' : {'type' : 'String'},
+                            'a-b' : {'type' : 'Interaction', 
+                                     'Interaction Fields' : ['a', 'b']}})
 
+    assert data_model['fields']['a-b'].interaction_fields  == ['a', 'b']
+
+    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : True}, 
+                            'b' : {'type' : 'String'},
+                            'a-b' : {'type' : 'Interaction', 
+                                     'Interaction Fields' : ['a', 'b']}})
+
+    assert data_model['fields']['a-b'].has_missing == True
+
+    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : False}, 
+                            'b' : {'type' : 'String'},
+                            'a-b' : {'type' : 'Interaction', 
+                                     'Interaction Fields' : ['a', 'b']}})
+
+    assert data_model['fields']['a-b'].has_missing == False
 
 
 

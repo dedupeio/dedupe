@@ -32,7 +32,7 @@ def gridSearch(training_data,
         for (training, validation) in kFolds(training_data, k):
             data_model = trainer(training, original_data_model, alpha)
 
-            weight = numpy.array([data_model['fields'][field]['weight']
+            weight = numpy.array([data_model['fields'][field].weight
                                   for field in fields])
             bias = data_model['bias']
 

@@ -15,90 +15,43 @@ import dedupe.tfidf as tfidf
 
 logger = logging.getLogger(__name__)
 
+    
+
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
     def __init__(self, predicates = None, 
                  stop_words = None) :
 
-        if stop_words is None :
-            stop_words = {}
-
         self.canopies = defaultdict(dict)
 
-        self.stop_words = defaultdict(set, stop_words)
-
-        logger.info(self.stop_words)
+        if stop_words is None :
+            self.stop_words = defaultdict(set)
+        else :
+            self.stop_word = stop_words
 
         if predicates is None :
-            self.simple_predicates = set([])
-            self.tfidf_predicates = set([])
-            self.tfidf_fields = []
-
+            self.predicates = []
         else :
-            predicate_types = predicateTypes(predicates)
-            self.simple_predicates, self.tfidf_predicates = predicate_types
+            self.predicates = predicates
 
-            self.tfidf_fields = {}
-            for threshold, field in self.tfidf_predicates :
-                try :
-                    self.tfidf_fields[field].add(threshold)
-                except KeyError :
-                    self.tfidf_fields[field] = set([threshold])
+        for compound_predicate in self.predicates :
+            for predicate in compound_predicate :
+                if predicate.__class__ is tfidf.TfidfPredicate :
+                    self.canopies[predicate.field][predicate.threshold] = {}
 
-        self.predicates = predicates
-
-
-    def functional(self, predicate) :
-        F, field = predicate
-
-        if F.__class__ is tfidf.TfidfPredicate :
-            canopy = self.canopies[(F, field)]
-            def tfidf_functional(instance) :
-                record_id = instance[0]
-                center = canopy[record_id]
-                if center :
-                    return (unicode(center),)
-                else :
-                    return ()
-                        
-            return tfidf_functional
-
-
-        else :
-            def simple_functional(instance) :
-                record = instance[1]
-                return F(record[field])
-
-            return simple_functional 
-                                                    
 
     def __call__(self, records):
-        if self.tfidf_predicates and not self.canopies :
-            raise ValueError("No canopies defined, but tf-idf predicate "
-                             "learned. Did you run the tfIdfBlocks method "
-                             "of the blocker?")
-
-        _join = str.join
-        _product = itertools.product
-
-        functional_predicates = []
-        for i, predicate in enumerate(self.predicates) :
-            functionals = []
-            for pred in predicate :
-                functionals.append(self.functional(pred))
-
-            functional_predicates.append((':' + unicode(i),
-                                          functionals))
-
         start_time = time.time()
 
         for i, record in enumerate(records) :
             record_id = record[0]
-            record_keys = set(_join(':', key) + label 
-                              for label, predicate 
-                              in functional_predicates
-                              for key in _product(*[F(record) 
-                                                    for F in predicate]))
+            record_keys = set([])
+                
+            record_keys = set(':'.join(key) + predicate.__name__ 
+                              for predicate 
+                              in self.predicates
+                              for key in predicate(record))
+
             for key in record_keys :
                 yield (key, record_id)
 
@@ -273,7 +226,7 @@ def blockTraining(training_pairs,
 
     logger.info('Final predicate set:')
     for predicate in final_predicate_set :
-        logger.info([(pred.__name__, field) for pred, field in predicate])
+        logger.info(predicate)
 
     if final_predicate_set:
         return final_predicate_set, coverage.stop_words
@@ -339,8 +292,7 @@ def findOptimumBlocking(uncovered_dupes,
                                                    uncovered_dupes)
 
 
-        logger.debug([(pred.__name__, field)
-                      for pred, field in best_predicate])
+        logger.debug(best_predicate)
         logger.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
                       'found_distinct: %(found_distinct)d, '
                       'uncovered dupes: %(uncovered)d',
@@ -422,21 +374,21 @@ class Coverage(object) :
                                 basic_predicates,
                                 pairs) :
 
-        for basic_predicate in basic_predicates :
-            (F, field) = basic_predicate        
+        for predicate in basic_predicates :
             for pair in pairs :
-                field_predicate_1 = F(pair[0][field])
+                # clean this up the None
+                field_predicate_1 = list(predicate((None, pair[0])))
 
                 if field_predicate_1:
-                    field_predicate_2 = F(pair[1][field])
+                    field_predicate_2 = list(predicate((None, pair[1])))
 
                     if field_predicate_2 :
                         field_preds = set(field_predicate_2) & set(field_predicate_1)
                         if field_preds :
-                            self.overlapping[basic_predicate].add(pair)
+                            self.overlapping[predicate].add(pair)
 
                         for field_pred in field_preds :
-                            self.blocks[basic_predicate][field_pred].add(pair)
+                            self.blocks[predicate][field_pred].add(pair)
 
 
 
@@ -461,8 +413,8 @@ class DedupeCoverage(Coverage) :
 
         tfidf_fields = defaultdict(list)
 
-        for threshold, field in tfidf_predicates :
-            tfidf_fields[field].append(threshold)
+        for predicate in tfidf_predicates :
+            tfidf_fields[predicate.field].append(predicate.threshold)
 
         blocker = DedupeBlocker()
         blocker.tfidf_fields = tfidf_fields
@@ -540,39 +492,16 @@ def predicateTypes(predicates) :
     simple_predicates = set([])
 
     for predicate in predicates:
-        for (pred, field) in predicate:
+        for pred in predicate:
             if pred.__class__ is tfidf.TfidfPredicate:
-                tfidf_predicates.add((pred, field))
-            elif isinstance(pred, types.FunctionType):
-                simple_predicates.add((pred, field))
+                tfidf_predicates.add(pred)
+            elif pred.__class__ is SimplePredicate :
+                simple_predicates.add(pred)
 
     return simple_predicates, tfidf_predicates
 
-def predicateGenerator(blocker_types, data_model) :
-    predicate_set = []
-    for record_type, predicate_functions in blocker_types.items() :
-        fields = [field_name for field_name, details
-                  in data_model['fields'].items()
-                  if details['type'] == record_type]
-        predicate_set.extend(list(itertools.product(predicate_functions, fields)))
-    predicate_set = disjunctivePredicates(predicate_set)
-
-    return predicate_set
 
 
-def disjunctivePredicates(predicate_set):
-
-    disjunctive_predicates = list(itertools.combinations(predicate_set, 2))
-
-    # filter out disjunctive predicates that operate on same field
-
-    disjunctive_predicates = [predicate for predicate in disjunctive_predicates 
-                              if predicate[0][1] != predicate[1][1]]
-
-    predicate_set = [(predicate, ) for predicate in predicate_set]
-    predicate_set.extend(disjunctive_predicates)
-
-    return predicate_set
 
 def stopWords(data) :
     index = TextIndex(Lexicon(Splitter()))
@@ -600,4 +529,41 @@ def stopWords(data) :
 
 
 
+
+class SimplePredicate(object) :
+    def __init__(self, func, field) :
+        self.func = func
+        self.__name__ = func.__name__ + field
+        self.field = field
+
+    def __repr__(self) :
+        return 'Simple Predicate:' + self.__name__
+
+    def __call__(self, instance) :
+        record = instance[1]
+        for block_key in  self.func(record[self.field]) :
+            yield block_key
+
+
+class CompoundPredicate(object) :
+    def __init__(self, predicates) :
+        self.predicates = predicates
+        self.__name__ = '(%s)' % ', '.join([pred.__name__ 
+                                            for pred in 
+                                            predicates])
+
+    def __iter__(self) :
+        for pred in self.predicates :
+            yield pred
+
+    def __repr__(self) :
+        return 'Compound Predicate:' + self.__name__
+
+    def __call__(self, record) :
+        block_keys = []
+        for predicate in self.predicates :
+            block_keys.append(list(predicate(record)))
+            
+        for block_key in itertools.product(block_keys) :
+            return block_key
 
