@@ -670,30 +670,6 @@ class ActiveMatching(Matching) :
                                      self.stop_words) 
 
 
-    def _blockerTypes(self) : # pragma : no cover
-                            
-        string_predicates = [blocking.SimplePredicate(pred) 
-                             for pred in
-                             (predicates.wholeFieldPredicate,
-                             predicates.tokenFieldPredicate,
-                             predicates.commonIntegerPredicate,
-                             predicates.sameThreeCharStartPredicate,
-                             predicates.sameFiveCharStartPredicate,
-                             predicates.sameSevenCharStartPredicate,
-                             predicates.nearIntegersPredicate,
-                             predicates.commonFourGram,
-                             predicates.commonSixGram)]
-
-        tfidf_string_predicates = [tfidf.TfidfPredicate(threshold)
-                                   for threshold
-                                   in [0.2, 0.4, 0.6, 0.8]]
-
-        return {'String' : (string_predicates
-                            + tfidf_string_predicates)}
-
-
-
-
     def writeSettings(self, file_name): # pragma : no cover
         """
         Write a settings file that contains the 
