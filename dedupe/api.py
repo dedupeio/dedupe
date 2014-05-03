@@ -463,6 +463,7 @@ class StaticMatching(Matching) :
                                  "settings file and try again")
 
 
+
 class ActiveMatching(Matching) :
     """
     Class for training dedupe extends Matching.

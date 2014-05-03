@@ -1,15 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
+from collections import defaultdict
 from zope.index.text.parsetree import ParseError
 
 logger = logging.getLogger(__name__)
 
 class TfidfPredicate(object):
+    type = "TfidfPredicate"
+
     def __init__(self, threshold, field):
         self.__name__ = 'TF-IDF:' + str(threshold) + field
         self.field = field
-        self.canopy = None
+        self.canopy = defaultdict(int)
         self.threshold = threshold
 
     def __repr__(self) :
