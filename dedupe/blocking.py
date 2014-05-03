@@ -32,10 +32,9 @@ class Blocker:
                 if predicate.type == "TfidfPredicate" :
                     self.canopies[predicate.field][predicate.threshold] = {}
 
-        print self.predicates
-
 
     def __call__(self, records):
+
         for record in records :
             record_id = record[0]
 
@@ -325,41 +324,55 @@ def stopWords(data) :
 
     return stop_words
 
+class Predicate(object) :
+    def __repr__(self) :
+        return "%s: %s" % (self.type, self.__name__)
 
 
-
-class SimplePredicate(object) :
+class SimplePredicate(Predicate) :
     type = "SimplePredicate"
 
     def __init__(self, func, field) :
         self.func = func
-        self.__name__ = func.__name__ + field
+        self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
-
-    def __repr__(self) :
-        return 'Simple Predicate:' + self.__name__
 
     def __call__(self, instance) :
         record = instance[1]
         for block_key in  self.func(record[self.field]) :
             yield block_key
 
+class TfidfPredicate(Predicate):
+    type = "TfidfPredicate"
 
-class CompoundPredicate(object) :
+    def __init__(self, threshold, field):
+        self.__name__ = '(%s, %s)' % (threshold, field)
+        self.field = field
+        self.canopy = defaultdict(int)
+        self.threshold = threshold
+
+    def __call__(self, record) :
+        record_id = record[0]
+        center = self.canopy[record_id]
+        if center :
+            return (unicode(center),)
+        else :
+            return ()
+
+
+
+class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"
 
     def __init__(self, predicates) :
         self.predicates = predicates
-        self.__name__ = '(%s)' % ', '.join([pred.__name__ 
+        self.__name__ = '(%s)' % ', '.join([str(pred)
                                             for pred in 
                                             predicates])
 
     def __iter__(self) :
         for pred in self.predicates :
             yield pred
-
-    def __repr__(self) :
-        return 'Compound Predicate:' + self.__name__
 
     def __call__(self, record) :
         block_keys = []

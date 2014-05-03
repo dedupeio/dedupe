@@ -6,7 +6,6 @@ except ImportError :
 import itertools
 import dedupe.predicates
 import dedupe.blocking
-import dedupe.tfidf
 
 from dedupe.distance.affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
@@ -123,9 +122,9 @@ class DataModel(dict) :
         self.interactions = []
         self.categorical_indices = []
 
-        self.field_comparators = dict([(field, fields[field].comparator)
-                                       for field in fields
-                                       if fields[field].comparator])
+        self.field_comparators = OrderedDict([(field, fields[field].comparator)
+                                              for field in fields
+                                              if fields[field].comparator])
 
     
         self.missing_field_indices = [i for i, (field, definition) 
@@ -176,7 +175,7 @@ class StringType(FieldType) :
                                    dedupe.predicates.commonFourGram,
                                    dedupe.predicates.commonSixGram)]
 
-        self.canopy_predicates = [dedupe.tfidf.TfidfPredicate(threshold, field)
+        self.canopy_predicates = [dedupe.blocking.TfidfPredicate(threshold, field)
                                   for threshold in (0.2, 0.4, 0.6, 0.8)]
 
 

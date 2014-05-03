@@ -165,7 +165,7 @@ class ScoringFunction(object) :
         while True :
             record_pairs = chunk_queue.get()
             if record_pairs is None :
-                # put the poison bill back in the queue so that other
+                # put the poison pill back in the queue so that other
                 # scorers will know to stop
                 chunk_queue.put(None)
                 break

@@ -29,7 +29,6 @@ import dedupe.crossvalidation as crossvalidation
 import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
-import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
 LOGGER = logging.getLogger(__name__)
@@ -156,6 +155,19 @@ class Matching(object):
 
         return pair_gen()
 
+    def _logLearnedWeights(self): # pragma: no cover
+        """
+        Log learned weights and bias terms
+        """
+        LOGGER.info('Learned Weights')
+        for (key_1, value_1) in self.data_model.items():
+            try:
+                for (key_2, value_2) in value_1.items():
+                    LOGGER.info((key_2, value_2.weight))
+            except AttributeError:
+                LOGGER.info((key_1, value_1))
+
+
 class DedupeMatching(Matching) :
     """
     Class for Deduplication, extends Matching.
@@ -259,8 +271,8 @@ class DedupeMatching(Matching) :
                                     field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
-            blocks.setdefault(block_key, []).append((record_id, 
-                                                     data_d[record_id]))
+            blocks.setdefault(str(block_key), []).append((record_id, 
+                                                          data_d[record_id]))
 
         # Redundant-free Comparisons from Kolb et al, "Dedoop:
         # Efficient Deduplication with Hadoop"
@@ -390,7 +402,7 @@ class RecordLinkMatching(Matching) :
             self.blocker.tfIdfBlock(fields_1, fields_2, field)
 
 
-        for block_key, record_id in self.blocker(data_1.iteritems()) :
+        for block_key, record_id in self.blocker(data_1.items()) :
             blocks.setdefault(block_key, ([], []))[0].append((record_id, 
                                                               data_1[record_id]))
 
@@ -461,6 +473,10 @@ class StaticMatching(Matching) :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
+
+        self._logLearnedWeights()
+        LOGGER.info(self.predicates)
+        LOGGER.info(self.stop_words)
 
 
 
@@ -624,7 +640,7 @@ class ActiveMatching(Matching) :
                            that we'll have to expensively, compare as well.
         """
         n_folds = min(numpy.sum(self.training_data['label']=='match')/3,
-                      20)
+                      5)
         n_folds = max(n_folds,
                       2)
 
@@ -818,17 +834,6 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-    def _logLearnedWeights(self): # pragma: no cover
-        """
-        Log learned weights and bias terms
-        """
-        LOGGER.info('Learned Weights')
-        for (key_1, value_1) in self.data_model.items():
-            try:
-                for (key_2, value_2) in value_1.items():
-                    LOGGER.info((key_2, value_2.weight))
-            except AttributeError:
-                LOGGER.info((key_1, value_1))
 
     def _loadSample(self, *args, **kwargs) : # pragma : no cover
 
@@ -952,29 +957,16 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
 
 def predicateGenerator(data_model) :
-    predicate_set = []
+    predicates = []
     for field, definition in data_model['fields'].items() :
-        if definition.predicates :
-            predicate_set.extend(definition.predicates)
+        predicates.extend(definition.predicates)
+
+    compound_predicates = [blocking.CompoundPredicate(predicate)
+                           for predicate 
+                           in itertools.combinations(predicates, 2)
+                           if predicate[0].field != predicate[1].field]
+
+    compound_predicates += [blocking.CompoundPredicate((predicate,)) 
+                            for predicate in predicates]
     
-    predicate_set = disjunctivePredicates(predicate_set)
-
-    return predicate_set
-
-def disjunctivePredicates(predicate_set):
-
-    disjunctive_predicates = list(itertools.combinations(predicate_set, 2))
-
-    # filter out disjunctive predicates that operate on same field
-
-    disjunctive_predicates = [blocking.CompoundPredicate(predicate) 
-                              for predicate in disjunctive_predicates 
-                              if predicate[0].field != predicate[1].field]
-
-
-    predicate_set = [blocking.CompoundPredicate((predicate,))
-                     for predicate in predicate_set]
-
-    predicate_set.extend(disjunctive_predicates)
-
-    return predicate_set
+    return compound_predicates
