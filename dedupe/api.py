@@ -264,7 +264,7 @@ class DedupeMatching(Matching) :
         blocks = OrderedDict({})
         coverage = {}
 
-        for field in self.blocker.canopies :
+        for field in self.blocker.tfidf_fields :
             self.blocker.tfIdfBlock(((record_id, record[field])
                                      for record_id, record 
                                      in data_d.iteritems()),
