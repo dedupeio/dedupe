@@ -25,12 +25,14 @@ class Blocker:
         
         self.predicates = predicates
         self.stop_words = stop_words
-        self.canopies = {}
 
-        #for compound_predicate in self.predicates :
-        #    for predicate in compound_predicate :
-        #        if predicate.type == "TfidfPredicate" :
-        #           self.canopy_predicates.append(predicate)
+        self.canopies = {}
+        self.tfidf_fields = defaultdict(set)
+
+        for full_predicate in self.predicates :
+            for predicate in full_predicate :
+                if predicate.type == "TfidfPredicate" :
+                    self.tfidf_fields[predicate.field].add(predicate)
 
 
     def __call__(self, records):
@@ -72,18 +74,13 @@ class DedupeBlocker(Blocker) :
             base_tokens[i] = splitter.process([doc])
             index.index_doc(i, doc)
 
-        canopies = (tfidf._createCanopies(index,
-                                          base_tokens, 
-                                          threshold, 
-                                          field)
-                    for threshold in self.tfidf_fields[field])
 
-        for canopy in canopies :
-            key, index_canopy = canopy
-            id_canopy = dict((index_to_id[k], index_to_id[v]) 
-                             for k,v in index_canopy.iteritems())
-            self.canopies[key] = defaultdict(str, id_canopy)
+        for predicate in self.tfidf_fields[field] :
+            predicate.canopy = tfidf.makeCanopy(index,
+                                                base_tokens, 
+                                                predicate.threshold)
 
+        
 
 class RecordLinkBlocker(Blocker) :
     def tfIdfBlock(self, data_1, data_2, field): 
@@ -271,7 +268,14 @@ class Coverage(object) :
         id_records = dict(itertools.izip(itertools.count(), records))
         record_ids = dict(itertools.izip(records, itertools.count()))
 
-        blocker = DedupeBlocker(predicate_set) 
+        blocker = DedupeBlocker(predicate_set)
+
+        for field in blocker.tfidf_fields :
+            data = ((record_id, record[field])
+                    for record_id, record
+                    in id_records.items())
+            blocker.tfIdfBlock(data, field)
+            
 
         for block_key, record_id in blocker(id_records.items()) :
             covered_by[record_id].add(block_key)
@@ -335,6 +339,9 @@ def stopWords(data) :
     return stop_words
 
 class Predicate(object) :
+    def __iter__(self) :
+        yield self
+
     def __repr__(self) :
         return "%s: %s" % (self.type, self.__name__)
 
@@ -363,7 +370,7 @@ class TfidfPredicate(Predicate):
 
     def __call__(self, record) :
         record_id = record[0]
-        center = self.canopy[record_id]
+        center = self.canopy.get(record_id)
         if center :
             return (unicode(center),)
         else :
