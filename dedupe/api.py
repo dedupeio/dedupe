@@ -640,7 +640,7 @@ class ActiveMatching(Matching) :
                            that we'll have to expensively, compare as well.
         """
         n_folds = min(numpy.sum(self.training_data['label']=='match')/3,
-                      5)
+                      20)
         n_folds = max(n_folds,
                       2)
 
@@ -961,12 +961,4 @@ def predicateGenerator(data_model) :
     for field, definition in data_model['fields'].items() :
         predicates.extend(definition.predicates)
 
-    compound_predicates = [blocking.CompoundPredicate(predicate)
-                           for predicate 
-                           in itertools.combinations(predicates, 2)
-                           if predicate[0].field != predicate[1].field]
-
-    compound_predicates += [blocking.CompoundPredicate((predicate,)) 
-                            for predicate in predicates]
-    
-    return compound_predicates
+    return predicates

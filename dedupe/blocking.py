@@ -25,12 +25,12 @@ class Blocker:
         
         self.predicates = predicates
         self.stop_words = stop_words
-        self.canopies = defaultdict(dict)
+        self.canopies = {}
 
-        for compound_predicate in self.predicates :
-            for predicate in compound_predicate :
-                if predicate.type == "TfidfPredicate" :
-                    self.canopies[predicate.field][predicate.threshold] = {}
+        #for compound_predicate in self.predicates :
+        #    for predicate in compound_predicate :
+        #        if predicate.type == "TfidfPredicate" :
+        #           self.canopy_predicates.append(predicate)
 
 
     def __call__(self, records):
@@ -49,8 +49,12 @@ class Blocker:
 
 
 class DedupeBlocker(Blocker) :
+    
+
     def tfIdfBlock(self, data, field): 
         '''Creates TF/IDF canopy of a given set of data'''
+
+        
 
         splitter = Splitter()
 
@@ -123,6 +127,7 @@ class RecordLinkBlocker(Blocker) :
             self.canopies[key] = defaultdict(str, id_canopy)
 
 
+
 def blockTraining(training_pairs,
                   predicate_set,
                   eta=.1,
@@ -146,6 +151,8 @@ def blockTraining(training_pairs,
         coverage = Coverage(predicate_set,
                             training_dupes + training_distinct)
 
+    predicate_set = coverage.overlapping.keys()
+
     coverage_threshold = eta * len(training_distinct)
     logger.info("coverage threshold: %s", coverage_threshold)
 
@@ -158,16 +165,9 @@ def blockTraining(training_pairs,
     # many distinct pairs
     distinct_blocks = coverage.predicateCoverage(predicate_set,
                                                  training_distinct)
-
-    logger.info("Before removing liberal predicates, %s predicates",
-                 len(predicate_set))
-
     for (pred, blocks) in distinct_blocks.iteritems():
         if any(len(block) >= coverage_threshold for block in blocks if block):
             predicate_set.remove(pred)
-
-    logger.info("After removing liberal predicates, %s predicates",
-                 len(predicate_set))
 
     distinct_coverage = coverage.predicateCoverage(predicate_set, 
                                                    training_distinct)
@@ -284,6 +284,16 @@ class Coverage(object) :
             for block_key, predicate in blocks :
                 self.overlapping[predicate].add((record_1, record_2))
 
+        compound_predicates = itertools.combinations(self.overlapping.keys(),
+                                                     2)
+
+        for compound_predicate in compound_predicates :
+            predicate_1, predicate_2 = compound_predicate
+            self.overlapping[CompoundPredicate(compound_predicate)] =\
+                self.overlapping[predicate_1] & self.overlapping[predicate_2]
+
+
+
     def predicateCoverage(self,
                           predicate_set,
                           pairs) :
@@ -359,6 +369,8 @@ class TfidfPredicate(Predicate):
         else :
             return ()
 
+
+    # declare set state and get state
 
 
 class CompoundPredicate(Predicate) :
