@@ -24,9 +24,8 @@ class Blocker:
                  stop_words = defaultdict(set)) :
         
         self.predicates = predicates
-        self.stop_words = stop_words
+        self.stop_words = defaultdict(set)
 
-        self.canopies = {}
         self.tfidf_fields = defaultdict(set)
 
         for full_predicate in self.predicates :
@@ -55,8 +54,6 @@ class DedupeBlocker(Blocker) :
 
     def tfIdfBlock(self, data, field): 
         '''Creates TF/IDF canopy of a given set of data'''
-
-        
 
         splitter = Splitter()
 
@@ -148,7 +145,16 @@ def blockTraining(training_pairs,
         coverage = Coverage(predicate_set,
                             training_dupes + training_distinct)
 
-    predicate_set = coverage.overlapping.keys()
+    # Compound Predicates
+    compound_predicates = itertools.combinations(coverage.overlap, 2)
+
+    for compound_predicate in compound_predicates :
+        predicate_1, predicate_2 = compound_predicate
+        coverage.overlap[CompoundPredicate(compound_predicate)] =\
+            coverage.overlap[predicate_1] & coverage.overlap[predicate_2]
+
+
+    predicate_set = coverage.overlap.keys()
 
     coverage_threshold = eta * len(training_distinct)
     logger.info("coverage threshold: %s", coverage_threshold)
@@ -257,7 +263,7 @@ def findOptimumBlocking(uncovered_dupes,
 
 class Coverage(object) :
     def __init__(self, predicate_set, pairs) :
-        self.overlapping = defaultdict(set)
+        self.overlap = defaultdict(set)
         self.stop_words = {}
 
 
@@ -286,15 +292,7 @@ class Coverage(object) :
             
             blocks = covered_by[id_1] & covered_by[id_2] 
             for block_key, predicate in blocks :
-                self.overlapping[predicate].add((record_1, record_2))
-
-        compound_predicates = itertools.combinations(self.overlapping.keys(),
-                                                     2)
-
-        for compound_predicate in compound_predicates :
-            predicate_1, predicate_2 = compound_predicate
-            self.overlapping[CompoundPredicate(compound_predicate)] =\
-                self.overlapping[predicate_1] & self.overlapping[predicate_2]
+                self.overlap[predicate].add((record_1, record_2))
 
 
 
@@ -306,7 +304,7 @@ class Coverage(object) :
         pairs = set(pairs)
 
         for predicate in predicate_set :
-            covered_pairs = pairs.intersection(self.overlapping[predicate])
+            covered_pairs = pairs.intersection(self.overlap[predicate])
             if covered_pairs :
                 coverage[predicate] = covered_pairs
 
@@ -376,8 +374,10 @@ class TfidfPredicate(Predicate):
         else :
             return ()
 
-
-    # declare set state and get state
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result['canopy'] = {}
+        return result
 
 
 class CompoundPredicate(Predicate) :
