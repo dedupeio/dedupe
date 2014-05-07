@@ -34,11 +34,9 @@ def makeCanopy(index, token_vector, threshold) :
 
         for candidate_id in candidates :
             canopies[candidate_id] = center_id
-            index.unindex_doc(candidate_id)
 
         if candidates :
             canopies[center_id] = center_id
-            index.unindex_doc(center_id)
 
 
     return canopies
