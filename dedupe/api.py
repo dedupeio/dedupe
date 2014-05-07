@@ -615,7 +615,7 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=1, uncovered_dupes=1) :
+    def train(self, ppc=.1, uncovered_dupes=1) :
         """
         Keyword arguments:
         ppc -- Limits the Proportion of Pairs Covered that we allow a
