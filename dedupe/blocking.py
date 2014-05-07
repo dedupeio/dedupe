@@ -266,6 +266,7 @@ class Coverage(object) :
         for block_key, record_id in blocker(id_records.items()) :
             covered_by[record_id].add(block_key)
 
+
         for record_1, record_2 in pairs :
             id_1 = record_ids[record_1]
             id_2 = record_ids[record_2]
