@@ -15,8 +15,6 @@ import dedupe.tfidf as tfidf
 
 logger = logging.getLogger(__name__)
 
-    
-
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
     def __init__(self, 
@@ -39,14 +37,15 @@ class Blocker:
         for record in records :
             record_id = record[0]
 
-            record_keys = set((':'.join(key), predicate)
-                              for predicate 
-                              in self.predicates
-                              for key in predicate(record))
+            seen_keys = set([])
 
-            for block_key in record_keys :
-                yield block_key, record_id
-
+            for predicate in self.predicates :
+                for block_key in predicate(record) :
+                    if (block_key, predicate) not in seen_keys :
+                        yield (block_key, predicate), record_id
+                    else :
+                        seen_keys.add(block_key, predicate)
+                
 
 
 class DedupeBlocker(Blocker) :
@@ -307,7 +306,7 @@ class DedupeCoverage(Coverage) :
                     for record_id, record
                     in id_records.items())
             blocker.tfIdfBlock(data, field)
-
+        
         self.coveredBy(id_records, record_ids, blocker, pairs)
 
 class RecordLinkCoverage(Coverage) :
@@ -407,13 +406,13 @@ class TfidfPredicate(Predicate):
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
-        self.canopy = defaultdict(int)
+        self.canopy = {}
         self.threshold = threshold
 
     def __call__(self, record) :
         record_id = record[0]
         center = self.canopy.get(record_id)
-        if center :
+        if center is not None :
             return (unicode(center),)
         else :
             return ()
@@ -443,7 +442,7 @@ class CompoundPredicate(Predicate) :
             block_keys.append(list(predicate(record)))
             
         for block_key in itertools.product(*block_keys) :
-            yield block_key
+            yield ':'.join(block_key)
 
 class CustomStopWordRemover(object):
     def __init__(self, stop_words) :
