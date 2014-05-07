@@ -74,7 +74,8 @@ class TfidfTest(unittest.TestCase):
     for block_key, record_id in blocker(self.data_d.items()) :
       blocks[block_key].add(record_id)
 
-    assert sorted(blocks.values()) == sorted([set([120, 125]), set((130, 135))])
+    assert set([frozenset(block) for block in blocks.values()]) ==\
+        set([frozenset([120, 125]), frozenset([130, 135])])
 
   def test_constrained_inverted_index(self):
 
