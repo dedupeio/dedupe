@@ -9,10 +9,8 @@ notifications:
     on_failure: always
   irc: chat.freenode.net#dedupe
 python:
-- '2.7'
+- "2.7_with_system_site_packages"
 - '2.6'
-virtualenv:
-  system_site_packages: true
 before_install:
 - sudo apt-get install python-zope.index
 install:
