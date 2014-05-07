@@ -6,9 +6,6 @@ from zope.index.text.parsetree import ParseError
 
 logger = logging.getLogger(__name__)
 
-
-
-
 #@profile
 def makeCanopy(index, token_vector, threshold) :
     canopies = {}
@@ -37,25 +34,12 @@ def makeCanopy(index, token_vector, threshold) :
 
         for candidate_id in candidates :
             canopies[candidate_id] = center_id
+            index.unindex_doc(candidate_id)
 
         if candidates :
             canopies[center_id] = center_id
+            index.unindex_doc(center_id)
 
 
     return canopies
 
-def _createCanopies(field_inverted_index,
-                    token_vector,
-                    threshold,
-                    field) :
-                     
-    logger.info("Canopy: %s", str(threshold) + field)
-    canopy = makeCanopy(field_inverted_index, token_vector, threshold)
-
-
-    return ((threshold, field),  canopy)
-
-    
-
-    
-    
