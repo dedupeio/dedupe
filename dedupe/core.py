@@ -46,7 +46,6 @@ def randomPairs(n_records, sample_size):
         except OverflowError:
             return randomPairsWithReplacement(n_records, sample_size)
 
-
     b = 1 - 2 * n_records
 
     x = numpy.trunc((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2)
