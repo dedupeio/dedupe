@@ -72,6 +72,7 @@ class DedupeBlocker(Blocker) :
 
 
         for predicate in self.tfidf_fields[field] :
+            logger.info("Canopy: %s", str(predicate))
             canopy = tfidf.makeCanopy(index,
                                       base_tokens, 
                                       predicate.threshold)
@@ -109,6 +110,7 @@ class RecordLinkBlocker(Blocker) :
             i += 1
 
         for predicate in self.tfidf_fields[field] :
+            logger.info("Canopy: %s", str(predicate))
             canopy = tfidf.makeCanopy(index,
                                       base_tokens, 
                                       predicate.threshold)
