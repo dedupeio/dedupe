@@ -106,19 +106,10 @@ class RecordLinkBlocker(Blocker) :
             index.index_doc(i, doc)
             i += 1
 
-        canopies = [apply(tfidf._createCanopies,
-                          (index,
-                           base_tokens, 
-                           threshold, 
-                           field))
-                    for threshold in self.tfidf_fields[field]]
-
-
-        for canopy in canopies :
-            key, index_canopy = canopy
-            id_canopy = dict((index_to_id[k], index_to_id[v]) 
-                             for k,v in index_canopy.iteritems())
-            self.canopies[key] = defaultdict(str, id_canopy)
+        for predicate in self.tfidf_fields[field] :
+            predicate.canopy = tfidf.makeCanopy(index,
+                                                base_tokens, 
+                                                predicate.threshold)
 
 
 
@@ -142,8 +133,8 @@ def blockTraining(training_pairs,
                                       training_dupes + training_distinct)
 
     else :
-        coverage = Coverage(predicate_set,
-                            training_dupes + training_distinct)
+        coverage = DedupeCoverage(predicate_set,
+                                  training_dupes + training_distinct)
 
     # Compound Predicates
     compound_predicates = itertools.combinations(coverage.overlap, 2)
@@ -262,26 +253,10 @@ def findOptimumBlocking(uncovered_dupes,
     return final_predicate_set
 
 class Coverage(object) :
-    def __init__(self, predicate_set, pairs) :
+
+    def coveredBy(self, id_records, record_ids, blocker, pairs) :
         self.overlap = defaultdict(set)
-        self.stop_words = {}
-
-
         covered_by = defaultdict(set)
-
-        records = set(itertools.chain(*pairs))
-        
-        id_records = dict(itertools.izip(itertools.count(), records))
-        record_ids = dict(itertools.izip(records, itertools.count()))
-
-        blocker = DedupeBlocker(predicate_set)
-
-        for field in blocker.tfidf_fields :
-            data = ((record_id, record[field])
-                    for record_id, record
-                    in id_records.items())
-            blocker.tfIdfBlock(data, field)
-            
 
         for block_key, record_id in blocker(id_records.items()) :
             covered_by[record_id].add(block_key)
@@ -293,8 +268,6 @@ class Coverage(object) :
             blocks = covered_by[id_1] & covered_by[id_2] 
             for block_key, predicate in blocks :
                 self.overlap[predicate].add((record_1, record_2))
-
-
 
     def predicateCoverage(self,
                           predicate_set,
@@ -309,6 +282,70 @@ class Coverage(object) :
                 coverage[predicate] = covered_pairs
 
         return coverage
+
+class DedupeCoverage(Coverage) :
+    def __init__(self, predicate_set, pairs) :
+        self.stop_words = {}
+
+
+        records = set(itertools.chain(*pairs))
+        
+        id_records = dict(itertools.izip(itertools.count(), records))
+        record_ids = dict(itertools.izip(records, itertools.count()))
+
+        blocker = DedupeBlocker(predicate_set)
+
+        for field in blocker.tfidf_fields :
+            data = ((record_id, record[field])
+                    for record_id, record
+                    in id_records.items())
+            blocker.tfIdfBlock(data, field)
+
+        self.coveredBy(id_records, record_ids, blocker, pairs)
+
+class RecordLinkCoverage(Coverage) :
+    def __init__(self, predicate_set, pairs) :
+        self.stop_words = {}
+
+        
+        data_1 = set([])
+        data_2 = set([])
+
+        for record_1, record_2 in pairs :
+            data_1.add(record_1)
+            data_2.add(record_2)
+
+        i = 0
+        id_records_1 = {}
+        id_records_2 = {}
+
+        for record in data_1 :
+            id_records_1[i] = record
+            i += 1
+
+        for record in data_2 :
+            id_records_2[i] = record
+            i += 1
+
+        id_records = id_records_1.copy()
+        id_records.update(id_records_2)
+        
+        record_ids = dict((record, record_id) 
+                          for record_id, record
+                          in id_records.items())
+
+        blocker = RecordLinkBlocker(predicate_set)
+
+        for field in blocker.tfidf_fields :
+            fields_1 = ((record_id, record[field])
+                        for record_id, record
+                        in id_records_1.items())
+            fields_2 = ((record_id, record[field])
+                        for record_id, record
+                        in id_records_2.items())
+            blocker.tfIdfBlock(fields_1, fields_2, field)
+
+        self.coveredBy(id_records, record_ids, blocker, pairs)
 
 
 
