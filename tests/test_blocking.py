@@ -46,22 +46,20 @@ class TfidfTest(unittest.TestCase):
 
   def test_unconstrained_inverted_index(self):
 
-    blocker = dedupe.blocking.DedupeBlocker()
-    blocker.tfidf_fields = {"name" : [dedupe.tfidf.TfidfPredicate(0.0)]}
+    blocker = dedupe.blocking.DedupeBlocker([dedupe.blocking.TfidfPredicate(0.0, "name")])
 
     blocker.tfIdfBlock(((record_id, record["name"]) 
                         for record_id, record 
                         in self.data_d.iteritems()),
                        "name")
 
-    canopy = blocker.canopies.values()[0]
+    canopy = list(blocker.tfidf_fields['name'])[0].canopy
 
     assert canopy == {120: 120, 130: 130, 125: 120, 135: 130}
 
   def test_constrained_inverted_index(self):
 
-    blocker = dedupe.blocking.RecordLinkBlocker()
-    blocker.tfidf_fields = {"name" : [dedupe.tfidf.TfidfPredicate(0.0)]}
+    blocker = dedupe.blocking.RecordLinkBlocker([dedupe.blocking.TfidfPredicate(0.0, "name")])
 
     fields_1 = dict((record_id, record["name"]) 
                     for record_id, record 
@@ -75,7 +73,7 @@ class TfidfTest(unittest.TestCase):
 
     blocker.tfIdfBlock(fields_1.items(), fields_2.items(), "name")
 
-    canopy = blocker.canopies.values()[0]
+    canopy = list(blocker.tfidf_fields['name'])[0].canopy
 
     assert set(canopy.values()) <= set(fields_1.keys())
 

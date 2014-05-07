@@ -73,9 +73,12 @@ class DedupeBlocker(Blocker) :
 
 
         for predicate in self.tfidf_fields[field] :
-            predicate.canopy = tfidf.makeCanopy(index,
-                                                base_tokens, 
-                                                predicate.threshold)
+            canopy = tfidf.makeCanopy(index,
+                                      base_tokens, 
+                                      predicate.threshold)
+            predicate.canopy = dict((index_to_id[k], index_to_id[v])
+                                    for k, v
+                                    in canopy.iteritems())
 
         
 
@@ -107,10 +110,12 @@ class RecordLinkBlocker(Blocker) :
             i += 1
 
         for predicate in self.tfidf_fields[field] :
-            predicate.canopy = tfidf.makeCanopy(index,
-                                                base_tokens, 
-                                                predicate.threshold)
-
+            canopy = tfidf.makeCanopy(index,
+                                      base_tokens, 
+                                      predicate.threshold)
+            predicate.canopy = dict((index_to_id[k], index_to_id[v])
+                                    for k, v
+                                    in canopy.iteritems())
 
 
 def blockTraining(training_pairs,
@@ -125,16 +130,16 @@ def blockTraining(training_pairs,
 
     # Setup
 
-    training_dupes = (training_pairs['match'])[:]
-    training_distinct = (training_pairs['distinct'])[:]
+    training_dupes = set(training_pairs['match'])
+    training_distinct = set(training_pairs['distinct'])
 
     if matching == "RecordLink" :
         coverage = RecordLinkCoverage(predicate_set,
-                                      training_dupes + training_distinct)
+                                      training_dupes | training_distinct)
 
     else :
         coverage = DedupeCoverage(predicate_set,
-                                  training_dupes + training_distinct)
+                                  training_dupes | training_distinct)
 
     # Compound Predicates
     compound_predicates = itertools.combinations(coverage.overlap, 2)
@@ -143,7 +148,6 @@ def blockTraining(training_pairs,
         predicate_1, predicate_2 = compound_predicate
         coverage.overlap[CompoundPredicate(compound_predicate)] =\
             coverage.overlap[predicate_1] & coverage.overlap[predicate_2]
-
 
     predicate_set = coverage.overlap.keys()
 
@@ -157,11 +161,11 @@ def blockTraining(training_pairs,
 
     # We want to throw away the predicates that puts together too
     # many distinct pairs
-    distinct_blocks = coverage.predicateCoverage(predicate_set,
-                                                 training_distinct)
-    for (pred, blocks) in distinct_blocks.iteritems():
-        if any(len(block) >= coverage_threshold for block in blocks if block):
-            predicate_set.remove(pred)
+    for pred, blocks in coverage.blocks.iteritems():
+        for block in blocks.values() :
+            if len(block & training_distinct) >= coverage_threshold :
+                predicate_set.remove(pred)
+                continue
 
     distinct_coverage = coverage.predicateCoverage(predicate_set, 
                                                    training_distinct)
@@ -256,6 +260,8 @@ class Coverage(object) :
 
     def coveredBy(self, id_records, record_ids, blocker, pairs) :
         self.overlap = defaultdict(set)
+        self.blocks = defaultdict(lambda : defaultdict(set))
+
         covered_by = defaultdict(set)
 
         for block_key, record_id in blocker(id_records.items()) :
@@ -268,6 +274,7 @@ class Coverage(object) :
             blocks = covered_by[id_1] & covered_by[id_2] 
             for block_key, predicate in blocks :
                 self.overlap[predicate].add((record_1, record_2))
+                self.blocks[predicate][block_key].add((record_1, record_2))
 
     def predicateCoverage(self,
                           predicate_set,
@@ -376,7 +383,7 @@ def stopWords(data) :
 class Predicate(object) :
     def __iter__(self) :
         yield self
-
+        
     def __repr__(self) :
         return "%s: %s" % (self.type, self.__name__)
 
