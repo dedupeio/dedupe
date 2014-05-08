@@ -90,7 +90,7 @@ A 'Set' type field must have as its key a name of a field as it appears
 in the data dictionary, at 'type' declaration. Set fields are compares
 sets using the `Jaccard
 index <http://en.wikipedia.org/wiki/Jaccard_index>`__. Missing data is
-on implemented for this field type.
+not implemented for this field type.
 
 .. code:: python
 
