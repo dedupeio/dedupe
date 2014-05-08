@@ -3,14 +3,14 @@
 
 from collections import defaultdict
 import itertools
-import types
 import logging
+imoprt backport
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.lexicon import Splitter
 import time
-
+import copy
 import dedupe.tfidf as tfidf
 
 logger = logging.getLogger(__name__)
@@ -21,12 +21,14 @@ class Blocker:
                  predicates, 
                  stop_words = defaultdict(set)) :
         
-        self.predicates = predicates
+        for i, pred in enumerate(predicates) :
+            self.predicates[pred] = pred 
+
         self.stop_words = defaultdict(set)
 
         self.tfidf_fields = defaultdict(set)
 
-        for full_predicate in self.predicates :
+        for full_predicate in predicates :
             for predicate in full_predicate :
                 if predicate.type == "TfidfPredicate" :
                     self.tfidf_fields[predicate.field].add(predicate)
@@ -34,16 +36,22 @@ class Blocker:
 
     def __call__(self, records):
 
-        logger.info(time.asctime())
+        start_time = time.time()
 
-        for record in records :
+        predicates = self.predicates.items()
+
+        for i, record in enumerate(records) :
             record_id = record[0]
 
-            for predicate in self.predicates :
+            for pred_id, predicate in predicates :
                 for block_key in predicate(record) :
-                    yield (block_key, predicate), record_id
+                    yield (block_key, pred_id), record_id
 
-        logger.info(time.asctime())                
+            
+            if i % 10000 == 0 :
+                logger.info('%(iteration)d, %(elapsed)f2 seconds',
+                             {'iteration' :i,
+                              'elapsed' :time.time() - start_time})
 
 
 class DedupeBlocker(Blocker) :
@@ -74,7 +82,7 @@ class DedupeBlocker(Blocker) :
 
         for predicate in self.tfidf_fields[field] :
             logger.info("Canopy: %s", str(predicate))
-            canopy = tfidf.makeCanopy(index,
+            canopy = tfidf.makeCanopy(copy.deepcopy(index),
                                       base_tokens, 
                                       predicate.threshold)
             predicate.canopy = dict((index_to_id[k], index_to_id[v])
