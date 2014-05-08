@@ -3,7 +3,6 @@
 import logging
 from zope.index.text.parsetree import ParseError
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TfidfPredicate(float):
