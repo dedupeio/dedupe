@@ -17,11 +17,11 @@ def wholeFieldPredicate(field):
 
 def tokenFieldPredicate(field):
     """returns the tokens"""
-    return tuple(words.findall(field))
+    return set(words.findall(field))
 
 def commonIntegerPredicate(field):
     """return any integers"""
-    return tuple(integers.findall(field))
+    return set(integers.findall(field))
 
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
@@ -44,7 +44,7 @@ def ngrams(field, n):
     >>> ngrams("deduplicate", 3)
     ('ded', 'edu', 'dup', 'upl', 'pli', 'lic', 'ica', 'cat', 'ate')
     """
-    return tuple([field[pos:pos + n] for pos in xrange(len(field) - n + 1)])
+    return set([field[pos:pos + n] for pos in xrange(len(field) - n + 1)])
     
 def commonFourGram(field):
     """return 4-grams"""

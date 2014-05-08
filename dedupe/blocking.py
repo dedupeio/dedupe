@@ -37,14 +37,9 @@ class Blocker:
         for record in records :
             record_id = record[0]
 
-            seen_keys = set([])
-
             for predicate in self.predicates :
                 for block_key in predicate(record) :
-                    if (block_key, predicate) not in seen_keys :
-                        yield (block_key, predicate), record_id
-                    else :
-                        seen_keys.add(block_key, predicate)
+                    yield (block_key, predicate), record_id
                 
 
 
@@ -274,6 +269,7 @@ class Coverage(object) :
         self.blocks = defaultdict(lambda : defaultdict(set))
 
         covered_by = defaultdict(set)
+
 
         for block_key, record_id in blocker(id_records.items()) :
             covered_by[record_id].add(block_key)
