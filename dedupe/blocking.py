@@ -34,13 +34,16 @@ class Blocker:
 
     def __call__(self, records):
 
+        logger.info(time.asctime())
+
         for record in records :
             record_id = record[0]
 
             for predicate in self.predicates :
                 for block_key in predicate(record) :
                     yield (block_key, predicate), record_id
-                
+
+        logger.info(time.asctime())                
 
 
 class DedupeBlocker(Blocker) :
@@ -60,11 +63,14 @@ class DedupeBlocker(Blocker) :
         index_to_id = {}
         base_tokens = {}
 
+        logger.info(time.asctime())                
+
         for i, (record_id, doc) in enumerate(data, 1) :
             index_to_id[i] = record_id
             base_tokens[i] = splitter.process([doc])
             index.index_doc(i, doc)
 
+        logger.info(time.asctime())                
 
         for predicate in self.tfidf_fields[field] :
             logger.info("Canopy: %s", str(predicate))
@@ -74,9 +80,9 @@ class DedupeBlocker(Blocker) :
             predicate.canopy = dict((index_to_id[k], index_to_id[v])
                                     for k, v
                                     in canopy.iteritems())
-
         
-
+        logger.info(time.asctime())                
+               
 class RecordLinkBlocker(Blocker) :
     def tfIdfBlock(self, data_1, data_2, field): 
         '''Creates TF/IDF canopy of a given set of data'''
