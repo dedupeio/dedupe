@@ -9,7 +9,6 @@ from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.lexicon import Splitter
-import zope.copy
 import time
 import copy
 import dedupe.tfidf as tfidf
@@ -74,8 +73,6 @@ class DedupeBlocker(Blocker) :
         index_to_id = {}
         base_tokens = {}
 
-        logger.info(time.asctime())                
-
         for i, (record_id, doc) in enumerate(data, 1) :
             index_to_id[i] = record_id
             base_tokens[i] = splitter.process([doc])
@@ -85,7 +82,7 @@ class DedupeBlocker(Blocker) :
 
         for predicate in self.tfidf_fields[field] :
             logger.info("Canopy: %s", str(predicate))
-            canopy = tfidf.makeCanopy(zope.copy.copy(index),
+            canopy = tfidf.makeCanopy(index,
                                       base_tokens, 
                                       predicate.threshold)
             predicate.canopy = dict((index_to_id[k], index_to_id[v])
