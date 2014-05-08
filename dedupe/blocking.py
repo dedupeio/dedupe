@@ -4,7 +4,7 @@
 from collections import defaultdict
 import itertools
 import logging
-imoprt backport
+import backport
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
