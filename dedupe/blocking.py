@@ -35,19 +35,29 @@ class Blocker:
                 if predicate.type == "TfidfPredicate" :
                     self.tfidf_fields[predicate.field].add(predicate)
 
-
     def __call__(self, records):
 
         start_time = time.time()
 
-        predicates = self.predicates.items()
+        predicates = [(pred_id, predicate.localCall())
+                      for pred_id, predicate 
+                      in self.predicates.items()]
 
         for i, record in enumerate(records) :
             record_id = record[0]
 
-            for pred_id, predicate in predicates :
-                for block_key in predicate(record) :
-                    yield (block_key, pred_id), record_id
+            #for pred_id, predicate in predicates :
+            #    block_keys = predicate(record)
+            #    for block_key in block_keys :
+            #        yield (block_key, pred_id), record_id
+
+            key_gen = (((block_key, pred_id), record_id)
+                       for pred_id, predicate in predicates 
+                       for block_key in predicate(record))
+
+            for k in key_gen :
+                yield k
+         
 
             
             if i % 10000 == 0 :
@@ -315,7 +325,6 @@ class DedupeCoverage(Coverage) :
     def __init__(self, predicate_set, pairs) :
         self.stop_words = {}
 
-
         records = set(itertools.chain(*pairs))
         
         id_records = dict(itertools.izip(itertools.count(), records))
@@ -408,7 +417,6 @@ class Predicate(object) :
     def __repr__(self) :
         return "%s: %s" % (self.type, self.__name__)
 
-
 class SimplePredicate(Predicate) :
     type = "SimplePredicate"
 
@@ -417,10 +425,20 @@ class SimplePredicate(Predicate) :
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
+    #@profile 
     def __call__(self, instance) :
-        record = instance[1]
-        for block_key in  self.func(record[self.field]) :
-            yield block_key
+        record = instance[1][self.field]
+        return self.func(record)
+
+    def localCall(self) :
+        field = self.field
+        func = self.func
+        def call(instance) :
+            record = instance[1][field]
+            return func(record)
+
+        return call
+            
 
 class TfidfPredicate(Predicate):
     type = "TfidfPredicate"
@@ -438,6 +456,19 @@ class TfidfPredicate(Predicate):
             return (unicode(center),)
         else :
             return ()
+
+    def localCall(self) :
+        canopy = self.canopy
+        def call(instance) :
+            record_id = instance[0]
+            center = canopy.get(record_id)
+            if center is not None :
+                return (unicode(center),)
+            else :
+                return ()
+
+        return call
+
 
     def __getstate__(self):
         result = self.__dict__.copy()
@@ -461,10 +492,11 @@ class CompoundPredicate(Predicate) :
     def __call__(self, record) :
         block_keys = []
         for predicate in self.predicates :
-            block_keys.append(list(predicate(record)))
+            block_keys.append(predicate(record))
             
-        for block_key in itertools.product(*block_keys) :
-            yield ':'.join(block_key)
+        return (':'.join(block_key) 
+                for block_key in 
+                itertools.product(*block_keys))
 
 class CustomStopWordRemover(object):
     def __init__(self, stop_words) :
