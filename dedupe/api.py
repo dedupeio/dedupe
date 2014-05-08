@@ -32,7 +32,6 @@ import dedupe.clustering as clustering
 import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
-logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
 class Matching(object):
