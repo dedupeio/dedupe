@@ -20,6 +20,8 @@ class Blocker:
     def __init__(self, 
                  predicates, 
                  stop_words = defaultdict(set)) :
+
+        self.predicates = backport.OrderedDict()
         
         for i, pred in enumerate(predicates) :
             self.predicates[pred] = pred 
@@ -294,7 +296,8 @@ class Coverage(object) :
             id_2 = record_ids[record_2]
             
             blocks = covered_by[id_1] & covered_by[id_2] 
-            for block_key, predicate in blocks :
+            for block_key, predicate_id in blocks :
+                predicate = blocker.predicates[predicate_id]
                 self.overlap[predicate].add((record_1, record_2))
                 self.blocks[predicate][block_key].add((record_1, record_2))
 
