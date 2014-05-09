@@ -52,9 +52,6 @@ class Blocker:
                block_keys = predicate(record_id, instance)
                for block_key in block_keys :
                    yield (block_key, pred_id), record_id
-
-         
-
             
             if i % 10000 == 0 :
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',
@@ -284,24 +281,33 @@ def findOptimumBlocking(uncovered_dupes,
 
 class Coverage(object) :
 
-    def coveredBy(self, id_records, record_ids, blocker, pairs) :
+    def coveredBy(self, predicates, record_ids, pairs) :
         self.overlap = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
 
-        covered_by = defaultdict(set)
+        local_predicates = [(predicate, predicate.localCall())
+                            for predicate in predicates.values()]
 
-        for block_key, record_id in blocker(id_records.items()) :
-            covered_by[record_id].add(block_key)
+        for pair in pairs :
+            record_1, record_2 = pair
+            record_1_id = record_ids[record_1]
+            record_2_id = record_ids[record_2]
 
-        for record_1, record_2 in pairs :
-            id_1 = record_ids[record_1]
-            id_2 = record_ids[record_2]
+            for predicate, call in local_predicates :
             
-            blocks = covered_by[id_1] & covered_by[id_2] 
-            for block_key, predicate_id in blocks :
-                predicate = blocker.predicates[predicate_id]
-                self.overlap[predicate].add((record_1, record_2))
-                self.blocks[predicate][block_key].add((record_1, record_2))
+                record_1, record_2 = pair
+                field_predicate_1 = call(record_1_id, record_1)
+
+                if field_predicate_1:
+                    field_predicate_2 = call(record_2_id, record_2)
+
+                    if field_predicate_2 :
+                        field_preds = set(field_predicate_2) & set(field_predicate_1)
+                        if field_preds :
+                            self.overlap[predicate].add(pair)
+
+                        for field_pred in field_preds :
+                            self.blocks[predicate][field_pred].add(pair)
 
     def predicateCoverage(self,
                           predicate_set,
@@ -334,7 +340,7 @@ class DedupeCoverage(Coverage) :
                     in id_records.items())
             blocker.tfIdfBlock(data, field)
         
-        self.coveredBy(id_records, record_ids, blocker, pairs)
+        self.coveredBy(blocker.predicates, record_ids, pairs)
 
 class RecordLinkCoverage(Coverage) :
     def __init__(self, predicate_set, pairs) :
