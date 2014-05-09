@@ -72,8 +72,8 @@ if os.path.exists(settings_file):
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
-              'cuisine': {'type': 'String'},
-              'city' : {'type' : 'String'}
+              'cuisine': {'type': 'ShortString'},
+              'city' : {'type' : 'ShortString'}
               }
 
     deduper = dedupe.Dedupe(fields)

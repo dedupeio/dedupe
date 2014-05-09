@@ -41,6 +41,9 @@ class DataModel(dict) :
             elif definition['type'] == 'String' :
                 field_model[field] = StringType(field, definition)
 
+            elif definition['type'] == 'ShortString' :
+                field_model[field] = ShortStringType(field, definition)
+
             elif definition['type'] == 'Custom' :
                 field_model[field] = CustomType(field, definition)
             
@@ -93,6 +96,7 @@ class DataModel(dict) :
                              )
 
         elif definition['type'] not in ['String',
+                                        'ShortString',
                                         'LatLong',
                                         'Set',
                                         'Source',
@@ -160,26 +164,51 @@ class StringType(FieldType) :
     comparator = normalizedAffineGapDistance
     type = "String"
 
+    simple_predicates = (dedupe.predicates.wholeFieldPredicate,
+                         dedupe.predicates.tokenFieldPredicate,
+                         dedupe.predicates.commonIntegerPredicate,
+                         dedupe.predicates.sameThreeCharStartPredicate,
+                         dedupe.predicates.sameFiveCharStartPredicate,
+                         dedupe.predicates.sameSevenCharStartPredicate,
+                         dedupe.predicates.nearIntegersPredicate,
+                         dedupe.predicates.commonFourGram,
+                         dedupe.predicates.commonSixGram)
+
+    canopy_predicates = (0.2, 0.4, 0.6, 0.8)
+
     def __init__(self, field, definition) :
         super(StringType, self).__init__(field, definition)
 
-        self.simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
-                                  for pred in
-                                  (dedupe.predicates.wholeFieldPredicate,
-                                   dedupe.predicates.tokenFieldPredicate,
-                                   dedupe.predicates.commonIntegerPredicate,
-                                   dedupe.predicates.sameThreeCharStartPredicate,
-                                   dedupe.predicates.sameFiveCharStartPredicate,
-                                   dedupe.predicates.sameSevenCharStartPredicate,
-                                   dedupe.predicates.nearIntegersPredicate,
-                                   dedupe.predicates.commonFourGram,
-                                   dedupe.predicates.commonSixGram)]
+        simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
+                             for pred in self.simple_predicates]
 
-        self.canopy_predicates = [dedupe.blocking.TfidfPredicate(threshold, field)
-                                  for threshold in (0.2, 0.4, 0.6, 0.8)]
+        canopy_predicates = [dedupe.blocking.TfidfPredicate(threshold, field)
+                             for threshold in self.canopy_predicates]
 
+        self.predicates = simple_predicates + canopy_predicates
 
-        self.predicates = self.simple_predicates + self.canopy_predicates
+class ShortStringType(FieldType) :
+    comparator = normalizedAffineGapDistance
+    type = "ShortString"
+
+    simple_predicates = (dedupe.predicates.wholeFieldPredicate,
+                         dedupe.predicates.tokenFieldPredicate,
+                         dedupe.predicates.commonIntegerPredicate,
+                         dedupe.predicates.sameThreeCharStartPredicate,
+                         dedupe.predicates.sameFiveCharStartPredicate,
+                         dedupe.predicates.sameSevenCharStartPredicate,
+                         dedupe.predicates.nearIntegersPredicate,
+                         dedupe.predicates.commonFourGram,
+                         dedupe.predicates.commonSixGram)
+
+    def __init__(self, field, definition) :
+        super(ShortStringType, self).__init__(field, definition)
+
+        simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
+                             for pred in self.simple_predicates]
+
+        self.predicates = simple_predicates
+
 
 class LatLongType(FieldType) :
     comparator = compareLatLong
