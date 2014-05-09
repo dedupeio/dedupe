@@ -25,7 +25,7 @@ class Blocker:
         self.predicates = backport.OrderedDict()
         
         for i, pred in enumerate(predicates) :
-            self.predicates[i] = pred 
+            self.predicates[str(i)] = pred 
 
         self.stop_words = defaultdict(set)
 
@@ -41,7 +41,7 @@ class Blocker:
 
         start_time = time.time()
 
-        predicates = [(pred_id, predicate.localCall())
+        predicates = [(':' + pred_id, predicate.localCall())
                       for pred_id, predicate 
                       in self.predicates.items()]
 
@@ -49,9 +49,9 @@ class Blocker:
             record_id, instance = record
     
             for pred_id, predicate in predicates :
-               block_keys = predicate(record_id, instance)
-               for block_key in block_keys :
-                   yield (block_key, pred_id), record_id
+                block_keys = predicate(record_id, instance)
+                for block_key in block_keys :
+                    yield block_key + pred_id, record_id
             
             if i % 10000 == 0 :
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',
