@@ -157,19 +157,30 @@ def blockTraining(training_pairs,
         coverage = DedupeCoverage(predicate_set,
                                   training_dupes | training_distinct)
 
+
+    print len(coverage.overlap.keys())
+
     # Compound Predicates
     compound_predicates = itertools.combinations(coverage.overlap, 2)
+    intersection = set.intersection
 
     for compound_predicate in compound_predicates :
+        compound_predicate = CompoundPredicate(compound_predicate)
         predicate_1, predicate_2 = compound_predicate
-        coverage.overlap[CompoundPredicate(compound_predicate)] =\
-            coverage.overlap[predicate_1] & coverage.overlap[predicate_2]
+        
+        coverage.overlap[compound_predicate] =\
+            intersection(coverage.overlap[predicate_1],
+                         coverage.overlap[predicate_2])
+
+        i = 0
+        for blocks in itertools.product(coverage.blocks[predicate_1].values(),
+                                        coverage.blocks[predicate_2].values()) :
+            coverage.blocks[compound_predicate][i] =\
+                intersection(*blocks)
+            i += 1
 
     predicate_set = coverage.overlap.keys()
-
-    coverage_threshold = eta * len(training_distinct)
-    logger.info("coverage threshold: %s", coverage_threshold)
-
+    
     # Only consider predicates that cover at least one duplicate pair
     dupe_coverage = coverage.predicateCoverage(predicate_set,
                                                training_dupes)
@@ -179,13 +190,15 @@ def blockTraining(training_pairs,
     # records. Therefore, we want to avoid predicates that make large
     # blocks.
     for pred in predicate_set[:] :
-        for block in coverage.blocks[pred] :
-            if len(block) > 100 :
-                predicate_set.remove(pred)
-                continue
+        blocks = coverage.blocks[pred].itervalues()
+        if any(len(block) >= 100 for block in blocks if block) :
+            predicate_set.remove(pred)
 
     # As an efficency, we can throw away the predicates that cover too
     # many distinct pairs
+    coverage_threshold = eta * len(training_distinct)
+    logger.info("coverage threshold: %s", coverage_threshold)
+
     distinct_coverage = coverage.predicateCoverage(predicate_set,
                                                    training_distinct)
 
@@ -307,6 +320,11 @@ class Coverage(object) :
                             self.overlap[predicate].add(pair)
                             for field_pred in field_preds :
                                 self.blocks[predicate][field_pred].add(pair)
+
+        for predicate, coverage in self.blocks.items() :
+            for field_pred, block in coverage.items() :
+                if len(block) < 100 :
+                    del self.blocks[predicate][field_pred]
 
     def predicateCoverage(self,
                           predicate_set,
