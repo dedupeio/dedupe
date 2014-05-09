@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
+import collections
 import itertools
 import logging
 import backport
@@ -24,7 +25,7 @@ class Blocker:
         self.predicates = backport.OrderedDict()
         
         for i, pred in enumerate(predicates) :
-            self.predicates[pred] = pred 
+            self.predicates[i] = pred 
 
         self.stop_words = defaultdict(set)
 
@@ -35,6 +36,7 @@ class Blocker:
                 if predicate.type == "TfidfPredicate" :
                     self.tfidf_fields[predicate.field].add(predicate)
 
+    #@profile
     def __call__(self, records):
 
         start_time = time.time()
@@ -44,19 +46,13 @@ class Blocker:
                       in self.predicates.items()]
 
         for i, record in enumerate(records) :
-            record_id = record[0]
+            record_id, instance = record
+    
+            for pred_id, predicate in predicates :
+               block_keys = predicate(record_id, instance)
+               for block_key in block_keys :
+                   yield (block_key, pred_id), record_id
 
-            #for pred_id, predicate in predicates :
-            #    block_keys = predicate(record)
-            #    for block_key in block_keys :
-            #        yield (block_key, pred_id), record_id
-
-            key_gen = (((block_key, pred_id), record_id)
-                       for pred_id, predicate in predicates 
-                       for block_key in predicate(record))
-
-            for k in key_gen :
-                yield k
          
 
             
@@ -424,18 +420,13 @@ class SimplePredicate(Predicate) :
         self.func = func
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
-
-    #@profile 
-    def __call__(self, instance) :
-        record = instance[1][self.field]
-        return self.func(record)
-
+  
     def localCall(self) :
         field = self.field
         func = self.func
-        def call(instance) :
-            record = instance[1][field]
-            return func(record)
+        def call(record_id, record) :
+            column = record[field]
+            return func(column)
 
         return call
             
@@ -449,18 +440,9 @@ class TfidfPredicate(Predicate):
         self.canopy = {}
         self.threshold = threshold
 
-    def __call__(self, record) :
-        record_id = record[0]
-        center = self.canopy.get(record_id)
-        if center is not None :
-            return (unicode(center),)
-        else :
-            return ()
-
     def localCall(self) :
         canopy = self.canopy
-        def call(instance) :
-            record_id = instance[0]
+        def call(record_id, record) :
             center = canopy.get(record_id)
             if center is not None :
                 return (unicode(center),)
@@ -489,14 +471,22 @@ class CompoundPredicate(Predicate) :
         for pred in self.predicates :
             yield pred
 
-    def __call__(self, record) :
-        block_keys = []
-        for predicate in self.predicates :
-            block_keys.append(predicate(record))
-            
-        return (':'.join(block_key) 
-                for block_key in 
-                itertools.product(*block_keys))
+
+    def localCall(self) :
+        predicates = [predicate.localCall()
+                      for predicate
+                      in self.predicates]
+        join = str.join
+        product = itertools.product
+
+        def call(record_id, record) :
+            predicate_keys = (predicate(record_id, record)
+                              for predicate in predicates)
+            return (join(':', block_key)
+                    for block_key
+                    in product(*predicate_keys))
+
+        return call
 
 class CustomStopWordRemover(object):
     def __init__(self, stop_words) :
