@@ -288,26 +288,22 @@ class Coverage(object) :
         local_predicates = [(predicate, predicate.localCall())
                             for predicate in predicates.values()]
 
+        
         for pair in pairs :
             record_1, record_2 = pair
             record_1_id = record_ids[record_1]
             record_2_id = record_ids[record_2]
-
             for predicate, call in local_predicates :
-            
-                record_1, record_2 = pair
                 field_predicate_1 = call(record_1_id, record_1)
-
                 if field_predicate_1:
                     field_predicate_2 = call(record_2_id, record_2)
-
                     if field_predicate_2 :
-                        field_preds = set(field_predicate_2) & set(field_predicate_1)
+                        field_preds = (set(field_predicate_2) 
+                                       & set(field_predicate_1))
                         if field_preds :
                             self.overlap[predicate].add(pair)
-
-                        for field_pred in field_preds :
-                            self.blocks[predicate][field_pred].add(pair)
+                            for field_pred in field_preds :
+                                self.blocks[predicate][field_pred].add(pair)
 
     def predicateCoverage(self,
                           predicate_set,
@@ -384,8 +380,7 @@ class RecordLinkCoverage(Coverage) :
                         in id_records_2.items())
             blocker.tfIdfBlock(fields_1, fields_2, field)
 
-        self.coveredBy(id_records, record_ids, blocker, pairs)
-
+        self.coveredBy(blocker.predicates, record_ids, pairs)
 
 
 def stopWords(data) :
