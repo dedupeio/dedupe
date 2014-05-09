@@ -69,23 +69,26 @@ class DedupeBlocker(Blocker) :
 
         stop_word_remover = CustomStopWordRemover(self.stop_words[field])
 
-        index = TextIndex(Lexicon(splitter, stop_word_remover))
-
-        index.index = CosineIndex(index.lexicon)
+        indices = {}
+        for predicate in self.tfidf_fields[field] :
+            indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
+            indices[predicate].index = CosineIndex(indices[predicate].lexicon)
 
         index_to_id = {}
         base_tokens = {}
 
+
         for i, (record_id, doc) in enumerate(data, 1) :
             index_to_id[i] = record_id
             base_tokens[i] = splitter.process([doc])
-            index.index_doc(i, doc)
+            for index in indices.values() :
+                index.index_doc(i, doc)
 
         logger.info(time.asctime())                
 
         for predicate in self.tfidf_fields[field] :
             logger.info("Canopy: %s", str(predicate))
-            canopy = tfidf.makeCanopy(index,
+            canopy = tfidf.makeCanopy(indices[predicate],
                                       base_tokens, 
                                       predicate.threshold)
             predicate.canopy = dict((index_to_id[k], index_to_id[v])

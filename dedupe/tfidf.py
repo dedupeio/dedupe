@@ -16,7 +16,7 @@ def makeCanopy(index, token_vector, threshold) :
         center_id = corpus_ids.pop()
         center_vector = token_vector[center_id]
 
-        seen.add(center_id)
+        index.unindex_doc(center_id)
         
         if not center_vector :
             continue
@@ -27,17 +27,16 @@ def makeCanopy(index, token_vector, threshold) :
         except ParseError :
             continue
 
-        candidates = set(k for  _, k in candidates) - seen
+        candidates = set(k for  _, k in candidates)
 
-        seen.update(candidates)
         corpus_ids.difference_update(candidates)
 
         for candidate_id in candidates :
             canopies[candidate_id] = center_id
+            index.unindex_doc(candidate_id)
 
         if candidates :
             canopies[center_id] = center_id
-
 
     return canopies
 
