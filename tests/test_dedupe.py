@@ -196,17 +196,17 @@ class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
     assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
-    assert dedupe.predicates.tokenFieldPredicate(field) == ('123', '16th', 'st')
-    assert dedupe.predicates.commonIntegerPredicate(field) == ('123', '16')
+    assert dedupe.predicates.tokenFieldPredicate(field) == set(['123', '16th', 'st'])
+    assert dedupe.predicates.commonIntegerPredicate(field) == set(['123', '16'])
     assert dedupe.predicates.sameThreeCharStartPredicate(field) == ('123',)
     assert dedupe.predicates.sameFiveCharStartPredicate(field) == ('123 1',)
     assert dedupe.predicates.sameSevenCharStartPredicate(field) == ('123 16t',)
     assert dedupe.predicates.nearIntegersPredicate(field) == ('15', '17', '16', '122', '123', '124')
-    assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
-    assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
+    assert dedupe.predicates.commonFourGram(field) == set(['123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st'])
+    assert dedupe.predicates.commonSixGram(field) == set(['123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st'])
     assert dedupe.predicates.initials(field,12) == ()
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
-    assert dedupe.predicates.ngrams(field,3) == ('123','23 ','3 1',' 16','16t','6th','th ','h s',' st')
+    assert dedupe.predicates.ngrams(field,3) == set(['123','23 ','3 1',' 16','16t','6th','th ','h s',' st'])
 
 
 
