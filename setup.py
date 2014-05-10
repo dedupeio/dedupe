@@ -45,6 +45,7 @@ setup(
     packages=['dedupe', 'dedupe.distance'],
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
                  Extension('dedupe.distance.jaccard', ['src/jaccard.c']),
+                 Extension('dedupe.cpredicates', ['src/cpredicates.c']),
                  NumpyExtension('dedupe.distance.haversine', ['src/haversine.c'], libraries=['m']),
                  NumpyExtension('dedupe.distance.cosine', ['src/cosine.c'], libraries=['m']),
                  NumpyExtension('dedupe.lr', sources=['src/lr.c'])],
