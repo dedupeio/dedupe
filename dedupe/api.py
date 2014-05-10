@@ -31,7 +31,7 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 from dedupe.datamodel import DataModel
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class Matching(object):
     """
@@ -82,10 +82,10 @@ class Matching(object):
 
         i = numpy.argmax(score)
 
-        LOGGER.info('Maximum expected recall and precision')
-        LOGGER.info('recall: %2.3f', recall[i])
-        LOGGER.info('precision: %2.3f', precision[i])
-        LOGGER.info('With threshold: %2.3f', probability[i])
+        logger.info('Maximum expected recall and precision')
+        logger.info('recall: %2.3f', recall[i])
+        logger.info('precision: %2.3f', precision[i])
+        logger.info('With threshold: %2.3f', probability[i])
 
         return probability[i]
 
@@ -159,13 +159,13 @@ class Matching(object):
         """
         Log learned weights and bias terms
         """
-        LOGGER.info('Learned Weights')
+        logger.info('Learned Weights')
         for (key_1, value_1) in self.data_model.items():
             try:
                 for (key_2, value_2) in value_1.items():
-                    LOGGER.info((key_2, value_2.weight))
+                    logger.info((key_2, value_2.weight))
             except AttributeError:
-                LOGGER.info((key_1, value_1))
+                logger.info((key_1, value_1))
 
 
 class DedupeMatching(Matching) :
@@ -475,8 +475,8 @@ class StaticMatching(Matching) :
                                  "settings file and try again")
 
         self._logLearnedWeights()
-        LOGGER.info(self.predicates)
-        LOGGER.info(self.stop_words)
+        logger.info(self.predicates)
+        logger.info(self.stop_words)
 
 
 
@@ -596,7 +596,7 @@ class ActiveMatching(Matching) :
         training_source -- the path of the training data file
         '''
 
-        LOGGER.info('reading training from file')
+        logger.info('reading training from file')
 
         with open(training_source, 'r') as f:
             training_pairs = json.load(f, 
@@ -644,7 +644,7 @@ class ActiveMatching(Matching) :
         n_folds = max(n_folds,
                       2)
 
-        LOGGER.info('%d folds', n_folds)
+        logger.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
