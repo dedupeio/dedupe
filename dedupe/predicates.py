@@ -6,8 +6,8 @@ import math
 
 from dedupe.cpredicates import ngrams, initials
 
-words = re.compile("[\w']+")
-integers = re.compile("\d+")
+words = re.compile("[\w']+").findall
+integers = re.compile("\d+").findall
 
 def wholeFieldPredicate(field):
     """return the whole field"""
@@ -19,15 +19,15 @@ def wholeFieldPredicate(field):
 
 def tokenFieldPredicate(field):
     """returns the tokens"""
-    return set(words.findall(field))
+    return set(words(field))
 
 def commonIntegerPredicate(field):
     """return any integers"""
-    return set(integers.findall(field))
+    return set(integers(field))
 
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
-    ints = integers.findall(field)
+    ints = integers(field)
     near_ints = set(ints)
     for char in ints :
         num = int(char)
