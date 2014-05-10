@@ -23,7 +23,7 @@ class Blocker:
 
         self.predicates = predicates
 
-        self.stop_words = defaultdict(set)
+        self.stop_words = stop_words
 
         self.tfidf_fields = defaultdict(set)
 
@@ -296,18 +296,14 @@ class Coverage(object) :
         self.overlap = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
 
-        local_predicates = [(predicate, predicate.localCall())
-                            for predicate in predicates.values()]
-
-        
         for pair in pairs :
             record_1, record_2 = pair
             record_1_id = record_ids[record_1]
             record_2_id = record_ids[record_2]
-            for predicate, call in local_predicates :
-                field_predicate_1 = call(record_1_id, record_1)
+            for predicate in predicates :
+                field_predicate_1 = predicate(record_1_id, record_1)
                 if field_predicate_1:
-                    field_predicate_2 = call(record_2_id, record_2)
+                    field_predicate_2 = predicate(record_2_id, record_2)
                     if field_predicate_2 :
                         field_preds = (set(field_predicate_2) 
                                        & set(field_predicate_1))
@@ -344,12 +340,16 @@ class DedupeCoverage(Coverage) :
         id_records = dict(itertools.izip(itertools.count(), records))
         record_ids = dict(itertools.izip(records, itertools.count()))
 
+
         blocker = DedupeBlocker(predicate_set)
 
         for field in blocker.tfidf_fields :
-            data = ((record_id, record[field])
+            data = [(record_id, record[field])
                     for record_id, record
-                    in id_records.items())
+                    in id_records.items()]
+            stop_words = stopWords(data)
+            blocker.stop_words[field] = stop_words
+            self.stop_words[field] = stop_words
             blocker.tfIdfBlock(data, field)
         
         self.coveredBy(blocker.predicates, record_ids, pairs)
@@ -391,9 +391,14 @@ class RecordLinkCoverage(Coverage) :
             fields_1 = ((record_id, record[field])
                         for record_id, record
                         in id_records_1.items())
-            fields_2 = ((record_id, record[field])
+            fields_2 = [(record_id, record[field])
                         for record_id, record
-                        in id_records_2.items())
+                        in id_records_2.items()]
+
+            stop_words = stopWords(field_2)
+            blocker.stop_words[field] = stop_words
+            self.stop_words[field] = stop_words
+
             blocker.tfIdfBlock(fields_1, fields_2, field)
 
         self.coveredBy(blocker.predicates, record_ids, pairs)
