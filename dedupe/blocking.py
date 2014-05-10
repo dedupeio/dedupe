@@ -11,7 +11,6 @@ from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.lexicon import Splitter
 import time
-import copy
 import dedupe.tfidf as tfidf
 
 logger = logging.getLogger(__name__)
