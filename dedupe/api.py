@@ -29,10 +29,9 @@ import dedupe.crossvalidation as crossvalidation
 import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
-import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class Matching(object):
     """
@@ -83,10 +82,10 @@ class Matching(object):
 
         i = numpy.argmax(score)
 
-        LOGGER.info('Maximum expected recall and precision')
-        LOGGER.info('recall: %2.3f', recall[i])
-        LOGGER.info('precision: %2.3f', precision[i])
-        LOGGER.info('With threshold: %2.3f', probability[i])
+        logger.info('Maximum expected recall and precision')
+        logger.info('recall: %2.3f', recall[i])
+        logger.info('precision: %2.3f', precision[i])
+        logger.info('With threshold: %2.3f', probability[i])
 
         return probability[i]
 
@@ -126,7 +125,7 @@ class Matching(object):
         return clusters
 
     def _checkRecordType(self, record) :
-        for k in self.data_model.comparison_fields :
+        for k in self.data_model.field_comparators :
             if k not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "
@@ -155,6 +154,19 @@ class Matching(object):
                         yield (key_1, record_1), (key_2, record_2)
 
         return pair_gen()
+
+    def _logLearnedWeights(self): # pragma: no cover
+        """
+        Log learned weights and bias terms
+        """
+        logger.info('Learned Weights')
+        for (key_1, value_1) in self.data_model.items():
+            try:
+                for (key_2, value_2) in value_1.items():
+                    logger.info((key_2, value_2.weight))
+            except AttributeError:
+                logger.info((key_1, value_1))
+
 
 class DedupeMatching(Matching) :
     """
@@ -259,8 +271,8 @@ class DedupeMatching(Matching) :
                                     field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
-            blocks.setdefault(block_key, []).append((record_id, 
-                                                     data_d[record_id]))
+            blocks.setdefault(str(block_key), []).append((record_id, 
+                                                          data_d[record_id]))
 
         # Redundant-free Comparisons from Kolb et al, "Dedoop:
         # Efficient Deduplication with Hadoop"
@@ -390,7 +402,7 @@ class RecordLinkMatching(Matching) :
             self.blocker.tfIdfBlock(fields_1, fields_2, field)
 
 
-        for block_key, record_id in self.blocker(data_1.iteritems()) :
+        for block_key, record_id in self.blocker(data_1.items()) :
             blocks.setdefault(block_key, ([], []))[0].append((record_id, 
                                                               data_1[record_id]))
 
@@ -461,6 +473,11 @@ class StaticMatching(Matching) :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
+
+        self._logLearnedWeights()
+        logger.info(self.predicates)
+        logger.info(self.stop_words)
+
 
 
 class ActiveMatching(Matching) :
@@ -579,7 +596,7 @@ class ActiveMatching(Matching) :
         training_source -- the path of the training data file
         '''
 
-        LOGGER.info('reading training from file')
+        logger.info('reading training from file')
 
         with open(training_source, 'r') as f:
             training_pairs = json.load(f, 
@@ -598,7 +615,7 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=1, uncovered_dupes=1) :
+    def train(self, ppc=.1, uncovered_dupes=1) :
         """
         Keyword arguments:
         ppc -- Limits the Proportion of Pairs Covered that we allow a
@@ -627,7 +644,7 @@ class ActiveMatching(Matching) :
         n_folds = max(n_folds,
                       2)
 
-        LOGGER.info('%d folds', n_folds)
+        logger.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
@@ -651,16 +668,13 @@ class ActiveMatching(Matching) :
     def _trainBlocker(self, ppc=1, uncovered_dupes=1) :
         training_pairs = copy.deepcopy(self.training_pairs)
 
-        blocker_types = self._blockerTypes()
-
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model,
                                                                        sample_size=32000)
 
         training_pairs['distinct'].extend(confident_nonduplicates)
 
-        predicate_set = blocking.predicateGenerator(blocker_types, 
-                                                    self.data_model)
+        predicate_set = predicateGenerator(self.data_model)
 
         (self.predicates, 
          self.stop_words) = dedupe.blocking.blockTraining(training_pairs,
@@ -671,27 +685,6 @@ class ActiveMatching(Matching) :
 
         self.blocker = self._Blocker(self.predicates,
                                      self.stop_words) 
-
-
-    def _blockerTypes(self) : # pragma : no cover
-        string_predicates = (predicates.wholeFieldPredicate,
-                             predicates.tokenFieldPredicate,
-                             predicates.commonIntegerPredicate,
-                             predicates.sameThreeCharStartPredicate,
-                             predicates.sameFiveCharStartPredicate,
-                             predicates.sameSevenCharStartPredicate,
-                             predicates.nearIntegersPredicate,
-                             predicates.commonFourGram,
-                             predicates.commonSixGram)
-
-        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
-                                         for threshold
-                                         in [0.2, 0.4, 0.6, 0.8]])
-
-        return {'String' : (string_predicates
-                            + tfidf_string_predicates)}
-
-
 
 
     def writeSettings(self, file_name): # pragma : no cover
@@ -841,17 +834,6 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-    def _logLearnedWeights(self): # pragma: no cover
-        """
-        Log learned weights and bias terms
-        """
-        LOGGER.info('Learned Weights')
-        for (key_1, value_1) in self.data_model.items():
-            try:
-                for (key_2, value_2) in value_1.items():
-                    LOGGER.info((key_2, value_2['weight']))
-            except AttributeError:
-                LOGGER.info((key_1, value_1))
 
     def _loadSample(self, *args, **kwargs) : # pragma : no cover
 
@@ -974,5 +956,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return data_sample
 
 
+def predicateGenerator(data_model) :
+    predicates = []
+    for field, definition in data_model['fields'].items() :
+        predicates.extend(definition.predicates)
 
-
+    return predicates

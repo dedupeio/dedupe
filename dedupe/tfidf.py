@@ -1,24 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
+from collections import defaultdict
 from zope.index.text.parsetree import ParseError
 
 logger = logging.getLogger(__name__)
-
-class TfidfPredicate(float):
-    def __new__(self, threshold):
-        return float.__new__(self, threshold)
-
-    def __init__(self, threshold, field=''):
-        self.__name__ = 'TF-IDF:' + str(threshold)
-        self.field = ''
-        self.canopy = None
-
-    def __repr__(self) :
-        return self.__name__ + self.field
-
-    def __call__(self, record_id) :
-        return self.canopy[record_id]
 
 #@profile
 def makeCanopy(index, token_vector, threshold) :
@@ -30,7 +16,7 @@ def makeCanopy(index, token_vector, threshold) :
         center_id = corpus_ids.pop()
         center_vector = token_vector[center_id]
 
-        seen.add(center_id)
+        index.unindex_doc(center_id)
         
         if not center_vector :
             continue
@@ -41,32 +27,16 @@ def makeCanopy(index, token_vector, threshold) :
         except ParseError :
             continue
 
-        candidates = set(k for  _, k in candidates) - seen
+        candidates = set(k for  _, k in candidates)
 
-        seen.update(candidates)
         corpus_ids.difference_update(candidates)
 
         for candidate_id in candidates :
             canopies[candidate_id] = center_id
+            index.unindex_doc(candidate_id)
 
         if candidates :
             canopies[center_id] = center_id
 
-
     return canopies
 
-def _createCanopies(field_inverted_index,
-                    token_vector,
-                    threshold,
-                    field) :
-                     
-    logger.info("Canopy: %s", threshold.__name__ + field)
-    canopy = makeCanopy(field_inverted_index, token_vector, threshold)
-
-
-    return ((threshold, field),  canopy)
-
-    
-
-    
-    
