@@ -11,7 +11,7 @@ class BlockingTest(unittest.TestCase):
     self.data_model = dedupe.Dedupe(fields).data_model
     self.training_pairs = {
         0: [(self.frozendict({"name": "Bob", "age": "50"}),
-             self.frozendict({"name": "Charlie", "age": "75"})),
+             self.frozendict({"name": "Bob", "age": "75"})),
             (self.frozendict({"name": "Meredith", "age": "40"}),
              self.frozendict({"name": "Sue", "age": "10"}))], 
         1: [(self.frozendict({"name": "Jimmy", "age": "20"}),
@@ -39,6 +39,31 @@ class BlockingTest(unittest.TestCase):
                "TfidfPredicate: (0.8, name)", 
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
+
+    overlap = coverage.predicateCoverage(predicates, self.training_pairs[0])
+    assert set(str(k) for k in overlap.keys()) ==\
+          set(["TfidfPredicate: (0.4, name)", 
+               "TfidfPredicate: (0.6, name)", 
+              "SimplePredicate: (wholeFieldPredicate, name)", 
+               "SimplePredicate: (sameThreeCharStartPredicate, name)",
+               "SimplePredicate: (tokenFieldPredicate, name)", 
+               "TfidfPredicate: (0.8, name)", 
+               "TfidfPredicate: (0.2, name)"])
+
+    overlap = coverage.predicateCoverage(predicates, self.training_pairs[1])
+    assert set(str(k) for k in overlap.keys()) ==\
+          set(["SimplePredicate: (tokenFieldPredicate, name)", 
+               "SimplePredicate: (commonSixGram, name)", 
+               "TfidfPredicate: (0.4, name)", 
+               "SimplePredicate: (sameThreeCharStartPredicate, name)", 
+               "TfidfPredicate: (0.2, name)", 
+               "SimplePredicate: (sameFiveCharStartPredicate, name)", 
+               "TfidfPredicate: (0.6, name)", 
+               "SimplePredicate: (wholeFieldPredicate, name)", 
+               "TfidfPredicate: (0.8, name)", 
+               "SimplePredicate: (commonFourGram, name)", 
+               "SimplePredicate: (sameSevenCharStartPredicate, name)"])
+
     
 class TfidfTest(unittest.TestCase):
   def setUp(self):
