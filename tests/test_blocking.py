@@ -64,6 +64,23 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
 
+    predicates = self.data_model['fields']['name'].predicates
+    coverage = dedupe.blocking.RecordLinkCoverage(predicates, self.training)
+
+    assert set([str(k) for k in coverage.overlap.keys()]) ==\
+          set(["SimplePredicate: (tokenFieldPredicate, name)", 
+               "SimplePredicate: (commonSixGram, name)", 
+               "TfidfPredicate: (0.4, name)", 
+               "SimplePredicate: (sameThreeCharStartPredicate, name)", 
+               "TfidfPredicate: (0.2, name)", 
+               "SimplePredicate: (sameFiveCharStartPredicate, name)", 
+               "TfidfPredicate: (0.6, name)", 
+               "SimplePredicate: (wholeFieldPredicate, name)", 
+               "TfidfPredicate: (0.8, name)", 
+               "SimplePredicate: (commonFourGram, name)", 
+               "SimplePredicate: (sameSevenCharStartPredicate, name)"])
+
+
     
 class TfidfTest(unittest.TestCase):
   def setUp(self):
