@@ -201,7 +201,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.sameThreeCharStartPredicate(field) == ('123',)
     assert dedupe.predicates.sameFiveCharStartPredicate(field) == ('123 1',)
     assert dedupe.predicates.sameSevenCharStartPredicate(field) == ('123 16t',)
-    assert dedupe.predicates.nearIntegersPredicate(field) == ('15', '17', '16', '122', '123', '124')
+    assert dedupe.predicates.nearIntegersPredicate(field) == set(['15', '17', '16', '122', '123', '124'])
     assert dedupe.predicates.commonFourGram(field) == set(['123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st'])
     assert dedupe.predicates.commonSixGram(field) == set(['123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st'])
     assert dedupe.predicates.initials(field,12) == ()
