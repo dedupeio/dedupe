@@ -14,14 +14,17 @@ def randomPairsWithReplacement(n_records, sample_size) :
     # size than we'll get very few duplicates by chance
     warnings.warn("There may be duplicates in the sample")
 
-    max_int = numpy.iinfo('int').max
-    
-    if numpy.dtype('int').itemsize * n_records > max_int :
-        warnings.warn("Requested sample of size %d, only returning %d pairs" % (n_records, max_int))
-        n_records = max_int
+    try :
+        random_indices = numpy.random.randint(n_records, 
+                                              size=sample_size*2)
+    except OverflowError:
+        max_int = numpy.iinfo('int').max
+        warnings.warn("Asked to sample pairs from %d records, will only sample pairs from first %d records" % (n_records, max_int))
+        random_indices = numpy.random.randint(max_int, 
+                                              size=sample_size*2)
 
-    random_indices = numpy.random.randint(n_records, 
-                                          size=sample_size*2)
+
+        
     random_indices = random_indices.reshape((-1, 2))
     random_indices.sort(axis=1)
 

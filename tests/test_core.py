@@ -29,7 +29,7 @@ class RandomPairsTest(unittest.TestCase) :
             dedupe.core.randomPairs(10**20, 10)
             assert len(w) == 2
             assert str(w[0].message) == "There may be duplicates in the sample"
-            assert "Requested sample of size" in str(w[1].message)
+            assert "Asked to sample pairs from" in str(w[1].message)
 
     def test_random_pair_match(self) :
         self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 1, 0, 10)
