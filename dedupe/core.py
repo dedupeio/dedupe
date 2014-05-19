@@ -14,6 +14,12 @@ def randomPairsWithReplacement(n_records, sample_size) :
     # size than we'll get very few duplicates by chance
     warnings.warn("There may be duplicates in the sample")
 
+    max_int = numpy.iinfo('int').max
+    
+    if numpy.dtype('int').itemsize * n_records > max_int :
+        warnings.warn("Requested sample of size %d, only returning %d pairs" % (n_records, max_int))
+        n_records = max_int
+
     random_indices = numpy.random.randint(n_records, 
                                           size=sample_size*2)
     random_indices = random_indices.reshape((-1, 2))
@@ -37,8 +43,6 @@ def randomPairs(n_records, sample_size):
             warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
 
         random_indices = numpy.arange(n)
-    elif 8 * n > numpy.iinfo('uint').max :
-        return randomPairsWithReplacement(n_records, sample_size)
     else :
         try:
             random_indices = numpy.random.randint(n, size=sample_size)
