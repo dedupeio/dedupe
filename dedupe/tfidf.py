@@ -21,12 +21,8 @@ def makeCanopy(index, token_vector, threshold) :
         if not center_vector :
             continue
 
-        try :
-            search_string = ' OR '.join(center_vector)
-            candidates = index.apply(search_string).byValue(threshold)
-        except ParseError :
-            continue
-
+        candidates = index.apply(center_vector).byValue(threshold)
+            
         candidates = set(k for  _, k in candidates)
 
         corpus_ids.difference_update(candidates)

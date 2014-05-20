@@ -10,6 +10,7 @@ from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.lexicon import Splitter
+from zope.index.text.stopdict import get_stopdict
 import time
 import dedupe.tfidf as tfidf
 
@@ -19,7 +20,7 @@ class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
     def __init__(self, 
                  predicates, 
-                 stop_words = defaultdict(set)) :
+                 stop_words = defaultdict(lambda : get_stopdict())) :
 
         self.predicates = predicates
 
@@ -54,6 +55,7 @@ class Blocker:
                               'elapsed' :time.time() - start_time})
 
 
+
 class DedupeBlocker(Blocker) :
     
 
@@ -64,10 +66,13 @@ class DedupeBlocker(Blocker) :
 
         stop_word_remover = CustomStopWordRemover(self.stop_words[field])
 
+
+
         indices = {}
         for predicate in self.tfidf_fields[field] :
             indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
+            pipeline = indices[predicate].lexicon._pipeline
 
         index_to_id = {}
         base_tokens = {}
@@ -75,7 +80,10 @@ class DedupeBlocker(Blocker) :
 
         for i, (record_id, doc) in enumerate(data, 1) :
             index_to_id[i] = record_id
-            base_tokens[i] = splitter.process([doc])
+            last = [doc]
+            for each in pipeline :
+                last = each.process(last)
+            base_tokens[i] = ' OR '.join(last)
             for index in indices.values() :
                 index.index_doc(i, doc)
 
@@ -104,6 +112,7 @@ class RecordLinkBlocker(Blocker) :
         for predicate in self.tfidf_fields[field] :
             indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
+            pipeline = indices[predicate].lexicon._pipeline
 
         index_to_id = {}
         base_tokens = {}
@@ -112,7 +121,10 @@ class RecordLinkBlocker(Blocker) :
 
         for record_id, doc in data_1 :
             index_to_id[i] = record_id
-            base_tokens[i] = splitter.process([doc])
+            last = [doc]
+            for each in pipeline :
+                last = each.process(last)
+            base_tokens[i] = ' OR '.join(last)
             i += 1
 
         for record_id, doc in data_2  :
@@ -335,7 +347,6 @@ class Coverage(object) :
 
 class DedupeCoverage(Coverage) :
     def __init__(self, predicate_set, pairs) :
-        self.stop_words = {}
 
         records = set(itertools.chain(*pairs))
         
@@ -350,16 +361,14 @@ class DedupeCoverage(Coverage) :
                     for record_id, record
                     in id_records.items()]
             stop_words = stopWords(data)
-            blocker.stop_words[field] = stop_words
-            self.stop_words[field] = stop_words
+            blocker.stop_words[field].update(stop_words)
             blocker.tfIdfBlock(data, field)
-        
+
+        self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, record_ids, pairs)
 
 class RecordLinkCoverage(Coverage) :
     def __init__(self, predicate_set, pairs) :
-        self.stop_words = {}
-
         
         data_1 = set([])
         data_2 = set([])
@@ -398,13 +407,16 @@ class RecordLinkCoverage(Coverage) :
                         in id_records_2.items()]
 
             stop_words = stopWords(fields_2)
-            blocker.stop_words[field] = stop_words
-            self.stop_words[field] = stop_words
-
+            blocker.stop_words[field].update(stop_words)
+ 
             blocker.tfIdfBlock(fields_1, fields_2, field)
 
+        self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, record_ids, pairs)
+        
 
+
+        
 
 def stopWords(data) :
     index = TextIndex(Lexicon(Splitter()))
@@ -498,7 +510,7 @@ class CompoundPredicate(Predicate) :
 
 class CustomStopWordRemover(object):
     def __init__(self, stop_words) :
-        self.stop_words = stop_words.copy()
+        self.stop_words = stop_words
 
     def process(self, lst):
         return [w for w in lst if not w in self.stop_words]

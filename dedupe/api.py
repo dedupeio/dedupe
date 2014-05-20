@@ -699,7 +699,7 @@ class ActiveMatching(Matching) :
         with open(file_name, 'w') as f:
             pickle.dump(self.data_model, f)
             pickle.dump(self.predicates, f)
-            pickle.dump(self.stop_words, f)
+            pickle.dump(dict(self.stop_words), f)
 
     def writeTraining(self, file_name): # pragma : no cover
         """
