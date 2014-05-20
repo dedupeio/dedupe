@@ -20,7 +20,10 @@ class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
     def __init__(self, 
                  predicates, 
-                 stop_words = defaultdict(lambda : get_stopdict())) :
+                 stop_words = None) :
+
+        if stop_words is None :
+            stop_words = defaultdict(lambda : set(get_stopdict()))
 
         self.predicates = predicates
 
