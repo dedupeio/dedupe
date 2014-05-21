@@ -195,10 +195,15 @@ class ClusteringTest(unittest.TestCase):
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
+    assert dedupe.predicates.wholeFieldPredicate('') == ()
     assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
+    assert dedupe.predicates.tokenFieldPredicate(' ') == set([])
     assert dedupe.predicates.tokenFieldPredicate(field) == set(['123', '16th', 'st'])
     assert dedupe.predicates.commonIntegerPredicate(field) == set(['123', '16'])
+    assert dedupe.predicates.commonIntegerPredicate('foo') == set([])
     assert dedupe.predicates.sameThreeCharStartPredicate(field) == ('123',)
+    assert dedupe.predicates.sameThreeCharStartPredicate('12') == ()
+    assert dedupe.predicates.commonFourGram('12') == set([])
     assert dedupe.predicates.sameFiveCharStartPredicate(field) == ('123 1',)
     assert dedupe.predicates.sameSevenCharStartPredicate(field) == ('123 16t',)
     assert dedupe.predicates.nearIntegersPredicate(field) == set(['15', '17', '16', '122', '123', '124'])
