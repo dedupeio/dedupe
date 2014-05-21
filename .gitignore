@@ -27,3 +27,4 @@ dedupe.egg-info/
 ENV
 dist
 .coverage
+src/*.c
