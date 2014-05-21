@@ -18,7 +18,8 @@ install:
   fi
 - if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then pip install --use-mirrors -r requirements.txt;
   fi
-- pip install coveralls
+- pip install --use-mirrors -r dev_requirements.txt
+- cython src/*.pyx
 - python setup.py develop
 - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
 script:
