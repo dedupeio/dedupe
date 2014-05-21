@@ -92,8 +92,8 @@ class DataModelTest(unittest.TestCase) :
 
 class AffineGapTest(unittest.TestCase):
   def setUp(self):
-    self.affineGapDistance = dedupe.affinegap.affineGapDistance
-    self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
+    self.affineGapDistance = dedupe.distance.affinegap.affineGapDistance
+    self.normalizedAffineGapDistance = dedupe.distance.affinegap.normalizedAffineGapDistance
     
   def test_affine_gap_correctness(self):
     assert self.affineGapDistance('a', 'b', -5, 5, 5, 1, 0.5) == 5
