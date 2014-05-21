@@ -46,11 +46,18 @@ If you are installing numpy for the first time,
 git clone git://github.com/datamade/dedupe.git
 cd dedupe
 pip install "numpy>=1.6"
-for python 2.7
+pip install -r dev_requirements.txt
+# For python 2.7
 pip install -r requirements.txt
-# OR for python 2.6
+# For python 2.6
 pip install -r py26_requirements.txt
+
+cython src/*.pyx
 python setup.py develop
+python setup.py build_ext -i
+
+#If these tests pass, then everything should have been installed correctly!
+coverage run -m nose -I canonical_test
 ```
 
 #### OS X Install Notes
