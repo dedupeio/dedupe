@@ -46,12 +46,15 @@ def randomPairs(n_records, sample_size):
             warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
 
         random_indices = numpy.arange(n)
+    
+    # numpy doesn't always throw an overflow error so we need to 
+    # check to make sure that the largest number we'll use is smaller
+    # than the numpy's maximum unsigned integer
+    if 8 * n > numpy.iinfo('uint').max :
+        return randomPairsWithReplacement(n_records, sample_size)
     else :
-        try:
-            random_indices = numpy.random.randint(n, size=sample_size)
-            random_indices.dtype = 'uint'
-        except OverflowError:
-            return randomPairsWithReplacement(n_records, sample_size)
+        random_indices = numpy.random.randint(n, size=sample_size)
+        random_indices.dtype = 'uint'
 
     b = 1 - 2 * n_records
 

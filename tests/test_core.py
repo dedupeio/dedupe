@@ -26,10 +26,17 @@ class RandomPairsTest(unittest.TestCase) :
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            dedupe.core.randomPairs(10**20, 10)
+            dedupe.core.randomPairs(10**40, 10)
             assert len(w) == 2
             assert str(w[0].message) == "There may be duplicates in the sample"
             assert "Asked to sample pairs from" in str(w[1].message)
+
+        random.seed(123)
+        numpy.random.seed(123)
+        assert numpy.array_equal(dedupe.core.randomPairs(11**9, 1),
+                                 numpy.array([[1228959102, 1840268610]]))
+
+
 
     def test_random_pair_match(self) :
         self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 1, 0, 10)
