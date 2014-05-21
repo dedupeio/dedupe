@@ -209,11 +209,12 @@ record was from each of the two sources.
 Missing Data
 ~~~~~~~~~~~~
 
-If a field has missing data, you can set ``'Has Missing' : True`` in the
-field definition. This creates a new, additional field representing
-whether the data was present or not and zeros out the missing data. If
-there is missing data, but you did not declare ``'Has Missing' : True``
-then the missing data will simply be zeroed out.
+If a field has missing data, you can set ``'Has Missing' : True`` in
+the field definition. This creates a new, additional field
+representing whether the data was present or not and zeros out the
+missing data. If there is missing data, but you did not declare ``'Has
+Missing' : True`` then the missing data will simply be zeroed out and
+no field will be created to account for missing data.
 
 If you define an an interaction with a field that you declared to have
 missing data, then ``Has Missing : True`` will also be set for the
