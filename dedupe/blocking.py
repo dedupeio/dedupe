@@ -169,9 +169,6 @@ def blockTraining(training_pairs,
         coverage = DedupeCoverage(predicate_set,
                                   training_dupes | training_distinct)
 
-
-    print len(coverage.overlap.keys())
-
     # Compound Predicates
     compound_predicates = itertools.combinations(coverage.overlap, 2)
     intersection = set.intersection
