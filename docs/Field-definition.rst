@@ -43,9 +43,8 @@ Custom Types
 A 'Custom' type field must have as its key a name of a field as it
 appears in the data dictionary, at 'type' declaration, and a
 'comparator' declaration. The comparator must be a function that can
-take in two field values and return a number or a numpy.nan (not a
-number, appropriate when a distance is not well defined, as when one of
-the fields is missing).
+take in two field values and return a number or a numpy.nan when one or both
+of the fields is missing.
 
 Example custom comparator:
 
@@ -206,15 +205,34 @@ that a pair of records were duplicates if both records were from
 predict the probability that a pair of records were duplicates if one
 record was from each of the two sources.
 
-Missing Data
-~~~~~~~~~~~~
+Missing Data 
+~~~~~~~~~~~~ 
+If one or both fields are missing a field comparator should return
+``numpy.nan.`` By default, dedupe will replace these values with zeros. 
 
-If a field has missing data, you can set ``'Has Missing' : True`` in
-the field definition. This creates a new, additional field
-representing whether the data was present or not and zeros out the
-missing data. If there is missing data, but you did not declare ``'Has
+If you want to model this missing data for a field, you can set ``'Has
+Missing' : True`` in the field definition. This creates a new,
+additional field representing whether the data was present or not and
+zeros out the missing data.
+
+If there is missing data, but you did not declare ``'Has
 Missing' : True`` then the missing data will simply be zeroed out and
 no field will be created to account for missing data.
+
+This approach is called 'response augmented data' and is described in
+Benjamin Marlin's thesis `"Missing Data Problems in Machine Learning"
+http://people.cs.umass.edu/~marlin/research/phd_thesis/marlin-phd-thesis.pdf`__. Basically,
+this approach says that, even without looking at the value of the
+field comparisons, the pattern of observed and missing responses will
+affect the probability that a pair of records are a match.
+
+This approach makes a few assumptions that are usually not completely true:
+
+- Whether a field is missing data is not associated with any other
+  field missing data
+- That the weighting of the observed differences in field A should be
+  the same regardless of whether field B is missing.
+
 
 If you define an an interaction with a field that you declared to have
 missing data, then ``Has Missing : True`` will also be set for the
