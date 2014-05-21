@@ -207,7 +207,7 @@ record was from each of the two sources.
 
 Missing Data 
 ~~~~~~~~~~~~ 
-If one or both fields are missing a field comparator should return
+If one or both fields are missing, the field comparator should return
 ``numpy.nan.`` By default, dedupe will replace these values with zeros. 
 
 If you want to model this missing data for a field, you can set ``'Has
