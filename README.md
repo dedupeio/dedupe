@@ -54,7 +54,6 @@ pip install -r py26_requirements.txt
 
 cython src/*.pyx
 python setup.py develop
-python setup.py build_ext -i
 
 #If these tests pass, then everything should have been installed correctly!
 coverage run -m nose -I canonical_test
