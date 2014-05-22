@@ -79,7 +79,7 @@ wiki](http://dedupe.readthedocs.org/en/latest/OSX-Install-Notes.html).
 
 Unit tests of core dedupe functions
 ```bash
-nosetests
+coverage run -m nose -I canonical_test
 ```
 
 #### Test using canonical dataset from Bilenko's research
