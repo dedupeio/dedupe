@@ -218,6 +218,20 @@ class SetType(FieldType) :
     comparator = compareJaccard
     type = "Set"
 
+    simple_predicates = (dedupe.predicates.wholeSetPredicate,
+                         dedupe.predicates.commonSetElementPredicate)
+
+    def __init__(self, field, definition) :
+        super(SetType, self).__init__(field, definition)
+
+        simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
+                             for pred in self.simple_predicates]
+
+        self.predicates = simple_predicates
+
+
+
+
 class HigherDummyType(FieldType) :
     type = "HigherOrderDummy"
 
