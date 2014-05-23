@@ -70,25 +70,24 @@ class DedupeBlocker(Blocker) :
         stop_word_remover = CustomStopWordRemover(self.stop_words[field])
 
 
-
         indices = {}
         for predicate in self.tfidf_fields[field] :
             indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
             pipeline = indices[predicate].lexicon._pipeline
+            stringify = predicate.stringify
 
         index_to_id = {}
         base_tokens = {}
 
-
         for i, (record_id, doc) in enumerate(data, 1) :
             index_to_id[i] = record_id
-            last = [doc]
+            last = [stringify(doc)]
             for each in pipeline :
                 last = each.process(last)
             base_tokens[i] = ' OR '.join(last)
-            for index in indices.values() :
-                index.index_doc(i, doc)
+            for predicate, index in indices.items() :
+                index.index_doc(i, stringify(doc))
 
         logger.info(time.asctime())                
 
@@ -116,6 +115,7 @@ class RecordLinkBlocker(Blocker) :
             indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
             pipeline = indices[predicate].lexicon._pipeline
+            stringify = predicate.stringify
 
         index_to_id = {}
         base_tokens = {}
@@ -124,7 +124,7 @@ class RecordLinkBlocker(Blocker) :
 
         for record_id, doc in data_1 :
             index_to_id[i] = record_id
-            last = [doc]
+            last = [stringify(doc)]
             for each in pipeline :
                 last = each.process(last)
             base_tokens[i] = ' OR '.join(last)
@@ -133,7 +133,7 @@ class RecordLinkBlocker(Blocker) :
         for record_id, doc in data_2  :
             index_to_id[i] = record_id
             for index in indices.values() :
-                index.index_doc(i, doc)
+                index.index_doc(i, stringify(doc))
             i += 1
 
         for predicate in self.tfidf_fields[field] :
@@ -480,11 +480,20 @@ class TfidfPredicate(Predicate):
 
         return call
 
+    def stringify(self, doc) :
+        return doc
+
 
     def __getstate__(self):
         result = self.__dict__.copy()
         result['canopy'] = {}
         return result
+
+class TfidfSetPredicate(TfidfPredicate) :
+    type = "TfidfPredicate"
+
+    def stringify(self, doc) :
+        return ' '.join('_'.join(str(each).split()) for each in doc)
 
 
 class CompoundPredicate(Predicate) :

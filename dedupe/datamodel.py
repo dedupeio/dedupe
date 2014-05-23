@@ -219,7 +219,7 @@ class TextType(StringType) :
     def __init__(self, field, definition) :
         super(TextType, self).__init__(field, definition)
 
-        self.comparator = dedupe.distance.CosineSimilarity(definition['corpus'])
+        self.comparator = dedupe.distance.CosineTextSimilarity(definition['corpus'])
 
 
 
@@ -234,13 +234,21 @@ class SetType(FieldType) :
     simple_predicates = (dedupe.predicates.wholeSetPredicate,
                          dedupe.predicates.commonSetElementPredicate)
 
+    canopy_predicates = (0.2, 0.4, 0.6, 0.8)
+
     def __init__(self, field, definition) :
         super(SetType, self).__init__(field, definition)
 
         simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
                              for pred in self.simple_predicates]
 
-        self.predicates = simple_predicates
+        canopy_predicates = [dedupe.blocking.TfidfSetPredicate(threshold, field)
+                             for threshold in self.canopy_predicates]
+
+        self.predicates = simple_predicates + canopy_predicates
+
+        self.comparator = dedupe.distance.CosineSetSimilarity(definition['corpus'])
+
 
 
 class HigherDummyType(FieldType) :

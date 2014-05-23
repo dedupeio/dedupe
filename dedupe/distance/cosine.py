@@ -2,7 +2,7 @@ from collections import defaultdict
 import math
 import numpy
 
-class CosineSimilarity :
+class CosineSimilarity(object) :
     """
     Defines a class version of the closure. The pure closure
     version is slightly faster but can't be saved (pickled) in settings file.
@@ -10,13 +10,16 @@ class CosineSimilarity :
     Terms with frequencies greater than n_documents * idf_threshold are discarded.
     """
 
+    def _list(self, document) :
+        pass
+
     def __init__(self, corpus):
         if corpus :
 
             self.doc_freq = defaultdict(float)
             num_docs = 0.0
             for document in corpus :
-                for word in set(document.split()) :
+                for word in set(self._list(document)) :
                     self.doc_freq[word] += 1
                 num_docs += 1
 
@@ -28,12 +31,12 @@ class CosineSimilarity :
 
         self.vectors = {}
 
-    def vectorize(self, string) :
-        if string in self.vectors :
-            return self.vectors[string]
+    def vectorize(self, field) :
+        if field in self.vectors :
+            return self.vectors[field]
 
         vector = {}
-        for word in string.split() :
+        for word in self._list(field) :
             if word in vector :
                 vector[word] += self.doc_freq[word]
             else :
@@ -41,7 +44,7 @@ class CosineSimilarity :
 
         norm = math.sqrt(sum(weight * weight for weight in vector.values()))
 
-        self.vectors[string] = (vector, norm)
+        self.vectors[field] = (vector, norm)
 
         return vector, norm
 
@@ -59,6 +62,22 @@ class CosineSimilarity :
 
         else :
             return numpy.nan
+
+class CosineTextSimilarity(CosineSimilarity) :
+    def _list(self, document) :
+        return document.split()
+
+class CosineSetSimilarity(CosineSimilarity) :
+    """
+    Defines a class version of the closure. The pure closure
+    version is slightly faster but can't be saved (pickled) in settings file.
+
+    Terms with frequencies greater than n_documents * idf_threshold are discarded.
+    """
+
+    def _list(self, document) :
+        return document
+
 
 
 def one() :
