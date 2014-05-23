@@ -42,6 +42,8 @@ class DataModel(dict) :
                 field_model[field] = StringType(field, definition)
 
             elif definition['type'] == 'Text' :
+                if 'corpus' not in definition :
+                    definition['corpus'] = None 
                 field_model[field] = TextType(field, definition)
 
             elif definition['type'] == 'ShortString' :
