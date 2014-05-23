@@ -81,13 +81,14 @@ class DedupeBlocker(Blocker) :
         base_tokens = {}
 
         for i, (record_id, doc) in enumerate(data, 1) :
+            doc = stringify(doc)
             index_to_id[i] = record_id
-            last = [stringify(doc)]
+            last = [doc]
             for each in pipeline :
                 last = each.process(last)
             base_tokens[i] = ' OR '.join(last)
-            for predicate, index in indices.items() :
-                index.index_doc(i, stringify(doc))
+            for index in indices.values() :
+                index.index_doc(i, doc)
 
         logger.info(time.asctime())                
 
@@ -123,17 +124,19 @@ class RecordLinkBlocker(Blocker) :
         i = 1
 
         for record_id, doc in data_1 :
+            doc = stringify(doc)
             index_to_id[i] = record_id
-            last = [stringify(doc)]
+            last = [doc]
             for each in pipeline :
                 last = each.process(last)
             base_tokens[i] = ' OR '.join(last)
             i += 1
 
         for record_id, doc in data_2  :
+            doc = stringify(doc)
             index_to_id[i] = record_id
             for index in indices.values() :
-                index.index_doc(i, stringify(doc))
+                index.index_doc(i, doc)
             i += 1
 
         for predicate in self.tfidf_fields[field] :

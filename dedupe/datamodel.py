@@ -229,8 +229,14 @@ class LatLongType(FieldType) :
     comparator = compareLatLong
     type = "LatLong"
 
+    def __init__(self, field, definition) :
+        super(LatLongType, self).__init__(field, definition)
+
+        self.predicates = [dedupe.blocking.SimplePredicate(dedupe.predicates.latLongGridPredicate, 
+                                                           field)]
+
+
 class SetType(FieldType) :
-    comparator = compareJaccard
     type = "Set"
 
     simple_predicates = (dedupe.predicates.wholeSetPredicate,

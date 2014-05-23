@@ -2,6 +2,9 @@ from collections import defaultdict
 import math
 import numpy
 
+def one() :
+    return 1.0
+
 class CosineSimilarity(object) :
     """
     Defines a class version of the closure. The pure closure
@@ -68,31 +71,9 @@ class CosineTextSimilarity(CosineSimilarity) :
         return document.split()
 
 class CosineSetSimilarity(CosineSimilarity) :
-    """
-    Defines a class version of the closure. The pure closure
-    version is slightly faster but can't be saved (pickled) in settings file.
-
-    Terms with frequencies greater than n_documents * idf_threshold are discarded.
-    """
 
     def _list(self, document) :
         return document
-
-
-
-def one() :
-    return 1.0
-        
-
-if __name__ == '__main__' :
-
-    corpus = ['tom foolery', 'bob sillyery', 'joan']
-    
-    sim = CosineSimilarity(corpus, 1)
-    
-    print sim('foolery', 'joan foolery')
-    print sim('foolery', 'joan foolery')
-
 
 
 
