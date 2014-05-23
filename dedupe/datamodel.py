@@ -41,6 +41,9 @@ class DataModel(dict) :
             elif definition['type'] == 'String' :
                 field_model[field] = StringType(field, definition)
 
+            elif definition['type'] == 'Text' :
+                field_model[field] = TextType(field, definition)
+
             elif definition['type'] == 'ShortString' :
                 field_model[field] = ShortStringType(field, definition)
 
@@ -100,6 +103,7 @@ class DataModel(dict) :
                                         'LatLong',
                                         'Set',
                                         'Source',
+                                        'Text',
                                         'Categorical',
                                         'Custom',
                                         'Interaction']:
@@ -209,6 +213,15 @@ class ShortStringType(FieldType) :
 
         self.predicates = simple_predicates
 
+class TextType(StringType) :
+    type = "Text"
+
+    def __init__(self, field, definition) :
+        super(TextType, self).__init__(field, definition)
+
+        self.comparator = dedupe.distance.CosineSimilarity(definition['corpus'])
+
+
 
 class LatLongType(FieldType) :
     comparator = compareLatLong
@@ -228,8 +241,6 @@ class SetType(FieldType) :
                              for pred in self.simple_predicates]
 
         self.predicates = simple_predicates
-
-
 
 
 class HigherDummyType(FieldType) :

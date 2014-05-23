@@ -4,5 +4,5 @@
 import affinegap
 from haversine import compareLatLong
 from jaccard import compareJaccard
-from cosine import createCosineSimilarity, CosineSimilarity
+from cosine import CosineSimilarity
 from categorical import CategoricalComparator
