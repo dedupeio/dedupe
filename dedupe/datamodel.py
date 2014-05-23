@@ -9,7 +9,6 @@ import dedupe.blocking
 
 from dedupe.distance.affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
-from dedupe.distance.jaccard import compareJaccard
 from dedupe.distance.categorical import CategoricalComparator
 
 class DataModel(dict) :
