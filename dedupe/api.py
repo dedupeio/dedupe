@@ -599,8 +599,12 @@ class ActiveMatching(Matching) :
         logger.info('reading training from file')
 
         with open(training_source, 'r') as f:
-            training_pairs = json.load(f, 
-                                       cls=serializer.dedupe_decoder)
+            self._importTraining(f)
+
+    def _importTraining(self, training_file) :
+        training_pairs = json.load(training_file, 
+                                   cls=serializer.dedupe_decoder)
+
 
         for (label, examples) in training_pairs.items():
             if examples :
