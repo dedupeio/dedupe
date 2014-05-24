@@ -70,18 +70,18 @@ class DedupeBlocker(Blocker) :
         stop_word_remover = CustomStopWordRemover(self.stop_words[field])
 
 
-
         indices = {}
         for predicate in self.tfidf_fields[field] :
             indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
             pipeline = indices[predicate].lexicon._pipeline
+            stringify = predicate.stringify
 
         index_to_id = {}
         base_tokens = {}
 
-
         for i, (record_id, doc) in enumerate(data, 1) :
+            doc = stringify(doc)
             index_to_id[i] = record_id
             last = [doc]
             for each in pipeline :
@@ -116,6 +116,7 @@ class RecordLinkBlocker(Blocker) :
             indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
             pipeline = indices[predicate].lexicon._pipeline
+            stringify = predicate.stringify
 
         index_to_id = {}
         base_tokens = {}
@@ -123,6 +124,7 @@ class RecordLinkBlocker(Blocker) :
         i = 1
 
         for record_id, doc in data_1 :
+            doc = stringify(doc)
             index_to_id[i] = record_id
             last = [doc]
             for each in pipeline :
@@ -131,6 +133,7 @@ class RecordLinkBlocker(Blocker) :
             i += 1
 
         for record_id, doc in data_2  :
+            doc = stringify(doc)
             index_to_id[i] = record_id
             for index in indices.values() :
                 index.index_doc(i, doc)
@@ -480,11 +483,20 @@ class TfidfPredicate(Predicate):
 
         return call
 
+    def stringify(self, doc) :
+        return doc
+
 
     def __getstate__(self):
         result = self.__dict__.copy()
         result['canopy'] = {}
         return result
+
+class TfidfSetPredicate(TfidfPredicate) :
+    type = "TfidfPredicate"
+
+    def stringify(self, doc) :
+        return ' '.join('_'.join(str(each).split()) for each in doc)
 
 
 class CompoundPredicate(Predicate) :

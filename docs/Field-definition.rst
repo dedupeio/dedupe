@@ -19,7 +19,9 @@ field specification
 
 Field types include 
 
-* String 
+* String
+* ShortString 
+* Text
 * Custom 
 * LatLong 
 * Set 
@@ -30,12 +32,54 @@ String Types
 
 A 'String' type field must have as its key a name of a field as it
 appears in the data dictionary and a type declaration ex.
-``{'Phone': {type: 'String'}}`` The string type expects fields to be of
+``{'Address': {type: 'String'}}`` The string type expects fields to be of
 class string. Missing data should be represented as an empty string
 ``''``
 
 String types are compared using `affine gap string
 distance <http://en.wikipedia.org/wiki/Gap_penalty#Affine>`__.
+
+ShortString Types
+^^^^^^^^^^^^^^^^^
+
+Short strings are just like String types except that dedupe will not
+try to learn a canopy blocking rule for these fields, which can speed
+up the training phase considerably. Zip codes and city names are good
+candidates for this type. If in doubt, just use 'String.'
+
+``{'Zipcode': {type: 'ShortString'}}``
+
+.. _text-types-label:
+Text Types
+^^^^^^^^^^
+
+If you want to compare fields comparing long blocks of text, like
+product descriptions or article abstracts you should use this
+type. Text types fields are compared using the `cosine similarity
+metric <http://en.wikipedia.org/wiki/Vector_space_model>`__.
+
+Basically, this is a measurement of the amount of words that two
+documents have in common. This measure can be made more useful the
+overlap of rare words counts more than the overlap of common words. If
+provide a sequence of example fields than (a corpus), dedupe will
+learn these weights for you.
+
+.. code:: python
+
+   {'Product description' : {'type' : 'Text', 
+                             'corpus' : ['this product is great',
+			                 'this product is great and blue']}
+    } 
+
+If you don't want to adjust the measure to your data, just 'corpus'
+out of the field definition.
+
+.. code:: python
+
+   {'Product description' : {'type' : 'Text'}
+    } 
+
+
 
 Custom Types
 ^^^^^^^^^^^^
@@ -58,7 +102,6 @@ Example custom comparator:
             return 0     
     else :         
         return numpy.nan
-``
 
 Field definition:
 
@@ -85,15 +128,28 @@ tuple of 0s ``(0.0, 0.0)``
 Set
 ^^^
 
-A 'Set' type field must have as its key a name of a field as it appears
-in the data dictionary, at 'type' declaration. Set fields are compares
-sets using the `Jaccard
-index <http://en.wikipedia.org/wiki/Jaccard_index>`__. Missing data is
-not implemented for this field type.
+A 'Set' type field is for comparing lists of elements, like keywords
+or client names. Set types are very similar to :ref:`text-type-label`
+The use the same comparison function and you can also let dedupe which
+terms are common or rare by providing a corpus. Within a record, a Set
+types field have to be a ``frozenset``
 
 .. code:: python
 
-    {'Co-authors': {'type': 'Set'}} 
+    {'Co-authors': {'type': 'Set',
+                    'corpus' : [frozenset(['steve edwards']),
+		                frozenset(['steve edwards', steve jobs'])]}
+     } 
+
+or
+
+.. code:: python
+
+    {'Co-authors': {'type': 'Set'}
+     } 
+
+
+
 
 Interaction
 ^^^^^^^^^^^
@@ -221,7 +277,7 @@ no field will be created to account for missing data.
 
 This approach is called 'response augmented data' and is described in
 Benjamin Marlin's thesis `"Missing Data Problems in Machine Learning"
-http://people.cs.umass.edu/~marlin/research/phd_thesis/marlin-phd-thesis.pdf`__. Basically,
+<http://people.cs.umass.edu/~marlin/research/phd_thesis/marlin-phd-thesis.pdf>`__. Basically,
 this approach says that, even without looking at the value of the
 field comparisons, the pattern of observed and missing responses will
 affect the probability that a pair of records are a match.
