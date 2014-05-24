@@ -212,9 +212,7 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
     record_pairs_queue = backport.Queue(queue_size)
     scored_pairs_queue = backport.Queue()
 
-    id_type, records = idType(records)
-    
-    score_dtype = [('pairs', id_type, 2), ('score', 'f4', 1)]
+    score_dtype = [('pairs', object, 2), ('score', 'f4', 1)]
 
     scoring_function = ScoringFunction(data_model, 
                                        threshold,
@@ -267,17 +265,6 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
     [process.join() for process in processes]
 
     return scored_pairs
-
-
-def idType(records) :
-    record, records = peek(records)
-
-    id_type = type(record[0][0])
-    if id_type is str or id_type is unicode :
-        id_type = (unicode, len(record[0][0]) + 5)
-
-    return numpy.dtype(id_type), records
-
 
 def peek(records) :
     try :

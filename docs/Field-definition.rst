@@ -16,17 +16,6 @@ field specification
 	     }
 
 
-
-Field types include 
-
-* String
-* ShortString 
-* Text
-* Custom 
-* LatLong 
-* Set 
-* Interaction
-
 String Types
 ^^^^^^^^^^^^
 
@@ -47,7 +36,9 @@ try to learn a canopy blocking rule for these fields, which can speed
 up the training phase considerably. Zip codes and city names are good
 candidates for this type. If in doubt, just use 'String.'
 
-``{'Zipcode': {type: 'ShortString'}}``
+.. code:: python
+
+  {'Zipcode': {type: 'ShortString'}}
 
 .. _text-types-label:
 
@@ -133,7 +124,8 @@ A 'Set' type field is for comparing lists of elements, like keywords
 or client names. Set types are very similar to
 :ref:`text-types-label`.  They use the same comparison function and
 you can also let dedupe learn which terms are common or rare by
-providing a corpus. Within a record, a Set types field have to be tuples. 
+providing a corpus. Within a record, a Set types field have to be
+hashable sequences like tuples or frozensets.
 
 .. code:: python
 
