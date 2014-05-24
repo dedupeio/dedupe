@@ -716,7 +716,8 @@ class ActiveMatching(Matching) :
         with open(file_name, 'wb') as f:
             json.dump(self.training_pairs, 
                       f, 
-                      default=serializer._to_json)
+                      default=serializer._to_json,
+                      ensure_ascii=False)
 
 
     def uncertainPairs(self) :

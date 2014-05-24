@@ -15,7 +15,8 @@ class SerializerTest(unittest.TestCase) :
       
       json.dump(training_pairs, 
                 string, 
-                default=dedupe.serializer._to_json)
+                default=dedupe.serializer._to_json,
+                ensure_ascii = False)
 
       string.seek(0)
 
