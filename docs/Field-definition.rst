@@ -133,14 +133,13 @@ A 'Set' type field is for comparing lists of elements, like keywords
 or client names. Set types are very similar to
 :ref:`text-types-label`.  They use the same comparison function and
 you can also let dedupe learn which terms are common or rare by
-providing a corpus. Within a record, a Set types field have to be 
-``frozenset`` objects.
+providing a corpus. Within a record, a Set types field have to be tuples. 
 
 .. code:: python
 
     {'Co-authors': {'type': 'Set',
-                    'corpus' : [frozenset(['steve edwards']),
-		                frozenset(['steve edwards', steve jobs'])]}
+                    'corpus' : [('steve edwards'),
+		                ('steve edwards', steve jobs')]}
      } 
 
 or

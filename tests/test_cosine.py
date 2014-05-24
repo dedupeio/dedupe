@@ -5,9 +5,9 @@ import pickle
 
 class TestSetCosineClass(unittest.TestCase):
     def setUp(self):
-        self.ilist = [frozenset(['a', 'b', 'c']),
-                      frozenset(['b', 'c', 'd']),
-                      frozenset(['d', 'e', 'f'])
+        self.ilist = [('a', 'b', 'c'),
+                      ('b', 'c', 'd'),
+                      ('d', 'e', 'f')
                       ]
 
     def test_cosine(self):
@@ -16,10 +16,12 @@ class TestSetCosineClass(unittest.TestCase):
         s2 = self.ilist[1]
         cosine_sim = cosine(s1, s2)
         self.assertAlmostEqual(cosine_sim, 0.378, places=3)
+        cosine_sim = cosine(('g', 'h', 'd', 'd'), s2)
+        self.assertAlmostEqual(cosine_sim, 0.267, places=3)
 
     def test_cosine_na(self):
         cosine = CosineSetSimilarity(self.ilist)
-        cosine_sim = cosine(self.ilist[0], frozenset([]))
+        cosine_sim = cosine(self.ilist[0], ())
         assert numpy.isnan(cosine_sim)
         
     def test_cosine_identical(self):
@@ -42,6 +44,8 @@ class TestSetCosineClass(unittest.TestCase):
         s2 = self.ilist[1]
         cosine_sim = cosine(s1, s2)
         self.assertAlmostEqual(cosine_sim, 0.667, places=3)
+        cosine_sim = cosine(('g', 'h', 'd'), s2)
+        self.assertAlmostEqual(cosine_sim, 0.333, places=3)
 
     def test_cosine_pickle(self) :
         cosine = CosineSetSimilarity(self.ilist)
@@ -55,9 +59,6 @@ class TestSetCosineClass(unittest.TestCase):
         s2 = self.ilist[1]
         cosine_sim = cosine(s1, s2)
         pickle.dumps(cosine)
-
-
-
 
 class TestTextCosineClass(unittest.TestCase):
     def setUp(self):

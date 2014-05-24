@@ -1,31 +1,26 @@
-from collections import defaultdict
 import math
 import numpy
 
-class One(object) :
-    def __getitem__(self, key) :
-        return 1.0
-
 class CosineSimilarity(object) :
 
-    def _list(self, document) :
-        pass
-
     def __init__(self, corpus):
-        if corpus :
-
-            self.doc_freq = defaultdict(float)
-            num_docs = 0.0
-            for document in corpus :
-                for word in set(self._list(document)) :
+        self.doc_freq = {}
+        num_docs = 0.0
+        for document in corpus :
+            for word in set(self._list(document)) :
+                if word in self.doc_freq :
                     self.doc_freq[word] += 1
-                num_docs += 1
+                else :
+                    self.doc_freq[word] = 1
+            num_docs += 1
+                
+        for word, count in self.doc_freq.items() :
+            self.doc_freq[word] = math.log(num_docs/count)
 
-            for word, count in self.doc_freq.items() :
-                self.doc_freq[word] = math.log(num_docs/count)
-
+        if num_docs :
+            self.default_score = math.log(num_docs)
         else :
-            self.doc_freq = One()
+            self.default_score = 1.0
 
         self.vectors = {}
 
@@ -36,9 +31,9 @@ class CosineSimilarity(object) :
         vector = {}
         for word in self._list(field) :
             if word in vector :
-                vector[word] += self.doc_freq[word]
+                vector[word] += self.doc_freq.get(word, self.default_score)
             else :
-                vector[word] = self.doc_freq[word]
+                vector[word] = self.doc_freq.get(word, self.default_score)
 
         norm = math.sqrt(sum(weight * weight for weight in vector.values()))
 
