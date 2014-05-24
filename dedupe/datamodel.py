@@ -155,7 +155,7 @@ class DataModel(dict) :
 class FieldType(object) :
     weight = 0
     comparator = None
-    predicates = []    
+    simple_predicates = []    
              
     def __init__(self, field, definition) :
         self.field = field
@@ -165,32 +165,8 @@ class FieldType(object) :
         else :
             self.has_missing = False
 
-class StringType(FieldType) :
-    comparator = normalizedAffineGapDistance
-    type = "String"
-
-    simple_predicates = (dedupe.predicates.wholeFieldPredicate,
-                         dedupe.predicates.tokenFieldPredicate,
-                         dedupe.predicates.commonIntegerPredicate,
-                         dedupe.predicates.sameThreeCharStartPredicate,
-                         dedupe.predicates.sameFiveCharStartPredicate,
-                         dedupe.predicates.sameSevenCharStartPredicate,
-                         dedupe.predicates.nearIntegersPredicate,
-                         dedupe.predicates.commonFourGram,
-                         dedupe.predicates.commonSixGram)
-
-    canopy_predicates = (0.2, 0.4, 0.6, 0.8)
-
-    def __init__(self, field, definition) :
-        super(StringType, self).__init__(field, definition)
-
-        simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
-                             for pred in self.simple_predicates]
-
-        canopy_predicates = [dedupe.blocking.TfidfPredicate(threshold, field)
-                             for threshold in self.canopy_predicates]
-
-        self.predicates = simple_predicates + canopy_predicates
+        self.predicates = [dedupe.blocking.SimplePredicate(pred, field) 
+                           for pred in self.simple_predicates]
 
 class ShortStringType(FieldType) :
     comparator = normalizedAffineGapDistance
@@ -206,13 +182,21 @@ class ShortStringType(FieldType) :
                          dedupe.predicates.commonFourGram,
                          dedupe.predicates.commonSixGram)
 
+
+class StringType(ShortStringType) :
+    comparator = normalizedAffineGapDistance
+    type = "String"
+
+    canopy_predicates = (0.2, 0.4, 0.6, 0.8)
+
     def __init__(self, field, definition) :
-        super(ShortStringType, self).__init__(field, definition)
+        super(StringType, self).__init__(field, definition)
 
-        simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
-                             for pred in self.simple_predicates]
+        canopy_predicates = [dedupe.blocking.TfidfPredicate(threshold, field)
+                             for threshold in self.canopy_predicates]
 
-        self.predicates = simple_predicates
+        self.predicates += canopy_predicates
+
 
 class TextType(StringType) :
     type = "Text"
@@ -223,16 +207,11 @@ class TextType(StringType) :
         self.comparator = dedupe.distance.CosineTextSimilarity(definition['corpus'])
 
 
-
 class LatLongType(FieldType) :
     comparator = compareLatLong
     type = "LatLong"
 
-    def __init__(self, field, definition) :
-        super(LatLongType, self).__init__(field, definition)
-
-        self.predicates = [dedupe.blocking.SimplePredicate(dedupe.predicates.latLongGridPredicate, 
-                                                           field)]
+    simple_predicates = [dedupe.predicates.latLongGridPredicate]
 
 
 class SetType(FieldType) :
@@ -246,16 +225,12 @@ class SetType(FieldType) :
     def __init__(self, field, definition) :
         super(SetType, self).__init__(field, definition)
 
-        simple_predicates = [dedupe.blocking.SimplePredicate(pred, field) 
-                             for pred in self.simple_predicates]
-
         canopy_predicates = [dedupe.blocking.TfidfSetPredicate(threshold, field)
                              for threshold in self.canopy_predicates]
 
-        self.predicates = simple_predicates + canopy_predicates
+        self.predicates += canopy_predicates
 
         self.comparator = dedupe.distance.CosineSetSimilarity(definition['corpus'])
-
 
 
 class HigherDummyType(FieldType) :
