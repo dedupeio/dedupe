@@ -129,7 +129,7 @@ Set
 ^^^
 
 A 'Set' type field is for comparing lists of elements, like keywords
-or client names. Set types are very similar to :ref:`text-type-label`
+or client names. Set types are very similar to :ref:`text-types-label`
 The use the same comparison function and you can also let dedupe which
 terms are common or rare by providing a corpus. Within a record, a Set
 types field have to be a ``frozenset``
