@@ -6,12 +6,6 @@ def one() :
     return 1.0
 
 class CosineSimilarity(object) :
-    """
-    Defines a class version of the closure. The pure closure
-    version is slightly faster but can't be saved (pickled) in settings file.
-
-    Terms with frequencies greater than n_documents * idf_threshold are discarded.
-    """
 
     def _list(self, document) :
         pass
@@ -65,6 +59,12 @@ class CosineSimilarity(object) :
 
         else :
             return numpy.nan
+
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result['vectors'] = {}
+        return result
+
 
 class CosineTextSimilarity(CosineSimilarity) :
     def _list(self, document) :
