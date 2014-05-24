@@ -2,8 +2,9 @@ from collections import defaultdict
 import math
 import numpy
 
-def one() :
-    return 1.0
+class One(object) :
+    def __getitem__(self, key) :
+        return 1.0
 
 class CosineSimilarity(object) :
 
@@ -24,7 +25,7 @@ class CosineSimilarity(object) :
                 self.doc_freq[word] = math.log(num_docs/count)
 
         else :
-            self.doc_freq = defaultdict(one)
+            self.doc_freq = One()
 
         self.vectors = {}
 
