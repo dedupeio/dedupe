@@ -11,6 +11,16 @@ from dedupe.distance.affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
 from dedupe.distance.categorical import CategoricalComparator
 
+valid_fields = ['String',
+                'ShortString',
+                'LatLong',
+                'Set',
+                'Source',
+                'Text',
+                'Categorical',
+                'Custom',
+                'Interaction']
+
 class DataModel(dict) :
     def __init__(self, fields):
 
@@ -34,11 +44,14 @@ class DataModel(dict) :
             if definition['type'] == 'LatLong' :
                 field_model[field] = LatLongType(field, definition)
                 
-            elif definition['type'] == 'Set' :
-                field_model[field] = SetType(field, definition)
                 
             elif definition['type'] == 'String' :
                 field_model[field] = StringType(field, definition)
+
+            elif definition['type'] == 'Set' :
+                if 'corpus' not in definition :
+                    definition['corpus'] = None 
+                field_model[field] = SetType(field, definition)
 
             elif definition['type'] == 'Text' :
                 if 'corpus' not in definition :
@@ -99,19 +112,9 @@ class DataModel(dict) :
                              "{'Phone': {type: 'String'}}"
                              )
 
-        elif definition['type'] not in ['String',
-                                        'ShortString',
-                                        'LatLong',
-                                        'Set',
-                                        'Source',
-                                        'Text',
-                                        'Categorical',
-                                        'Custom',
-                                        'Interaction']:
-            raise ValueError("Invalid field type: field "
-                             "specifications are dictionaries that must "
-                             "include a type definition, ex. "
-                             "{'Phone': {type: 'String'}}")
+        elif definition['type'] not in valid_fields :
+            raise ValueError("Field type %s not valid. Valid types include %s"
+                             % (definition['type'], ', '.join(valid_fields)))
         
         elif definition['type'] != 'Custom' and 'comparator' in definition :
             raise ValueError("Custom comparators can only be defined "
