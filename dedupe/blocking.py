@@ -57,6 +57,11 @@ class Blocker:
                              {'iteration' :i,
                               'elapsed' :time.time() - start_time})
 
+        # clear canopies to reduce memory usage
+        for predicate_set in self.tfidf_fields.values() :
+            for predicate in predicate_set :
+                predicate.canopy = {}
+
 
 
 class DedupeBlocker(Blocker) :
