@@ -492,6 +492,7 @@ class ActiveMatching(Matching) :
     - writeTraining
     - uncertainPairs
     - markPairs
+    - cleanupTraining
     """
 
     def __init__(self, 
@@ -585,6 +586,12 @@ class ActiveMatching(Matching) :
         self.training_pairs = dedupe.backport.OrderedDict({'distinct': [], 
                                                            'match': []})
 
+
+    def cleanupTraining(self) :
+        del self.training_data
+        del self.training_pairs
+        del self.activeLearner
+        del self.data_sample
 
 
     def readTraining(self, training_source) : # pragma : no cover
