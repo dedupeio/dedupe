@@ -405,17 +405,18 @@ class RecordLinkMatching(Matching) :
         for block_key, record_id in self.blocker(data_1.items()) :
             blocks.setdefault(block_key, ([], []))[0].append((record_id, 
                                                               data_1[record_id]))
-
-        for block_key, record_id in self.blocker(data_2.iteritems()) :
+        for block_key, record_id in self.blocker(data_2.items()) :
             if block_key in blocks :
                 blocks[block_key][1].append((record_id, data_2[record_id]))
 
-        for block_id, (_, sources) in enumerate(blocks.iteritems()) :
+        blocks = blocks.values()
+
+        for block_id, sources in enumerate(blocks) :
             for source in sources :
                 for record_id, record in source :
                     coverage.setdefault(record_id, []).append(block_id)
 
-        for block_id, (block_key, sources) in enumerate(blocks.iteritems()) :
+        for block_id, sources in enumerate(blocks) :
             tuple_block = []
             for source in sources :
                 tuple_source = []
@@ -588,6 +589,9 @@ class ActiveMatching(Matching) :
 
 
     def cleanupTraining(self) :
+        '''
+        Clean up data we used for training. Free up memory.
+        '''
         del self.training_data
         del self.training_pairs
         del self.activeLearner

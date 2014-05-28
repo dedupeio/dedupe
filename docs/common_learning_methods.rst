@@ -99,3 +99,15 @@
    .. code:: python
 
       deduper.writeSettings('my_learned_settings')
+
+.. py:method:: cleanupTraining(file_name)
+
+   Delete data we used for training.
+
+   ``data_sample``, ``training_pairs``, ``training_data``, and
+   ``activeLearner`` can be very large objects. When you are done
+   training you may want to free up the memory they use.
+   
+   .. code:: python
+
+      deduper.cleanupTraining()
