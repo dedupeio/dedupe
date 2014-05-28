@@ -486,7 +486,6 @@ class TfidfPredicate(Predicate):
         else :
             return ()
 
-        return call
 
     def stringify(self, doc) :
         return doc
