@@ -38,6 +38,7 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (wholeFieldPredicate, name)", 
                "TfidfPredicate: (0.8, name)", 
                "SimplePredicate: (commonFourGram, name)", 
+               "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
 
     overlap = coverage.predicateCoverage(predicates, self.training_pairs[0])
@@ -48,6 +49,7 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (sameThreeCharStartPredicate, name)",
                "SimplePredicate: (tokenFieldPredicate, name)", 
                "TfidfPredicate: (0.8, name)", 
+               "SimplePredicate: (firstTokenPredicate, name)", 
                "TfidfPredicate: (0.2, name)"])
 
     overlap = coverage.predicateCoverage(predicates, self.training_pairs[1])
@@ -61,6 +63,7 @@ class BlockingTest(unittest.TestCase):
                "TfidfPredicate: (0.6, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
                "TfidfPredicate: (0.8, name)", 
+               "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
 
@@ -75,6 +78,7 @@ class BlockingTest(unittest.TestCase):
                "TfidfPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
                "TfidfPredicate: (0.6, name)", 
+               "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
                "TfidfPredicate: (0.8, name)", 
                "SimplePredicate: (commonFourGram, name)", 
