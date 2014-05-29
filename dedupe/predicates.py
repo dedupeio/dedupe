@@ -8,6 +8,9 @@ from dedupe.cpredicates import ngrams, initials
 
 words = re.compile("[\w']+").findall
 integers = re.compile("\d+").findall
+start_word = re.compile("^[\w']+").findall
+start_integer = re.compile("^\d+").findall
+
 
 def wholeFieldPredicate(field):
     """return the whole field"""
@@ -20,6 +23,10 @@ def wholeFieldPredicate(field):
 def tokenFieldPredicate(field):
     """returns the tokens"""
     return set(words(field))
+
+def firstTokenPredicate(field) :
+    first_token = start_word(field)
+    return tuple(first_token)
 
 def commonIntegerPredicate(field):
     """return any integers"""
@@ -36,6 +43,9 @@ def nearIntegersPredicate(field):
         
     return near_ints
 
+def firstIntegerPredicate(field) :
+    first_token = start_integer(field)
+    return tuple(first_token)
     
 def commonFourGram(field):
     """return 4-grams"""
