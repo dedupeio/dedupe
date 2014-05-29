@@ -588,7 +588,7 @@ class ActiveMatching(Matching) :
                                                            'match': []})
 
 
-    def cleanupTraining(self) :
+    def cleanupTraining(self) : # pragma : no cover
         '''
         Clean up data we used for training. Free up memory.
         '''
