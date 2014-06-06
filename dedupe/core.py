@@ -116,7 +116,7 @@ def fieldDistances(record_pairs, data_model, num_records=None):
         num_records = len(record_pairs)
     
     distances = numpy.empty((num_records, data_model.total_fields))
-    
+
     current_column = 0
 
     field_comparators = data_model.field_comparators.items()
@@ -124,6 +124,9 @@ def fieldDistances(record_pairs, data_model, num_records=None):
         for j, (field, compare) in enumerate(field_comparators) :
             distances[i,j] = compare(record_1[field],
                                      record_2[field])
+
+
+
 
     current_column += len(field_comparators)
 
@@ -171,22 +174,13 @@ class ScoringFunction(object) :
         self.data_model = data_model
         self.threshold = threshold
         self.dtype = dtype
-    def __call__(self, chunk_queue, scored_pairs_queue) :
-        while True :
-            record_pairs = chunk_queue.get()
-            if record_pairs is None :
-                # put the poison pill back in the queue so that other
-                # scorers will know to stop
-                chunk_queue.put(None)
-                break
-            scored_pairs = self.scoreRecords(record_pairs)
-            scored_pairs_queue.put(scored_pairs)
 
-    def scoreRecords(self, record_pairs) :
+    def __call__(self, record_pairs) :
         num_records = len(record_pairs)
 
         scored_pairs = numpy.empty(num_records,
                                    dtype = self.dtype)
+        
 
         def split_records() :
             for i, pair in enumerate(record_pairs) :
@@ -201,68 +195,36 @@ class ScoringFunction(object) :
 
         scored_pairs = scored_pairs[scored_pairs['score'] > self.threshold]   
 
+
         return scored_pairs
 
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     records = iter(records)
 
-    chunk_size = 1000
-
-    queue_size = num_processes
-    record_pairs_queue = backport.Queue(queue_size)
-    scored_pairs_queue = backport.Queue()
-
     score_dtype = [('pairs', object, 2), ('score', 'f4', 1)]
+    scored_pairs = numpy.empty(0,
+                               dtype=score_dtype)
 
     scoring_function = ScoringFunction(data_model, 
                                        threshold,
                                        score_dtype)
 
-    # Start processes
-    processes = [backport.Process(target=scoring_function, 
-                                  args=(record_pairs_queue, 
-                                        scored_pairs_queue))
-                 for _ in xrange(num_processes)]
+    def chunker() :
+        chunk = []
+        for i, pair in enumerate(records) :
+            chunk.append(pair)
+            if i % 100 == 0 :
+                yield chunk
+                chunk = []
+        yield chunk
 
-    [process.start() for process in processes]
+    pool = backport.Pool(num_processes)
+    
+    for scored_chunk in pool.imap_unordered(scoring_function, chunker()) :
+        scored_pairs = numpy.append(scored_pairs, scored_chunk)
 
-    num_chunks = 0
-    num_records = 0
-
-    while True :
-        chunk = list(itertools.islice(records, chunk_size))
-        if chunk :
-            record_pairs_queue.put(chunk)
-            num_chunks += 1
-            num_records += chunk_size
-
-            if num_chunks > queue_size :
-                if record_pairs_queue.full() :
-                    if chunk_size < 100000 :
-                        if num_chunks % 10 == 0 :
-                            chunk_size = int(chunk_size * 1.1)
-                else :
-                    if chunk_size > 100 :
-                        chunk_size = int(chunk_size * 0.9)
-        else :
-            # put poison pill in queue to tell scorers that they are
-            # done
-            record_pairs_queue.put(None)
-            break
-
-    scored_pairs = numpy.empty(num_records,
-                               dtype=score_dtype)
-
-    start = 0
-    for _ in xrange(num_chunks) :
-        score_chunk = scored_pairs_queue.get()
-        end = start + len(score_chunk)
-        scored_pairs[start:end,] = score_chunk
-        start = end
-
-    scored_pairs.resize((end,))
-
-    [process.join() for process in processes]
+    pool.close()
+    pool.join()
 
     return scored_pairs
 
