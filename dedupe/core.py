@@ -200,7 +200,7 @@ class ScoringFunction(object) :
 
 def scoreDuplicates(records, data_model, num_processes, threshold=0):
     records = iter(records)
-    chunk_size = 1000
+    chunk_size = 10000
 
     score_dtype = [('pairs', object, 2), ('score', 'f4', 1)]
     scored_pairs = numpy.empty(0,
