@@ -173,10 +173,31 @@ class ScoringFunction(object) :
     def __init__(self, data_model, threshold, dtype) :
         self.data_model = data_model
         self.threshold = threshold
-        self.dtype = dtype
+        self.field_comparators = data_model.field_comparators.items()
 
-    def __call__(self, record_pairs) :
+        self.n_fields = len(self.field_comparators)
+        self.dtype = [('pairs', object, 2), 
+                      ('distances', 'f4', data_model.total_fields)]
+
+
+    def __call__(self, record_pair) :
+
+        (id_1, record_1), (id_2, record_2) = record_pair
+
+        ids = (id_1, id_2)
+        distances = [compare(record_1[field], record_2[field])
+                     for field, compare in self.field_comparators]
+
+        return ids, distances
+
+        
+            
+
+
+
+    def call(self, record_pairs) :
         num_records = len(record_pairs)
+
 
         scored_pairs = numpy.empty(num_records,
                                    dtype = self.dtype)
@@ -202,27 +223,24 @@ def scoreDuplicates(records, data_model, num_processes, threshold=0):
     records = iter(records)
     chunk_size = 10000
 
-    score_dtype = [('pairs', object, 2), ('score', 'f4', 1)]
-    scored_pairs = numpy.empty(0,
+    score_dtype = [('pairs', object, 2), ('score', 'f4', 4)]
+
+    scored_pairs = numpy.empty(chunk_size,
                                dtype=score_dtype)
 
     scoring_function = ScoringFunction(data_model, 
                                        threshold,
                                        score_dtype)
 
-    def chunker() :
-        chunk = []
-        for i, pair in enumerate(records) :
-            chunk.append(pair)
-            if i % chunk_size == 0 :
-                yield chunk
-                chunk = []
-        yield chunk
-
     pool = backport.Pool(num_processes)
-    
-    for scored_chunk in pool.imap_unordered(scoring_function, chunker()) :
-        scored_pairs = numpy.append(scored_pairs, scored_chunk)
+
+    field_distances = numpy.fromiter((record_distance 
+                                      for record_distance 
+                                      in pool.imap_unordered(scoring_function, 
+                                                             records)),
+                                     dtype = score_dtype)
+
+    print field_distances
 
     pool.close()
     pool.join()
