@@ -199,8 +199,7 @@ def scoreDuplicates(records, data_model, num_processes=1) :
 
     pool = backport.Pool(num_processes)
 
-    record_comparisons = (record_distance 
-                          for record_distance 
+    record_comparisons = (comparison for comparison 
                           in pool.imap_unordered(distance_function, 
                                                  records,
                                                  chunk_size))
@@ -281,14 +280,16 @@ class frozendict(collections.Mapping):
 # I'd like to have this fixed upstream https://github.com/numpy/numpy/issues/4791
 def fromiter(iterable, dtype) : 
     array_length = 10
-    array = numpy.zeros(array_length, dtype=dtype)
+    array = numpy.empty(array_length, dtype=dtype)
 
     i = 0
     for i, element in enumerate(iterable) :
         if i == array_length :
-            array_length = int(array_length * 1.5)
+            array_length = int(array_length * 2)
+            new_array = numpy.empty(array_length, dtype)
             #array.resize((array_length,)) https://github.com/numpy/numpy/issues/4857
-            array = numpy.resize(array, array_length)
+            new_array[:i] = array 
+            array = new_array
 
         array[i] = element
 
