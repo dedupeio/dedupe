@@ -141,19 +141,13 @@ def derivedDistances(primary_distances, data_model) :
 
     return distances
 
+def fieldDistances(record_pairs, data_model):
+    num_records = len(record_pairs)
 
-def fieldDistances(record_pairs, data_model, num_records=None):
-
-
-
-    if num_records is None :
-        num_records = len(record_pairs)
-    
     distances = numpy.empty((num_records, data_model.total_fields))
 
-    current_column = 0
-
     field_comparators = data_model.field_comparators.items()
+
     for i, (record_1, record_2) in enumerate(record_pairs) :
         for j, (field, compare) in enumerate(field_comparators) :
             distances[i,j] = compare(record_1[field],
@@ -175,15 +169,9 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
-    
-
 class Distances(object) :
     def __init__(self, data_model) :
         self.field_comparators = data_model.field_comparators.items()
-        if len(self.field_comparators) < 2 :
-            self.singleton = True
-        else :
-            self.singleton = False
 
     def __call__(self, record_pair) :
 
@@ -193,22 +181,17 @@ class Distances(object) :
         distances = [compare(record_1[field], record_2[field])
                      for field, compare in self.field_comparators]
         
-        # this can be removed once we fix from iter upstream, in numpy
-        if self.singleton :
-            distances = distances[0]
-
         return ids, distances
 
 
-def scoreDuplicates(records, data_model, num_processes=1, threshold=0):
+def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
     chunk_size = 10000
 
-    record_ids = []
-
+    n_primary_fields = len(data_model.field_comparators)
 
     distance_dtype = [('pairs', object, 2), 
-                      ('distances', 'f4', len(data_model.field_comparators))]
+                      ('distances', 'f4', (1, n_primary_fields))]
 
     distance_function = Distances(data_model) 
 
@@ -221,7 +204,6 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0):
                                                       chunk_size)),
                               dtype = distance_dtype)
 
-
     pool.close()
     pool.join()
 
@@ -233,11 +215,12 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0):
 
     distances = derivedDistances(distances, 
                                  data_model)
+
     scores = scorePairs(distances, data_model)
 
-    scored_pairs = numpy.core.records.fromarrays((ids, scores),
-                                                 dtype = [('pairs', object, 2),
-                                                          ('score', 'f4', 1)])
+    scored_pairs = numpy.rec.fromarrays((ids, scores),
+                                        dtype = [('pairs', object, 2),
+                                                 ('score', 'f4', 1)])
 
     return scored_pairs
 
@@ -290,24 +273,19 @@ class frozendict(collections.Mapping):
             return h
 
 
-def fromiter(iterable, dtype) :
+# I'd like to have this fixed upstream https://github.com/numpy/numpy/issues/4791
+def fromiter(iterable, dtype) : 
     array_length = 10
     array = numpy.zeros(array_length, dtype=dtype)
 
     i = 0
     for i, element in enumerate(iterable) :
         if i == array_length :
-            array_length *= 1.5
-            array_length = int(array_length)
+            array_length = int(array_length * 1.5)
+            #array.resize((array_length,)) https://github.com/numpy/numpy/issues/4857
             array = numpy.resize(array, array_length)
 
-        try :
-            array[i] = element
-        except :
-            
-            print array[i]
-            print element
-            raise
+        array[i] = element
 
     array = numpy.resize(array, i+1)
 
