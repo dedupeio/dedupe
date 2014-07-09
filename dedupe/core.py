@@ -173,6 +173,7 @@ class Distances(object) :
     def __init__(self, data_model) :
         self.field_comparators = data_model.field_comparators.items()
 
+
     def __call__(self, record_pair) :
 
         ((id_1, record_1, smaller_ids_1), 
@@ -180,10 +181,10 @@ class Distances(object) :
 
         if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
 
-            ids = (id_1, id_2)
-            distances = [compare(record_1[field], record_2[field])
-                         for field, compare in self.field_comparators]
-        
+            ids = numpy.array([id_1, id_2])
+            distances = numpy.array([compare(record_1[field], record_2[field])
+                                     for field, compare in self.field_comparators])
+
             return ids, distances
 
 def scoreDuplicates(records, data_model, num_processes=1) :
