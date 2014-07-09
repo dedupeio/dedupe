@@ -175,14 +175,16 @@ class Distances(object) :
 
     def __call__(self, record_pair) :
 
-        (id_1, record_1), (id_2, record_2) = record_pair
+        ((id_1, record_1, smaller_ids_1), 
+         (id_2, record_2, smaller_ids_2)) = record_pair
 
-        ids = (id_1, id_2)
-        distances = [compare(record_1[field], record_2[field])
-                     for field, compare in self.field_comparators]
+        if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
+
+            ids = (id_1, id_2)
+            distances = [compare(record_1[field], record_2[field])
+                         for field, compare in self.field_comparators]
         
-        return ids, distances
-
+            return ids, distances
 
 def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
@@ -197,11 +199,15 @@ def scoreDuplicates(records, data_model, num_processes=1) :
 
     pool = backport.Pool(num_processes)
 
-    field_distances = fromiter((record_distance 
-                               for record_distance 
-                               in pool.imap_unordered(distance_function, 
-                                                      records,
-                                                      chunk_size)),
+    record_comparisons = (record_distance 
+                          for record_distance 
+                          in pool.imap_unordered(distance_function, 
+                                                 records,
+                                                 chunk_size))
+
+    field_distances = fromiter((comparison for comparison 
+                                in record_comparisons 
+                                if comparison is not None),
                               dtype = distance_dtype)
 
     pool.close()
@@ -211,7 +217,6 @@ def scoreDuplicates(records, data_model, num_processes=1) :
     distances = numpy.resize(field_distances['distances'],
                              (field_distances.shape[0],
                               data_model.total_fields))
-
 
     distances = derivedDistances(distances, 
                                  data_model)

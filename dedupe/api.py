@@ -119,7 +119,10 @@ class Matching(object):
                                             self.data_model,
                                             self.num_processes)
 
-        clusters = self._cluster(self.matches, cluster_threshold)
+        self.matches = self.matches[self.matches['score'] > threshold]
+
+        clusters = self._cluster(self.matches, 
+                                 cluster_threshold)
         
         return clusters
 
@@ -143,14 +146,11 @@ class Matching(object):
         self._checkBlock(block)
 
         def pair_gen() :
-            disjoint = set.isdisjoint
             blockPairs = self._blockPairs
             for block in blocks :
                 for pair in blockPairs(block) :
-                    ((key_1, record_1, smaller_ids_1), 
-                     (key_2, record_2, smaller_ids_2)) = pair
-                    if disjoint(smaller_ids_1, smaller_ids_2) :
-                        yield (key_1, record_1), (key_2, record_2)
+                    yield pair
+
 
         return pair_gen()
 
