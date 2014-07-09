@@ -72,7 +72,7 @@ print 'number of known duplicate pairs', len(duplicates_s)
 if os.path.exists(settings_file):
     deduper = dedupe.StaticDedupe(settings_file)
 else:
-    fields = {'name': {'type': 'String'},
+    fields = {'name': {'type': 'String', 'Has Missing' : True},
               'address': {'type': 'String'},
               'cuisine': {'type': 'ShortString'},
               'city' : {'type' : 'ShortString'}

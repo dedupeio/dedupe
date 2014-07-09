@@ -109,26 +109,10 @@ def trainModel(training_data, data_model, alpha=.001):
 
     return data_model
 
+def derivedDistances(primary_distances, data_model) :
+    distances = primary_distances
 
-def fieldDistances(record_pairs, data_model, num_records=None):
-
-    if num_records is None :
-        num_records = len(record_pairs)
-    
-    distances = numpy.empty((num_records, data_model.total_fields))
-
-    current_column = 0
-
-    field_comparators = data_model.field_comparators.items()
-    for i, (record_1, record_2) in enumerate(record_pairs) :
-        for j, (field, compare) in enumerate(field_comparators) :
-            distances[i,j] = compare(record_1[field],
-                                     record_2[field])
-
-
-
-
-    current_column += len(field_comparators)
+    current_column = len(data_model.field_comparators)
 
     for cat_index, length in data_model.categorical_indices :
         start = current_column
@@ -157,6 +141,28 @@ def fieldDistances(record_pairs, data_model, num_records=None):
 
     return distances
 
+
+def fieldDistances(record_pairs, data_model, num_records=None):
+
+
+
+    if num_records is None :
+        num_records = len(record_pairs)
+    
+    distances = numpy.empty((num_records, data_model.total_fields))
+
+    current_column = 0
+
+    field_comparators = data_model.field_comparators.items()
+    for i, (record_1, record_2) in enumerate(record_pairs) :
+        for j, (field, compare) in enumerate(field_comparators) :
+            distances[i,j] = compare(record_1[field],
+                                     record_2[field])
+
+    distances = derivedDistances(distances, data_model)
+
+    return distances
+
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
 
@@ -169,16 +175,15 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
-class ScoringFunction(object) :
-    def __init__(self, data_model, threshold, dtype) :
-        self.data_model = data_model
-        self.threshold = threshold
+    
+
+class Distances(object) :
+    def __init__(self, data_model) :
         self.field_comparators = data_model.field_comparators.items()
-
-        self.n_fields = len(self.field_comparators)
-        self.dtype = [('pairs', object, 2), 
-                      ('distances', 'f4', data_model.total_fields)]
-
+        if len(self.field_comparators) < 2 :
+            self.singleton = True
+        else :
+            self.singleton = False
 
     def __call__(self, record_pair) :
 
@@ -187,63 +192,52 @@ class ScoringFunction(object) :
         ids = (id_1, id_2)
         distances = [compare(record_1[field], record_2[field])
                      for field, compare in self.field_comparators]
+        
+        # this can be removed once we fix from iter upstream, in numpy
+        if self.singleton :
+            distances = distances[0]
 
         return ids, distances
 
-        
-            
 
-
-
-    def call(self, record_pairs) :
-        num_records = len(record_pairs)
-
-
-        scored_pairs = numpy.empty(num_records,
-                                   dtype = self.dtype)
-        
-
-        def split_records() :
-            for i, pair in enumerate(record_pairs) :
-                record_1, record_2 = pair
-                scored_pairs['pairs'][i] = (record_1[0], record_2[0])
-                yield (record_1[1], record_2[1])
-
-        scored_pairs['score'] = scorePairs(fieldDistances(split_records(), 
-                                                          self.data_model,
-                                                          num_records),
-                                           self.data_model)
-
-        scored_pairs = scored_pairs[scored_pairs['score'] > self.threshold]   
-
-
-        return scored_pairs
-
-def scoreDuplicates(records, data_model, num_processes, threshold=0):
+def scoreDuplicates(records, data_model, num_processes=1, threshold=0):
     records = iter(records)
     chunk_size = 10000
 
-    score_dtype = [('pairs', object, 2), ('score', 'f4', 4)]
+    record_ids = []
 
-    scored_pairs = numpy.empty(chunk_size,
-                               dtype=score_dtype)
 
-    scoring_function = ScoringFunction(data_model, 
-                                       threshold,
-                                       score_dtype)
+    distance_dtype = [('pairs', object, 2), 
+                      ('distances', 'f4', len(data_model.field_comparators))]
+
+    distance_function = Distances(data_model) 
 
     pool = backport.Pool(num_processes)
 
-    field_distances = numpy.fromiter((record_distance 
-                                      for record_distance 
-                                      in pool.imap_unordered(scoring_function, 
-                                                             records)),
-                                     dtype = score_dtype)
+    field_distances = fromiter((record_distance 
+                               for record_distance 
+                               in pool.imap_unordered(distance_function, 
+                                                      records,
+                                                      chunk_size)),
+                              dtype = distance_dtype)
 
-    print field_distances
 
     pool.close()
     pool.join()
+
+    ids = field_distances['pairs']
+    distances = numpy.resize(field_distances['distances'],
+                             (field_distances.shape[0],
+                              data_model.total_fields))
+
+
+    distances = derivedDistances(distances, 
+                                 data_model)
+    scores = scorePairs(distances, data_model)
+
+    scored_pairs = numpy.core.records.fromarrays((ids, scores),
+                                                 dtype = [('pairs', object, 2),
+                                                          ('score', 'f4', 1)])
 
     return scored_pairs
 
@@ -294,3 +288,29 @@ class frozendict(collections.Mapping):
         except AttributeError:
             h = self._cached_hash = hash(frozenset(self._d.iteritems()))
             return h
+
+
+def fromiter(iterable, dtype) :
+    array_length = 10
+    array = numpy.zeros(array_length, dtype=dtype)
+
+    i = 0
+    for i, element in enumerate(iterable) :
+        if i == array_length :
+            array_length *= 1.5
+            array_length = int(array_length)
+            array = numpy.resize(array, array_length)
+
+        try :
+            array[i] = element
+        except :
+            
+            print array[i]
+            print element
+            raise
+
+    array = numpy.resize(array, i+1)
+
+    return array
+        
+        
