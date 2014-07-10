@@ -5,6 +5,7 @@ import itertools
 import warnings
 import numpy
 import collections
+import time
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -224,7 +225,7 @@ def accumulator(field_distance_queue, result_queue, stop_signals=1) :
 
 def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
-    chunk_size = 10000
+    chunk_size = 1000
     map_processes = max(num_processes-1, 1)
 
 
@@ -250,24 +251,36 @@ def scoreDuplicates(records, data_model, num_processes=1) :
                                                  map_processes))
     accumulator_process.start()
 
+    multiplier = 1.1
+    record_rate = 10000
+    num_chunks = 0
+    n_records = 0
+    t0 = time.time()
     while True :
-        chunk_size = 10000
-        num_chunks = 0
         chunk = list(itertools.islice(records, chunk_size))
         if chunk :
-            print chunk_size
             chunk = record_pairs_queue.put(chunk)
+            n_records += chunk_size
+
             num_chunks += 1
 
-            if num_chunks > map_processes :
-                if record_pairs_queue.full() :
-                    if chunk_size < 100000 :
-                        if num_chunks % 10 == 0 :
-                            chunk_size = int(chunk_size * 1.1)
-                else :
-                    if chunk_size > 100 :
-                        chunk_size = int(chunk_size * 0.9)
+            if num_chunks % 10 :
+                print "chunk", chunk_size
 
+                time_delta = time.time() - t0
+                current_rate = n_records/time_delta
+                n_records = 0
+                t0 = time.time()
+
+                print "rate", current_rate
+                print "multipleir", multiplier
+
+                if current_rate < record_rate :
+                    multiplier = 1/multiplier
+
+                record_rate = current_rate
+
+                chunk_size *= multiplier
         else :
             # put poison pill in queue to tell scorers that they are
             # done
