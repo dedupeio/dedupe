@@ -9,11 +9,12 @@ import warnings
 class CanonicalizationTest(unittest.TestCase) :
 
 	def setUp(self) :
-		self.data_d = { 1 : {"name": "mary crane", "address": "123 main st"}, 
-					 	2 : {"name": "mary crane east", "address": "123 main street"}, 
-						3 : {"name": "mary crane west", "address": "123 man st"}}
+		self.data_d = { 1 : {"name": "mary crane", "address": "123 main st", "zip":"12345"}, 
+					 	2 : {"name": "mary crane east", "address": "123 main street", "zip":""}, 
+						3 : {"name": "mary crane west", "address": "123 man st", "zip":""}}
 		deduper = dedupe.Dedupe({'name': {'type': 'String'},
-                      			 'address':   {'type': 'String'}})
+                      			 'address':   {'type': 'String'},
+                      			 'zip': {'type': 'String'}})
 		self.data_model = deduper.data_model
 
 
@@ -25,9 +26,13 @@ class CanonicalizationTest(unittest.TestCase) :
 
 	def test_get_canonical_rep(self) :
 		rep = dedupe.centroid.getCanonicalRep((1,2,3), self.data_d, self.data_model)
-		assert rep == {'name': 'mary crane', 'address': '123 main street'}
+		assert rep == {'name': 'mary crane', 'address': '123 main street', 'zip':"12345"}
 
+		rep = dedupe.centroid.getCanonicalRep((1,2), self.data_d, self.data_model)
+		assert rep == {"name": "mary crane", "address": "123 main st", "zip":"12345"}
 
+		rep = dedupe.centroid.getCanonicalRep((1,), self.data_d, self.data_model)
+		assert rep == {"name": "mary crane", "address": "123 main st", "zip":"12345"}
 
 
 if __name__ == "__main__":
