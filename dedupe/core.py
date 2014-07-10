@@ -225,7 +225,7 @@ def accumulator(field_distance_queue, result_queue, stop_signals=1) :
 
 def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
-    chunk_size = 1000
+    chunk_size = 100000
     map_processes = max(num_processes-1, 1)
 
 
@@ -265,15 +265,11 @@ def scoreDuplicates(records, data_model, num_processes=1) :
             num_chunks += 1
 
             if num_chunks % 10 :
-                print "chunk", chunk_size
 
                 time_delta = time.time() - t0
                 current_rate = n_records/time_delta
                 n_records = 0
                 t0 = time.time()
-
-                print "rate", current_rate
-                print "multipleir", multiplier
 
                 if current_rate < record_rate :
                     multiplier = 1/multiplier

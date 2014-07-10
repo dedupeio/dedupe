@@ -145,14 +145,11 @@ class Matching(object):
         block, blocks = core.peek(blocks)
         self._checkBlock(block)
 
-        def pair_gen() :
-            blockPairs = self._blockPairs
-            for block in blocks :
-                for pair in blockPairs(block) :
-                    yield pair
+	combinations = itertools.combinations
 
+        pairs = (combinations(block, 2) for block in blocks)
 
-        return pair_gen()
+        return itertools.chain(pairs) 
 
     def _logLearnedWeights(self): # pragma: no cover
         """
