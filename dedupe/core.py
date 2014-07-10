@@ -181,9 +181,9 @@ class Distances(object) :
 
         if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
 
-            ids = numpy.array([id_1, id_2])
-            distances = numpy.array([compare(record_1[field], record_2[field])
-                                     for field, compare in self.field_comparators])
+            ids = (id_1, id_2)
+            distances = [compare(record_1[field], record_2[field])
+                         for field, compare in self.field_comparators]
 
             return ids, distances
 
@@ -193,7 +193,7 @@ def scoreDuplicates(records, data_model, num_processes=1) :
 
     n_primary_fields = len(data_model.field_comparators)
 
-    distance_dtype = [('pairs', object, 2), 
+    distance_dtype = [('pairs', 'i4', 2), 
                       ('distances', 'f4', (1, n_primary_fields))]
 
     distance_function = Distances(data_model) 
@@ -205,10 +205,12 @@ def scoreDuplicates(records, data_model, num_processes=1) :
                                                  records,
                                                  chunk_size))
 
-    field_distances = fromiter((comparison for comparison 
-                                in record_comparisons 
-                                if comparison is not None),
-                              dtype = distance_dtype)
+    filtered_comparisons = (comparison for comparison
+                            in record_comparisons
+                            if comparison is not None)
+
+    field_distances = numpy.fromiter(filtered_comparisons,
+                                     dtype = distance_dtype)
 
     pool.close()
     pool.join()
@@ -279,6 +281,7 @@ class frozendict(collections.Mapping):
 
 
 # I'd like to have this fixed upstream https://github.com/numpy/numpy/issues/4791
+#@profile
 def fromiter(iterable, dtype) : 
     array_length = 10
     array = numpy.empty(array_length, dtype=dtype)
