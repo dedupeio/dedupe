@@ -173,7 +173,7 @@ def scorePairs(field_distances, data_model):
 
 class Distances(object) :
     def __init__(self, data_model) :
-        self.field_comparators = data_model.field_comparators.items()
+        self.data_model = data_model
 
 
     def __call__(self, record_pair) :
@@ -184,10 +184,12 @@ class Distances(object) :
         if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
 
             ids = (id_1, id_2)
-            distances = [compare(record_1[field], record_2[field])
-                         for field, compare in self.field_comparators]
+            distances = fieldDistances([(record_1, record_2)],
+                                       self.data_model)
 
-            return ids, distances
+            score = scorePairs(distances, self.data_model)
+
+            return ids, score
 
 def pipeFromIter(job_out, result_in, dtype) :
     def comparisons() :
@@ -211,54 +213,27 @@ def scoreDuplicates(records, data_model, num_processes=1) :
 
     n_primary_fields = len(data_model.field_comparators)
 
-    distance_dtype = [('pairs', 'i4', 2), 
-                      ('distances', 'f4', (1, n_primary_fields))]
+    score_dtype = [('pairs', 'i4', 2), 
+                   ('score', 'f4', 1)]
 
     distance_function = Distances(data_model) 
 
-    records_out, records_in = Pipe(duplex=False)
-    field_distance_out, field_distance_in = Pipe(duplex=False)
+    pool = backport.Pool(num_processes)
 
-    pool = backport.Pool(num_processes - 1)
-
-    process = Process(target=pipeFromIter, 
-                      args=(records_out, 
-                            field_distance_in,
-                            distance_dtype))
-    process.start()
-
-    record_comparisons = (comparison for comparison 
+    record_scores = (comparison for comparison 
                           in pool.imap_unordered(distance_function, 
                                                  records,
                                                  chunk_size))
 
-    for comparison in record_comparisons :
-        if comparison is not None :
-            records_in.send(comparison)
-
     pool.close()
     pool.join()
 
-    records_in.send(None)
-    records_in.close()
+    filtered_scores = (comparison for comparison 
+                       in record_scores
+                       if comparison is not None) 
 
-    field_distances = field_distance_out.recv()
-    process.close()
-    process.join()    
-
-    ids = field_distances['pairs']
-    distances = numpy.resize(field_distances['distances'],
-                             (field_distances.shape[0],
-                              data_model.total_fields))
-
-    distances = derivedDistances(distances, 
-                                 data_model)
-
-    scores = scorePairs(distances, data_model)
-
-    scored_pairs = numpy.rec.fromarrays((ids, scores),
-                                        dtype = [('pairs', object, 2),
-                                                 ('score', 'f4', 1)])
+    scored_pairs = numpy.fromiter(filtered_scores,
+                                  dtype=score_dtype)
 
     return scored_pairs
 
