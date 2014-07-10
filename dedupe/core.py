@@ -9,6 +9,8 @@ import collections
 import dedupe.backport as backport
 import dedupe.lr as lr
 
+from multiprocessing import Pipe, Process
+
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
     # size than we'll get very few duplicates by chance
@@ -187,6 +189,22 @@ class Distances(object) :
 
             return ids, distances
 
+def pipeFromIter(job_out, result_in, dtype) :
+    def comparisons() :
+        while True :
+            comparison = job_out.recv()
+            if comparison is not None :
+                yield comparison
+            else :
+                break
+
+    field_distances = numpy.fromiter(comparisons(),
+                                     dtype = dtype)
+
+    result_in.send(field_distances)
+
+    
+
 def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
     chunk_size = 10000
@@ -198,22 +216,35 @@ def scoreDuplicates(records, data_model, num_processes=1) :
 
     distance_function = Distances(data_model) 
 
-    pool = backport.Pool(num_processes)
+    records_out, records_in = Pipe(duplex=False)
+    field_distance_out, field_distance_in = Pipe(duplex=False)
+
+    pool = backport.Pool(num_processes - 1)
+
+    process = Process(target=pipeFromIter, 
+                      args=(records_out, 
+                            field_distance_in,
+                            distance_dtype))
+    process.start()
 
     record_comparisons = (comparison for comparison 
                           in pool.imap_unordered(distance_function, 
                                                  records,
                                                  chunk_size))
 
-    filtered_comparisons = (comparison for comparison
-                            in record_comparisons
-                            if comparison is not None)
-
-    field_distances = numpy.fromiter(filtered_comparisons,
-                                     dtype = distance_dtype)
+    for comparison in record_comparisons :
+        if comparison is not None :
+            records_in.send(comparison)
 
     pool.close()
     pool.join()
+
+    records_in.send(None)
+    records_in.close()
+
+    field_distances = field_distance_out.recv()
+    process.close()
+    process.join()    
 
     ids = field_distances['pairs']
     distances = numpy.resize(field_distances['distances'],
