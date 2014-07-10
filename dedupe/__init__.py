@@ -8,7 +8,8 @@ __all__ = ['affinegap',
            'backport',
            'predicates',
            'crossvalidation',
-           'distance'
+           'distance',
+           'centroid'
            ]
 
 #from distance import affinegap
