@@ -9,7 +9,7 @@ import collections
 import dedupe.backport as backport
 import dedupe.lr as lr
 
-from multiprocessing import Pipe, Process
+from multiprocessing import Pipe, Process, Queue
 from multiprocessing.queues import SimpleQueue
 
 def randomPairsWithReplacement(n_records, sample_size) :
@@ -225,19 +225,18 @@ def accumulator(field_distance_queue, result_queue, stop_signals=1) :
 def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
     chunk_size = 10000
-    queue_size = num_processes
+    map_processes = max(num_processes-1, 1)
+
 
     score_dtype = [('pairs', 'i4', 2), 
                    ('score', 'f4', 1)]
 
     distance_function = Distances(data_model) 
 
-    record_pairs_queue = SimpleQueue()
+    record_pairs_queue = Queue(map_processes)
     field_distance_queue = SimpleQueue()
     result_queue = SimpleQueue()
-    pool = backport.Pool(num_processes)
 
-    map_processes = max(num_processes-1, 1)
 
     processes = [backport.Process(target=distance_function,
                                   args=(record_pairs_queue,
@@ -252,20 +251,22 @@ def scoreDuplicates(records, data_model, num_processes=1) :
     accumulator_process.start()
 
     while True :
-        chunk_size = 1
+        chunk_size = 10000
+        num_chunks = 0
         chunk = list(itertools.islice(records, chunk_size))
         if chunk :
-            chunk
-            record_pairs_queue.put(chunk)
+            print chunk_size
+            chunk = record_pairs_queue.put(chunk)
+            num_chunks += 1
 
-            # if num_chunks > queue_size :
-            #     if record_pairs_queue.empty() :
-            #         if chunk_size > 100 :
-            #             chunk_size = int(chunk_size * 0.9)
-            #     else :
-            #         if chunk_size < 100000 :
-            #             if num_chunks % 10 == 0 :
-            #                 chunk_size = int(chunk_size * 1.1)
+            if num_chunks > map_processes :
+                if record_pairs_queue.full() :
+                    if chunk_size < 100000 :
+                        if num_chunks % 10 == 0 :
+                            chunk_size = int(chunk_size * 1.1)
+                else :
+                    if chunk_size > 100 :
+                        chunk_size = int(chunk_size * 0.9)
 
         else :
             # put poison pill in queue to tell scorers that they are
