@@ -10,6 +10,7 @@ import dedupe.backport as backport
 import dedupe.lr as lr
 
 from multiprocessing import Pipe, Process
+from multiprocessing.queues import SimpleQueue
 
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
@@ -174,56 +175,104 @@ def scorePairs(field_distances, data_model):
 class Distances(object) :
     def __init__(self, data_model) :
         self.data_model = data_model
+        #self.field_comparators = data_model.field_comparators
 
-
-    def __call__(self, record_pair) :
-
-        ((id_1, record_1, smaller_ids_1), 
-         (id_2, record_2, smaller_ids_2)) = record_pair
-
-        if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
-
-            ids = (id_1, id_2)
-            distances = fieldDistances([(record_1, record_2)],
-                                       self.data_model)
-
-            score = scorePairs(distances, self.data_model)
-
-            return ids, score
-
-def pipeFromIter(job_out, result_in, dtype) :
-    def comparisons() :
+    def __call__(self, records_queue, field_distance_queue) :
         while True :
-            comparison = job_out.recv()
-            if comparison is not None :
-                yield comparison
-            else :
+            record_pairs = records_queue.get()
+            if record_pairs is None :
+                # put the poison pill back in the queue so that other
+                # scorers will know to stop
+                records_queue.put(None)
                 break
+            field_distance = self.fieldDistance(record_pairs)
+            field_distance_queue.put(field_distance)
 
-    field_distances = numpy.fromiter(comparisons(),
-                                     dtype = dtype)
+    def fieldDistance(self, record_pairs) :
+        ids = []
+        records = []
+        
+        for record_pair in record_pairs :
+            ((id_1, record_1, smaller_ids_1), 
+             (id_2, record_2, smaller_ids_2)) = record_pair
 
-    result_in.send(field_distances)
+            if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
+                
+                ids.append((id_1, id_2))
+                records.append((record_1, record_2))
 
-    
+        distances = fieldDistances(records, self.data_model)
+
+        return ids, distances
 
 def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
     chunk_size = 10000
-
-    n_primary_fields = len(data_model.field_comparators)
+    queue_size = num_processes
 
     score_dtype = [('pairs', 'i4', 2), 
                    ('score', 'f4', 1)]
 
     distance_function = Distances(data_model) 
 
+    record_pairs_queue = SimpleQueue()
+    field_distance_queue = SimpleQueue()
     pool = backport.Pool(num_processes)
 
+    processes = [backport.Process(target=distance_function,
+                                  args=(record_pairs_queue,
+                                        field_distance_queue))
+                 for _ in xrange(num_processes)]
+
+    [process.start() for process in processes]
+
+    num_chunks = 0
+    num_records = 0
+
+    while True :
+        chunk = list(itertools.islice(records, chunk_size))
+        if chunk :
+            record_pairs_queue.put(chunk)
+            num_chunks += 1
+            num_records += chunk_size
+
+            if num_chunks > queue_size :
+                if record_pairs_queue.full() :
+                    if chunk_size < 100000 :
+                        if num_chunks % 10 == 0 :
+                            chunk_size = int(chunk_size * 1.1)
+                else :
+                    if chunk_size > 100 :
+                        chunk_size = int(chunk_size * 0.9)
+        else :
+            # put poison pill in queue to tell scorers that they are
+            # done
+            record_pairs_queue.put(None)
+            break
+
+
+    scored_pairs = numpy.empty(num_records,
+                               dtype= [('pairs', 'i4', 2), 
+                                       ('score', 'f4', 4)])
+    
+    start = 0
+    for _ in xrange(num_chunks) :
+        score_chunk = field_distance_queue.get()
+        end = start + len(score_chunk[0])
+        ids, distances = score_chunk
+        scored_pairs['pairs'][start:end,] = ids
+        scored_pairs['score'][start:end,] = distances
+
+        start = end
+
+    print scored_pairs
+    raise
+        
+    
     record_scores = (comparison for comparison 
-                          in pool.imap_unordered(distance_function, 
-                                                 records,
-                                                 chunk_size))
+                     in pool.imap_unordered(distance_function, 
+                                            records,
+                                            chunk_size))
 
     pool.close()
     pool.join()
