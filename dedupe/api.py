@@ -149,7 +149,7 @@ class Matching(object):
 
         pairs = (combinations(block, 2) for block in blocks)
 
-        return itertools.chain(pairs) 
+        return itertools.chain.from_iterable(pairs) 
 
     def _logLearnedWeights(self): # pragma: no cover
         """
