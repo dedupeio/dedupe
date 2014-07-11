@@ -1,10 +1,5 @@
 import unittest
 import dedupe
-import dedupe.centroid
-import numpy
-import random
-import warnings
-
 
 class CanonicalizationTest(unittest.TestCase) :
 
@@ -16,7 +11,6 @@ class CanonicalizationTest(unittest.TestCase) :
                       			 'address':   {'type': 'String'},
                       			 'zip': {'type': 'String'}})
 		self.data_model = deduper.data_model
-
 
 	def test_get_centroid(self) :
 		from dedupe.distance.affinegap import normalizedAffineGapDistance as comparator
@@ -33,7 +27,6 @@ class CanonicalizationTest(unittest.TestCase) :
 
 		rep = dedupe.centroid.getCanonicalRep((1,), self.data_d, self.data_model)
 		assert rep == {"name": "mary crane", "address": "123 main st", "zip":"12345"}
-
 
 if __name__ == "__main__":
 	unittest.main()
