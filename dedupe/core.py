@@ -215,7 +215,7 @@ class ScoreRecords(object) :
 
             self.score_queue.put(filtered_pairs)
 
-def accumulator(score_queue, result_queue, dtype, stop_signals=1) :
+def mergeScores(score_queue, result_queue, dtype, stop_signals=1) :
     scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
                                           ('score', 'f4', 1)])
 
@@ -230,27 +230,25 @@ def accumulator(score_queue, result_queue, dtype, stop_signals=1) :
     result_queue.put(scored_pairs)
 
 def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
-    map_processes = max(num_processes-1, 1)
-
-    score_records = ScoreRecords(data_model, threshold) 
-
     record_pairs_queue = SimpleQueue()
     score_queue = SimpleQueue()
     result_queue = SimpleQueue()
 
-    processes = [backport.Process(target=score_records,
-                                  args=(record_pairs_queue,
-                                        score_queue))
-                 for _ in xrange(map_processes)]
-    [process.start() for process in processes]
+    n_map_processes = max(num_processes-1, 1)
+    score_records = ScoreRecords(data_model, threshold) 
+    map_processes = [backport.Process(target=score_records,
+                                      args=(record_pairs_queue,
+                                            score_queue))
+                     for _ in xrange(n_map_processes)]
+    [process.start() for process in map_processes]
 
-    accumulator_process = backport.Process(target=accumulator,
-                                           args=(score_queue,
-                                                 result_queue,
-                                                 map_processes))
-    accumulator_process.start()
+    reduce_process = backport.Process(target=mergeScores,
+                                      args=(score_queue,
+                                            result_queue,
+                                            n_map_processes))
+    reduce_process.start()
 
-    fillQueue(record_pairs_queue, records, map_processes)
+    fillQueue(record_pairs_queue, records, n_map_processes)
 
     scored_pairs = result_queue.get()
 
@@ -347,27 +345,3 @@ class frozendict(collections.Mapping):
         except AttributeError:
             h = self._cached_hash = hash(frozenset(self._d.iteritems()))
             return h
-
-
-# I'd like to have this fixed upstream https://github.com/numpy/numpy/issues/4791
-#@profile
-def fromiter(iterable, dtype) : 
-    array_length = 10
-    array = numpy.empty(array_length, dtype=dtype)
-
-    i = 0
-    for i, element in enumerate(iterable) :
-        if i == array_length :
-            array_length = int(array_length * 2)
-            new_array = numpy.empty(array_length, dtype)
-            #array.resize((array_length,)) https://github.com/numpy/numpy/issues/4857
-            new_array[:i] = array 
-            array = new_array
-
-        array[i] = element
-
-    array = numpy.resize(array, i+1)
-
-    return array
-        
-        
