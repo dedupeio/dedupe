@@ -208,18 +208,21 @@ class Distances(object) :
 
             self.field_distance_queue.put((ids, distances))
 
-def accumulator(field_distance_queue, result_queue, stop_signals=1) :
+def accumulator(field_distance_queue, result_queue, dtype, stop_signals=1) :
 
-    def field_distance_gen() :
-        seen_signals = 0
-        while seen_signals < stop_signals  :
-            field_distance = field_distance_queue.get()
-            if field_distance is not None :
-                yield field_distance
-            else :
-                seen_signals += 1
+    ids = []
+    distances = []
 
-    field_distances =  numpy.concatenate(list(field_distance_gen()))
+    seen_signals = 0
+    while seen_signals < stop_signals  :
+        field_distance = field_distance_queue.get()
+        if field_distance is not None :
+            ids.extend(field_distance[0])
+            distances.extend(field_distance[1])
+        else :
+            seen_signals += 1
+
+    field_distances = numpy.rec.fromarrays((ids, distances), dtype=dtype)
 
     result_queue.put(field_distances)
 
@@ -229,8 +232,8 @@ def scoreDuplicates(records, data_model, num_processes=1) :
     map_processes = max(num_processes-1, 1)
 
 
-    score_dtype = [('pairs', 'i4', 2), 
-                   ('score', 'f4', 1)]
+    distance_dtype = [('pairs', 'object', 2), 
+                      ('score', 'f4', data_model.total_fields)]
 
     distance_function = Distances(data_model) 
 
@@ -248,6 +251,7 @@ def scoreDuplicates(records, data_model, num_processes=1) :
     accumulator_process = backport.Process(target=accumulator,
                                            args=(field_distance_queue,
                                                  result_queue,
+                                                 distance_dtype,
                                                  map_processes))
     accumulator_process.start()
 
