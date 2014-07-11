@@ -1,15 +1,12 @@
-import numpy as np
-from numpy import matlib
-
-#Canonicalization###########################################################################
+import numpy
 
 # takes in a list of attribute values for a field,
 # evaluates the centroid using the comparator,
 # & returns the centroid (i.e. the 'best' value for the field)
 def getCentroid( attribute_variants, comparator ):
     n = len(attribute_variants)
-    # if all values were empty & ignored, return ''
-    dist_matrix = np.zeros([n,n])
+    # if all values were empty & ignored in getCanonicalRep, return ''
+    dist_matrix = numpy.zeros([n,n])
     # this is a matrix of distances between all strings
     # populate distance matrix by looping through elements of matrix triangle
     for i in range (0,n):
@@ -20,8 +17,7 @@ def getCentroid( attribute_variants, comparator ):
     # find avg distance per string
     avg_dist = dist_matrix.mean(0)
     # find string with min avg distance
-    
-    min_dist_indices = np.where(avg_dist==avg_dist.min())[0]
+    min_dist_indices = numpy.where(avg_dist==avg_dist.min())[0]
     # if there is only one value w/ min avg dist
     if len(min_dist_indices)==1:
         centroid_index = min_dist_indices[0]
@@ -30,14 +26,12 @@ def getCentroid( attribute_variants, comparator ):
     else:
         return breakCentroidTie( attribute_variants, min_dist_indices )
 
-# find centroid when there are multiple values w/ min avg distance (e.g. any dupe cluster of 2)
-# right now this just selects the first among a set of ties
-# TO-DO? set this up so that for strings, it breaks ties by selecting the longest string (would need to take in comparator)
+# finds centroid when there are multiple values w/ min avg distance (e.g. any dupe cluster of 2)
+# right now this selects the first among a set of ties, but can be modified to break ties in strings by selecting the longest string
 def breakCentroidTie( attribute_variants, min_dist_indices ):
     return attribute_variants[min_dist_indices[0]]
 
 # takes in a cluster of duplicates & data, returns canonical representation of cluster
-# TO-DO: get this to take in data model, so that it knows data types, comparators
 def getCanonicalRep( dupe_cluster, data_d, data_model):
     canonical_rep = dict()
 
@@ -53,5 +47,3 @@ def getCanonicalRep( dupe_cluster, data_d, data_model):
         else:
             canonical_rep[key] = ''
     return canonical_rep
-
-#############################################################################################
