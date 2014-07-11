@@ -30,6 +30,7 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 from dedupe.datamodel import DataModel
+import dedupe.centroid as centroid
 
 logger = logging.getLogger(__name__)
 
@@ -283,6 +284,18 @@ class DedupeMatching(Matching) :
                 tuple_records.append((record_id, record, smaller_ids))
 
             yield tuple_records
+
+    def canonicalize(self, cluster, data):
+        """
+        Given a cluster of duplicates, returns a canonical representation for the cluster
+
+        Arguments:
+        cluster     --A sequence of record ids from the match method
+        data        --Dictionary of records, where the keys are record_ids
+                      and the values are dictionaries with the keys being
+                      field names
+        """
+        return centroid.getCanonicalRep(cluster, data_d, self.data_model)
 
 
 class RecordLinkMatching(Matching) :
