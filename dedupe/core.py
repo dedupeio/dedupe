@@ -173,11 +173,11 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
-class Distances(object) :
-    def __init__(self, data_model) :
+class ScoreRecords(object) :
+    def __init__(self, data_model, threshold) :
         self.data_model = data_model
+        self.threshold = threshold
         self.score_queue = None
-        #self.field_comparators = data_model.field_comparators
 
     def __call__(self, records_queue, score_queue) :
         self.score_queue = score_queue
@@ -210,9 +210,10 @@ class Distances(object) :
             scored_pairs = numpy.rec.fromarrays((ids, scores),
                                                 dtype= [('pairs', 'object', 2), 
                                                         ('score', 'f4', 1)])
+            
+            filtered_pairs = scored_pairs[scores > self.threshold]
 
-
-            self.score_queue.put(scored_pairs)
+            self.score_queue.put(filtered_pairs)
 
 def accumulator(score_queue, result_queue, dtype, stop_signals=1) :
     scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
@@ -228,19 +229,16 @@ def accumulator(score_queue, result_queue, dtype, stop_signals=1) :
 
     result_queue.put(scored_pairs)
 
-def scoreDuplicates(records, data_model, num_processes=1) :
-    records = iter(records)
-    chunk_size = 100000
+def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
     map_processes = max(num_processes-1, 1)
 
-    distance_function = Distances(data_model) 
+    score_records = ScoreRecords(data_model, threshold) 
 
-    record_pairs_queue = Queue(map_processes)
+    record_pairs_queue = SimpleQueue()
     score_queue = SimpleQueue()
     result_queue = SimpleQueue()
 
-
-    processes = [backport.Process(target=distance_function,
+    processes = [backport.Process(target=score_records,
                                   args=(record_pairs_queue,
                                         score_queue))
                  for _ in xrange(map_processes)]
@@ -252,41 +250,55 @@ def scoreDuplicates(records, data_model, num_processes=1) :
                                                  map_processes))
     accumulator_process.start()
 
-    multiplier = 1.1
-    record_rate = 10000
-    num_chunks = 0
-    n_records = 0
-    t0 = time.time()
-    while True :
-        chunk = list(itertools.islice(records, chunk_size))
-        if chunk :
-            chunk = record_pairs_queue.put(chunk)
-            n_records += chunk_size
-
-            num_chunks += 1
-
-            if num_chunks % 10 :
-
-                time_delta = time.time() - t0
-                current_rate = n_records/time_delta
-                n_records = 0
-                t0 = time.time()
-
-                if current_rate < record_rate :
-                    multiplier = 1/multiplier
-
-                record_rate = current_rate
-
-                chunk_size *= multiplier
-        else :
-            # put poison pills in queue to tell scorers that they are
-            # done
-            [record_pairs_queue.put(None) for _ in xrange(map_processes)]
-            break
+    fillQueue(record_pairs_queue, records, map_processes)
 
     scored_pairs = result_queue.get()
 
     return scored_pairs
+
+def fillQueue(queue, iterable, stop_signals) :
+    iterable = iter(iterable)
+    chunk_size = 100000
+    multiplier = 1.1
+
+    # initial values
+    i = 0
+    n_records = 0
+    t0 = time.time()
+    last_rate = 10000
+
+    while True :
+        chunk = list(itertools.islice(iterable, chunk_size))
+        if chunk :
+            queue.put(chunk)
+
+            n_records += chunk_size
+            i += 1
+
+            if i % 10 :
+                time_delta = time.time() - t0
+
+                current_rate = n_records/time_delta
+
+                # chunk_size is always either growing or shrinking, if
+                # the shrinking led to a faster rate, keep
+                # shrinking. Same with growing. If the rate decreased,
+                # reverse directions
+                if current_rate < last_rate :
+                    multiplier = 1/multiplier
+
+                chunk_size = max(chunk_size * multiplier, 1)
+
+                last_rate = current_rate
+                n_records = 0
+                t0 = time.time()
+                
+
+        else :
+            # put poison pills in queue to tell scorers that they are
+            # done
+            [queue.put(None) for _ in xrange(stop_signals)]
+            break
 
 def peek(records) :
     try :
