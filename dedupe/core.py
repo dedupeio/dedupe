@@ -176,11 +176,11 @@ def scorePairs(field_distances, data_model):
 class Distances(object) :
     def __init__(self, data_model) :
         self.data_model = data_model
-        self.field_distance_queue = None
+        self.score_queue = None
         #self.field_comparators = data_model.field_comparators
 
-    def __call__(self, records_queue, field_distance_queue) :
-        self.field_distance_queue = field_distance_queue
+    def __call__(self, records_queue, score_queue) :
+        self.score_queue = score_queue
         while True :
             record_pairs = records_queue.get()
             if record_pairs is None :
@@ -188,7 +188,7 @@ class Distances(object) :
 
             self.fieldDistance(record_pairs)
 
-        field_distance_queue.put(None)
+        score_queue.put(None)
 
     def fieldDistance(self, record_pairs) :
         ids = []
@@ -205,53 +205,50 @@ class Distances(object) :
 
         if records :
             distances = fieldDistances(records, self.data_model)
+            scores = scorePairs(distances, self.data_model)
 
-            self.field_distance_queue.put((ids, distances))
+            scored_pairs = numpy.rec.fromarrays((ids, scores),
+                                                dtype= [('pairs', 'object', 2), 
+                                                        ('score', 'f4', 1)])
 
-def accumulator(field_distance_queue, result_queue, dtype, stop_signals=1) :
 
-    ids = []
-    distances = []
+            self.score_queue.put(scored_pairs)
+
+def accumulator(score_queue, result_queue, dtype, stop_signals=1) :
+    scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
+                                          ('score', 'f4', 1)])
 
     seen_signals = 0
     while seen_signals < stop_signals  :
-        field_distance = field_distance_queue.get()
-        if field_distance is not None :
-            ids.extend(field_distance[0])
-            distances.extend(field_distance[1])
+        score_chunk = score_queue.get()
+        if score_chunk is not None :
+            scored_pairs = numpy.concatenate((scored_pairs, score_chunk))
         else :
             seen_signals += 1
 
-    field_distances = numpy.rec.fromarrays((ids, distances), dtype=dtype)
-
-    result_queue.put(field_distances)
+    result_queue.put(scored_pairs)
 
 def scoreDuplicates(records, data_model, num_processes=1) :
     records = iter(records)
     chunk_size = 100000
     map_processes = max(num_processes-1, 1)
 
-
-    distance_dtype = [('pairs', 'object', 2), 
-                      ('score', 'f4', data_model.total_fields)]
-
     distance_function = Distances(data_model) 
 
     record_pairs_queue = Queue(map_processes)
-    field_distance_queue = SimpleQueue()
+    score_queue = SimpleQueue()
     result_queue = SimpleQueue()
 
 
     processes = [backport.Process(target=distance_function,
                                   args=(record_pairs_queue,
-                                        field_distance_queue))
+                                        score_queue))
                  for _ in xrange(map_processes)]
     [process.start() for process in processes]
 
     accumulator_process = backport.Process(target=accumulator,
-                                           args=(field_distance_queue,
+                                           args=(score_queue,
                                                  result_queue,
-                                                 distance_dtype,
                                                  map_processes))
     accumulator_process.start()
 
@@ -282,12 +279,12 @@ def scoreDuplicates(records, data_model, num_processes=1) :
 
                 chunk_size *= multiplier
         else :
-            # put poison pill in queue to tell scorers that they are
+            # put poison pills in queue to tell scorers that they are
             # done
             [record_pairs_queue.put(None) for _ in xrange(map_processes)]
             break
 
-    print result_queue.get()
+    scored_pairs = result_queue.get()
 
     return scored_pairs
 
