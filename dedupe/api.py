@@ -6,16 +6,12 @@ Dedupe class
 """
 
 try:
-    from json.scanner import py_make_scanner
     import json
 except ImportError: 
-    from simplejson.scanner import py_make_scanner
     import simplejson as json
 import itertools
 import logging
 import pickle
-import multiprocessing
-import multiprocessing.dummy
 import numpy
 import random
 import warnings
@@ -23,7 +19,7 @@ import copy
 try:
     from collections import OrderedDict
 except ImportError :
-    from backport import OrderedDict
+    from dedupe.backport import OrderedDict
 
 import dedupe
 import dedupe.core as core
@@ -33,30 +29,10 @@ import dedupe.crossvalidation as crossvalidation
 import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
-import dedupe.tfidf as tfidf
 from dedupe.datamodel import DataModel
-import weakref
-import threading
+import dedupe.centroid as centroid
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-def Pool(processes) :
-    config_info = str([value for key, value in
-                       numpy.__config__.__dict__.iteritems()
-                       if key.endswith("_info")]).lower()
-
-    if "accelerate" in config_info or "veclib" in config_info :
-        if processes > 1 :
-            warnings.warn("NumPy linked against 'Accelerate.framework'. "
-                          "Multiprocessing will be disabled."
-                          " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
-        
-        if not hasattr(threading.current_thread(), "_children"): 
-          threading.current_thread()._children = weakref.WeakKeyDictionary()
-        return multiprocessing.dummy.Pool(processes=1)
-    else :
-        return multiprocessing.Pool(processes=processes)
 
 class Matching(object):
     """
@@ -93,7 +69,7 @@ class Matching(object):
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
-                                           self.pool)['score']
+                                           self.num_processes)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -142,38 +118,36 @@ class Matching(object):
         
         self.matches = core.scoreDuplicates(candidate_records,
                                             self.data_model,
-                                            self.pool,
+                                            self.num_processes,
                                             threshold)
 
-        clusters = self._cluster(self.matches, cluster_threshold)
+        logger.info("matching done, begin clustering")
+
+        clusters = self._cluster(self.matches, 
+                                 cluster_threshold)
         
         return clusters
 
     def _checkRecordType(self, record) :
-        for k in self.data_model.comparison_fields :
+        for k in self.data_model.field_comparators :
             if k not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "
                                  "in a record" % k)
 
-    def _blockedPairs(self, blocks) :
-        """
-        Generate tuples of pairs of records from a block of records
-        
-        Arguments:
-        
-        blocks -- an iterable sequence of blocked records
-        """
-        
-        block, blocks = core.peek(blocks)
-        self._checkBlock(block)
 
-        def pair_gen() :
-            for block in blocks :
-                for pair in self._blockPairs(block) :
-                    yield pair
+    def _logLearnedWeights(self): # pragma: no cover
+        """
+        Log learned weights and bias terms
+        """
+        logger.info('Learned Weights')
+        for (key_1, value_1) in self.data_model.items():
+            try:
+                for (key_2, value_2) in value_1.items():
+                    logger.info((key_2, value_2.weight))
+            except AttributeError:
+                logger.info((key_1, value_1))
 
-        return pair_gen()
 
 class DedupeMatching(Matching) :
     """
@@ -241,25 +215,50 @@ class DedupeMatching(Matching) :
         blocked_pairs = self._blockData(data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) :  # pragma : no cover
-        return itertools.combinations(block.items(), 2)
+    def _blockedPairs(self, blocks) :
+        """
+        Generate tuples of pairs of records from a block of records
         
+        Arguments:
+        
+        blocks -- an iterable sequence of blocked records
+        """
+        
+        block, blocks = core.peek(blocks)
+        self._checkBlock(block)
+
+	combinations = itertools.combinations
+
+        pairs = (combinations(block, 2) for block in blocks)
+
+        return itertools.chain.from_iterable(pairs) 
+
     def _checkBlock(self, block) :
         if not block :
             raise ValueError("You have not provided any data blocks")
-        else :
-            try :
-                block.items()
-                block.values()[0].items()
-            except :
-                raise ValueError("Each block must be a dictionary of records "
+        try :
+            if len(block[0]) < 3 :
+                raise ValueError("Each item in a block must be a "
+                                 "sequence of record_id, record, and smaller ids "
                                  "and the records also must be dictionaries")
+        except :
+            raise ValueError("sandwich Each item in a block must be a "
+                             "sequence of record_id, record, and smaller ids "
+                             "and the records also must be dictionaries")
+        try :
+            block[0][1].items()
+            block[0][2].isdisjoint([])
+        except :
+            raise ValueError("The record must be a dictionary and "
+                             "smaller_ids must be a set")
 
-            self._checkRecordType(block.values()[0])
+        
+        self._checkRecordType(block[0][1])
 
     def _blockData(self, data_d):
 
         blocks = OrderedDict({})
+        coverage = {}
 
         for field in self.blocker.tfidf_fields :
             self.blocker.tfIdfBlock(((record_id, record[field])
@@ -268,11 +267,37 @@ class DedupeMatching(Matching) :
                                     field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
-            blocks.setdefault(block_key, {}).update({record_id : 
-                                                     data_d[record_id]})
+            blocks.setdefault(str(block_key), []).append((record_id, 
+                                                          data_d[record_id]))
 
-        for block in blocks.values() :
-            yield block
+        # Redundant-free Comparisons from Kolb et al, "Dedoop:
+        # Efficient Deduplication with Hadoop"
+        # http://dbs.uni-leipzig.de/file/Dedoop.pdf
+        for block_id, (block, records) in enumerate(blocks.iteritems()) :
+            for record_id, record in records :
+                coverage.setdefault(record_id, []).append(block_id)
+
+        for block_id, (block_key, records) in enumerate(blocks.iteritems()) :
+            tuple_records = []
+            for record_id, record in records :
+                smaller_ids = set([covered_id for covered_id 
+                                   in coverage[record_id] 
+                                   if covered_id < block_id])
+                tuple_records.append((record_id, record, smaller_ids))
+
+            yield tuple_records
+
+    def canonicalize(self, cluster, data):
+        """
+        Given a cluster of duplicates, returns a canonical representation for the cluster
+
+        Arguments:
+        cluster     --A sequence of record ids from the match method
+        data        --Dictionary of records, where the keys are record_ids
+                      and the values are dictionaries with the keys being
+                      field names
+        """
+        return centroid.getCanonicalRep(cluster, data_d, self.data_model)
 
 
 class RecordLinkMatching(Matching) :
@@ -346,26 +371,47 @@ class RecordLinkMatching(Matching) :
         blocked_pairs = self._blockData(data_1, data_2)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) : # pragma : no cover
-        base, target = block
-        return itertools.product(base.items(), target.items())
+    def _blockedPairs(self, blocks) :
+        """
+        Generate tuples of pairs of records from a block of records
+        
+        Arguments:
+        
+        blocks -- an iterable sequence of blocked records
+        """
+        
+        block, blocks = core.peek(blocks)
+        self._checkBlock(block)
+
+	product = itertools.product
+
+        pairs = (product(base, target) for base, target in blocks)
+
+        return itertools.chain.from_iterable(pairs) 
         
     def _checkBlock(self, block) :
         try :
             base, target = block
-            base.items() and target.items()
         except :
             raise ValueError("Each block must be a made up of two "
-                             "dictionaries, (base_dict, target_dict)")
+                             "sequences, (base_sequence, target_sequence)")
 
         if base :
-            self._checkRecordType(base.values()[0])
+            if len(base[0]) < 3 :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
+            self._checkRecordType(base[0][1])
         if target :
-            self._checkRecordType(target.values()[0])
+            if len(target[0]) < 3 :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
+                
+            self._checkRecordType(target[0][1])
 
     def _blockData(self, data_1, data_2) :
 
         blocks = OrderedDict({})
+        coverage = {}
 
         for field in self.blocker.tfidf_fields :
             fields_1 = ((record_id, record[field])
@@ -378,16 +424,32 @@ class RecordLinkMatching(Matching) :
             self.blocker.tfIdfBlock(fields_1, fields_2, field)
 
 
-        for block_key, record_id in self.blocker(data_1.iteritems()) :
-            blocks.setdefault(block_key, ({},{}))[0].update({record_id : 
-                                                             data_1[record_id]})
-
-        for block_key, record_id in self.blocker(data_2.iteritems()) :
+        for block_key, record_id in self.blocker(data_1.items()) :
+            blocks.setdefault(block_key, ([], []))[0].append((record_id, 
+                                                              data_1[record_id]))
+        for block_key, record_id in self.blocker(data_2.items()) :
             if block_key in blocks :
-                blocks[block_key][1].update({record_id : data_2[record_id]})
+                blocks[block_key][1].append((record_id, data_2[record_id]))
 
-        for block in blocks.values () :
-            yield block 
+        blocks = blocks.values()
+
+        for block_id, sources in enumerate(blocks) :
+            for source in sources :
+                for record_id, record in source :
+                    coverage.setdefault(record_id, []).append(block_id)
+
+        for block_id, sources in enumerate(blocks) :
+            tuple_block = []
+            for source in sources :
+                tuple_source = []
+                for record_id, record in source :
+                    smaller_ids = set([covered_id for covered_id 
+                                       in coverage[record_id] 
+                                       if covered_id < block_id])
+                    tuple_source.append((record_id, record, smaller_ids))
+                tuple_block.append(tuple_source)
+
+            yield tuple_block
 
 class StaticMatching(Matching) :
     """
@@ -423,7 +485,7 @@ class StaticMatching(Matching) :
         if settings_file.__class__ is not str :
             raise ValueError("Must supply a settings file name")
 
-        self.pool = Pool(processes=num_processes)
+        self.num_processes = num_processes
 
         with open(settings_file, 'rb') as f: # pragma : no cover
             try:
@@ -434,6 +496,11 @@ class StaticMatching(Matching) :
                 raise ValueError("The settings file doesn't seem to be in "
                                  "right format. You may want to delete the "
                                  "settings file and try again")
+
+        self._logLearnedWeights()
+        logger.info(self.predicates)
+        logger.info(self.stop_words)
+
 
 
 class ActiveMatching(Matching) :
@@ -448,6 +515,7 @@ class ActiveMatching(Matching) :
     - writeTraining
     - uncertainPairs
     - markPairs
+    - cleanupTraining
     """
 
     def __init__(self, 
@@ -527,11 +595,10 @@ class ActiveMatching(Matching) :
             self._checkDataSample(self.data_sample)
             self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                          self.data_model)
-
         else :
             self.activeLearner = None
 
-        self.pool = Pool(processes=num_processes)
+        self.num_processes = num_processes
 
 
         training_dtype = [('label', 'S8'), 
@@ -542,6 +609,15 @@ class ActiveMatching(Matching) :
         self.training_pairs = dedupe.backport.OrderedDict({'distinct': [], 
                                                            'match': []})
 
+
+    def cleanupTraining(self) : # pragma : no cover
+        '''
+        Clean up data we used for training. Free up memory.
+        '''
+        del self.training_data
+        del self.training_pairs
+        del self.activeLearner
+        del self.data_sample
 
 
     def readTraining(self, training_source) : # pragma : no cover
@@ -556,8 +632,12 @@ class ActiveMatching(Matching) :
         logger.info('reading training from file')
 
         with open(training_source, 'r') as f:
-            training_pairs = json.load(f, 
-                                       cls=serializer.dedupe_decoder)
+            self._importTraining(f)
+
+    def _importTraining(self, training_file) :
+        training_pairs = json.load(training_file, 
+                                   cls=serializer.dedupe_decoder)
+
 
         for (label, examples) in training_pairs.items():
             if examples :
@@ -572,7 +652,7 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=1, uncovered_dupes=1) :
+    def train(self, ppc=.1, uncovered_dupes=1) :
         """
         Keyword arguments:
         ppc -- Limits the Proportion of Pairs Covered that we allow a
@@ -625,49 +705,23 @@ class ActiveMatching(Matching) :
     def _trainBlocker(self, ppc=1, uncovered_dupes=1) :
         training_pairs = copy.deepcopy(self.training_pairs)
 
-        blocker_types = self._blockerTypes()
-
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model,
                                                                        sample_size=32000)
 
         training_pairs['distinct'].extend(confident_nonduplicates)
 
-        predicate_set = blocking.predicateGenerator(blocker_types, 
-                                                    self.data_model)
+        predicate_set = predicateGenerator(self.data_model)
 
         (self.predicates, 
          self.stop_words) = dedupe.blocking.blockTraining(training_pairs,
                                                           predicate_set,
                                                           ppc,
                                                           uncovered_dupes,
-                                                          self.pool,
                                                           self._linkage_type)
 
         self.blocker = self._Blocker(self.predicates,
-                                     self.pool,
                                      self.stop_words) 
-
-
-    def _blockerTypes(self) : # pragma : no cover
-        string_predicates = (predicates.wholeFieldPredicate,
-                             predicates.tokenFieldPredicate,
-                             predicates.commonIntegerPredicate,
-                             predicates.sameThreeCharStartPredicate,
-                             predicates.sameFiveCharStartPredicate,
-                             predicates.sameSevenCharStartPredicate,
-                             predicates.nearIntegersPredicate,
-                             predicates.commonFourGram,
-                             predicates.commonSixGram)
-
-        tfidf_string_predicates = tuple([tfidf.TfidfPredicate(threshold)
-                                         for threshold
-                                         in [0.2, 0.4, 0.6, 0.8]])
-
-        return {'String' : (string_predicates
-                            + tfidf_string_predicates)}
-
-
 
 
     def writeSettings(self, file_name): # pragma : no cover
@@ -682,7 +736,7 @@ class ActiveMatching(Matching) :
         with open(file_name, 'w') as f:
             pickle.dump(self.data_model, f)
             pickle.dump(self.predicates, f)
-            pickle.dump(self.stop_words, f)
+            pickle.dump(dict(self.stop_words), f)
 
     def writeTraining(self, file_name): # pragma : no cover
         """
@@ -695,7 +749,8 @@ class ActiveMatching(Matching) :
         with open(file_name, 'wb') as f:
             json.dump(self.training_pairs, 
                       f, 
-                      default=serializer._to_json)
+                      default=serializer._to_json,
+                      ensure_ascii=False)
 
 
     def uncertainPairs(self) :
@@ -817,17 +872,6 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-    def _logLearnedWeights(self): # pragma: no cover
-        """
-        Log learned weights and bias terms
-        """
-        logger.info('Learned Weights')
-        for (k1, v1) in self.data_model.items():
-            try:
-                for (k2, v2) in v1.items():
-                    logger.info((k2, v2['weight']))
-            except AttributeError:
-                logger.info((k1, v1))
 
     def _loadSample(self, *args, **kwargs) : # pragma : no cover
 
@@ -851,7 +895,6 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
         super(StaticDedupe, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
-                                     self.pool,
                                      self.stop_words)
 
 class Dedupe(DedupeMatching, ActiveMatching) :
@@ -880,14 +923,14 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
     def _sample(self, data, sample_size) :
 
-        d = dict((i, dedupe.core.frozendict(v)) 
-                 for i, v in enumerate(data.values()))
+        indexed_data = dict((i, dedupe.core.frozendict(v)) 
+                            for i, v in enumerate(data.values()))
 
-        random_pairs = dedupe.core.randomPairs(len(d), 
+        random_pairs = dedupe.core.randomPairs(len(indexed_data), 
                                                sample_size)
 
-        data_sample = tuple((d[int(k1)], 
-                             d[int(k2)]) 
+        data_sample = tuple((indexed_data[int(k1)], 
+                             indexed_data[int(k2)]) 
                             for k1, k2 in random_pairs)
 
         return data_sample
@@ -904,7 +947,6 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
         super(StaticRecordLink, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
-                                     self.pool,
                                      self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
@@ -952,5 +994,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return data_sample
 
 
+def predicateGenerator(data_model) :
+    predicates = []
+    for field, definition in data_model['fields'].items() :
+        predicates.extend(definition.predicates)
 
-
+    return predicates

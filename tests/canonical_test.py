@@ -19,7 +19,9 @@ if opts.verbose == 1:
     log_level = logging.INFO
 elif opts.verbose >= 2:
     log_level = logging.DEBUG
-logging.basicConfig(level=log_level)
+logging.getLogger().setLevel(log_level)
+
+#logging.basicConfig(level=log_level)
 
 
 def canonicalImport(filename):
@@ -72,8 +74,8 @@ if os.path.exists(settings_file):
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
-              'cuisine': {'type': 'String'},
-              'city' : {'type' : 'String'}
+              'cuisine': {'type': 'ShortString'},
+              'city' : {'type' : 'ShortString'}
               }
 
     deduper = dedupe.Dedupe(fields)

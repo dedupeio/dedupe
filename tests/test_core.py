@@ -2,7 +2,6 @@ import unittest
 import dedupe
 import numpy
 import random
-import multiprocessing
 import warnings
 
 class RandomPairsTest(unittest.TestCase) :
@@ -27,9 +26,17 @@ class RandomPairsTest(unittest.TestCase) :
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            dedupe.core.randomPairs(10**10, 10)
-            assert len(w) == 1
-            assert str(w[-1].message) == "There may be duplicates in the sample"
+            dedupe.core.randomPairs(10**40, 10)
+            assert len(w) == 2
+            assert str(w[0].message) == "There may be duplicates in the sample"
+            assert "Asked to sample pairs from" in str(w[1].message)
+
+        random.seed(123)
+        numpy.random.seed(123)
+        assert numpy.array_equal(dedupe.core.randomPairs(11**9, 1),
+                                 numpy.array([[1228959102, 1840268610]]))
+
+
 
     def test_random_pair_match(self) :
         self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 1, 0, 10)
@@ -65,21 +72,22 @@ class RandomPairsTest(unittest.TestCase) :
 class ScoreDuplicates(unittest.TestCase):
   def setUp(self) :
     random.seed(123)
+    empty_set = set([])
 
-    self.records = iter([(('1', {'name': 'Margret', 'age': '32'}), 
-                          ('2', {'name': 'Marga', 'age': '33'})), 
-                         (('2', {'name': 'Marga', 'age': '33'}), 
-                          ('3', {'name': 'Maria', 'age': '19'})), 
-                         (('4', {'name': 'Maria', 'age': '19'}), 
-                          ('5', {'name': 'Monica', 'age': '39'})), 
-                         (('6', {'name': 'Monica', 'age': '39'}), 
-                          ('7', {'name': 'Mira', 'age': '47'})),
-                         (('8', {'name': 'Mira', 'age': '47'}), 
-                          ('9', {'name': 'Mona', 'age': '9'})),
+    self.records = iter([(('1', {'name': 'Margret', 'age': '32'}, empty_set), 
+                          ('2', {'name': 'Marga', 'age': '33'}, empty_set)), 
+                         (('2', {'name': 'Marga', 'age': '33'}, empty_set), 
+                          ('3', {'name': 'Maria', 'age': '19'}, empty_set)), 
+                         (('4', {'name': 'Maria', 'age': '19'}, empty_set), 
+                          ('5', {'name': 'Monica', 'age': '39'}, empty_set)), 
+                         (('6', {'name': 'Monica', 'age': '39'}, empty_set), 
+                          ('7', {'name': 'Mira', 'age': '47'}, empty_set)),
+                         (('8', {'name': 'Mira', 'age': '47'}, empty_set), 
+                          ('9', {'name': 'Mona', 'age': '9'}, empty_set)),
                         ])
 
     self.data_model = dedupe.Dedupe({"name" : {'type' : 'String'}}, ()).data_model
-    self.data_model['fields']['name']['weight'] = -1.0302742719650269
+    self.data_model['fields']['name'].weight = -1.0302742719650269
     self.data_model['bias'] = 4.76
 
     score_dtype = [('pairs', 'S4', 2), ('score', 'f4', 1)]
@@ -96,7 +104,7 @@ class ScoreDuplicates(unittest.TestCase):
   def test_score_duplicates(self):
     scores = dedupe.core.scoreDuplicates(self.records,
                                          self.data_model,
-                                         multiprocessing.Pool(processes=1))
+                                         2)
 
     numpy.testing.assert_equal(scores['pairs'], 
                                self.desired_scored_pairs['pairs'])
@@ -115,7 +123,6 @@ class FieldDistances(unittest.TestCase):
 
     record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
                      {'name' : 'steven', 'source' : 'a'}),)
-
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
@@ -168,8 +175,8 @@ class FieldDistances(unittest.TestCase):
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.],
-                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.]]),
+         numpy.array([[ 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0.],
+                      [ 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.]]),
                                             3)
 
  

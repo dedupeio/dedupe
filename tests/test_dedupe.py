@@ -3,7 +3,6 @@ import unittest
 import numpy
 import random
 import itertools
-import multiprocessing
 import collections
 
 DATA = {  100 : {"name": "Bob", "age": "50"},
@@ -39,7 +38,7 @@ class SourceComparatorTest(unittest.TestCase) :
                                        'Source Names' : ['a', 'b'],
                                        'Has Missing' : True}}, ())
 
-    source_comparator = deduper.data_model['fields']['name']['comparator']
+    source_comparator = deduper.data_model['fields']['name'].comparator
     assert source_comparator('a', 'a') == 0
     assert source_comparator('b', 'b') == 1
     assert source_comparator('a', 'b') == 2
@@ -54,100 +53,38 @@ class DataModelTest(unittest.TestCase) :
   def test_data_model(self) :
     OrderedDict = dedupe.backport.OrderedDict
     DataModel = dedupe.datamodel.DataModel
-    from dedupe.distance.affinegap import normalizedAffineGapDistance
-    from dedupe.distance.haversine import compareLatLong
-    from dedupe.distance.jaccard import compareJaccard
     
     self.assertRaises(TypeError, DataModel)
     assert DataModel({}) == {'fields': OrderedDict(), 'bias': 0}
     self.assertRaises(ValueError, DataModel, {'a' : 'String'})
     self.assertRaises(ValueError, DataModel, {'a' : {'foo' : 'bar'}})
     self.assertRaises(ValueError, DataModel, {'a' : {'type' : 'bar'}})
-    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Interaction'}})
+    self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction'}})
     self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Custom'}})
     self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
 
     self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction',
                                                            'Interaction Fields' : ['a', 'b']}})
-    assert DataModel({'a' : {'type' : 'String'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance})]),
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'LatLong'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'LatLong', 
-                                     'comparator': compareLatLong})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'Set'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'Set', 
-                                     'comparator': compareJaccard})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : True}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': True, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                              ('a: not_missing', {'type': 'Missing Data'})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : False}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance})]),
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String'}, 'b' : {'type' : 'String'}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator' : normalizedAffineGapDistance}), 
-                              ('b', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance})]),
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String'}, 
-                      'b' : {'type' : 'String'},
-                      'a-b' : {'type' : 'Interaction', 
-                               'Interaction Fields' : ['a', 'b']}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                               ('b', {'Has Missing': False, 
-                                      'type': 'String', 
-                                      'comparator': normalizedAffineGapDistance}), 
-                               ('a-b', {'Has Missing': False, 
-                                        'type': 'Interaction', 
-                                        'Interaction Fields': ['a', 'b']})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : True}, 
-                      'b' : {'type' : 'String'},
-                      'a-b' : {'type' : 'Interaction', 
-                               'Interaction Fields' : ['a', 'b']}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': True, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                               ('b', {'Has Missing': False, 
-                                      'type': 'String', 
-                                      'comparator': normalizedAffineGapDistance}), 
-                               ('a-b', {'Has Missing': True, 
-                                        'type': 'Interaction', 
-                                        'Interaction Fields': ['a', 'b']}),
-                              ('a: not_missing', {'type': 'Missing Data'}), 
-                              ('a-b: not_missing', {'type': 'Missing Data'})]), 
-       'bias': 0}
-    assert DataModel({'a' : {'type' : 'String', 'Has Missing' : False}, 
-                      'b' : {'type' : 'String'},
-                      'a-b' : {'type' : 'Interaction', 
-                               'Interaction Fields' : ['a', 'b']}}) == \
-      {'fields': OrderedDict([('a', {'Has Missing': False, 
-                                     'type': 'String', 
-                                     'comparator': normalizedAffineGapDistance}), 
-                               ('b', {'Has Missing': False, 
-                                      'type': 'String', 
-                                      'comparator': normalizedAffineGapDistance}), 
-                               ('a-b', {'Has Missing': False, 
-                                        'type': 'Interaction', 
-                                        'Interaction Fields': ['a', 'b']})]),
-       'bias': 0}
+    data_model = DataModel({'a' : {'type' : 'String'}, 
+                            'b' : {'type' : 'String'},
+                            'a-b' : {'type' : 'Interaction', 
+                                     'Interaction Fields' : ['a', 'b']}})
 
+    assert data_model['fields']['a-b'].interaction_fields  == ['a', 'b']
+
+    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : True}, 
+                            'b' : {'type' : 'String'},
+                            'a-b' : {'type' : 'Interaction', 
+                                     'Interaction Fields' : ['a', 'b']}})
+
+    assert data_model['fields']['a-b'].has_missing == True
+
+    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : False}, 
+                            'b' : {'type' : 'String'},
+                            'a-b' : {'type' : 'Interaction', 
+                                     'Interaction Fields' : ['a', 'b']}})
+
+    assert data_model['fields']['a-b'].has_missing == False
 
 
 
@@ -155,8 +92,8 @@ class DataModelTest(unittest.TestCase) :
 
 class AffineGapTest(unittest.TestCase):
   def setUp(self):
-    self.affineGapDistance = dedupe.affinegap.affineGapDistance
-    self.normalizedAffineGapDistance = dedupe.affinegap.normalizedAffineGapDistance
+    self.affineGapDistance = dedupe.distance.affinegap.affineGapDistance
+    self.normalizedAffineGapDistance = dedupe.distance.affinegap.normalizedAffineGapDistance
     
   def test_affine_gap_correctness(self):
     assert self.affineGapDistance('a', 'b', -5, 5, 5, 1, 0.5) == 5
@@ -266,18 +203,29 @@ class ClusteringTest(unittest.TestCase):
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
+    assert dedupe.predicates.wholeFieldPredicate('') == ()
     assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
-    assert dedupe.predicates.tokenFieldPredicate(field) == ('123', '16th', 'st')
-    assert dedupe.predicates.commonIntegerPredicate(field) == ('123', '16')
+    assert dedupe.predicates.firstTokenPredicate(field) == ('123',)
+    assert dedupe.predicates.firstTokenPredicate('') == ()
+    assert dedupe.predicates.firstTokenPredicate('123/') == ('123',)
+    assert dedupe.predicates.tokenFieldPredicate(' ') == set([])
+    assert dedupe.predicates.tokenFieldPredicate(field) == set(['123', '16th', 'st'])
+    assert dedupe.predicates.commonIntegerPredicate(field) == set(['123', '16'])
+    assert dedupe.predicates.commonIntegerPredicate('foo') == set([])
+    assert dedupe.predicates.firstIntegerPredicate('foo') == ()
+    assert dedupe.predicates.firstIntegerPredicate('1foo') == ('1',)
+    assert dedupe.predicates.firstIntegerPredicate('f1oo') == ()
     assert dedupe.predicates.sameThreeCharStartPredicate(field) == ('123',)
+    assert dedupe.predicates.sameThreeCharStartPredicate('12') == ()
+    assert dedupe.predicates.commonFourGram('12') == set([])
     assert dedupe.predicates.sameFiveCharStartPredicate(field) == ('123 1',)
     assert dedupe.predicates.sameSevenCharStartPredicate(field) == ('123 16t',)
-    assert dedupe.predicates.nearIntegersPredicate(field) == ('15', '17', '16', '122', '123', '124')
-    assert dedupe.predicates.commonFourGram(field) == ('123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st')
-    assert dedupe.predicates.commonSixGram(field) == ('123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st')
+    assert dedupe.predicates.nearIntegersPredicate(field) == set(['15', '17', '16', '122', '123', '124'])
+    assert dedupe.predicates.commonFourGram(field) == set(['123 ', '23 1', '3 16', ' 16t', '16th', '6th ', 'th s', 'h st'])
+    assert dedupe.predicates.commonSixGram(field) == set(['123 16', '23 16t', '3 16th', ' 16th ', '16th s', '6th st'])
     assert dedupe.predicates.initials(field,12) == ()
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
-    assert dedupe.predicates.ngrams(field,3) == ('123','23 ','3 1',' 16','16t','6th','th ','h s',' st')
+    assert dedupe.predicates.ngrams(field,3) == set(['123','23 ','3 1',' 16','16t','6th','th ','h s',' st'])
 
 
 

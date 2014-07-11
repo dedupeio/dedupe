@@ -64,7 +64,6 @@ def cluster(dupes, threshold=.5):
                  number will increase precision, raising it will increase
                  recall
     '''
-
     threshold = 1 - threshold
 
     dupe_graph = networkx.Graph()
@@ -75,13 +74,12 @@ def cluster(dupes, threshold=.5):
     clustering = {}
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
-        pair_gen = ((sorted(x[0:2]), 
-                     1 - x[2]['weight'])
-                    for x in dupe_graph.edges_iter(sub_graph, data=True))
-
         N = len(sub_graph)
-        if N > 2 :
-            pairs = numpy.fromiter(pair_gen, dtype=dupes.dtype)
+        pair_gen = [(sorted(x[0:2]), 1-x[2]['weight'])
+                    for x in dupe_graph.edges_iter(sub_graph, data=True)]
+
+        if N > 2:
+            pairs = numpy.array(pair_gen, dtype=dupes.dtype)
 
             (i_to_id, condensed_distances) = condensedDistance(pairs)
             linkage = fastcluster.linkage(condensed_distances,
@@ -113,13 +111,13 @@ def cluster(dupes, threshold=.5):
                 clustering[cluster_id] = ([i_to_id[item] for item in items],
                                           max_score)
 
-
-
             cluster_id += max(partition)
         else:
 
-            clustering[cluster_id] = pair_gen.next()
+            clustering[cluster_id] = pair_gen[0]
+            print pair_gen
             cluster_id += 1
+            
 
     valid_clusters = [(set(l), 1 - score) 
                       for l, score 

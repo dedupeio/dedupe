@@ -1,6 +1,6 @@
 libdistance-0.2.1
 build
-docs
+_build
 *.pyc
 logfile
 *.*~
@@ -23,5 +23,8 @@ possible_classifiers
 mysql.cnf
 *settings
 Dedupe.egg-info/
+dedupe.egg-info/
 ENV
 dist
+.coverage
+src/*.c

@@ -10,7 +10,6 @@ import numpy
 import logging
 import random
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def findUncertainPairs(field_distances, data_model, bias=0.5):

@@ -1,4 +1,26 @@
 import numpy
+import weakref
+import threading
+import warnings
+
+# Deal with Mac OS X issuse
+config_info = str([value for key, value in
+                   numpy.__config__.__dict__.iteritems()
+                   if key.endswith("_info")]).lower()
+
+if "accelerate" in config_info or "veclib" in config_info :
+    warnings.warn("NumPy linked against 'Accelerate.framework'. "
+                  "Multiprocessing will be disabled."
+                  " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
+        
+    if not hasattr(threading.current_thread(), "_children"): 
+        threading.current_thread()._children = weakref.WeakKeyDictionary()
+    from multiprocessing.dummy import Process, Pool, Queue
+    SimpleQueue = Queue
+else :
+    from multiprocessing import Process, Pool, Queue
+    from multiprocessing.queues import SimpleQueue
+
 
 ## {{{ http://code.activestate.com/recipes/576693/ (r9)
 # Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
