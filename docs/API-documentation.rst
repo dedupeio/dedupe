@@ -205,7 +205,7 @@ Example
 
 Class for record linkage using saved settings. If you have already
 trained a record linkage instance, you can load the saved settings with
-StaticDedupe.
+StaticRecordLink.
 
 .. py:class:: StaticRecordLink(settings_file, [num_processes])
 
@@ -224,6 +224,28 @@ StaticDedupe.
 
    .. include:: common_recordlink_methods.rst
    .. include:: common_methods.rst
+
+:class:`Gazetteer` Objects
+---------------------------
+
+Class for active learning gazeteer matching.
+
+Gazetteer matching is for matching a messy data set against a
+'canonical dataset', i.e. one that does not have any duplicates. This
+class is useful for such tasks as matching messy addresses against
+a clean list. 
+
+The interface is the same as for RecordLink objects. The messy dataset 
+comes first (``data_1``), and canonical dataset is second (``data_2``).
+
+:class:`StaticGazetteer` Objects
+--------------------------------
+
+Class for gazetter matching using saved settings. If you have already
+trained a gazetteer instance, you can load the saved settings with
+StaticGazetteer.
+
+This class has the same interface as RecordLink.
 
 
 Convenience Functions
