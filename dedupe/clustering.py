@@ -154,7 +154,7 @@ def gazetteMatching(dupes, threshold=0.5):
     for dupe in dupes_list:
         vertices = dupe[0]
         if vertices[0] not in covered_vertex_A:
-            clusters.append(vertices)
+            clusters.append(dupe)
             covered_vertex_A.update([vertices[0]])
 
     return clusters
