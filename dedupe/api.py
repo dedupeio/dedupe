@@ -121,6 +121,8 @@ class Matching(object):
                                             self.num_processes,
                                             threshold)
 
+        logger.info("matching done, begin clustering")
+
         clusters = self._cluster(self.matches, 
                                  cluster_threshold)
         
