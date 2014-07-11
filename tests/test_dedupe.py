@@ -202,14 +202,20 @@ class ClusteringTest(unittest.TestCase):
     gazetteMatch = dedupe.clustering.gazetteMatching
 
     assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0.5) == [(4, 6), (1, 6), (2, 7), (3, 6)]
+                        threshold=0.5) == [((4, 6), 0.96), 
+                                           ((1, 6), 0.72), 
+                                           ((2, 7), 0.72), 
+                                           ((3, 6), 0.72)]
 
     assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0) == [(4, 6), (1, 6), (2, 7), 
-                                         (3, 6), (5, 8)]
+                        threshold=0) == [((4, 6), 0.96), 
+                                         ((1, 6), 0.72), 
+                                         ((2, 7), 0.72), 
+                                         ((3, 6), 0.72), 
+                                         ((5, 8), 0.24)]
 
     assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0.8) == [(4,6)]
+                        threshold=0.8) == [((4,6), 0.96)]
 
     assert gazetteMatch(self.bipartite_dupes, 
                         threshold=1) == []
