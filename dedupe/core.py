@@ -247,7 +247,14 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
 
     fillQueue(record_pairs_queue, records, n_map_processes)
 
+    [process.join() for process in map_processes]
+
     scored_pairs = result_queue.get()
+
+    reduce_process.join()
+
+    [process.terminate() for process in map_processes]
+    reduce_process.terminate()
 
     return scored_pairs
 
