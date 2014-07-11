@@ -16,8 +16,11 @@ if "accelerate" in config_info or "veclib" in config_info :
     if not hasattr(threading.current_thread(), "_children"): 
         threading.current_thread()._children = weakref.WeakKeyDictionary()
     from multiprocessing.dummy import Process, Pool, Queue
+    SimpleQueue = Queue
 else :
     from multiprocessing import Process, Pool, Queue
+    from multiprocessing.queues import SimpleQueue
+
 
 ## {{{ http://code.activestate.com/recipes/576693/ (r9)
 # Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.

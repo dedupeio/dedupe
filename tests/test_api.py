@@ -158,8 +158,8 @@ class DedupeTest(unittest.TestCase):
                                               {'name' : 'Bob',
                                                'age' : 27},
                                               set([]))],))) == \
-                  [(('1', {'age': 72, 'name': 'Frank'}), 
-                    ('2', {'age': 27, 'name': 'Bob'}))]
+                  [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
+                    ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
   def test_sample(self) :
     data_sample = self.deduper._sample(
@@ -205,8 +205,8 @@ class LinkTest(unittest.TestCase):
                                                     'age' : 72}, set([]))],
                                             [('2', {'name' : 'Bob',
                                                     'age' : 27}, set([]))]),))) == \
-                  [(('1', {'age': 72, 'name': 'Frank'}), 
-                    ('2', {'age': 27, 'name': 'Bob'}))]
+                  [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
+                    ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
   def test_sample(self) :
     data_sample = self.linker._sample(

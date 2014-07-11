@@ -120,7 +120,8 @@ class Matching(object):
                                             self.num_processes,
                                             threshold)
 
-        clusters = self._cluster(self.matches, cluster_threshold)
+        clusters = self._cluster(self.matches, 
+                                 cluster_threshold)
         
         return clusters
 
@@ -131,29 +132,6 @@ class Matching(object):
                                  "The field '%s' is in data_model but not "
                                  "in a record" % k)
 
-    def _blockedPairs(self, blocks) :
-        """
-        Generate tuples of pairs of records from a block of records
-        
-        Arguments:
-        
-        blocks -- an iterable sequence of blocked records
-        """
-        
-        block, blocks = core.peek(blocks)
-        self._checkBlock(block)
-
-        def pair_gen() :
-            disjoint = set.isdisjoint
-            blockPairs = self._blockPairs
-            for block in blocks :
-                for pair in blockPairs(block) :
-                    ((key_1, record_1, smaller_ids_1), 
-                     (key_2, record_2, smaller_ids_2)) = pair
-                    if disjoint(smaller_ids_1, smaller_ids_2) :
-                        yield (key_1, record_1), (key_2, record_2)
-
-        return pair_gen()
 
     def _logLearnedWeights(self): # pragma: no cover
         """
@@ -234,9 +212,24 @@ class DedupeMatching(Matching) :
         blocked_pairs = self._blockData(data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) :  # pragma : no cover
-        return itertools.combinations(block, 2)
+    def _blockedPairs(self, blocks) :
+        """
+        Generate tuples of pairs of records from a block of records
         
+        Arguments:
+        
+        blocks -- an iterable sequence of blocked records
+        """
+        
+        block, blocks = core.peek(blocks)
+        self._checkBlock(block)
+
+	combinations = itertools.combinations
+
+        pairs = (combinations(block, 2) for block in blocks)
+
+        return itertools.chain.from_iterable(pairs) 
+
     def _checkBlock(self, block) :
         if not block :
             raise ValueError("You have not provided any data blocks")
@@ -363,9 +356,23 @@ class RecordLinkMatching(Matching) :
         blocked_pairs = self._blockData(data_1, data_2)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) : # pragma : no cover
-        base, target = block
-        return itertools.product(base, target)
+    def _blockedPairs(self, blocks) :
+        """
+        Generate tuples of pairs of records from a block of records
+        
+        Arguments:
+        
+        blocks -- an iterable sequence of blocked records
+        """
+        
+        block, blocks = core.peek(blocks)
+        self._checkBlock(block)
+
+	product = itertools.product
+
+        pairs = (product(base, target) for base, target in blocks)
+
+        return itertools.chain.from_iterable(pairs) 
         
     def _checkBlock(self, block) :
         try :
