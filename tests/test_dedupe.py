@@ -160,7 +160,7 @@ class ClusteringTest(unittest.TestCase):
                             ((4,5), .63),
                             ((4,6), .96),
                             ((4,7), .23),
-                            ((4,8), .74))
+                            ((5,8), .24))
 
 
   def test_hierarchical(self):
@@ -190,6 +190,21 @@ class ClusteringTest(unittest.TestCase):
     assert greedyMatch(self.bipartite_dupes, 
                        threshold=1) == []
 
+  def test_gazette_matching(self):
+    gazetteMatch = dedupe.clustering.gazetteMatching
+
+    assert gazetteMatch(self.bipartite_dupes, 
+                        threshold=0.5) == [(4, 6), (1, 6), (2, 7), (3, 6)]
+
+    assert gazetteMatch(self.bipartite_dupes, 
+                        threshold=0) == [(4, 6), (1, 6), (2, 7), 
+                                         (3, 6), (5, 8)]
+
+    assert gazetteMatch(self.bipartite_dupes, 
+                        threshold=0.8) == [(4,6)]
+
+    assert gazetteMatch(self.bipartite_dupes, 
+                        threshold=1) == []
 
 
 class PredicatesTest(unittest.TestCase):
