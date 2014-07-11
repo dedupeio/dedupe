@@ -303,3 +303,17 @@ Convenience Functions
    function assumes that if two records do not share a common key then
    they are distinct records.
 
+
+.. py:function:: canonicalize(cluster, data)
+   
+   Given a cluster of duplicates, returns a canonical representation for the cluster.
+
+   :param tuple cluster: A sequence of record ids from the match method.
+   :param list data: A list of records, where the records are dictionaries w/ field 
+                  names as keys and field values as values
+
+   .. code:: python
+
+      clusters = deduper.match()
+      for cluster in clusters:
+         deduper.canonicalize(cluster, data)
