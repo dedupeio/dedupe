@@ -117,9 +117,8 @@ class Matching(object):
         
         self.matches = core.scoreDuplicates(candidate_records,
                                             self.data_model,
-                                            self.num_processes)
-
-        self.matches = self.matches[self.matches['score'] > threshold]
+                                            self.num_processes,
+                                            threshold)
 
         clusters = self._cluster(self.matches, 
                                  cluster_threshold)
