@@ -4,13 +4,9 @@ import dedupe
 class CanonicalizationTest(unittest.TestCase) :
 
 	def setUp(self) :
-		self.data_d = { 1 : {"name": "mary crane", "address": "123 main st", "zip":"12345"}, 
-					 	2 : {"name": "mary crane east", "address": "123 main street", "zip":""}, 
-						3 : {"name": "mary crane west", "address": "123 man st", "zip":""}}
-		deduper = dedupe.Dedupe({'name': {'type': 'String'},
-                      			 'address':   {'type': 'String'},
-                      			 'zip': {'type': 'String'}})
-		self.data_model = deduper.data_model
+		self.record_list = [ {"name": "mary crane", "address": "123 main st", "zip":"12345"}, 
+					 		 {"name": "mary crane east", "address": "123 main street", "zip":""}, 
+							 {"name": "mary crane west", "address": "123 man st", "zip":""} ]
 
 	def test_get_centroid(self) :
 		from dedupe.distance.affinegap import normalizedAffineGapDistance as comparator
@@ -19,13 +15,13 @@ class CanonicalizationTest(unittest.TestCase) :
 		assert centroid == 'mary crane'
 
 	def test_get_canonical_rep(self) :
-		rep = dedupe.centroid.getCanonicalRep((1,2,3), self.data_d, self.data_model)
+		rep = dedupe.centroid.getCanonicalRep((0,1,2), self.record_list)
 		assert rep == {'name': 'mary crane', 'address': '123 main street', 'zip':"12345"}
 
-		rep = dedupe.centroid.getCanonicalRep((1,2), self.data_d, self.data_model)
+		rep = dedupe.centroid.getCanonicalRep((0,1), self.record_list)
 		assert rep == {"name": "mary crane", "address": "123 main st", "zip":"12345"}
 
-		rep = dedupe.centroid.getCanonicalRep((1,), self.data_d, self.data_model)
+		rep = dedupe.centroid.getCanonicalRep((0,), self.record_list)
 		assert rep == {"name": "mary crane", "address": "123 main st", "zip":"12345"}
 
 if __name__ == "__main__":
