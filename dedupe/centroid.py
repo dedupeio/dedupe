@@ -1,5 +1,5 @@
 import numpy
-
+from dedupe.distance.affinegap import normalizedAffineGapDistance as comparator
 
 def getCentroid( attribute_variants, comparator ):
     """ 
@@ -39,15 +39,15 @@ def breakCentroidTie(attribute_variants, min_dist_indices):
     """
     return attribute_variants[min_dist_indices[0]]
 
-def getCanonicalRep( dupe_cluster, data_d, data_model):
+def getCanonicalRep( dupe_cluster, record_list):
     canonical_rep = {}
 
-    for key, comparator in data_model.field_comparators.items():
+    for key in record_list[0].keys():
         key_values = []
         for record_id in dupe_cluster :
             # assume non-empty values always better than empty value for canonical record
-            if data_d[record_id][key] != '':
-                key_values.append(data_d[record_id][key])
+            if record_list[record_id][key] != '':
+                key_values.append(record_list[record_id][key])
         if key_values:
             canonical_rep[key] = getCentroid(key_values, comparator)
         else:

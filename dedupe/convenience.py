@@ -175,3 +175,15 @@ def trainingDataDedupe(data, common_key, training_size=50000) :
                       'distinct' : distinct_records} 
 
     return training_pairs
+
+
+def canonicalize(cluster, data):
+    """
+    Given a cluster of duplicates, returns a canonical representation for the cluster
+
+    Arguments:
+    cluster     --A sequence of record ids from the match method
+    data        --A list of records, where the records are dictionaries w/ field 
+                  names as keys and field values as values
+    """
+    return centroid.getCanonicalRep(cluster, data)
