@@ -10,9 +10,6 @@ import time
 import dedupe.backport as backport
 import dedupe.lr as lr
 
-from multiprocessing import Pipe, Process, Queue
-from multiprocessing.queues import SimpleQueue
-
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
     # size than we'll get very few duplicates by chance
@@ -230,9 +227,9 @@ def mergeScores(score_queue, result_queue, dtype, stop_signals=1) :
     result_queue.put(scored_pairs)
 
 def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
-    record_pairs_queue = SimpleQueue()
-    score_queue = SimpleQueue()
-    result_queue = SimpleQueue()
+    record_pairs_queue = backport.SimpleQueue()
+    score_queue =  backport.SimpleQueue()
+    result_queue = backport.SimpleQueue()
 
     n_map_processes = max(num_processes-1, 1)
     score_records = ScoreRecords(data_model, threshold) 
