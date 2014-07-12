@@ -13,13 +13,13 @@ class CanonicalizationTest(unittest.TestCase) :
 		record_list = [ {"name": "mary crane", "address": "123 main st", "zip":"12345"}, 
 					 		 {"name": "mary crane east", "address": "123 main street", "zip":""}, 
 							 {"name": "mary crane west", "address": "123 man st", "zip":""} ]
-		rep = dedupe.centroid.getCanonicalRep((0,1,2), record_list)
+		rep = dedupe.centroid.getCanonicalRep(record_list)
 		assert rep == {'name': 'mary crane', 'address': '123 main street', 'zip':"12345"}
 
-		rep = dedupe.centroid.getCanonicalRep((0,1), record_list)
+		rep = dedupe.centroid.getCanonicalRep(record_list[0:2])
 		assert rep == {"name": "mary crane", "address": "123 main st", "zip":"12345"}
 
-		rep = dedupe.centroid.getCanonicalRep((0,), record_list)
+		rep = dedupe.centroid.getCanonicalRep(record_list[0:1])
 		assert rep == {"name": "mary crane", "address": "123 main st", "zip":"12345"}
 
 if __name__ == "__main__":

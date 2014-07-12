@@ -31,7 +31,7 @@ def getCentroid( attribute_variants, comparator ):
 
     return centroid    
 
-def breakCentroidTie(attribute_variants, min_dist_indices):
+def breakCentroidTie( attribute_variants, min_dist_indices ):
     """
     finds centroid when there are multiple values w/ min avg distance 
     (e.g. any dupe cluster of 2) right now this selects the first among a set of 
@@ -39,15 +39,15 @@ def breakCentroidTie(attribute_variants, min_dist_indices):
     """
     return attribute_variants[min_dist_indices[0]]
 
-def getCanonicalRep( dupe_cluster, record_list):
+def getCanonicalRep( record_cluster ):
     canonical_rep = {}
 
-    for key in record_list[0].keys():
+    for key in record_cluster[0].keys():
         key_values = []
-        for record_id in dupe_cluster :
+        for record in record_cluster :
             # assume non-empty values always better than empty value for canonical record
-            if record_list[record_id][key] != '':
-                key_values.append(record_list[record_id][key])
+            if record[key] != '':
+                key_values.append(record[key])
         if key_values:
             canonical_rep[key] = getCentroid(key_values, comparator)
         else:
