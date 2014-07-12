@@ -212,7 +212,7 @@ class ScoreRecords(object) :
 
             self.score_queue.put(filtered_pairs)
 
-def mergeScores(score_queue, result_queue, dtype, stop_signals=1) :
+def mergeScores(score_queue, result_queue, stop_signals) :
     scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
                                           ('score', 'f4', 1)])
 
@@ -247,14 +247,7 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
 
     fillQueue(record_pairs_queue, records, n_map_processes)
 
-    [process.join() for process in map_processes]
-
     scored_pairs = result_queue.get()
-
-    reduce_process.join()
-
-    [process.terminate() for process in map_processes]
-    reduce_process.terminate()
 
     return scored_pairs
 
