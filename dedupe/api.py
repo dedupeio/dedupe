@@ -483,15 +483,12 @@ class StaticMatching(Matching) :
         super(StaticMatching, self).__init__()
 
 
-        if settings_file.__class__ is not str :
-            raise ValueError("Must supply a settings file name")
-
         self.num_processes = num_processes
 
         try:
-            self.data_model = pickle.load(f)
-            self.predicates = pickle.load(f)
-            self.stop_words = pickle.load(f)
+            self.data_model = pickle.load(settings_file)
+            self.predicates = pickle.load(settings_file)
+            self.stop_words = pickle.load(settings_file)
         except KeyError :
             raise ValueError("The settings file doesn't seem to be in "
                              "right format. You may want to delete the "
