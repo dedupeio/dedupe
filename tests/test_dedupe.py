@@ -116,6 +116,19 @@ class AffineGapTest(unittest.TestCase):
     assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
     
 
+class ConnectedComponentsTest(unittest.TestCase) :
+  def test_components(self) :
+    G = [((1, 2), .1),
+         ((2, 3), .2),
+         ((4, 5), .3),
+         ((4, 6), .4)]
+    components = dedupe.clustering.connected_components
+    assert components(G) == [[((1, 2), 0.1), ((2, 3), 0.2)], 
+                             [((4, 6), 0.4), ((4, 5), 0.3)]]
+ 
+
+  
+
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
     # Fully connected star network
