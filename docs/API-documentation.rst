@@ -304,16 +304,13 @@ Convenience Functions
    they are distinct records.
 
 
-.. py:function:: canonicalize(cluster, data)
+.. py:function:: canonicalize(record_cluster)
    
-   Given a cluster of duplicates, returns a canonical representation for the cluster.
+   Constructs a canonical representation of a duplicate cluster by finding canonical values for each field
 
-   :param tuple cluster: A sequence of record ids from the match method.
-   :param list data: A list of records, where the records are dictionaries w/ field 
+   :param list record_cluster: A list of records within a duplicate cluster, where the records are dictionaries with field 
                   names as keys and field values as values
 
    .. code:: python
 
-      clusters = deduper.match()
-      for cluster in clusters:
-         deduper.canonicalize(cluster, data)
+      
