@@ -4,7 +4,6 @@
 import itertools
 
 import numpy
-import numpy.lib.recfunctions as rfn
 import fastcluster
 import hcluster
 
