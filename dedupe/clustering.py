@@ -122,8 +122,7 @@ def cluster(dupes, threshold=.5):
 
             for (i, sub_cluster_id) in enumerate(partition):
                 clustering.setdefault(cluster_id + sub_cluster_id, []).append(i_to_id[i])
-            
-            cluster_id += max(partition)
+            cluster_id += max(partition) + 1
         else:
 
             clustering[cluster_id] = sub_graph[0][0]
