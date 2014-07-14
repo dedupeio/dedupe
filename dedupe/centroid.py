@@ -1,7 +1,7 @@
 import numpy
 from dedupe.distance.affinegap import normalizedAffineGapDistance as comparator
 
-def getCentroid( attribute_variants, comparator ):
+def getCentroid(attribute_variants, comparator):
     """ 
     Takes in a list of attribute values for a field,
     evaluates the centroid using the comparator,
@@ -31,7 +31,7 @@ def getCentroid( attribute_variants, comparator ):
 
     return centroid    
 
-def breakCentroidTie( attribute_variants, min_dist_indices ):
+def breakCentroidTie(attribute_variants, min_dist_indices):
     """
     Finds centroid when there are multiple values w/ min avg distance 
     (e.g. any dupe cluster of 2) right now this selects the first among a set of 
@@ -39,7 +39,7 @@ def breakCentroidTie( attribute_variants, min_dist_indices ):
     """
     return attribute_variants[min_dist_indices[0]]
 
-def getCanonicalRep( record_cluster ):
+def getCanonicalRep(record_cluster):
     """
     Given a list of records within a duplicate cluster, constructs a canonical representation
     of the cluster by finding canonical values for each field
