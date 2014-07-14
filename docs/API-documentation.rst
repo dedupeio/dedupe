@@ -103,7 +103,7 @@ trained dedupe, you can load the saved settings with StaticDedupe.
 
    Initialize a Dedupe object with saved settings
 
-   :param str settings_file: a path to settings file produced from
+   :param str settings_file: A file object containing settings info produced from
 			      the :py:meth:`Dedupe.writeSettings` of a
 			      previous, active Dedupe object.
    :param int num_processes: the number of processes to use for parallel
@@ -111,8 +111,8 @@ trained dedupe, you can load the saved settings with StaticDedupe.
 
 
    .. code:: python
-
-       deduper = StaticDedupe('my_settings_file')
+       with open('my_settings_file', 'rb') as f:
+           deduper = StaticDedupe(f)
 
    .. include:: common_dedupe_methods.rst
    .. include:: common_methods.rst
@@ -211,7 +211,7 @@ StaticRecordLink.
 
    Initialize a Dedupe object with saved settings
 
-   :param str settings_file: a path to settings file produced from
+   :param str settings_file: File object containing settings data produced from
 			      the :py:meth:`RecordLink.writeSettings` of a
 			      previous, active Dedupe object.
    :param int num_processes: the number of processes to use for parallel
@@ -220,7 +220,8 @@ StaticRecordLink.
 
    .. code:: python
 
-       deduper = StaticDedupe('my_settings_file')
+       with open('my_settings_file', 'rb') as f:
+           deduper = StaticDedupe(f)
 
    .. include:: common_recordlink_methods.rst
    .. include:: common_methods.rst
