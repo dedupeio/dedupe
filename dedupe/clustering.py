@@ -4,6 +4,7 @@
 import itertools
 
 import numpy
+import numpy.lib.recfunctions as rfn
 import fastcluster
 import hcluster
 
@@ -12,7 +13,9 @@ def connected_components(edgelist) :
     component = {}
     component_edges = {}
     for edge in edgelist :
-        (a, b), _ = edge
+        (a, b), weight = edge
+        edge = ((a, b), weight) # turn numpy arrays back 
+                                #into simple Python objects
         root_a = root.get(a)
         root_b = root.get(b)
 
@@ -36,7 +39,7 @@ def connected_components(edgelist) :
 
             component_a |= component_b
             component_edges[root_a] |= component_edges[root_b]
-            for node in component :
+            for node in component_b :
                 root[node] = root_a
 
             del component[root_b]
@@ -105,8 +108,8 @@ def cluster(dupes, threshold=.5):
     clustering = {}
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
-        if len(sub_graph) > 2:
-            pairs = numpy.array(list(sub_graph), dtype=dupes.dtype)
+        if len(sub_graph) > 1:
+            pairs = numpy.array(sub_graph, dupes.dtype)
 
             (i_to_id, condensed_distances) = condensedDistance(pairs)
             linkage = fastcluster.linkage(condensed_distances,
@@ -123,7 +126,7 @@ def cluster(dupes, threshold=.5):
             cluster_id += max(partition)
         else:
 
-            clustering[cluster_id] = sub_graph
+            clustering[cluster_id] = sub_graph[0][0]
             cluster_id += 1
 
     clusters = [set(l) for l in clustering.values() if len(l) > 1]
