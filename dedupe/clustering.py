@@ -13,21 +13,21 @@ def connected_components(edgelist) :
     component_edges = {}
     for edge in edgelist :
         (a, b), weight = edge
-        edge = ((a, b), weight) # turn numpy arrays back 
-                                #into simple Python objects
+        edge = edge.reshape((1,))
         root_a = root.get(a)
         root_b = root.get(b)
 
         if root_a is None and root_b is None :
             component[a] = set([a, b])
-            component_edges[a] = set([edge])
+            component_edges[a] = edge
             root[a] = root[b] = a
         elif root_a is None or root_b is None :
             if root_a is None :
                 a, b = b, a
                 root_a, root_b = root_b, root_a
             component[root_a].add(b)
-            component_edges[root_a].add(edge)
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], edge))
             root[b] = root_a
         elif root_a != root_b :
             component_a = component[root_a]
@@ -37,16 +37,19 @@ def connected_components(edgelist) :
                 component_a, component_b = component_b, component_a
 
             component_a |= component_b
-            component_edges[root_a] |= component_edges[root_b]
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], 
+                                   component_edges[root_b]))
             for node in component_b :
                 root[node] = root_a
 
             del component[root_b]
             del component_edges[root_b]
         else : 
-            component_edges[root_a].add(edge)
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], edge))
 
-    return [list(sub_graph) for sub_graph in component_edges.values()]
+    return [sub_graph for sub_graph in component_edges.values()]
 
 def condensedDistance(dupes):
     '''
@@ -108,9 +111,8 @@ def cluster(dupes, threshold=.5):
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
-            pairs = numpy.array(sub_graph, dupes.dtype)
 
-            (i_to_id, condensed_distances) = condensedDistance(pairs)
+            (i_to_id, condensed_distances) = condensedDistance(sub_graph)
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
                                           preserve_input=False)

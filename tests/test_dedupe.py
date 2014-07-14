@@ -118,22 +118,32 @@ class AffineGapTest(unittest.TestCase):
 
 class ConnectedComponentsTest(unittest.TestCase) :
   def test_components(self) :
-    G = [((1, 2), .1),
-         ((2, 3), .2),
-         ((4, 5), .3),
-         ((4, 6), .4),
-         ((7, 9), .4),
-         ((8, 9), .4),
-         ((10, 11), .4),
-         ((12, 13), .4),
-         ((12, 14), .5),
-         ((11, 12), .4)]
+    G = numpy.array([((1, 2), .1),
+                     ((2, 3), .2),
+                     ((4, 5), .2),
+                     ((4, 6), .2),
+                     ((7, 9), .2),
+                     ((8, 9), .2),
+                     ((10, 11), .2),
+                     ((12, 13), .2),
+                     ((12, 14), .5),
+                     ((11, 12), .2)],
+                    dtype = [('pair', 'object', 2), ('score', 'f4', 1)])
     components = dedupe.clustering.connected_components
-    print components(G)
-    assert components(G) == [[((1, 2), 0.1), ((2, 3), 0.2)], 
-                             [((4, 6), 0.4), ((4, 5), 0.3)], 
-                             [((12, 13), 0.4), ((10, 11), 0.4), ((12, 14), 0.5)], 
-                             [((8, 9), 0.4), ((7, 9), 0.4)]]
+    numpy.testing.assert_equal(components(G), \
+            [numpy.array([([1, 2], 0.1), 
+                          ([2, 3], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
+             numpy.array([([4, 5], 0.2), 
+                          ([4, 6], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
+             numpy.array([([12, 13], 0.2), 
+                          ([12, 14], 0.5),
+                          ([10, 11], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
+             numpy.array([([7, 9], 0.2), 
+                          ([8, 9], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')])])
  
 
   
