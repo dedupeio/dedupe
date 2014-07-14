@@ -304,3 +304,14 @@ Convenience Functions
    function assumes that if two records do not share a common key then
    they are distinct records.
 
+
+.. py:function:: canonicalize(record_cluster)
+   
+   Constructs a canonical representation of a duplicate cluster by finding canonical values for each field
+
+   :param list record_cluster: A list of records within a duplicate cluster, where the records are dictionaries with field 
+                  names as keys and field values as values
+
+   .. code:: python
+
+      

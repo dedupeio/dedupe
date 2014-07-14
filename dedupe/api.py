@@ -287,18 +287,6 @@ class DedupeMatching(Matching) :
 
             yield tuple_records
 
-    def canonicalize(self, cluster, data):
-        """
-        Given a cluster of duplicates, returns a canonical representation for the cluster
-
-        Arguments:
-        cluster     --A sequence of record ids from the match method
-        data        --Dictionary of records, where the keys are record_ids
-                      and the values are dictionaries with the keys being
-                      field names
-        """
-        return centroid.getCanonicalRep(cluster, data_d, self.data_model)
-
 
 class RecordLinkMatching(Matching) :
     """
