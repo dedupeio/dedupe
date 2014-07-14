@@ -467,7 +467,8 @@ class StaticMatching(Matching) :
         #### Example usage
 
             # initialize from a settings file
-            deduper = dedupe.Dedupe('my_learned_settings')
+            with open('my_learned_settings', 'rb') as f:
+                deduper = dedupe.StaticDedupe(f)
 
         #### Keyword arguments
         
