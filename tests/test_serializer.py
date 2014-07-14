@@ -33,7 +33,7 @@ class SerializerTest(unittest.TestCase) :
 
       string.seek(0)
 
-      deduper._importTraining(string)
+      deduper.readTraining(string)
       assert repr(deduper.training_pairs) == repr(training_pairs)
 
       string.close()
