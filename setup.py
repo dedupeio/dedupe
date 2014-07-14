@@ -27,7 +27,6 @@ class NumpyExtension(Extension):
 install_requires=['numpy', 
                   'fastcluster', 
                   'hcluster', 
-                  'networkx', 
                   'zope.interface', 
                   'zope.index']
 

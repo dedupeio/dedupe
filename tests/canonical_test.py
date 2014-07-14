@@ -71,7 +71,7 @@ print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
-        deduper = dedupe.StaticDedupe(f)
+        deduper = dedupe.StaticDedupe(f, 5)
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
@@ -79,7 +79,7 @@ else:
               'city' : {'type' : 'ShortString'}
               }
 
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, num_processes=5)
     deduper.sample(data_d, 1000000)
     deduper.markPairs(training_pairs)
     deduper.train()
