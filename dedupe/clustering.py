@@ -6,12 +6,50 @@ import itertools
 import numpy
 import fastcluster
 import hcluster
-import networkx
-from networkx.algorithms.components.connected import connected_components
-from networkx.algorithms.bipartite.basic import biadjacency_matrix
-from networkx.algorithms import bipartite
-from networkx import connected_component_subgraphs
 
+def connected_components(edgelist) :
+    root = {}
+    component = {}
+    component_edges = {}
+    for edge in edgelist :
+        (a, b), weight = edge
+        edge = edge.reshape((1,))
+        root_a = root.get(a)
+        root_b = root.get(b)
+
+        if root_a is None and root_b is None :
+            component[a] = set([a, b])
+            component_edges[a] = edge
+            root[a] = root[b] = a
+        elif root_a is None or root_b is None :
+            if root_a is None :
+                a, b = b, a
+                root_a, root_b = root_b, root_a
+            component[root_a].add(b)
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], edge))
+            root[b] = root_a
+        elif root_a != root_b :
+            component_a = component[root_a]
+            component_b = component[root_b]
+            if len(component_a) < len(component_b) :
+                root_a, root_b = root_b, root_a
+                component_a, component_b = component_b, component_a
+
+            component_a |= component_b
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], 
+                                   component_edges[root_b]))
+            for node in component_b :
+                root[node] = root_a
+
+            del component[root_b]
+            del component_edges[root_b]
+        else : 
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], edge))
+
+    return [sub_graph for sub_graph in component_edges.values()]
 
 def condensedDistance(dupes):
     '''
@@ -67,21 +105,14 @@ def cluster(dupes, threshold=.5):
 
     threshold = 1 - threshold
 
-    dupe_graph = networkx.Graph()
-    dupe_graph.add_weighted_edges_from((x[0], x[1], y) for (x, y) in dupes)
-
-    dupe_sub_graphs = connected_components(dupe_graph)
+    dupe_sub_graphs = connected_components(dupes)
 
     clustering = {}
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
-        if len(sub_graph) > 2:
-            pair_gen = [(sorted(x[0:2]), x[2]['weight'])
-                        for x in dupe_graph.edges_iter(sub_graph, data=True)]
+        if len(sub_graph) > 1:
 
-            pairs = numpy.array(pair_gen, dtype=dupes.dtype)
-
-            (i_to_id, condensed_distances) = condensedDistance(pairs)
+            (i_to_id, condensed_distances) = condensedDistance(sub_graph)
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
                                           preserve_input=False)
@@ -92,11 +123,10 @@ def cluster(dupes, threshold=.5):
 
             for (i, sub_cluster_id) in enumerate(partition):
                 clustering.setdefault(cluster_id + sub_cluster_id, []).append(i_to_id[i])
-            
-            cluster_id += max(partition)
+            cluster_id += max(partition) + 1
         else:
 
-            clustering[cluster_id] = sub_graph
+            clustering[cluster_id] = sub_graph[0][0]
             cluster_id += 1
 
     clusters = [set(l) for l in clustering.values() if len(l) > 1]

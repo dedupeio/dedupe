@@ -116,6 +116,38 @@ class AffineGapTest(unittest.TestCase):
     assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
     
 
+class ConnectedComponentsTest(unittest.TestCase) :
+  def test_components(self) :
+    G = numpy.array([((1, 2), .1),
+                     ((2, 3), .2),
+                     ((4, 5), .2),
+                     ((4, 6), .2),
+                     ((7, 9), .2),
+                     ((8, 9), .2),
+                     ((10, 11), .2),
+                     ((12, 13), .2),
+                     ((12, 14), .5),
+                     ((11, 12), .2)],
+                    dtype = [('pair', 'object', 2), ('score', 'f4', 1)])
+    components = dedupe.clustering.connected_components
+    numpy.testing.assert_equal(components(G), \
+            [numpy.array([([1, 2], 0.1), 
+                          ([2, 3], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
+             numpy.array([([4, 5], 0.2), 
+                          ([4, 6], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
+             numpy.array([([12, 13], 0.2), 
+                          ([12, 14], 0.5),
+                          ([10, 11], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
+             numpy.array([([7, 9], 0.2), 
+                          ([8, 9], 0.2)], 
+                         dtype=[('pair', 'O', (2,)), ('score', '<f4')])])
+ 
+
+  
+
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
     # Fully connected star network
@@ -128,7 +160,8 @@ class ClusteringTest(unittest.TestCase):
                               ((2,5), .72),
                               ((3,4), .3),
                               ((3,5), .5),
-                              ((4,5), .72)],
+                              ((4,5), .72),
+                              ((10,11), .9)],
                              dtype = [('pairs', 'i4', 2), 
                                       ('score', 'f4', 1)])
 
@@ -165,9 +198,12 @@ class ClusteringTest(unittest.TestCase):
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 1) == []
-    assert hierarchical(self.dupes, 0.5) == [set([1, 2, 3]), set([4,5])]
-    assert hierarchical(self.dupes, 0) == [set([1, 2, 3, 4, 5])]
+    assert hierarchical(self.dupes, 1) == [set([10,11])]
+    assert hierarchical(self.dupes, 0.5) == [set([1, 2, 3]), 
+                                             set([4,5]),
+                                             set([10,11])]
+    assert hierarchical(self.dupes, 0) == [set([1, 2, 3, 4, 5]),
+                                             set([10,11])]
     assert hierarchical(self.str_dupes, 1) == []
     assert hierarchical(self.str_dupes, 0.5) == [set(['1', '2', '3']), 
                                                       set(['4','5'])]
