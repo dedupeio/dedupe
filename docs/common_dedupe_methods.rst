@@ -20,9 +20,10 @@
 
 .. py:method:: match(data, [threshold = 0.5])
 
-   Identifies records that all refer to the same entity, returns tuples of
-   record ids, where the record_ids within each tuple should refer to the
-   same entity
+   Identifies records that all refer to the same entity, returns tuples
+   containing a set of record ids and a confidence score as a float between 0
+   and 1. The record_ids within each set should refer to the
+   same entity and the confidence score is a cophenetic distance of the cluser.
 
    This method should only used for small to moderately sized datasets for
    larger data, use matchBlocks
@@ -42,7 +43,7 @@
 
       > duplicates = deduper.match(data, threshold=0.5)
       > print duplicates
-      [(3,6,7), (2,10), ..., (11,14)]
+      [(set([3,6,7]), 0.96778509), (set([2,10]),0.750963245) ..., (set([11,14]),0.1256734)]
 
 
 .. py:method:: blocker(data)
