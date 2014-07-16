@@ -174,7 +174,8 @@ class DedupeMatching(Matching) :
         Identifies records that all refer to the same entity, returns tuples
         containing a set of record ids and a confidence score as a float between 0
         and 1. The record_ids within each set should refer to the
-        same entity and the confidence score is a cophenetic distance of the cluser.
+        same entity and the confidence score is a measure of our confidence that
+        all the records in a cluster refer to the same entity.
         
         This method should only used for small to moderately sized datasets
         for larger data, use matchBlocks
