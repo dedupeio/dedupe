@@ -86,9 +86,11 @@ different sized datasets for you
 (`repo <https://github.com/datamade/dedupe-examples>`__, as well as
 annotated source code:
 
-* `Small data deduplication <http://datamade.github.com/dedupe/doc/csv_example.html>`__
-* `Bigger data deduplication ~700K <http://datamade.github.com/dedupe/doc/mysql_example.html>`__
-* `Record Linkage  <http://datamade.github.com/dedupe/doc/record_linkage_example.html>`__
+* `Small data deduplication <http://datamade.github.com/dedupe-examples/docs/csv_example.html>`__
+* `Bigger data deduplication ~700K <http://datamade.github.com/dedupe-examples/docs/mysql_example.html>`__
+* `Record Linkage  <http://datamade.github.com/dedupe-examples/docs/record_linkage_example.html>`__
+* `Postgres <http://datamade.github.io/dedupe-examples/docs/pgsql_example.html>`__
+* `Patent Author Disambiguation <http://datamade.github.io/dedupe-examples/docs/patent_example.html>`__
 
 Errors / Bugs
 =============
