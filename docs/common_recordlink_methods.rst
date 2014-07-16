@@ -22,9 +22,10 @@
 
 .. py:method:: match(data_1, data_2, threshold)
 
-   Identifies pairs of records that refer to the same entity, returns
-   tuples of record ids, where both record\_ids within a tuple should refer
-   to the same entity
+   Identifies pairs of records that refer to the same entity, returns tuples
+   containing a set of record ids and a confidence score as a float between 0
+   and 1. The record_ids within each set should refer to the
+   same entity and the confidence score is a cophenetic distance of the cluser.
 
    This method should only used for small to moderately sized datasets for
    larger data, use matchBlocks
