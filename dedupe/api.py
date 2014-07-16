@@ -172,8 +172,10 @@ class DedupeMatching(Matching) :
     def match(self, data, threshold = 0.5) : # pragma : no cover
         """
         Identifies records that all refer to the same entity, returns tuples
-        of record ids, where the record_ids within each tuple should refer
-        to the same entity
+        containing a set of record ids and a confidence score as a float between 0
+        and 1. The record_ids within each set should refer to the
+        same entity and the confidence score is a measure of our confidence that
+        all the records in a cluster refer to the same entity.
         
         This method should only used for small to moderately sized datasets
         for larger data, use matchBlocks
@@ -311,9 +313,11 @@ class RecordLinkMatching(Matching) :
 
     def match(self, data_1, data_2, threshold = 1.5) : # pragma : no cover
         """
-        Identifies pairs of records that refer to the same entity, returns tuples
-        of record ids, where both record_ids within a tuple should refer
-        to the same entity
+        Identifies pairs of records that refer to the same entity, returns
+        tuples containing a set of record ids and a confidence score as a float
+        between 0 and 1. The record_ids within each set should refer to the 
+        same entity and the confidence score is the estimated probability that
+        the records refer to the same entity.
         
         This method should only used for small to moderately sized datasets
         for larger data, use matchBlocks

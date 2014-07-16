@@ -198,31 +198,43 @@ class ClusteringTest(unittest.TestCase):
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 1) == [set([10,11])]
-    assert hierarchical(self.dupes, 0.5) == [set([1, 2, 3]), 
-                                             set([4,5]),
-                                             set([10,11])]
-    assert hierarchical(self.dupes, 0) == [set([1, 2, 3, 4, 5]),
-                                             set([10,11])]
+    assert hierarchical(self.dupes, 1) == [((10, 11), 
+                                            0.89999997615814209)]
+
+    assert hierarchical(self.dupes, 0.5) == [((1, 2, 3), 
+                                              0.79000002145767212), 
+                                             ((4, 5), 
+                                              0.72000002861022949), 
+                                             ((10, 11), 
+                                              0.89999997615814209)]
+
+    assert hierarchical(self.dupes, 0) == [((1, 2, 3, 4, 5), 
+                                            0.41371223982064087),
+                                             ((10, 11), 
+                                              0.89999997615814209)]
     assert hierarchical(self.str_dupes, 1) == []
-    assert hierarchical(self.str_dupes, 0.5) == [set(['1', '2', '3']), 
-                                                      set(['4','5'])]
-    assert hierarchical(self.str_dupes, 0) == [set(['1', '2', '3', '4', '5'])]
+    assert zip(*hierarchical(self.str_dupes, 0.5))[0] == (('1', '2', '3'), 
+                                                          ('4','5'))
+    assert zip(*hierarchical(self.str_dupes, 0))[0] == (('1', '2', '3', '4', '5'),)
+    assert hierarchical(numpy.array([((1,2), .86)],
+                                    dtype = [('pairs', 'i4', 2), 
+                                             ('score', 'f4', 1)]),
+                        0.5)  == [((1, 2), 0.86000001430511475)]
+
 
   def test_greedy_matching(self):
     greedyMatch = dedupe.clustering.greedyMatching
     assert greedyMatch(self.bipartite_dupes, 
-                       threshold=0.5) == [(4, 6), 
-                                          (2, 7),
-                                          (3, 8)]
-    
+                       threshold=0.5) == [((4, 6), 0.96), 
+                                          ((2, 7), 0.72), 
+                                          ((3, 8), 0.65)]
     assert greedyMatch(self.bipartite_dupes, 
-                       threshold=0) == [(4, 6), 
-                                        (2, 7),
-                                        (3, 8), 
-                                        (1, 5)]
+                       threshold=0) == [((4, 6), 0.96), 
+                                        ((2, 7), 0.72), 
+                                        ((3, 8), 0.65), 
+                                        ((1, 5), 0.1)]
     assert greedyMatch(self.bipartite_dupes, 
-                       threshold=0.8) == [(4, 6)]
+                       threshold=0.8) == [((4, 6), 0.96)]
     assert greedyMatch(self.bipartite_dupes, 
                        threshold=1) == []
 
@@ -230,14 +242,20 @@ class ClusteringTest(unittest.TestCase):
     gazetteMatch = dedupe.clustering.gazetteMatching
 
     assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0.5) == [(4, 6), (1, 6), (2, 7), (3, 6)]
+                        threshold=0.5) == [((4, 6), 0.96), 
+                                           ((1, 6), 0.72), 
+                                           ((2, 7), 0.72), 
+                                           ((3, 6), 0.72)]
 
     assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0) == [(4, 6), (1, 6), (2, 7), 
-                                         (3, 6), (5, 8)]
+                        threshold=0) == [((4, 6), 0.96), 
+                                         ((1, 6), 0.72), 
+                                         ((2, 7), 0.72), 
+                                         ((3, 6), 0.72), 
+                                         ((5, 8), 0.24)]
 
     assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0.8) == [(4,6)]
+                        threshold=0.8) == [((4,6), 0.96)]
 
     assert gazetteMatch(self.bipartite_dupes, 
                         threshold=1) == []

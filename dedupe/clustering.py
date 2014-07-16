@@ -102,7 +102,6 @@ def cluster(dupes, threshold=.5):
                  number will increase precision, raising it will increase
                  recall
     '''
-
     threshold = 1 - threshold
 
     dupe_sub_graphs = connected_components(dupes)
@@ -113,6 +112,8 @@ def cluster(dupes, threshold=.5):
         if len(sub_graph) > 1:
 
             (i_to_id, condensed_distances) = condensedDistance(sub_graph)
+            N = max(i_to_id) + 1
+
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
                                           preserve_input=False)
@@ -121,17 +122,41 @@ def cluster(dupes, threshold=.5):
                                           threshold,
                                           criterion='distance')
 
+
+            clusters = {}
+
             for (i, sub_cluster_id) in enumerate(partition):
-                clustering.setdefault(cluster_id + sub_cluster_id, []).append(i_to_id[i])
+                clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
+
+            cophenetic_distances = hcluster.cophenet(linkage)
+
+            for cluster_id, items in clusters.iteritems() :
+                if len(items) > 1 :
+                    score = clusterConfidence(items, cophenetic_distances, N)
+                    clustering[cluster_id] = (tuple(i_to_id[item] 
+                                                    for item in items),
+                                              1 - score)
+
             cluster_id += max(partition) + 1
         else:
-
-            clustering[cluster_id] = sub_graph[0][0]
+            ids, score = sub_graph[0]
+            clustering[cluster_id] = tuple(ids), score
             cluster_id += 1
+            
 
-    clusters = [set(l) for l in clustering.values() if len(l) > 1]
+    return clustering.values()
 
-    return clusters
+def clusterConfidence(items, cophenetic_distances, N) :
+    max_score = 0
+    i, other_items = items[0], items[1:] 
+    condensor = (N * (N-1))/2 - ((N-i)*(N-i-1))/2 - i - 1
+    for j in other_items :
+        ij =  condensor + j
+        score = cophenetic_distances[ij]
+        if score > max_score : 
+            max_score = score
+
+    return max_score
 
 
 def greedyMatching(dupes, threshold=0.5):
@@ -145,7 +170,7 @@ def greedyMatching(dupes, threshold=0.5):
     for dupe in dupes_list:
         vertices = dupe[0]
         if vertices[0] not in covered_vertex_A and vertices[1] not in covered_vertex_B:
-            clusters.append(vertices)
+            clusters.append(dupe)
             covered_vertex_A.update([vertices[0]])
             covered_vertex_B.update([vertices[1]])
 
@@ -161,7 +186,7 @@ def gazetteMatching(dupes, threshold=0.5):
     for dupe in dupes_list:
         vertices = dupe[0]
         if vertices[0] not in covered_vertex_A:
-            clusters.append(vertices)
+            clusters.append(dupe)
             covered_vertex_A.update([vertices[0]])
 
     return clusters
