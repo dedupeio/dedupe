@@ -93,8 +93,14 @@ alpha = deduper.threshold(data_d, 1.5)
 print 'clustering...'
 clustered_dupes = deduper.match(data_d, threshold=alpha)
 
-print 'Evaluate Clustering'
+print 'Evaluate Scoring'
+found_dupes = set([frozenset((data_d[pair[0]], data_d[pair[1]]))
+                   for (pair, score) in deduper.matches
+                   if score > alpha])
 
+evaluateDuplicates(found_dupes, duplicates_s)
+
+print 'Evaluate Clustering'
 confirm_dupes = set([])
 for dupes, score in clustered_dupes:
     for pair in combinations(dupes, 2):
