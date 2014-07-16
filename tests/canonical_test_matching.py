@@ -69,7 +69,8 @@ t0 = time.time()
 print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
-    deduper = dedupe.StaticRecordLink(settings_file)
+    with open(settings_file) as f :
+        deduper = dedupe.StaticRecordLink(f)
 else:
     fields = {'name': {'type': 'String'},
               'address': {'type': 'String'},
@@ -81,7 +82,8 @@ else:
     deduper.sample(data_1, data_2, 100000) 
     deduper.markPairs(training_pairs)
     deduper.train()
-    deduper.writeSettings(settings_file)
+    with open(settings_file, 'wb') as f:
+        deduper.writeSettings(f)
 
 
 alpha = deduper.threshold(data_1, data_2)

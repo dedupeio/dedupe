@@ -70,37 +70,41 @@
       deduper.train()
 
 
-.. py:method:: writeTraining(file_name)
+.. py:method:: writeTraining(file_obj)
 
-   Write to a json file that contains labeled examples.
+   Write json data that contains labeled examples to a file object.
 
-   :param str file_name: Path to a json file.
-
-   .. code:: python
-
-      deduper.writeTraining('./my_training.json')
-
-.. py:method:: readTraining(training_source)
-
-   Read training from previously saved training data file
-
-   :param str training_source: the path of a training data file
+   :param str file_obj: File object.
 
    .. code:: python
 
-      deduper.readTraining('./my_training.json')
+      with open('./my_training.json', 'wb') as f:
+          deduper.writeTraining(f)
 
-.. py:method:: writeSettings(file_name)
+.. py:method:: readTraining(training_file)
+
+   Read training from previously saved training data file object
+
+   :param str training_file: File object containing training data
+
+   .. code:: python
+
+      with open('./my_training.json', 'rb') as f:
+          deduper.readTraining(f)
+
+.. py:method:: writeSettings(file_obj)
 
    Write a settings file that contains the data model and predicates
+   to a file object.
 
-   :param str file_name: Path to file.
+   :param str file_obj: File object.
 
    .. code:: python
 
-      deduper.writeSettings('my_learned_settings')
+      with open('my_learned_settings', 'wb') as f:
+          deduper.writeSettings(f)
 
-.. py:method:: cleanupTraining(file_name)
+.. py:method:: cleanupTraining()
 
    Delete data we used for training.
 

@@ -1,7 +1,7 @@
 import numpy
+from dedupe.distance.affinegap import normalizedAffineGapDistance as comparator
 
-
-def getCentroid( attribute_variants, comparator ):
+def getCentroid(attribute_variants, comparator):
     """ 
     Takes in a list of attribute values for a field,
     evaluates the centroid using the comparator,
@@ -33,21 +33,25 @@ def getCentroid( attribute_variants, comparator ):
 
 def breakCentroidTie(attribute_variants, min_dist_indices):
     """
-    finds centroid when there are multiple values w/ min avg distance 
+    Finds centroid when there are multiple values w/ min avg distance 
     (e.g. any dupe cluster of 2) right now this selects the first among a set of 
     ties, but can be modified to break ties in strings by selecting the longest string
     """
     return attribute_variants[min_dist_indices[0]]
 
-def getCanonicalRep( dupe_cluster, data_d, data_model):
+def getCanonicalRep(record_cluster):
+    """
+    Given a list of records within a duplicate cluster, constructs a canonical representation
+    of the cluster by finding canonical values for each field
+    """
     canonical_rep = {}
 
-    for key, comparator in data_model.field_comparators.items():
+    for key in record_cluster[0].keys():
         key_values = []
-        for record_id in dupe_cluster :
+        for record in record_cluster :
             # assume non-empty values always better than empty value for canonical record
-            if data_d[record_id][key] != '':
-                key_values.append(data_d[record_id][key])
+            if record[key]:
+                key_values.append(record[key])
         if key_values:
             canonical_rep[key] = getCentroid(key_values, comparator)
         else:

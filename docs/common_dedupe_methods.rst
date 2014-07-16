@@ -59,21 +59,6 @@
       > blocked_ids = deduper.blocker(data)
       > print list(blocked_ids)
       [('foo:1', 1), ..., ('bar:1', 100)]
-
-.. py:method:: canonicalize(cluster, data)
-   
-   Given a cluster of duplicates, returns a canonical representation for the cluster.
-
-   :param tuple cluster: A sequence of record ids from the match method.
-   :param dict data: Dictionary of records, where the keys are record_ids
-                      and the values are dictionaries with the keys being
-                      field names
-
-   .. code:: python
-
-      clusters = deduper.match()
-      for cluster in clusters:
-         deduper.canonicalize(cluster, data)
       
 
 

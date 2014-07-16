@@ -6,12 +6,50 @@ import itertools
 import numpy
 import fastcluster
 import hcluster
-import networkx
-from networkx.algorithms.components.connected import connected_components
-from networkx.algorithms.bipartite.basic import biadjacency_matrix
-from networkx.algorithms import bipartite
-from networkx import connected_component_subgraphs
 
+def connected_components(edgelist) :
+    root = {}
+    component = {}
+    component_edges = {}
+    for edge in edgelist :
+        (a, b), weight = edge
+        edge = edge.reshape((1,))
+        root_a = root.get(a)
+        root_b = root.get(b)
+
+        if root_a is None and root_b is None :
+            component[a] = set([a, b])
+            component_edges[a] = edge
+            root[a] = root[b] = a
+        elif root_a is None or root_b is None :
+            if root_a is None :
+                a, b = b, a
+                root_a, root_b = root_b, root_a
+            component[root_a].add(b)
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], edge))
+            root[b] = root_a
+        elif root_a != root_b :
+            component_a = component[root_a]
+            component_b = component[root_b]
+            if len(component_a) < len(component_b) :
+                root_a, root_b = root_b, root_a
+                component_a, component_b = component_b, component_a
+
+            component_a |= component_b
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], 
+                                   component_edges[root_b]))
+            for node in component_b :
+                root[node] = root_a
+
+            del component[root_b]
+            del component_edges[root_b]
+        else : 
+            component_edges[root_a] =\
+                numpy.concatenate((component_edges[root_a], edge))
+
+    return [sub_graph for sub_graph in component_edges.values()]
 
 def condensedDistance(dupes):
     '''
@@ -48,7 +86,7 @@ def condensedDistance(dupes):
     index = matrix_length - row_step + col - row - 1
 
     condensed_distances = numpy.ones(matrix_length, 'f4')
-    condensed_distances[index] = dupes['score']
+    condensed_distances[index] = 1 - dupes['score']
 
     return (i_to_id, condensed_distances)
 
@@ -66,22 +104,16 @@ def cluster(dupes, threshold=.5):
     '''
     threshold = 1 - threshold
 
-    dupe_graph = networkx.Graph()
-    dupe_graph.add_weighted_edges_from((x[0], x[1], y) for (x, y) in dupes)
-
-    dupe_sub_graphs = connected_components(dupe_graph)
+    dupe_sub_graphs = connected_components(dupes)
 
     clustering = {}
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
-        N = len(sub_graph)
-        pair_gen = [(sorted(x[0:2]), 1-x[2]['weight'])
-                    for x in dupe_graph.edges_iter(sub_graph, data=True)]
+        if len(sub_graph) > 1:
 
-        if N > 2:
-            pairs = numpy.array(pair_gen, dtype=dupes.dtype)
+            (i_to_id, condensed_distances) = condensedDistance(sub_graph)
+            N = max(i_to_id) + 1
 
-            (i_to_id, condensed_distances) = condensedDistance(pairs)
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
                                           preserve_input=False)
@@ -89,6 +121,7 @@ def cluster(dupes, threshold=.5):
             partition = hcluster.fcluster(linkage, 
                                           threshold,
                                           criterion='distance')
+
 
             clusters = {}
 
@@ -98,24 +131,15 @@ def cluster(dupes, threshold=.5):
             cophenetic_distances = hcluster.cophenet(linkage)
 
             for cluster_id, items in clusters.iteritems() :
-                max_score = 0
                 if len(items) > 1 :
-                    i, other_items = items[0], items[1:] 
-                    condensor = (N * (N-1))/2 - ((N-i)*(N-i-1))/2 - i - 1
-                    for j in other_items :
-                        ij =  condensor + j
-                        score = cophenetic_distances[ij]
-                        if score > max_score :
-                            max_score = score
-                    
-                clustering[cluster_id] = ([i_to_id[item] for item in items],
-                                          max_score)
+                    score = clusterConfidence(items, cophenetic_distances, N)
+                    clustering[cluster_id] = ([i_to_id[item] for item in items],
+                                              score)
 
-            cluster_id += max(partition)
+            cluster_id += max(partition) + 1
         else:
-
-            clustering[cluster_id] = pair_gen[0]
-            print pair_gen
+            ids, score = sub_graph[0]
+            clustering[cluster_id] = ids, 1 - score
             cluster_id += 1
             
 
@@ -125,6 +149,18 @@ def cluster(dupes, threshold=.5):
                       if len(l) > 1]
 
     return valid_clusters
+
+def clusterConfidence(items, cophenetic_distances, N) :
+    max_score = 0
+    i, other_items = items[0], items[1:] 
+    condensor = (N * (N-1))/2 - ((N-i)*(N-i-1))/2 - i - 1
+    for j in other_items :
+        ij =  condensor + j
+        score = cophenetic_distances[ij]
+        if score > max_score : 
+            max_score = score
+
+    return max_score
 
 
 def greedyMatching(dupes, threshold=0.5):
