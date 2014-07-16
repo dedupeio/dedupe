@@ -133,22 +133,18 @@ def cluster(dupes, threshold=.5):
             for cluster_id, items in clusters.iteritems() :
                 if len(items) > 1 :
                     score = clusterConfidence(items, cophenetic_distances, N)
-                    clustering[cluster_id] = ([i_to_id[item] for item in items],
-                                              score)
+                    clustering[cluster_id] = (tuple(i_to_id[item] 
+                                                    for item in items),
+                                              1 - score)
 
             cluster_id += max(partition) + 1
         else:
             ids, score = sub_graph[0]
-            clustering[cluster_id] = ids, 1 - score
+            clustering[cluster_id] = tuple(ids), score
             cluster_id += 1
             
 
-    valid_clusters = [(set(l), 1 - score) 
-                      for l, score 
-                      in clustering.values() 
-                      if len(l) > 1]
-
-    return valid_clusters
+    return clustering.values()
 
 def clusterConfidence(items, cophenetic_distances, N) :
     max_score = 0

@@ -198,28 +198,28 @@ class ClusteringTest(unittest.TestCase):
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 1) == [(set([10, 11]), 
+    assert hierarchical(self.dupes, 1) == [((10, 11), 
                                             0.89999997615814209)]
 
-    assert hierarchical(self.dupes, 0.5) == [(set([1, 2, 3]), 
+    assert hierarchical(self.dupes, 0.5) == [((1, 2, 3), 
                                               0.79000002145767212), 
-                                             (set([4, 5]), 
+                                             ((4, 5), 
                                               0.72000002861022949), 
-                                             (set([10, 11]), 
+                                             ((10, 11), 
                                               0.89999997615814209)]
 
-    assert hierarchical(self.dupes, 0) == [(set([1, 2, 3, 4, 5]), 
+    assert hierarchical(self.dupes, 0) == [((1, 2, 3, 4, 5), 
                                             0.41371223982064087),
-                                             (set([10, 11]), 
+                                             ((10, 11), 
                                               0.89999997615814209)]
     assert hierarchical(self.str_dupes, 1) == []
-    assert zip(*hierarchical(self.str_dupes, 0.5))[0] == (set(['1', '2', '3']), 
-                                                          set(['4','5']))
-    assert zip(*hierarchical(self.str_dupes, 0))[0] == (set(['1', '2', '3', '4', '5']),)
+    assert zip(*hierarchical(self.str_dupes, 0.5))[0] == (('1', '2', '3'), 
+                                                          ('4','5'))
+    assert zip(*hierarchical(self.str_dupes, 0))[0] == (('1', '2', '3', '4', '5'),)
     assert hierarchical(numpy.array([((1,2), .86)],
                                     dtype = [('pairs', 'i4', 2), 
                                              ('score', 'f4', 1)]),
-                        0.5)  == [(set([1, 2]), 0.86000001430511475)]
+                        0.5)  == [((1, 2), 0.86000001430511475)]
 
 
   def test_greedy_matching(self):
