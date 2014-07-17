@@ -1011,13 +1011,10 @@ class GazetteerMatching(RecordLinkMatching) :
         blocked_pairs = self._blockData(data_1, data_2)
         return self.matchBlocks(blocked_pairs, threshold, n_matches)
 
-
-
-
-class Gazetteer(GazetteerMatching, ActiveMatching):
+class Gazetteer(GazetteerMatching, RecordLink):
     pass
 
-class StaticGazetteer(GazetteerMatching, StaticMatching):
+class StaticGazetteer(GazetteerMatching, StaticRecordLink):
     pass
 
 def predicateGenerator(data_model) :
