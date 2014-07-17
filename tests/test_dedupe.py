@@ -130,7 +130,7 @@ class ConnectedComponentsTest(unittest.TestCase) :
                      ((11, 12), .2)],
                     dtype = [('pair', 'object', 2), ('score', 'f4', 1)])
     components = dedupe.clustering.connected_components
-    numpy.testing.assert_equal(components(G), \
+    numpy.testing.assert_equal(list(components(G)), \
             [numpy.array([([1, 2], 0.1), 
                           ([2, 3], 0.2)], 
                          dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
