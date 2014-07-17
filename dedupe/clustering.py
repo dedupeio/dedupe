@@ -12,7 +12,7 @@ def connected_components(edgelist) :
     component = {}
     component_edges = {}
 
-    for (i, edge) in enumerate(edgelist) :
+    for edge in edgelist :
         (a, b), weight = edge
         edge = (a, b), weight
         root_a = root.get(a)
@@ -49,11 +49,8 @@ def connected_components(edgelist) :
             component_edges[root_a].append(edge)
 
     for sub_graph in component_edges.values() :
-        pairs = numpy.empty(len(sub_graph), dtype=[('pairs', object, 2), ('score', 'f4', 1)])
-        for i, pair in enumerate(sub_graph) :
-            pairs['pairs'][i], pairs['score'][i] = pair
-
-        yield pairs
+        yield numpy.array(sub_graph, 
+                          dtype=[('pairs', object, 2), ('score', 'f4', 1)])
 
 def condensedDistance(dupes):
     '''
