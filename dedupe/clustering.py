@@ -176,17 +176,29 @@ def greedyMatching(dupes, threshold=0.5):
 
     return clusters
 
-def gazetteMatching(dupes, threshold=0.5):
-    covered_vertex_A = set([])
+def gazetteMatching(dupes, threshold=0.5, n=1):
     clusters = []
 
-    sorted_dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
+    sorted_dupes = sorted(dupes, key=lambda pair: (pair[0][0], -pair[1]))
     dupes_list = [dupe for dupe in sorted_dupes if dupe[1] >= threshold]
 
-    for dupe in dupes_list:
-        vertices = dupe[0]
-        if vertices[0] not in covered_vertex_A:
-            clusters.append(dupe)
-            covered_vertex_A.update([vertices[0]])
+    if dupes_list :
+        group = dupes_list[0][0][0]
+        matches = []
+        i = 0
+
+        for pair in dupes_list:
+            a, b = pair[0]
+            if a == group :
+                if i < n :
+                    matches.append(pair)
+                    i += 1
+            else :
+                clusters.append(tuple(matches))
+                matches = [pair]
+                i = 1
+                group = a
+
+        clusters.append(tuple(matches))
 
     return clusters

@@ -241,21 +241,35 @@ class ClusteringTest(unittest.TestCase):
   def test_gazette_matching(self):
     gazetteMatch = dedupe.clustering.gazetteMatching
 
-    assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0.5) == [((4, 6), 0.96), 
-                                           ((1, 6), 0.72), 
-                                           ((2, 7), 0.72), 
-                                           ((3, 6), 0.72)]
+    print gazetteMatch(self.bipartite_dupes, 
+                        threshold=0.5, n=2)
+
+
+    assert set(gazetteMatch(self.bipartite_dupes, 
+                            threshold=0.5)) == set([(((4, 6), 0.96),), 
+                                                    (((1, 6), 0.72),), 
+                                                    (((2, 7), 0.72),), 
+                                                    (((3, 6), 0.72),)])
+
+    assert set(gazetteMatch(self.bipartite_dupes, 
+                            threshold=0.5, n=2)) == set([(((1, 6), 0.72), 
+                                                          ((1, 8), 0.6)), 
+                                                         (((2, 7), 0.72),), 
+                                                         (((3, 6), 0.72), 
+                                                          ((3, 8), 0.65)), 
+                                                         (((4, 6), 0.96), 
+                                                          ((4, 5), 0.63))])
+
+
+    assert set(gazetteMatch(self.bipartite_dupes, 
+                        threshold=0)) == set([(((4, 6), 0.96),), 
+                                              (((1, 6), 0.72),), 
+                                              (((2, 7), 0.72),), 
+                                              (((3, 6), 0.72),), 
+                                              (((5, 8), 0.24),)])
 
     assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0) == [((4, 6), 0.96), 
-                                         ((1, 6), 0.72), 
-                                         ((2, 7), 0.72), 
-                                         ((3, 6), 0.72), 
-                                         ((5, 8), 0.24)]
-
-    assert gazetteMatch(self.bipartite_dupes, 
-                        threshold=0.8) == [((4,6), 0.96)]
+                        threshold=0.8) == [(((4,6), 0.96),)]
 
     assert gazetteMatch(self.bipartite_dupes, 
                         threshold=1) == []
