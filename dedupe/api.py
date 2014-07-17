@@ -1009,7 +1009,7 @@ class GazetteerMatching(RecordLinkMatching) :
         """
 
         blocked_pairs = self._blockData(data_1, data_2)
-        return self.matchBlocks(blocked_pairs, threshold, num_matches)
+        return self.matchBlocks(blocked_pairs, threshold, n_matches)
 
 
 
