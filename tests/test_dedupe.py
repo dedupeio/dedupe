@@ -131,20 +131,23 @@ class ConnectedComponentsTest(unittest.TestCase) :
                     dtype = [('pair', 'object', 2), ('score', 'f4', 1)])
     components = dedupe.clustering.connected_components
     numpy.testing.assert_equal(list(components(G)), \
-            [numpy.array([([1, 2], 0.1), 
-                          ([2, 3], 0.2)], 
-                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
-             numpy.array([([4, 5], 0.2), 
-                          ([4, 6], 0.2)], 
-                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
-             numpy.array([([12, 13], 0.2), 
-                          ([12, 14], 0.5),
-                          ([10, 11], 0.2)], 
-                         dtype=[('pair', 'O', (2,)), ('score', '<f4')]), 
-             numpy.array([([7, 9], 0.2), 
-                          ([8, 9], 0.2)], 
-                         dtype=[('pair', 'O', (2,)), ('score', '<f4')])])
- 
+                               [numpy.array([([1, 2], 0.10000000149011612), 
+                                             ([2, 3], 0.20000000298023224)], 
+                                            dtype=[('pairs', 'O', (2,)), 
+                                                   ('score', '<f4')]), 
+                                numpy.array([([4, 5], 0.20000000298023224), 
+                                             ([4, 6], 0.20000000298023224)], 
+                                            dtype=[('pairs', 'O', (2,)), 
+                                                   ('score', '<f4')]), 
+                                numpy.array([([12, 13], 0.20000000298023224), 
+                                             ([12, 14], 0.5),
+                                             ([10, 11], 0.20000000298023224)], 
+                                            dtype=[('pairs', 'O', (2,)), 
+                                                   ('score', '<f4')]), 
+                                numpy.array([([7, 9], 0.20000000298023224), 
+                                             ([8, 9], 0.20000000298023224)], 
+                                            dtype=[('pairs', 'O', (2,)), 
+                                                   ('score', '<f4')])])
 
   
 
