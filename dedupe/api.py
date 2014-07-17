@@ -977,7 +977,12 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return data_sample
 
 class GazetteerMatching(RecordLinkMatching) :
-    _cluster = clustering.gazetteMatching
+    
+    def __init__(self, *args, **kwargs) :
+        super(GazetteerMatching, self).__init__(*args, **kwargs)
+
+        self._cluster = clustering.gazetteMatching
+        self._linkage_type = "GazetteerMatching"
 
     def match(self, data_1, data_2, threshold = 1.5, n_matches = 1) : # pragma : no cover
         """Identifies pairs of records that refer to the same entity, returns
@@ -1007,14 +1012,14 @@ class GazetteerMatching(RecordLinkMatching) :
         n_matches -- Maximum number of possible matches from data_2
                      for each record in data_1
         """
-
+        self._cluster = clustering.gazetteMatching
         blocked_pairs = self._blockData(data_1, data_2)
         return self.matchBlocks(blocked_pairs, threshold, n_matches)
 
-class Gazetteer(GazetteerMatching, RecordLink):
+class Gazetteer(RecordLink, GazetteerMatching):
     pass
 
-class StaticGazetteer(GazetteerMatching, StaticRecordLink):
+class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
 def predicateGenerator(data_model) :
