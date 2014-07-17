@@ -5,6 +5,7 @@ import collections
 import itertools
 import random
 from dedupe.core import randomPairs
+from centroid import getCanonicalRep
 
 def consoleLabel(deduper): # pragma : no cover
     '''
@@ -185,4 +186,4 @@ def canonicalize(record_cluster):
     record_cluster     --A list of records within a duplicate cluster, where the records are dictionaries with field 
                          names as keys and field values as values
     """
-    return centroid.getCanonicalRep(record_cluster)
+    return getCanonicalRep(record_cluster)
