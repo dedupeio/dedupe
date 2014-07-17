@@ -11,23 +11,24 @@ def connected_components(edgelist) :
     root = {}
     component = {}
     component_edges = {}
+
     for edge in edgelist :
         (a, b), weight = edge
-        edge = edge.reshape((1,))
+        edge = (a, b), weight
         root_a = root.get(a)
         root_b = root.get(b)
 
         if root_a is None and root_b is None :
             component[a] = set([a, b])
-            component_edges[a] = edge
+            component_edges[a] = [edge]
             root[a] = root[b] = a
         elif root_a is None or root_b is None :
             if root_a is None :
                 a, b = b, a
                 root_a, root_b = root_b, root_a
             component[root_a].add(b)
-            component_edges[root_a] =\
-                numpy.concatenate((component_edges[root_a], edge))
+            component_edges[root_a].append(edge)
+
             root[b] = root_a
         elif root_a != root_b :
             component_a = component[root_a]
@@ -37,19 +38,19 @@ def connected_components(edgelist) :
                 component_a, component_b = component_b, component_a
 
             component_a |= component_b
-            component_edges[root_a] =\
-                numpy.concatenate((component_edges[root_a], 
-                                   component_edges[root_b]))
+            component_edges[root_a].extend(component_edges[root_b])
+
             for node in component_b :
                 root[node] = root_a
 
             del component[root_b]
             del component_edges[root_b]
         else : 
-            component_edges[root_a] =\
-                numpy.concatenate((component_edges[root_a], edge))
+            component_edges[root_a].append(edge)
 
-    return [sub_graph for sub_graph in component_edges.values()]
+    for sub_graph in component_edges.values() :
+        yield numpy.array(sub_graph, 
+                          dtype=[('pairs', object, 2), ('score', 'f4', 1)])
 
 def condensedDistance(dupes):
     '''
