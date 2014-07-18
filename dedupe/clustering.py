@@ -46,6 +46,8 @@ def connected_components(edgelist) :
             del indices[root_b]
         else : 
             indices[root_a].append(i)
+
+    print "components calculated"
     
     for sub_graph in indices.values() :
         yield edgelist[sub_graph]
