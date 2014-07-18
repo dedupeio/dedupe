@@ -6,6 +6,7 @@ import warnings
 import numpy
 import collections
 import time
+import tempfile
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -205,7 +206,7 @@ class ScoreRecords(object) :
             scores = scorePairs(distances, self.data_model)
 
             scored_pairs = numpy.rec.fromarrays((ids, scores),
-                                                dtype= [('pairs', 'object', 2), 
+                                                dtype= [('pairs', 'i4', 2), 
                                                         ('score', 'f4', 1)])
             
             filtered_pairs = scored_pairs[scores > self.threshold]
@@ -213,7 +214,7 @@ class ScoreRecords(object) :
             self.score_queue.put(filtered_pairs)
 
 def mergeScores(score_queue, result_queue, stop_signals) :
-    scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
+    scored_pairs = numpy.empty(0, dtype= [('pairs', 'i4', 2), 
                                           ('score', 'f4', 1)])
 
     seen_signals = 0
@@ -225,8 +226,15 @@ def mergeScores(score_queue, result_queue, stop_signals) :
             seen_signals += 1
 
     print "transferring array from mergeScores"
+    print time.time()
+    scored_pairs_file, file_path = tempfile.mkstemp()
 
-    result_queue.put(scored_pairs)
+    fp = numpy.memmap(file_path, 
+                      dtype=scored_pairs.dtype, 
+                      shape=scored_pairs.shape)
+    fp[:] = scored_pairs[:]
+
+    result_queue.put(file_path)
 
 def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
     record_pairs_queue = backport.SimpleQueue()
@@ -249,9 +257,12 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
 
     fillQueue(record_pairs_queue, records, n_map_processes)
 
-    scored_pairs = result_queue.get()
-
+    scored_pairs_file = result_queue.get()
+    scored_pairs = numpy.memmap(scored_pairs_file,
+                                dtype=[('pairs', 'i4', 2), 
+                                       ('score', 'f4', 1)])
     print "transfer complete"
+    print time.time()
 
     return scored_pairs
 
