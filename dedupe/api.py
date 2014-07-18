@@ -90,7 +90,7 @@ class Matching(object):
 
         return probability[i]
 
-    def matchBlocks(self, blocks, threshold=.5):
+    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -124,7 +124,7 @@ class Matching(object):
         logger.info("matching done, begin clustering")
 
         clusters = self._cluster(self.matches, 
-                                 cluster_threshold)
+                                 cluster_threshold, *args, **kwargs)
         
         return clusters
 
@@ -976,11 +976,51 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         return data_sample
 
-class Gazetteer(RecordLink):
-    _cluster = clustering.gazetteMatching
+class GazetteerMatching(RecordLinkMatching) :
+    
+    def __init__(self, *args, **kwargs) :
+        super(GazetteerMatching, self).__init__(*args, **kwargs)
 
-class StaticGazetteer(StaticRecordLink):
-    _cluster = clustering.gazetteMatching
+        self._cluster = clustering.gazetteMatching
+        self._linkage_type = "GazetteerMatching"
+
+    def match(self, data_1, data_2, threshold = 1.5, n_matches = 1) : # pragma : no cover
+        """Identifies pairs of records that refer to the same entity, returns
+        tuples containing a set of record ids and a confidence score as a float
+        between 0 and 1. The record_ids within each set should refer to the 
+        same entity and the confidence score is the estimated probability that
+        the records refer to the same entity.
+        
+        This method should only used for small to moderately sized datasets
+        for larger data, use matchBlocks
+        
+        Arguments:
+        data_1    -- Dictionary of records from first dataset, where the 
+                     keys are record_ids and the values are dictionaries
+                     with the keys being field names
+
+        data_2    -- Dictionary of records from second dataset, same form 
+                     as data_1
+                                          
+        threshold -- Number between 0 and 1 (default is .5). We will consider
+                     records as potential duplicates if the predicted 
+                     probability of being a duplicate is above the threshold.
+
+                     Lowering the number will increase recall, raising it
+                     will increase precision
+        
+        n_matches -- Maximum number of possible matches from data_2
+                     for each record in data_1
+        """
+        self._cluster = clustering.gazetteMatching
+        blocked_pairs = self._blockData(data_1, data_2)
+        return self.matchBlocks(blocked_pairs, threshold, n_matches)
+
+class Gazetteer(RecordLink, GazetteerMatching):
+    pass
+
+class StaticGazetteer(StaticRecordLink, GazetteerMatching):
+    pass
 
 def predicateGenerator(data_model) :
     predicates = []
