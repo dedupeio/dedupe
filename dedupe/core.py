@@ -267,7 +267,6 @@ def fillQueue(queue, iterable, stop_signals) :
     last_rate = 10000
 
     while True :
-        chunk_size = 2
         chunk = list(itertools.islice(iterable, chunk_size))
         if chunk :
             queue.put(chunk)
