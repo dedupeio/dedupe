@@ -213,9 +213,6 @@ class ScoreRecords(object) :
             self.score_queue.put(filtered_pairs)
 
 def mergeScores(score_queue, result_queue, stop_signals) :
-    scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
-                                          ('score', 'f4', 1)])
-
     seen_signals = 0
     scored_pairs = []
     while seen_signals < stop_signals  :
