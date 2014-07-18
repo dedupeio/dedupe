@@ -1,10 +1,11 @@
 .. py:method:: match(messy_data, canonical_data, threshold=0.5, n_matches=1)
 
-   Identifies pairs of records that refer to the same entity, returns tuples
-   containing a set of record ids and a confidence score as a float between 0
-   and 1. The record_ids within each set should refer to the
-   same entity and the confidence score is the estimated probability that 
-   the records refer to the same entity.
+   Identifies pairs of records that could refer to the same entity,
+   returns tuples containing tuples of possible matches, with a
+   confidence score for each match. The record_ids within each tuple
+   should refer to potential matches from a messy data record to
+   canonical records. The confidence score is the estimated
+   probability that the records refer to the same entity.
 
    This method should only used for small to moderately sized datasets for
    larger data, use matchBlocks
@@ -50,8 +51,6 @@
    .. code:: python
 
        clustered_dupes = deduper.matchBlocks(blocked_data, threshold)
-
-   Keyword arguments
 
    :param list blocks: Sequence of tuples of records, where each tuple
 		       is a set of records covered by a blocking
