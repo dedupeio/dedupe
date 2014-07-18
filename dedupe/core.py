@@ -217,12 +217,15 @@ def mergeScores(score_queue, result_queue, stop_signals) :
                                           ('score', 'f4', 1)])
 
     seen_signals = 0
+    scored_pairs = []
     while seen_signals < stop_signals  :
         score_chunk = score_queue.get()
         if score_chunk is not None :
-            scored_pairs = numpy.concatenate((scored_pairs, score_chunk))
+            scored_pairs.append(score_chunk)
         else :
             seen_signals += 1
+
+    scored_pairs = numpy.concatenate(scored_pairs)
 
     result_queue.put(scored_pairs)
 
