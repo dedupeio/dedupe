@@ -229,15 +229,20 @@ StaticRecordLink.
 :class:`Gazetteer` Objects
 ---------------------------
 
-Class for active learning gazeteer matching.
+Class for active learning gazetteer matching.
 
 Gazetteer matching is for matching a messy data set against a
 'canonical dataset', i.e. one that does not have any duplicates. This
 class is useful for such tasks as matching messy addresses against
 a clean list. 
 
-The interface is the same as for RecordLink objects. The messy dataset 
-comes first (``data_1``), and canonical dataset is second (``data_2``).
+The interface is the same as for RecordLink objects except for a
+couple of methods.
+
+.. py:class:: Gazetteer
+
+   .. include:: common_gazetteer_methods.rst
+
 
 :class:`StaticGazetteer` Objects
 --------------------------------
@@ -246,7 +251,13 @@ Class for gazetter matching using saved settings. If you have already
 trained a gazetteer instance, you can load the saved settings with
 StaticGazetteer.
 
-This class has the same interface as RecordLink.
+This class has the same interface as StaticRecordLink except for a
+couple of methods.
+
+.. py:class:: StaticGazetteer
+
+   .. include:: common_gazetteer_methods.rst
+
 
 
 Convenience Functions
