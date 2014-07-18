@@ -213,16 +213,18 @@ class ScoreRecords(object) :
             self.score_queue.put(filtered_pairs)
 
 def mergeScores(score_queue, result_queue, stop_signals) :
+    scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
+                                          ('score', 'f4', 1)])
+
     seen_signals = 0
-    scored_pairs = []
     while seen_signals < stop_signals  :
         score_chunk = score_queue.get()
         if score_chunk is not None :
-            scored_pairs.append(score_chunk)
+            scored_pairs = numpy.concatenate((scored_pairs, score_chunk))
         else :
             seen_signals += 1
 
-    scored_pairs = numpy.concatenate(scored_pairs)
+    print "transferring array from mergeScores"
 
     result_queue.put(scored_pairs)
 
@@ -249,6 +251,8 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
 
     scored_pairs = result_queue.get()
 
+    print "transfer complete"
+
     return scored_pairs
 
 def fillQueue(queue, iterable, stop_signals) :
@@ -263,6 +267,7 @@ def fillQueue(queue, iterable, stop_signals) :
     last_rate = 10000
 
     while True :
+        chunk_size = 2
         chunk = list(itertools.islice(iterable, chunk_size))
         if chunk :
             queue.put(chunk)
