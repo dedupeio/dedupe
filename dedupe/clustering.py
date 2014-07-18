@@ -4,14 +4,9 @@
 import itertools
 
 import numpy
-import array
 import fastcluster
 import hcluster
 
-TYPES = { type(1) : 'l',
-          type('a') : 'c',
-          type(u'a') : 'u'}
-          
 def connected_components(edgelist) :
     root = {}
     component = {}
