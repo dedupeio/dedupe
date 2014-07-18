@@ -13,8 +13,7 @@ def connected_components(edgelist) :
     indices = {}
     
     for i, edge in enumerate(edgelist['pairs']) :
-        (a, b) = edge
-        edge = a, b
+        a, b = edge
         root_a = root.get(a)
         root_b = root.get(b)
 
