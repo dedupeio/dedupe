@@ -7,12 +7,13 @@ import numpy
 import fastcluster
 import hcluster
 
+@profile
 def connected_components(edgelist) :
     root = {}
     component = {}
     indices = {}
     
-    for i, edge in enumerate(edgelist['pairs']) :
+    for i, edge in enumerate(numpy.nditer(edgelist['pairs'], ['external loop']) :
         a, b = edge
         root_a = root.get(a)
         root_b = root.get(b)
@@ -49,6 +50,7 @@ def connected_components(edgelist) :
     print "components calculated"
     
     for sub_graph in indices.values() :
+	print len(sub_graph)
         yield edgelist[sub_graph]
 
 def condensedDistance(dupes):

@@ -228,6 +228,7 @@ def mergeScores(score_queue, result_queue, stop_signals) :
     print "transferring array from mergeScores"
     print time.time()
     scored_pairs_file, file_path = tempfile.mkstemp()
+    print file_path
 
     fp = numpy.memmap(file_path, 
                       dtype=scored_pairs.dtype, 
