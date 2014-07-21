@@ -228,9 +228,11 @@ def mergeScores(score_queue, result_queue, stop_signals) :
     scored_pairs_file, file_path = tempfile.mkstemp()
 
     python_type = type(scored_pairs['pairs'][0][0])
-    numpy_type =  scored_pairs['pairs'][:,1].astype(python_type).dtype
-
-    write_dtype = [('pairs', numpy_type, 2),
+    if python_type is str or python_type is unicode :
+        max_length = len(max(scored_pairs['pairs'].flatten(), key=len))
+        python_type = (unicode, max_length)
+        
+    write_dtype = [('pairs', python_type, 2),
                    ('score', 'f4', 1)]
 
     scored_pairs = scored_pairs.astype(write_dtype)

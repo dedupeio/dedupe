@@ -74,7 +74,9 @@ class ScoreDuplicates(unittest.TestCase):
     random.seed(123)
     empty_set = set([])
 
-    self.records = iter([(('1', {'name': 'Margret', 'age': '32'}, empty_set), 
+    long_string ='asa;sasdfjasdio;fio;asdnfasdvnvao;asduifvnavjasdfasdfasfasasdfasdfasdfasdfasdfsdfasgnuavpidcvaspdivnaspdivninasduinguipghauipsdfnvaspfighapsdifnasdifnasdpighuignpaguinpgiasidfjasdfjsdofgiongag'
+
+    self.records = iter([((long_string, {'name': 'Margret', 'age': '32'}, empty_set), 
                           ('2', {'name': 'Marga', 'age': '33'}, empty_set)), 
                          (('2', {'name': 'Marga', 'age': '33'}, empty_set), 
                           ('3', {'name': 'Maria', 'age': '19'}, empty_set)), 
@@ -90,9 +92,9 @@ class ScoreDuplicates(unittest.TestCase):
     self.data_model['fields']['name'].weight = -1.0302742719650269
     self.data_model['bias'] = 4.76
 
-    score_dtype = [('pairs', 'S4', 2), ('score', 'f4', 1)]
+    score_dtype = [('pairs', '<U192', 2), ('score', 'f4', 1)]
 
-    self.desired_scored_pairs = numpy.array([(('1', '2'), 0.96), 
+    self.desired_scored_pairs = numpy.array([((long_string, '2'), 0.96), 
                                              (['2', '3'], 0.96), 
                                              (['4', '5'], 0.78), 
                                              (['6', '7'], 0.72), 
@@ -106,7 +108,7 @@ class ScoreDuplicates(unittest.TestCase):
                                          self.data_model,
                                          2)
 
-    print scores
+    print scores.dtype
 
 
     numpy.testing.assert_equal(scores['pairs'], 

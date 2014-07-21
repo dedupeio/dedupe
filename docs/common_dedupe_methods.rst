@@ -18,7 +18,7 @@
       > print threshold
       0.21
 
-.. py:method:: match(data, [threshold = 0.5])
+.. py:method:: match(data, [threshold = 0.5, [max_components = 30000]])
 
    Identifies records that all refer to the same entity, returns tuples
    containing a set of record ids and a confidence score as a float between 0
@@ -39,6 +39,16 @@
 
 			    Lowering the number will increase recall,
 			    raising it will increase precision
+   :param int max_components: Dedupe splits records into connected
+                              components and then clusters each
+                              component. Clustering uses about N^2
+                              memory, where N is the size of the
+                              components.  Max components sets the
+                              maximum size of a component dedupe will
+                              try to cluster. If a component is larger
+                              than max_components, dedupe will try to
+                              split it into smaller
+                              components. Defaults to 30K.
 
    .. code:: python
 
