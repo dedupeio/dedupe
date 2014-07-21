@@ -229,7 +229,7 @@ def mergeScores(score_queue, result_queue, stop_signals) :
 
     python_type = type(scored_pairs['pairs'][0][0])
     if python_type is str or python_type is unicode :
-        max_length = len(max(scored_pairs['pairs'].flatten(), key=len))
+        max_length = len(max(numpy.ravel(scored_pairs['pairs']), key=len))
         python_type = (unicode, max_length)
         
     write_dtype = [('pairs', python_type, 2),
