@@ -3,18 +3,20 @@
 
 import itertools
 
+import warnings
 import numpy
 import fastcluster
 import hcluster
 
-@profile
-def connected_components(edgelist) :
+def connected_components(edgelist, max_components) :
+
     root = {}
     component = {}
     indices = {}
-    
-    for i, edge in enumerate(numpy.nditer(edgelist['pairs'], ['external loop']) :
-        a, b = edge
+
+    it = numpy.nditer(edgelist['pairs'], ['external_loop'])
+
+    for i, (a,b) in enumerate(it) :
         root_a = root.get(a)
         root_b = root.get(b)
 
@@ -38,6 +40,7 @@ def connected_components(edgelist) :
 
             component_a |= component_b
             indices[root_a].extend(indices[root_b])
+            indices[root_a].append(i)
 
             for node in component_b :
                 root[node] = root_a
@@ -47,11 +50,26 @@ def connected_components(edgelist) :
         else : 
             indices[root_a].append(i)
 
-    print "components calculated"
-    
-    for sub_graph in indices.values() :
-	print len(sub_graph)
-        yield edgelist[sub_graph]
+    for root in component :
+	n_components = len(component[root])
+	sub_graph = edgelist[indices[root]]
+
+	if n_components > max_components :
+            threshold = numpy.min(sub_graph['score'])
+            threshold *= 1.1 
+            warnings.warn('A component contained %s elements. '
+                          'Components larger than %s are '
+                          're-filtered. The threshold for this '
+                          'filtering is %s' % (n_components, 
+                                               max_components,
+                                               threshold)) 
+            filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
+            for sub_graph in connected_components(filtered_sub_graph, 
+                                                  max_components) :
+               yield sub_graph
+        else :
+            yield sub_graph
+     
 
 def condensedDistance(dupes):
     '''
@@ -93,7 +111,7 @@ def condensedDistance(dupes):
     return (i_to_id, condensed_distances)
 
 
-def cluster(dupes, threshold=.5):
+def cluster(dupes, threshold=.5, max_components=30000):
     '''
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
@@ -106,7 +124,7 @@ def cluster(dupes, threshold=.5):
     '''
     threshold = 1 - threshold
 
-    dupe_sub_graphs = connected_components(dupes)
+    dupe_sub_graphs = connected_components(dupes, max_components)
 
     clustering = {}
     cluster_id = 0
@@ -123,7 +141,6 @@ def cluster(dupes, threshold=.5):
             partition = hcluster.fcluster(linkage, 
                                           threshold,
                                           criterion='distance')
-
 
             clusters = {}
 
