@@ -206,7 +206,7 @@ class ScoreRecords(object) :
             scores = scorePairs(distances, self.data_model)
 
             scored_pairs = numpy.rec.fromarrays((ids, scores),
-                                                dtype= [('pairs', 'i4', 2), 
+                                                dtype= [('pairs', 'object', 2), 
                                                         ('score', 'f4', 1)])
             
             filtered_pairs = scored_pairs[scores > self.threshold]
@@ -214,7 +214,7 @@ class ScoreRecords(object) :
             self.score_queue.put(filtered_pairs)
 
 def mergeScores(score_queue, result_queue, stop_signals) :
-    scored_pairs = numpy.empty(0, dtype= [('pairs', 'i4', 2), 
+    scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
                                           ('score', 'f4', 1)])
 
     seen_signals = 0
@@ -225,17 +225,22 @@ def mergeScores(score_queue, result_queue, stop_signals) :
         else :
             seen_signals += 1
 
-    print "transferring array from mergeScores"
-    print time.time()
     scored_pairs_file, file_path = tempfile.mkstemp()
-    print file_path
+
+    python_type = type(scored_pairs['pairs'][0][0])
+    numpy_type =  scored_pairs['pairs'][:,1].astype(python_type).dtype
+
+    write_dtype = [('pairs', numpy_type, 2),
+                   ('score', 'f4', 1)]
+
+    scored_pairs = scored_pairs.astype(write_dtype)
 
     fp = numpy.memmap(file_path, 
                       dtype=scored_pairs.dtype, 
                       shape=scored_pairs.shape)
     fp[:] = scored_pairs[:]
 
-    result_queue.put(file_path)
+    result_queue.put((file_path, scored_pairs.dtype))
 
 def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
     record_pairs_queue = backport.SimpleQueue()
@@ -258,12 +263,9 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
 
     fillQueue(record_pairs_queue, records, n_map_processes)
 
-    scored_pairs_file = result_queue.get()
+    scored_pairs_file, dtype = result_queue.get()
     scored_pairs = numpy.memmap(scored_pairs_file,
-                                dtype=[('pairs', 'i4', 2), 
-                                       ('score', 'f4', 1)])
-    print "transfer complete"
-    print time.time()
+                                dtype=dtype)
 
     return scored_pairs
 
