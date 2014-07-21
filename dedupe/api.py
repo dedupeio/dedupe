@@ -16,6 +16,8 @@ import numpy
 import random
 import warnings
 import copy
+import os
+
 try:
     from collections import OrderedDict
 except ImportError :
@@ -48,6 +50,12 @@ class Matching(object):
     def __init__(self) :
         self.matches = None
         self.blocker = None
+
+    def __del__(self) :
+        try :
+            os.remove(self.matches.filename)
+        except :
+            pass
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):
         """

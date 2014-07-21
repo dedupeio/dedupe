@@ -106,6 +106,9 @@ class ScoreDuplicates(unittest.TestCase):
                                          self.data_model,
                                          2)
 
+    print scores
+
+
     numpy.testing.assert_equal(scores['pairs'], 
                                self.desired_scored_pairs['pairs'])
     

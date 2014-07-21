@@ -71,7 +71,6 @@ def connected_components(edgelist, max_components) :
             yield sub_graph
      
 
-
 def condensedDistance(dupes):
     '''
     Convert the pairwise list of distances in dupes to "condensed

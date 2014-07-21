@@ -6,6 +6,7 @@ import warnings
 import numpy
 import collections
 import time
+import tempfile
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -224,9 +225,22 @@ def mergeScores(score_queue, result_queue, stop_signals) :
         else :
             seen_signals += 1
 
-    print "transferring array from mergeScores"
+    scored_pairs_file, file_path = tempfile.mkstemp()
 
-    result_queue.put(scored_pairs)
+    python_type = type(scored_pairs['pairs'][0][0])
+    numpy_type =  scored_pairs['pairs'][:,1].astype(python_type).dtype
+
+    write_dtype = [('pairs', numpy_type, 2),
+                   ('score', 'f4', 1)]
+
+    scored_pairs = scored_pairs.astype(write_dtype)
+
+    fp = numpy.memmap(file_path, 
+                      dtype=scored_pairs.dtype, 
+                      shape=scored_pairs.shape)
+    fp[:] = scored_pairs[:]
+
+    result_queue.put((file_path, scored_pairs.dtype))
 
 def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
     record_pairs_queue = backport.SimpleQueue()
@@ -249,9 +263,9 @@ def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
 
     fillQueue(record_pairs_queue, records, n_map_processes)
 
-    scored_pairs = result_queue.get()
-
-    print "transfer complete"
+    scored_pairs_file, dtype = result_queue.get()
+    scored_pairs = numpy.memmap(scored_pairs_file,
+                                dtype=dtype)
 
     return scored_pairs
 
