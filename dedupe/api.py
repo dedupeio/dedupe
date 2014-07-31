@@ -424,12 +424,12 @@ class RecordLinkMatching(Matching) :
             self.blocker.tfIdfBlock(fields_1, fields_2, field)
 
 
-        for block_key, record_id in self.blocker(data_1.items()) :
-            blocks.setdefault(block_key, ([], []))[0].append((record_id, 
-                                                              data_1[record_id]))
         for block_key, record_id in self.blocker(data_2.items()) :
+            blocks.setdefault(block_key, ([], []))[1].append((record_id, 
+                                                              data_2[record_id]))
+        for block_key, record_id in self.blocker(data_1.items()) :
             if block_key in blocks :
-                blocks[block_key][1].append((record_id, data_2[record_id]))
+                blocks[block_key][0].append((record_id, data_1[record_id]))
 
         blocks = blocks.values()
 
