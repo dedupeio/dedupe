@@ -11,10 +11,14 @@ class FieldType(object) :
     _predicate_functions = []
     sort_level = 0
 
+    def __lt__(self, other) :
+        return self.sort_level < other.sort_level
+
              
     def __init__(self, definition) :
         self.field = definition['field']
         self.name = "%s: %s", (self.field, self.type)
+        self.__hash__ = self.name
 
         if definition.get('Has Missing', False) :
             self.has_missing = True

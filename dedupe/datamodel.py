@@ -18,67 +18,20 @@ field_classes = {'String' : StringType,
                  'Text' : TextType,
                  'Categorical' : CategoricalType,
                  'Custom' : CustomType,
-                 'InteractionType' : lambda x : None}
+                 'InteractionType' : None}
 
 class DataModel(dict) :
     def __init__(self, fields):
 
         self['bias'] = 0
-        self['fields'] = self.buildModel(fields)
+        self['fields'] = buildModel(fields)
+        self['fields'] = interactions(self['fields'])
 
         self.fieldDistanceVariables()
 
         self.total_fields = len(self['fields'])
 
-
-    def buildModel(self, fields) :
-        field_model = []
-        interaction_terms = []
-        source_variable = None
-
-        for definition in fields :
-            try :
-                field_type = definition['type']
-            except TypeError :
-                raise TypeError("Incorrect field specification: field "
-                                "specifications are dictionaries that must "
-                                "include a type definition, ex. "
-                                "{'field' : 'Phone', type: 'String'}")
-            except KeyError :
-                raise KeyError("Missing field type: fields "
-                               "specifications are dictionaries that must "
-                               "include a type definition, ex. "
-                               "{'field' : 'Phone', type: 'String'}")
-            try :
-                field_object = field_classes[field_type](definition)
-            except KeyError :
-                valid_fields = field_classes.keys()
-                raise KeyError("Field type %s not valid. Valid types include %s"
-                               % (definition['type'], ', '.join(valid_fields)))
-
-                
-
-            if field_object :
-                field_model.append(field_object)
-
-            if field_type in ('Categorical', 'Source') :
-                field_model.extend(field_object.higher_dummies.values())
-
-                if field_type == 'Source' :
-                    source_variable = field_object
-
-            elif field_type == 'Interaction' :
-                interaction_terms.append(definition)
-
-        for field, definition in interaction_terms :
-            field_model[name] = InteractionType(field, definition, field_model)
-            field_model.update(field_model[name].dummyInteractions(field_model))
-
-        for definition in field_model :
-            if definition.has_missing :
-                field_name = "%s: not missing" % definition.field 
-                field_model.append(MissingDataType(field_name))
-
+    def interactions(self, field_model) :
         return field_model
 
 
@@ -112,4 +65,39 @@ class DataModel(dict) :
 
 
 
+def buildModel(fields) :
+    field_model = set([])
+    interaction_terms = []
+
+    for definition in fields :
+        try :
+            field_type = definition['type']
+        except TypeError :
+            raise TypeError("Incorrect field specification: field "
+                            "specifications are dictionaries that must "
+                            "include a type definition, ex. "
+                            "{'field' : 'Phone', type: 'String'}")
+        except KeyError :
+            raise KeyError("Missing field type: fields "
+                           "specifications are dictionaries that must "
+                           "include a type definition, ex. "
+                           "{'field' : 'Phone', type: 'String'}")
+        try :
+            field_class = field_classes[field_type]
+        except KeyError :
+            valid_fields = field_classes.keys()
+            raise KeyError("Field type %s not valid. Valid types include %s"
+                           % (definition['type'], ', '.join(valid_fields)))
+
+        if field_type == 'Interaction' :
+            interaction_terms.append(definition)
+        else :
+            field_object = field_class(definition)
+            field_model.add(field_object)
+
+            if field_type in ('Categorical', 'Source') :
+                field_model.update(field_object.higher_dummies.values())
+
+
+    return field_model, interaction_terms
 
