@@ -18,14 +18,14 @@ field_classes = {'String' : StringType,
                  'Text' : TextType,
                  'Categorical' : CategoricalType,
                  'Custom' : CustomType,
-                 'InteractionType' : None}
+                 'InteractionType' : InteractionType}
 
 class DataModel(dict) :
     def __init__(self, fields):
 
         self['bias'] = 0
         self['fields'] = buildModel(fields)
-        self['fields'] = interactions(self['fields'])
+        self['fields'] = self.interactions(self['fields'])
 
         self.fieldDistanceVariables()
 
@@ -64,10 +64,8 @@ class DataModel(dict) :
 
 
 
-
 def buildModel(fields) :
     field_model = set([])
-    interaction_terms = []
 
     for definition in fields :
         try :
@@ -85,19 +83,13 @@ def buildModel(fields) :
         try :
             field_class = field_classes[field_type]
         except KeyError :
-            valid_fields = field_classes.keys()
             raise KeyError("Field type %s not valid. Valid types include %s"
-                           % (definition['type'], ', '.join(valid_fields)))
+                           % (definition['type'], ', '.join(field_classes)))
 
-        if field_type == 'Interaction' :
-            interaction_terms.append(definition)
-        else :
-            field_object = field_class(definition)
-            field_model.add(field_object)
-
-            if field_type in ('Categorical', 'Source') :
-                field_model.update(field_object.higher_dummies.values())
+        field_model.add(field_class(definition))
+        
+        if field_type in ('Categorical', 'Source') :
+            field_model.update(field_object.higher_dummies.values())
 
 
-    return field_model, interaction_terms
-
+    return field_model

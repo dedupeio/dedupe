@@ -169,9 +169,9 @@ class InteractionType(FieldType) :
         super(InteractionType, self).__init__(definition)
 
         try :
-            interactions = definition["Interaction Fields"]
-        except KeyError :
-            raise KeyError("""
+            self.interactions = definition["Interaction Fields"]
+        except KeyError : # bad error message
+            raise KeyError(""" 
             Missing field type: field or fields
             " "specifications are dictionaries
             that must " "name a field or fields
@@ -180,7 +180,9 @@ class InteractionType(FieldType) :
             """)
 
 
-        self.interaction_fields = self.atomicInteractions(interactions,
+    def expandInteractions(field_model) :
+
+        self.interaction_fields = self.atomicInteractions(self.interactions,
                                                           field_model)
         for field in self.interaction_fields :
             if field_model[name].has_missing :
