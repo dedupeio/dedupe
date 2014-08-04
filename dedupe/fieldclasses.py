@@ -30,11 +30,9 @@ class Variable(object) :
         else :
             self.has_missing = False
 
-
 class DerivedVariable(Variable) :
     predicates = None
     comparator = None
-
 
 class FieldType(Variable) :
     sort_level = 0
@@ -53,10 +51,6 @@ class FieldType(Variable) :
         super(FieldType, self).__init__(definition)
 
 
-
-
-
-
 class ShortStringType(FieldType) :
     comparator = normalizedAffineGapDistance
     type = "ShortString"
@@ -73,7 +67,6 @@ class ShortStringType(FieldType) :
                             dedupe.predicates.commonFourGram,
                             dedupe.predicates.commonSixGram)
 
-
 class StringType(ShortStringType) :
     comparator = normalizedAffineGapDistance
     type = "String"
@@ -89,7 +82,6 @@ class StringType(ShortStringType) :
 
         self.predicates += canopy_predicates
 
-
 class TextType(StringType) :
     type = "Text"
 
@@ -99,16 +91,13 @@ class TextType(StringType) :
         if 'corpus' not in definition :
             definition['corpus'] = None 
 
-
         self.comparator = dedupe.distance.CosineTextSimilarity(definition['corpus'])
-
 
 class LatLongType(FieldType) :
     comparator = compareLatLong
     type = "LatLong"
 
     _predicate_functions = [dedupe.predicates.latLongGridPredicate]
-
 
 class SetType(FieldType) :
     type = "Set"
@@ -161,8 +150,6 @@ class CategoricalType(FieldType) :
                                             'Has Missing' : self.has_missing})
             self.dummies.append(dummy_object)
 
-
-
 class SourceType(CategoricalType) :
     type = "Source"
 
@@ -189,7 +176,6 @@ class HigherDummyType(DerivedVariable) :
         self.base_name = definition['base name']
 
         super(HigherDummyType, self).__init__(definition)
-
 
 class InteractionType(DerivedVariable) :
     sort_level = 2
@@ -281,7 +267,6 @@ class MissingDataType(DerivedVariable) :
         self.name = "(%s: Not Missing)" %name
         self.weight = 0
     
-
 class CustomType(FieldType) :
     type = "Custom"
 
@@ -299,5 +284,3 @@ class CustomType(FieldType) :
         self.name = "(%s: %s, %s)", (self.field, 
                                      self.type, 
                                      self.comparator.__name__)
-
-

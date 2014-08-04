@@ -7,24 +7,33 @@ import itertools
 import dedupe.predicates
 import dedupe.blocking
 
+import dedupe.fieldclasses
+from dedupe.fieldclasses import InteractionType, MissingDataType
 
-from dedupe.fieldclasses import *
-
-field_classes = {'String' : StringType,
-                 'ShortString' : ShortStringType,
-                 'LatLong' : LatLongType,
-                 'Set' : SetType, 
-                 'Source' : SourceType,
-                 'Text' : TextType,
-                 'Categorical' : CategoricalType,
-                 'Custom' : CustomType,
-                 'Interaction' : InteractionType}
+field_classes = {'String' : dedupe.fieldclasses.StringType,
+                 'ShortString' : dedupe.fieldclasses.ShortStringType,
+                 'LatLong' : dedupe.fieldclasses.LatLongType,
+                 'Set' : dedupe.fieldclasses.SetType, 
+                 'Source' : dedupe.fieldclasses.SourceType,
+                 'Text' : dedupe.fieldclasses.TextType,
+                 'Categorical' : dedupe.fieldclasses.CategoricalType,
+                 'Custom' : dedupe.fieldclasses.CustomType,
+                 'Interaction' : dedupe.fieldclasses.InteractionType}
 
 class DataModel(dict) :
     def __init__(self, fields):
 
         self['bias'] = 0
-        self['fields'] = buildModel(fields)
+
+        field_model = typifyFields(fields)
+
+        field_model = sourceFields(field_model)
+        field_model = interactions(field_model)
+        field_model = missing(field_model)
+
+        field_model = sorted(field_model)
+
+        self['fields'] = field_model
 
         self.total_fields = len(self['fields'])
 
@@ -70,9 +79,7 @@ class DataModel(dict) :
 
         return indices
 
-
-
-def buildModel(fields) :
+def typifyFields(fields) :
     field_model = set([])
 
     for definition in fields :
@@ -100,12 +107,6 @@ def buildModel(fields) :
         if field_type in ('Categorical', 'Source') :
             field_model.update(field_object.dummies)
 
-    field_model = sourceFields(field_model)
-    field_model = interactions(field_model)
-    field_model = missing(field_model)
-
-    field_model = sorted(field_model)
-
     return field_model
 
 def missing(field_model) :
@@ -114,8 +115,6 @@ def missing(field_model) :
             field_model.add(MissingDataType(definition.name))
 
     return field_model
-
-
 
 def interactions(field_model) :
     field_d = dict((field.name, field) for field in field_model)
@@ -127,7 +126,6 @@ def interactions(field_model) :
             field_model.update(field.dummyInteractions(field_d))
 
     return field_model
-
 
 def sourceFields(field_model) :
     source_fields = [field for field in field_model 
@@ -144,4 +142,3 @@ def sourceFields(field_model) :
                     field_model.add(interaction)
 
     return field_model
-
