@@ -104,8 +104,8 @@ def trainModel(training_data, data_model, alpha=.001):
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
-    for i, name in enumerate(data_model['fields']) :
-        data_model['fields'][name].weight = float(weight[i])
+    for i, field_definition in enumerate(data_model['fields']) :
+        field_definition.weight = float(weight[i])
 
     data_model['bias'] = bias
 
@@ -162,7 +162,7 @@ def fieldDistances(record_pairs, data_model):
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
 
-    field_weights = [fields[name].weight for name in fields]
+    field_weights = [field.weight for field in fields]
     bias = data_model['bias']
 
     scores = numpy.dot(field_distances, field_weights)

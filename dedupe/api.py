@@ -137,11 +137,11 @@ class Matching(object):
         return clusters
 
     def _checkRecordType(self, record) :
-        for k in self.data_model.field_comparators :
-            if k not in record :
+        for field in self.data_model.field_comparators :
+            if field not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "
-                                 "in a record" % k)
+                                 "in a record" % field)
 
 
     def _logLearnedWeights(self): # pragma: no cover
@@ -579,10 +579,6 @@ class ActiveMatching(Matching) :
         record field and values are the record values.
         """
         super(ActiveMatching, self).__init__()
-
-        if field_definition.__class__ is not dict :
-            raise ValueError('Incorrect Input Type: must supply '
-                             'a field definition.')
 
         self.data_model = DataModel(field_definition)
 
@@ -1031,8 +1027,8 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
 def predicateGenerator(data_model) :
-    predicates = []
-    for field, definition in data_model['fields'].items() :
-        predicates.extend(definition.predicates)
+    predicates = set([])
+    for definition in data_model['fields'] :
+        predicates.update(definition.predicates)
 
     return predicates

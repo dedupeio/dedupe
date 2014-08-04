@@ -24,7 +24,7 @@ def gridSearch(training_data,
     logger.info('using cross validation to find optimum alpha...')
     scores = []
 
-    fields = sorted(original_data_model['fields'].keys())
+    fields = original_data_model['fields']
 
     for alpha in search_space:
         all_score = 0
@@ -32,7 +32,7 @@ def gridSearch(training_data,
         for (training, validation) in kFolds(training_data, k):
             data_model = trainer(training, original_data_model, alpha)
 
-            weight = numpy.array([data_model['fields'][field].weight
+            weight = numpy.array([field.weight
                                   for field in fields])
             bias = data_model['bias']
 
