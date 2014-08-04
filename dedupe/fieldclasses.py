@@ -1,32 +1,58 @@
+import itertools
 import dedupe
+from collections import defaultdict
 
 from dedupe.distance.affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
 from dedupe.distance.categorical import CategoricalComparator
 
+try:
+    from collections import OrderedDict
+except ImportError :
+    from dedupe.backport import OrderedDict
 
-class FieldType(object) :
-    weight = 0
-    comparator = None
-    _predicate_functions = []
-    sort_level = 0
-
+class Variable(object) :
     def __lt__(self, other) :
         return self.sort_level < other.sort_level
 
-             
+    def __repr__(self) :
+        return self.name
+
+    def __hash__(self) :
+        return hash(self.name)
+
     def __init__(self, definition) :
-        self.field = definition['field']
-        self.name = "%s: %s", (self.field, self.type)
-        self.__hash__ = self.name
+
+        self.weight = 0
 
         if definition.get('Has Missing', False) :
             self.has_missing = True
         else :
             self.has_missing = False
 
+
+class DerivedVariable(Variable) :
+    predicates = None
+    comparator = None
+
+
+class FieldType(Variable) :
+    sort_level = 0
+             
+    def __init__(self, definition) :
+        self.field = definition['field']
+
+        if 'variable name' in definition :
+            self.name = definition['variable name'] 
+        else :
+            self.name = "(%s: %s)" % (self.field, self.type)
+
         self.predicates = [dedupe.blocking.SimplePredicate(pred, self.field) 
                            for pred in self._predicate_functions]
+
+        super(FieldType, self).__init__(definition)
+
+
 
 
 
@@ -106,19 +132,9 @@ class SetType(FieldType) :
         self.comparator = dedupe.distance.CosineSetSimilarity(definition['corpus'])
 
 
-class HigherDummyType(FieldType) :
-    sort_level = 1
-
-    type = "HigherOrderDummy"
-
-    def __init__(self, definition) :
-        super(HigherDummyType, self ).__init__(definition)
-
-        self.value = definition["value"]
-        
 class CategoricalType(FieldType) :
     type = "Categorical"
-    
+    _predicate_functions = []
 
     def _categories(self, definition) :
         try :
@@ -136,13 +152,16 @@ class CategoricalType(FieldType) :
 
         self.comparator = CategoricalComparator(categories)
 
-        self.higher_dummies = OrderedDict()
+        self.dummies = []
 
         for value, combo in sorted(self.comparator.combinations[2:]) :
-            combo = str(combo)
-            self.higher_dummies[str(combo)] = HigherDummyType(combo, 
-                                                              {'value' : value,
-                                                               'Has Missing' : self.has_missing})
+            dummy_object = HigherDummyType({'combo' : combo, 
+                                            'value' : value,
+                                            'base name' : self.name,
+                                            'Has Missing' : self.has_missing})
+            self.dummies.append(dummy_object)
+
+
 
 class SourceType(CategoricalType) :
     type = "Source"
@@ -157,16 +176,27 @@ class SourceType(CategoricalType) :
             raise ValueError("You must supply two and only " 
                              "two source names")
         
-        return categories            
+        return categories
+
+class HigherDummyType(DerivedVariable) :
+    sort_level = 1
+    
+    type = "HigherOrderDummy"
+
+    def __init__(self, definition) :
+        self.name = "(%s: %s)" % (str(definition['combo']), self.type)
+        self.value = definition['value']
+        self.base_name = definition['base name']
+
+        super(HigherDummyType, self).__init__(definition)
 
 
-class InteractionType(FieldType) :
+class InteractionType(DerivedVariable) :
     sort_level = 2
 
     type = "Interaction"
     
-    def __init__(self, definition, field_model) :
-        super(InteractionType, self).__init__(definition)
+    def __init__(self, definition) :
 
         try :
             self.interactions = definition["Interaction Fields"]
@@ -179,21 +209,27 @@ class InteractionType(FieldType) :
             'Phone', type: 'String'}}
             """)
 
+        self.name = "(Interaction: %s)" % str(self.interactions)
+        self.interaction_fields = self.interactions
 
-    def expandInteractions(field_model) :
+        super(InteractionType, self).__init__(definition)
+
+
+
+    def expandInteractions(self, field_model) :
 
         self.interaction_fields = self.atomicInteractions(self.interactions,
                                                           field_model)
         for field in self.interaction_fields :
-            if field_model[name].has_missing :
+            if field_model[field].has_missing :
                 self.has_missing = True
 
     def atomicInteractions(self, interactions, field_model) :
         atomic_interactions = []
-        
+
         for field in interactions :
-            if field_model[name].type == "Interaction" :
-                sub_interactions = field_model[name].interaction_fields
+            if field_model[field].type == "Interaction" :
+                sub_interactions = field_model[field].interaction_fields
                 atomic_interactions.extend(self.atomicInteractions(sub_interactions,
                                                                    field_model))
             else :
@@ -203,40 +239,47 @@ class InteractionType(FieldType) :
 
 
     def dummyInteractions(self, field_model) :
-        dummy_interactions = OrderedDict()
+        dummy_interactions = []
 
-        categorical_fields = set([])
-        higher_order_dummies = []
+        categoricals = defaultdict(list)
 
-        for field in self.interaction_fields :
-            if field_model[name].type in ('Categorical', 'Source') :
-                categorical_fields.add(field)
-                dummies = [field]
-                dummies.extend(field_model[name].higher_dummies)
-                higher_order_dummies.append(dummies)
-        
-        other_fields = set(self.interaction_fields) - categorical_fields
-        other_fields = tuple(other_fields)
+        for field in field_model.values() :
+            if field.type == 'HigherOrderDummy' :
+                if field.base_name in self.interaction_fields :
+                    categoricals[field.base_name].append(field.name)
 
-        for level in itertools.product(*higher_order_dummies) :
-            if level and set(level) != categorical_fields :
-                interaction_fields = level + other_fields
-                field = str(interaction_fields)
-                dummy_interactions[field] =\
-                    InteractionType(field,
-                                    {"Interaction Fields" : interaction_fields,
-                                     "Has Missing" : self.has_missing},
-                                    field_model)
+        for base_name in categoricals :
+            categoricals[base_name].append(base_name)
+
+        base_combination = set([tuple(categoricals.keys())])
+
+        categorical_combinations = itertools.product(*categoricals.values())
+        categorical_combinations = set(categorical_combinations)
+        categorical_combinations -= base_combination
+
+        non_categoricals = tuple(set(self.interaction_fields) 
+                                 - set(categoricals.keys()))
+
+        for level in categorical_combinations :
+            interaction_fields = level + non_categoricals
+            interaction_variable = InteractionType(
+                {"Interaction Fields" : interaction_fields,
+                 "Has Missing" : self.has_missing})
+            interaction_variable.expandInteractions(field_model)
+
+            dummy_interactions.append(interaction_variable)
 
         return dummy_interactions
 
-class MissingDataType(FieldType) :
+class MissingDataType(DerivedVariable) :
     sort_level = 3
 
     type = "MissingData"
 
-    def __init__(self, field) :
-        super(MissingDataType, self).__init__({})
+    def __init__(self, name) :
+        
+        self.name = "(%s: Not Missing)" %name
+        self.weight = 0
     
 
 class CustomType(FieldType) :
@@ -253,8 +296,8 @@ class CustomType(FieldType) :
                            "definition. ")
 
 
-        self.name = "%s: %s, %s", (self.field, 
-                                   self.type, 
-                                   self.comparator.__name__)
+        self.name = "(%s: %s, %s)", (self.field, 
+                                     self.type, 
+                                     self.comparator.__name__)
 
 

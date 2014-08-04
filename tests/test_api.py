@@ -25,9 +25,13 @@ class Match(unittest.TestCase) :
 
 
 class ActiveMatch(unittest.TestCase) :
+  def setUp(self) :
+    self.field_definition = [{'field' : 'name', 'type': 'String'}, 
+                             {'field' :'age', 'type': 'String'}]
+
+
   def test_initialize_fields(self) :
     self.assertRaises(TypeError, dedupe.api.ActiveMatching)
-    self.assertRaises(ValueError, dedupe.api.ActiveMatching, [])
 
     matcher = dedupe.api.ActiveMatching({},)
 
@@ -36,8 +40,7 @@ class ActiveMatch(unittest.TestCase) :
 
 
   def test_check_record(self) :
-    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
-                                          'age'  : {'type': 'String'}})
+    matcher = dedupe.api.ActiveMatching(self.field_definition)
 
     self.assertRaises(ValueError, matcher._checkRecordPairType, ())
     self.assertRaises(ValueError, matcher._checkRecordPairType, (1,2))
@@ -49,8 +52,7 @@ class ActiveMatch(unittest.TestCase) :
 
 
   def test_check_sample(self) :
-    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
-                                          'age'  : {'type': 'String'}})
+    matcher = dedupe.api.ActiveMatching(self.field_definition)
 
     self.assertRaises(ValueError, 
                       matcher._checkDataSample, (i for i in range(10)))
@@ -69,8 +71,7 @@ class ActiveMatch(unittest.TestCase) :
   def test_add_training(self) :
     training_pairs = {'distinct' : DATA_SAMPLE[0:3],
                       'match' : DATA_SAMPLE[3:5]}
-    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
-                                          'age'  : {'type': 'String'}})
+    matcher = dedupe.api.ActiveMatching(self.field_definition)
 
     matcher._addTrainingData(training_pairs)
     numpy.testing.assert_equal(matcher.training_data['label'],
@@ -104,8 +105,8 @@ class ActiveMatch(unittest.TestCase) :
                       'match' : DATA_SAMPLE[3:5]}
     bad_training_pairs = {'non_dupes' : DATA_SAMPLE[0:3],
                       'match' : DATA_SAMPLE[3:5]}
-    matcher = dedupe.api.ActiveMatching({ 'name' : {'type': 'String'}, 
-                                          'age'  : {'type': 'String'}})
+
+    matcher = dedupe.api.ActiveMatching(self.field_definition)
 
     self.assertRaises(ValueError, matcher.markPairs, bad_training_pairs)
 
@@ -135,10 +136,11 @@ class ActiveMatch(unittest.TestCase) :
 class DedupeTest(unittest.TestCase):
   def setUp(self) : 
     random.seed(123) 
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-              }
-    self.deduper = dedupe.Dedupe(fields)
+
+    field_definition = [{'field' : 'name', 'type': 'String'}, 
+                        {'field' :'age', 'type': 'String'}]
+
+    self.deduper = dedupe.Dedupe(field_definition)
 
   def test_blockPairs(self) :
     self.assertRaises(ValueError, self.deduper._blockedPairs, ((),))
@@ -185,10 +187,10 @@ class DedupeTest(unittest.TestCase):
 class LinkTest(unittest.TestCase):
   def setUp(self) : 
     random.seed(123) 
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-              }
-    self.linker = dedupe.RecordLink(fields)
+
+    field_definition = [{'field' : 'name', 'type': 'String'}, 
+                        {'field' :'age', 'type': 'String'}]
+    self.linker = dedupe.RecordLink(field_definition)
 
   def test_blockPairs(self) :
     self.assertRaises(ValueError, self.linker._blockedPairs, ((),))

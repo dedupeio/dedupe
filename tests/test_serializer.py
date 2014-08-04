@@ -29,7 +29,7 @@ class SerializerTest(unittest.TestCase) :
       assert isinstance(loaded_training_pairs["distinct"][0][0]["bar"], 
                         frozenset)
 
-      deduper = dedupe.Dedupe({'foo' : {'type' : 'String'}})
+      deduper = dedupe.Dedupe([{'field' : 'foo', 'type' : 'String'}])
 
       string.seek(0)
 

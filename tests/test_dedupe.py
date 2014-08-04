@@ -34,11 +34,11 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 
 class SourceComparatorTest(unittest.TestCase) :
   def test_comparator(self) :
-    deduper = dedupe.Dedupe({'name' : {'type' : 'Source',
-                                       'Source Names' : ['a', 'b'],
-                                       'Has Missing' : True}}, ())
+    deduper = dedupe.Dedupe([{'field' :'name', 'type' : 'Source',
+                              'Source Names' : ['a', 'b'],
+                              'Has Missing' : True}], ())
 
-    source_comparator = deduper.data_model['fields']['name'].comparator
+    source_comparator = deduper.data_model['fields'][0].comparator
     assert source_comparator('a', 'a') == 0
     assert source_comparator('b', 'b') == 1
     assert source_comparator('a', 'b') == 2
@@ -55,36 +55,43 @@ class DataModelTest(unittest.TestCase) :
     DataModel = dedupe.datamodel.DataModel
     
     self.assertRaises(TypeError, DataModel)
-    assert DataModel({}) == {'fields': OrderedDict(), 'bias': 0}
-    self.assertRaises(ValueError, DataModel, {'a' : 'String'})
-    self.assertRaises(ValueError, DataModel, {'a' : {'foo' : 'bar'}})
-    self.assertRaises(ValueError, DataModel, {'a' : {'type' : 'bar'}})
-    self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction'}})
-    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Custom'}})
-    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
+    assert DataModel({}) == {'fields': [], 'bias': 0}
 
-    self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction',
-                                                           'Interaction Fields' : ['a', 'b']}})
-    data_model = DataModel({'a' : {'type' : 'String'}, 
-                            'b' : {'type' : 'String'},
-                            'a-b' : {'type' : 'Interaction', 
-                                     'Interaction Fields' : ['a', 'b']}})
+    data_model = DataModel([{'field' : 'a', 
+                            'variable name' : 'a', 
+                            'type' : 'String'}, 
+                            {'field' : 'b', 
+                             'variable name' : 'b',
+                             'type' : 'String'},
+                            {'type' : 'Interaction', 
+                             'Interaction Fields' : ['a', 'b']}])
 
-    assert data_model['fields']['a-b'].interaction_fields  == ['a', 'b']
+    assert data_model['fields'][2].interaction_fields  == ['a', 'b']
 
-    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : True}, 
-                            'b' : {'type' : 'String'},
-                            'a-b' : {'type' : 'Interaction', 
-                                     'Interaction Fields' : ['a', 'b']}})
+    data_model = DataModel([{'field' : 'a', 
+                             'variable name' : 'a', 
+                             'type' : 'String',
+                             'Has Missing' : True}, 
+                            {'field' : 'b', 
+                             'variable name' : 'b',
+                             'type' : 'String'},
+                            {'type' : 'Interaction', 
+                             'Interaction Fields' : ['a', 'b']}])
 
-    assert data_model['fields']['a-b'].has_missing == True
+    assert data_model['fields'][2].has_missing == True
 
-    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : False}, 
-                            'b' : {'type' : 'String'},
-                            'a-b' : {'type' : 'Interaction', 
-                                     'Interaction Fields' : ['a', 'b']}})
+    data_model = DataModel([{'field' : 'a', 
+                             'variable name' : 'a', 
+                             'type' : 'String',
+                             'Has Missing' : False}, 
+                            {'field' : 'b', 
+                             'variable name' : 'b',
+                             'type' : 'String'},
+                            {'type' : 'Interaction', 
+                             'Interaction Fields' : ['a', 'b']}])
 
-    assert data_model['fields']['a-b'].has_missing == False
+
+    assert data_model['fields'][2].has_missing == False
 
 
 

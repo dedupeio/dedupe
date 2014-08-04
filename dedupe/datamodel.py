@@ -18,49 +18,57 @@ field_classes = {'String' : StringType,
                  'Text' : TextType,
                  'Categorical' : CategoricalType,
                  'Custom' : CustomType,
-                 'InteractionType' : InteractionType}
+                 'Interaction' : InteractionType}
 
 class DataModel(dict) :
     def __init__(self, fields):
 
         self['bias'] = 0
         self['fields'] = buildModel(fields)
-        self['fields'] = self.interactions(self['fields'])
-
-        self.fieldDistanceVariables()
 
         self.total_fields = len(self['fields'])
 
-    def interactions(self, field_model) :
-        return field_model
+    @property
+    def field_comparators(self) :
+        return OrderedDict([(field.field, 
+                             field.comparator)
+                            for field in self['fields']
+                            if field.comparator])
 
+    @property 
+    def missing_field_indices(self) : 
+        return [i for i, definition 
+                in enumerate(self['fields'])
+                if definition.has_missing]
 
-    def fieldDistanceVariables(self) :
+    @property
+    def interactions(self) :
+        indices = []
 
         fields = self['fields']
-
-        self.interactions = []
-        self.categorical_indices = []
-
-        self.field_comparators = OrderedDict([(field.field, 
-                                               field.comparator)
-                                              for field in fields
-                                              if field.comparator])
-
-    
-        self.missing_field_indices = [i for i, definition 
-                                      in enumerate(fields)
-                                      if definition.has_missing]
+        field_names = [field.name for field in fields]
 
         for definition in fields :
             if definition.type == 'Interaction' :
                 interaction_indices = []
                 for interaction_field in definition.interaction_fields :
-                    interaction_indices.append(fields.index(interaction_field))
-                self.interactions.append(interaction_indices)
+                    interaction_indices.append(field_names.index(interaction_field))
+                indices.append(interaction_indices)
+                
+        return indices
+
+    @property
+    def categorical_indices(self) :
+
+        indices = []
+        field_model = self['fields']
+
+        for definition in self['fields'] :
             if definition.type in ('Source', 'Categorical') :
-                self.categorical_indices.append((field_names.index(field),
-                                                 len(definition.higher_dummies)))
+                indices.append((field_model.index(definition),
+                                len(definition.dummies)))
+
+        return indices
 
 
 
@@ -86,10 +94,54 @@ def buildModel(fields) :
             raise KeyError("Field type %s not valid. Valid types include %s"
                            % (definition['type'], ', '.join(field_classes)))
 
-        field_model.add(field_class(definition))
+        field_object = field_class(definition)
+        field_model.add(field_object)
         
         if field_type in ('Categorical', 'Source') :
-            field_model.update(field_object.higher_dummies.values())
+            field_model.update(field_object.dummies)
 
+    field_model = sourceFields(field_model)
+    field_model = interactions(field_model)
+    field_model = missing(field_model)
+
+    field_model = sorted(field_model)
 
     return field_model
+
+def missing(field_model) :
+    for definition in list(field_model) :
+        if definition.has_missing :
+            field_model.add(MissingDataType(definition.name))
+
+    return field_model
+
+
+
+def interactions(field_model) :
+    field_d = dict((field.name, field) for field in field_model)
+
+    for field in list(field_model) : 
+        if field.type == 'Interaction' :
+            print field
+            field.expandInteractions(field_d)
+            field_model.update(field.dummyInteractions(field_d))
+
+    return field_model
+
+
+def sourceFields(field_model) :
+    source_fields = [field for field in field_model 
+                     if field.type == "Source"]
+
+    for source_field in source_fields :
+        for field in list(field_model) :
+            if field != source_field :
+                if (field.type != 'HigherOrderDummy' 
+                    or field.base_name != source_field.name) :
+                    interaction = InteractionType({"Interaction Fields" : 
+                                                   (source_field.name, 
+                                                    field.name)})
+                    field_model.add(interaction)
+
+    return field_model
+
