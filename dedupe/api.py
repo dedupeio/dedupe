@@ -137,7 +137,7 @@ class Matching(object):
         return clusters
 
     def _checkRecordType(self, record) :
-        for field in self.data_model.field_comparators :
+        for field, _ in self.data_model.field_comparators :
             if field not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "
@@ -151,9 +151,9 @@ class Matching(object):
         logger.info('Learned Weights')
         for (key_1, value_1) in self.data_model.items():
             try:
-                for (key_2, value_2) in value_1.items():
-                    logger.info((key_2, value_2.weight))
-            except AttributeError:
+                for field in value_1 :
+                    logger.info((field.name, field.weight))
+            except TypeError:
                 logger.info((key_1, value_1))
 
 

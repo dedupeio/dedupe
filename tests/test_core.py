@@ -130,10 +130,6 @@ class FieldDistances(unittest.TestCase):
     record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
                      {'name' : 'steven', 'source' : 'a'}),)
 
-    for k in deduper.data_model['fields'] :
-        print k
-
-
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
@@ -151,8 +147,26 @@ class FieldDistances(unittest.TestCase):
                                                            deduper.data_model),
                                             numpy.array([[0, 0.647, 1, 0.647, 0]]), 3)
 
+  def test_exact_comparator(self) :
+    fieldDistances = dedupe.core.fieldDistances      
+    deduper = dedupe.Dedupe([{'field' : 'name', 
+                              'type' : 'String'},
+                             {'field' : 'name',
+                              'type' : 'Exact'}
+                         ])
+
+    record_pairs = (({'name' : 'Shmoo'}, {'name' : 'Shmee'}),
+                    ({'name' : 'Shmoo'}, {'name' : 'Shmoo'}))
+
+    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
+                                                           deduper.data_model),
+                                            numpy.array([[ 2.5, 1.0],
+                                                         [ 0.5, 0]]),
+                                            3)
+
   def test_comparator(self) :
-    fieldDistances = dedupe.core.fieldDistances
+    fieldDistances = dedupe.core.fieldDistances      
+
     deduper = dedupe.Dedupe([{'field' : 'type', 
                               'type' : 'Categorical',
                               'Categories' : ['a', 'b', 'c']}]

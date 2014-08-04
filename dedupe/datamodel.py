@@ -18,6 +18,7 @@ field_classes = {'String' : dedupe.fieldclasses.StringType,
                  'Text' : dedupe.fieldclasses.TextType,
                  'Categorical' : dedupe.fieldclasses.CategoricalType,
                  'Custom' : dedupe.fieldclasses.CustomType,
+                 'Exact' : dedupe.fieldclasses.ExactType,
                  'Interaction' : dedupe.fieldclasses.InteractionType}
 
 class DataModel(dict) :
@@ -37,12 +38,13 @@ class DataModel(dict) :
 
         self.total_fields = len(self['fields'])
 
+
     @property
     def field_comparators(self) :
-        return OrderedDict([(field.field, 
-                             field.comparator)
-                            for field in self['fields']
-                            if field.comparator])
+        return [(field.field, field.comparator) 
+                for field 
+                in self['fields'] 
+                if field.comparator]
 
     @property 
     def missing_field_indices(self) : 

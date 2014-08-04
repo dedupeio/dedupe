@@ -50,6 +50,19 @@ class FieldType(Variable) :
 
         super(FieldType, self).__init__(definition)
 
+class ExactType(FieldType) :
+    _predicate_functions = [dedupe.predicates.wholeFieldPredicate]
+    type = "Exact"
+
+    @staticmethod
+    def comparator(field_1, field_2) :
+        if field_1 == field_2 :
+            return 0
+        else :
+            return 1
+
+
+
 
 class ShortStringType(FieldType) :
     comparator = normalizedAffineGapDistance
@@ -269,8 +282,9 @@ class MissingDataType(DerivedVariable) :
     
 class CustomType(FieldType) :
     type = "Custom"
+    _predicate_functions = []
 
-    def __init__(self, field, definition) :
+    def __init__(self, definition) :
         super(CustomType, self).__init__(definition)
 
         try :
@@ -281,6 +295,7 @@ class CustomType(FieldType) :
                            "definition. ")
 
 
-        self.name = "(%s: %s, %s)", (self.field, 
-                                     self.type, 
-                                     self.comparator.__name__)
+        self.name = "(%s: %s, %s)" % (self.field, 
+                                      self.type, 
+                                      self.comparator.__name__)
+

@@ -138,7 +138,8 @@ def derivedDistances(primary_distances, data_model) :
 
     distances[:,:current_column][missing_data] = 0
 
-    distances[:,current_column:] =\
+    if data_model.missing_field_indices :
+        distances[:,current_column:] =\
             1 - missing_data[:,data_model.missing_field_indices]
 
     return distances
@@ -148,7 +149,7 @@ def fieldDistances(record_pairs, data_model):
 
     distances = numpy.empty((num_records, data_model.total_fields))
 
-    field_comparators = data_model.field_comparators.items()
+    field_comparators = data_model.field_comparators
 
     for i, (record_1, record_2) in enumerate(record_pairs) :
         for j, (field, compare) in enumerate(field_comparators) :
