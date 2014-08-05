@@ -33,7 +33,7 @@ class Blocker:
 
         for full_predicate in predicates :
             for predicate in full_predicate :
-                if predicate.type == "TfidfPredicate" :
+                if hasattr(predicate, 'canopy') :
                     self.tfidf_fields[predicate.field].add(predicate)
 
     #@profile
@@ -460,6 +460,12 @@ class Predicate(object) :
         
     def __repr__(self) :
         return "%s: %s" % (self.type, self.__name__)
+
+    def __hash__(self) :
+        return hash(repr(self))
+
+    def __eq__(self, other) :
+        return repr(self) == repr(other)
 
 class SimplePredicate(Predicate) :
     type = "SimplePredicate"

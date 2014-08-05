@@ -104,8 +104,8 @@ def trainModel(training_data, data_model, alpha=.001):
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
-    for i, name in enumerate(data_model['fields']) :
-        data_model['fields'][name].weight = float(weight[i])
+    for i, field_definition in enumerate(data_model['fields']) :
+        field_definition.weight = float(weight[i])
 
     data_model['bias'] = bias
 
@@ -138,7 +138,8 @@ def derivedDistances(primary_distances, data_model) :
 
     distances[:,:current_column][missing_data] = 0
 
-    distances[:,current_column:] =\
+    if data_model.missing_field_indices :
+        distances[:,current_column:] =\
             1 - missing_data[:,data_model.missing_field_indices]
 
     return distances
@@ -148,7 +149,7 @@ def fieldDistances(record_pairs, data_model):
 
     distances = numpy.empty((num_records, data_model.total_fields))
 
-    field_comparators = data_model.field_comparators.items()
+    field_comparators = data_model.field_comparators
 
     for i, (record_1, record_2) in enumerate(record_pairs) :
         for j, (field, compare) in enumerate(field_comparators) :
@@ -162,7 +163,7 @@ def fieldDistances(record_pairs, data_model):
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
 
-    field_weights = [fields[name].weight for name in fields]
+    field_weights = [field.weight for field in fields]
     bias = data_model['bias']
 
     scores = numpy.dot(field_distances, field_weights)

@@ -28,7 +28,8 @@ def consoleLabel(deduper): # pragma : no cover
             labeled = False
 
             for pair in record_pair:
-                for field in deduper.data_model.field_comparators :
+                for field in set(field for field, compare 
+                                 in deduper.data_model.field_comparators) :
                     line = "%s : %s\n" % (field, pair[field])
                     sys.stderr.write(line)
                 sys.stderr.write('\n')

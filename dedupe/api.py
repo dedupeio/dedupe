@@ -137,11 +137,11 @@ class Matching(object):
         return clusters
 
     def _checkRecordType(self, record) :
-        for k in self.data_model.field_comparators :
-            if k not in record :
+        for field, _ in self.data_model.field_comparators :
+            if field not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "
-                                 "in a record" % k)
+                                 "in a record" % field)
 
 
     def _logLearnedWeights(self): # pragma: no cover
@@ -151,9 +151,9 @@ class Matching(object):
         logger.info('Learned Weights')
         for (key_1, value_1) in self.data_model.items():
             try:
-                for (key_2, value_2) in value_1.items():
-                    logger.info((key_2, value_2.weight))
-            except AttributeError:
+                for field in value_1 :
+                    logger.info((field.name, field.weight))
+            except TypeError:
                 logger.info((key_1, value_1))
 
 
@@ -516,7 +516,7 @@ class ActiveMatching(Matching) :
     """
 
     def __init__(self, 
-                 field_definition, 
+                 variable_definition, 
                  data_sample = None,
                  num_processes = 1) :
         """
@@ -525,11 +525,11 @@ class ActiveMatching(Matching) :
         #### Example usage
 
             # initialize from a defined set of fields
-            fields = {'Site name': {'type': 'String'},
-                      'Address':   {'type': 'String'},
-                      'Zip':       {'type': 'String', 'Has Missing':True},
-                      'Phone':     {'type': 'String', 'Has Missing':True},
-                      }
+            fields = [{'field' : 'Site name', 'type': 'String'},
+                      {'field' : 'Address', 'type': 'String'},
+                      {'field' : 'Zip', 'type': 'String', 'Has Missing':True},
+                      {'field' : 'Phone', 'type': 'String', 'Has Missing':True},
+                     ]
 
             data_sample = [
                            (
@@ -550,26 +550,12 @@ class ActiveMatching(Matching) :
 
         
         #### Additional detail
-        A field definition is a dictionary where the keys are the fields
-        that will be used for training a model and the values are the
-        field specification
 
-        Field types include
+        A field definition is a list of dictionaries where each dictionary
+        describes a variable to use for comparing records. 
 
-        - String
-
-        A 'String' type field must have as its key a name of a field
-        as it appears in the data dictionary and a type declaration
-        ex. `{'Phone': {type: 'String'}}`
-
-        Longer example of a field definition:
-
-
-            fields = {'name':       {'type': 'String'},
-                      'address':    {'type': 'String'},
-                      'city':       {'type': 'String'},
-                      'cuisine':    {'type': 'String'}
-                      }
+        For details about variable types, check the documentation.
+        <http://dedupe.readthedocs.org>`_ 
 
         In the data_sample, each element is a tuple of two
         records. Each record is, in turn, a tuple of the record's key and
@@ -580,11 +566,7 @@ class ActiveMatching(Matching) :
         """
         super(ActiveMatching, self).__init__()
 
-        if field_definition.__class__ is not dict :
-            raise ValueError('Incorrect Input Type: must supply '
-                             'a field definition.')
-
-        self.data_model = DataModel(field_definition)
+        self.data_model = DataModel(variable_definition)
 
         self.data_sample = data_sample
 
@@ -1031,8 +1013,9 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
 def predicateGenerator(data_model) :
-    predicates = []
-    for field, definition in data_model['fields'].items() :
-        predicates.extend(definition.predicates)
+    predicates = set([])
+    for definition in data_model['fields'] :
+        if hasattr(definition, 'predicates') :
+            predicates.update(definition.predicates)
 
     return predicates

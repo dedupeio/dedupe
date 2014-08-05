@@ -5,10 +5,10 @@ import unittest
 class BlockingTest(unittest.TestCase):
   def setUp(self):
     self.frozendict = dedupe.core.frozendict
-    fields =  { 'name' : {'type': 'String'}, 
-                'age'  : {'type': 'String'},
-              }
-    self.data_model = dedupe.Dedupe(fields).data_model
+
+    field_definition = [{'field' : 'name', 'type': 'String'}, 
+                        {'field' :'age', 'type': 'String'}]
+    self.data_model = dedupe.Dedupe(field_definition).data_model
     self.training_pairs = {
         0: [(self.frozendict({"name": "Bob", "age": "50"}),
              self.frozendict({"name": "Bob", "age": "75"})),
@@ -25,7 +25,8 @@ class BlockingTest(unittest.TestCase):
     self.training = self.training_pairs[0] + self.training_pairs[1]
 
   def test_dedupe_coverage(self) :
-    predicates = self.data_model['fields']['name'].predicates
+    predicates = self.data_model['fields'][1].predicates
+    print predicates
     coverage = dedupe.blocking.DedupeCoverage(predicates, self.training)
     assert set([str(k) for k in coverage.overlap.keys()]) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
@@ -67,7 +68,7 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
 
-    predicates = self.data_model['fields']['name'].predicates
+    predicates = self.data_model['fields'][1].predicates
     coverage = dedupe.blocking.RecordLinkCoverage(predicates, self.training)
 
     assert set([str(k) for k in coverage.overlap.keys()]) ==\
