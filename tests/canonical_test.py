@@ -23,7 +23,6 @@ logging.getLogger().setLevel(log_level)
 
 #logging.basicConfig(level=log_level)
 
-
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
 
@@ -74,6 +73,7 @@ if os.path.exists(settings_file):
         deduper = dedupe.StaticDedupe(f, 5)
 else:
     fields = [{'field' : 'name', 'type': 'String'},
+              {'field' : 'name', 'type': 'Exact'},
               {'field' : 'address', 'type': 'String'},
               {'field' : 'cuisine', 'type': 'ShortString'},
               {'field' : 'city', 'type' : 'ShortString'}

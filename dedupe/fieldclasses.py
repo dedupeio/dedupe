@@ -31,8 +31,7 @@ class Variable(object) :
             self.has_missing = False
 
 class DerivedVariable(Variable) :
-    predicates = None
-    comparator = None
+    predicates = []
 
 class FieldType(Variable) :
     sort_level = 0
@@ -123,7 +122,8 @@ class SetType(FieldType) :
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.blocking.TfidfSetPredicate(threshold, field)
+        canopy_predicates = [dedupe.blocking.TfidfSetPredicate(threshold, 
+                                                               self.field)
                              for threshold in self._canopy_thresholds]
 
         self.predicates += canopy_predicates
@@ -136,7 +136,7 @@ class SetType(FieldType) :
 
 class CategoricalType(FieldType) :
     type = "Categorical"
-    _predicate_functions = []
+    _predicate_functions = [dedupe.predicates.wholeFieldPredicate]
 
     def _categories(self, definition) :
         try :
@@ -227,7 +227,7 @@ class InteractionType(DerivedVariable) :
         atomic_interactions = []
 
         for field in interactions :
-            if field_model[field].type == "Interaction" :
+            if hasattr(field_model[field], 'interaction_fields') :
                 sub_interactions = field_model[field].interaction_fields
                 atomic_interactions.extend(self.atomicInteractions(sub_interactions,
                                                                    field_model))
@@ -243,7 +243,7 @@ class InteractionType(DerivedVariable) :
         categoricals = defaultdict(list)
 
         for field in field_model.values() :
-            if field.type == 'HigherOrderDummy' :
+            if hasattr(field, 'base_name') :
                 if field.base_name in self.interaction_fields :
                     categoricals[field.base_name].append(field.name)
 
@@ -279,6 +279,8 @@ class MissingDataType(DerivedVariable) :
         
         self.name = "(%s: Not Missing)" %name
         self.weight = 0
+
+        self.has_missing = False
     
 class CustomType(FieldType) :
     type = "Custom"
@@ -294,8 +296,10 @@ class CustomType(FieldType) :
                            "a 'comparator' function in the field "
                            "definition. ")
 
-
-        self.name = "(%s: %s, %s)" % (self.field, 
-                                      self.type, 
-                                      self.comparator.__name__)
+        if 'variable name' in definition :
+            self.name = definition['variable name'] 
+        else :
+            self.name = "(%s: %s, %s)" % (self.field, 
+                                          self.type, 
+                                          self.comparator.__name__)
 
