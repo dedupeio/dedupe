@@ -8,15 +8,13 @@ Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
 entity. 
 
-.. py:class:: Dedupe(field_definition, [data_sample=None, [num_processes]])
+.. py:class:: Dedupe(variable_definition, [data_sample=None, [num_processes]])
 
-   Initialize a Dedupe object with a :doc:`field definition <Field-definition>`
+   Initialize a Dedupe object with a :doc:`field definition <Variable-definition>`
 
-   :param dict field_definition: A field definition is a dictionary
-				 where the keys are the fields that
-				 will be used for training a model
-				 and the values are the field
-				 specifications 
+   :param dict variable_definition: A variable definition is list of 
+				    dictionaries describing the variables
+				    will be used for training a model.
    :param data_sample: is an optional argument that we discuss below
    :param int num_processes: the number of processes to use for parallel
 			     processing, defaults to 1
@@ -30,14 +28,14 @@ entity.
    .. code:: python
 
       # initialize from a defined set of fields
-      fields = {
-	        'Site name': {'type': 'String'},
-		'Address': {'type': 'String'},
-		'Zip': {'type': 'String', 'Has Missing':True},
-		'Phone': {'type': 'String', 'Has Missing':True},
-		}
+      variables = [
+	           {'field' : 'Site name', 'type': 'String'},
+		   {'field' : 'Address', 'type': 'String'},
+		   {'field' : 'Zip', 'type': 'String', 'Has Missing':True},
+		   {'field' : 'Phone', 'type': 'String', 'Has Missing':True}
+		   ]
 
-      deduper = dedupe.Dedupe(fields)
+      deduper = dedupe.Dedupe(variables)
 
       deduper.sample(your_data)
 
@@ -65,7 +63,7 @@ entity.
 	               )
 	              ]
 
-      deduper = dedupe.Dedupe(fields, data_sample)
+      deduper = dedupe.Dedupe(variables, data_sample)
       
    See `MySQL
    <http://open-city.github.com/dedupe/doc/mysql_example.html>`__ for
@@ -160,15 +158,13 @@ Example
     [({'A1' : {'name' : 'howard'}}, {'B1' : {'name' : 'howie'}})]
 
 
-.. py:class:: RecordLink(field_definition, [data_sample=None, [num_processes]])
+.. py:class:: RecordLink(variable_definition, [data_sample=None, [num_processes]])
 
-   Initialize a Dedupe object with a field definition
+   Initialize a Dedupe object with a variable definition
 
-   :param dict field_definition: A field definition is a dictionary
-				 where the keys are the fields that
-				 will be used for training a model
-				 and the values are the field
-				 specification
+   :param dict variable_definition: A variable definition is list of 
+				    dictionaries describing the variables
+				    will be used for training a model.
    :param data_sample: is an optional argument that `we'll discuss fully
 		       below <#wiki-sample-dedupe>`__
    :param int num_processes: the number of processes to use for parallel
@@ -270,7 +266,7 @@ Convenience Functions
 
    .. code:: python
 
-      > dedupe = Dedupe(fields, data_sample)
+      > dedupe = Dedupe(variables, data_sample)
       > dedupe.consoleLabel(dedupe)
 
 .. py:function:: trainingDataLink(data_1, data_2, common_key[, training_size])

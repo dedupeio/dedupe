@@ -33,7 +33,7 @@ Contents
    :maxdepth: 1
 
    API-documentation
-   Field-definition
+   Variable-definition
    OSX-Install-Notes
    How-it-works
    Bibliography
