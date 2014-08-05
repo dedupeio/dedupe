@@ -245,23 +245,29 @@ def mergeScores(score_queue, result_queue, stop_signals) :
 
     result_queue.put((file_path, scored_pairs.dtype))
 
-def scoreDuplicates(records, data_model, num_processes=1, threshold=0) :
-    record_pairs_queue = backport.SimpleQueue()
-    score_queue =  backport.SimpleQueue()
-    result_queue = backport.SimpleQueue()
+def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
+    if num_cores < 2 :
+        from multiprocessing.dummy import Process, Pool, Queue
+        SimpleQueue = Queue
+    else :
+        from backport import Process, Pool, SimpleQueue
 
-    n_map_processes = max(num_processes-1, 1)
+    record_pairs_queue = SimpleQueue()
+    score_queue =  SimpleQueue()
+    result_queue = SimpleQueue()
+
+    n_map_processes = max(num_cores-1, 1)
     score_records = ScoreRecords(data_model, threshold) 
-    map_processes = [backport.Process(target=score_records,
-                                      args=(record_pairs_queue,
-                                            score_queue))
+    map_processes = [Process(target=score_records,
+                             args=(record_pairs_queue,
+                                   score_queue))
                      for _ in xrange(n_map_processes)]
     [process.start() for process in map_processes]
 
-    reduce_process = backport.Process(target=mergeScores,
-                                      args=(score_queue,
-                                            result_queue,
-                                            n_map_processes))
+    reduce_process = Process(target=mergeScores,
+                             args=(score_queue,
+                                   result_queue,
+                                   n_map_processes))
     reduce_process.start()
 
     fillQueue(record_pairs_queue, records, n_map_processes)

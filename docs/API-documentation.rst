@@ -8,7 +8,7 @@ Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
 entity. 
 
-.. py:class:: Dedupe(variable_definition, [data_sample=None, [num_processes]])
+.. py:class:: Dedupe(variable_definition, [data_sample=None, [num_cores]])
 
    Initialize a Dedupe object with a :doc:`field definition <Variable-definition>`
 
@@ -16,8 +16,9 @@ entity.
 				    dictionaries describing the variables
 				    will be used for training a model.
    :param data_sample: is an optional argument that we discuss below
-   :param int num_processes: the number of processes to use for parallel
-			     processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
    In order to learn how to deduplicate records, dedupe needs a sample
    of records you are trying to deduplicate. If your data is not too
@@ -97,15 +98,16 @@ entity.
 Class for deduplication using saved settings. If you have already
 trained dedupe, you can load the saved settings with StaticDedupe.
 
-.. py:class:: StaticDedupe(settings_file, [num_processes])
+.. py:class:: StaticDedupe(settings_file, [num_cores])
 
    Initialize a Dedupe object with saved settings
 
    :param str settings_file: A file object containing settings info produced from
 			      the :py:meth:`Dedupe.writeSettings` of a
 			      previous, active Dedupe object.
-   :param int num_processes: the number of processes to use for parallel
-			       processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
 
    .. code:: python
@@ -158,7 +160,7 @@ Example
     [({'A1' : {'name' : 'howard'}}, {'B1' : {'name' : 'howie'}})]
 
 
-.. py:class:: RecordLink(variable_definition, [data_sample=None, [num_processes]])
+.. py:class:: RecordLink(variable_definition, [data_sample=None, [num_cores]])
 
    Initialize a Dedupe object with a variable definition
 
@@ -167,8 +169,9 @@ Example
 				    will be used for training a model.
    :param data_sample: is an optional argument that `we'll discuss fully
 		       below <#wiki-sample-dedupe>`__
-   :param int num_processes: the number of processes to use for parallel
-			     processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
 
    We assume that the fields you want to compare across datasets have the
@@ -203,15 +206,16 @@ Class for record linkage using saved settings. If you have already
 trained a record linkage instance, you can load the saved settings with
 StaticRecordLink.
 
-.. py:class:: StaticRecordLink(settings_file, [num_processes])
+.. py:class:: StaticRecordLink(settings_file, [num_cores])
 
    Initialize a Dedupe object with saved settings
 
    :param str settings_file: File object containing settings data produced from
 			      the :py:meth:`RecordLink.writeSettings` of a
 			      previous, active Dedupe object.
-   :param int num_processes: the number of processes to use for parallel
-			       processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
 
    .. code:: python

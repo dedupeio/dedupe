@@ -13,6 +13,7 @@ import itertools
 import logging
 import pickle
 import numpy
+import multiprocessing
 import random
 import warnings
 import copy
@@ -77,7 +78,7 @@ class Matching(object):
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
-                                           self.num_processes)['score']
+                                           self.num_cores)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -126,7 +127,7 @@ class Matching(object):
         
         self.matches = core.scoreDuplicates(candidate_records,
                                             self.data_model,
-                                            self.num_processes,
+                                            self.num_cores,
                                             threshold)
 
         logger.info("matching done, begin clustering")
@@ -461,7 +462,7 @@ class StaticMatching(Matching) :
 
     def __init__(self, 
                  settings_file, 
-                 num_processes=1) :
+                 num_cores=None) :
         """
         Initialize from a settings file
         #### Example usage
@@ -482,8 +483,10 @@ class StaticMatching(Matching) :
         """
         super(StaticMatching, self).__init__()
 
-
-        self.num_processes = num_processes
+        if num_cores is None :
+            self.num_cores = multiprocessing.cpu_count()
+        else :
+            self.num_cores = num_cores
 
         try:
             self.data_model = pickle.load(settings_file)
@@ -518,7 +521,7 @@ class ActiveMatching(Matching) :
     def __init__(self, 
                  variable_definition, 
                  data_sample = None,
-                 num_processes = 1) :
+                 num_cores = None) :
         """
         Initialize from a data model and data sample.
 
@@ -577,8 +580,10 @@ class ActiveMatching(Matching) :
         else :
             self.activeLearner = None
 
-        self.num_processes = num_processes
-
+        if num_cores is None :
+            self.num_cores = multiprocessing.cpu_count()
+        else :
+            self.num_cores = num_cores
 
         training_dtype = [('label', 'S8'), 
                           ('distances', 'f4', 

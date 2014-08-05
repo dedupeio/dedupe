@@ -70,7 +70,7 @@ print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
-        deduper = dedupe.StaticDedupe(f, 5)
+        deduper = dedupe.StaticDedupe(f, 1)
 else:
     fields = [{'field' : 'name', 'type': 'String'},
               {'field' : 'name', 'type': 'Exact'},
