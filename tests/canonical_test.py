@@ -79,7 +79,7 @@ else:
               {'field' : 'city', 'type' : 'ShortString'}
               ]
 
-    deduper = dedupe.Dedupe(fields, num_processes=5)
+    deduper = dedupe.Dedupe(fields, num_cores=5)
     deduper.sample(data_d, 1000000)
     deduper.markPairs(training_pairs)
     deduper.train()
