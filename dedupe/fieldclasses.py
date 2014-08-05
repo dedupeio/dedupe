@@ -30,9 +30,6 @@ class Variable(object) :
         else :
             self.has_missing = False
 
-class DerivedVariable(Variable) :
-    predicates = []
-
 class FieldType(Variable) :
     sort_level = 0
              
@@ -178,7 +175,7 @@ class SourceType(CategoricalType) :
         
         return categories
 
-class HigherDummyType(DerivedVariable) :
+class HigherDummyType(Variable) :
     sort_level = 1
     
     type = "HigherOrderDummy"
@@ -190,7 +187,7 @@ class HigherDummyType(DerivedVariable) :
 
         super(HigherDummyType, self).__init__(definition)
 
-class InteractionType(DerivedVariable) :
+class InteractionType(Variable) :
     sort_level = 2
 
     type = "Interaction"
@@ -270,7 +267,7 @@ class InteractionType(DerivedVariable) :
 
         return dummy_interactions
 
-class MissingDataType(DerivedVariable) :
+class MissingDataType(Variable) :
     sort_level = 3
 
     type = "MissingData"
