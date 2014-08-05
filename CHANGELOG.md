@@ -1,3 +1,21 @@
+## 0.6.0
+Version 0.6.0 is *not* backwards compatible.
+
+Features :
+- new Text, ShortString, and exact string types
+- multiple variables can be defined on same field
+- new Gazette linker for matching dirty records against a master list
+- performance improvements, particularly in memory usage
+- canonicalize function in dedupe.convenience for creating a canonical representation of a cluster of records
+- tons of bugfixes
+
+API breaks
+- when initializing an ActiveMatching object, `variable_definition` replaces `field_definition` and is a list of    dictionaries instead of a dictionary. See the documentation for details
+- also when initializing a Matching object, `num_processes` has been replaced by `num_cores`, which now defaults to the
+number of cpus on the machine
+- when initializing a StaticMatching object, `settings_file` is now expected to be a file object not a string. The `readTraining`, `writeTraining`, `writeSettings` methods also all now expect file objects
+
+
 ## 0.5
 Version 0.5 is *not* backwards compatible.
 
