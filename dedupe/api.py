@@ -270,25 +270,43 @@ class DedupeMatching(Matching) :
 
         blocks = OrderedDict({})
         coverage = {}
+        print len(data_d)
 
+        key_index = {}
+        indexed_data = {}
+        for i, (key, value) in enumerate(data_d.iteritems()) :
+            key_index[i] = key
+            indexed_data[i] = value
+            
         for field in self.blocker.tfidf_fields :
             self.blocker.tfIdfBlock(((record_id, record[field])
                                      for record_id, record 
-                                     in data_d.iteritems()),
+                                     in indexed_data.iteritems()),
                                     field)
 
-        for block_key, record_id in self.blocker(data_d.iteritems()) :
-            blocks.setdefault(str(block_key), []).append((record_id, 
-                                                          data_d[record_id]))
+        for block_key, record_id in self.blocker(indexed_data.iteritems()) :
+            blocks.setdefault(block_key, []).append(record_id) 
+
+        blocks = blocks.values()
+
+        blocks = [records for records in blocks if len(records) > 1]
+
+        blocks = [[(key_index[record_id], indexed_data[record_id])
+                   for record_id in records]
+                  for records in blocks]
 
         # Redundant-free Comparisons from Kolb et al, "Dedoop:
         # Efficient Deduplication with Hadoop"
         # http://dbs.uni-leipzig.de/file/Dedoop.pdf
-        for block_id, (block, records) in enumerate(blocks.iteritems()) :
+        for block_id, records in enumerate(blocks) :
             for record_id, record in records :
                 coverage.setdefault(record_id, []).append(block_id)
 
-        for block_id, (block_key, records) in enumerate(blocks.iteritems()) :
+        blocks = iter(blocks)
+
+        for block_id, records in enumerate(blocks) :
+            if block_id % 1000 == 0 :
+                logger.info("%s blocks" % block_id)
             tuple_records = []
             for record_id, record in records :
                 smaller_ids = set([covered_id for covered_id 
