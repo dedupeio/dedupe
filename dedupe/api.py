@@ -270,7 +270,6 @@ class DedupeMatching(Matching) :
 
         blocks = OrderedDict({})
         coverage = {}
-        print len(data_d)
 
         key_index = {}
         indexed_data = {}
@@ -305,7 +304,7 @@ class DedupeMatching(Matching) :
         blocks = iter(blocks)
 
         for block_id, records in enumerate(blocks) :
-            if block_id % 1000 == 0 :
+            if block_id % 10000 == 0 :
                 logger.info("%s blocks" % block_id)
             tuple_records = []
             for record_id, record in records :
