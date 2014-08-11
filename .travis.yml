@@ -35,4 +35,5 @@ deploy:
     secure: O/EwutOV8DmlYJ7dPJ2st7nGDKEaTaA/gwx7mxzFQYYlyJ7Iu87QXwEY3gPGFOGDh6eyg2qMqtKPTJnXTnltb8ROFX61WKu3F/do1cORFPDQneOAzyzL7ID+a7RaMaeUQ1gRFDo5nJuGGW8wmC8LZUjwcrtrx2zlYcEydq1CW+A=
   on:
     tags: true
+    all_branches: true
     repo: datamade/dedupe
