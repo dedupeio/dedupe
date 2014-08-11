@@ -28,7 +28,7 @@ class Variable(object) :
 
         self.weight = 0
 
-        if definition.get('Has Missing', False) :
+        if definition.get('has missing', False) :
             self.has_missing = True
         else :
             self.has_missing = False
@@ -140,9 +140,9 @@ class CategoricalType(FieldType) :
 
     def _categories(self, definition) :
         try :
-            categories = definition["Categories"]
+            categories = definition["categories"]
         except KeyError :
-            raise ValueError('No "Categories" defined')
+            raise ValueError('No "categories" defined')
         
         return categories
 
@@ -160,7 +160,7 @@ class CategoricalType(FieldType) :
             dummy_object = HigherDummyType({'combo' : combo, 
                                             'value' : value,
                                             'base name' : self.name,
-                                            'Has Missing' : self.has_missing})
+                                            'has missing' : self.has_missing})
             self.dummies.append(dummy_object)
 
 class SourceType(CategoricalType) :
@@ -168,9 +168,9 @@ class SourceType(CategoricalType) :
 
     def _categories(self, definition) :
         try :
-            categories = definition["Source Names"]
+            categories = definition["sources"]
         except KeyError :
-            raise ValueError('No "Source Names" defined')
+            raise ValueError('No "sources" defined')
 
         if len(categories) != 2 :
             raise ValueError("You must supply two and only " 
@@ -197,16 +197,7 @@ class InteractionType(Variable) :
     
     def __init__(self, definition) :
 
-        try :
-            self.interactions = definition["Interaction Fields"]
-        except KeyError : # bad error message
-            raise KeyError(""" 
-            Missing field type: field or fields
-            " "specifications are dictionaries
-            that must " "name a field or fields
-            to compre definition, ex. " "{'field:
-            'Phone', type: 'String'}}
-            """)
+        self.interactions = definition["interaction variables"]
 
         self.name = "(Interaction: %s)" % str(self.interactions)
         self.interaction_fields = self.interactions
@@ -262,8 +253,8 @@ class InteractionType(Variable) :
         for level in categorical_combinations :
             interaction_fields = level + non_categoricals
             interaction_variable = InteractionType(
-                {"Interaction Fields" : interaction_fields,
-                 "Has Missing" : self.has_missing})
+                {"interaction variables" : interaction_fields,
+                 "has missing" : self.has_missing})
             interaction_variable.expandInteractions(field_model)
 
             dummy_interactions.append(interaction_variable)

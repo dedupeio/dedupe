@@ -137,7 +137,7 @@ def sourceFields(field_model) :
             if field != source_field :
                 if (not hasattr(field, 'base_name') 
                     or field.base_name != source_field.name) :
-                    interaction = InteractionType({"Interaction Fields" : 
+                    interaction = InteractionType({"interaction variables" : 
                                                    (source_field.name, 
                                                     field.name)})
                     field_model.add(interaction)
