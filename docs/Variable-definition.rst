@@ -11,8 +11,8 @@ field specification
    variables = [
 	        {'field' : 'Site name', 'type': 'String'},
 		{'field' : 'Address', 'type': 'String'},
-		{'field' : 'Zip', 'type': 'String', 'Has Missing':True},
-		{'field' : 'Phone', 'type': 'String', 'Has Missing':True}
+		{'field' : 'Zip', 'type': 'String', 'has missing':True},
+		{'field' : 'Phone', 'type': 'String', 'has missing':True}
 		]
 
 
@@ -144,9 +144,9 @@ Interaction
 
 An interaction field multiplies the values of the multiple variables.
 An interaction variable is created with 'type' declaration of
-'Interaction' and an 'Interaction Fields' declaration.
+'Interaction' and an 'interaction variables' declaration.
 
-The 'Interaction Fields' must be a sequence of 'variable names' of
+The 'interaction variables' must be a sequence of 'variable names' of
 other fields you have defined in your variable definition.
 
 `Interactions <http://en.wikipedia.org/wiki/Interaction_%28statistics%29>`__
@@ -156,9 +156,9 @@ are good when the effect of two predictors is not simply additive.
 
     [{'field' : 'Name', 'variable name' : 'name', : 'type': 'String'},
      {'field' : 'Zip', 'variable name' : 'zip',  :'type': 'Custom', 
-                   'comparator' : sameOrNotComparator},
+      'comparator' : sameOrNotComparator},
      {'type': 'Interaction', 
-      'Interaction Fields' : ['name', 'zip']}} 
+      'interaction variables' : ['name', 'zip']}} 
 
 Exact
 ^^^^^
@@ -207,7 +207,7 @@ You would create a definition like:
 .. code:: python
 
     {'field' : 'Business Type', 'type': 'Categorical',
-    'Categories' : ['taxi', 'lawyer']}}
+    'categories' : ['taxi', 'lawyer']}}
 
 Source
 ^^^^^^
@@ -232,7 +232,7 @@ definition.
 .. code:: python
 
     {'field' : 'Source', 'type': 'Source',
-     'Categories' : ['Campaign Contributions', 'Lobbyist Registration']}}
+     'sources' : ['Campaign Contributions', 'Lobbyist Registration']}}
 
 Dedupe will create a categorical variable for the source and then
 cross-interact it with all the other variables. This has the effect of
@@ -265,13 +265,13 @@ Missing Data
 If one or both fields are missing, the field comparator should return
 ``numpy.nan.`` By default, dedupe will replace these values with zeros. 
 
-If you want to model this missing data for a field, you can set ``'Has
-Missing' : True`` in the variable definition. This creates a new,
+If you want to model this missing data for a field, you can set ``'has
+missing' : True`` in the variable definition. This creates a new,
 additional field representing whether the data was present or not and
 zeros out the missing data.
 
-If there is missing data, but you did not declare ``'Has
-Missing' : True`` then the missing data will simply be zeroed out and
+If there is missing data, but you did not declare ``'has
+missing' : True`` then the missing data will simply be zeroed out and
 no field will be created to account for missing data.
 
 This approach is called 'response augmented data' and is described in
@@ -290,7 +290,7 @@ This approach makes a few assumptions that are usually not completely true:
 
 
 If you define an an interaction with a field that you declared to have
-missing data, then ``Has Missing : True`` will also be set for the
+missing data, then ``has missing : True`` will also be set for the
 Interaction field.
 
 Longer example of a variable definition:
@@ -301,8 +301,8 @@ Longer example of a variable definition:
                  {'field' : 'address', 'type' : 'String'},
                  {'field' : 'city', 'type' : 'String'},
                  {'field' : 'zip', 'type' : 'Custom', 'comparator' : sameOrNotComparator},
-                 {field' : 'cuisine', 'type' : 'String', 'Has Missing': True}
-                 {'type' : 'Interaction', 'Interaction Fields' : ['name', 'city']}
+                 {field' : 'cuisine', 'type' : 'String', 'has missing': True}
+                 {'type' : 'Interaction', 'interaction variables' : ['name', 'city']}
                  ]
 
 Multiple Variables comparing same field

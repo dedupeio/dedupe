@@ -32,8 +32,8 @@ entity.
       variables = [
 	           {'field' : 'Site name', 'type': 'String'},
 		   {'field' : 'Address', 'type': 'String'},
-		   {'field' : 'Zip', 'type': 'String', 'Has Missing':True},
-		   {'field' : 'Phone', 'type': 'String', 'Has Missing':True}
+		   {'field' : 'Zip', 'type': 'String', 'has missing':True},
+		   {'field' : 'Phone', 'type': 'String', 'has missing':True}
 		   ]
 
       deduper = dedupe.Dedupe(variables)
