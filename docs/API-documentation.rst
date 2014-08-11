@@ -102,7 +102,7 @@ trained dedupe, you can load the saved settings with StaticDedupe.
 
    Initialize a Dedupe object with saved settings
 
-   :param str settings_file: A file object containing settings info produced from
+   :param file settings_file: A file object containing settings info produced from
 			      the :py:meth:`Dedupe.writeSettings` of a
 			      previous, active Dedupe object.
    :param int num_cores: the number of cpus to use for parallel

@@ -74,7 +74,7 @@
 
    Write json data that contains labeled examples to a file object.
 
-   :param str file_obj: File object.
+   :param file file_obj: File object.
 
    .. code:: python
 
@@ -85,7 +85,7 @@
 
    Read training from previously saved training data file object
 
-   :param str training_file: File object containing training data
+   :param file training_file: File object containing training data
 
    .. code:: python
 
@@ -97,7 +97,7 @@
    Write a settings file that contains the data model and predicates
    to a file object.
 
-   :param str file_obj: File object.
+   :param file file_obj: File object.
 
    .. code:: python
 
