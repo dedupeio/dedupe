@@ -125,7 +125,7 @@ class FieldDistances(unittest.TestCase):
     fieldDistances = dedupe.core.fieldDistances
     deduper = dedupe.Dedupe([{'field' : 'name' , 'type' :'String'},
                              {'field' : 'source', 'type' : 'Source',
-                              'Source Names' : ['a', 'b']}], [])
+                              'sources' : ['a', 'b']}], [])
 
     record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
                      {'name' : 'steven', 'source' : 'a'}),)
@@ -169,7 +169,7 @@ class FieldDistances(unittest.TestCase):
 
     deduper = dedupe.Dedupe([{'field' : 'type', 
                               'type' : 'Categorical',
-                              'Categories' : ['a', 'b', 'c']}]
+                              'categories' : ['a', 'b', 'c']}]
                              , [])
 
     record_pairs = (({'type' : 'a'},
@@ -184,9 +184,9 @@ class FieldDistances(unittest.TestCase):
                                             3)
 
     deduper = dedupe.Dedupe([{'field' : 'type', 'type' : 'Categorical',
-                                       'Categories' : ['a', 'b', 'c']},
+                                       'categories' : ['a', 'b', 'c']},
                              {'field' : 'source', 'type' : 'Source',
-                                         'Source Names' : ['foo', 'bar']}
+                                         'sources' : ['foo', 'bar']}
                              ], [])
 
     record_pairs = (({'type' : 'a',
@@ -220,11 +220,11 @@ class FieldDistances(unittest.TestCase):
                               'variable name' : 'last_name', 
                               'type' : 'String'},
                              {'type' : 'Interaction', 
-                              'Interaction Fields' : ['first_name', 
+                              'interaction variables' : ['first_name', 
                                                       'last_name']},
                              {'field' : 'source',
                               'type' : 'Source',
-                              'Source Names' : ['a', 'b']}
+                              'sources' : ['a', 'b']}
                          ], [])
 
     record_pairs = (({'first_name' : 'steve', 

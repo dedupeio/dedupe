@@ -35,8 +35,8 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 class SourceComparatorTest(unittest.TestCase) :
   def test_comparator(self) :
     deduper = dedupe.Dedupe([{'field' :'name', 'type' : 'Source',
-                              'Source Names' : ['a', 'b'],
-                              'Has Missing' : True}], ())
+                              'sources' : ['a', 'b'],
+                              'has missing' : True}], ())
 
     source_comparator = deduper.data_model['fields'][0].comparator
     assert source_comparator('a', 'a') == 0
@@ -64,31 +64,32 @@ class DataModelTest(unittest.TestCase) :
                              'variable name' : 'b',
                              'type' : 'String'},
                             {'type' : 'Interaction', 
-                             'Interaction Fields' : ['a', 'b']}])
+                             'interaction variables' : ['a', 'b']}])
 
     assert data_model['fields'][2].interaction_fields  == ['a', 'b']
 
     data_model = DataModel([{'field' : 'a', 
                              'variable name' : 'a', 
                              'type' : 'String',
-                             'Has Missing' : True}, 
+                             'has missing' : True}, 
                             {'field' : 'b', 
                              'variable name' : 'b',
                              'type' : 'String'},
                             {'type' : 'Interaction', 
-                             'Interaction Fields' : ['a', 'b']}])
+                             'interaction variables' : ['a', 'b']}])
 
+    print data_model['fields']
     assert data_model['fields'][2].has_missing == True
 
     data_model = DataModel([{'field' : 'a', 
                              'variable name' : 'a', 
                              'type' : 'String',
-                             'Has Missing' : False}, 
+                             'has missing' : False}, 
                             {'field' : 'b', 
                              'variable name' : 'b',
                              'type' : 'String'},
                             {'type' : 'Interaction', 
-                             'Interaction Fields' : ['a', 'b']}])
+                             'interaction variables' : ['a', 'b']}])
 
 
     assert data_model['fields'][2].has_missing == False
