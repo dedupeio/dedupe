@@ -999,6 +999,47 @@ class GazetteerMatching(RecordLinkMatching) :
         self._linkage_type = "GazetteerMatching"
         self.index = {}
 
+    def index(self, data) :
+
+        #for field in self.blocker.tfidf_fields :
+        #    self.blocker.tfIdfBlock(((record_id, record[field])
+        #                             for record_id, record 
+        #                             in data.iteritems()),
+        #                            field)
+
+        for record_id, record in data.iteritems() :
+            if record_id in self.indexed_data :
+                self.unindex({record_id, self.indexed_data[record_id]})
+
+            self.indexed_data[record_id] = record
+
+        for block_key, record_id in self.blocker(data.iteritems()) :
+            self.index.setdefault(block_key, set([])).add(record_id) 
+
+    def unindex(self, data) :
+
+        for record_id, record in data.iteritems() :
+            del self.indexed_data[record_id]
+        
+        for block_key, record_id in self.blocker(data.iteritems()) :
+            try : 
+                self.index[block_key].remove(record_id)
+            except KeyError :
+                pass 
+        
+    def search(self, data) :
+        if len(data) > 1 :
+            raise ValueError
+
+        record_id, record = data.items()
+        block = [(record_id, record, set([]))]
+
+        for block_key, record_id in self.blocker(data.items()) :
+            for record_id in self.index[block_key] :
+                block.append(record_id, self.indexed_data[record_id], set([]))
+
+        return self.matchBlocks([block])
+
     def match(self, data_1, data_2, threshold = 1.5, n_matches = 1) : # pragma : no cover
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
