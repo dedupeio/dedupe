@@ -101,7 +101,7 @@ class TextType(StringType) :
         super(TextType, self).__init__(definition)
 
         if 'corpus' not in definition :
-            definition['corpus'] = None 
+            definition['corpus'] = []
 
         self.comparator = dedupe.distance.CosineTextSimilarity(definition['corpus'])
 
@@ -129,7 +129,7 @@ class SetType(FieldType) :
         self.predicates += canopy_predicates
 
         if 'corpus' not in definition :
-            definition['corpus'] = None 
+            definition['corpus'] = [] 
 
         self.comparator = dedupe.distance.CosineSetSimilarity(definition['corpus'])
 
@@ -218,6 +218,12 @@ class InteractionType(Variable) :
         atomic_interactions = []
 
         for field in interactions :
+            try :
+                field_definition = field_model[field]
+            except KeyError :
+                raise KeyError("The interaction variable %s is "\
+                               "not a named variable in the variable "\
+                               "definition" % field)
             if hasattr(field_model[field], 'interaction_fields') :
                 sub_interactions = field_model[field].interaction_fields
                 atomic_interactions.extend(self.atomicInteractions(sub_interactions,

@@ -457,6 +457,8 @@ class RecordLinkMatching(Matching) :
                     coverage.setdefault(record_id, []).append(block_id)
 
         for block_id, sources in enumerate(blocks) :
+            if block_id % 10000 == 0 :
+                logger.info("%s blocks" % block_id)
             tuple_block = []
             for source in sources :
                 tuple_source = []
@@ -995,6 +997,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
         self._cluster = clustering.gazetteMatching
         self._linkage_type = "GazetteerMatching"
+        self.index = {}
 
     def match(self, data_1, data_2, threshold = 1.5, n_matches = 1) : # pragma : no cover
         """Identifies pairs of records that refer to the same entity, returns
