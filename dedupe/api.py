@@ -1009,7 +1009,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
         for record_id, record in data.iteritems() :
             if record_id in self.indexed_data :
-                self.unindex({record_id, self.indexed_data[record_id]})
+                self.unindex({record_id : self.indexed_data[record_id]})
 
             self.indexed_data[record_id] = record
 
