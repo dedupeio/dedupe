@@ -367,5 +367,5 @@ class frozendict(collections.Mapping):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(frozenset(self._d.iteritems()))
+            h = self._cached_hash = hash(tuple(self._d.viewitems()))
             return h
