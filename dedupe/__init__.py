@@ -18,4 +18,3 @@ from api import StaticRecordLink, RecordLink
 from api import StaticGazetteer, Gazetteer
 from core import randomPairs, randomPairsMatch, frozendict
 from convenience import consoleLabel, trainingDataDedupe, trainingDataLink, canonicalize
-from AsciiDammit import asciiDammit
