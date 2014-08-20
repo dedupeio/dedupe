@@ -179,6 +179,7 @@ def clusterConfidence(items, cophenetic_distances, N) :
 
 
 def greedyMatching(dupes, threshold=0.5):
+    dupes = numpy.array(dupes)
     covered_vertex_A = set([])
     covered_vertex_B = set([])
     clusters = []
@@ -196,6 +197,7 @@ def greedyMatching(dupes, threshold=0.5):
     return clusters
 
 def gazetteMatching(dupes, threshold=0.5, n=1):
+    dupes = numpy.array(dupes) 
     clusters = []
 
     sorted_dupes = sorted(dupes, key=lambda pair: (pair[0][0], -pair[1]))

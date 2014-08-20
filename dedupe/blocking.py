@@ -52,7 +52,7 @@ class Blocker:
                 for block_key in block_keys :
                     yield block_key + pred_id, record_id
             
-            if i % 10000 == 0 :
+            if i and i % 10000 == 0 :
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',
                              {'iteration' :i,
                               'elapsed' :time.time() - start_time})

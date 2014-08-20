@@ -49,14 +49,7 @@ class Matching(object):
     """
 
     def __init__(self) :
-        self.matches = None
         self.blocker = None
-
-    def __del__(self) :
-        try :
-            os.remove(self.matches.filename)
-        except :
-            pass
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):
         """
@@ -125,15 +118,21 @@ class Matching(object):
 
         candidate_records = self._blockedPairs(blocks)
         
-        self.matches = core.scoreDuplicates(candidate_records,
-                                            self.data_model,
-                                            self.num_cores,
-                                            threshold)
+        matches = core.scoreDuplicates(candidate_records,
+                                       self.data_model,
+                                       self.num_cores,
+                                       threshold)
 
-        logger.info("matching done, begin clustering")
+        logger.debug("matching done, begin clustering")
 
-        clusters = self._cluster(self.matches, 
+        clusters = self._cluster(matches, 
                                  cluster_threshold, *args, **kwargs)
+
+        try :
+            match_file = matches.filename
+            os.remove(match_file)
+        except AttributeError :
+            pass
         
         return clusters
 
@@ -997,7 +996,8 @@ class GazetteerMatching(RecordLinkMatching) :
 
         self._cluster = clustering.gazetteMatching
         self._linkage_type = "GazetteerMatching"
-        self.index = {}
+        self.blocked_records = {}
+        self.indexed_records = {}
 
     def index(self, data) :
 
@@ -1008,22 +1008,22 @@ class GazetteerMatching(RecordLinkMatching) :
         #                            field)
 
         for record_id, record in data.iteritems() :
-            if record_id in self.indexed_data :
-                self.unindex({record_id : self.indexed_data[record_id]})
+            if record_id in self.indexed_records :
+                self.unindex({record_id : self.indexed_records[record_id]})
 
-            self.indexed_data[record_id] = record
+            self.indexed_records[record_id] = record
 
         for block_key, record_id in self.blocker(data.iteritems()) :
-            self.index.setdefault(block_key, set([])).add(record_id) 
+            self.blocked_records.setdefault(block_key, set([])).add(record_id) 
 
     def unindex(self, data) :
 
         for record_id, record in data.iteritems() :
-            del self.indexed_data[record_id]
+            del self.indexed_records[record_id]
         
         for block_key, record_id in self.blocker(data.iteritems()) :
             try : 
-                self.index[block_key].remove(record_id)
+                self.blocked_records[block_key].remove(record_id)
             except KeyError :
                 pass 
         
@@ -1031,14 +1031,26 @@ class GazetteerMatching(RecordLinkMatching) :
         if len(data) > 1 :
             raise ValueError
 
-        record_id, record = data.items()
-        block = [(record_id, record, set([]))]
+        record_id, record = data.items()[0]
+        block = (((record_id, record, set([])),)
+                 , [])
 
         for block_key, record_id in self.blocker(data.items()) :
-            for record_id in self.index[block_key] :
-                block.append(record_id, self.indexed_data[record_id], set([]))
+            record_ids = self.blocked_records.get(block_key)
+            if record_ids :
+                for record_id in record_ids :
+                    block[1].append((record_id, 
+                                     self.indexed_records[record_id], 
+                                     set([])))
 
-        return self.matchBlocks([block])
+        results = self.matchBlocks([block])
+
+        if results :
+            results = results[0]
+        else :
+            results = ()
+
+        return results
 
     def match(self, data_1, data_2, threshold = 1.5, n_matches = 1) : # pragma : no cover
         """Identifies pairs of records that refer to the same entity, returns
