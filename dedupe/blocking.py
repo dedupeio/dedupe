@@ -75,13 +75,14 @@ class DedupeBlocker(Blocker) :
         '''Creates TF/IDF canopy of a given set of data'''
 
         splitter = Splitter()
-
         stop_word_remover = CustomStopWordRemover(self.stop_words[field])
-
+        operator_escaper = OperatorEscaper()
 
         indices = {}
         for predicate in self.tfidf_fields[field] :
-            indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
+            indices[predicate] = TextIndex(Lexicon(splitter, 
+                                                   stop_word_remover,
+                                                   operator_escaper))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
             pipeline = indices[predicate].lexicon._pipeline
             stringify = predicate.stringify
@@ -117,12 +118,14 @@ class RecordLinkBlocker(Blocker) :
         '''Creates TF/IDF canopy of a given set of data'''
 
         splitter = Splitter()
-
         stop_word_remover = CustomStopWordRemover(self.stop_words[field])
+        operator_escaper = OperatorEscaper()
 
         indices = {}
         for predicate in self.tfidf_fields[field] :
-            indices[predicate] = TextIndex(Lexicon(splitter, stop_word_remover))
+            indices[predicate] = TextIndex(Lexicon(splitter, 
+                                                   stop_word_remover,
+                                                   operator_escaper))
             indices[predicate].index = CosineIndex(indices[predicate].lexicon)
             pipeline = indices[predicate].lexicon._pipeline
             stringify = predicate.stringify
@@ -541,3 +544,16 @@ class CustomStopWordRemover(object):
     def process(self, lst):
         return [w for w in lst if not w in self.stop_words]
 
+
+class OperatorEscaper(object) :
+    def __init__(self) :
+        self. operators = {"AND"  : "\AND",
+                           "OR"   : "\OR",
+                           "NOT"  : "\NOT",
+                           "("    : "\(",
+                           ")"    : "\)",
+                           "ATOM" : "\ATOM",
+                           "EOF"  : "\EOF"}
+
+    def process(self, lst):
+        return [self.operators.get(w, w) for w in lst]
