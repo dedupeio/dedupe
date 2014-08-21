@@ -751,10 +751,11 @@ class ActiveMatching(Matching) :
 
     def uncertainPairs(self) :
         '''
-        Provides a list of the pairs of records that dedupe is most curious to learn 
-        if they are matches or distinct.
+        Provides a list of the pairs of records that dedupe is most
+        curious to learn if they are matches or distinct.
         
         Useful for user labeling.
+
         '''
         
         
@@ -989,6 +990,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         return data_sample
 
+
 class GazetteerMatching(RecordLinkMatching) :
     
     def __init__(self, *args, **kwargs) :
@@ -1031,25 +1033,33 @@ class GazetteerMatching(RecordLinkMatching) :
         if len(data) > 1 :
             raise ValueError
 
+        old_cores = self.num_cores
+        self.num_cores = 1
+
         record_id, record = data.items()[0]
         block = (((record_id, record, set([])),)
                  , [])
 
+        target_ids = set([])
         for block_key, record_id in self.blocker(data.items()) :
             record_ids = self.blocked_records.get(block_key)
             if record_ids :
-                for record_id in record_ids :
-                    block[1].append((record_id, 
-                                     self.indexed_records[record_id], 
-                                     set([])))
+                target_ids.update(record_ids)
+
+        for record_id in target_ids :
+            block[1].append((record_id, 
+                             self.indexed_records[record_id], 
+                             set([])))
 
         results = self.matchBlocks([block])
-
+        
         if results :
             results = results[0]
         else :
             results = ()
 
+        self.num_cores = old_cores
+       
         return results
 
     def match(self, data_1, data_2, threshold = 1.5, n_matches = 1) : # pragma : no cover
