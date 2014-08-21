@@ -7,6 +7,7 @@ import numpy
 import collections
 import time
 import tempfile
+import os
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -238,6 +239,8 @@ def mergeScores(score_queue, result_queue, stop_signals) :
         scored_pairs = scored_pairs.astype(write_dtype)
 
         scored_pairs_file, file_path = tempfile.mkstemp()
+        
+        os.close(scored_pairs_file)
 
         fp = numpy.memmap(file_path, 
                           dtype=scored_pairs.dtype, 
@@ -254,7 +257,7 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
         from multiprocessing.dummy import Process, Pool, Queue
         SimpleQueue = Queue
     else :
-        from backport import Process, Pool, SimpleQueue, Queue
+        from backport import Process, Pool, SimpleQueue
 
     record_pairs_queue = SimpleQueue()
     score_queue =  SimpleQueue()
