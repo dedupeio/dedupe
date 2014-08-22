@@ -222,6 +222,4 @@ def gazetteMatching(dupes, threshold=0.5, n=1):
 
         clusters.append(tuple(matches))
 
-    print clusters
-
     return clusters
