@@ -244,26 +244,25 @@ class DedupeMatching(Matching) :
         return itertools.chain.from_iterable(pairs) 
 
     def _checkBlock(self, block) :
-        if not block :
-            raise ValueError("You have not provided any data blocks")
-        try :
-            if len(block[0]) < 3 :
+        if block :
+            try :
+                if len(block[0]) < 3 :
+                    raise ValueError("Each item in a block must be a "
+                                     "sequence of record_id, record, and smaller ids "
+                                     "and the records also must be dictionaries")
+            except :
                 raise ValueError("Each item in a block must be a "
                                  "sequence of record_id, record, and smaller ids "
                                  "and the records also must be dictionaries")
-        except :
-            raise ValueError("sandwich Each item in a block must be a "
-                             "sequence of record_id, record, and smaller ids "
-                             "and the records also must be dictionaries")
-        try :
-            block[0][1].items()
-            block[0][2].isdisjoint([])
-        except :
-            raise ValueError("The record must be a dictionary and "
-                             "smaller_ids must be a set")
+            try :
+                block[0][1].items()
+                block[0][2].isdisjoint([])
+            except :
+                raise ValueError("The record must be a dictionary and "
+                                 "smaller_ids must be a set")
 
         
-        self._checkRecordType(block[0][1])
+            self._checkRecordType(block[0][1])
 
     def _blockData(self, data_d):
 
@@ -407,28 +406,28 @@ class RecordLinkMatching(Matching) :
         return itertools.chain.from_iterable(pairs) 
         
     def _checkBlock(self, block) :
-        try :
-            base, target = block
-        except :
-            raise ValueError("Each block must be a made up of two "
-                             "sequences, (base_sequence, target_sequence)")
+        if block :
+            try :
+                base, target = block
+            except :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
 
-        if base :
-            if len(base[0]) < 3 :
-                raise ValueError("Each block must be a made up of two "
-                                 "sequences, (base_sequence, target_sequence)")
-            self._checkRecordType(base[0][1])
-        if target :
-            if len(target[0]) < 3 :
-                raise ValueError("Each block must be a made up of two "
-                                 "sequences, (base_sequence, target_sequence)")
+            if base :
+                if len(base[0]) < 3 :
+                    raise ValueError("Each block must be a made up of two "
+                                     "sequences, (base_sequence, target_sequence)")
+                self._checkRecordType(base[0][1])
+            if target :
+                if len(target[0]) < 3 :
+                    raise ValueError("Each block must be a made up of two "
+                                     "sequences, (base_sequence, target_sequence)")
                 
-            self._checkRecordType(target[0][1])
+                self._checkRecordType(target[0][1])
 
     def _blockData(self, data_1, data_2) :
 
         blocks = OrderedDict({})
-        coverage = {}
 
         for field in self.blocker.tfidf_fields :
             fields_1 = ((record_id, record[field])
@@ -442,26 +441,31 @@ class RecordLinkMatching(Matching) :
 
 
         for block_key, record_id in self.blocker(data_2.items()) :
-            blocks.setdefault(block_key, ([], []))[1].append((record_id, 
-                                                              data_2[record_id]))
+            blocks.setdefault(block_key, ({}, {}))[1].update({record_id : 
+                                                              data_2[record_id]})
         for block_key, record_id in self.blocker(data_1.items()) :
             if block_key in blocks :
-                blocks[block_key][0].append((record_id, data_1[record_id]))
+                blocks[block_key][0].update({record_id : data_1[record_id]})
 
         blocks = blocks.values()
 
+        return self._compoundBlocks(blocks)
+    
+    def _compoundBlocks(self, blocks) :
+        coverage = {}
+
         for block_id, sources in enumerate(blocks) :
             for source in sources :
-                for record_id, record in source :
+                for record_id, record in source.iteritems() :
                     coverage.setdefault(record_id, []).append(block_id)
 
         for block_id, sources in enumerate(blocks) :
-            if block_id % 10000 == 0 :
+            if block_id and block_id % 10000 == 0 :
                 logger.info("%s blocks" % block_id)
             tuple_block = []
             for source in sources :
                 tuple_source = []
-                for record_id, record in source :
+                for record_id, record in source.iteritems() :
                     smaller_ids = set([covered_id for covered_id 
                                        in coverage[record_id] 
                                        if covered_id < block_id])
@@ -469,6 +473,7 @@ class RecordLinkMatching(Matching) :
                 tuple_block.append(tuple_source)
 
             yield tuple_block
+
 
 class StaticMatching(Matching) :
     """
@@ -998,8 +1003,21 @@ class GazetteerMatching(RecordLinkMatching) :
 
         self._cluster = clustering.gazetteMatching
         self._linkage_type = "GazetteerMatching"
-        self.blocked_records = {}
+        self.blocked_records = OrderedDict({})
         self.indexed_records = {}
+
+    def _blockData(self, messy_data) :
+
+        blocks = {} 
+
+        for block_key, record_id in self.blocker(messy_data.items()) :
+            if block_key in self.blocked_records :
+                blocks.setdefault(block_key, self.blocked_records[block_key])[0].update({record_id : messy_data[record_id]})
+
+        blocks = blocks.values()
+
+        return self._compoundBlocks(blocks)
+
 
     def index(self, data) :
 
@@ -1015,8 +1033,8 @@ class GazetteerMatching(RecordLinkMatching) :
 
             self.indexed_records[record_id] = record
 
-        for block_key, record_id in self.blocker(data.iteritems()) :
-            self.blocked_records.setdefault(block_key, set([])).add(record_id) 
+        for block_key, record_id in self.blocker(data.items()) :
+            self.blocked_records.setdefault(block_key, ({}, {}))[1].update({record_id : data[record_id]})
 
     def unindex(self, data) :
 
@@ -1025,7 +1043,7 @@ class GazetteerMatching(RecordLinkMatching) :
         
         for block_key, record_id in self.blocker(data.iteritems()) :
             try : 
-                self.blocked_records[block_key].remove(record_id)
+                del self.blocked_records[block_key][1][record_id]
             except KeyError :
                 pass 
         
@@ -1036,22 +1054,7 @@ class GazetteerMatching(RecordLinkMatching) :
         old_cores = self.num_cores
         self.num_cores = 1
 
-        record_id, record = data.items()[0]
-        block = (((record_id, record, set([])),)
-                 , [])
-
-        target_ids = set([])
-        for block_key, record_id in self.blocker(data.items()) :
-            record_ids = self.blocked_records.get(block_key)
-            if record_ids :
-                target_ids.update(record_ids)
-
-        for record_id in target_ids :
-            block[1].append((record_id, 
-                             self.indexed_records[record_id], 
-                             set([])))
-
-        results = self.matchBlocks([block])
+        results = self.match(data, 0)
         
         if results :
             results = results[0]
@@ -1062,7 +1065,7 @@ class GazetteerMatching(RecordLinkMatching) :
        
         return results
 
-    def match(self, data_1, data_2, threshold = 1.5, n_matches = 1) : # pragma : no cover
+    def match(self, messy_data, threshold = 0.5, n_matches = 1) : # pragma : no cover
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
         between 0 and 1. The record_ids within each set should refer to the 
@@ -1090,8 +1093,7 @@ class GazetteerMatching(RecordLinkMatching) :
         n_matches -- Maximum number of possible matches from data_2
                      for each record in data_1
         """
-        self._cluster = clustering.gazetteMatching
-        blocked_pairs = self._blockData(data_1, data_2)
+        blocked_pairs = self._blockData(messy_data)
         return self.matchBlocks(blocked_pairs, threshold, n_matches)
 
 class Gazetteer(RecordLink, GazetteerMatching):
