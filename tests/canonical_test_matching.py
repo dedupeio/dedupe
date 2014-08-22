@@ -72,11 +72,11 @@ if os.path.exists(settings_file):
     with open(settings_file) as f :
         deduper = dedupe.StaticRecordLink(f)
 else:
-    fields = {'name': {'type': 'String'},
-              'address': {'type': 'String'},
-              'cuisine': {'type': 'String'},
-              'city' : {'type' : 'String'}
-              }
+    fields = [{'field': 'name', 'type': 'String'},
+              {'field': 'address', 'type': 'String'},
+              {'field': 'cuisine', 'type': 'String'},
+              {'field': 'city','type' : 'String'}
+              ]
 
     deduper = dedupe.RecordLink(fields)
     deduper.sample(data_1, data_2, 100000) 

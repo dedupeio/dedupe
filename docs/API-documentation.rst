@@ -44,7 +44,7 @@ entity.
    of the data yourself and pass it to Dedupe.
 
    ``data_sample`` should be a sequence of tuples, where each tuple
-   contains a pair of records, and each record is a dictionary-like
+   contains a pair of records, and each record is a :py:class:`frozendict`
    object that contains the field names you declared in
    field\_definitions as keys.
 
@@ -53,14 +53,14 @@ entity.
    .. code:: python
 
       data_sample = [(
-                      (854, {'city': 'san francisco',
-	                     'address': '300 de haro st.',
-		             'name': "sally's cafe & bakery",
-		             'cuisine': 'american'}),
-	               (855, {'city': 'san francisco',
-	                      'address': '1328 18th st.',
-                              'name': 'san francisco bbq',
-                              'cuisine': 'thai'})
+                      (dedupe.frozendict({'city': 'san francisco',
+	                                  'address': '300 de haro st.',
+		                          'name': "sally's cafe & bakery",
+		                          'cuisine': 'american'}),
+	               dedupe.frozendict({'city': 'san francisco',
+	                                  'address': '1328 18th st.',
+                                          'name': 'san francisco bbq',
+                                          'cuisine': 'thai'})
 	               )
 	              ]
 
@@ -311,7 +311,7 @@ Convenience Functions
 
    **Warning**
 
-   Every match must be identified by the sharing of a common key. his
+   Every match must be identified by the sharing of a common key. This
    function assumes that if two records do not share a common key then
    they are distinct records.
 
@@ -325,4 +325,81 @@ Convenience Functions
 
    .. code:: python
 
+.. py:function:: randomPairs(n_records, sample_size)
+
+   If you have N records there are :math:`\frac{N(N-1)}{2}` unique
+   pairs of records (where each record is different and order doesn't
+   matter). If we indexed the N records from 0 to N-1, we would have
+   :math:`\frac{N(N-1)}{2}` corresponding pairs of indices ::
+   
+      (0, 1)
+      (0, 2)
+      ...
+      (0, N-2)
+      (0, N-1)
+      (1, 2)
+      (1, 3)
+      ...
+      (N-3, N-2)
+      (N-3, N-1)
+      (N-2, N-1)
+
+   randomPairs returns a random sample from the set of unique pairs of
+   indices. The function attempts to draw the sample without
+   replacement, but may draw a sample with replacement. If that
+   happens, you will be warned.
+
+   This can be useful when you need to create a sample of pairs from
+   your data, but you don't want to pass all of your data into
+   :py:meth:`~Dedupe.sample` because, for instance, all your data is
+   too big to fit into memory.
+
+   :param int n_record: the number of records in your record set
+
+   :param int sample_size: the size of sample you desire
       
+.. py:function:: randomPairsMatch(n_records_a, n_records_b, sample_size)
+
+   If you have two record sets of length N and M, there are :math:`NM`
+   unique pairs of records (where each record is from a different
+   record set and order doesn't matter). If we indexed the N records
+   from 0 to N-1, we would have :math:`NM` corresponding pairs of
+   indices ::
+
+       (0, 0)
+       (0, 1)
+       ...
+       (0, M-1)
+       (1, 0)
+       (1, 1)
+       ...
+       (N-1, 0)
+       (N-1, 1)
+       ...
+       (N-1, M-1)
+ 
+   randomPairs returns a random sample from the set of unique pairs of
+   indices. The function attempts to draw the sample without
+   replacement, but may draw a sample with replacement. If that
+   happens, you will be warned.
+
+   This can be useful when you need to create a sample of pairs from
+   your data, but you don't want to pass all of your data into
+   :py:meth:`~Dedupe.sample` because, for instance, all your data is
+   too big to fit into memory.
+
+   :param int n_record_a: the number of records in your first record set
+
+   :param int n_record_b: the number of records in your second record set
+
+   :param int sample_size: the size of sample you desire
+
+.. py:class:: frozendict(d)
+  
+   Initialize a frozendict object. `frozendicts` are like normal
+   python dictionaries except 1. you can't change them and 2. you can
+   hash them. We depend on the hashing in a few places when we are
+   training Dedupe. 
+
+   :param dict d: a dictionary, typically a dictionary representing
+                  your record
