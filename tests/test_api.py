@@ -149,14 +149,6 @@ class DedupeTest(unittest.TestCase):
                                                     {'name' : 'Frank',
                                                      'age' : 72}, 
                                                     set([]))],)))
-    print list(self.deduper._blockedPairs(([('1', 
-                                              {'name' : 'Frank',
-                                               'age' : 72},
-                                              set([])),
-                                             ('2',
-                                              {'name' : 'Bob',
-                                               'age' : 27},
-                                              set([]))],)))
     assert list(self.deduper._blockedPairs(([('1', 
                                               {'name' : 'Frank',
                                                'age' : 72},
