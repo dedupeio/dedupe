@@ -1004,7 +1004,6 @@ class GazetteerMatching(RecordLinkMatching) :
         self._cluster = clustering.gazetteMatching
         self._linkage_type = "GazetteerMatching"
         self.blocked_records = OrderedDict({})
-        self.indexed_records = {}
 
     def _blockData(self, messy_data) :
 
@@ -1012,7 +1011,9 @@ class GazetteerMatching(RecordLinkMatching) :
 
         for block_key, record_id in self.blocker(messy_data.items()) :
             if block_key in self.blocked_records :
-                blocks.setdefault(block_key, self.blocked_records[block_key])[0].update({record_id : messy_data[record_id]})
+                if block_key not in blocks :
+                    blocks[block_key] = ({}, self.blocked_records[block_key])
+                blocks[block_key][0][record_id] = messy_data[record_id]
 
         blocks = blocks.values()
 
@@ -1027,23 +1028,16 @@ class GazetteerMatching(RecordLinkMatching) :
         #                             in data.iteritems()),
         #                            field)
 
-        for record_id, record in data.iteritems() :
-            if record_id in self.indexed_records :
-                self.unindex({record_id : self.indexed_records[record_id]})
-
-            self.indexed_records[record_id] = record
-
         for block_key, record_id in self.blocker(data.items()) :
-            self.blocked_records.setdefault(block_key, ({}, {}))[1].update({record_id : data[record_id]})
+            if block_key not in self.blocked_records :
+                self.blocked_records[block_key] = {}
+            self.blocked_records[block_key][record_id] = data[record_id]
 
     def unindex(self, data) :
 
-        for record_id, record in data.iteritems() :
-            del self.indexed_records[record_id]
-        
         for block_key, record_id in self.blocker(data.iteritems()) :
             try : 
-                del self.blocked_records[block_key][1][record_id]
+                del self.blocked_records[block_key][record_id]
             except KeyError :
                 pass 
         
