@@ -80,7 +80,7 @@ class DataModelTest(unittest.TestCase) :
                             {'type' : 'Interaction', 
                              'interaction variables' : ['a', 'b']}])
 
-    print data_model['fields']
+    #print data_model['fields']
     assert data_model['fields'][2].has_missing == True
 
     data_model = DataModel([{'field' : 'a', 

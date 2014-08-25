@@ -16,7 +16,7 @@ cdef double NAN = <double> np.nan
 # "The field matching problem: Algorithms and applications" 
 # http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
 
-cpdef float affineGapDistance(char *string1, char *string2,
+cpdef float affineGapDistance(basestring string1, basestring string2,
                               float matchWeight = 1,
                               float mismatchWeight = 11,
                               float gapWeight = 10,
@@ -43,13 +43,13 @@ cpdef float affineGapDistance(char *string1, char *string2,
       string1, string2 = string2, string1
       length1, length2 = length2, length1
 
-  # Initialize C Arrays      
+  # Initialize C Arrays
   cdef int memory_size = sizeof(float) * (length1+1)
   cdef float *D = <float*> malloc(memory_size)
   cdef float *V_current = <float*> malloc(memory_size)
   cdef float *V_previous = <float*> malloc(memory_size)
 
-  cdef char char1, char2
+  cdef basestring char1, char2
   cdef int i, j
   cdef float distance
 
@@ -121,7 +121,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
 
   return distance
 
-cpdef float normalizedAffineGapDistance(char *string1, char *string2,
+cpdef float normalizedAffineGapDistance(basestring string1, basestring string2,
                                         float matchWeight = 1,
                                         float mismatchWeight = 11,
                                         float gapWeight = 10,
