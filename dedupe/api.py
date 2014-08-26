@@ -281,8 +281,12 @@ class DedupeMatching(Matching) :
                                      in indexed_data.iteritems()),
                                     field)
 
+
         for block_key, record_id in self.blocker(indexed_data.iteritems()) :
             blocks.setdefault(block_key, []).append(record_id) 
+
+
+        self.blocker._resetCanopies()
 
         blocks = blocks.values()
 
@@ -372,11 +376,12 @@ class RecordLinkMatching(Matching) :
         data. 
 
         Arguments:
-        data_1        --  Dictionary of records from first dataset, where the keys 
-                          are record_ids and the values are dictionaries with the keys 
-                          being field names
+        data_1        --  Dictionary of records from first dataset, where the 
+                          keys are record_ids and the values are dictionaries 
+                          with the keys being field names
 
-        data_2        --  Dictionary of records from second dataset, same form as data_1
+        data_2        --  Dictionary of records from second dataset, same form 
+                          as data_1
 
         recall_weight -- Sets the tradeoff between precision and
                          recall. I.e. if you care twice as much about
@@ -430,14 +435,11 @@ class RecordLinkMatching(Matching) :
         blocks = OrderedDict({})
 
         for field in self.blocker.tfidf_fields :
-            fields_1 = ((record_id, record[field])
-                        for record_id, record 
-                        in data_1.iteritems())
             fields_2 = ((record_id, record[field])
                         for record_id, record 
                         in data_2.iteritems())
 
-            self.blocker.tfIdfBlock(fields_1, fields_2, field)
+            self.blocker.tfIdfIndex(fields_2, field)
 
 
         for block_key, record_id in self.blocker(data_2.items()) :
@@ -446,6 +448,8 @@ class RecordLinkMatching(Matching) :
         for block_key, record_id in self.blocker(data_1.items()) :
             if block_key in blocks :
                 blocks[block_key][0].update({record_id : data_1[record_id]})
+
+        self.blocker._resetCanopies()
 
         blocks = blocks.values()
 
@@ -717,7 +721,7 @@ class ActiveMatching(Matching) :
         predicate_set = predicateGenerator(self.data_model)
 
         (self.predicates, 
-         self.stop_words) = dedupe.blocking.blockTraining(training_pairs,
+         self.stop_words) = dedupe.training.blockTraining(training_pairs,
                                                           predicate_set,
                                                           ppc,
                                                           uncovered_dupes,
@@ -1022,11 +1026,11 @@ class GazetteerMatching(RecordLinkMatching) :
 
     def index(self, data) :
 
-        #for field in self.blocker.tfidf_fields :
-        #    self.blocker.tfIdfBlock(((record_id, record[field])
-        #                             for record_id, record 
-        #                             in data.iteritems()),
-        #                            field)
+        for field in self.blocker.tfidf_fields :
+            self.blocker.tfIdfIndex(((record_id, record[field])
+                                     for record_id, record 
+                                     in data.iteritems()),
+                                    field)
 
         for block_key, record_id in self.blocker(data.items()) :
             if block_key not in self.blocked_records :

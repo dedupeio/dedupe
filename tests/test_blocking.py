@@ -10,23 +10,28 @@ class BlockingTest(unittest.TestCase):
                         {'field' :'age', 'type': 'String'}]
     self.data_model = dedupe.Dedupe(field_definition).data_model
     self.training_pairs = {
-        0: [(self.frozendict({"name": "Bob", "age": "50"}),
-             self.frozendict({"name": "Bob", "age": "75"})),
-            (self.frozendict({"name": "Meredith", "age": "40"}),
-             self.frozendict({"name": "Sue", "age": "10"}))], 
-        1: [(self.frozendict({"name": "Jimmy", "age": "20"}),
-             self.frozendict({"name": "Jimbo", "age": "21"})),
-            (self.frozendict({"name": "Willy", "age": "35"}),
-             self.frozendict({"name": "William", "age": "35"})),
-            (self.frozendict({"name": "William", "age": "36"}),
-             self.frozendict({"name": "William", "age": "35"}))]
+        0: [((1, self.frozendict({"name": "Bob", "age": "50"})),
+             (2, self.frozendict({"name": "Bob", "age": "75"}))),
+            ((3, self.frozendict({"name": "Meredith", "age": "40"})),
+             (4, self.frozendict({"name": "Sue", "age": "10"})))], 
+        1: [((5, self.frozendict({"name": "Jimmy", "age": "20"})),
+             (6, self.frozendict({"name": "Jimbo", "age": "21"}))),
+            ((7, self.frozendict({"name": "Willy", "age": "35"})),
+             (8, self.frozendict({"name": "William", "age": "35"}))),
+            ((9, self.frozendict({"name": "William", "age": "36"})),
+             (8, self.frozendict({"name": "William", "age": "35"})))]
       }
 
     self.training = self.training_pairs[0] + self.training_pairs[1]
+    self.distinct_ids = [tuple(sorted([pair[0][0], pair[1][0]]))
+                         for pair in
+                         self.training_pairs[0]]
+    self.dupe_ids = [tuple(sorted([pair[0][0], pair[1][0]]))
+                     for pair in
+                     self.training_pairs[1]]
 
   def test_dedupe_coverage(self) :
     predicates = self.data_model['fields'][1].predicates
-    print predicates
     coverage = dedupe.blocking.DedupeCoverage(predicates, self.training)
     assert set([str(k) for k in coverage.overlap.keys()]) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
@@ -42,7 +47,7 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
 
-    overlap = coverage.predicateCoverage(predicates, self.training_pairs[0])
+    overlap = coverage.predicateCoverage(predicates, self.distinct_ids)
     assert set(str(k) for k in overlap.keys()) ==\
           set(["TfidfPredicate: (0.4, name)", 
                "TfidfPredicate: (0.6, name)", 
@@ -53,7 +58,8 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (firstTokenPredicate, name)", 
                "TfidfPredicate: (0.2, name)"])
 
-    overlap = coverage.predicateCoverage(predicates, self.training_pairs[1])
+    overlap = coverage.predicateCoverage(predicates, self.dupe_ids)
+
     assert set(str(k) for k in overlap.keys()) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
@@ -69,8 +75,9 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
 
     predicates = self.data_model['fields'][1].predicates
-    coverage = dedupe.blocking.RecordLinkCoverage(predicates, self.training)
 
+    coverage = dedupe.blocking.RecordLinkCoverage(predicates, self.training)
+    print coverage.overlap.keys()
     assert set([str(k) for k in coverage.overlap.keys()]) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
@@ -138,20 +145,17 @@ class TfidfTest(unittest.TestCase):
                     in self.data_d.iteritems()
                     if record["dataset"] == 1)
 
-    blocker.tfIdfBlock(fields_1.items(), fields_2.items(), "name")
+    blocker.tfIdfIndex(fields_2.items(), "name")
 
     canopy = list(blocker.tfidf_fields['name'])[0].canopy
-
-    assert set(canopy.values()) <= set(fields_1.keys())
-
-    assert canopy == {135: 130, 130: 130}
 
     blocks = defaultdict(set)
     
     for block_key, record_id in blocker(self.data_d.items()) :
       blocks[block_key].add(record_id)
 
-    assert sorted(blocks.values()) == [set((130, 135))]
+    assert sorted(each for each in blocks.values() if len(each) >1) ==\
+      [set((130, 135))]
 
     
 

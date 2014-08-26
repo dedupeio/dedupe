@@ -3,6 +3,7 @@
 
 import re
 import math
+import itertools
 
 from dedupe.cpredicates import ngrams, initials
 
@@ -10,6 +11,105 @@ words = re.compile("[\w']+").findall
 integers = re.compile("\d+").findall
 start_word = re.compile("^[\w']+").findall
 start_integer = re.compile("^\d+").findall
+
+class Predicate(object) :
+    def __iter__(self) :
+        yield self
+        
+    def __repr__(self) :
+        return "%s: %s" % (self.type, self.__name__)
+
+    def __hash__(self) :
+        return hash(repr(self))
+
+    def __eq__(self, other) :
+        return repr(self) == repr(other)
+
+class SimplePredicate(Predicate) :
+    type = "SimplePredicate"
+
+    def __init__(self, func, field) :
+        self.func = func
+        self.__name__ = "(%s, %s)" % (func.__name__, field)
+        self.field = field
+
+    def __call__(self, record_id, record) :
+        column = record[self.field]
+        return [(block_key.decode('utf8'), record_id) 
+                for block_key in self.func(column)]
+
+
+class TfidfPredicate(Predicate):
+    type = "TfidfPredicate"
+
+    def __init__(self, threshold, field):
+        self.__name__ = '(%s, %s)' % (threshold, field)
+        self.field = field
+        self.canopy = {}
+        self.threshold = threshold
+        self.index = None
+        self.index_to_id = None
+
+    def __call__(self, record_id, record) :
+        center = self.canopy.get(record_id)
+
+        if self.index :
+            if center is not None :
+                blocks = ()
+            else :
+                record_field = self.stringify(record[self.field])
+                query_list = self.index.lexicon.parseTerms(record_field)
+                query = ' OR '.join(query_list)
+                candidates = self.index.apply(query).byValue(self.threshold)
+                blocks = tuple([(unicode(record_id), self.index_to_id[k])
+                                for  _, k in candidates])
+                blocks += ((unicode(record_id), record_id),)
+
+        elif center is not None :
+            blocks = ((unicode(center), record_id),)
+        else:
+            blocks = ()
+
+        return blocks
+
+
+    def stringify(self, doc) :
+        return doc
+
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result['canopy'] = {}
+        return result
+
+class TfidfSetPredicate(TfidfPredicate) :
+    type = "TfidfPredicate"
+
+    def stringify(self, doc) :
+        return ' '.join('_'.join(str(each).split()) for each in doc)
+
+
+class CompoundPredicate(Predicate) :
+    type = "CompoundPredicate"
+
+    def __init__(self, predicates) :
+        self.predicates = predicates
+        self.__name__ = '(%s)' % ', '.join([str(pred)
+                                            for pred in 
+                                            predicates])
+
+    def __iter__(self) :
+        for pred in self.predicates :
+            yield pred
+
+    def _keygen(self, record_id, record) :
+        for predicate in self.predicates :
+            yield [block_key for block_key, record_id in predicate(record_id, record)]
+
+    def __call__(self, record_id, record) :
+        predicate_keys = self._keygen(record_id, record)
+        return [(u':'.join(block_key), record_id)
+                for block_key
+                in itertools.product(*predicate_keys)]
 
 
 def wholeFieldPredicate(field):

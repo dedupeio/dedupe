@@ -44,7 +44,7 @@ class FieldType(Variable) :
         else :
             self.name = "(%s: %s)" % (self.field, self.type)
 
-        self.predicates = [dedupe.blocking.SimplePredicate(pred, self.field) 
+        self.predicates = [dedupe.predicates.SimplePredicate(pred, self.field) 
                            for pred in self._predicate_functions]
 
         super(FieldType, self).__init__(definition)
@@ -88,7 +88,7 @@ class StringType(ShortStringType) :
     def __init__(self, definition) :
         super(StringType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.blocking.TfidfPredicate(threshold, 
+        canopy_predicates = [dedupe.predicates.TfidfPredicate(threshold, 
                                                             self.field)
                              for threshold in self._canopy_thresholds]
 
@@ -122,7 +122,7 @@ class SetType(FieldType) :
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.blocking.TfidfSetPredicate(threshold, 
+        canopy_predicates = [dedupe.predicates.TfidfSetPredicate(threshold, 
                                                                self.field)
                              for threshold in self._canopy_thresholds]
 
