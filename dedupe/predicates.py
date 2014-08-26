@@ -92,7 +92,6 @@ class TfidfPredicate(Predicate):
         result = self.__dict__.copy()
 
         return {'__name__': result['__name__'],
-                '__call__' : canopy_call,
                 'field' : result['field'],
                 'threshold' : result['threshold']}
 
