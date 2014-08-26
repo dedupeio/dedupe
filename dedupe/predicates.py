@@ -62,9 +62,6 @@ class TfidfPredicate(Predicate):
 
         return blocks
         
-
-
-
     @property
     def index(self) :
         return self._index
@@ -83,6 +80,11 @@ class TfidfPredicate(Predicate):
         self.__class__ = self.old_class
 
     def stringify(self, doc) :
+        try :
+            doc = u' '.join(u'_'.join(each.split() for each in doc))
+        except TypeError :
+            pass
+
         return doc
 
     def __getstate__(self):
@@ -117,13 +119,6 @@ class TfidfIndexPredicate(TfidfPredicate) :
                             for center in centers])
             
         return blocks
-
-class TfidfSetPredicate(TfidfPredicate) :
-    type = "TfidfPredicate"
-
-    def stringify(self, doc) :
-        return u' '.join(u'_'.join(each.split() for each in doc))
-
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"

@@ -122,7 +122,7 @@ class SetType(FieldType) :
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.predicates.TfidfSetPredicate(threshold, 
+        canopy_predicates = [dedupe.predicates.TfidfPredicate(threshold, 
                                                                self.field)
                              for threshold in self._canopy_thresholds]
 
