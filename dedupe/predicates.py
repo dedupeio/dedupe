@@ -39,37 +39,9 @@ class SimplePredicate(Predicate) :
                 for block_key in self.func(column)]
 
 
-def index_call(self, record_id, record) :
-    centers = self.canopy.get(record_id)
-
-    if centers is None :
-        record_field = self.stringify(record[self.field])
-        query_list = self.parseTerms(record_field)
-        query = ' OR '.join(query_list)
-        candidates = self.search(query).byValue(self.threshold)
-        blocks = tuple([(unicode(self.index_to_id[k]), record_id)
-                        for  _, k in candidates])
-    else :
-        blocks = tuple([(unicode(center), record_id)
-                        for center in centers])
-
-    return blocks
-
-def canopy_call(self, record_id, record) :
-    centers = self.canopy.get(record_id)
-
-    if centers is not None :
-        blocks = tuple([(unicode(center), record_id)
-                        for center in centers])
-    else:
-        blocks = ()
-
-    return blocks
 
 class TfidfPredicate(Predicate):
     type = "TfidfPredicate"
-
-    __call__ = canopy_call
 
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
@@ -79,12 +51,27 @@ class TfidfPredicate(Predicate):
         self._index = None
         self.index_to_id = None
 
+    def __call__(self, record_id, record) :
+        centers = self.canopy.get(record_id)
+
+        if centers is not None :
+            blocks = tuple([(unicode(center), record_id)
+                            for center in centers])
+        else:
+            blocks = ()
+
+        return blocks
+        
+
+
+
     @property
     def index(self) :
         return self._index
         
     @index.setter
     def index(self, value) :
+        self.old_class = self.__class__
         self.__class__ = TfidfIndexPredicate
 
         self._index = value
@@ -93,7 +80,7 @@ class TfidfPredicate(Predicate):
 
     @index.deleter
     def index(self) :
-        self.__class__ = TfidfPredicate
+        self.__class__ = self.old_class
 
     def stringify(self, doc) :
         return doc
@@ -114,7 +101,22 @@ class TfidfPredicate(Predicate):
         self.index_to_id = None
 
 class TfidfIndexPredicate(TfidfPredicate) :
-    __call__ = index_call
+
+    def __call__(self, record_id, record) :
+        centers = self.canopy.get(record_id)
+
+        if centers is None :
+            record_field = self.stringify(record[self.field])
+            query_list = self.parseTerms(record_field)
+            query = ' OR '.join(query_list)
+            candidates = self.search(query).byValue(self.threshold)
+            blocks = tuple([(unicode(self.index_to_id[k]), record_id)
+                            for  _, k in candidates])
+        else :
+            blocks = tuple([(unicode(center), record_id)
+                            for center in centers])
+            
+        return blocks
 
 class TfidfSetPredicate(TfidfPredicate) :
     type = "TfidfPredicate"
