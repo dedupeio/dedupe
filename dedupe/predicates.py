@@ -129,11 +129,6 @@ class CompoundPredicate(Predicate) :
         for pred in self.predicates :
             yield pred
 
-    def _keygen(self, record_id, record) :
-        for predicate in self.predicates :
-            yield [block_key for block_key, record_id in predicate(record_id, record)]
-
-
     def __call__(self, record_id, record) :
         predicate_keys = (predicate(record_id, record)
                           for predicate in self.predicates)
