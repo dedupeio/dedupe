@@ -685,6 +685,7 @@ class ActiveMatching(Matching) :
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
                                            self.data_model, 
+                                           self.num_cores,
                                            k=n_folds)
 
 
