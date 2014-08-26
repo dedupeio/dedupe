@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import dedupe
 import unittest
 import numpy
@@ -78,7 +80,7 @@ class DataModelTest(unittest.TestCase) :
                             {'type' : 'Interaction', 
                              'interaction variables' : ['a', 'b']}])
 
-    print data_model['fields']
+    #print data_model['fields']
     assert data_model['fields'][2].has_missing == True
 
     data_model = DataModel([{'field' : 'a', 
@@ -104,9 +106,10 @@ class AffineGapTest(unittest.TestCase):
     self.normalizedAffineGapDistance = dedupe.distance.affinegap.normalizedAffineGapDistance
     
   def test_affine_gap_correctness(self):
-    assert self.affineGapDistance('a', 'b', -5, 5, 5, 1, 0.5) == 5
+    assert self.affineGapDistance('a', u'b', -5, 5, 5, 1, 0.5) == 5
     assert self.affineGapDistance('ab', 'cd', -5, 5, 5, 1, 0.5) == 10
     assert self.affineGapDistance('ab', 'cde', -5, 5, 5, 1, 0.5) == 13
+    assert self.affineGapDistance('ab', u'cdë', -5, 5, 5, 1, 0.5) == 13
     assert self.affineGapDistance('a', 'cde', -5, 5, 5, 1, 0.5) == 8.5
     assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1, 0.5) == 8
     assert self.affineGapDistance('b', 'a', -5, 5, 5, 1, 0.5) == 5
