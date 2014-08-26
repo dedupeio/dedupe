@@ -431,9 +431,28 @@ class RecordLinkMatching(Matching) :
                 
                 self._checkRecordType(target[0][1])
 
+    def _blockGenerator(self, messy_data, blocked_records) :
+        block = ({}, {})
+
+        i = 0
+        for block_key, rec_id in self.blocker(messy_data.iteritems()) :
+            if block_key in blocked_records :
+                if rec_id not in block[0] :
+                    i += 1
+                    if i % 100 == 0 :
+                        logger.info("%s records" % i)
+                    if block[1] :
+                        for each in self._compoundBlocks([block]) :
+                            yield each
+                    
+                    block = ({rec_id : messy_data[rec_id]}, {})
+
+                block[1].update(blocked_records[block_key])
+
+
     def _blockData(self, data_1, data_2) :
 
-        blocks = OrderedDict({})
+        blocked_records = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
             fields_2 = ((record_id, record[field])
@@ -442,19 +461,14 @@ class RecordLinkMatching(Matching) :
 
             self.blocker.tfIdfIndex(fields_2, field)
 
-
         for block_key, record_id in self.blocker(data_2.items()) :
-            blocks.setdefault(block_key, ({}, {}))[1].update({record_id : 
-                                                              data_2[record_id]})
-        for block_key, record_id in self.blocker(data_1.items()) :
-            if block_key in blocks :
-                blocks[block_key][0].update({record_id : data_1[record_id]})
+            blocked_records[block_key][record_id] = data_2[record_id]
+
+        for each in self._blockGenerator(data_1, blocked_records) :
+            yield each
 
         self.blocker._resetCanopies()
 
-        blocks = blocks.values()
-
-        return self._compoundBlocks(blocks)
     
     def _compoundBlocks(self, blocks) :
         coverage = {}
@@ -1011,25 +1025,10 @@ class GazetteerMatching(RecordLinkMatching) :
         self._linkage_type = "GazetteerMatching"
         self.blocked_records = OrderedDict({})
 
+
     def _blockData(self, messy_data) :
-
-        block = ({}, {})
-
-        i = 0
-        for block_key, rec_id in self.blocker(messy_data.iteritems()) :
-            if block_key in self.blocked_records :
-                if rec_id not in block[0] :
-                    i += 1
-                    if i % 100 == 0 :
-                        logger.info("%s records" % i)
-                    if block[1] :
-                        for each in self._compoundBlocks([block]) :
-                            yield each
-                    
-                    block = ({rec_id : messy_data[rec_id]}, {})
-
-                block[1].update(self.blocked_records[block_key])
-
+        for each in self._blockGenerator(messy_data, self.blocked_data) :
+            yield each
 
 
     def index(self, data) :
