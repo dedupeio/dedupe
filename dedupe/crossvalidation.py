@@ -15,9 +15,17 @@ logger = logging.getLogger(__name__)
 def gridSearch(training_data,
                trainer,
                original_data_model,
+               num_cores,
                k=3,
                search_space=[.00001, .0001, .001, .01, .1, 1],
                randomize=True):
+
+    if num_cores < 2 :
+        from multiprocessing.dummy import Pool
+    else :
+        from backport import Pool
+
+    pool = Pool()
 
     training_data = training_data[numpy.random.permutation(training_data.size)]
 
@@ -27,38 +35,14 @@ def gridSearch(training_data,
     fields = original_data_model['fields']
 
     for alpha in search_space:
-        all_score = 0
-        all_N = 0
-        for (training, validation) in kFolds(training_data, k):
-            data_model = trainer(training, original_data_model, alpha)
 
-            weight = numpy.array([field.weight
-                                  for field in fields])
-            bias = data_model['bias']
+        fold_data = kFolds(training_data,k)
 
-            labels = validation['label'] == 'match'
-            predictions = numpy.dot(validation['distances'], weight) + bias
+        fold_scores = [pool.apply_async(trainAndScore,(alpha,original_data_model,trainer)+fd)
+                       for fd in fold_data]
 
-            true_dupes = numpy.sum(labels == 1)
-
-            if true_dupes == 0 :
-                logger.warning("not real positives, change size of folds")
-                continue
-
-            true_predicted_dupes = numpy.sum(predictions[labels == 1] > 0)
-
-            recall = true_predicted_dupes/float(true_dupes)
-
-            if recall == 0 :
-                score = 0
-
-            else:
-                precision = true_predicted_dupes/float(numpy.sum(predictions > 0))
-                score = 2 * recall * precision / (recall + precision)
-
-
-            all_score += score
-
+        all_score = sum([fs.get() for fs in fold_scores])
+        
         average_score = all_score/k
         logger.debug("Average Score: %f", average_score)
 
@@ -68,6 +52,38 @@ def gridSearch(training_data,
 
     logger.info('optimum alpha: %f' % best_alpha)
     return best_alpha
+
+
+
+def trainAndScore(alpha, data_model, trainer, training, validation):
+    data_model = trainer(training, data_model, alpha)
+
+    weight = numpy.array([field.weight
+                          for field in data_model['fields']])
+    bias = data_model['bias']
+
+    labels = validation['label'] == 'match'
+    predictions = numpy.dot(validation['distances'], weight) + bias
+
+    true_dupes = numpy.sum(labels == 1)
+
+    if true_dupes == 0 :
+        logger.warning("not real positives, change size of folds")
+        return 
+
+    true_predicted_dupes = numpy.sum(predictions[labels == 1] > 0)
+            
+    recall = true_predicted_dupes/float(true_dupes)
+
+    if recall == 0 :
+        score = 0
+
+    else:
+        precision = true_predicted_dupes/float(numpy.sum(predictions > 0))
+        score = 2 * recall * precision / (recall + precision)
+
+    return score
+
 
 
 def kFolds(training_data, k):
