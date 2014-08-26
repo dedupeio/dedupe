@@ -1,4 +1,6 @@
-cpdef ngrams(char *field, int n):
+# cython: c_string_type=unicode, c_string_encoding=utf8
+
+cpdef set ngrams(basestring field, int n):
     """ngrams returns all unique, contiguous sequences of n characters
     of a given field.
         
@@ -10,16 +12,18 @@ cpdef ngrams(char *field, int n):
     >>> ngrams("deduplicate", 3)
     ('ded', 'edu', 'dup', 'upl', 'pli', 'lic', 'ica', 'cat', 'ate')
     """
+    cdef unicode ufield = _ustring(field)
+
     cdef set grams = set([])
     cdef int i, j
     cdef int n_char = len(field)
-    for i in xrange(n_char):
-        for j in xrange(i+n, min(n_char, i+n)+1):
-            grams.add(field[i:j])
+    for i in range(n_char):
+        for j in range(i+n, min(n_char, i+n)+1):
+            grams.add(ufield[i:j])
             
     return grams
 
-cpdef initials(char *field, int n):
+cpdef tuple initials(basestring field, int n):
     """predicate which returns first a tuple containing
     the first n chars of a field if and only if the
     field contains at least n characters, or an empty
@@ -34,7 +38,15 @@ cpdef initials(char *field, int n):
     >>> initials("deduplication", 7)
     ('dedupli', )
     """
-    return (field[:n], ) if len(field) > n-1 else () 
+    cdef unicode ufield = _ustring(field)
+
+    return (ufield[:n], ) if len(ufield) > n-1 else () 
 
 
 
+cdef unicode _ustring(basestring s):
+    if type(s) is unicode:
+        # fast path for most common case(s)
+        return <unicode>s
+    else : # safe because of basestring
+        return <char *>s
