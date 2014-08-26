@@ -32,7 +32,7 @@ class BlockingTest(unittest.TestCase):
 
   def test_dedupe_coverage(self) :
     predicates = self.data_model['fields'][1].predicates
-    coverage = dedupe.blocking.DedupeCoverage(predicates, self.training)
+    coverage = dedupe.training.DedupeCoverage(predicates, self.training)
     assert set([str(k) for k in coverage.overlap.keys()]) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
@@ -76,7 +76,7 @@ class BlockingTest(unittest.TestCase):
 
     predicates = self.data_model['fields'][1].predicates
 
-    coverage = dedupe.blocking.RecordLinkCoverage(predicates, self.training)
+    coverage = dedupe.training.RecordLinkCoverage(predicates, self.training)
     print coverage.overlap.keys()
     assert set([str(k) for k in coverage.overlap.keys()]) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
@@ -112,7 +112,7 @@ class TfidfTest(unittest.TestCase):
 
   def test_unconstrained_inverted_index(self):
 
-    blocker = dedupe.blocking.DedupeBlocker([dedupe.blocking.TfidfPredicate(0.0, "name")])
+    blocker = dedupe.blocking.DedupeBlocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
 
     blocker.tfIdfBlock(((record_id, record["name"]) 
                         for record_id, record 
@@ -133,7 +133,7 @@ class TfidfTest(unittest.TestCase):
 
   def test_constrained_inverted_index(self):
 
-    blocker = dedupe.blocking.RecordLinkBlocker([dedupe.blocking.TfidfPredicate(0.0, "name")])
+    blocker = dedupe.blocking.RecordLinkBlocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
 
     fields_1 = dict((record_id, record["name"]) 
                     for record_id, record 
