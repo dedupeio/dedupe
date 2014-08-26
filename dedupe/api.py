@@ -1052,24 +1052,6 @@ class GazetteerMatching(RecordLinkMatching) :
             except KeyError :
                 pass 
         
-    def search(self, data) :
-        if len(data) > 1 :
-            raise ValueError
-
-        old_cores = self.num_cores
-        self.num_cores = 1
-
-        results = self.match(data, 0)
-        
-        if results :
-            results = results[0]
-        else :
-            results = ()
-
-        self.num_cores = old_cores
-       
-        return results
-
     def match(self, messy_data, threshold = 0.5, n_matches = 1) : # pragma : no cover
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
