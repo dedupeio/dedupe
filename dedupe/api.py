@@ -1027,7 +1027,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
 
     def _blockData(self, messy_data) :
-        for each in self._blockGenerator(messy_data, self.blocked_data) :
+        for each in self._blockGenerator(messy_data, self.blocked_records) :
             yield each
 
 
