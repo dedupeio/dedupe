@@ -18,6 +18,7 @@ import random
 import warnings
 import copy
 import os
+from collections import defaultdict
 
 try:
     from collections import OrderedDict
@@ -1012,17 +1013,23 @@ class GazetteerMatching(RecordLinkMatching) :
 
     def _blockData(self, messy_data) :
 
-        blocks = {} 
+        block = ({}, {})
 
-        for block_key, record_id in self.blocker(messy_data.items()) :
+        i = 0
+        for block_key, rec_id in self.blocker(messy_data.iteritems()) :
             if block_key in self.blocked_records :
-                if block_key not in blocks :
-                    blocks[block_key] = ({}, self.blocked_records[block_key])
-                blocks[block_key][0][record_id] = messy_data[record_id]
+                if rec_id not in block[0] :
+                    i += 1
+                    if i % 100 == 0 :
+                        logger.info("%s records" % i)
+                    if block[1] :
+                        for each in self._compoundBlocks([block]) :
+                            yield each
+                    
+                    block = ({rec_id : messy_data[rec_id]}, {})
 
-        blocks = blocks.values()
+                block[1].update(self.blocked_records[block_key])
 
-        return self._compoundBlocks(blocks)
 
 
     def index(self, data) :

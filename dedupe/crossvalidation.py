@@ -40,7 +40,7 @@ def gridSearch(training_data,
 
         fold_scores = [pool.apply_async(trainAndScore,(alpha,original_data_model,trainer)+fd)
                        for fd in fold_data]
-
+        
         all_score = sum([fs.get() for fs in fold_scores])
         
         average_score = all_score/k
@@ -51,6 +51,10 @@ def gridSearch(training_data,
     best_alpha = search_space[::-1][scores[::-1].index(max(scores))]
 
     logger.info('optimum alpha: %f' % best_alpha)
+    pool.close()
+    pool.join()
+
+
     return best_alpha
 
 

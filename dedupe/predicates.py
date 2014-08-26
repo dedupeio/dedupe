@@ -19,7 +19,7 @@ class Predicate(object) :
     def __repr__(self) :
         return "%s: %s" % (self.type, self.__name__)
 
-    def __hash__(self) :
+    def __hash__(self):
         return hash(repr(self))
 
     def __eq__(self, other) :
@@ -35,57 +35,92 @@ class SimplePredicate(Predicate) :
 
     def __call__(self, record_id, record) :
         column = record[self.field]
-        return [(block_key.decode('utf8'), record_id) 
+        return [(unicode(block_key), record_id) 
                 for block_key in self.func(column)]
 
 
+def index_call(self, record_id, record) :
+    centers = self.canopy.get(record_id)
+
+    if centers is None :
+        record_field = self.stringify(record[self.field])
+        query_list = self.parseTerms(record_field)
+        query = ' OR '.join(query_list)
+        candidates = self.search(query).byValue(self.threshold)
+        blocks = tuple([(unicode(self.index_to_id[k]), record_id)
+                        for  _, k in candidates])
+    else :
+        blocks = tuple([(unicode(center), record_id)
+                        for center in centers])
+
+    return blocks
+
+def canopy_call(self, record_id, record) :
+    centers = self.canopy.get(record_id)
+
+    if centers is not None :
+        blocks = tuple([(unicode(center), record_id)
+                        for center in centers])
+    else:
+        blocks = ()
+
+    return blocks
+
 class TfidfPredicate(Predicate):
     type = "TfidfPredicate"
+
+    __call__ = canopy_call
 
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
         self.canopy = {}
         self.threshold = threshold
-        self.index = None
+        self._index = None
         self.index_to_id = None
 
-    def __call__(self, record_id, record) :
-        center = self.canopy.get(record_id)
+    @property
+    def index(self) :
+        return self._index
+        
+    @index.setter
+    def index(self, value) :
+        self.__class__ = TfidfIndexPredicate
 
-        if self.index :
-            if center is not None :
-                blocks = ()
-            else :
-                record_field = self.stringify(record[self.field])
-                query_list = self.index.lexicon.parseTerms(record_field)
-                query = ' OR '.join(query_list)
-                candidates = self.index.apply(query).byValue(self.threshold)
-                blocks = tuple([(unicode(record_id), self.index_to_id[k])
-                                for  _, k in candidates])
-                blocks += ((unicode(record_id), record_id),)
+        self._index = value
+        self.parseTerms = self._index.lexicon.parseTerms
+        self.search = self._index.apply
 
-        elif center is not None :
-            blocks = ((unicode(center), record_id),)
-        else:
-            blocks = ()
-
-        return blocks
-
+    @index.deleter
+    def index(self) :
+        self.__class__ = TfidfPredicate
 
     def stringify(self, doc) :
         return doc
 
     def __getstate__(self):
+
         result = self.__dict__.copy()
-        result['canopy'] = {}
-        return result
+
+        return {'__name__': result['__name__'],
+                '__call__' : canopy_call,
+                'field' : result['field'],
+                'threshold' : result['threshold']}
+
+    def __setstate__(self, d) :
+        self.__dict__ = d
+        self._index = None
+        self.canopy = {}
+        self.index_to_id = None
+
+class TfidfIndexPredicate(TfidfPredicate) :
+    __call__ = index_call
 
 class TfidfSetPredicate(TfidfPredicate) :
     type = "TfidfPredicate"
 
     def stringify(self, doc) :
-        return ' '.join('_'.join(str(each).split()) for each in doc)
+        return u' '.join(u'_'.join(each.split() for each in doc))
 
 
 class CompoundPredicate(Predicate) :
@@ -93,9 +128,9 @@ class CompoundPredicate(Predicate) :
 
     def __init__(self, predicates) :
         self.predicates = predicates
-        self.__name__ = '(%s)' % ', '.join([str(pred)
-                                            for pred in 
-                                            predicates])
+        self.__name__ = u'(%s)' % u', '.join([unicode(pred)
+                                              for pred in 
+                                              predicates])
 
     def __iter__(self) :
         for pred in self.predicates :

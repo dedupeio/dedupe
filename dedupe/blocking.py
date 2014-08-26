@@ -63,8 +63,9 @@ class Blocker:
         for predicate_set in self.tfidf_fields.values() :
             for predicate in predicate_set :
                 predicate.canopy = {}
-                predicate.index = None
-                predicate.index_to_id = None
+                #if predicate._index is not None :
+                #    predicate.index = None
+                #    predicate.index_to_id = None
 
     def _lexicon(self, field) :
         splitter = Splitter()
@@ -104,7 +105,7 @@ class DedupeBlocker(Blocker) :
             canopy = tfidf.makeCanopy(indices[predicate],
                                       base_tokens, 
                                       predicate.threshold)
-            predicate.canopy = dict((index_to_id[k], index_to_id[v])
+            predicate.canopy = dict((index_to_id[k], (index_to_id[v],))
                                     for k, v
                                     in canopy.iteritems())
         
@@ -114,26 +115,24 @@ class RecordLinkBlocker(Blocker) :
     def tfIdfIndex(self, data_2, field): 
         '''Creates TF/IDF canopy of a given set of data'''
 
-        indices = {}
-        for predicate in self.tfidf_fields[field] :
-            index = TextIndex(self._lexicon(field))
-            index.index = CosineIndex(index.lexicon)
-            indices[predicate] = index
+        index = TextIndex(self._lexicon(field))
+        index.index = CosineIndex(index.lexicon)
 
-        stringify = predicate.stringify
+        # very weird way to get this
+        for predicate in self.tfidf_fields[field] :
+            stringify = predicate.stringify
 
         index_to_id = {}
 
         for i, (record_id, doc) in enumerate(data_2)  :
             doc = stringify(doc)
             index_to_id[i] = record_id
-            for index in indices.values() :
-                index.index_doc(i, doc)
+            index.index_doc(i, doc)
 
         for predicate in self.tfidf_fields[field] :
-            predicate.index = indices[predicate]
+            predicate.index = index
             predicate.index_to_id = index_to_id
-            predicate.canopy = dict((v, v) for v in index_to_id.values())
+            predicate.canopy = dict((v, (v,)) for v in index_to_id.values())
 
 
 class CustomStopWordRemover(object):

@@ -23,17 +23,20 @@ class BlockingTest(unittest.TestCase):
       }
 
     self.training = self.training_pairs[0] + self.training_pairs[1]
-    self.distinct_ids = [tuple(sorted([pair[0][0], pair[1][0]]))
+    self.distinct_ids = [tuple([pair[0][0], pair[1][0]])
                          for pair in
                          self.training_pairs[0]]
-    self.dupe_ids = [tuple(sorted([pair[0][0], pair[1][0]]))
+    self.dupe_ids = [tuple([pair[0][0], pair[1][0]])
                      for pair in
                      self.training_pairs[1]]
+
+    self.simple = lambda x : set([str(k) for k in x 
+                                  if "CompoundPredicate" not in str(k)])
 
   def test_dedupe_coverage(self) :
     predicates = self.data_model['fields'][1].predicates
     coverage = dedupe.training.DedupeCoverage(predicates, self.training)
-    assert set([str(k) for k in coverage.overlap.keys()]) ==\
+    assert self.simple(coverage.overlap.keys()) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
                "TfidfPredicate: (0.4, name)", 
@@ -59,7 +62,7 @@ class BlockingTest(unittest.TestCase):
                "TfidfPredicate: (0.2, name)"])
 
     overlap = coverage.predicateCoverage(predicates, self.dupe_ids)
-
+    print overlap.keys()
     assert set(str(k) for k in overlap.keys()) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
@@ -77,8 +80,8 @@ class BlockingTest(unittest.TestCase):
     predicates = self.data_model['fields'][1].predicates
 
     coverage = dedupe.training.RecordLinkCoverage(predicates, self.training)
-    print coverage.overlap.keys()
-    assert set([str(k) for k in coverage.overlap.keys()]) ==\
+    print self.simple(coverage.overlap.keys())
+    assert self.simple(coverage.overlap.keys()) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
                "TfidfPredicate: (0.4, name)", 
@@ -121,7 +124,7 @@ class TfidfTest(unittest.TestCase):
 
     canopy = list(blocker.tfidf_fields['name'])[0].canopy
 
-    assert canopy == {120: 120, 130: 130, 125: 120, 135: 130}
+    assert canopy == {120: (120,), 130: (130,), 125: (120,), 135: (130,)}
 
     blocks = defaultdict(set)
     

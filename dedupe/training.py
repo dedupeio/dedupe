@@ -94,6 +94,18 @@ def semiSupervisedNonDuplicates(data_sample,
                     yield (pair)
 
     return islice(distinctPairs(), 0, sample_size)
+
+def trainingData(training_pairs, record_ids) :
+    record_pairs = set([])
+    tuple_pairs = set([])
+    for pair in training_pairs :
+        record_pairs.add(tuple([(record_ids[record], record) 
+                                for record in pair]))
+        tuple_pairs.add(tuple([record_ids[record] 
+                               for record in pair]))
+    return record_pairs, tuple_pairs
+    
+
 def blockTraining(training_pairs,
                   predicate_set,
                   eta=.1,
@@ -103,6 +115,11 @@ def blockTraining(training_pairs,
     Takes in a set of training pairs and predicates and tries to find
     a good set of blocking rules.
     '''
+
+    if matching == "RecordLink" :
+        Coverage = RecordLinkCoverage
+    else :
+        Coverage = DedupeCoverage
 
     # Setup
 
@@ -115,52 +132,14 @@ def blockTraining(training_pairs,
                 record_ids[record] = i
                 i += 1
 
-    dupe_pairs = set([])
-    training_dupes = set([])
-    for pair in training_pairs['match'] :
-        dupe_pairs.add(tuple([(record_ids[record], record) 
-                                for record in pair]))
-        training_dupes.add(tuple(sorted([record_ids[record] 
-                                         for record in pair])))
+    dupe_pairs, training_dupes = trainingData(training_pairs['match'],
+                                              record_ids)
 
+    distinct_pairs, training_distinct = trainingData(training_pairs['distinct'],
+                                                     record_ids)
     
-
-    distinct_pairs = set([])
-    training_distinct = set([])
-    for pair in training_pairs['distinct'] :
-        distinct_pairs.add(tuple([(record_ids[record], record) 
-                                  for record in pair]))
-        training_distinct.add(tuple(sorted([record_ids[record] 
-                                            for record in pair])))
-
-    if matching == "RecordLink" :
-        coverage = RecordLinkCoverage(predicate_set,
-                                      dupe_pairs | distinct_pairs)
-
-    else :
-        coverage = DedupeCoverage(predicate_set,
-                                  dupe_pairs | distinct_pairs)
-
-    # Compound Predicates
-    compound_predicates = itertools.combinations(coverage.overlap, 2)
-    intersection = set.intersection
-
-
-    for compound_predicate in compound_predicates :
-        compound_predicate = predicates.CompoundPredicate(compound_predicate)
-        predicate_1, predicate_2 = compound_predicate
-        
-        coverage.overlap[compound_predicate] =\
-            intersection(coverage.overlap[predicate_1],
-                         coverage.overlap[predicate_2])
-
-        i = 0
-        for blocks in itertools.product(coverage.blocks[predicate_1].values(),
-                                        coverage.blocks[predicate_2].values()) :
-            coverage.blocks[compound_predicate][i] =\
-                intersection(*blocks)
-            i += 1
-
+    coverage = Coverage(predicate_set,
+                        dupe_pairs | distinct_pairs)
 
     predicate_set = coverage.overlap.keys()
     
@@ -285,22 +264,21 @@ class Coverage(object) :
         self.overlap = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
 
-        for pair in pairs :
+        for i, pair in enumerate(pairs) :
             (record_1_id, record_1), (record_2_id, record_2) = pair
             for predicate in predicates :
                 blocks = predicate(record_1_id, record_1)
                 blocks += predicate(record_2_id, record_2)
-                groups = {}
-                for block_key, record_id in blocks :
-                    groups.setdefault(record_id, set([])).add(block_key)
-                combo = itertools.combinations(groups.items(), 2)
-                for (rec_1, keys_1), (rec_2, keys_2) in combo :
-                    field_preds = keys_1 & keys_2
-                    if field_preds :
-                        rec_pair = tuple(sorted([rec_1, rec_2]))
-                        self.overlap[predicate].add(rec_pair)
-                        for field_pred in field_preds :
-                            self.blocks[predicate][field_pred].add(rec_pair)
+                groups = defaultdict(set)
+                for block_key, rec_id in blocks :
+                    groups[rec_id].add(block_key)
+                field_preds = groups[record_1_id]
+                field_preds &= groups[record_2_id]
+                if field_preds :
+                    rec_pair = record_1_id, record_2_id
+                    self.overlap[predicate].add(rec_pair)
+                    for field_pred in field_preds :
+                        self.blocks[predicate][field_pred].add(rec_pair)
 
         # efficiency, since we are going to throw away blocks that 
         for predicate, coverage in self.blocks.items() :
@@ -323,6 +301,28 @@ class Coverage(object) :
 
         return coverage
 
+    def compoundPredicates(self) :
+        intersection = set.intersection
+        product = itertools.product
+
+        compound_predicates = itertools.combinations(self.overlap, 2)
+
+        for compound_predicate in compound_predicates :
+            compound_predicate = predicates.CompoundPredicate(compound_predicate)
+            predicate_1, predicate_2 = compound_predicate
+        
+            self.overlap[compound_predicate] =\
+                intersection(self.overlap[predicate_1],
+                             self.overlap[predicate_2])
+            
+            i = 0
+            for blocks in product(self.blocks[predicate_1].values(),
+                                  self.blocks[predicate_2].values()) :
+                self.blocks[compound_predicate][i] =\
+                        intersection(*blocks)
+                i += 1
+
+
 class DedupeCoverage(Coverage) :
     def __init__(self, predicate_set, pairs) :
 
@@ -331,37 +331,71 @@ class DedupeCoverage(Coverage) :
         blocker = blocking.DedupeBlocker(predicate_set)
 
         for field in blocker.tfidf_fields :
-            field_records = ((record_id, record[field]) 
-                             for record_id, record in records)
-            stop_words = stopWords(records)
+            field_records = [(record_id, record[field]) 
+                             for record_id, record in records]
+            stop_words = stopWords(field_records)
             blocker.stop_words[field].update(stop_words)
             blocker.tfIdfBlock(field_records, field)
 
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)
+        self.compoundPredicates()
         blocker._resetCanopies()
 
 class RecordLinkCoverage(Coverage) :
     def __init__(self, predicate_set, pairs) :
 
-        data_2 = set([])
+        records_1 = set([])
+        records_2 = set([])
 
         for record_1, record_2 in pairs :
-            data_2.add(record_2)
+            records_1.add(record_1)
+            records_2.add(record_2)
 
         blocker = blocking.RecordLinkBlocker(predicate_set)
 
         for field in blocker.tfidf_fields :
-            field_records = ((record_id, record[field]) 
-                             for record_id, record in data_2)
-
-            stop_words = stopWords(data_2)
+            field_records = [(record_id, record[field]) 
+                             for record_id, record in records_2]
+            stop_words = stopWords(field_records)
             blocker.stop_words[field].update(stop_words)
- 
             blocker.tfIdfIndex(field_records, field)
 
+            search_records = [(record_id, record[field]) 
+                              for record_id, record in records_1]
+
+        canopies = defaultdict(lambda:defaultdict(set))
+
+        for field in blocker.tfidf_fields :
+            for record_id, record in search_records :
+                first = True
+                for predicate in blocker.tfidf_fields[field] :
+                    if first :
+                        record_field = predicate.stringify(record)
+                        query_list = predicate.parseTerms(record_field)
+                        query = ' OR '.join(query_list)
+                        results = predicate.search(query)
+                        first = False
+
+                    candidates = results.byValue(predicate.threshold)
+                    target_id = unicode(record_id)
+                    for _, k in candidates :
+                        source_id = predicate.index_to_id[k]
+                        canopies[predicate][source_id].add(target_id)
+                    canopies[predicate][record_id].add(target_id)
+
+        for field in blocker.tfidf_fields :
+            for predicate in blocker.tfidf_fields[field] :
+                predicate.canopy = canopies[predicate]
+                del predicate.index
+                
+
+            
         self.stop_words = blocker.stop_words
-        self.coveredBy(blocker.predicates, pairs)        
+        self.coveredBy(blocker.predicates, pairs)
+        self.compoundPredicates()
+        blocker._resetCanopies()
+        
 
 def stopWords(data) :
     index = TextIndex(Lexicon(Splitter()))
