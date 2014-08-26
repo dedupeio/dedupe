@@ -35,8 +35,7 @@ class SimplePredicate(Predicate) :
 
     def __call__(self, record_id, record) :
         column = record[self.field]
-        return [(unicode(block_key), record_id) 
-                for block_key in self.func(column)]
+        return [unicode(block_key) for block_key in self.func(column)]
 
 
 
@@ -55,8 +54,7 @@ class TfidfPredicate(Predicate):
         centers = self.canopy.get(record_id)
 
         if centers is not None :
-            blocks = tuple([(unicode(center), record_id)
-                            for center in centers])
+            blocks = [unicode(center) for center in centers]
         else:
             blocks = ()
 
@@ -111,11 +109,10 @@ class TfidfIndexPredicate(TfidfPredicate) :
             query_list = self.parseTerms(record_field)
             query = ' OR '.join(query_list)
             candidates = self.search(query).byValue(self.threshold)
-            blocks = tuple([(unicode(self.index_to_id[k]), record_id)
-                            for  _, k in candidates])
+            blocks = [unicode(self.index_to_id[k]) 
+                      for  _, k in candidates]
         else :
-            blocks = tuple([(unicode(center), record_id)
-                            for center in centers])
+            blocks = [unicode(center) for center in centers]
             
         return blocks
 
@@ -136,12 +133,14 @@ class CompoundPredicate(Predicate) :
         for predicate in self.predicates :
             yield [block_key for block_key, record_id in predicate(record_id, record)]
 
+
     def __call__(self, record_id, record) :
-        predicate_keys = self._keygen(record_id, record)
-        return [(u':'.join(block_key), record_id)
+        predicate_keys = (predicate(record_id, record)
+                          for predicate in self.predicates)
+        return [u':'.join(block_key)
                 for block_key
                 in itertools.product(*predicate_keys)]
-
+ 
 
 def wholeFieldPredicate(field):
     """return the whole field"""

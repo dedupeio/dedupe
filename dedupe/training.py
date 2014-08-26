@@ -264,16 +264,12 @@ class Coverage(object) :
         self.overlap = defaultdict(set)
         self.blocks = defaultdict(lambda : defaultdict(set))
 
-        for i, pair in enumerate(pairs) :
+        for pair in pairs :
             (record_1_id, record_1), (record_2_id, record_2) = pair
             for predicate in predicates :
-                blocks = predicate(record_1_id, record_1)
-                blocks += predicate(record_2_id, record_2)
-                groups = defaultdict(set)
-                for block_key, rec_id in blocks :
-                    groups[rec_id].add(block_key)
-                field_preds = groups[record_1_id]
-                field_preds &= groups[record_2_id]
+                blocks_1 = predicate(record_1_id, record_1)
+                blocks_2 = predicate(record_2_id, record_2)
+                field_preds = set(blocks_1) & set(blocks_2)
                 if field_preds :
                     rec_pair = record_1_id, record_2_id
                     self.overlap[predicate].add(rec_pair)
@@ -378,15 +374,14 @@ class RecordLinkCoverage(Coverage) :
                         first = False
 
                     candidates = results.byValue(predicate.threshold)
-                    target_id = unicode(record_id)
+                    source_id = record_id
                     for _, k in candidates :
-                        source_id = predicate.index_to_id[k]
+                        target_id = predicate.index_to_id[k]
                         canopies[predicate][source_id].add(target_id)
-                    canopies[predicate][record_id].add(target_id)
 
         for field in blocker.tfidf_fields :
             for predicate in blocker.tfidf_fields[field] :
-                predicate.canopy = canopies[predicate]
+                predicate.canopy.update(canopies[predicate])
                 del predicate.index
                 
 

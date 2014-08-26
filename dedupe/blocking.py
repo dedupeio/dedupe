@@ -48,8 +48,8 @@ class Blocker:
     
             for pred_id, predicate in predicates :
                 block_keys = predicate(record_id, instance)
-                for block_key, rec_id in block_keys :
-                    yield block_key + pred_id, rec_id
+                for block_key in block_keys :
+                    yield block_key + pred_id, record_id
             
             if i and i % 10000 == 0 :
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',
