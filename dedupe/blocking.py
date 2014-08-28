@@ -94,12 +94,11 @@ class DedupeBlocker(Blocker) :
                
 class RecordLinkBlocker(Blocker) :
     def tfIdfIndex(self, data_2, field): 
-        '''Creates TF/IDF canopy of a given set of data'''
+        '''Creates TF/IDF index of a given set of data'''
+        predicate = next(iter(self.tfidf_fields[field]))
 
-        # very weird way to get this
-        for predicate in self.tfidf_fields[field] :
-            index = predicate.index
-            canopy = predicate.canopy
+        index = predicate.index
+        canopy = predicate.canopy
 
         if index is None :
             index = tfidf.TfIdfIndex(field, self.stop_words[field])
@@ -114,10 +113,11 @@ class RecordLinkBlocker(Blocker) :
             predicate.canopy = canopy
 
     def tfIdfUnindex(self, data_2, field) :
-        # very weird way to get this
-        for predicate in self.tfidf_fields[field] :
-            index = predicate.index
-            canopy = predicate.canopy
+        '''Remove index of a given set of data'''
+        predicate = next(iter(self.tfidf_fields[field]))
+
+        index = predicate.index
+        canopy = predicate.canopy
 
         for record_id, _ in data_2 :
             if record_id in canopy :
