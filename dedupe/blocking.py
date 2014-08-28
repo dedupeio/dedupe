@@ -12,8 +12,63 @@ from zope.index.text.lexicon import Splitter
 from zope.index.text.stopdict import get_stopdict
 import time
 import dedupe.tfidf as tfidf
+import math
 
 logger = logging.getLogger(__name__)
+
+class TfIdfIndex(object) :
+    def __init__(self, field, stop_words) :
+        self.field = field
+ 
+        splitter = Splitter()
+        stop_word_remover = CustomStopWordRemover(stop_words)
+        operator_escaper = OperatorEscaper()
+        lexicon = Lexicon(splitter, stop_word_remover, operator_escaper)
+
+        self._index = TextIndex(lexicon)
+        self._index.index = CosineIndex(self._index.lexicon)
+
+        self._i_to_id = {}
+        self._parseTerms = self._index.lexicon.parseTerms
+
+    def _hash(self, x) :
+        i = hash(x)
+        return int(math.copysign(i % (2**31), i))
+        
+
+    def index(self, record_id, doc) :
+        i = self._hash(record_id)
+        self._i_to_id[i] = record_id
+
+        self._index.index_doc(i, doc)
+
+    def unindex(self, record_id) :
+        i = self._hash(record_id)
+        del self._i_to_id[i]
+        self._index.unindex_doc(i)
+
+    def search(self, doc, threshold=0) :
+        results = self._resultset(doc).byValue(threshold)
+
+        return [self._i_to_id[k] 
+                for  _, k in results]
+
+    def _resultset(self, doc) :
+        doc = self._stringify(doc)
+        query_list = self._parseTerms(doc)
+        query = ' OR '.join(query_list)
+
+        return self._index.apply(query)
+
+
+    def _stringify(self, doc) :
+        try :
+            doc = u' '.join(u'_'.join(each.split() for each in doc))
+        except TypeError :
+            pass
+
+        return doc
+    
 
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
@@ -67,12 +122,6 @@ class Blocker:
                 #    predicate.index = None
                 #    predicate.index_to_id = None
 
-    def _lexicon(self, field) :
-        splitter = Splitter()
-        stop_word_remover = CustomStopWordRemover(self.stop_words[field])
-        operator_escaper = OperatorEscaper()
-        
-        return Lexicon(splitter, stop_word_remover, operator_escaper)
 
 class DedupeBlocker(Blocker) :
 
@@ -81,33 +130,23 @@ class DedupeBlocker(Blocker) :
 
         indices = {}
         for predicate in self.tfidf_fields[field] :
-            index = TextIndex(self._lexicon(field))
-            index.index = CosineIndex(index.lexicon)
+            index = TfIdfIndex(field, self.stop_words[field])
             indices[predicate] = index
 
-        parseTerms = index.lexicon.parseTerms
-        stringify = predicate.stringify
-
-        index_to_id = {}
         base_tokens = {}
 
-        for i, (record_id, doc) in enumerate(data, 1) :
-            doc = stringify(doc)
-            index_to_id[i] = record_id
-            base_tokens[i] = ' OR '.join(parseTerms(doc))
+        for record_id, doc in data :
+            base_tokens[record_id] = doc
             for index in indices.values() :
-                index.index_doc(i, doc)
+                index.index(record_id, doc)
 
         logger.info(time.asctime())                
 
         for predicate in self.tfidf_fields[field] :
             logger.info("Canopy: %s", str(predicate))
-            canopy = tfidf.makeCanopy(indices[predicate],
-                                      base_tokens, 
-                                      predicate.threshold)
-            predicate.canopy = dict((index_to_id[k], (index_to_id[v],))
-                                    for k, v
-                                    in canopy.iteritems())
+            predicate.canopy = tfidf.makeCanopy(indices[predicate],
+                                                base_tokens, 
+                                                predicate.threshold)
         
         logger.info(time.asctime())                
                
@@ -115,25 +154,37 @@ class RecordLinkBlocker(Blocker) :
     def tfIdfIndex(self, data_2, field): 
         '''Creates TF/IDF canopy of a given set of data'''
 
-        index = TextIndex(self._lexicon(field))
-        index.index = CosineIndex(index.lexicon)
-
         # very weird way to get this
         for predicate in self.tfidf_fields[field] :
-            stringify = predicate.stringify
+            index = predicate.index
+            canopy = predicate.canopy
 
-        index_to_id = {}
+        if index is None :
+            index = TfIdfIndex(field, self.stop_words[field])
+            canopy = {}
 
-        for i, (record_id, doc) in enumerate(data_2)  :
-            doc = stringify(doc)
-            index_to_id[i] = record_id
-            index.index_doc(i, doc)
+        for record_id, doc in data_2  :
+            index.index(record_id, doc)
+            canopy[record_id] = (record_id,)
 
         for predicate in self.tfidf_fields[field] :
             predicate.index = index
-            predicate.index_to_id = index_to_id
-            predicate.canopy = dict((v, (v,)) for v in index_to_id.values())
+            predicate.canopy = canopy
 
+    def tfIdfUnindex(self, data_2, field) :
+        # very weird way to get this
+        for predicate in self.tfidf_fields[field] :
+            index = predicate.index
+            canopy = predicate.canopy
+
+        for record_id, _ in data_2 :
+            if record_id in canopy :
+                index.unindex(record_id)
+                del canopy[record_id]
+
+        for predicate in self.tfidf_fields[field] :
+            predicate.index = index
+            predicate.canopy = canopy
 
 class CustomStopWordRemover(object):
     def __init__(self, stop_words) :

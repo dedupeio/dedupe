@@ -363,28 +363,16 @@ class RecordLinkCoverage(Coverage) :
         canopies = defaultdict(lambda:defaultdict(set))
 
         for field in blocker.tfidf_fields :
-            for record_id, record in search_records :
-                first = True
+            for source_id, record in search_records :
                 for predicate in blocker.tfidf_fields[field] :
-                    if first :
-                        record_field = predicate.stringify(record)
-                        query_list = predicate.parseTerms(record_field)
-                        query = ' OR '.join(query_list)
-                        results = predicate.search(query)
-                        first = False
-
-                    candidates = results.byValue(predicate.threshold)
-                    source_id = record_id
-                    for _, k in candidates :
-                        target_id = predicate.index_to_id[k]
+                    candidates = predicate(source_id, {field : record})
+                    for target_id in candidates :
                         canopies[predicate][source_id].add(target_id)
 
         for field in blocker.tfidf_fields :
             for predicate in blocker.tfidf_fields[field] :
                 predicate.canopy.update(canopies[predicate])
                 del predicate.index
-                
-
             
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)

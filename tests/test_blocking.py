@@ -62,7 +62,6 @@ class BlockingTest(unittest.TestCase):
                "TfidfPredicate: (0.2, name)"])
 
     overlap = coverage.predicateCoverage(predicates, self.dupe_ids)
-    print overlap.keys()
     assert set(str(k) for k in overlap.keys()) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 

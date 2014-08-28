@@ -436,17 +436,17 @@ class RecordLinkMatching(Matching) :
 
         i = 0
         for block_key, rec_id in self.blocker(messy_data.iteritems()) :
-            if block_key in blocked_records :
-                if rec_id not in block[0] :
-                    i += 1
-                    if i % 100 == 0 :
-                        logger.info("%s records" % i)
-                    if block[1] :
-                        for each in self._compoundBlocks([block]) :
-                            yield each
-                    
-                    block = ({rec_id : messy_data[rec_id]}, {})
+            if rec_id not in block[0] :
+                i += 1
+                if i % 100 == 0 :
+                    logger.info("%s records" % i)
+                if block[1] :
+                    for each in self._compoundBlocks([block]) :
+                        yield each
 
+                block = ({rec_id : messy_data[rec_id]}, {})
+
+            if block_key in blocked_records :
                 block[1].update(blocked_records[block_key])
 
 
@@ -1045,6 +1045,12 @@ class GazetteerMatching(RecordLinkMatching) :
             self.blocked_records[block_key][record_id] = data[record_id]
 
     def unindex(self, data) :
+
+        for field in self.blocker.tfidf_fields :
+            self.blocker.tfIdfUnindex(((record_id, record[field])
+                                       for record_id, record 
+                                       in data.iteritems()),
+                                     field)
 
         for block_key, record_id in self.blocker(data.iteritems()) :
             try : 

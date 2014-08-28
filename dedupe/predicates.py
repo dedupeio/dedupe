@@ -48,7 +48,6 @@ class TfidfPredicate(Predicate):
         self.canopy = {}
         self.threshold = threshold
         self._index = None
-        self.index_to_id = None
 
     def __call__(self, record_id, record) :
         centers = self.canopy.get(record_id)
@@ -70,20 +69,11 @@ class TfidfPredicate(Predicate):
         self.__class__ = TfidfIndexPredicate
 
         self._index = value
-        self.parseTerms = self._index.lexicon.parseTerms
-        self.search = self._index.apply
 
     @index.deleter
     def index(self) :
         self.__class__ = self.old_class
 
-    def stringify(self, doc) :
-        try :
-            doc = u' '.join(u'_'.join(each.split() for each in doc))
-        except TypeError :
-            pass
-
-        return doc
 
     def __getstate__(self):
 
@@ -97,7 +87,6 @@ class TfidfPredicate(Predicate):
         self.__dict__ = d
         self._index = None
         self.canopy = {}
-        self.index_to_id = None
 
 class TfidfIndexPredicate(TfidfPredicate) :
 
@@ -105,14 +94,9 @@ class TfidfIndexPredicate(TfidfPredicate) :
         centers = self.canopy.get(record_id)
 
         if centers is None :
-            record_field = self.stringify(record[self.field])
-            query_list = self.parseTerms(record_field)
-            query = ' OR '.join(query_list)
-            candidates = self.search(query).byValue(self.threshold)
-            blocks = [unicode(self.index_to_id[k]) 
-                      for  _, k in candidates]
-        else :
-            blocks = [unicode(center) for center in centers]
+            centers = self.index.search(record[self.field], self.threshold)
+        
+        blocks = [unicode(center) for center in centers]
             
         return blocks
 
