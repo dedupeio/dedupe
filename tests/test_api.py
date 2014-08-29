@@ -19,7 +19,6 @@ class Match(unittest.TestCase) :
   def test_initialize_fields(self) :
     matcher = dedupe.api.Matching()
 
-    assert matcher.matches is None
     assert matcher.blocker is None
 
 
@@ -35,7 +34,6 @@ class ActiveMatch(unittest.TestCase) :
 
     matcher = dedupe.api.ActiveMatching({},)
 
-    assert matcher.matches is None
     assert matcher.blocker is None
 
 
@@ -143,7 +141,6 @@ class DedupeTest(unittest.TestCase):
     self.deduper = dedupe.Dedupe(field_definition)
 
   def test_blockPairs(self) :
-    self.assertRaises(ValueError, self.deduper._blockedPairs, ((),))
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({1:2},))
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({'name':'Frank', 'age':21},))
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({'1' : {'name' : 'Frank',
@@ -193,7 +190,6 @@ class LinkTest(unittest.TestCase):
     self.linker = dedupe.RecordLink(field_definition)
 
   def test_blockPairs(self) :
-    self.assertRaises(ValueError, self.linker._blockedPairs, ((),))
     self.assertRaises(ValueError, self.linker._blockedPairs, ({1:2},))
     self.assertRaises(ValueError, self.linker._blockedPairs, ({'name':'Frank', 'age':21},))
     self.assertRaises(ValueError, self.linker._blockedPairs, ({'1' : {'name' : 'Frank',

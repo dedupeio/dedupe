@@ -7,6 +7,7 @@ import numpy
 import collections
 import time
 import tempfile
+import os
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -226,24 +227,30 @@ def mergeScores(score_queue, result_queue, stop_signals) :
         else :
             seen_signals += 1
 
-    scored_pairs_file, file_path = tempfile.mkstemp()
-
-    python_type = type(scored_pairs['pairs'][0][0])
-    if python_type is str or python_type is unicode :
-        max_length = len(max(numpy.ravel(scored_pairs['pairs']), key=len))
-        python_type = (unicode, max_length)
+    if len(scored_pairs) :
+        python_type = type(scored_pairs['pairs'][0][0])
+        if python_type is str or python_type is unicode :
+            max_length = len(max(numpy.ravel(scored_pairs['pairs']), key=len))
+            python_type = (unicode, max_length)
         
-    write_dtype = [('pairs', python_type, 2),
-                   ('score', 'f4', 1)]
+        write_dtype = [('pairs', python_type, 2),
+                       ('score', 'f4', 1)]
 
-    scored_pairs = scored_pairs.astype(write_dtype)
+        scored_pairs = scored_pairs.astype(write_dtype)
 
-    fp = numpy.memmap(file_path, 
-                      dtype=scored_pairs.dtype, 
-                      shape=scored_pairs.shape)
-    fp[:] = scored_pairs[:]
+        scored_pairs_file, file_path = tempfile.mkstemp()
+        
+        os.close(scored_pairs_file)
 
-    result_queue.put((file_path, scored_pairs.dtype))
+        fp = numpy.memmap(file_path, 
+                          dtype=scored_pairs.dtype, 
+                          shape=scored_pairs.shape)
+        fp[:] = scored_pairs[:]
+
+        result_queue.put((file_path, scored_pairs.dtype))
+
+    else :
+        result_queue.put(scored_pairs)
 
 def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
     if num_cores < 2 :
@@ -272,11 +279,17 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
 
     fillQueue(record_pairs_queue, records, n_map_processes)
 
-    scored_pairs_file, dtype = result_queue.get()
-    scored_pairs = numpy.memmap(scored_pairs_file,
-                                dtype=dtype)
+    result = result_queue.get()
+    if result :
+        scored_pairs_file, dtype = result
+        scored_pairs = numpy.memmap(scored_pairs_file,
+                                    dtype=dtype)
+    else :
+        scored_pairs = result
 
     return scored_pairs
+
+
 
 def fillQueue(queue, iterable, stop_signals) :
     iterable = iter(iterable)
@@ -333,6 +346,9 @@ def peek(records) :
             record = records.next()
         except StopIteration :
             return None, records
+    except StopIteration :
+        return None, records
+    
 
 
     return record, itertools.chain([record], records)

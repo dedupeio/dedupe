@@ -1,3 +1,11 @@
+
+## 0.7.0
+Version 0.7.0 is backwards compatible, except for the match method of Gazetteer class
+
+Features
+- new index, unindex, and match methods in Gazetter Matching. Useful for
+  streaming matching
+
 ## 0.6.0
 Version 0.6.0 is *not* backwards compatible.
 

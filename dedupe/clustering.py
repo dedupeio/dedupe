@@ -179,6 +179,7 @@ def clusterConfidence(items, cophenetic_distances, N) :
 
 
 def greedyMatching(dupes, threshold=0.5):
+    dupes = numpy.array(dupes)
     covered_vertex_A = set([])
     covered_vertex_B = set([])
     clusters = []
@@ -186,16 +187,17 @@ def greedyMatching(dupes, threshold=0.5):
     sorted_dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
     dupes_list = [dupe for dupe in sorted_dupes if dupe[1] >= threshold]
 
-    for dupe in dupes_list:
-        vertices = dupe[0]
-        if vertices[0] not in covered_vertex_A and vertices[1] not in covered_vertex_B:
-            clusters.append(dupe)
-            covered_vertex_A.update([vertices[0]])
-            covered_vertex_B.update([vertices[1]])
+    for vertices, score in dupes_list:
+        a, b = vertices
+        if a not in covered_vertex_A and b not in covered_vertex_B:
+            clusters.append((vertices, score))
+            covered_vertex_A.add(a)
+            covered_vertex_B.add(b)
 
     return clusters
 
 def gazetteMatching(dupes, threshold=0.5, n=1):
+    dupes = numpy.array(dupes) 
     clusters = []
 
     sorted_dupes = sorted(dupes, key=lambda pair: (pair[0][0], -pair[1]))
@@ -206,15 +208,15 @@ def gazetteMatching(dupes, threshold=0.5, n=1):
         matches = []
         i = 0
 
-        for pair in dupes_list:
-            a, b = pair[0]
+        for pair, score in dupes_list:
+            a, b = pair
             if a == group :
                 if i < n :
-                    matches.append(pair)
+                    matches.append((pair, score))
                     i += 1
             else :
                 clusters.append(tuple(matches))
-                matches = [pair]
+                matches = [(pair, score)]
                 i = 1
                 group = a
 
