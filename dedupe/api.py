@@ -430,12 +430,12 @@ class RecordLinkMatching(Matching) :
                                          lambda x : x[1])
 
         for i, (record_id, block_keys) in enumerate(block_groups) :
-            if i % 100 == 0 :                                                                   logger.info("%s records" % i)
+            if i % 100 == 0 :
+                logger.info("%s records" % i)
 
             A = [(record_id, messy_data[record_id], set([]))]
 
             B = {}
-
 
             for block_key, _ in block_keys :
                 if block_key in blocked_records :
