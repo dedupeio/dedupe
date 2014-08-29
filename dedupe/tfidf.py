@@ -105,13 +105,13 @@ class CustomStopWordRemover(object):
 
 class OperatorEscaper(object) :
     def __init__(self) :
-        self.operators = {"AND"  : "`AND",
-                          "OR"   : "`OR",
-                          "NOT"  : "`NOT",
-                          "("    : "`(",
-                          ")"    : "`)",
-                          "ATOM" : "`ATOM",
-                          "EOF"  : "`EOF"}
+        self.operators = {"AND"  : "xxAND",
+                          "OR"   : "xxOR",
+                          "NOT"  : "xxNOT",
+                          "("    : "xx(",
+                          ")"    : "xx)",
+                          "ATOM" : "xxATOM",
+                          "EOF"  : "xxEOF"}
 
     def process(self, lst):
         return [self.operators.get(w, w) for w in lst]
