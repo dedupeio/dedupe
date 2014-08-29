@@ -595,6 +595,7 @@ class ActiveMatching(Matching) :
             self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                          self.data_model)
         else :
+            self.data_sample = []
             self.activeLearner = None
 
         if num_cores is None :
@@ -767,7 +768,7 @@ class ActiveMatching(Matching) :
                                    'distinct':[]})
 
 
-            self._trainClassifier(alpha=0.1)
+        self._trainClassifier(alpha=0.1)
 
         
         dupe_ratio = (len(self.training_pairs['match'])
@@ -810,8 +811,6 @@ class ActiveMatching(Matching) :
             self.training_pairs[label].extend(core.freezeData(pairs))
 
         self._addTrainingData(labeled_pairs) 
-
-        self._trainClassifier(alpha=.1)
 
 
 
