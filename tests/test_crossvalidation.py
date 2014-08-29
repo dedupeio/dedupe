@@ -29,12 +29,12 @@ class scoreTest(unittest.TestCase) :
                                                         numpy.ones(5))
         assert score is None
 
-    def test_no_true(self) :
+    def test_no_predicted(self) :
         score = dedupe.crossvalidation.scorePredictions(numpy.ones(5), 
                                                         numpy.zeros(5))
         assert score == 0
 
-    def test_no_true(self) :
+    def test_all_predicted(self) :
         score = dedupe.crossvalidation.scorePredictions(numpy.ones(5), 
                                                         numpy.ones(5))
         assert score == 1
