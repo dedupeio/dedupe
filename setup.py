@@ -39,7 +39,7 @@ except ImportError:
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.7.2',
+    version='0.7.3',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance'],
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
