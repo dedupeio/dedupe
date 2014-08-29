@@ -267,7 +267,7 @@ class DedupeMatching(Matching) :
 
     def _blockData(self, data_d):
 
-        blocks = defaultdict(set)
+        blocks = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
             self.blocker.tfIdfBlock(((record_id, record[field])
@@ -276,11 +276,11 @@ class DedupeMatching(Matching) :
                                     field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
-            blocks[block_key].add((record_id, data_d[record_id]))
+            blocks[block_key][record_id] = data_d[record_id]
 
         self.blocker._resetCanopies()
 
-        blocks = [records for records in blocks.values() 
+        blocks = [records for records in blocks.values()
                   if len(records) > 1]
 
         for block in self._redundantFree(blocks) :
@@ -296,7 +296,7 @@ class DedupeMatching(Matching) :
 
         for block_id, records in enumerate(blocks) :
 
-            for record_id, record in records :
+            for record_id, record in records.iteritems() :
                 coverage[record_id].append(block_id)
 
         for block_id, records in enumerate(blocks) :
@@ -304,7 +304,7 @@ class DedupeMatching(Matching) :
                 logger.info("%s blocks" % block_id)
 
             marked_records = []
-            for record_id, record in records :
+            for record_id, record in records.iteritems() :
                 smaller_ids = set([covered_id for covered_id 
                                    in coverage[record_id] 
                                    if covered_id < block_id])
