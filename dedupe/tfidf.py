@@ -12,7 +12,7 @@ import math
 logger = logging.getLogger(__name__)
 
 class TfIdfIndex(object) :
-    def __init__(self, field, stop_words) :
+    def __init__(self, field, stop_words=[]) :
         self.field = field
  
         splitter = Splitter()
@@ -105,13 +105,13 @@ class CustomStopWordRemover(object):
 
 class OperatorEscaper(object) :
     def __init__(self) :
-        self. operators = {"AND"  : "\AND",
-                           "OR"   : "\OR",
-                           "NOT"  : "\NOT",
-                           "("    : "\(",
-                           ")"    : "\)",
-                           "ATOM" : "\ATOM",
-                           "EOF"  : "\EOF"}
+        self.operators = {"AND"  : "`AND",
+                          "OR"   : "`OR",
+                          "NOT"  : "`NOT",
+                          "("    : "`(",
+                          ")"    : "`)",
+                          "ATOM" : "`ATOM",
+                          "EOF"  : "`EOF"}
 
     def process(self, lst):
         return [self.operators.get(w, w) for w in lst]
