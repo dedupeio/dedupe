@@ -1,11 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import core
-from random import shuffle
-import copy
 import numpy
 import logging
+import warnings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,8 +29,6 @@ def gridSearch(training_data,
 
     logger.info('using cross validation to find optimum alpha...')
     scores = []
-
-    fields = original_data_model['fields']
 
     for alpha in search_space:
 
@@ -91,6 +87,12 @@ def trainAndScore(alpha, data_model, trainer, training, validation):
 
 
 def kFolds(training_data, k):
+    if k < 2 :
+        raise ValueError("Number of folds must be at least 2")
+    
+    if len(training_data) < 2 :
+        raise ValueError("At least two traning datum are required")
+
     train_dtype = training_data.dtype
     slices = [training_data[i::k] for i in xrange(k)]
     for i in xrange(k):
@@ -99,4 +101,9 @@ def kFolds(training_data, k):
         validation = numpy.array(validation, train_dtype)
         training = numpy.array(training, train_dtype)
 
-        yield (training, validation)
+        if len(training) and len(validation) :
+            yield (training, validation)
+        else :
+            warnings.warn("Only providing %s folds out of %s requested" % 
+                          (i, k))
+            break
