@@ -436,14 +436,17 @@ class RecordLinkMatching(Matching) :
 
             B = {}
 
+
             for block_key, _ in block_keys :
-                B.update(blocked_records[block_key])
+                if block_key in blocked_records :
+                    B.update(blocked_records[block_key])
 
             B = [(rec_id, record, set([]))
                  for rec_id, record
                  in B.items()]
 
-            yield (A, B)
+            if B :
+                yield (A, B)
 
 
     def _blockData(self, data_1, data_2) :
