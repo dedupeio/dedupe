@@ -36,10 +36,11 @@ def gridSearch(training_data,
 
         fold_scores = [pool.apply_async(trainAndScore,(alpha,original_data_model,trainer)+fd)
                        for fd in fold_data]
-        
-        all_score = sum([fs.get() for fs in fold_scores])
-        
-        average_score = all_score/k
+
+        scores = [fs.get() for fs in fold_scores]
+        scores = [score for score in scores if score]
+
+        average_score = sum(scores)/float(len(scores))
         logger.debug("Average Score: %f", average_score)
 
         scores.append(average_score)
@@ -69,7 +70,7 @@ def trainAndScore(alpha, data_model, trainer, training, validation):
 
     if true_dupes == 0 :
         logger.warning("not real positives, change size of folds")
-        return 
+        return None
 
     true_predicted_dupes = numpy.sum(predictions[labels == 1] > 0)
             
