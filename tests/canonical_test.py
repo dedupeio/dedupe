@@ -23,6 +23,11 @@ logging.getLogger().setLevel(log_level)
 
 #logging.basicConfig(level=log_level)
 
+
+#import random
+#import sys
+#random.seed(365072799328404092)
+
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
 

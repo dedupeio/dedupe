@@ -18,9 +18,41 @@ class KFoldsTest(unittest.TestCase):
         
 
     def test_large_k(self) :
-        l = list(dedupe.crossvalidation.kFolds(numpy.array(range(2)), 10))
+        l = list(dedupe.crossvalidation.kFolds(numpy.array(range(4)), 10))
 
-        assert len(l) == 2
+        assert len(l) == 4
+
+class scoreTest(unittest.TestCase) :
+
+    def test_no_true(self) :
+        score = dedupe.crossvalidation.scorePredictions(numpy.zeros(5), 
+                                                        numpy.ones(5))
+        assert score is None
+
+    def test_no_true(self) :
+        score = dedupe.crossvalidation.scorePredictions(numpy.ones(5), 
+                                                        numpy.zeros(5))
+        assert score == 0
+
+    def test_no_true(self) :
+        score = dedupe.crossvalidation.scorePredictions(numpy.ones(5), 
+                                                        numpy.ones(5))
+        assert score == 1
+
+class scoreReduction(unittest.TestCase) :
+    def test_nones(self) :
+        avg_score = dedupe.crossvalidation.reduceScores([None, None])
+        assert avg_score == 0
+
+    def test_some_nones(self) :
+        avg_score = dedupe.crossvalidation.reduceScores([1, None])
+        assert avg_score == 1
+
+    def test_no_nones(self) :
+        avg_score = dedupe.crossvalidation.reduceScores([1, 0])
+        assert avg_score == 0.5
+
+
 
 
 if __name__ == "__main__":
