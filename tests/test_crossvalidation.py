@@ -39,6 +39,12 @@ class scoreTest(unittest.TestCase) :
                                                         numpy.ones(5))
         assert score == 1
 
+    def test_all_predicted(self) :
+        score = dedupe.crossvalidation.scorePredictions(numpy.array([1,0,1,0]), 
+                                                        numpy.array([1,1,0,0]))
+        assert score == 0.5
+
+
 class scoreReduction(unittest.TestCase) :
     def test_nones(self) :
         avg_score = dedupe.crossvalidation.reduceScores([None, None])
