@@ -160,8 +160,8 @@ class FieldDistances(unittest.TestCase):
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[ 2.5, 1.0],
-                                                         [ 0.5, 0]]),
+                                            numpy.array([[ 2.5, 0.0],
+                                                         [ 0.5, 1.0]]),
                                             3)
 
   def test_comparator(self) :
