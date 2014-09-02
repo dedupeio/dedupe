@@ -12,7 +12,7 @@ class ParsingTest(unittest.TestCase) :
         self.index.index(1, 'AND OR EOF NOT')
         assert self.index.search('AND OR EOF NOT')[0] == 1
 
-    def test_empyt_search(self) :
+    def test_empty_search(self) :
         assert self.index.search('') == []
 
 if __name__ == "__main__":
