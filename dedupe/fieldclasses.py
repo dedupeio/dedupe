@@ -1,5 +1,6 @@
 import itertools
 import dedupe
+import numpy
 from collections import defaultdict
 
 from dedupe.distance.affinegap import normalizedAffineGapDistance
@@ -55,10 +56,13 @@ class ExactType(FieldType) :
 
     @staticmethod
     def comparator(field_1, field_2) :
-        if field_1 == field_2 :
-            return 0
+        if field_1 and field_2 :
+            if field_1 == field_2 :
+                return 1
+            else :
+                return 0
         else :
-            return 1
+            return numpy.nan
 
 
 
