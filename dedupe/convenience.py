@@ -16,17 +16,6 @@ def consoleLabel(deduper): # pragma : no cover
     A deduper object
     '''
 
-    # Check if labeler is being called inside iPython notebook
-    # Based on http://stackoverflow.com/a/24937408
-    is_ipynb = False
-    try:
-        cfg = get_ipython().config
-        if cfg['IPKernelApp']['parent_appname'] == 'ipython-notebook':
-            is_ipynb = True
-
-    except NameError:
-        pass
-
     finished = False
 
     while not finished :
@@ -41,20 +30,16 @@ def consoleLabel(deduper): # pragma : no cover
             for pair in record_pair:
                 for field in set(field for field, compare 
                                  in deduper.data_model.field_comparators) :
-                    line = "%s : %s\n" % (field, pair[field])
-                    sys.stderr.write(line)
-                sys.stderr.write('\n')
+                    line = "%s : %s" % (field, pair[field])
+                    print(line)
+                print('')
 
-            sys.stderr.write('Do these records refer to the same thing?\n')
+            print('Do these records refer to the same thing?\n')
+            sys.stdout.flush()
 
             valid_response = False
             while not valid_response:
-                if is_ipynb:
-                    label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
-                else:
-                    sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
-                    label = sys.stdin.readline().strip()
-
+                label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
 
@@ -65,11 +50,12 @@ def consoleLabel(deduper): # pragma : no cover
                 labels['distinct'].append(record_pair)
                 labeled = True
             elif label == 'f':
-                sys.stderr.write('Finished labeling\n')
+                print('Finished labeling')
                 finished = True
             elif label != 'u':
-                sys.stderr.write('Nonvalid response\n')
+                print('Nonvalid response')
                 raise
+            sys.stdout.flush()
 
         if labeled :
             deduper.markPairs(labels)
