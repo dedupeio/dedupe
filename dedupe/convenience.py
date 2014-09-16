@@ -16,6 +16,17 @@ def consoleLabel(deduper): # pragma : no cover
     A deduper object
     '''
 
+    # Check if labeler is being called inside iPython notebook
+    # Based on http://stackoverflow.com/a/24937408
+    is_ipynb = False
+    try:
+        cfg = get_ipython().config
+        if cfg['IPKernelApp']['parent_appname'] == 'ipython-notebook':
+            is_ipynb = True
+
+    except NameError:
+        pass
+
     finished = False
 
     while not finished :
@@ -38,8 +49,12 @@ def consoleLabel(deduper): # pragma : no cover
 
             valid_response = False
             while not valid_response:
-                sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
-                label = sys.stdin.readline().strip()
+                if is_ipynb:
+                    label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
+                else:
+                    sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
+                    label = sys.stdin.readline().strip()
+
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
 
