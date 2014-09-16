@@ -880,6 +880,23 @@ class ActiveMatching(Matching) :
         self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                      self.data_model)
 
+    def _loadMixedSample(self, data, sample_size, rand_p) :
+
+        rand_sample_size = int(rand_p * sample_size)
+        blocked_sample_size = sample_size - rand_sample_size
+
+        random_sample = self._sample(data, rand_sample_size)
+        blocked_sample = self._blockedSample(data, blocked_sample_size)
+
+        data_sample = random_sample + blocked_sample
+
+        self._checkDataSample(data_sample) 
+
+        self.data_sample = data_sample
+
+        self.activeLearner = training.ActiveLearning(self.data_sample, 
+                                                     self.data_model)
+
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
@@ -899,6 +916,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     
     Public Methods
     - sample
+    - mixedSample
     """
 
     
@@ -932,6 +950,67 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         return data_sample
 
 
+
+    def mixedSample(self, data, sample_size=150000, rand_p=.5) :
+        '''
+        Draw a mixed sample of record pairs from the the 
+        dataset (random pairs & pairs of similar records),
+        and initialize active learning with this sample
+        
+        Arguments:
+        data        -- Dictionary of records, where the keys are record_ids 
+                       and the values are dictionaries with the keys being 
+                       field names
+        
+        sample_size -- Size of the sample to draw
+
+        rand_p      -- Proportion of the sample that will be random
+        '''
+
+        self._loadMixedSample(data, sample_size, rand_p)
+
+    def _blockedSample(self, data, sample_size) :
+
+        indexed_data = dict((i, dedupe.core.frozendict(v)) 
+                            for i, v in enumerate(data.values()))
+
+        #make the predicate dict - split out into another function?
+        pred_dict = defaultdict(list)
+        #loop through fields (cols)
+        for i, field in enumerate(self.data_model['fields']):
+            predicates = [predicate for predicate in field.predicates if predicate.type == 'SimplePredicate']
+            # loop through data (rows)
+            for row in indexed_data:
+                field_name = self.data_model.field_comparators[i][0] #this will always match up w/ data_model['fields'], right?
+                content = indexed_data[row][field_name]
+                #loop through predicates
+                for predicate in predicates:
+                    pred_values = predicate.func(content)
+                    for pred_val in pred_values:
+                        key = str(predicate) + '-' + str(pred_val) #is this ok as a key?
+                        pred_dict[key].append(row)
+        #only the predicates that have 2 or more records
+        cleaned_dict = {k:v for k,v in pred_dict.items() if len(v)>=2}
+
+        random_pairs = []
+        rand_preds = []
+
+        #first randomly pick pred-value keys (sample w/o replacement if possible) from pred_dict
+        if sample_size <= len(cleaned_dict):
+            rand_preds = random.sample(cleaned_dict.keys(), sample_size)
+        else:
+            for i in range(sample_size):
+                rand_preds.append(random.choice(cleaned_dict.keys()))
+
+        #then randomly pick records for each pred-value key
+        for pred in rand_preds:
+            random_pairs.append(random.sample(cleaned_dict[pred], 2))
+
+        data_sample = tuple((indexed_data[k1], 
+                             indexed_data[k2]) 
+                            for k1, k2 in random_pairs)
+
+        return data_sample
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
