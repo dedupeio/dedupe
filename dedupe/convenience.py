@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import sys
 import collections
 import itertools
 import random
@@ -35,8 +34,6 @@ def consoleLabel(deduper): # pragma : no cover
                 print('')
 
             print('Do these records refer to the same thing?\n')
-            sys.stdout.flush()
-
             valid_response = False
             while not valid_response:
                 label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
@@ -55,7 +52,6 @@ def consoleLabel(deduper): # pragma : no cover
             elif label != 'u':
                 print('Nonvalid response')
                 raise
-            sys.stdout.flush()
 
         if labeled :
             deduper.markPairs(labels)
