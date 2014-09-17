@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import sys
 import collections
 import itertools
 import random
@@ -30,16 +29,14 @@ def consoleLabel(deduper): # pragma : no cover
             for pair in record_pair:
                 for field in set(field for field, compare 
                                  in deduper.data_model.field_comparators) :
-                    line = "%s : %s\n" % (field, pair[field])
-                    sys.stderr.write(line)
-                sys.stderr.write('\n')
+                    line = "%s : %s" % (field, pair[field])
+                    print(line)
+                print('')
 
-            sys.stderr.write('Do these records refer to the same thing?\n')
-
+            print('Do these records refer to the same thing?\n')
             valid_response = False
             while not valid_response:
-                sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
-                label = sys.stdin.readline().strip()
+                label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
 
@@ -50,10 +47,10 @@ def consoleLabel(deduper): # pragma : no cover
                 labels['distinct'].append(record_pair)
                 labeled = True
             elif label == 'f':
-                sys.stderr.write('Finished labeling\n')
+                print('Finished labeling')
                 finished = True
             elif label != 'u':
-                sys.stderr.write('Nonvalid response\n')
+                print('Nonvalid response')
                 raise
 
         if labeled :
