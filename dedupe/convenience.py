@@ -30,10 +30,10 @@ def consoleLabel(deduper): # pragma : no cover
                 for field in set(field for field, compare 
                                  in deduper.data_model.field_comparators) :
                     line = "%s : %s" % (field, pair[field])
-                    print(line)
-                print('')
+                    print line
+                print 
 
-            print('Do these records refer to the same thing?\n')
+            print 'Do these records refer to the same thing?'
             valid_response = False
             while not valid_response:
                 label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
@@ -47,10 +47,10 @@ def consoleLabel(deduper): # pragma : no cover
                 labels['distinct'].append(record_pair)
                 labeled = True
             elif label == 'f':
-                print('Finished labeling')
+                print 'Finished labeling'
                 finished = True
             elif label != 'u':
-                print('Nonvalid response')
+                print 'Nonvalid response'
                 raise
 
         if labeled :
