@@ -981,7 +981,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             pred_dict[block_key].append(record_id)
 
         #only the predicates that have 2 or more records
-        cleaned_dict = {k:v for k,v in pred_dict.items() if len(v)>=2}
+        cleaned_dict = dict((k,v) for (k,v) in pred_dict.items() if len(v)>=2)
 
         random_pairs = []
         rand_preds = []
