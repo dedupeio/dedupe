@@ -974,21 +974,12 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         indexed_data = dict((i, dedupe.core.frozendict(v)) 
                             for i, v in enumerate(data.values()))
 
-        #make the predicate dict - split out into another function?
         pred_dict = defaultdict(list)
-        #loop through fields (cols)
-        for i, field in enumerate(self.data_model['fields']):
-            predicates = [predicate for predicate in field.predicates if predicate.type == 'SimplePredicate']
-            # loop through data (rows)
-            for row in indexed_data:
-                field_name = self.data_model.field_comparators[i][0] #this will always match up w/ data_model['fields'], right?
-                content = indexed_data[row][field_name]
-                #loop through predicates
-                for predicate in predicates:
-                    pred_values = predicate.func(content)
-                    for pred_val in pred_values:
-                        key = str(predicate) + '-' + str(pred_val) #is this ok as a key?
-                        pred_dict[key].append(row)
+        predicates = predicateGenerator(self.data_model)
+        blocker = blocking.Blocker(predicates)
+        for block_key, record_id in blocker(indexed_data.items()):
+            pred_dict[block_key].append(record_id)
+
         #only the predicates that have 2 or more records
         cleaned_dict = {k:v for k,v in pred_dict.items() if len(v)>=2}
 
