@@ -6,6 +6,9 @@ try:
 except ImportError :
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
+from Cython.Distutils import build_ext
+
+
 # from Michael Hoffman's http://www.ebi.ac.uk/~hoffman/software/sunflower/
 
 class NumpyExtension(Extension):
@@ -42,13 +45,11 @@ setup(
     version='0.7.3.2',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance'],
-    ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
-                 Extension('dedupe.cpredicates', ['src/cpredicates.c']),
-                 NumpyExtension('dedupe.distance.haversine', ['src/haversine.c'], libraries=['m']),
-                 NumpyExtension('dedupe.lr', sources=['src/lr.c'])],
-
-                 
-
+    ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.pyx']),
+                 Extension('dedupe.cpredicates', ['src/cpredicates.pyx']),
+                 NumpyExtension('dedupe.distance.haversine', ['src/haversine.pyx'], libraries=['m']),
+                 NumpyExtension('dedupe.lr', sources=['src/lr.pyx'])],
+    cmdclass = {'build_ext': build_ext },
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=install_requires,
     classifiers=[
