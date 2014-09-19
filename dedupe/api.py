@@ -943,29 +943,28 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         indexed_data = dict((i, dedupe.core.frozendict(v)) 
                             for i, v in enumerate(data.values()))
 
-        pred_dict = defaultdict(list)
-        predicates = predicateGenerator(self.data_model)
-        blocker = blocking.Blocker(predicates)
-        for block_key, record_id in blocker(indexed_data.items()):
-            pred_dict[block_key].append(record_id)
+        blockers = []
+        for definition in self.data_model['fields'] :
+            if hasattr(definition, 'predicates') :
+                for predicate in definition.predicates:
+                    blockers.append(blocking.Blocker(predicate))
 
-        #only the predicates that have 2 or more records
-        cleaned_dict = dict((k,v) for (k,v) in pred_dict.items() if len(v)>=2)
+        #create dict for each field-pred combo, where keys are pred blocks & values are record ids
+        pred_dicts = []
+        for blocker in blockers:
+            pred_dict = defaultdict(list)
+            for block_key, record_id in blocker(indexed_data.items()):
+                pred_dict[block_key].append(record_id)
+            cleaned_dict = dict((k,v) for (k,v) in pred_dict.items() if len(v)>=2)
+            if cleaned_dict:
+                pred_dicts.append(cleaned_dict)
 
+        #first randomly pick a field-pred combo, then randomly pick pred-value key, then randomly pick record pair
         random_pairs = []
-        rand_preds = []
-
-        #first randomly pick pred-value keys (sample w/o replacement if possible) from pred_dict
-        if sample_size <= len(cleaned_dict):
-            rand_preds = random.sample(cleaned_dict.keys(), sample_size)
-        else:
-            for i in range(sample_size):
-                rand_preds.append(random.choice(cleaned_dict.keys()))
-
-        #then randomly pick records for each pred-value key
-        for pred in rand_preds:
-            random_pairs.append(random.sample(cleaned_dict[pred], 2))
-
+        for i in range(sample_size):
+            rand_pred_dict = random.choice(pred_dicts)
+            rand_pred = random.choice(rand_pred_dict.keys())
+            random_pairs.append(random.sample(rand_pred_dict[rand_pred],2))
         data_sample = tuple((indexed_data[k1], 
                              indexed_data[k2]) 
                             for k1, k2 in random_pairs)
