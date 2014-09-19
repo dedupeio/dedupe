@@ -868,24 +868,12 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-
-    def _loadSample(self, *args, **kwargs) : # pragma : no cover
-
-        data_sample = self._sample(*args, **kwargs)
-
-        self._checkDataSample(data_sample) 
-
-        self.data_sample = data_sample
-
-        self.activeLearner = training.ActiveLearning(self.data_sample, 
-                                                     self.data_model)
-
-    def _loadMixedSample(self, data, sample_size, rand_p) :
+    def _loadSample(self, data, sample_size, rand_p) :
 
         rand_sample_size = int(rand_p * sample_size)
         blocked_sample_size = sample_size - rand_sample_size
 
-        random_sample = self._sample(data, rand_sample_size)
+        random_sample = self._randomSample(data, rand_sample_size)
         blocked_sample = self._blockedSample(data, blocked_sample_size)
 
         data_sample = random_sample + blocked_sample
@@ -916,14 +904,14 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     
     Public Methods
     - sample
-    - mixedSample
     """
 
     
-    def sample(self, data, sample_size=150000) :
+    def sample(self, data, sample_size=150000, rand_p=1) :
         '''
-        Draw a random sample of combinations of records from 
-        the the dataset, and initialize active learning with this sample
+        Draw a sample of record pairs from the dataset
+        (a mix of random pairs & pairs of similar records)
+        and initialize active learning with this sample
         
         Arguments:
         data        -- Dictionary of records, where the keys are record_ids 
@@ -931,11 +919,12 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                        field names
         
         sample_size -- Size of the sample to draw
+        rand_p      -- Proportion of the sample that will be random
         '''
         
-        self._loadSample(data, sample_size)
+        self._loadSample(data, sample_size, rand_p)
 
-    def _sample(self, data, sample_size) :
+    def _randomSample(self, data, sample_size) :
 
         indexed_data = dict((i, dedupe.core.frozendict(v)) 
                             for i, v in enumerate(data.values()))
@@ -948,26 +937,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                             for k1, k2 in random_pairs)
 
         return data_sample
-
-
-
-    def mixedSample(self, data, sample_size=150000, rand_p=.5) :
-        '''
-        Draw a mixed sample of record pairs from the the 
-        dataset (random pairs & pairs of similar records),
-        and initialize active learning with this sample
-        
-        Arguments:
-        data        -- Dictionary of records, where the keys are record_ids 
-                       and the values are dictionaries with the keys being 
-                       field names
-        
-        sample_size -- Size of the sample to draw
-
-        rand_p      -- Proportion of the sample that will be random
-        '''
-
-        self._loadMixedSample(data, sample_size, rand_p)
 
     def _blockedSample(self, data, sample_size) :
 
