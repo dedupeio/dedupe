@@ -113,6 +113,6 @@ class OperatorEscaper(object) :
                           "EOF"  : "\EOF"}
 
     def process(self, lst):
-        return [self.operators.get(w, w) for w in lst]
+        return [self.operators.get(w.upper(), w) for w in lst]
 
 
