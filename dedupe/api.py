@@ -943,28 +943,40 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         indexed_data = dict((i, dedupe.core.frozendict(v)) 
                             for i, v in enumerate(data.values()))
 
-        blockers = []
-        for definition in self.data_model['fields'] :
-            if hasattr(definition, 'predicates') :
-                for predicate in definition.predicates:
-                    blockers.append(blocking.Blocker(predicate))
+        predicates = predicateGenerator(self.data_model)
+        blocker = blocking.Blocker(predicates)
+        pred_dict = defaultdict(list)
 
-        #create dict for each field-pred combo, where keys are pred blocks & values are record ids
-        pred_dicts = []
-        for blocker in blockers:
-            pred_dict = defaultdict(list)
-            for block_key, record_id in blocker(indexed_data.items()):
-                pred_dict[block_key].append(record_id)
-            cleaned_dict = dict((k,v) for (k,v) in pred_dict.items() if len(v)>=2)
-            if cleaned_dict:
-                pred_dicts.append(cleaned_dict)
+        for block_key, record_id in blocker(indexed_data.items()) :
+            pred_id = block_key.split(':')[-1]
+            #create dict for each field-pred combo, where keys are pred blocks & values are record ids
+            if pred_id in pred_dict:
+                pred_dict[pred_id][block_key].append(record_id)
+            else:
+                pred_dict[pred_id] = defaultdict(list)
+                pred_dict[pred_id][block_key].append(record_id)
 
-        #first randomly pick a field-pred combo, then randomly pick pred-value key, then randomly pick record pair
+        #clean up pred_dict so that it only contains groups of 2+ records
+        for pred_id in pred_dict.keys():
+            for k, v in pred_dict[pred_id].items():
+                if len(v) < 2:
+                    pred_dict[pred_id].pop(k)
+            if len(pred_dict[pred_id]) == 0:
+                pred_dict.pop(pred_id)
+
+        #sample record pairs from pred_dict
         random_pairs = []
-        for i in range(sample_size):
-            rand_pred_dict = random.choice(pred_dicts)
-            rand_pred = random.choice(rand_pred_dict.keys())
-            random_pairs.append(random.sample(rand_pred_dict[rand_pred],2))
+        subsample_size = sample_size/len(pred_dict)
+        r = sample_size%len(pred_dict)
+        for pred_block in pred_dict.values():
+            for i in range(subsample_size):
+                rand_pred = random.choice(pred_block.keys())
+                random_pairs.append(random.sample(pred_block[rand_pred], 2))
+            if r>0:
+                rand_pred = random.choice(pred_block.keys())
+                random_pairs.append(random.sample(pred_block[rand_pred], 2))
+                r -= 1
+
         data_sample = tuple((indexed_data[k1], 
                              indexed_data[k2]) 
                             for k1, k2 in random_pairs)
