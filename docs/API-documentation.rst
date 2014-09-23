@@ -70,7 +70,7 @@ entity.
    <http://open-city.github.com/dedupe/doc/mysql_example.html>`__ for
    an example of how to create a data sample yourself.
 
-   .. py:method:: sample(data[, sample_size=150000])
+   .. py:method:: sample(data[, sample_size=150000, rand_p=1])
 
       If you did not initialize the Dedupe object with a data_sample, you
       will need to call this method to take a random sample of your data to be
@@ -80,10 +80,12 @@ entity.
 			where the values are dictionaries representing records.
       :param int sample_size: Number of record tuples to return. Defaults
 			      to 150,000.
+      :param float rand_p: The proportion of record tuples to be sampled
+            randomly (as opposed to sampled from similar records). Defaults to 1.
 
       .. code:: python
 
-	 data_sample = deduper.sample(data_d, 150000)
+	 data_sample = deduper.sample(data_d, 150000, .5)
 
 
 
