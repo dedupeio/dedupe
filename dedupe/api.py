@@ -966,22 +966,28 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         #sample record pairs from pred_dict
         random_pairs = []
-        subsample_size = sample_size/len(pred_dict)
-        r = sample_size%len(pred_dict)
-        for pred_block in pred_dict.values():
+        subsample_counts = _subsampleCount(sample_size, len(predicates))
+
+        for subsample_size, pred in zip(subsample_counts, pred_dict.keys()) :
             for i in range(subsample_size):
                 rand_pred = random.choice(pred_block.keys())
                 random_pairs.append(random.sample(pred_block[rand_pred], 2))
-            if r>0:
-                rand_pred = random.choice(pred_block.keys())
-                random_pairs.append(random.sample(pred_block[rand_pred], 2))
-                r -= 1
 
         data_sample = tuple((indexed_data[k1], 
                              indexed_data[k2]) 
                             for k1, k2 in random_pairs)
 
         return data_sample
+
+    def _subsampleCount(sample_size, n_chunks):
+
+        subsample_size = sample_size/n_chunks
+        subsamples = [subsample_size] * n_chunks
+
+        for i in range(sample_size % n_chunks) :
+            subsamples[i] += 1
+
+        return subsamples
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
