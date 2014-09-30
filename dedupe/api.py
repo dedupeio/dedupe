@@ -871,7 +871,6 @@ class ActiveMatching(Matching) :
     def _loadSample(self, *args, **kwargs) :
 
         data_sample = self._sample(*args, **kwargs)
-        print "***", len(data_sample)
 
         self._checkDataSample(data_sample) 
 
@@ -1025,7 +1024,20 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         self._loadSample(data_1, data_2, sample_size, rand_p)
 
-    def _sample(self, data_1, data_2, sample_size) :
+    def _sample(self, data_1, data_2, sample_size, rand_p) :
+
+        rand_sample_size = int(rand_p * sample_size)
+        blocked_sample_size = sample_size - rand_sample_size
+
+        random_sample = self._randomSample(data1, data2, rand_sample_size)
+        blocked_sample = self._blockedSample(data1, data2, blocked_sample_size)
+
+        data_sample = random_sample + blocked_sample
+
+        return data_sample
+
+
+    def _randomSample(self, data_1, data_2, sample_size):
 
         d_1 = dict((i, dedupe.core.frozendict(v)) 
                     for i, v in enumerate(data_1.values()))
@@ -1039,6 +1051,12 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         data_sample = tuple((d_1[int(k1)], 
                              d_2[int(k2)]) 
                             for k1, k2 in random_pairs)
+
+        return data_sample
+
+    def _blockedSample(self, data_1, data_2, sample_size):
+
+        data_sample = []
 
         return data_sample
 
