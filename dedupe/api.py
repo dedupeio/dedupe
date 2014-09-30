@@ -868,15 +868,10 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-    def _loadSample(self, data, sample_size, rand_p) :
+    def _loadSample(self, *args, **kwargs) :
 
-        rand_sample_size = int(rand_p * sample_size)
-        blocked_sample_size = sample_size - rand_sample_size
-
-        random_sample = self._randomSample(data, rand_sample_size)
-        blocked_sample = self._blockedSample(data, blocked_sample_size)
-
-        data_sample = random_sample + blocked_sample
+        data_sample = self._sample(*args, **kwargs)
+        print "***", len(data_sample)
 
         self._checkDataSample(data_sample) 
 
@@ -923,6 +918,18 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         '''
         
         self._loadSample(data, sample_size, rand_p)
+
+    def _sample(self, data, sample_size, rand_p) :
+
+        rand_sample_size = int(rand_p * sample_size)
+        blocked_sample_size = sample_size - rand_sample_size
+
+        random_sample = self._randomSample(data, rand_sample_size)
+        blocked_sample = self._blockedSample(data, blocked_sample_size)
+
+        data_sample = random_sample + blocked_sample
+
+        return data_sample
 
     def _randomSample(self, data, sample_size) :
 
@@ -978,16 +985,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         return data_sample
 
-def subsampleCount(sample_size, n_chunks):
-
-    subsample_size = sample_size/n_chunks
-    subsamples = [subsample_size] * n_chunks
-
-    for i in range(sample_size % n_chunks) :
-        subsamples[i] += 1
-
-    return subsamples
-
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
@@ -1008,7 +1005,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
 
-    def sample(self, data_1, data_2, sample_size=150000) :
+    def sample(self, data_1, data_2, sample_size=150000, rand_p=1) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -1023,9 +1020,10 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
                        form as data_1
         
         sample_size -- Size of the sample to draw
+        rand_p      -- Proportion of the sample that will be random
         '''
         
-        self._loadSample(data_1, data_2, sample_size)
+        self._loadSample(data_1, data_2, sample_size, rand_p)
 
     def _sample(self, data_1, data_2, sample_size) :
 
@@ -1131,3 +1129,13 @@ def predicateGenerator(data_model) :
             predicates.update(definition.predicates)
 
     return predicates
+
+def subsampleCount(sample_size, n_chunks):
+
+    subsample_size = sample_size/n_chunks
+    subsamples = [subsample_size] * n_chunks
+
+    for i in range(sample_size % n_chunks) :
+        subsamples[i] += 1
+
+    return subsamples
