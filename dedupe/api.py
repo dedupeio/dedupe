@@ -955,39 +955,38 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             else:
                 pred_dict[pred_id] = defaultdict(list)
                 pred_dict[pred_id][block_key].append(record_id)
-
+        
         #clean up pred_dict so that it only contains groups of 2+ records
-        for pred_id in pred_dict.keys():
-            for k, v in pred_dict[pred_id].items():
+        for pred_block_id in pred_dict.keys():
+            for k, v in pred_dict[pred_block_id].items():
                 if len(v) < 2:
-                    pred_dict[pred_id].pop(k)
-            if len(pred_dict[pred_id]) == 0:
-                pred_dict.pop(pred_id)
-
+                    pred_dict[pred_block_id].pop(k)
+            if len(pred_dict[pred_block_id]) == 0:
+                pred_dict.pop(pred_block_id)
+        
         #sample record pairs from pred_dict
         random_pairs = []
-        subsample_counts = _subsampleCount(sample_size, len(predicates))
+        subsample_counts = subsampleCount(sample_size, len(pred_dict))
 
-        for subsample_size, pred in zip(subsample_counts, pred_dict.keys()) :
+        for subsample_size, pred_block in zip(subsample_counts, pred_dict) :
             for i in range(subsample_size):
-                rand_pred = random.choice(pred_block.keys())
-                random_pairs.append(random.sample(pred_block[rand_pred], 2))
-
+                rand_pred = random.choice(pred_dict[pred_block].keys())
+                random_pairs.append(random.sample(pred_dict[pred_block][rand_pred], 2))
         data_sample = tuple((indexed_data[k1], 
                              indexed_data[k2]) 
                             for k1, k2 in random_pairs)
 
         return data_sample
 
-    def _subsampleCount(sample_size, n_chunks):
+def subsampleCount(sample_size, n_chunks):
 
-        subsample_size = sample_size/n_chunks
-        subsamples = [subsample_size] * n_chunks
+    subsample_size = sample_size/n_chunks
+    subsamples = [subsample_size] * n_chunks
 
-        for i in range(sample_size % n_chunks) :
-            subsamples[i] += 1
+    for i in range(sample_size % n_chunks) :
+        subsamples[i] += 1
 
-        return subsamples
+    return subsamples
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
