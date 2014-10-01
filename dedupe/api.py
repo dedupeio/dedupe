@@ -868,9 +868,7 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-    def _loadSample(self, *args, **kwargs) :
-
-        data_sample = self._sample(*args, **kwargs)
+    def _loadSample(data_sample) :
 
         self._checkDataSample(data_sample) 
 
@@ -915,10 +913,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         sample_size -- Size of the sample to draw
         rand_p      -- Proportion of the sample that will be random
         '''
-        
-        self._loadSample(data, sample_size, rand_p)
-
-    def _sample(self, data, sample_size, rand_p) :
 
         rand_sample_size = int(rand_p * sample_size)
         blocked_sample_size = sample_size - rand_sample_size
@@ -927,8 +921,9 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_sample = self._blockedSample(data, blocked_sample_size)
 
         data_sample = random_sample + blocked_sample
+        
+        self._loadSample(data_sample)
 
-        return data_sample
 
     def _randomSample(self, data, sample_size) :
 
@@ -1021,10 +1016,6 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         sample_size -- Size of the sample to draw
         rand_p      -- Proportion of the sample that will be random
         '''
-        
-        self._loadSample(data_1, data_2, sample_size, rand_p)
-
-    def _sample(self, data_1, data_2, sample_size, rand_p) :
 
         rand_sample_size = int(rand_p * sample_size)
         blocked_sample_size = sample_size - rand_sample_size
@@ -1034,7 +1025,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         data_sample = random_sample + blocked_sample
 
-        return data_sample
+        self._loadSample(data_sample)
 
 
     def _randomSample(self, data_1, data_2, sample_size):
