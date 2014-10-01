@@ -8,12 +8,13 @@ __all__ = ['affinegap',
            'backport',
            'predicates',
            'crossvalidation',
-           'distance'
+           'distance',
+           'centroid'
            ]
 
 #from distance import affinegap
 from api import StaticDedupe, Dedupe
 from api import StaticRecordLink, RecordLink
-from core import randomPairs
-from convenience import consoleLabel, trainingDataDedupe, trainingDataLink
-from AsciiDammit import asciiDammit
+from api import StaticGazetteer, Gazetteer
+from core import randomPairs, randomPairsMatch, frozendict
+from convenience import consoleLabel, trainingDataDedupe, trainingDataLink, canonicalize

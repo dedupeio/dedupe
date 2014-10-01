@@ -24,6 +24,10 @@ logging.getLogger().setLevel(log_level)
 #logging.basicConfig(level=log_level)
 
 
+#import random
+#import sys
+#random.seed(365072799328404092)
+
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
 
@@ -70,40 +74,36 @@ t0 = time.time()
 print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
-    deduper = dedupe.StaticDedupe(settings_file)
+    with open(settings_file, 'rb') as f:
+        deduper = dedupe.StaticDedupe(f, 1)
 else:
-    fields = {'name': {'type': 'String'},
-              'address': {'type': 'String'},
-              'cuisine': {'type': 'ShortString'},
-              'city' : {'type' : 'ShortString'}
-              }
+    fields = [{'field' : 'name', 'type': 'String'},
+              {'field' : 'name', 'type': 'Exact'},
+              {'field' : 'address', 'type': 'String'},
+              {'field' : 'cuisine', 'type': 'ShortString'},
+              {'field' : 'city', 'type' : 'ShortString'}
+              ]
 
-    deduper = dedupe.Dedupe(fields)
+    deduper = dedupe.Dedupe(fields, num_cores=5)
     deduper.sample(data_d, 1000000)
     deduper.markPairs(training_pairs)
     deduper.train()
-    deduper.writeSettings(settings_file)
+    with open(settings_file, 'wb') as f:
+        deduper.writeSettings(f)
 
 
-alpha = deduper.threshold(data_d)
+alpha = deduper.threshold(data_d, 1.5)
 
 # print candidates
 print 'clustering...'
 clustered_dupes = deduper.match(data_d, threshold=alpha)
 
-print 'Evaluate Scoring'
-found_dupes = set([frozenset((data_d[pair[0]], data_d[pair[1]])) 
-                   for (pair, score) in deduper.matches
-                   if score > alpha])
-
-evaluateDuplicates(found_dupes, duplicates_s)
-
 print 'Evaluate Clustering'
-
 confirm_dupes = set([])
-for dupe_set in clustered_dupes:
-    for pair in combinations(dupe_set, 2):
-        confirm_dupes.add(frozenset((data_d[pair[0]], data_d[pair[1]])))
+for dupes, score in clustered_dupes:
+    for pair in combinations(dupes, 2):
+        confirm_dupes.add(frozenset((data_d[pair[0]], 
+                                     data_d[pair[1]])))
 
 evaluateDuplicates(confirm_dupes, duplicates_s)
 

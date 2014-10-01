@@ -69,19 +69,21 @@ t0 = time.time()
 print 'number of known duplicate pairs', len(duplicates_s)
 
 if os.path.exists(settings_file):
-    deduper = dedupe.StaticRecordLink(settings_file)
+    with open(settings_file) as f :
+        deduper = dedupe.StaticRecordLink(f)
 else:
-    fields = {'name': {'type': 'String'},
-              'address': {'type': 'String'},
-              'cuisine': {'type': 'String'},
-              'city' : {'type' : 'String'}
-              }
+    fields = [{'field': 'name', 'type': 'String'},
+              {'field': 'address', 'type': 'String'},
+              {'field': 'cuisine', 'type': 'String'},
+              {'field': 'city','type' : 'String'}
+              ]
 
     deduper = dedupe.RecordLink(fields)
     deduper.sample(data_1, data_2, 100000) 
     deduper.markPairs(training_pairs)
     deduper.train()
-    deduper.writeSettings(settings_file)
+    with open(settings_file, 'wb') as f:
+        deduper.writeSettings(f)
 
 
 alpha = deduper.threshold(data_1, data_2)
@@ -91,19 +93,11 @@ alpha = deduper.threshold(data_1, data_2)
 print 'clustering...'
 clustered_dupes = deduper.match(data_1, data_2, threshold=alpha)
 
-
-print 'Evaluate Scoring'
-found_dupes = set(frozenset((data_1[pair[0]], data_2[pair[1]])) 
-                   for (pair, score) in deduper.matches
-                   if score > alpha)
-
-evaluateDuplicates(found_dupes, duplicates_s)
-
 print 'Evaluate Clustering'
-
 confirm_dupes = set(frozenset((data_1[pair[0]], data_2[pair[1]])) 
-                    for pair in clustered_dupes)
+                    for pair, score in clustered_dupes)
 
 evaluateDuplicates(confirm_dupes, duplicates_s)
 
 print 'ran in ', time.time() - t0, 'seconds'
+

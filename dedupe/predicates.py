@@ -3,11 +3,123 @@
 
 import re
 import math
+import itertools
 
 from dedupe.cpredicates import ngrams, initials
 
 words = re.compile("[\w']+").findall
 integers = re.compile("\d+").findall
+start_word = re.compile("^[\w']+").findall
+start_integer = re.compile("^\d+").findall
+
+class Predicate(object) :
+    def __iter__(self) :
+        yield self
+        
+    def __repr__(self) :
+        return "%s: %s" % (self.type, self.__name__)
+
+    def __hash__(self):
+        return hash(repr(self))
+
+    def __eq__(self, other) :
+        return repr(self) == repr(other)
+
+class SimplePredicate(Predicate) :
+    type = "SimplePredicate"
+
+    def __init__(self, func, field) :
+        self.func = func
+        self.__name__ = "(%s, %s)" % (func.__name__, field)
+        self.field = field
+
+    def __call__(self, record_id, record) :
+        column = record[self.field]
+        return [unicode(block_key) for block_key in self.func(column)]
+
+
+
+class TfidfPredicate(Predicate):
+    type = "TfidfPredicate"
+
+    def __init__(self, threshold, field):
+        self.__name__ = '(%s, %s)' % (threshold, field)
+        self.field = field
+        self.canopy = {}
+        self.threshold = threshold
+        self._index = None
+
+    def __call__(self, record_id, record) :
+        centers = self.canopy.get(record_id)
+
+        if centers is not None :
+            blocks = [unicode(center) for center in centers]
+        else:
+            blocks = ()
+
+        return blocks
+        
+    @property
+    def index(self) :
+        return self._index
+        
+    @index.setter
+    def index(self, value) :
+        self.old_class = self.__class__
+        self.__class__ = TfidfIndexPredicate
+
+        self._index = value
+
+    @index.deleter
+    def index(self) :
+        self.__class__ = self.old_class
+
+
+    def __getstate__(self):
+
+        result = self.__dict__.copy()
+
+        return {'__name__': result['__name__'],
+                'field' : result['field'],
+                'threshold' : result['threshold']}
+
+    def __setstate__(self, d) :
+        self.__dict__ = d
+        self._index = None
+        self.canopy = {}
+
+class TfidfIndexPredicate(TfidfPredicate) :
+
+    def __call__(self, record_id, record) :
+        centers = self.canopy.get(record_id)
+
+        if centers is None :
+            centers = self.index.search(record[self.field], self.threshold)
+        
+        blocks = [unicode(center) for center in centers]
+            
+        return blocks
+
+class CompoundPredicate(Predicate) :
+    type = "CompoundPredicate"
+
+    def __init__(self, predicates) :
+        self.predicates = predicates
+        self.__name__ = u'(%s)' % u', '.join([unicode(pred)
+                                              for pred in 
+                                              predicates])
+
+    def __iter__(self) :
+        for pred in self.predicates :
+            yield pred
+
+    def __call__(self, record_id, record) :
+        predicate_keys = (predicate(record_id, record)
+                          for predicate in self.predicates)
+        return [u':'.join(block_key)
+                for block_key
+                in itertools.product(*predicate_keys)]
+ 
 
 def wholeFieldPredicate(field):
     """return the whole field"""
@@ -20,6 +132,10 @@ def wholeFieldPredicate(field):
 def tokenFieldPredicate(field):
     """returns the tokens"""
     return set(words(field))
+
+def firstTokenPredicate(field) :
+    first_token = start_word(field)
+    return tuple(first_token)
 
 def commonIntegerPredicate(field):
     """return any integers"""
@@ -36,6 +152,9 @@ def nearIntegersPredicate(field):
         
     return near_ints
 
+def firstIntegerPredicate(field) :
+    first_token = start_integer(field)
+    return tuple(first_token)
     
 def commonFourGram(field):
     """return 4-grams"""

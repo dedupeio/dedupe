@@ -27,7 +27,6 @@ class NumpyExtension(Extension):
 install_requires=['numpy', 
                   'fastcluster', 
                   'hcluster', 
-                  'networkx', 
                   'zope.interface', 
                   'zope.index']
 
@@ -40,7 +39,7 @@ except ImportError:
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.5.3.0',
+    version='0.7.3.3',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance'],
     ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),

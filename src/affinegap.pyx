@@ -1,5 +1,5 @@
-#!python
 #cython: boundscheck=False, wraparound=False
+#cdivision=True
 # cython: c_string_type=unicode, c_string_encoding=utf8
 
 from libc cimport limits
@@ -16,12 +16,15 @@ cdef double NAN = <double> np.nan
 # "The field matching problem: Algorithms and applications" 
 # http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.23.9685
 
-cpdef float affineGapDistance(char *string1, char *string2,
+cpdef float affineGapDistance(basestring string_a, basestring string_b,
                               float matchWeight = 1,
                               float mismatchWeight = 11,
                               float gapWeight = 10,
                               float spaceWeight = 7,
                               float abbreviation_scale = .125):
+
+  cdef unicode string1 = _ustring(string_b)
+  cdef unicode string2 = _ustring(string_a)
 
   cdef int length1 = len(string1)
   cdef int length2 = len(string2)
@@ -43,13 +46,12 @@ cpdef float affineGapDistance(char *string1, char *string2,
       string1, string2 = string2, string1
       length1, length2 = length2, length1
 
-  # Initialize C Arrays      
+  # Initialize C Arrays
   cdef int memory_size = sizeof(float) * (length1+1)
   cdef float *D = <float*> malloc(memory_size)
   cdef float *V_current = <float*> malloc(memory_size)
   cdef float *V_previous = <float*> malloc(memory_size)
 
-  cdef char char1, char2
   cdef int i, j
   cdef float distance
 
@@ -65,7 +67,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
     V_current[j] = gapWeight + spaceWeight * j
     D[j] = limits.INT_MAX
 
-  for i in range(1, length2+1) :
+  for i in range(1, length2 +1) :
     char2 = string2[i-1]
     # V_previous = V_current
     for _ in range(0, length1 + 1) :
@@ -77,7 +79,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
     V_current[0] = gapWeight + spaceWeight * i
     I = limits.INT_MAX
   
-    for j in range(1, length1 + 1) :
+    for j in range(1, length1+1) :
       char1 = string1[j-1]
 
       # I(i,j) is the edit distance if the jth character of string 1
@@ -121,7 +123,7 @@ cpdef float affineGapDistance(char *string1, char *string2,
 
   return distance
 
-cpdef float normalizedAffineGapDistance(char *string1, char *string2,
+cpdef float normalizedAffineGapDistance(basestring string1, basestring string2,
                                         float matchWeight = 1,
                                         float mismatchWeight = 11,
                                         float gapWeight = 10,
@@ -134,7 +136,7 @@ cpdef float normalizedAffineGapDistance(char *string1, char *string2,
     if length1 == 0 or length2 == 0 :
         return NAN
 
-    cdef float normalizer = len(string1) + len(string2)
+    cdef float normalizer = length1 + length2
 
     cdef float distance = affineGapDistance(string1, string2,
                                             matchWeight,
@@ -145,4 +147,9 @@ cpdef float normalizedAffineGapDistance(char *string1, char *string2,
 
     return distance/normalizer
 
-
+cdef unicode _ustring(basestring s):
+    if type(s) is unicode:
+        # fast path for most common case(s)
+        return <unicode>s
+    else : # safe because of basestring
+        return <char *>s

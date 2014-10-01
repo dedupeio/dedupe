@@ -7,355 +7,139 @@ import itertools
 import dedupe.predicates
 import dedupe.blocking
 
-from dedupe.distance.affinegap import normalizedAffineGapDistance
-from dedupe.distance.haversine import compareLatLong
-from dedupe.distance.categorical import CategoricalComparator
+import dedupe.fieldclasses
+from dedupe.fieldclasses import InteractionType, MissingDataType
 
-valid_fields = ['String',
-                'ShortString',
-                'LatLong',
-                'Set',
-                'Source',
-                'Text',
-                'Categorical',
-                'Custom',
-                'Interaction']
+field_classes = {'String' : dedupe.fieldclasses.StringType,
+                 'ShortString' : dedupe.fieldclasses.ShortStringType,
+                 'LatLong' : dedupe.fieldclasses.LatLongType,
+                 'Set' : dedupe.fieldclasses.SetType, 
+                 'Source' : dedupe.fieldclasses.SourceType,
+                 'Text' : dedupe.fieldclasses.TextType,
+                 'Categorical' : dedupe.fieldclasses.CategoricalType,
+                 'Custom' : dedupe.fieldclasses.CustomType,
+                 'Exact' : dedupe.fieldclasses.ExactType,
+                 'Interaction' : dedupe.fieldclasses.InteractionType}
 
 class DataModel(dict) :
     def __init__(self, fields):
 
         self['bias'] = 0
-        self['fields'] = self.buildModel(fields)
 
-        self.fieldDistanceVariables()
+        field_model = typifyFields(fields)
+
+        field_model = sourceFields(field_model)
+        field_model = interactions(field_model)
+        field_model = missing(field_model)
+
+        field_model = sorted(field_model)
+
+        self['fields'] = field_model
 
         self.total_fields = len(self['fields'])
 
-    def buildModel(self, fields) :
-        field_model = OrderedDict()
-        interaction_terms = OrderedDict()
-        source_interactions = OrderedDict()
-        categoricals = OrderedDict()
 
-        for field, definition in fields.iteritems():
+    @property
+    def field_comparators(self) :
+        return [(field.field, field.comparator) 
+                for field 
+                in self['fields'] 
+                if hasattr(field, 'comparator')]
 
-            self.checkFieldDefinitions(definition)
+    @property 
+    def missing_field_indices(self) : 
+        return [i for i, definition 
+                in enumerate(self['fields'])
+                if definition.has_missing]
 
-            if definition['type'] == 'LatLong' :
-                field_model[field] = LatLongType(field, definition)
-                
-                
-            elif definition['type'] == 'String' :
-                field_model[field] = StringType(field, definition)
-
-            elif definition['type'] == 'Set' :
-                if 'corpus' not in definition :
-                    definition['corpus'] = None 
-                field_model[field] = SetType(field, definition)
-
-            elif definition['type'] == 'Text' :
-                if 'corpus' not in definition :
-                    definition['corpus'] = None 
-                field_model[field] = TextType(field, definition)
-
-            elif definition['type'] == 'ShortString' :
-                field_model[field] = ShortStringType(field, definition)
-
-            elif definition['type'] == 'Custom' :
-                field_model[field] = CustomType(field, definition)
-            
-            elif definition['type'] == 'Categorical' :
-                field_model[field] = CategoricalType(field, definition) 
-                categoricals.update(field_model[field].higher_dummies)
-
-            elif definition['type'] == 'Source' :
-                field_model[field] = SourceType(field, definition) 
-                categoricals.update(field_model[field].higher_dummies)
-
-                for other_field in fields :
-                    if other_field != field :
-                        source_interactions[str((field, other_field))] =\
-                            {"type" : "Interaction",
-                             "Interaction Fields" : (field, other_field)}
-
-            elif definition['type'] == 'Interaction' :
-                interaction_terms[field] = definition
-
-        field_model = OrderedDict(field_model.items()
-                                  + categoricals.items())
-
-        interaction_terms.update(source_interactions)
-
-        for field, definition in interaction_terms.items() :
-            field_model[field] = InteractionType(field, definition, field_model)
-            field_model.update(field_model[field].dummyInteractions(field_model))
-
-        for field, definition in  field_model.items() :
-            if definition.has_missing :
-                field_name = "%s: not missing" % field 
-                field_model[field_name] = MissingDataType(field_name)
-
-        return field_model
-
-    def checkFieldDefinitions(self, definition) :
-        if definition.__class__ is not dict:
-            raise ValueError("Incorrect field specification: field "
-                             "specifications are dictionaries that must "
-                             "include a type definition, ex. "
-                             "{'Phone': {type: 'String'}}"
-                             )
-
-        elif 'type' not in definition:
-            raise ValueError("Missing field type: field "
-                             "specifications are dictionaries that must "
-                             "include a type definition, ex. "
-                             "{'Phone': {type: 'String'}}"
-                             )
-
-        elif definition['type'] not in valid_fields :
-            raise ValueError("Field type %s not valid. Valid types include %s"
-                             % (definition['type'], ', '.join(valid_fields)))
-        
-        elif definition['type'] != 'Custom' and 'comparator' in definition :
-            raise ValueError("Custom comparators can only be defined "
-                             "for fields of type 'Custom'")
-                
-        elif definition['type'] == 'Custom' and 'comparator' not in definition :
-                raise ValueError("For 'Custom' field types you must define "
-                                 "a 'comparator' function in the field "
-                                 "definition. ")
-
-
-    def fieldDistanceVariables(self) :
+    @property
+    def interactions(self) :
+        indices = []
 
         fields = self['fields']
-        field_names = fields.keys()
+        field_names = [field.name for field in fields]
 
-        self.interactions = []
-        self.categorical_indices = []
-
-        self.field_comparators = OrderedDict([(field, fields[field].comparator)
-                                              for field in fields
-                                              if fields[field].comparator])
-
-    
-        self.missing_field_indices = [i for i, (field, definition) 
-                                      in enumerate(fields.items())
-                                      if definition.has_missing]
-
-        for field, definition in fields.items() :
-            if definition.type == 'Interaction' :
+        for definition in fields :
+            if hasattr(definition, 'interaction_fields') :
                 interaction_indices = []
                 for interaction_field in definition.interaction_fields :
                     interaction_indices.append(field_names.index(interaction_field))
-                self.interactions.append(interaction_indices)
-            if definition.type in ('Source', 'Categorical') :
-                self.categorical_indices.append((field_names.index(field),
-                                                 len(definition.higher_dummies)))
+                indices.append(interaction_indices)
+                
+        return indices
 
+    @property
+    def categorical_indices(self) :
 
+        indices = []
+        field_model = self['fields']
 
-class FieldType(object) :
-    weight = 0
-    comparator = None
-    simple_predicates = []    
-             
-    def __init__(self, field, definition) :
-        self.field = field
+        for definition in self['fields'] :
+            if hasattr(definition, 'dummies') :
+                indices.append((field_model.index(definition),
+                                len(definition.dummies)))
 
-        if definition.get('Has Missing', False) :
-            self.has_missing = True
-        else :
-            self.has_missing = False
+        return indices
 
-        self.predicates = [dedupe.blocking.SimplePredicate(pred, field) 
-                           for pred in self.simple_predicates]
+def typifyFields(fields) :
+    field_model = set([])
 
-class ShortStringType(FieldType) :
-    comparator = normalizedAffineGapDistance
-    type = "ShortString"
-
-    simple_predicates = (dedupe.predicates.wholeFieldPredicate,
-                         dedupe.predicates.tokenFieldPredicate,
-                         dedupe.predicates.commonIntegerPredicate,
-                         dedupe.predicates.sameThreeCharStartPredicate,
-                         dedupe.predicates.sameFiveCharStartPredicate,
-                         dedupe.predicates.sameSevenCharStartPredicate,
-                         dedupe.predicates.nearIntegersPredicate,
-                         dedupe.predicates.commonFourGram,
-                         dedupe.predicates.commonSixGram)
-
-
-class StringType(ShortStringType) :
-    comparator = normalizedAffineGapDistance
-    type = "String"
-
-    canopy_predicates = (0.2, 0.4, 0.6, 0.8)
-
-    def __init__(self, field, definition) :
-        super(StringType, self).__init__(field, definition)
-
-        canopy_predicates = [dedupe.blocking.TfidfPredicate(threshold, field)
-                             for threshold in self.canopy_predicates]
-
-        self.predicates += canopy_predicates
-
-
-class TextType(StringType) :
-    type = "Text"
-
-    def __init__(self, field, definition) :
-        super(TextType, self).__init__(field, definition)
-
-        self.comparator = dedupe.distance.CosineTextSimilarity(definition['corpus'])
-
-
-class LatLongType(FieldType) :
-    comparator = compareLatLong
-    type = "LatLong"
-
-    simple_predicates = [dedupe.predicates.latLongGridPredicate]
-
-
-class SetType(FieldType) :
-    type = "Set"
-
-    simple_predicates = (dedupe.predicates.wholeSetPredicate,
-                         dedupe.predicates.commonSetElementPredicate)
-
-    canopy_predicates = (0.2, 0.4, 0.6, 0.8)
-
-    def __init__(self, field, definition) :
-        super(SetType, self).__init__(field, definition)
-
-        canopy_predicates = [dedupe.blocking.TfidfSetPredicate(threshold, field)
-                             for threshold in self.canopy_predicates]
-
-        self.predicates += canopy_predicates
-
-        self.comparator = dedupe.distance.CosineSetSimilarity(definition['corpus'])
-
-
-class HigherDummyType(FieldType) :
-    type = "HigherOrderDummy"
-
-    def __init__(self, field, definition) :
-        super(HigherDummyType, self ).__init__(field, definition)
-
-        self.value = definition["value"]
-        
-class CategoricalType(FieldType) :
-    type = "Categorical"
-    
-
-    def _categories(self, definition) :
+    for definition in fields :
         try :
-            categories = definition["Categories"]
+            field_type = definition['type']
+        except TypeError :
+            raise TypeError("Incorrect field specification: field "
+                            "specifications are dictionaries that must "
+                            "include a type definition, ex. "
+                            "{'field' : 'Phone', type: 'String'}")
         except KeyError :
-            raise ValueError('No "Categories" defined')
-        
-        return categories
-
-    def __init__(self, field, definition) :
-
-        super(CategoricalType, self ).__init__(field, definition)
-        
-        categories = self._categories(definition)
-
-        self.comparator = CategoricalComparator(categories)
-
-        self.higher_dummies = OrderedDict()
-
-        for value, combo in sorted(self.comparator.combinations[2:]) :
-            combo = str(combo)
-            self.higher_dummies[str(combo)] = HigherDummyType(combo, 
-                                                              {'value' : value,
-                                                               'Has Missing' : self.has_missing})
-
-class SourceType(CategoricalType) :
-    type = "Source"
-
-    def _categories(self, definition) :
+            raise KeyError("Missing field type: fields "
+                           "specifications are dictionaries that must "
+                           "include a type definition, ex. "
+                           "{'field' : 'Phone', type: 'String'}")
         try :
-            categories = definition["Source Names"]
+            field_class = field_classes[field_type]
         except KeyError :
-            raise ValueError('No "Source Names" defined')
+            raise KeyError("Field type %s not valid. Valid types include %s"
+                           % (definition['type'], ', '.join(field_classes)))
 
-        if len(categories) != 2 :
-            raise ValueError("You must supply two and only " 
-                             "two source names")
+        field_object = field_class(definition)
+        field_model.add(field_object)
         
-        return categories            
+        if hasattr(field_object, 'dummies') :
+            field_model.update(field_object.dummies)
 
+    return field_model
 
-class InteractionType(FieldType) :
-    type = "Interaction"
-    
-    def __init__(self, field_name, definition, field_model) :
-        super(InteractionType, self).__init__(field_name, definition)
+def missing(field_model) :
+    for definition in list(field_model) :
+        if definition.has_missing :
+            field_model.add(MissingDataType(definition.name))
 
-        interactions = definition["Interaction Fields"]
-        self.interaction_fields = self.atomicInteractions(interactions,
-                                                          field_model)
-        for field in self.interaction_fields :
-            if field_model[field].has_missing :
-                self.has_missing = True
+    return field_model
 
-    def atomicInteractions(self, interactions, field_model) :
-        atomic_interactions = []
-        
-        for field in interactions :
-            if field_model[field].type == "Interaction" :
-                sub_interactions = field_model[field].interaction_fields
-                atomic_interactions.extend(self.atomicInteractions(sub_interactions,
-                                                                   field_model))
-            else :
-                atomic_interactions.append(field)
+def interactions(field_model) :
+    field_d = dict((field.name, field) for field in field_model)
 
-        return atomic_interactions
+    for field in list(field_model) : 
+        if hasattr(field, 'expandInteractions') :
+            field.expandInteractions(field_d)
+            field_model.update(field.dummyInteractions(field_d))
 
+    return field_model
 
-    def dummyInteractions(self, field_model) :
-        dummy_interactions = OrderedDict()
+def sourceFields(field_model) :
+    source_fields = [field for field in field_model 
+                     if field.type == "Source"]
 
-        categorical_fields = set([])
-        higher_order_dummies = []
+    for source_field in source_fields :
+        for field in list(field_model) :
+            if field != source_field :
+                if (not hasattr(field, 'base_name') 
+                    or field.base_name != source_field.name) :
+                    interaction = InteractionType({"interaction variables" : 
+                                                   (source_field.name, 
+                                                    field.name)})
+                    field_model.add(interaction)
 
-        for field in self.interaction_fields :
-            if field_model[field].type in ('Categorical', 'Source') :
-                categorical_fields.add(field)
-                dummies = [field]
-                dummies.extend(field_model[field].higher_dummies)
-                higher_order_dummies.append(dummies)
-        
-        other_fields = set(self.interaction_fields) - categorical_fields
-        other_fields = tuple(other_fields)
-
-        for level in itertools.product(*higher_order_dummies) :
-            if level and set(level) != categorical_fields :
-                interaction_fields = level + other_fields
-                field = str(interaction_fields)
-                dummy_interactions[field] =\
-                    InteractionType(field,
-                                    {"Interaction Fields" : interaction_fields,
-                                     "Has Missing" : self.has_missing},
-                                    field_model)
-
-        return dummy_interactions
-
-class MissingDataType(FieldType) :
-    type = "MissingData"
-
-    def __init__(self, field) :
-        super(MissingDataType, self).__init__(field, {})
-    
-
-class CustomType(FieldType) :
-    type = "Custom"
-
-    def __init__(self, field, definition) :
-        super(CustomType, self).__init__(field, definition)
-
-        self.comparator = definition["comparator"]
-
-
+    return field_model

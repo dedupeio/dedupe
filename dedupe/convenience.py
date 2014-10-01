@@ -1,10 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import sys
 import collections
 import itertools
 import random
 from dedupe.core import randomPairs
+from centroid import getCanonicalRep
 
 def consoleLabel(deduper): # pragma : no cover
     '''
@@ -27,17 +27,16 @@ def consoleLabel(deduper): # pragma : no cover
             labeled = False
 
             for pair in record_pair:
-                for field in deduper.data_model.field_comparators :
-                    line = "%s : %s\n" % (field, pair[field])
-                    sys.stderr.write(line)
-                sys.stderr.write('\n')
+                for field in set(field for field, compare 
+                                 in deduper.data_model.field_comparators) :
+                    line = "%s : %s" % (field, pair[field])
+                    print line
+                print 
 
-            sys.stderr.write('Do these records refer to the same thing?\n')
-
+            print 'Do these records refer to the same thing?'
             valid_response = False
             while not valid_response:
-                sys.stderr.write('(y)es / (n)o / (u)nsure / (f)inished\n')
-                label = sys.stdin.readline().strip()
+                label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
 
@@ -48,10 +47,10 @@ def consoleLabel(deduper): # pragma : no cover
                 labels['distinct'].append(record_pair)
                 labeled = True
             elif label == 'f':
-                sys.stderr.write('Finished labeling\n')
+                print 'Finished labeling'
                 finished = True
             elif label != 'u':
-                sys.stderr.write('Nonvalid response\n')
+                print 'Nonvalid response'
                 raise
 
         if labeled :
@@ -175,3 +174,14 @@ def trainingDataDedupe(data, common_key, training_size=50000) :
                       'distinct' : distinct_records} 
 
     return training_pairs
+
+
+def canonicalize(record_cluster):
+    """
+    Constructs a canonical representation of a duplicate cluster by finding canonical values for each field
+
+    Arguments:
+    record_cluster     --A list of records within a duplicate cluster, where the records are dictionaries with field 
+                         names as keys and field values as values
+    """
+    return getCanonicalRep(record_cluster)

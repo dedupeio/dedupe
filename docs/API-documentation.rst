@@ -8,18 +8,17 @@ Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
 entity. 
 
-.. py:class:: Dedupe(field_definition, [data_sample=None, [num_processes]])
+.. py:class:: Dedupe(variable_definition, [data_sample=None, [num_cores]])
 
-   Initialize a Dedupe object with a :doc:`field definition <Field-definition>`
+   Initialize a Dedupe object with a :doc:`field definition <Variable-definition>`
 
-   :param dict field_definition: A field definition is a dictionary
-				 where the keys are the fields that
-				 will be used for training a model
-				 and the values are the field
-				 specifications 
+   :param dict variable_definition: A variable definition is list of 
+				    dictionaries describing the variables
+				    will be used for training a model.
    :param data_sample: is an optional argument that we discuss below
-   :param int num_processes: the number of processes to use for parallel
-			     processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
    In order to learn how to deduplicate records, dedupe needs a sample
    of records you are trying to deduplicate. If your data is not too
@@ -30,14 +29,14 @@ entity.
    .. code:: python
 
       # initialize from a defined set of fields
-      fields = {
-	        'Site name': {'type': 'String'},
-		'Address': {'type': 'String'},
-		'Zip': {'type': 'String', 'Has Missing':True},
-		'Phone': {'type': 'String', 'Has Missing':True},
-		}
+      variables = [
+	           {'field' : 'Site name', 'type': 'String'},
+		   {'field' : 'Address', 'type': 'String'},
+		   {'field' : 'Zip', 'type': 'String', 'has missing':True},
+		   {'field' : 'Phone', 'type': 'String', 'has missing':True}
+		   ]
 
-      deduper = dedupe.Dedupe(fields)
+      deduper = dedupe.Dedupe(variables)
 
       deduper.sample(your_data)
 
@@ -45,7 +44,7 @@ entity.
    of the data yourself and pass it to Dedupe.
 
    ``data_sample`` should be a sequence of tuples, where each tuple
-   contains a pair of records, and each record is a dictionary-like
+   contains a pair of records, and each record is a :py:class:`frozendict`
    object that contains the field names you declared in
    field\_definitions as keys.
 
@@ -54,18 +53,18 @@ entity.
    .. code:: python
 
       data_sample = [(
-                      (854, {'city': 'san francisco',
-	                     'address': '300 de haro st.',
-		             'name': "sally's cafe & bakery",
-		             'cuisine': 'american'}),
-	               (855, {'city': 'san francisco',
-	                      'address': '1328 18th st.',
-                              'name': 'san francisco bbq',
-                              'cuisine': 'thai'})
+                      (dedupe.frozendict({'city': 'san francisco',
+	                                  'address': '300 de haro st.',
+		                          'name': "sally's cafe & bakery",
+		                          'cuisine': 'american'}),
+	               dedupe.frozendict({'city': 'san francisco',
+	                                  'address': '1328 18th st.',
+                                          'name': 'san francisco bbq',
+                                          'cuisine': 'thai'})
 	               )
 	              ]
 
-      deduper = dedupe.Dedupe(fields, data_sample)
+      deduper = dedupe.Dedupe(variables, data_sample)
       
    See `MySQL
    <http://open-city.github.com/dedupe/doc/mysql_example.html>`__ for
@@ -99,20 +98,21 @@ entity.
 Class for deduplication using saved settings. If you have already
 trained dedupe, you can load the saved settings with StaticDedupe.
 
-.. py:class:: StaticDedupe(settings_file, [num_processes])
+.. py:class:: StaticDedupe(settings_file, [num_cores])
 
    Initialize a Dedupe object with saved settings
 
-   :param str settings_file: a path to settings file produced from
+   :param file settings_file: A file object containing settings info produced from
 			      the :py:meth:`Dedupe.writeSettings` of a
 			      previous, active Dedupe object.
-   :param int num_processes: the number of processes to use for parallel
-			       processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
 
    .. code:: python
-
-       deduper = StaticDedupe('my_settings_file')
+       with open('my_settings_file', 'rb') as f:
+           deduper = StaticDedupe(f)
 
    .. include:: common_dedupe_methods.rst
    .. include:: common_methods.rst
@@ -160,19 +160,18 @@ Example
     [({'A1' : {'name' : 'howard'}}, {'B1' : {'name' : 'howie'}})]
 
 
-.. py:class:: RecordLink(field_definition, [data_sample=None, [num_processes]])
+.. py:class:: RecordLink(variable_definition, [data_sample=None, [num_cores]])
 
-   Initialize a Dedupe object with a field definition
+   Initialize a Dedupe object with a variable definition
 
-   :param dict field_definition: A field definition is a dictionary
-				 where the keys are the fields that
-				 will be used for training a model
-				 and the values are the field
-				 specification
+   :param dict variable_definition: A variable definition is list of 
+				    dictionaries describing the variables
+				    will be used for training a model.
    :param data_sample: is an optional argument that `we'll discuss fully
 		       below <#wiki-sample-dedupe>`__
-   :param int num_processes: the number of processes to use for parallel
-			     processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
 
    We assume that the fields you want to compare across datasets have the
@@ -205,25 +204,60 @@ Example
 
 Class for record linkage using saved settings. If you have already
 trained a record linkage instance, you can load the saved settings with
-StaticDedupe.
+StaticRecordLink.
 
-.. py:class:: StaticRecordLink(settings_file, [num_processes])
+.. py:class:: StaticRecordLink(settings_file, [num_cores])
 
    Initialize a Dedupe object with saved settings
 
-   :param str settings_file: a path to settings file produced from
+   :param str settings_file: File object containing settings data produced from
 			      the :py:meth:`RecordLink.writeSettings` of a
 			      previous, active Dedupe object.
-   :param int num_processes: the number of processes to use for parallel
-			       processing, defaults to 1
+   :param int num_cores: the number of cpus to use for parallel
+			 processing, defaults to the number of cpus
+			 available on the machine
 
 
    .. code:: python
 
-       deduper = StaticDedupe('my_settings_file')
+       with open('my_settings_file', 'rb') as f:
+           deduper = StaticDedupe(f)
 
    .. include:: common_recordlink_methods.rst
    .. include:: common_methods.rst
+
+:class:`Gazetteer` Objects
+---------------------------
+
+Class for active learning gazetteer matching.
+
+Gazetteer matching is for matching a messy data set against a
+'canonical dataset', i.e. one that does not have any duplicates. This
+class is useful for such tasks as matching messy addresses against
+a clean list. 
+
+The interface is the same as for RecordLink objects except for a
+couple of methods.
+
+.. py:class:: Gazetteer
+
+   .. include:: common_gazetteer_methods.rst
+
+
+:class:`StaticGazetteer` Objects
+--------------------------------
+
+Class for gazetter matching using saved settings. If you have already
+trained a gazetteer instance, you can load the saved settings with
+StaticGazetteer.
+
+This class has the same interface as StaticRecordLink except for a
+couple of methods.
+
+.. py:class:: StaticGazetteer
+
+   .. include:: common_gazetteer_methods.rst
+
 
 
 Convenience Functions
@@ -236,7 +270,7 @@ Convenience Functions
 
    .. code:: python
 
-      > dedupe = Dedupe(fields, data_sample)
+      > dedupe = Dedupe(variables, data_sample)
       > dedupe.consoleLabel(dedupe)
 
 .. py:function:: trainingDataLink(data_1, data_2, common_key[, training_size])
@@ -277,7 +311,95 @@ Convenience Functions
 
    **Warning**
 
-   Every match must be identified by the sharing of a common key. his
+   Every match must be identified by the sharing of a common key. This
    function assumes that if two records do not share a common key then
    they are distinct records.
 
+
+.. py:function:: canonicalize(record_cluster)
+   
+   Constructs a canonical representation of a duplicate cluster by finding canonical values for each field
+
+   :param list record_cluster: A list of records within a duplicate cluster, where the records are dictionaries with field 
+                  names as keys and field values as values
+
+   .. code:: python
+
+.. py:function:: randomPairs(n_records, sample_size)
+
+   If you have N records there are :math:`\frac{N(N-1)}{2}` unique
+   pairs of records (where each record is different and order doesn't
+   matter). If we indexed the N records from 0 to N-1, we would have
+   :math:`\frac{N(N-1)}{2}` corresponding pairs of indices ::
+   
+      (0, 1)
+      (0, 2)
+      ...
+      (0, N-2)
+      (0, N-1)
+      (1, 2)
+      (1, 3)
+      ...
+      (N-3, N-2)
+      (N-3, N-1)
+      (N-2, N-1)
+
+   randomPairs returns a random sample from the set of unique pairs of
+   indices. The function attempts to draw the sample without
+   replacement, but may draw a sample with replacement. If that
+   happens, you will be warned.
+
+   This can be useful when you need to create a sample of pairs from
+   your data, but you don't want to pass all of your data into
+   :py:meth:`~Dedupe.sample` because, for instance, all your data is
+   too big to fit into memory.
+
+   :param int n_record: the number of records in your record set
+
+   :param int sample_size: the size of sample you desire
+      
+.. py:function:: randomPairsMatch(n_records_a, n_records_b, sample_size)
+
+   If you have two record sets of length N and M, there are :math:`NM`
+   unique pairs of records (where each record is from a different
+   record set and order doesn't matter). If we indexed the N records
+   from 0 to N-1, we would have :math:`NM` corresponding pairs of
+   indices ::
+
+       (0, 0)
+       (0, 1)
+       ...
+       (0, M-1)
+       (1, 0)
+       (1, 1)
+       ...
+       (N-1, 0)
+       (N-1, 1)
+       ...
+       (N-1, M-1)
+ 
+   randomPairs returns a random sample from the set of unique pairs of
+   indices. The function attempts to draw the sample without
+   replacement, but may draw a sample with replacement. If that
+   happens, you will be warned.
+
+   This can be useful when you need to create a sample of pairs from
+   your data, but you don't want to pass all of your data into
+   :py:meth:`~Dedupe.sample` because, for instance, all your data is
+   too big to fit into memory.
+
+   :param int n_record_a: the number of records in your first record set
+
+   :param int n_record_b: the number of records in your second record set
+
+   :param int sample_size: the size of sample you desire
+
+.. py:class:: frozendict(d)
+  
+   Initialize a frozendict object. `frozendicts` are like normal
+   python dictionaries except 1. you can't change them and 2. you can
+   hash them. We depend on the hashing in a few places when we are
+   training Dedupe. 
+
+   :param dict d: a dictionary, typically a dictionary representing
+                  your record

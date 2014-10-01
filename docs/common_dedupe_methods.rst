@@ -18,12 +18,14 @@
       > print threshold
       0.21
 
-.. py:method:: match(data, [threshold = 0.5])
+.. py:method:: match(data, [threshold = 0.5, [max_components = 30000]])
 
-   Identifies records that all refer to the same entity, returns tuples of
-   record ids, where the record_ids within each tuple should refer to the
-   same entity
-
+   Identifies records that all refer to the same entity, returns tuples
+   containing a set of record ids and a confidence score as a float between 0
+   and 1. The record_ids within each set should refer to the
+   same entity and the confidence score is a measure of our confidence that
+   all the records in a cluster refer to the same entity.
+ 
    This method should only used for small to moderately sized datasets for
    larger data, use matchBlocks
 
@@ -37,12 +39,22 @@
 
 			    Lowering the number will increase recall,
 			    raising it will increase precision
+   :param int max_components: Dedupe splits records into connected
+                              components and then clusters each
+                              component. Clustering uses about N^2
+                              memory, where N is the size of the
+                              components.  Max components sets the
+                              maximum size of a component dedupe will
+                              try to cluster. If a component is larger
+                              than max_components, dedupe will try to
+                              split it into smaller
+                              components. Defaults to 30K.
 
    .. code:: python
 
       > duplicates = deduper.match(data, threshold=0.5)
       > print duplicates
-      [(3,6,7), (2,10), ..., (11,14)]
+      [(set([3,6,7]), 0.96778509), (set([2,10]),0.750963245) ..., (set([11,14]),0.1256734)]
 
 
 .. py:method:: blocker(data)
@@ -58,4 +70,6 @@
       > blocked_ids = deduper.blocker(data)
       > print list(blocked_ids)
       [('foo:1', 1), ..., ('bar:1', 100)]
+      
+
 

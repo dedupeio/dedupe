@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import dedupe
 import unittest
 import numpy
@@ -34,11 +36,11 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 
 class SourceComparatorTest(unittest.TestCase) :
   def test_comparator(self) :
-    deduper = dedupe.Dedupe({'name' : {'type' : 'Source',
-                                       'Source Names' : ['a', 'b'],
-                                       'Has Missing' : True}}, ())
+    deduper = dedupe.Dedupe([{'field' :'name', 'type' : 'Source',
+                              'sources' : ['a', 'b'],
+                              'has missing' : True}], ())
 
-    source_comparator = deduper.data_model['fields']['name'].comparator
+    source_comparator = deduper.data_model['fields'][0].comparator
     assert source_comparator('a', 'a') == 0
     assert source_comparator('b', 'b') == 1
     assert source_comparator('a', 'b') == 2
@@ -55,36 +57,44 @@ class DataModelTest(unittest.TestCase) :
     DataModel = dedupe.datamodel.DataModel
     
     self.assertRaises(TypeError, DataModel)
-    assert DataModel({}) == {'fields': OrderedDict(), 'bias': 0}
-    self.assertRaises(ValueError, DataModel, {'a' : 'String'})
-    self.assertRaises(ValueError, DataModel, {'a' : {'foo' : 'bar'}})
-    self.assertRaises(ValueError, DataModel, {'a' : {'type' : 'bar'}})
-    self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction'}})
-    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'Custom'}})
-    self.assertRaises(ValueError, DataModel, {'a-b' : {'type' : 'String', 'comparator' : 'foo'}})
+    assert DataModel({}) == {'fields': [], 'bias': 0}
 
-    self.assertRaises(KeyError, DataModel, {'a-b' : {'type' : 'Interaction',
-                                                           'Interaction Fields' : ['a', 'b']}})
-    data_model = DataModel({'a' : {'type' : 'String'}, 
-                            'b' : {'type' : 'String'},
-                            'a-b' : {'type' : 'Interaction', 
-                                     'Interaction Fields' : ['a', 'b']}})
+    data_model = DataModel([{'field' : 'a', 
+                            'variable name' : 'a', 
+                            'type' : 'String'}, 
+                            {'field' : 'b', 
+                             'variable name' : 'b',
+                             'type' : 'String'},
+                            {'type' : 'Interaction', 
+                             'interaction variables' : ['a', 'b']}])
 
-    assert data_model['fields']['a-b'].interaction_fields  == ['a', 'b']
+    assert data_model['fields'][2].interaction_fields  == ['a', 'b']
 
-    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : True}, 
-                            'b' : {'type' : 'String'},
-                            'a-b' : {'type' : 'Interaction', 
-                                     'Interaction Fields' : ['a', 'b']}})
+    data_model = DataModel([{'field' : 'a', 
+                             'variable name' : 'a', 
+                             'type' : 'String',
+                             'has missing' : True}, 
+                            {'field' : 'b', 
+                             'variable name' : 'b',
+                             'type' : 'String'},
+                            {'type' : 'Interaction', 
+                             'interaction variables' : ['a', 'b']}])
 
-    assert data_model['fields']['a-b'].has_missing == True
+    #print data_model['fields']
+    assert data_model['fields'][2].has_missing == True
 
-    data_model = DataModel({'a' : {'type' : 'String', 'Has Missing' : False}, 
-                            'b' : {'type' : 'String'},
-                            'a-b' : {'type' : 'Interaction', 
-                                     'Interaction Fields' : ['a', 'b']}})
+    data_model = DataModel([{'field' : 'a', 
+                             'variable name' : 'a', 
+                             'type' : 'String',
+                             'has missing' : False}, 
+                            {'field' : 'b', 
+                             'variable name' : 'b',
+                             'type' : 'String'},
+                            {'type' : 'Interaction', 
+                             'interaction variables' : ['a', 'b']}])
 
-    assert data_model['fields']['a-b'].has_missing == False
+
+    assert data_model['fields'][2].has_missing == False
 
 
 
@@ -96,9 +106,10 @@ class AffineGapTest(unittest.TestCase):
     self.normalizedAffineGapDistance = dedupe.distance.affinegap.normalizedAffineGapDistance
     
   def test_affine_gap_correctness(self):
-    assert self.affineGapDistance('a', 'b', -5, 5, 5, 1, 0.5) == 5
+    assert self.affineGapDistance('a', u'b', -5, 5, 5, 1, 0.5) == 5
     assert self.affineGapDistance('ab', 'cd', -5, 5, 5, 1, 0.5) == 10
     assert self.affineGapDistance('ab', 'cde', -5, 5, 5, 1, 0.5) == 13
+    assert self.affineGapDistance('ab', u'cdë', -5, 5, 5, 1, 0.5) == 13
     assert self.affineGapDistance('a', 'cde', -5, 5, 5, 1, 0.5) == 8.5
     assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1, 0.5) == 8
     assert self.affineGapDistance('b', 'a', -5, 5, 5, 1, 0.5) == 5
@@ -116,6 +127,42 @@ class AffineGapTest(unittest.TestCase):
     assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
     
 
+class ConnectedComponentsTest(unittest.TestCase) :
+  def test_components(self) :
+    G = numpy.array([((1, 2), .1),
+                     ((2, 3), .2),
+                     ((4, 5), .2),
+                     ((4, 6), .2),
+                     ((7, 9), .2),
+                     ((8, 9), .2),
+                     ((10, 11), .2),
+                     ((12, 13), .2),
+                     ((12, 14), .5),
+                     ((11, 12), .2)],
+                    dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)])
+    components = dedupe.clustering.connected_components
+    numpy.testing.assert_equal(list(components(G, 30000)), \
+                               [numpy.array([([1, 2], 0.10000000149011612), 
+                                             ([2, 3], 0.20000000298023224)], 
+                                            dtype=[('pairs', 'i4', (2,)), 
+                                                   ('score', '<f4')]), 
+                                numpy.array([([4, 5], 0.20000000298023224), 
+                                             ([4, 6], 0.20000000298023224)], 
+                                            dtype=[('pairs', 'i4', (2,)), 
+                                                   ('score', '<f4')]), 
+                                numpy.array([([12, 13], 0.20000000298023224), 
+                                             ([12, 14], 0.5),
+                                             ([10, 11], 0.20000000298023224), 
+                                             ([11, 12], 0.20000000298023224)],
+                                            dtype=[('pairs', 'i4', (2,)), 
+                                                   ('score', '<f4')]), 
+                                numpy.array([([7, 9], 0.20000000298023224), 
+                                             ([8, 9], 0.20000000298023224)], 
+                                            dtype=[('pairs', 'i4', (2,)), 
+                                                   ('score', '<f4')])])
+
+  
+
 class ClusteringTest(unittest.TestCase):
   def setUp(self):
     # Fully connected star network
@@ -128,7 +175,8 @@ class ClusteringTest(unittest.TestCase):
                               ((2,5), .72),
                               ((3,4), .3),
                               ((3,5), .5),
-                              ((4,5), .72)],
+                              ((4,5), .72),
+                              ((10,11), .9)],
                              dtype = [('pairs', 'i4', 2), 
                                       ('score', 'f4', 1)])
 
@@ -160,36 +208,83 @@ class ClusteringTest(unittest.TestCase):
                             ((4,5), .63),
                             ((4,6), .96),
                             ((4,7), .23),
-                            ((4,8), .74))
+                            ((5,8), .24))
 
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 1) == []
-    assert hierarchical(self.dupes, 0.5) == [set([1, 2, 3]), set([4,5])]
-    assert hierarchical(self.dupes, 0) == [set([1, 2, 3, 4, 5])]
+    assert hierarchical(self.dupes, 1) == [((10, 11), 
+                                            0.89999997615814209)]
+
+    assert hierarchical(self.dupes, 0.5) == [((1, 2, 3), 
+                                              0.79000002145767212), 
+                                             ((4, 5), 
+                                              0.72000002861022949), 
+                                             ((10, 11), 
+                                              0.89999997615814209)]
+
+    assert hierarchical(self.dupes, 0) == [((1, 2, 3, 4, 5), 
+                                            0.41371223982064087),
+                                             ((10, 11), 
+                                              0.89999997615814209)]
     assert hierarchical(self.str_dupes, 1) == []
-    assert hierarchical(self.str_dupes, 0.5) == [set(['1', '2', '3']), 
-                                                      set(['4','5'])]
-    assert hierarchical(self.str_dupes, 0) == [set(['1', '2', '3', '4', '5'])]
+    assert zip(*hierarchical(self.str_dupes, 0.5))[0] == (('1', '2', '3'), 
+                                                          ('4','5'))
+    assert zip(*hierarchical(self.str_dupes, 0))[0] == (('1', '2', '3', '4', '5'),)
+    assert hierarchical(numpy.array([((1,2), .86)],
+                                    dtype = [('pairs', 'i4', 2), 
+                                             ('score', 'f4', 1)]),
+                        0.5)  == [((1, 2), 0.86000001430511475)]
+
 
   def test_greedy_matching(self):
     greedyMatch = dedupe.clustering.greedyMatching
     assert greedyMatch(self.bipartite_dupes, 
-                       threshold=0.5) == [(4, 6), 
-                                          (2, 7),
-                                          (3, 8)]
-    
+                       threshold=0.5) == [((4, 6), 0.96), 
+                                          ((2, 7), 0.72), 
+                                          ((3, 8), 0.65)]
     assert greedyMatch(self.bipartite_dupes, 
-                       threshold=0) == [(4, 6), 
-                                        (2, 7),
-                                        (3, 8), 
-                                        (1, 5)]
+                       threshold=0) == [((4, 6), 0.96), 
+                                        ((2, 7), 0.72), 
+                                        ((3, 8), 0.65), 
+                                        ((1, 5), 0.1)]
     assert greedyMatch(self.bipartite_dupes, 
-                       threshold=0.8) == [(4, 6)]
+                       threshold=0.8) == [((4, 6), 0.96)]
     assert greedyMatch(self.bipartite_dupes, 
                        threshold=1) == []
 
+  def test_gazette_matching(self):
+    gazetteMatch = dedupe.clustering.gazetteMatching
+
+    assert set(gazetteMatch(self.bipartite_dupes, 
+                            threshold=0.5)) == set([(((4, 6), 0.96),), 
+                                                    (((1, 6), 0.72),), 
+                                                    (((2, 7), 0.72),), 
+                                                    (((3, 6), 0.72),)])
+
+    assert set(gazetteMatch(self.bipartite_dupes, 
+                            threshold=0, n=2)) == set([(((1, 6), 0.72), 
+                                                        ((1, 8), 0.6)), 
+                                                       (((2, 7), 0.72),
+                                                        ((2, 8), 0.3)), 
+                                                       (((3, 6), 0.72), 
+                                                        ((3, 8), 0.65)), 
+                                                       (((4, 6), 0.96), 
+                                                        ((4, 5), 0.63)),
+                                                       (((5, 8), 0.24),)])
+
+    assert set(gazetteMatch(self.bipartite_dupes, 
+                        threshold=0)) == set([(((4, 6), 0.96),), 
+                                              (((1, 6), 0.72),), 
+                                              (((2, 7), 0.72),), 
+                                              (((3, 6), 0.72),), 
+                                              (((5, 8), 0.24),)])
+
+    assert gazetteMatch(self.bipartite_dupes, 
+                        threshold=0.8) == [(((4,6), 0.96),)]
+
+    assert gazetteMatch(self.bipartite_dupes, 
+                        threshold=1) == []
 
 
 class PredicatesTest(unittest.TestCase):
@@ -197,10 +292,16 @@ class PredicatesTest(unittest.TestCase):
     field = '123 16th st'
     assert dedupe.predicates.wholeFieldPredicate('') == ()
     assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
+    assert dedupe.predicates.firstTokenPredicate(field) == ('123',)
+    assert dedupe.predicates.firstTokenPredicate('') == ()
+    assert dedupe.predicates.firstTokenPredicate('123/') == ('123',)
     assert dedupe.predicates.tokenFieldPredicate(' ') == set([])
     assert dedupe.predicates.tokenFieldPredicate(field) == set(['123', '16th', 'st'])
     assert dedupe.predicates.commonIntegerPredicate(field) == set(['123', '16'])
     assert dedupe.predicates.commonIntegerPredicate('foo') == set([])
+    assert dedupe.predicates.firstIntegerPredicate('foo') == ()
+    assert dedupe.predicates.firstIntegerPredicate('1foo') == ('1',)
+    assert dedupe.predicates.firstIntegerPredicate('f1oo') == ()
     assert dedupe.predicates.sameThreeCharStartPredicate(field) == ('123',)
     assert dedupe.predicates.sameThreeCharStartPredicate('12') == ()
     assert dedupe.predicates.commonFourGram('12') == set([])

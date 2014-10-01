@@ -1,29 +1,29 @@
-Field definitions
+Variable definitions
 =================
 
-A field definition describes the records that you want to match. It is
+A variable definition describes the records that you want to match. It is
 a dictionary where the keys are the fields and the values are the
 field specification
 
 
 .. code:: python
 
-   fields = {
-             'Site name': {'type': 'String'},
-	     'Address': {'type': 'String'},
-	     'Zip': {'type': 'String', 'Has Missing':True},
-	     'Phone': {'type': 'String', 'Has Missing':True},
-	     }
+   variables = [
+	        {'field' : 'Site name', 'type': 'String'},
+		{'field' : 'Address', 'type': 'String'},
+		{'field' : 'Zip', 'type': 'String', 'has missing':True},
+		{'field' : 'Phone', 'type': 'String', 'has missing':True}
+		]
 
 
 String Types
 ^^^^^^^^^^^^
 
-A 'String' type field must have as its key a name of a field as it
-appears in the data dictionary and a type declaration ex.
-``{'Address': {type: 'String'}}`` The string type expects fields to be of
-class string. Missing data should be represented as an empty string
-``''``
+A 'String' type variable must declare the name of the record field to
+compare a 'String' type declaration ex.  
+``{'field' : 'Address', type:'String'}`` 
+The string type expects fields to be of class
+string. Missing data should be represented as an empty string ``''``
 
 String types are compared using `affine gap string
 distance <http://en.wikipedia.org/wiki/Gap_penalty#Affine>`__.
@@ -38,7 +38,7 @@ candidates for this type. If in doubt, just use 'String.'
 
 .. code:: python
 
-  {'Zipcode': {type: 'ShortString'}}
+  {'field': 'Zipcode', type: 'ShortString'}
 
 .. _text-types-label:
 
@@ -58,29 +58,28 @@ learn these weights for you.
 
 .. code:: python
 
-   {'Product description' : {'type' : 'Text', 
-                             'corpus' : ['this product is great',
-			                 'this product is great and blue']}
+   {'field': 'Product description', 'type' : 'Text', 
+    'corpus' : ['this product is great',
+                'this product is great and blue']}
     } 
 
-If you don't want to adjust the measure to your data, just 'corpus'
-out of the field definition.
+If you don't want to adjust the measure to your data, just leave 'corpus'
+out of the variable definition.
 
 .. code:: python
 
-   {'Product description' : {'type' : 'Text'}
-    } 
+   {'field' : 'Product description', 'type' : 'Text'} 
 
 
 
 Custom Types
 ^^^^^^^^^^^^
 
-A 'Custom' type field must have as its key a name of a field as it
-appears in the data dictionary, at 'type' declaration, and a
-'comparator' declaration. The comparator must be a function that can
-take in two field values and return a number or a numpy.nan when one or both
-of the fields is missing.
+A 'Custom' type field must have specify the field it wants to compare,
+a 'type' declaration of 'Custom', and a 'comparator' declaration. The
+comparator must be a function that can take in two field values and
+return a number or a numpy.nan when one or both of the fields is
+missing.
 
 Example custom comparator:
 
@@ -89,33 +88,32 @@ Example custom comparator:
   python def sameOrNotComparator(field_1, field_2) :     
     if field_1 and field_2 :         
         if field_1 == field_2 :             
-            return 1         
+            return 0         
         else:             
-            return 0     
+            return 1     
     else :         
         return numpy.nan
 
-Field definition:
+variable definition:
 
 .. code:: python
 
-    {'Zip': {'type': 'Custom', 
-             'comparator' : sameOrNotComparator}} 
+    {'field' : 'Zip', 'type': 'Custom', 
+     'comparator' : sameOrNotComparator} 
 
 LatLong
 ^^^^^^^
 
-A 'LatLong' type field must have as its key a name of a field as it
-appears in the data dictionary, at 'type' declaration. LatLong fields
-are compared using the `Haversine
-Formula <http://en.wikipedia.org/wiki/Haversine_formula>`__. A 'LatLong'
-type field must consist of tuples of floats corresponding to a latitude
-and a longitude. If data is missing, this should be represented by a
-tuple of 0s ``(0.0, 0.0)``
+A 'LatLong' type field must have as the name of a field and a 'type'
+declaration of custom. LatLong fields are compared using the
+`Haversine Formula <http://en.wikipedia.org/wiki/Haversine_formula>`__. 
+A 'LatLong' type field must consist of tuples of floats corresponding
+to a latitude and a longitude. If data is missing, this should be
+represented by a tuple of 0s ``(0.0, 0.0)``
 
 .. code:: python
 
-    {'Location': {'type': 'LatLong'}} 
+    {'field' : 'Location', 'type': 'LatLong'}} 
 
 Set
 ^^^
@@ -129,41 +127,49 @@ hashable sequences like tuples or frozensets.
 
 .. code:: python
 
-    {'Co-authors': {'type': 'Set',
-                    'corpus' : [('steve edwards'),
-		                ('steve edwards', steve jobs')]}
+    {'field' : 'Co-authors', 'type': 'Set',
+     'corpus' : [('steve edwards'),
+		 ('steve edwards', steve jobs')]}
      } 
 
 or
 
 .. code:: python
 
-    {'Co-authors': {'type': 'Set'}
+    {'field' : 'Co-authors', 'type': 'Set'}
      } 
-
-
-
 
 Interaction
 ^^^^^^^^^^^
 
-An interaction type field can have as it's key any name you choose, a
-'type' declaration, and an 'Interaction Fields' declaration. An
-interaction field multiplies the values of the declared fields.
+An interaction field multiplies the values of the multiple variables.
+An interaction variable is created with 'type' declaration of
+'Interaction' and an 'interaction variables' declaration.
 
-The 'Interaction Fields' must be a sequence of names of other fields you
-have defined in your field definition.
+The 'interaction variables' must be a sequence of 'variable names' of
+other fields you have defined in your variable definition.
 
 `Interactions <http://en.wikipedia.org/wiki/Interaction_%28statistics%29>`__
 are good when the effect of two predictors is not simply additive.
 
 .. code:: python
 
-    {'Name'     : {'type': 'String'}, 
-     'Zip'      : {'type': 'Custom', 
-                   'comparator' : sameOrNotComparator},
-     'Name-Zip' : {'type': 'Interaction', 
-                   'Interaction Fields' : ['Name', 'Zip']}} 
+    [{'field' : 'Name', 'variable name' : 'name', : 'type': 'String'},
+     {'field' : 'Zip', 'variable name' : 'zip',  :'type': 'Custom', 
+      'comparator' : sameOrNotComparator},
+     {'type': 'Interaction', 
+      'interaction variables' : ['name', 'zip']}} 
+
+Exact
+^^^^^
+
+'Exact' variables measure whether two fields are exactly the same or not.
+
+.. code:: python
+
+    {'field' : 'city', 'type': 'Exact'}} 
+
+
 
 Categorical
 ^^^^^^^^^^^
@@ -200,8 +206,8 @@ You would create a definition like:
 
 .. code:: python
 
-    {'Business Type'    : {'type': 'Categorical',
-                           'Categories' : ['taxi', 'lawyer']}}
+    {'field' : 'Business Type', 'type': 'Categorical',
+    'categories' : ['taxi', 'lawyer']}}
 
 Source
 ^^^^^^
@@ -225,14 +231,14 @@ definition.
 
 .. code:: python
 
-    {'Source'    : {'type': 'Source',
-                    'Categories' : ['Campaign Contributions', 'Lobbyist Registration']}}
+    {'field' : 'Source', 'type': 'Source',
+     'sources' : ['Campaign Contributions', 'Lobbyist Registration']}}
 
 Dedupe will create a categorical variable for the source and then
 cross-interact it with all the other variables. This has the effect of
 letting dedupe learn three different models at once. Let's say that we
 had defined another variable called name. Then our total model would
-have the following fields
+have the following variables
 
 ::
 
@@ -259,13 +265,13 @@ Missing Data
 If one or both fields are missing, the field comparator should return
 ``numpy.nan.`` By default, dedupe will replace these values with zeros. 
 
-If you want to model this missing data for a field, you can set ``'Has
-Missing' : True`` in the field definition. This creates a new,
+If you want to model this missing data for a field, you can set ``'has
+missing' : True`` in the variable definition. This creates a new,
 additional field representing whether the data was present or not and
 zeros out the missing data.
 
-If there is missing data, but you did not declare ``'Has
-Missing' : True`` then the missing data will simply be zeroed out and
+If there is missing data, but you did not declare ``'has
+missing' : True`` then the missing data will simply be zeroed out and
 no field will be created to account for missing data.
 
 This approach is called 'response augmented data' and is described in
@@ -284,17 +290,36 @@ This approach makes a few assumptions that are usually not completely true:
 
 
 If you define an an interaction with a field that you declared to have
-missing data, then ``Has Missing : True`` will also be set for the
+missing data, then ``has missing : True`` will also be set for the
 Interaction field.
 
-Longer example of a field definition:
+Longer example of a variable definition:
 
 .. code:: python
 
-    fields = {'name'         : {'type' : 'String'},
-              'address'      : {'type' : 'String'},
-              'city'         : {'type' : 'String'},
-              'zip'          : {'type' : 'Custom', 'comparator' : sameOrNotComparator},
-              'cuisine'      : {'type' : 'String', 'Has Missing': True}
-              'name-address' : {'type' : 'Interaction', 'Interaction Fields' : ['name', 'city']}
-              }
+    variables = [{'field' : 'name', 'type' : 'String'},
+                 {'field' : 'address', 'type' : 'String'},
+                 {'field' : 'city', 'type' : 'String'},
+                 {'field' : 'zip', 'type' : 'Custom', 'comparator' : sameOrNotComparator},
+                 {field' : 'cuisine', 'type' : 'String', 'has missing': True}
+                 {'type' : 'Interaction', 'interaction variables' : ['name', 'city']}
+                 ]
+
+Multiple Variables comparing same field
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+It is possible to define multiple variables that all compare the same
+variable.
+
+For example 
+
+.. code:: python
+
+    variables = [{'field' : 'name', 'type' : 'String'},
+                 {'field' : 'name', 'type' : 'Text'}]
+
+
+Will create two variables that both compare the 'name' field but 
+in different ways.
+
+
+

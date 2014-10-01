@@ -3,15 +3,73 @@
 
 import itertools
 
+import warnings
 import numpy
 import fastcluster
 import hcluster
-import networkx
-from networkx.algorithms.components.connected import connected_components
-from networkx.algorithms.bipartite.basic import biadjacency_matrix
-from networkx.algorithms import bipartite
-from networkx import connected_component_subgraphs
 
+def connected_components(edgelist, max_components) :
+
+    root = {}
+    component = {}
+    indices = {}
+
+    it = numpy.nditer(edgelist['pairs'], ['external_loop'])
+
+    for i, (a,b) in enumerate(it) :
+        root_a = root.get(a)
+        root_b = root.get(b)
+
+        if root_a is None and root_b is None :
+            component[a] = set([a, b])
+            indices[a] = [i]
+            root[a] = root[b] = a
+        elif root_a is None or root_b is None :
+            if root_a is None :
+                a, b = b, a
+                root_a, root_b = root_b, root_a
+            component[root_a].add(b)
+            indices[root_a].append(i)
+            root[b] = root_a
+        elif root_a != root_b :
+            component_a = component[root_a]
+            component_b = component[root_b]
+            if len(component_a) < len(component_b) :
+                root_a, root_b = root_b, root_a
+                component_a, component_b = component_b, component_a
+
+            component_a |= component_b
+            indices[root_a].extend(indices[root_b])
+            indices[root_a].append(i)
+
+            for node in component_b :
+                root[node] = root_a
+
+            del component[root_b]
+            del indices[root_b]
+        else : 
+            indices[root_a].append(i)
+
+    for root in component :
+	n_components = len(component[root])
+	sub_graph = edgelist[indices[root]]
+
+	if n_components > max_components :
+            threshold = numpy.min(sub_graph['score'])
+            threshold *= 1.1 
+            warnings.warn('A component contained %s elements. '
+                          'Components larger than %s are '
+                          're-filtered. The threshold for this '
+                          'filtering is %s' % (n_components, 
+                                               max_components,
+                                               threshold)) 
+            filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
+            for sub_graph in connected_components(filtered_sub_graph, 
+                                                  max_components) :
+               yield sub_graph
+        else :
+            yield sub_graph
+     
 
 def condensedDistance(dupes):
     '''
@@ -53,7 +111,7 @@ def condensedDistance(dupes):
     return (i_to_id, condensed_distances)
 
 
-def cluster(dupes, threshold=.5):
+def cluster(dupes, threshold=.5, max_components=30000):
     '''
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
@@ -64,24 +122,18 @@ def cluster(dupes, threshold=.5):
                  number will increase precision, raising it will increase
                  recall
     '''
-
     threshold = 1 - threshold
 
-    dupe_graph = networkx.Graph()
-    dupe_graph.add_weighted_edges_from((x[0], x[1], y) for (x, y) in dupes)
-
-    dupe_sub_graphs = connected_components(dupe_graph)
+    dupe_sub_graphs = connected_components(dupes, max_components)
 
     clustering = {}
     cluster_id = 0
     for sub_graph in dupe_sub_graphs:
-        if len(sub_graph) > 2:
-            pair_gen = [(sorted(x[0:2]), x[2]['weight'])
-                        for x in dupe_graph.edges_iter(sub_graph, data=True)]
+        if len(sub_graph) > 1:
 
-            pairs = numpy.array(pair_gen, dtype=dupes.dtype)
+            (i_to_id, condensed_distances) = condensedDistance(sub_graph)
+            N = max(i_to_id) + 1
 
-            (i_to_id, condensed_distances) = condensedDistance(pairs)
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
                                           preserve_input=False)
@@ -90,21 +142,44 @@ def cluster(dupes, threshold=.5):
                                           threshold,
                                           criterion='distance')
 
+            clusters = {}
+
             for (i, sub_cluster_id) in enumerate(partition):
-                clustering.setdefault(cluster_id + sub_cluster_id, []).append(i_to_id[i])
-            
-            cluster_id += max(partition)
+                clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
+
+            cophenetic_distances = hcluster.cophenet(linkage)
+
+            for cluster_id, items in clusters.iteritems() :
+                if len(items) > 1 :
+                    score = clusterConfidence(items, cophenetic_distances, N)
+                    clustering[cluster_id] = (tuple(i_to_id[item] 
+                                                    for item in items),
+                                              1 - score)
+
+            cluster_id += max(partition) + 1
         else:
-
-            clustering[cluster_id] = sub_graph
+            ids, score = sub_graph[0]
+            clustering[cluster_id] = tuple(ids), score
             cluster_id += 1
+            
 
-    clusters = [set(l) for l in clustering.values() if len(l) > 1]
+    return clustering.values()
 
-    return clusters
+def clusterConfidence(items, cophenetic_distances, N) :
+    max_score = 0
+    i, other_items = items[0], items[1:] 
+    condensor = (N * (N-1))/2 - ((N-i)*(N-i-1))/2 - i - 1
+    for j in other_items :
+        ij =  condensor + j
+        score = cophenetic_distances[ij]
+        if score > max_score : 
+            max_score = score
+
+    return max_score
 
 
 def greedyMatching(dupes, threshold=0.5):
+    dupes = numpy.array(dupes)
     covered_vertex_A = set([])
     covered_vertex_B = set([])
     clusters = []
@@ -112,11 +187,39 @@ def greedyMatching(dupes, threshold=0.5):
     sorted_dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
     dupes_list = [dupe for dupe in sorted_dupes if dupe[1] >= threshold]
 
-    for dupe in dupes_list:
-        vertices = dupe[0]
-        if vertices[0] not in covered_vertex_A and vertices[1] not in covered_vertex_B:
-            clusters.append(vertices)
-            covered_vertex_A.update([vertices[0]])
-            covered_vertex_B.update([vertices[1]])
+    for vertices, score in dupes_list:
+        a, b = vertices
+        if a not in covered_vertex_A and b not in covered_vertex_B:
+            clusters.append((vertices, score))
+            covered_vertex_A.add(a)
+            covered_vertex_B.add(b)
+
+    return clusters
+
+def gazetteMatching(dupes, threshold=0.5, n=1):
+    dupes = numpy.array(dupes) 
+    clusters = []
+
+    sorted_dupes = sorted(dupes, key=lambda pair: (pair[0][0], -pair[1]))
+    dupes_list = [dupe for dupe in sorted_dupes if dupe[1] >= threshold]
+
+    if dupes_list :
+        group = dupes_list[0][0][0]
+        matches = []
+        i = 0
+
+        for pair, score in dupes_list:
+            a, b = pair
+            if a == group :
+                if i < n :
+                    matches.append((pair, score))
+                    i += 1
+            else :
+                clusters.append(tuple(matches))
+                matches = [(pair, score)]
+                i = 1
+                group = a
+
+        clusters.append(tuple(matches))
 
     return clusters

@@ -13,9 +13,13 @@ import itertools
 import logging
 import pickle
 import numpy
+import multiprocessing
 import random
 import warnings
 import copy
+import os
+from collections import defaultdict
+
 try:
     from collections import OrderedDict
 except ImportError :
@@ -30,6 +34,7 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 from dedupe.datamodel import DataModel
+import dedupe.centroid as centroid
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +50,6 @@ class Matching(object):
     """
 
     def __init__(self) :
-        self.matches = None
         self.blocker = None
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):
@@ -68,7 +72,7 @@ class Matching(object):
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
-                                           self.num_processes)['score']
+                                           self.num_cores)['score']
 
         probability.sort()
         probability = probability[::-1]
@@ -89,7 +93,7 @@ class Matching(object):
 
         return probability[i]
 
-    def matchBlocks(self, blocks, threshold=.5):
+    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs): # pragma : no cover
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
@@ -115,45 +119,31 @@ class Matching(object):
 
         candidate_records = self._blockedPairs(blocks)
         
-        self.matches = core.scoreDuplicates(candidate_records,
-                                            self.data_model,
-                                            self.num_processes,
-                                            threshold)
+        matches = core.scoreDuplicates(candidate_records,
+                                       self.data_model,
+                                       self.num_cores,
+                                       threshold)
 
-        clusters = self._cluster(self.matches, cluster_threshold)
+        logger.debug("matching done, begin clustering")
+
+        clusters = self._cluster(matches, 
+                                 cluster_threshold, *args, **kwargs)
+
+        try :
+            match_file = matches.filename
+            os.remove(match_file)
+        except AttributeError :
+            pass
         
         return clusters
 
     def _checkRecordType(self, record) :
-        for k in self.data_model.field_comparators :
-            if k not in record :
+        for field, _ in self.data_model.field_comparators :
+            if field not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "
-                                 "in a record" % k)
+                                 "in a record" % field)
 
-    def _blockedPairs(self, blocks) :
-        """
-        Generate tuples of pairs of records from a block of records
-        
-        Arguments:
-        
-        blocks -- an iterable sequence of blocked records
-        """
-        
-        block, blocks = core.peek(blocks)
-        self._checkBlock(block)
-
-        def pair_gen() :
-            disjoint = set.isdisjoint
-            blockPairs = self._blockPairs
-            for block in blocks :
-                for pair in blockPairs(block) :
-                    ((key_1, record_1, smaller_ids_1), 
-                     (key_2, record_2, smaller_ids_2)) = pair
-                    if disjoint(smaller_ids_1, smaller_ids_2) :
-                        yield (key_1, record_1), (key_2, record_2)
-
-        return pair_gen()
 
     def _logLearnedWeights(self): # pragma: no cover
         """
@@ -162,9 +152,9 @@ class Matching(object):
         logger.info('Learned Weights')
         for (key_1, value_1) in self.data_model.items():
             try:
-                for (key_2, value_2) in value_1.items():
-                    logger.info((key_2, value_2.weight))
-            except AttributeError:
+                for field in value_1 :
+                    logger.info((field.name, field.weight))
+            except TypeError:
                 logger.info((key_1, value_1))
 
 
@@ -191,8 +181,10 @@ class DedupeMatching(Matching) :
     def match(self, data, threshold = 0.5) : # pragma : no cover
         """
         Identifies records that all refer to the same entity, returns tuples
-        of record ids, where the record_ids within each tuple should refer
-        to the same entity
+        containing a set of record ids and a confidence score as a float between 0
+        and 1. The record_ids within each set should refer to the
+        same entity and the confidence score is a measure of our confidence that
+        all the records in a cluster refer to the same entity.
         
         This method should only used for small to moderately sized datasets
         for larger data, use matchBlocks
@@ -234,35 +226,48 @@ class DedupeMatching(Matching) :
         blocked_pairs = self._blockData(data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) :  # pragma : no cover
-        return itertools.combinations(block, 2)
+    def _blockedPairs(self, blocks) :
+        """
+        Generate tuples of pairs of records from a block of records
         
+        Arguments:
+        
+        blocks -- an iterable sequence of blocked records
+        """
+        
+        block, blocks = core.peek(blocks)
+        self._checkBlock(block)
+
+	combinations = itertools.combinations
+
+        pairs = (combinations(block, 2) for block in blocks)
+
+        return itertools.chain.from_iterable(pairs) 
+
     def _checkBlock(self, block) :
-        if not block :
-            raise ValueError("You have not provided any data blocks")
-        try :
-            if len(block[0]) < 3 :
+        if block :
+            try :
+                if len(block[0]) < 3 :
+                    raise ValueError("Each item in a block must be a "
+                                     "sequence of record_id, record, and smaller ids "
+                                     "and the records also must be dictionaries")
+            except :
                 raise ValueError("Each item in a block must be a "
                                  "sequence of record_id, record, and smaller ids "
                                  "and the records also must be dictionaries")
-        except :
-            raise ValueError("sandwich Each item in a block must be a "
-                             "sequence of record_id, record, and smaller ids "
-                             "and the records also must be dictionaries")
-        try :
-            block[0][1].items()
-            block[0][2].isdisjoint([])
-        except :
-            raise ValueError("The record must be a dictionary and "
-                             "smaller_ids must be a set")
+            try :
+                block[0][1].items()
+                block[0][2].isdisjoint([])
+            except :
+                raise ValueError("The record must be a dictionary and "
+                                 "smaller_ids must be a set")
 
         
-        self._checkRecordType(block[0][1])
+            self._checkRecordType(block[0][1])
 
     def _blockData(self, data_d):
 
-        blocks = OrderedDict({})
-        coverage = {}
+        blocks = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
             self.blocker.tfIdfBlock(((record_id, record[field])
@@ -271,25 +276,41 @@ class DedupeMatching(Matching) :
                                     field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
-            blocks.setdefault(str(block_key), []).append((record_id, 
-                                                          data_d[record_id]))
+            blocks[block_key][record_id] = data_d[record_id]
 
-        # Redundant-free Comparisons from Kolb et al, "Dedoop:
-        # Efficient Deduplication with Hadoop"
-        # http://dbs.uni-leipzig.de/file/Dedoop.pdf
-        for block_id, (block, records) in enumerate(blocks.iteritems()) :
-            for record_id, record in records :
-                coverage.setdefault(record_id, []).append(block_id)
+        self.blocker._resetCanopies()
 
-        for block_id, (block_key, records) in enumerate(blocks.iteritems()) :
-            tuple_records = []
-            for record_id, record in records :
+        blocks = [records for records in blocks.values()
+                  if len(records) > 1]
+
+        for block in self._redundantFree(blocks) :
+            yield block
+
+    def _redundantFree(self, blocks) :
+        """
+        Redundant-free Comparisons from Kolb et al, "Dedoop:
+        Efficient Deduplication with Hadoop"
+        http://dbs.uni-leipzig.de/file/Dedoop.pdf
+        """
+        coverage = defaultdict(list)
+
+        for block_id, records in enumerate(blocks) :
+
+            for record_id, record in records.iteritems() :
+                coverage[record_id].append(block_id)
+
+        for block_id, records in enumerate(blocks) :
+            if block_id % 10000 == 0 :
+                logger.info("%s blocks" % block_id)
+
+            marked_records = []
+            for record_id, record in records.iteritems() :
                 smaller_ids = set([covered_id for covered_id 
                                    in coverage[record_id] 
                                    if covered_id < block_id])
-                tuple_records.append((record_id, record, smaller_ids))
+                marked_records.append((record_id, record, smaller_ids))
 
-            yield tuple_records
+            yield marked_records
 
 
 class RecordLinkMatching(Matching) :
@@ -315,9 +336,11 @@ class RecordLinkMatching(Matching) :
 
     def match(self, data_1, data_2, threshold = 1.5) : # pragma : no cover
         """
-        Identifies pairs of records that refer to the same entity, returns tuples
-        of record ids, where both record_ids within a tuple should refer
-        to the same entity
+        Identifies pairs of records that refer to the same entity, returns
+        tuples containing a set of record ids and a confidence score as a float
+        between 0 and 1. The record_ids within each set should refer to the 
+        same entity and the confidence score is the estimated probability that
+        the records refer to the same entity.
         
         This method should only used for small to moderately sized datasets
         for larger data, use matchBlocks
@@ -348,11 +371,12 @@ class RecordLinkMatching(Matching) :
         data. 
 
         Arguments:
-        data_1        --  Dictionary of records from first dataset, where the keys 
-                          are record_ids and the values are dictionaries with the keys 
-                          being field names
+        data_1        --  Dictionary of records from first dataset, where the 
+                          keys are record_ids and the values are dictionaries 
+                          with the keys being field names
 
-        data_2        --  Dictionary of records from second dataset, same form as data_1
+        data_2        --  Dictionary of records from second dataset, same form 
+                          as data_1
 
         recall_weight -- Sets the tradeoff between precision and
                          recall. I.e. if you care twice as much about
@@ -363,70 +387,87 @@ class RecordLinkMatching(Matching) :
         blocked_pairs = self._blockData(data_1, data_2)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def _blockPairs(self, block) : # pragma : no cover
-        base, target = block
-        return itertools.product(base, target)
+    def _blockedPairs(self, blocks) :
+        """
+        Generate tuples of pairs of records from a block of records
+        
+        Arguments:
+        
+        blocks -- an iterable sequence of blocked records
+        """
+        
+        block, blocks = core.peek(blocks)
+        self._checkBlock(block)
+
+	product = itertools.product
+
+        pairs = (product(base, target) for base, target in blocks)
+
+        return itertools.chain.from_iterable(pairs) 
         
     def _checkBlock(self, block) :
-        try :
-            base, target = block
-        except :
-            raise ValueError("Each block must be a made up of two "
-                             "sequences, (base_sequence, target_sequence)")
+        if block :
+            try :
+                base, target = block
+            except :
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
 
-        if base :
-            if len(base[0]) < 3 :
-                raise ValueError("Each block must be a made up of two "
-                                 "sequences, (base_sequence, target_sequence)")
-            self._checkRecordType(base[0][1])
-        if target :
-            if len(target[0]) < 3 :
-                raise ValueError("Each block must be a made up of two "
-                                 "sequences, (base_sequence, target_sequence)")
+            if base :
+                if len(base[0]) < 3 :
+                    raise ValueError("Each block must be a made up of two "
+                                     "sequences, (base_sequence, target_sequence)")
+                self._checkRecordType(base[0][1])
+            if target :
+                if len(target[0]) < 3 :
+                    raise ValueError("Each block must be a made up of two "
+                                     "sequences, (base_sequence, target_sequence)")
                 
-            self._checkRecordType(target[0][1])
+                self._checkRecordType(target[0][1])
+
+    def _blockGenerator(self, messy_data, blocked_records) :
+        block_groups = itertools.groupby(self.blocker(messy_data.iteritems()), 
+                                         lambda x : x[1])
+
+        for i, (record_id, block_keys) in enumerate(block_groups) :
+            if i % 100 == 0 :
+                logger.info("%s records" % i)
+
+            A = [(record_id, messy_data[record_id], set([]))]
+
+            B = {}
+
+            for block_key, _ in block_keys :
+                if block_key in blocked_records :
+                    B.update(blocked_records[block_key])
+
+            B = [(rec_id, record, set([]))
+                 for rec_id, record
+                 in B.items()]
+
+            if B :
+                yield (A, B)
+
 
     def _blockData(self, data_1, data_2) :
 
-        blocks = OrderedDict({})
-        coverage = {}
+        blocked_records = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
-            fields_1 = ((record_id, record[field])
-                        for record_id, record 
-                        in data_1.iteritems())
             fields_2 = ((record_id, record[field])
                         for record_id, record 
                         in data_2.iteritems())
 
-            self.blocker.tfIdfBlock(fields_1, fields_2, field)
+            self.blocker.tfIdfIndex(fields_2, field)
 
+        for block_key, record_id in self.blocker(data_2.items()) :
+            blocked_records[block_key][record_id] = data_2[record_id]
 
-        for block_key, record_id in self.blocker(data_1.items()) :
-            blocks.setdefault(block_key, ([], []))[0].append((record_id, 
-                                                              data_1[record_id]))
+        for each in self._blockGenerator(data_1, blocked_records) :
+            yield each
 
-        for block_key, record_id in self.blocker(data_2.iteritems()) :
-            if block_key in blocks :
-                blocks[block_key][1].append((record_id, data_2[record_id]))
+        self.blocker._resetCanopies()
 
-        for block_id, (_, sources) in enumerate(blocks.iteritems()) :
-            for source in sources :
-                for record_id, record in source :
-                    coverage.setdefault(record_id, []).append(block_id)
-
-        for block_id, (block_key, sources) in enumerate(blocks.iteritems()) :
-            tuple_block = []
-            for source in sources :
-                tuple_source = []
-                for record_id, record in source :
-                    smaller_ids = set([covered_id for covered_id 
-                                       in coverage[record_id] 
-                                       if covered_id < block_id])
-                    tuple_source.append((record_id, record, smaller_ids))
-                tuple_block.append(tuple_source)
-
-            yield tuple_block
 
 class StaticMatching(Matching) :
     """
@@ -438,18 +479,19 @@ class StaticMatching(Matching) :
 
     def __init__(self, 
                  settings_file, 
-                 num_processes=1) :
+                 num_cores=None) :
         """
         Initialize from a settings file
         #### Example usage
 
             # initialize from a settings file
-            deduper = dedupe.Dedupe('my_learned_settings')
+            with open('my_learned_settings', 'rb') as f:
+                deduper = dedupe.StaticDedupe(f)
 
         #### Keyword arguments
         
         `settings_file`
-        A file location for a settings file.
+        A file object containing settings data.
 
 
         Settings files are typically generated by saving the settings
@@ -458,21 +500,19 @@ class StaticMatching(Matching) :
         """
         super(StaticMatching, self).__init__()
 
+        if num_cores is None :
+            self.num_cores = multiprocessing.cpu_count()
+        else :
+            self.num_cores = num_cores
 
-        if settings_file.__class__ is not str :
-            raise ValueError("Must supply a settings file name")
-
-        self.num_processes = num_processes
-
-        with open(settings_file, 'rb') as f: # pragma : no cover
-            try:
-                self.data_model = pickle.load(f)
-                self.predicates = pickle.load(f)
-                self.stop_words = pickle.load(f)
-            except KeyError :
-                raise ValueError("The settings file doesn't seem to be in "
-                                 "right format. You may want to delete the "
-                                 "settings file and try again")
+        try:
+            self.data_model = pickle.load(settings_file)
+            self.predicates = pickle.load(settings_file)
+            self.stop_words = pickle.load(settings_file)
+        except KeyError :
+            raise ValueError("The settings file doesn't seem to be in "
+                             "right format. You may want to delete the "
+                             "settings file and try again")
 
         self._logLearnedWeights()
         logger.info(self.predicates)
@@ -492,23 +532,24 @@ class ActiveMatching(Matching) :
     - writeTraining
     - uncertainPairs
     - markPairs
+    - cleanupTraining
     """
 
     def __init__(self, 
-                 field_definition, 
+                 variable_definition, 
                  data_sample = None,
-                 num_processes = 1) :
+                 num_cores = None) :
         """
         Initialize from a data model and data sample.
 
         #### Example usage
 
             # initialize from a defined set of fields
-            fields = {'Site name': {'type': 'String'},
-                      'Address':   {'type': 'String'},
-                      'Zip':       {'type': 'String', 'Has Missing':True},
-                      'Phone':     {'type': 'String', 'Has Missing':True},
-                      }
+            fields = [{'field' : 'Site name', 'type': 'String'},
+                      {'field' : 'Address', 'type': 'String'},
+                      {'field' : 'Zip', 'type': 'String', 'Has Missing':True},
+                      {'field' : 'Phone', 'type': 'String', 'Has Missing':True},
+                     ]
 
             data_sample = [
                            (
@@ -529,26 +570,12 @@ class ActiveMatching(Matching) :
 
         
         #### Additional detail
-        A field definition is a dictionary where the keys are the fields
-        that will be used for training a model and the values are the
-        field specification
 
-        Field types include
+        A field definition is a list of dictionaries where each dictionary
+        describes a variable to use for comparing records. 
 
-        - String
-
-        A 'String' type field must have as its key a name of a field
-        as it appears in the data dictionary and a type declaration
-        ex. `{'Phone': {type: 'String'}}`
-
-        Longer example of a field definition:
-
-
-            fields = {'name':       {'type': 'String'},
-                      'address':    {'type': 'String'},
-                      'city':       {'type': 'String'},
-                      'cuisine':    {'type': 'String'}
-                      }
+        For details about variable types, check the documentation.
+        <http://dedupe.readthedocs.org>`_ 
 
         In the data_sample, each element is a tuple of two
         records. Each record is, in turn, a tuple of the record's key and
@@ -559,11 +586,7 @@ class ActiveMatching(Matching) :
         """
         super(ActiveMatching, self).__init__()
 
-        if field_definition.__class__ is not dict :
-            raise ValueError('Incorrect Input Type: must supply '
-                             'a field definition.')
-
-        self.data_model = DataModel(field_definition)
+        self.data_model = DataModel(variable_definition)
 
         self.data_sample = data_sample
 
@@ -572,10 +595,13 @@ class ActiveMatching(Matching) :
             self.activeLearner = training.ActiveLearning(self.data_sample, 
                                                          self.data_model)
         else :
+            self.data_sample = []
             self.activeLearner = None
 
-        self.num_processes = num_processes
-
+        if num_cores is None :
+            self.num_cores = multiprocessing.cpu_count()
+        else :
+            self.num_cores = num_cores
 
         training_dtype = [('label', 'S8'), 
                           ('distances', 'f4', 
@@ -586,22 +612,27 @@ class ActiveMatching(Matching) :
                                                            'match': []})
 
 
-
-    def readTraining(self, training_source) : # pragma : no cover
+    def cleanupTraining(self) : # pragma : no cover
         '''
-        Read training from previously saved training data file
+        Clean up data we used for training. Free up memory.
+        '''
+        del self.training_data
+        del self.training_pairs
+        del self.activeLearner
+        del self.data_sample
+
+
+    def readTraining(self, training_file) :
+        '''
+        Read training from previously built training data file object
         
         Arguments:
         
-        training_source -- the path of the training data file
+        training_file -- file object containing the training data
         '''
-
+        
         logger.info('reading training from file')
-
-        with open(training_source, 'r') as f:
-            self._importTraining(f)
-
-    def _importTraining(self, training_file) :
+        
         training_pairs = json.load(training_file, 
                                    cls=serializer.dedupe_decoder)
 
@@ -619,7 +650,7 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=.1, uncovered_dupes=1) :
+    def train(self, ppc=.1, uncovered_dupes=1) : # pragma : no cover
         """
         Keyword arguments:
         ppc -- Limits the Proportion of Pairs Covered that we allow a
@@ -653,6 +684,7 @@ class ActiveMatching(Matching) :
         alpha = crossvalidation.gridSearch(self.training_data,
                                            core.trainModel, 
                                            self.data_model, 
+                                           self.num_cores,
                                            k=n_folds)
 
 
@@ -669,7 +701,7 @@ class ActiveMatching(Matching) :
         self._logLearnedWeights()
 
     
-    def _trainBlocker(self, ppc=1, uncovered_dupes=1) :
+    def _trainBlocker(self, ppc=1, uncovered_dupes=1) : # pragma : no cover
         training_pairs = copy.deepcopy(self.training_pairs)
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
@@ -681,7 +713,7 @@ class ActiveMatching(Matching) :
         predicate_set = predicateGenerator(self.data_model)
 
         (self.predicates, 
-         self.stop_words) = dedupe.blocking.blockTraining(training_pairs,
+         self.stop_words) = dedupe.training.blockTraining(training_pairs,
                                                           predicate_set,
                                                           ppc,
                                                           uncovered_dupes,
@@ -691,53 +723,52 @@ class ActiveMatching(Matching) :
                                      self.stop_words) 
 
 
-    def writeSettings(self, file_name): # pragma : no cover
+    def writeSettings(self, file_obj): # pragma : no cover
         """
-        Write a settings file that contains the 
-        data model and predicates
+        Write a settings file containing the 
+        data model and predicates to a file object
 
         Keyword arguments:
-        file_name -- path to file
+        file_obj -- file object to write settings data into
         """
 
-        with open(file_name, 'w') as f:
-            pickle.dump(self.data_model, f)
-            pickle.dump(self.predicates, f)
-            pickle.dump(dict(self.stop_words), f)
+        pickle.dump(self.data_model, file_obj)
+        pickle.dump(self.predicates, file_obj)
+        pickle.dump(dict(self.stop_words), file_obj)
 
-    def writeTraining(self, file_name): # pragma : no cover
+    def writeTraining(self, file_obj): # pragma : no cover
         """
         Write to a json file that contains labeled examples
 
         Keyword arguments:
-        file_name -- path to a json file
+        file_obj -- file object to write training data to
         """
 
-        with open(file_name, 'wb') as f:
-            json.dump(self.training_pairs, 
-                      f, 
-                      default=serializer._to_json,
-                      ensure_ascii=False)
+        json.dump(self.training_pairs, 
+                  file_obj, 
+                  default=serializer._to_json,
+                  ensure_ascii=False)
 
 
     def uncertainPairs(self) :
         '''
-        Provides a list of the pairs of records that dedupe is most curious to learn 
-        if they are matches or distinct.
+        Provides a list of the pairs of records that dedupe is most
+        curious to learn if they are matches or distinct.
         
         Useful for user labeling.
+
         '''
         
         
         if self.training_data.shape[0] == 0 :
-            rand_int = random.randint(0, len(self.data_sample))
+            rand_int = random.randint(0, len(self.data_sample)-1)
             random_pair = self.data_sample[rand_int]
             exact_match = (random_pair[0], random_pair[0]) 
             self._addTrainingData({'match':[exact_match, exact_match],
                                    'distinct':[]})
 
 
-            self._trainClassifier(alpha=0.1)
+        self._trainClassifier(alpha=0.1)
 
         
         dupe_ratio = (len(self.training_pairs['match'])
@@ -780,8 +811,6 @@ class ActiveMatching(Matching) :
             self.training_pairs[label].extend(core.freezeData(pairs))
 
         self._addTrainingData(labeled_pairs) 
-
-        self._trainClassifier(alpha=.1)
 
 
 
@@ -961,9 +990,89 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return data_sample
 
 
+class GazetteerMatching(RecordLinkMatching) :
+    
+    def __init__(self, *args, **kwargs) :
+        super(GazetteerMatching, self).__init__(*args, **kwargs)
+
+        self._cluster = clustering.gazetteMatching
+        self._linkage_type = "GazetteerMatching"
+        self.blocked_records = OrderedDict({})
+
+
+    def _blockData(self, messy_data) :
+        for each in self._blockGenerator(messy_data, self.blocked_records) :
+            yield each
+
+
+    def index(self, data) : # pragma : no cover
+
+        for field in self.blocker.tfidf_fields :
+            self.blocker.tfIdfIndex(((record_id, record[field])
+                                     for record_id, record 
+                                     in data.iteritems()),
+                                    field)
+
+        for block_key, record_id in self.blocker(data.items()) :
+            if block_key not in self.blocked_records :
+                self.blocked_records[block_key] = {}
+            self.blocked_records[block_key][record_id] = data[record_id]
+
+    def unindex(self, data) : # pragma : no cover
+
+        for field in self.blocker.tfidf_fields :
+            self.blocker.tfIdfUnindex(((record_id, record[field])
+                                       for record_id, record 
+                                       in data.iteritems()),
+                                     field)
+
+        for block_key, record_id in self.blocker(data.iteritems()) :
+            try : 
+                del self.blocked_records[block_key][record_id]
+            except KeyError :
+                pass 
+        
+    def match(self, messy_data, threshold = 0.5, n_matches = 1) : # pragma : no cover
+        """Identifies pairs of records that refer to the same entity, returns
+        tuples containing a set of record ids and a confidence score as a float
+        between 0 and 1. The record_ids within each set should refer to the 
+        same entity and the confidence score is the estimated probability that
+        the records refer to the same entity.
+        
+        This method should only used for small to moderately sized datasets
+        for larger data, use matchBlocks
+        
+        Arguments:
+        data_1    -- Dictionary of records from first dataset, where the 
+                     keys are record_ids and the values are dictionaries
+                     with the keys being field names
+
+        data_2    -- Dictionary of records from second dataset, same form 
+                     as data_1
+                                          
+        threshold -- Number between 0 and 1 (default is .5). We will consider
+                     records as potential duplicates if the predicted 
+                     probability of being a duplicate is above the threshold.
+
+                     Lowering the number will increase recall, raising it
+                     will increase precision
+        
+        n_matches -- Maximum number of possible matches from data_2
+                     for each record in data_1
+        """
+        blocked_pairs = self._blockData(messy_data)
+        return self.matchBlocks(blocked_pairs, threshold, n_matches)
+
+class Gazetteer(RecordLink, GazetteerMatching):
+    pass
+
+class StaticGazetteer(StaticRecordLink, GazetteerMatching):
+    pass
+
 def predicateGenerator(data_model) :
-    predicates = []
-    for field, definition in data_model['fields'].items() :
-        predicates.extend(definition.predicates)
+    predicates = set([])
+    for definition in data_model['fields'] :
+        if hasattr(definition, 'predicates') :
+            predicates.update(definition.predicates)
 
     return predicates

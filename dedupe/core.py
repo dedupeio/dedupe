@@ -5,6 +5,9 @@ import itertools
 import warnings
 import numpy
 import collections
+import time
+import tempfile
+import os
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -102,30 +105,17 @@ def trainModel(training_data, data_model, alpha=.001):
 
     (weight, bias) = lr.lr(labels, examples, alpha)
 
-    for i, name in enumerate(data_model['fields']) :
-        data_model['fields'][name].weight = float(weight[i])
+    for i, field_definition in enumerate(data_model['fields']) :
+        field_definition.weight = float(weight[i])
 
     data_model['bias'] = bias
 
     return data_model
 
+def derivedDistances(primary_distances, data_model) :
+    distances = primary_distances
 
-def fieldDistances(record_pairs, data_model, num_records=None):
-
-    if num_records is None :
-        num_records = len(record_pairs)
-    
-    distances = numpy.empty((num_records, data_model.total_fields))
-    
-    current_column = 0
-
-    field_comparators = data_model.field_comparators.items()
-    for i, (record_1, record_2) in enumerate(record_pairs) :
-        for j, (field, compare) in enumerate(field_comparators) :
-            distances[i,j] = compare(record_1[field],
-                                     record_2[field])
-
-    current_column += len(field_comparators)
+    current_column = len(data_model.field_comparators)
 
     for cat_index, length in data_model.categorical_indices :
         start = current_column
@@ -149,15 +139,32 @@ def fieldDistances(record_pairs, data_model, num_records=None):
 
     distances[:,:current_column][missing_data] = 0
 
-    distances[:,current_column:] =\
+    if data_model.missing_field_indices :
+        distances[:,current_column:] =\
             1 - missing_data[:,data_model.missing_field_indices]
+
+    return distances
+
+def fieldDistances(record_pairs, data_model):
+    num_records = len(record_pairs)
+
+    distances = numpy.empty((num_records, data_model.total_fields))
+
+    field_comparators = data_model.field_comparators
+
+    for i, (record_1, record_2) in enumerate(record_pairs) :
+        for j, (field, compare) in enumerate(field_comparators) :
+            distances[i,j] = compare(record_1[field],
+                                     record_2[field])
+
+    distances = derivedDistances(distances, data_model)
 
     return distances
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
 
-    field_weights = [fields[name].weight for name in fields]
+    field_weights = [field.weight for field in fields]
     bias = data_model['bias']
 
     scores = numpy.dot(field_distances, field_weights)
@@ -166,105 +173,167 @@ def scorePairs(field_distances, data_model):
 
     return scores
 
-class ScoringFunction(object) :
-    def __init__(self, data_model, threshold, dtype) :
+class ScoreRecords(object) :
+    def __init__(self, data_model, threshold) :
         self.data_model = data_model
         self.threshold = threshold
-        self.dtype = dtype
-    def __call__(self, chunk_queue, scored_pairs_queue) :
+        self.score_queue = None
+
+    def __call__(self, records_queue, score_queue) :
+        self.score_queue = score_queue
         while True :
-            record_pairs = chunk_queue.get()
+            record_pairs = records_queue.get()
             if record_pairs is None :
-                # put the poison pill back in the queue so that other
-                # scorers will know to stop
-                chunk_queue.put(None)
                 break
-            scored_pairs = self.scoreRecords(record_pairs)
-            scored_pairs_queue.put(scored_pairs)
 
-    def scoreRecords(self, record_pairs) :
-        num_records = len(record_pairs)
+            self.fieldDistance(record_pairs)
 
-        scored_pairs = numpy.empty(num_records,
-                                   dtype = self.dtype)
+        score_queue.put(None)
 
-        def split_records() :
-            for i, pair in enumerate(record_pairs) :
-                record_1, record_2 = pair
-                scored_pairs['pairs'][i] = (record_1[0], record_2[0])
-                yield (record_1[1], record_2[1])
+    def fieldDistance(self, record_pairs) :
+        ids = []
+        records = []
+        
+        for record_pair in record_pairs :
+            ((id_1, record_1, smaller_ids_1), 
+             (id_2, record_2, smaller_ids_2)) = record_pair
 
-        scored_pairs['score'] = scorePairs(fieldDistances(split_records(), 
-                                                          self.data_model,
-                                                          num_records),
-                                           self.data_model)
+            if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
+                
+                ids.append((id_1, id_2))
+                records.append((record_1, record_2))
 
-        scored_pairs = scored_pairs[scored_pairs['score'] > self.threshold]   
+        if records :
+            distances = fieldDistances(records, self.data_model)
+            scores = scorePairs(distances, self.data_model)
 
-        return scored_pairs
+            scored_pairs = numpy.rec.fromarrays((ids, scores),
+                                                dtype= [('pairs', 'object', 2), 
+                                                        ('score', 'f4', 1)])
+            
+            filtered_pairs = scored_pairs[scores > self.threshold]
 
-def scoreDuplicates(records, data_model, num_processes, threshold=0):
-    records = iter(records)
+            self.score_queue.put(filtered_pairs)
 
-    chunk_size = 1000
+def mergeScores(score_queue, result_queue, stop_signals) :
+    scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
+                                          ('score', 'f4', 1)])
 
-    queue_size = num_processes
-    record_pairs_queue = backport.Queue(queue_size)
-    scored_pairs_queue = backport.Queue()
-
-    score_dtype = [('pairs', object, 2), ('score', 'f4', 1)]
-
-    scoring_function = ScoringFunction(data_model, 
-                                       threshold,
-                                       score_dtype)
-
-    # Start processes
-    processes = [backport.Process(target=scoring_function, 
-                                  args=(record_pairs_queue, 
-                                        scored_pairs_queue))
-                 for _ in xrange(num_processes)]
-
-    [process.start() for process in processes]
-
-    num_chunks = 0
-    num_records = 0
-
-    while True :
-        chunk = list(itertools.islice(records, chunk_size))
-        if chunk :
-            record_pairs_queue.put(chunk)
-            num_chunks += 1
-            num_records += chunk_size
-
-            if num_chunks > queue_size :
-                if record_pairs_queue.full() :
-                    if chunk_size < 100000 :
-                        if num_chunks % 10 == 0 :
-                            chunk_size = int(chunk_size * 1.1)
-                else :
-                    if chunk_size > 100 :
-                        chunk_size = int(chunk_size * 0.9)
+    seen_signals = 0
+    while seen_signals < stop_signals  :
+        score_chunk = score_queue.get()
+        if score_chunk is not None :
+            scored_pairs = numpy.concatenate((scored_pairs, score_chunk))
         else :
-            # put poison pill in queue to tell scorers that they are
-            # done
-            record_pairs_queue.put(None)
-            break
+            seen_signals += 1
 
-    scored_pairs = numpy.empty(num_records,
-                               dtype=score_dtype)
+    if len(scored_pairs) :
+        python_type = type(scored_pairs['pairs'][0][0])
+        if python_type is str or python_type is unicode :
+            max_length = len(max(numpy.ravel(scored_pairs['pairs']), key=len))
+            python_type = (unicode, max_length)
+        
+        write_dtype = [('pairs', python_type, 2),
+                       ('score', 'f4', 1)]
 
-    start = 0
-    for _ in xrange(num_chunks) :
-        score_chunk = scored_pairs_queue.get()
-        end = start + len(score_chunk)
-        scored_pairs[start:end,] = score_chunk
-        start = end
+        scored_pairs = scored_pairs.astype(write_dtype)
 
-    scored_pairs.resize((end,))
+        scored_pairs_file, file_path = tempfile.mkstemp()
+        
+        os.close(scored_pairs_file)
 
-    [process.join() for process in processes]
+        fp = numpy.memmap(file_path, 
+                          dtype=scored_pairs.dtype, 
+                          shape=scored_pairs.shape)
+        fp[:] = scored_pairs[:]
+
+        result_queue.put((file_path, scored_pairs.dtype))
+
+    else :
+        result_queue.put(scored_pairs)
+
+def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
+    if num_cores < 2 :
+        from multiprocessing.dummy import Process, Pool, Queue
+        SimpleQueue = Queue
+    else :
+        from backport import Process, Pool, SimpleQueue
+
+    record_pairs_queue = SimpleQueue()
+    score_queue =  SimpleQueue()
+    result_queue = SimpleQueue()
+
+    n_map_processes = max(num_cores-1, 1)
+    score_records = ScoreRecords(data_model, threshold) 
+    map_processes = [Process(target=score_records,
+                             args=(record_pairs_queue,
+                                   score_queue))
+                     for _ in xrange(n_map_processes)]
+    [process.start() for process in map_processes]
+
+    reduce_process = Process(target=mergeScores,
+                             args=(score_queue,
+                                   result_queue,
+                                   n_map_processes))
+    reduce_process.start()
+
+    fillQueue(record_pairs_queue, records, n_map_processes)
+
+    result = result_queue.get()
+    if result :
+        scored_pairs_file, dtype = result
+        scored_pairs = numpy.memmap(scored_pairs_file,
+                                    dtype=dtype)
+    else :
+        scored_pairs = result
 
     return scored_pairs
+
+
+
+def fillQueue(queue, iterable, stop_signals) :
+    iterable = iter(iterable)
+    chunk_size = 100000
+    multiplier = 1.1
+
+    # initial values
+    i = 0
+    n_records = 0
+    t0 = time.time()
+    last_rate = 10000
+
+    while True :
+        chunk = list(itertools.islice(iterable, chunk_size))
+        if chunk :
+            queue.put(chunk)
+
+            n_records += chunk_size
+            i += 1
+
+            if i % 10 :
+                time_delta = time.time() - t0
+
+                current_rate = n_records/time_delta
+
+                # chunk_size is always either growing or shrinking, if
+                # the shrinking led to a faster rate, keep
+                # shrinking. Same with growing. If the rate decreased,
+                # reverse directions
+                if current_rate < last_rate :
+                    multiplier = 1/multiplier
+
+                chunk_size = max(chunk_size * multiplier, 1)
+
+                last_rate = current_rate
+                n_records = 0
+                t0 = time.time()
+                
+
+        else :
+            # put poison pills in queue to tell scorers that they are
+            # done
+            [queue.put(None) for _ in xrange(stop_signals)]
+            break
 
 def peek(records) :
     try :
@@ -277,6 +346,9 @@ def peek(records) :
             record = records.next()
         except StopIteration :
             return None, records
+    except StopIteration :
+        return None, records
+    
 
 
     return record, itertools.chain([record], records)
@@ -311,5 +383,5 @@ class frozendict(collections.Mapping):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(frozenset(self._d.iteritems()))
+            h = self._cached_hash = hash(tuple(self._d.items()))
             return h
