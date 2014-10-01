@@ -1062,9 +1062,24 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         for pred_block_id in blocked_dict_1.keys():
             if pred_block_id not in blocked_dict_2.keys():
                 blocked_dict_1.pop(pred_block_id)
+            else:
+                for k in blocked_dict_1[pred_block_id].keys():
+                    if k not in blocked_dict_2[pred_block_id]:
+                        blocked_dict_1[pred_block_id].pop(k)
+                if len(blocked_dict_1[pred_block_id]) == 0:
+                    blocked_dict_1.pop(pred_block_id)
+        for pred_block_id in blocked_dict_2:
+            if pred_block_id not in blocked_dict_1.keys():
                 blocked_dict_2.pop(pred_block_id)
             else:
-                for k, v in blocked_dict_1[pred_block_id].items():
+                for k in blocked_dict_2[pred_block_id].keys():
+                    if k not in blocked_dict_1[pred_block_id]:
+                        blocked_dict_2[pred_block_id].pop(k)
+                if len(blocked_dict_2[pred_block_id]) == 0:
+                    blocked_dict_2.pop(pred_block_id)
+
+        #sample record pairs from the two pred dicts
+
 
 
 
