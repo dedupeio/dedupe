@@ -868,7 +868,7 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-    def _loadSample(data_sample) :
+    def _loadSample(self, data_sample) :
 
         self._checkDataSample(data_sample) 
 
@@ -1020,8 +1020,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         rand_sample_size = int(rand_p * sample_size)
         blocked_sample_size = sample_size - rand_sample_size
 
-        random_sample = self._randomSample(data1, data2, rand_sample_size)
-        blocked_sample = self._blockedSample(data1, data2, blocked_sample_size)
+        random_sample = self._randomSample(data_1, data_2, rand_sample_size)
+        blocked_sample = self._blockedSample(data_1, data_2, blocked_sample_size)
 
         data_sample = random_sample + blocked_sample
 
@@ -1068,7 +1068,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
                         blocked_dict_1[pred_block_id].pop(k)
                 if len(blocked_dict_1[pred_block_id]) == 0:
                     blocked_dict_1.pop(pred_block_id)
-        for pred_block_id in blocked_dict_2:
+        for pred_block_id in blocked_dict_2.keys():
             if pred_block_id not in blocked_dict_1.keys():
                 blocked_dict_2.pop(pred_block_id)
             else:
@@ -1085,8 +1085,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         for subsample_size, pred_block in zip(subsample_counts, blocked_dict_1):
             for i in range(subsample_size):
                 rand_pred = random.choice(blocked_dict_1[pred_block].keys())
-                random_pairs.append([   random.choice(pred_dict_1[pred_block][rand_pred]),
-                                        random.choice(pred_dict_2[pred_block][rand_pred])   ])
+                random_pairs.append([   random.choice(blocked_dict_1[pred_block][rand_pred]),
+                                        random.choice(blocked_dict_2[pred_block][rand_pred])   ])
 
         data_sample = tuple( (d_1[k1], d_2[k2]) for k1, k2 in random_pairs )
 
@@ -1096,7 +1096,7 @@ def blockedPredDict(blocker, data_dict):
 
     pred_dict = defaultdict(list)
 
-    for block_key, record_id in blocker(data_dict.items):
+    for block_key, record_id in blocker(data_dict.items()):
         pred_id = block_key.split(':')[-1]
         if pred_id not in pred_dict:
             pred_dict[pred_id] = defaultdict(list)
