@@ -1047,9 +1047,44 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
     def _blockedSample(self, data_1, data_2, sample_size):
 
+        d_1 = ((i, dedupe.core.frozendict(v)) 
+                    for i, v in enumerate(data_1.values()))
+        d_2 = dict((i, dedupe.core.frozendict(v)) 
+                   for i, v in enumerate(data_2.values()))
+
+        predicates = predicateGenerator(self.data_model)
+        blocker = blocking.Blocker(predicates)
+
+        blocked_dict_1 = blockedPredDict(blocker, d_1)
+        blocked_dict_2 = blockedPredDict(blocker, d_2)
+
+        #clean up blocked dicts so that they only contains blocks & preds that exist in both datasets
+        for pred_block_id in blocked_dict_1.keys():
+            if pred_block_id not in blocked_dict_2.keys():
+                blocked_dict_1.pop(pred_block_id)
+                blocked_dict_2.pop(pred_block_id)
+            else:
+                for k, v in blocked_dict_1[pred_block_id].items():
+
+
+
+
         data_sample = []
 
         return data_sample
+
+def blockedPredDict(blocker, data_dict):
+
+    pred_dict = defaultdict(list)
+
+    for block_key, record_id in blocker(data_dict.items):
+        pred_id = block_key.split(':')[-1]
+        if pred_id not in pred_dict:
+            pred_dict[pred_id] = defaultdict(list)
+        #construct dict for each field-pred combo, where keys are pred blocks and values are record ids
+        pred_dict[pred_id][block_key].append(record_id)
+
+    return pred_dict
 
 
 class GazetteerMatching(RecordLinkMatching) :
