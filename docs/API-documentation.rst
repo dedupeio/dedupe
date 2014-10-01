@@ -179,18 +179,20 @@ Example
    We assume that the fields you want to compare across datasets have the
    same field name.
 
-   .. py:method:: sample(data_1, data_2, sample_size)
+   .. py:method:: sample(data_1, data_2, sample_size=150000, rand_p=1)
 
       Draws a random sample of combinations of records from the first and
       second datasets, and initializes active learning with this sample
 
-      :param dict data_1: a dictionary of records from first dataset,
+      :param dict data_1: A dictionary of records from first dataset,
 			  where the keys are record_ids and the
 			  values are dictionaries with the keys being
 			  field names.
-      :param dict data_2: a dictionary of records from second dataset,
+      :param dict data_2: A dictionary of records from second dataset,
 			  same form as data_1
-      :param int sample_size: the size of the sample to draw
+      :param int sample_size: The size of the sample to draw. Defaults to 150,000
+      :param float rand_p: The proportion of record tuples to be sampled
+            randomly (as opposed to sampled from similar records). Defaults to 1.
 
       .. code:: python
 
