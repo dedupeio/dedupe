@@ -1047,7 +1047,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
     def _blockedSample(self, data_1, data_2, sample_size):
 
-        d_1 = ((i, dedupe.core.frozendict(v)) 
+        d_1 = dict((i, dedupe.core.frozendict(v)) 
                     for i, v in enumerate(data_1.values()))
         d_2 = dict((i, dedupe.core.frozendict(v)) 
                    for i, v in enumerate(data_2.values()))
@@ -1079,12 +1079,16 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
                     blocked_dict_2.pop(pred_block_id)
 
         #sample record pairs from the two pred dicts
+        random_pairs = []
+        subsample_counts = subsampleCount(sample_size, len(blocked_dict_1))
 
+        for subsample_size, pred_block in zip(subsample_counts, blocked_dict_1):
+            for i in range(subsample_size):
+                rand_pred = random.choice(blocked_dict_1[pred_block].keys())
+                random_pairs.append([   random.choice(pred_dict_1[pred_block][rand_pred]),
+                                        random.choice(pred_dict_2[pred_block][rand_pred])   ])
 
-
-
-
-        data_sample = []
+        data_sample = tuple( (d_1[k1], d_2[k2]) for k1, k2 in random_pairs )
 
         return data_sample
 
