@@ -1021,6 +1021,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         blocked_sample_size = sample_size - rand_sample_size
 
         random_sample = self._randomSample(data_1, data_2, rand_sample_size)
+
         blocked_sample = self._blockedSample(data_1, data_2, blocked_sample_size)
 
         data_sample = random_sample + blocked_sample
@@ -1029,6 +1030,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
 
     def _randomSample(self, data_1, data_2, sample_size):
+
+        if not sample_size:
+            return ()
 
         d_1 = dict((i, dedupe.core.frozendict(v)) 
                     for i, v in enumerate(data_1.values()))
@@ -1046,6 +1050,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return data_sample
 
     def _blockedSample(self, data_1, data_2, sample_size):
+
+        if not sample_size:
+            return ()
 
         d_1 = dict((i, dedupe.core.frozendict(v)) 
                     for i, v in enumerate(data_1.values()))

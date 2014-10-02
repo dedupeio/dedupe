@@ -192,7 +192,7 @@ Example
 			  same form as data_1
       :param int sample_size: The size of the sample to draw. Defaults to 150,000
       :param float rand_p: The proportion of record tuples to be sampled
-            randomly (as opposed to sampled from similar records). Defaults to 1.
+            randomly (as opposed to sampled from similar records). Defaults to 1
 
       .. code:: python
 
