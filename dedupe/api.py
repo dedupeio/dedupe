@@ -970,7 +970,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         data_sample = tuple((indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs)
         return data_sample
-        
+
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
@@ -1042,55 +1042,55 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         return data_sample
 
-    def _blockedSample(self, data_1, data_2, sample_size):
+    
+    def _blockedSample(self, data1, data2, sample_size):
 
         if not sample_size:
             return ()
 
         d_1 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data_1.values()))
+                    for i, v in enumerate(data1.values()))
         d_2 = dict((i, dedupe.core.frozendict(v)) 
-                   for i, v in enumerate(data_2.values()))
+                    for i, v in enumerate(data2.values()))
+        indices = list(range(len(d_1)))
 
         predicates = predicateGenerator(self.data_model)
-        blocker = blocking.Blocker(predicates)
+        subsample_counts = subsampleCount(sample_size, len(predicates))
 
-        blocked_dict_1 = blockedPredDict(blocker, d_1)
-        blocked_dict_2 = blockedPredDict(blocker, d_2)
-
-        #clean up blocked dicts so that they only contains blocks & preds that exist in both datasets
-        for pred_block_id in blocked_dict_1.keys():
-            if pred_block_id not in blocked_dict_2.keys():
-                blocked_dict_1.pop(pred_block_id)
-            else:
-                for k in blocked_dict_1[pred_block_id].keys():
-                    if k not in blocked_dict_2[pred_block_id]:
-                        blocked_dict_1[pred_block_id].pop(k)
-                if len(blocked_dict_1[pred_block_id]) == 0:
-                    blocked_dict_1.pop(pred_block_id)
-        for pred_block_id in blocked_dict_2.keys():
-            if pred_block_id not in blocked_dict_1.keys():
-                blocked_dict_2.pop(pred_block_id)
-            else:
-                for k in blocked_dict_2[pred_block_id].keys():
-                    if k not in blocked_dict_1[pred_block_id]:
-                        blocked_dict_2[pred_block_id].pop(k)
-                if len(blocked_dict_2[pred_block_id]) == 0:
-                    blocked_dict_2.pop(pred_block_id)
-
-        #sample record pairs from the two pred dicts
         random_pairs = []
-        subsample_counts = subsampleCount(sample_size, len(blocked_dict_1))
 
-        for subsample_size, pred_block in zip(subsample_counts, blocked_dict_1):
-            for i in range(subsample_size):
-                rand_pred = random.choice(blocked_dict_1[pred_block].keys())
-                random_pairs.append([   random.choice(blocked_dict_1[pred_block][rand_pred]),
-                                        random.choice(blocked_dict_2[pred_block][rand_pred])   ])
+        for subsample_size, predicate in zip( subsample_counts, predicates ):
+            random.shuffle(indices)
+            block_dict_1 = defaultdict(list)
+            block_dict_2 = defaultdict(list)
+            for index in indices:
+                block_keys_1 = predicate( index, d_1[index] )
+                block_keys_2 = predicate( index, d_2[index] )
+                for block_key in block_keys_1:
+                    if subsample_size == 0:
+                        break;
+                    block_dict_1[block_key] = index
+                    if block_key in block_dict_2.keys():
+                        random_pairs.append([ block_dict_1[block_key], block_dict_2[block_key] ])
+                        block_dict_1.pop( block_key )
+                        block_dict_2.pop( block_key )
+                        subsample_size = subsample_size - 1
+                for block_key in block_keys_2:
+                    if subsample_size == 0:
+                        break;
+                    block_dict_2[block_key] = index
+                    if block_key in block_dict_1.keys():
+                        random_pairs.append([ block_dict_1[block_key], block_dict_2[block_key] ])
+                        block_dict_1.pop( block_key )
+                        block_dict_2.pop( block_key )
+                        subsample_size = subsample_size - 1
+                if subsample_size == 0:
+                    break;
 
         data_sample = tuple( (d_1[k1], d_2[k2]) for k1, k2 in random_pairs )
 
         return data_sample
+
 
 def blockedPredDict(blocker, data_dict):
 
