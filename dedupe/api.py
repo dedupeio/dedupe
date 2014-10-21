@@ -939,45 +939,38 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         return data_sample
 
+    
     def _blockedSample(self, data, sample_size) :
 
         indexed_data = dict((i, dedupe.core.frozendict(v)) 
                             for i, v in enumerate(data.values()))
+        indices = list(range(len(data)))
 
         predicates = predicateGenerator(self.data_model)
-        blocker = blocking.Blocker(predicates)
-        pred_dict = defaultdict(list)
 
-        for block_key, record_id in blocker(indexed_data.items()) :
-            pred_id = block_key.split(':')[-1]
-            #create dict for each field-pred combo, where keys are pred blocks & values are record ids
-            if pred_id in pred_dict:
-                pred_dict[pred_id][block_key].append(record_id)
-            else:
-                pred_dict[pred_id] = defaultdict(list)
-                pred_dict[pred_id][block_key].append(record_id)
-        
-        #clean up pred_dict so that it only contains groups of 2+ records
-        for pred_block_id in pred_dict.keys():
-            for k, v in pred_dict[pred_block_id].items():
-                if len(v) < 2:
-                    pred_dict[pred_block_id].pop(k)
-            if len(pred_dict[pred_block_id]) == 0:
-                pred_dict.pop(pred_block_id)
-        
-        #sample record pairs from pred_dict
         random_pairs = []
-        subsample_counts = subsampleCount(sample_size, len(pred_dict))
+        subsample_counts = subsampleCount(sample_size, len(predicates))
 
-        for subsample_size, pred_block in zip(subsample_counts, pred_dict) :
-            for i in range(subsample_size):
-                rand_pred = random.choice(pred_dict[pred_block].keys())
-                random_pairs.append(random.sample(pred_dict[pred_block][rand_pred], 2))
-        data_sample = tuple((indexed_data[k1], 
-                             indexed_data[k2]) 
-                            for k1, k2 in random_pairs)
+        for subsample_size, predicate in zip(subsample_counts, predicates) :
+            random.shuffle(indices)
+            block_dict = defaultdict(list)
+            for index in indices:
+                record = indexed_data[index]
+                block_keys = predicate( index, record )
+                for block_key in block_keys:
+                    if subsample_size == 0:
+                        break;
+                    block_dict[block_key].append(index)
+                    if len(block_dict[block_key]) > 1:
+                        random_pairs.append( block_dict[block_key] )
+                        subsample_size = subsample_size - 1
+                        block_dict.pop( block_key )
+                if subsample_size == 0:
+                    break;
 
+        data_sample = tuple((indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs)
         return data_sample
+        
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
