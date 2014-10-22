@@ -978,8 +978,11 @@ def samplePredicate(subsample_size, predicate, items) :
     sample = []
     block_dict = {}
 
+    predicate_function = predicate.func
+    field = predicate.field
+
     for pivot, (index, record) in enumerate(items) :
-        block_keys = predicate(index, record)
+        block_keys = predicate_function(record[field])
 
         for block_key in block_keys:
             if block_key not in block_dict :
