@@ -899,7 +899,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
 
     
-    def sample(self, data, sample_size=150000, rand_p=1) :
+    def sample(self, data, sample_size=150000, rand_p=0.5, indexed=False) :
         '''
         Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
@@ -917,18 +917,21 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         rand_sample_size = int(rand_p * sample_size)
         blocked_sample_size = sample_size - rand_sample_size
 
-        random_sample = self._randomSample(data, rand_sample_size)
-        blocked_sample = self._blockedSample(data, blocked_sample_size)
+        if indexed :
+            indexed_data = data
+        else :
+            indexed_data = dict((i, dedupe.core.frozendict(v)) 
+                                for i, v in enumerate(data.values()))
+
+        blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
+        random_sample = self._randomSample(indexed_data, rand_sample_size)
 
         data_sample = random_sample + blocked_sample
         
         self._loadSample(data_sample)
 
 
-    def _randomSample(self, data, sample_size) :
-
-        indexed_data = dict((i, dedupe.core.frozendict(v)) 
-                            for i, v in enumerate(data.values()))
+    def _randomSample(self, indexed_data, sample_size) :
 
         random_pairs = dedupe.core.randomPairs(len(indexed_data), 
                                                sample_size)
@@ -939,39 +942,60 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         return data_sample
 
-    
-    def _blockedSample(self, data, sample_size) :
+    def _blockedSample(self, indexed_data, sample_size) :
 
-        indexed_data = dict((i, dedupe.core.frozendict(v)) 
-                            for i, v in enumerate(data.values()))
-        indices = list(range(len(data)))
+        indexed_items = indexed_data.items()
+
+        indexed_items = numpy.array(indexed_items)
+
+        n_records = len(indexed_data)
 
         predicates = predicateGenerator(self.data_model)
+        
+        predicates = [pred for pred in predicates 
+                      if pred.type == "SimplePredicate"]
 
         random_pairs = []
         subsample_counts = subsampleCount(sample_size, len(predicates))
 
+        pivot = 0
+
         for subsample_size, predicate in zip(subsample_counts, predicates) :
-            random.shuffle(indices)
-            block_dict = defaultdict(list)
-            for index in indices:
-                record = indexed_data[index]
-                block_keys = predicate( index, record )
-                for block_key in block_keys:
-                    if subsample_size == 0:
-                        break;
-                    block_dict[block_key].append(index)
-                    if len(block_dict[block_key]) > 1:
-                        random_pairs.append( block_dict[block_key] )
-                        subsample_size = subsample_size - 1
-                        block_dict.pop( block_key )
-                if subsample_size == 0:
-                    break;
+
+            indexed_items = numpy.roll(indexed_items, pivot, 0)
+
+            predicate_sample, pivot = samplePredicate(subsample_size,
+                                                      predicate,
+                                                      indexed_items)
+            random_pairs.extend(predicate_sample)
 
         data_sample = tuple((indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs)
         return data_sample
+        
+#@profile
+def samplePredicate(subsample_size, predicate, items) :
+    pivot = 0 
+    sample = []
+    block_dict = {}
 
+    for pivot, (index, record) in enumerate(items) :
+        block_keys = predicate(index, record)
 
+        for block_key in block_keys:
+            if block_key not in block_dict :
+                block_dict[block_key] = index
+            else :
+                sample.append((block_dict[block_key],
+                               index))
+                subsample_size -= 1
+                del block_dict[block_key]
+                if subsample_size :
+                    break
+                else :
+                    return sample, pivot
+
+    else :
+        return sample, pivot
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
