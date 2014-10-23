@@ -919,13 +919,14 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         if indexed :
             indexed_data = data
+
         else :
             indexed_data = dict((i, dedupe.core.frozendict(v)) 
                                 for i, v in enumerate(data.values()))
 
+
         blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
         random_sample = self._randomSample(indexed_data, rand_sample_size)
-
         data_sample = random_sample + blocked_sample
         
         self._loadSample(data_sample)
@@ -943,6 +944,11 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         return data_sample
 
     def _blockedSample(self, indexed_data, sample_size) :
+
+        if sample_size == 0:
+            return ()
+
+        random.shuffle(indexed_data)
 
         indexed_items = indexed_data.items()
 
@@ -970,9 +976,9 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             random_pairs.extend(predicate_sample)
 
         data_sample = tuple((indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs)
+        
         return data_sample
         
-#@profile
 def samplePredicate(subsample_size, predicate, items) :
     pivot = 0 
     sample = []
@@ -983,7 +989,11 @@ def samplePredicate(subsample_size, predicate, items) :
 
     for pivot, (index, record) in enumerate(items) :
         block_keys = predicate_function(record[field])
-
+        
+        if pivot == 10000:
+            if len(block_dict) + len(sample) < 2 :
+                break
+        
         for block_key in block_keys:
             if block_key not in block_dict :
                 block_dict[block_key] = index
@@ -997,8 +1007,7 @@ def samplePredicate(subsample_size, predicate, items) :
                 else :
                     return sample, pivot
 
-    else :
-        return sample, pivot
+    return sample, pivot
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
