@@ -948,7 +948,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         if sample_size == 0 :
             return ()
 
-        random.shuffle(indexed_data)
+        numpy.random.shuffle(indexed_data)
         indexed_items = indexed_data.items()
         indexed_items = numpy.array(indexed_items)
 
