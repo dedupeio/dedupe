@@ -914,9 +914,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         rand_p      -- Proportion of the sample that will be random
         '''
 
-        rand_sample_size = int(rand_p * sample_size)
-        blocked_sample_size = sample_size - rand_sample_size
-
         if indexed :
             indexed_data = data
 
@@ -924,9 +921,12 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             indexed_data = dict((i, dedupe.core.frozendict(v)) 
                                 for i, v in enumerate(data.values()))
 
-
+        blocked_sample_size = int( (1-rand_p) * sample_size )
         blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
+
+        rand_sample_size = sample_size - len(blocked_sample)
         random_sample = self._randomSample(indexed_data, rand_sample_size)
+
         data_sample = random_sample + blocked_sample
         
         self._loadSample(data_sample)
@@ -949,24 +949,20 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             return ()
 
         random.shuffle(indexed_data)
-
         indexed_items = indexed_data.items()
-
         indexed_items = numpy.array(indexed_items)
 
-        n_records = len(indexed_data)
-
         predicates = predicateGenerator(self.data_model)
-        
         predicates = [pred for pred in predicates 
                       if pred.type == "SimplePredicate"]
 
         random_pairs = []
-        subsample_counts = subsampleCount(sample_size, len(predicates))
+
+        subsample_size = sample_size/len(predicates) + 1
 
         pivot = 0
 
-        for subsample_size, predicate in zip(subsample_counts, predicates) :
+        for predicate in predicates :
 
             indexed_items = numpy.roll(indexed_items, pivot, 0)
 
