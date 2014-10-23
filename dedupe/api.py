@@ -945,7 +945,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
     def _blockedSample(self, indexed_data, sample_size) :
 
-        if sample_size == 0:
+        if sample_size == 0 :
             return ()
 
         random.shuffle(indexed_data)
@@ -1024,7 +1024,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
 
-    def sample(self, data_1, data_2, sample_size=150000, rand_p=1) :
+    def sample(self, data_1, data_2, sample_size=150000, rand_p=0.5, indexed=False) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -1042,27 +1042,32 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         rand_p      -- Proportion of the sample that will be random
         '''
 
-        rand_sample_size = int(rand_p * sample_size)
-        blocked_sample_size = sample_size - rand_sample_size
+        if indexed :
+            d_1 = data_1
+            d_2 = data_2
 
-        random_sample = self._randomSample(data_1, data_2, rand_sample_size)
+        else :
+            d_1 = dict((i, dedupe.core.frozendict(v)) 
+                    for i, v in enumerate(data_1.values()))
+            d_2 = dict((i, dedupe.core.frozendict(v)) 
+                   for i, v in enumerate(data_2.values()))
 
-        blocked_sample = self._blockedSample(data_1, data_2, blocked_sample_size)
+
+        blocked_sample_size = int( (1-rand_p) * sample_size )
+        blocked_sample = self._blockedSample(d_1, d_2, blocked_sample_size)
+
+        rand_sample_size = sample_size - len(blocked_sample)
+        random_sample = self._randomSample(d_1, d_2, rand_sample_size)
 
         data_sample = random_sample + blocked_sample
 
         self._loadSample(data_sample)
 
 
-    def _randomSample(self, data_1, data_2, sample_size):
+    def _randomSample(self, d_1, d_2, sample_size):
 
         if not sample_size:
             return ()
-
-        d_1 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data_1.values()))
-        d_2 = dict((i, dedupe.core.frozendict(v)) 
-                   for i, v in enumerate(data_2.values()))
 
         random_pairs = dedupe.core.randomPairsMatch(len(d_1),
                                                     len(d_2), 
@@ -1075,15 +1080,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return data_sample
 
     
-    def _blockedSample(self, data1, data2, sample_size):
+    def _blockedSample(self, d_1, d_2, sample_size):
 
         if not sample_size:
             return ()
 
-        d_1 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data1.values()))
-        d_2 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data2.values()))
         indices = list(range(len(d_1)))
 
         predicates = predicateGenerator(self.data_model)
