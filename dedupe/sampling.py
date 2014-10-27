@@ -20,17 +20,19 @@ def dedupeBlockedSample(sample_size, predicates, data) :
         
         blocked_sample.update(itertools.chain.from_iterable(new_sample))
 
+        growth = len(blocked_sample) - previous_sample_size
+        growth_rate = growth/float(remaining_sample)
+
+        remaining_sample = sample_size - len(blocked_sample)
+        previous_sample_size = len(blocked_sample)
+
+        if growth_rate < 0.001 :
+            warnings.warn("%s blocked samples were requested, but only able to sample %s" % 
+                          (sample_size, len(blocked_sample)))
+            break
+
         predicates = [pred for pred, subsample in zip(predicates, new_sample)
                       if subsample]
-        
-        remaining_sample = sample_size - len(blocked_sample)
-
-        growth = len(blocked_sample) - previous_sample_size
-        previous_sample_size = len(blocked_sample)
-        if not growth :
-            warnings.warn("Only able to create blocked sample of size %s" % 
-                          len(blocked_sample))
-            break
 
 
         
