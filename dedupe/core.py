@@ -65,7 +65,9 @@ def randomPairs(n_records, sample_size):
     x = numpy.trunc((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2)
     y = random_indices + x * (b + x + 2) / 2 + 1
 
-    return numpy.column_stack((x, y)).astype(int)
+    stacked = numpy.column_stack((x, y)).astype(int)
+
+    return [(p.item(), q.item()) for p, q in stacked]
 
 def randomPairsMatch(n_records_A, n_records_B, sample_size):
     """

@@ -26,6 +26,7 @@ except ImportError :
     from dedupe.backport import OrderedDict
 
 import dedupe
+import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
@@ -868,10 +869,7 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-
-    def _loadSample(self, *args, **kwargs) : # pragma : no cover
-
-        data_sample = self._sample(*args, **kwargs)
+    def _loadSample(self, data_sample) :
 
         self._checkDataSample(data_sample) 
 
@@ -902,35 +900,42 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
 
     
-    def sample(self, data, sample_size=150000) :
+    def sample(self, data, sample_size=15000, 
+               block_proportion=0.5, indexed=False) :
+        '''Draw a sample of record pairs from the dataset
+        (a mix of random pairs & pairs of similar records)
+        and initialize active learning with this sample
+        
+        Arguments: data -- Dictionary of records, where the keys are
+        record_ids and the values are dictionaries with the keys being
+        field names
+        
+        sample_size       -- Size of the sample to draw
+        block_proportion  -- Proportion of the sample that will be blocked
         '''
-        Draw a random sample of combinations of records from 
-        the the dataset, and initialize active learning with this sample
-        
-        Arguments:
-        data        -- Dictionary of records, where the keys are record_ids 
-                       and the values are dictionaries with the keys being 
-                       field names
-        
-        sample_size -- Size of the sample to draw
-        '''
-        
-        self._loadSample(data, sample_size)
+        if indexed :
+            indexed_data = data
+        else :
+            indexed_data = dict((i, dedupe.core.frozendict(v))
+                                for i, v in enumerate(data.itervalues()))
 
-    def _sample(self, data, sample_size) :
+        blocked_sample_size = int(block_proportion * sample_size)
+        predicates = [pred for pred in predicateGenerator(self.data_model)
+                      if pred.type == 'SimplePredicate']
+        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
+                                                           predicates,
+                                                           indexed_data)
 
-        indexed_data = dict((i, dedupe.core.frozendict(v)) 
-                            for i, v in enumerate(data.values()))
 
-        random_pairs = dedupe.core.randomPairs(len(indexed_data), 
-                                               sample_size)
+        random_sample_size = sample_size - len(blocked_sample_keys)
+        random_sample_keys = set(dedupe.core.randomPairs(len(data),
+                                                         random_sample_size))
 
-        data_sample = tuple((indexed_data[int(k1)], 
-                             indexed_data[int(k2)]) 
-                            for k1, k2 in random_pairs)
+        data_sample = [(indexed_data[k1], indexed_data[k2])
+                       for k1, k2 
+                       in blocked_sample_keys & random_sample_keys]
 
-        return data_sample
-
+        self._loadSample(data_sample)
 
 
 
@@ -952,8 +957,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     Public Methods
     - sample
     """
-
-    def sample(self, data_1, data_2, sample_size=150000) :
+    def sample(self, data_1, data_2, sample_size=150000, 
+               blocked_proportion=None, indexed=None) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -969,8 +974,14 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         sample_size -- Size of the sample to draw
         '''
+        if blocked_proportion is not None :
+            warnings.warn("blocked sampling not implemented for this method")
+        if indexed is not None :
+            warnigns.warn("indexed argument not implemented for this method")
+
+        data_sample = self._sample(data_1, data_2, sample_size)
         
-        self._loadSample(data_1, data_2, sample_size)
+        self._loadSample(data_sample)
 
     def _sample(self, data_1, data_2, sample_size) :
 
@@ -988,6 +999,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
                             for k1, k2 in random_pairs)
 
         return data_sample
+
 
 
 class GazetteerMatching(RecordLinkMatching) :
@@ -1076,3 +1088,4 @@ def predicateGenerator(data_model) :
             predicates.update(definition.predicates)
 
     return predicates
+
