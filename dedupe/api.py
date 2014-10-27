@@ -966,14 +966,9 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         if sample_size == 0 :
             return ()
 
-        #print "before shuffle", indexed_data[0]
-        #print type(indexed_data)
-        #print type(indexed_data[0])
-        numpy.random.shuffle(indexed_data)
-        #print "indexed data", indexed_data[0]
         indexed_items = indexed_data.items()
-        #print "indexed items", indexed_items[0:2]
-        indexed_items = numpy.array(indexed_items, dtype=object)
+        indexed_items = numpy.array(indexed_items)
+        numpy.random.shuffle(indexed_items)
 
         predicates = predicateGenerator(self.data_model)
         predicates = [pred for pred in predicates 
@@ -1021,11 +1016,11 @@ def samplePredicate(subsample_size, predicate, items) :
     field = predicate.field
 
     for pivot, (index, record) in enumerate(items) :
-        block_keys = predicate_function(record[field])
-        
         if pivot == 10000:
-            if len(block_dict) + len(sample) < 2 :
-                break
+            if len(block_dict) + len(sample) < 10 :
+                return sample, pivot
+
+        block_keys = predicate_function(record[field])
         
         for block_key in block_keys:
             if block_key not in block_dict :
@@ -1039,8 +1034,8 @@ def samplePredicate(subsample_size, predicate, items) :
                     break
                 else :
                     return sample, pivot
-
-    return sample, pivot
+    else :
+        return sample, pivot
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """

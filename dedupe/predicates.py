@@ -7,10 +7,10 @@ import itertools
 
 from dedupe.cpredicates import ngrams, initials
 
-words = re.compile("[\w']+").findall
-integers = re.compile("\d+").findall
-start_word = re.compile("^[\w']+").findall
-start_integer = re.compile("^\d+").findall
+words = re.compile(r"[\w']+").findall
+integers = re.compile(r"\d+").findall
+start_word = re.compile(r"^([\w']+)").match
+start_integer = re.compile(r"^(\d+)").match
 
 class Predicate(object) :
     def __iter__(self) :
@@ -35,7 +35,7 @@ class SimplePredicate(Predicate) :
 
     def __call__(self, record_id, record) :
         column = record[self.field]
-        return [unicode(block_key) for block_key in self.func(column)]
+        return self.func(column)
 
 
 
@@ -114,8 +114,8 @@ class CompoundPredicate(Predicate) :
             yield pred
 
     def __call__(self, record_id, record) :
-        predicate_keys = (predicate(record_id, record)
-                          for predicate in self.predicates)
+        predicate_keys = [predicate(record_id, record)
+                          for predicate in self.predicates]
         return [u':'.join(block_key)
                 for block_key
                 in itertools.product(*predicate_keys)]
@@ -135,7 +135,10 @@ def tokenFieldPredicate(field):
 
 def firstTokenPredicate(field) :
     first_token = start_word(field)
-    return tuple(first_token)
+    if first_token :
+        return first_token.groups()
+    else :
+        return ()
 
 def commonIntegerPredicate(field):
     """return any integers"""
@@ -154,7 +157,10 @@ def nearIntegersPredicate(field):
 
 def firstIntegerPredicate(field) :
     first_token = start_integer(field)
-    return tuple(first_token)
+    if first_token :
+        return first_token.groups()
+    else :
+        return ()
     
 def commonFourGram(field):
     """return 4-grams"""
@@ -182,7 +188,7 @@ def wholeSetPredicate(field_set):
         set_len = len(field_set)
     except TypeError:
         return tuple([field_set])
-    
+     
     if set_len == 0:
         return ()
     return(tuple(field_set))
