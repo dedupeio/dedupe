@@ -26,6 +26,7 @@ except ImportError :
     from dedupe.backport import OrderedDict
 
 import dedupe
+import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
@@ -921,26 +922,15 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             indexed_data = dict((i, dedupe.core.frozendict(v)) 
                                 for i, v in enumerate(data.values()))
 
-
         blocked_sample_size = int( (1-rand_p) * sample_size )
-        blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
+        
 
-        """
-        # if blocked_sample is not fulfilled, try to fulfill remaining blocked_samples
-        if len(blocked_sample) < blocked_sample_size:
-            n_samples_needed = blocked_sample_size - len(blocked_sample)
-            more_samples = self._blockedSample(indexed_data, n_samples_needed)
-            if len(more_samples) < n_samples_needed:
-                warnings.warn("Less than ")
-            blocked_sample.extend(more_samples)
-        """
+        predicates = [pred for pred in predicateGenerator(self.data_model)
+                      if pred.type == 'SimplePredicate']
 
-        while len(blocked_sample) < blocked_sample_size:
-            n_samples_needed = blocked_sample_size - len(blocked_sample)
-            more_samples = self._blockedSample(indexed_data, n_samples_needed)
-            blocked_sample.extend(more_samples)
-
-        blocked_sample = tuple(blocked_sample)
+        blocked_sample = sampling.blockedSample(indexed_data, 
+                                                predicates,
+                                                blocked_sample_size)
 
         rand_sample_size = sample_size - len(blocked_sample)
         random_sample = self._randomSample(indexed_data, rand_sample_size)
@@ -961,86 +951,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         return data_sample
 
-    def _blockedSample(self, indexed_data, sample_size) :
-
-        if sample_size == 0 :
-            return ()
-
-        #print "before shuffle", indexed_data[0]
-        #print type(indexed_data)
-        #print type(indexed_data[0])
-        numpy.random.shuffle(indexed_data)
-        #print "indexed data", indexed_data[0]
-        indexed_items = indexed_data.items()
-        #print "indexed items", indexed_items[0:2]
-        indexed_items = numpy.array(indexed_items, dtype=object)
-
-        predicates = predicateGenerator(self.data_model)
-        predicates = [pred for pred in predicates 
-                      if pred.type == "SimplePredicate"]
-
-        random_pairs = []
-
-        subsample_counts = subsampleCount(sample_size, len(predicates))
-
-        pivot = 0
-
-        for subsample_size, predicate in zip(subsample_counts, predicates) :
-
-            indexed_items = numpy.roll(indexed_items, pivot, 0)
-
-            predicate_sample, pivot = samplePredicate(subsample_size,
-                                                      predicate,
-                                                      indexed_items)
-            random_pairs.extend(predicate_sample)
-
-        if len(random_pairs) > sample_size:
-            random_pairs = random.sample(random_pairs, sample_size)
-
-        """
-        subsample_size = int((sample_size/len(predicates) + 1) * 1.1)
-        pivot = 0
-        for predicate in predicates:
-            indexed_items = numpy.roll(indexed_items, pivot, 0)
-            predicate_sample, pivot = samplePredicate(subsample_size, predicate, indexed_items)
-            random_pairs.extend(predicate_sample)
-        if len(random_pairs) > sample_size:
-            random_pairs = random.sample(random_pairs, sample_size)
-        """
-
-        data_sample = [(indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs]
-        
-        return data_sample
-        
-def samplePredicate(subsample_size, predicate, items) :
-    pivot = 0 
-    sample = []
-    block_dict = {}
-
-    predicate_function = predicate.func
-    field = predicate.field
-
-    for pivot, (index, record) in enumerate(items) :
-        block_keys = predicate_function(record[field])
-        
-        if pivot == 10000:
-            if len(block_dict) + len(sample) < 2 :
-                break
-        
-        for block_key in block_keys:
-            if block_key not in block_dict :
-                block_dict[block_key] = index
-            else :
-                sample.append((block_dict[block_key],
-                               index))
-                subsample_size -= 1
-                del block_dict[block_key]
-                if subsample_size :
-                    break
-                else :
-                    return sample, pivot
-
-    return sample, pivot
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
@@ -1164,12 +1074,3 @@ def predicateGenerator(data_model) :
 
     return predicates
 
-def subsampleCount(sample_size, n_chunks):
-
-    subsample_size = sample_size/n_chunks
-    subsamples = [subsample_size] * n_chunks
-
-    for i in random.sample(range(n_chunks), sample_size % n_chunks) :
-        subsamples[i] += 1
-
-    return subsamples
