@@ -177,64 +177,6 @@ class DedupeTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
                     ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
-  def test_sample(self) :
-    data_sample = self.deduper._randomSample(
-      {'1' : {'name' : 'Frank', 'age' : '72'},
-       '2' : {'name' : 'Bob', 'age' : '27'},
-       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
-
-
-    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
-    assert set(names) == set([("Frank", "Bob"), 
-                              ("Frank", "Jane"),
-                              ("Jane", "Bob")])
-
-    self.deduper.sample({'1' : {'name' : 'Frank', 'age' : '72'},
-                         '2' : {'name' : 'Bob', 'age' : '27'},
-                         '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
-
-    assert self.deduper.data_sample == data_sample
-
-  def test_randomSample(self) : 
-
-    self.deduper.sample(data_dict, 5, 1)
-
-    correct_result = (  ({'age': '51', 'name': 'Bob'}, {'age': '51', 'name': 'bob belcher'}),
-                        ({'age': '50', 'name': 'Linda'}, {'age': '51', 'name': 'Bob B.'}),
-                        ({'age': '12', 'name': 'Gene'}, {'age': '51', 'name': 'bob belcher'}),
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '15', 'name': 'Tina'}),
-                        ({'age': '50', 'name': 'Linda'}, {'age': '51', 'name': 'bob belcher'})
-    )
-
-    assert self.deduper.data_sample == correct_result
-
-  def test_blockedSample(self) :
-
-    self.deduper.sample(data_dict, 5, 0)
-
-    correct_result = (  ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'linda '}),
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '51', 'name': 'Bob'}),
-                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'linda '}),
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '51', 'name': 'Bob'}),
-                        ({'age': '51', 'name': 'Bob'}, {'age': '51', 'name': 'bob belcher'})
-                      )
-
-    assert self.deduper.data_sample == correct_result
-
-  def test_mixedSample(self) :
-
-    self.deduper.sample(data_dict, 6, .5)
-
-    correct_result = (  ({'age': '51', 'name': 'Bob'}, {'age': '51', 'name': 'bob belcher'}), 
-                        ({'age': '50', 'name': 'Linda'}, {'age': '51', 'name': 'Bob B.'}), 
-                        ({'age': '12', 'name': 'Gene'}, {'age': '51', 'name': 'bob belcher'}), 
-                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'linda '}), 
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '51', 'name': 'Bob'}), 
-                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'linda '})
-                      )
-
-    assert self.deduper.data_sample == correct_result
-
 
 class LinkTest(unittest.TestCase):
   def setUp(self) : 
@@ -262,21 +204,6 @@ class LinkTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
                     ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
-  def test_sample(self) :
-    data_sample = self.linker._randomSample(
-      {'1' : {'name' : 'Frank', 'age' : '72'}},
-      {'2' : {'name' : 'Bob', 'age' : '27'},
-       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
-
-    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
-    assert set(names) == set([("Frank", "Bob"), ("Frank", "Jane")])
-
-    self.linker.sample({'1' : {'name' : 'Frank', 'age' : '72'}},
-                       {'2' : {'name' : 'Bob', 'age' : '27'},
-                        '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
-
-    assert self.linker.data_sample == data_sample
-
   def test_randomSample(self) :
 
     self.linker.sample( data_dict, data_dict_2, 5, 1)
@@ -290,32 +217,6 @@ class LinkTest(unittest.TestCase):
 
     assert self.linker.data_sample == correct_result
 
-  def test_blockedSample(self) :
-
-    self.linker.sample( data_dict, data_dict_2, 5, 0)
-
-    correct_result = (  ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'LINDA'}), 
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '51', 'name': 'BOB B.'}), 
-                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'LINDA '}), 
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '51', 'name': 'BOB B.'}), 
-                        ({'age': '51', 'name': 'Bob'}, {'age': '51', 'name': 'BOB B.'})
-                      )
-
-    assert self.linker.data_sample == correct_result
-
-  def test_mixedSample(self) :
-
-    self.linker.sample( data_dict, data_dict_2, 6, .5)
-
-    correct_result = (  ({'age': '51', 'name': 'Bob B.'}, {'age': '15', 'name': 'TINA'}), 
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '12', 'name': 'GENE'}), 
-                        ({'age': '50', 'name': 'linda '}, {'age': '50', 'name': 'LINDA'}), 
-                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'LINDA'}), 
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '51', 'name': 'BOB B.'}), 
-                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'LINDA '})
-                      )
-
-    assert self.linker.data_sample == correct_result
 
       
       

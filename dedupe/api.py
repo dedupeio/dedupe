@@ -900,131 +900,43 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
 
     
-    def sample(self, data, sample_size=150000, rand_p=0.5, indexed=False) :
-        '''
-        Draw a sample of record pairs from the dataset
+    def sample(self, data, sample_size=15000, 
+               block_proportion=0.5, indexed=False) :
+        '''Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
         and initialize active learning with this sample
         
-        Arguments:
-        data        -- Dictionary of records, where the keys are record_ids 
-                       and the values are dictionaries with the keys being 
-                       field names
+        Arguments: data -- Dictionary of records, where the keys are
+        record_ids and the values are dictionaries with the keys being
+        field names
         
-        sample_size -- Size of the sample to draw
-        rand_p      -- Proportion of the sample that will be random
+        sample_size       -- Size of the sample to draw
+        block_proportion  -- Proportion of the sample that will be blocked
         '''
-
         if indexed :
             indexed_data = data
-
         else :
-            indexed_data = dict((i, dedupe.core.frozendict(v)) 
-                                for i, v in enumerate(data.values()))
+            indexed_data = dict((i, dedupe.core.frozendict(v))
+                                for i, v in enumerate(data.itervalues()))
 
-        blocked_sample_size = int( (1-rand_p) * sample_size )
-<<<<<<< HEAD
-        blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
-
-        # if blocked_sample is not fulfilled, try to fulfill remaining blocked_samples
-        if len(blocked_sample) < blocked_sample_size:
-            n_samples_needed = blocked_sample_size - len(blocked_sample)
-            more_samples = self._blockedSample(indexed_data, n_samples_needed)
-            if len(more_samples) < n_samples_needed:
-                warnings.warn("Unable to fulfill the proportion of blocked samples - there will be fewer blocked samples than expected")
-            blocked_sample = blocked_sample + more_samples
-=======
-        
-
+        blocked_sample_size = int(block_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
                       if pred.type == 'SimplePredicate']
+        blocked_sample_keys = sampling.dedupeBlockedSample(indexed_data, 
+                                                           predicates,
+                                                           blocked_sample_size)
 
-        blocked_sample = sampling.blockedSample(indexed_data, 
-                                                predicates,
-                                                blocked_sample_size)
->>>>>>> efed415
+        random_sample_size = sample_size - len(blocked_sample_keys)
+        random_sample_keys = dedupe.core.randomPairs(random_sample_size,
+                                                     len(data))
 
-        rand_sample_size = sample_size - len(blocked_sample)
-        random_sample = self._randomSample(indexed_data, rand_sample_size)
+        data_sample = [(indexed_data[k1], indexed_data[k2])
+                       for k1, k2 
+                       in blocked_sample_keys + random_sample_keys]
 
-        data_sample = random_sample + blocked_sample
-        
         self._loadSample(data_sample)
 
 
-    def _randomSample(self, indexed_data, sample_size) :
-
-        random_pairs = dedupe.core.randomPairs(len(indexed_data), 
-                                               sample_size)
-
-        data_sample = tuple((indexed_data[int(k1)], 
-                             indexed_data[int(k2)]) 
-                            for k1, k2 in random_pairs)
-
-        return data_sample
-
-<<<<<<< HEAD
-    def _blockedSample(self, indexed_data, sample_size) :
-
-        if sample_size == 0 :
-            return ()
-
-        indexed_items = indexed_data.items()
-        indexed_items = numpy.array(indexed_items)
-        numpy.random.shuffle(indexed_items)
-
-        predicates = predicateGenerator(self.data_model)
-        predicates = [pred for pred in predicates 
-                      if pred.type == "SimplePredicate"]
-
-        random_pairs = []
-        subsample_size = int((sample_size/len(predicates) + 1) * 1.3)
-
-        pivot = 0
-
-        for predicate in predicates:
-            indexed_items = numpy.roll(indexed_items, pivot, 0)
-            predicate_sample, pivot = samplePredicate(subsample_size, predicate, indexed_items)
-            random_pairs.extend(predicate_sample)
-
-        if len(random_pairs) > sample_size:
-            random_pairs = random.sample(random_pairs, sample_size)
-
-        data_sample = tuple((indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs)
-        
-        return data_sample
-        
-def samplePredicate(subsample_size, predicate, items) :
-    pivot = 0 
-    sample = []
-    block_dict = {}
-
-    predicate_function = predicate.func
-    field = predicate.field
-
-    for pivot, (index, record) in enumerate(items) :
-        if pivot == 10000:
-            if len(block_dict) + len(sample) < 10 :
-                return sample, pivot
-
-        block_keys = predicate_function(record[field])
-        
-        for block_key in block_keys:
-            if block_key not in block_dict :
-                block_dict[block_key] = index
-            else :
-                sample.append((block_dict[block_key],
-                               index))
-                subsample_size -= 1
-                del block_dict[block_key]
-                if subsample_size :
-                    break
-                else :
-                    return sample, pivot
-    else :
-        return sample, pivot
-=======
->>>>>>> efed415
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
@@ -1044,21 +956,49 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     Public Methods
     - sample
     """
+    def sample(self, data_1, data_2, sample_size=150000, 
+               blocked_proportion=None, indexed=None) :
+        '''
+        Draws a random sample of combinations of records from 
+        the first and second datasets, and initializes active
+        learning with this sample
+        
+        Arguments:
+        
+        data_1      -- Dictionary of records from first dataset, where the 
+                       keys are record_ids and the values are dictionaries 
+                       with the keys being field names
+        data_2      -- Dictionary of records from second dataset, same 
+                       form as data_1
+        
+        sample_size -- Size of the sample to draw
+        '''
+        if blocked_proportion is not None :
+            warnings.warn("blocked sampling not implemented for this method")
+        if indexed is not None :
+            warnigns.warn("indexed argument not implemented for this method")
 
+        data_sample = self._sample(data_1, data_2, sample_size)
+        
+        self._loadSample(data_sample)
 
+    def _sample(self, data_1, data_2, sample_size) :
 
-def blockedPredDict(blocker, data_dict):
+        d_1 = dict((i, dedupe.core.frozendict(v)) 
+                    for i, v in enumerate(data_1.values()))
+        d_2 = dict((i, dedupe.core.frozendict(v)) 
+                   for i, v in enumerate(data_2.values()))
 
-    pred_dict = defaultdict(list)
+        random_pairs = dedupe.core.randomPairsMatch(len(d_1),
+                                                    len(d_2), 
+                                                    sample_size)
+        
+        data_sample = tuple((d_1[int(k1)], 
+                             d_2[int(k2)]) 
+                            for k1, k2 in random_pairs)
 
-    for block_key, record_id in blocker(data_dict.items()):
-        pred_id = block_key.split(':')[-1]
-        if pred_id not in pred_dict:
-            pred_dict[pred_id] = defaultdict(list)
-        #construct dict for each field-pred combo, where keys are pred blocks and values are record ids
-        pred_dict[pred_id][block_key].append(record_id)
+        return data_sample
 
-    return pred_dict
 
 
 class GazetteerMatching(RecordLinkMatching) :

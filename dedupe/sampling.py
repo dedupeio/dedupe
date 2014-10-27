@@ -1,33 +1,31 @@
-import numpy
+from collections import deque
+import random
 import itertools
+import warnings
 
-def blockedSample(indexed_data, predicates, sample_size) :
-
-    indexed_items = indexed_data.items()
-    indexed_items = numpy.array(indexed_items, dtype=object)
-    numpy.random.shuffle(indexed_data)
-
+def dedupeBlockedSample(sample_size, predicates, data) :
+    items = data.items()
+    random.shuffle(items)
+    items = deque(items)
+    
     blocked_sample = []
-    remaining_sample = sample_size
+    remaining_sample = sample_size - len(blocked_sample)
 
     while remaining_sample :
-        new_sample = list(samplePredicates(indexed_items, 
+        new_sample = list(samplePredicates(remaining_sample, 
                                            predicates,
-                                           remaining_sample))
+                                           items))
         
         blocked_sample.extend(itertools.chain.from_iterable(new_sample))
         
         predicates = list(itertools.compress(predicates, new_sample))
 
         remaining_sample = sample_size - len(blocked_sample)
-
-
-    data_sample = tuple([(indexed_data[k1], indexed_data[k2]) 
-                         for k1, k2 in blocked_sample])
         
-    return data_sample
 
-def samplePredicates(indexed_items, predicates, sample_size) :
+    return blocked_sample
+
+def samplePredicates(sample_size, predicates, items) :
 
     subsample_counts = evenSplits(sample_size, len(predicates))
 
@@ -35,23 +33,21 @@ def samplePredicates(indexed_items, predicates, sample_size) :
                          for count, predicate
                          in zip(subsample_counts, predicates)
                          if count]
-    n_items = len(indexed_items)
+
+    n_items = len(items)
 
     for subsample_size, predicate in requested_samples :
 
-        indexed_items = numpy.roll(indexed_items, 
-                                   numpy.random.randint(n_items), 
-                                   0)
+        items.rotate(random.randrange(n_items))
 
         yield samplePredicate(subsample_size,
                               predicate,
-                              indexed_items)
-        
+                              items)
+
 def samplePredicate(subsample_size, predicate, items) :
 
     sample = []
     block_dict = {}
-
     predicate_function = predicate.func
     field = predicate.field
 
@@ -70,6 +66,7 @@ def samplePredicate(subsample_size, predicate, items) :
                                index))
                 subsample_size -= 1
                 del block_dict[block_key]
+
                 if subsample_size :
                     break
                 else :
@@ -84,3 +81,4 @@ def evenSplits(total_size, num_splits) :
     for _ in xrange(num_splits) :
         split += avg - int(split)
         yield int(split)
+
