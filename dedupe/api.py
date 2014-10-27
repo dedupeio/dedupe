@@ -922,13 +922,14 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_sample_size = int(block_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
                       if pred.type == 'SimplePredicate']
-        blocked_sample_keys = sampling.dedupeBlockedSample(indexed_data, 
+        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
                                                            predicates,
-                                                           blocked_sample_size)
+                                                           indexed_data)
+
 
         random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = dedupe.core.randomPairs(random_sample_size,
-                                                     len(data))
+        random_sample_keys = dedupe.core.randomPairs(len(data),
+                                                     random_sample_size)
 
         data_sample = [(indexed_data[k1], indexed_data[k2])
                        for k1, k2 
