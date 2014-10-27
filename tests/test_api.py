@@ -15,6 +15,22 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
                (dedupe.core.frozendict({'age': '75', 'name': 'Charlie'}), 
                 dedupe.core.frozendict({'age': '21', 'name': 'Jimbo'})))
 
+data_dict = {    '1' : {'name' : 'Bob',         'age' : '51'},
+                 '2' : {'name' : 'Linda',       'age' : '50'},
+                 '3' : {'name' : 'Gene',        'age' : '12'},
+                 '4' : {'name' : 'Tina',        'age' : '15'},
+                 '5' : {'name' : 'Bob B.',      'age' : '51'},
+                 '6' : {'name' : 'bob belcher', 'age' : '51'},
+                 '7' : {'name' : 'linda ',      'age' : '50'} }
+
+data_dict_2 = {  '1' : {'name' : 'BOB',         'age' : '51'},
+                 '2' : {'name' : 'LINDA',       'age' : '50'},
+                 '3' : {'name' : 'GENE',        'age' : '12'},
+                 '4' : {'name' : 'TINA',        'age' : '15'},
+                 '5' : {'name' : 'BOB B.',      'age' : '51'},
+                 '6' : {'name' : 'BOB BELCHER', 'age' : '51'},
+                 '7' : {'name' : 'LINDA ',      'age' : '50'} }
+
 class Match(unittest.TestCase) :
   def test_initialize_fields(self) :
     matcher = dedupe.api.Matching()
@@ -134,6 +150,7 @@ class ActiveMatch(unittest.TestCase) :
 class DedupeTest(unittest.TestCase):
   def setUp(self) : 
     random.seed(123) 
+    numpy.random.seed(456)
 
     field_definition = [{'field' : 'name', 'type': 'String'}, 
                         {'field' :'age', 'type': 'String'}]
@@ -160,30 +177,11 @@ class DedupeTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
                     ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
-  def test_sample(self) :
-    data_sample = self.deduper._sample(
-      {'1' : {'name' : 'Frank', 'age' : '72'},
-       '2' : {'name' : 'Bob', 'age' : '27'},
-       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
-
-
-    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
-    assert set(names) == set([("Frank", "Bob"), 
-                              ("Frank", "Jane"),
-                              ("Jane", "Bob")])
-
-    self.deduper.sample({'1' : {'name' : 'Frank', 'age' : '72'},
-                         '2' : {'name' : 'Bob', 'age' : '27'},
-                         '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
-
-    assert self.deduper.data_sample == data_sample
-
-
-
 
 class LinkTest(unittest.TestCase):
   def setUp(self) : 
-    random.seed(123) 
+    random.seed(123)
+    numpy.random.seed(456)
 
     field_definition = [{'field' : 'name', 'type': 'String'}, 
                         {'field' :'age', 'type': 'String'}]
@@ -206,20 +204,19 @@ class LinkTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
                     ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
-  def test_sample(self) :
-    data_sample = self.linker._sample(
-      {'1' : {'name' : 'Frank', 'age' : '72'}},
-      {'2' : {'name' : 'Bob', 'age' : '27'},
-       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+  def test_randomSample(self) :
 
-    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
-    assert set(names) == set([("Frank", "Bob"), ("Frank", "Jane")])
+    self.linker.sample( data_dict, data_dict_2, 5, 1)
 
-    self.linker.sample({'1' : {'name' : 'Frank', 'age' : '72'}},
-                       {'2' : {'name' : 'Bob', 'age' : '27'},
-                        '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+    correct_result = (  ({'age': '50', 'name': 'linda '}, {'age': '51', 'name': 'BOB BELCHER'}), 
+                        ({'age': '51', 'name': 'Bob B.'}, {'age': '50', 'name': 'LINDA'}), 
+                        ({'age': '51', 'name': 'Bob B.'}, {'age': '15', 'name': 'TINA'}), 
+                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'LINDA '}), 
+                        ({'age': '12', 'name': 'Gene'}, {'age': '15', 'name': 'TINA'})
+                      )
 
-    assert self.linker.data_sample == data_sample
+    assert self.linker.data_sample == correct_result
+
 
       
       
