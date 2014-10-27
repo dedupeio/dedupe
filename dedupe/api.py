@@ -925,22 +925,13 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_sample_size = int( (1-rand_p) * sample_size )
         blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
 
-        """
         # if blocked_sample is not fulfilled, try to fulfill remaining blocked_samples
         if len(blocked_sample) < blocked_sample_size:
             n_samples_needed = blocked_sample_size - len(blocked_sample)
             more_samples = self._blockedSample(indexed_data, n_samples_needed)
             if len(more_samples) < n_samples_needed:
-                warnings.warn("Less than ")
-            blocked_sample.extend(more_samples)
-        """
-
-        while len(blocked_sample) < blocked_sample_size:
-            n_samples_needed = blocked_sample_size - len(blocked_sample)
-            more_samples = self._blockedSample(indexed_data, n_samples_needed)
-            blocked_sample.extend(more_samples)
-
-        blocked_sample = tuple(blocked_sample)
+                warnings.warn("Unable to fulfill the proportion of blocked samples - there will be fewer blocked samples than expected")
+            blocked_sample = blocked_sample + more_samples
 
         rand_sample_size = sample_size - len(blocked_sample)
         random_sample = self._randomSample(indexed_data, rand_sample_size)
@@ -975,35 +966,19 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                       if pred.type == "SimplePredicate"]
 
         random_pairs = []
-
-        subsample_counts = subsampleCount(sample_size, len(predicates))
+        subsample_size = int((sample_size/len(predicates) + 1) * 1.3)
 
         pivot = 0
 
-        for subsample_size, predicate in zip(subsample_counts, predicates) :
-
-            indexed_items = numpy.roll(indexed_items, pivot, 0)
-
-            predicate_sample, pivot = samplePredicate(subsample_size,
-                                                      predicate,
-                                                      indexed_items)
-            random_pairs.extend(predicate_sample)
-
-        if len(random_pairs) > sample_size:
-            random_pairs = random.sample(random_pairs, sample_size)
-
-        """
-        subsample_size = int((sample_size/len(predicates) + 1) * 1.1)
-        pivot = 0
         for predicate in predicates:
             indexed_items = numpy.roll(indexed_items, pivot, 0)
             predicate_sample, pivot = samplePredicate(subsample_size, predicate, indexed_items)
             random_pairs.extend(predicate_sample)
+
         if len(random_pairs) > sample_size:
             random_pairs = random.sample(random_pairs, sample_size)
-        """
 
-        data_sample = [(indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs]
+        data_sample = tuple((indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs)
         
         return data_sample
         
