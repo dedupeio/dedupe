@@ -36,7 +36,7 @@ def dedupeBlockedSample(sample_size, predicates, data) :
 
 
         
-    return list(blocked_sample)
+    return blocked_sample
 
 def samplePredicates(sample_size, predicates, items) :
 
