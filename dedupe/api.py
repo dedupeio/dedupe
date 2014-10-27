@@ -921,8 +921,26 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             indexed_data = dict((i, dedupe.core.frozendict(v)) 
                                 for i, v in enumerate(data.values()))
 
+
         blocked_sample_size = int( (1-rand_p) * sample_size )
         blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
+
+        """
+        # if blocked_sample is not fulfilled, try to fulfill remaining blocked_samples
+        if len(blocked_sample) < blocked_sample_size:
+            n_samples_needed = blocked_sample_size - len(blocked_sample)
+            more_samples = self._blockedSample(indexed_data, n_samples_needed)
+            if len(more_samples) < n_samples_needed:
+                warnings.warn("Less than ")
+            blocked_sample.extend(more_samples)
+        """
+
+        while len(blocked_sample) < blocked_sample_size:
+            n_samples_needed = blocked_sample_size - len(blocked_sample)
+            more_samples = self._blockedSample(indexed_data, n_samples_needed)
+            blocked_sample.extend(more_samples)
+
+        blocked_sample = tuple(blocked_sample)
 
         rand_sample_size = sample_size - len(blocked_sample)
         random_sample = self._randomSample(indexed_data, rand_sample_size)
@@ -948,9 +966,14 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         if sample_size == 0 :
             return ()
 
+        #print "before shuffle", indexed_data[0]
+        #print type(indexed_data)
+        #print type(indexed_data[0])
         numpy.random.shuffle(indexed_data)
+        #print "indexed data", indexed_data[0]
         indexed_items = indexed_data.items()
-        indexed_items = numpy.array(indexed_items)
+        #print "indexed items", indexed_items[0:2]
+        indexed_items = numpy.array(indexed_items, dtype=object)
 
         predicates = predicateGenerator(self.data_model)
         predicates = [pred for pred in predicates 
@@ -958,11 +981,11 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         random_pairs = []
 
-        subsample_size = sample_size/len(predicates) + 1
+        subsample_counts = subsampleCount(sample_size, len(predicates))
 
         pivot = 0
 
-        for predicate in predicates :
+        for subsample_size, predicate in zip(subsample_counts, predicates) :
 
             indexed_items = numpy.roll(indexed_items, pivot, 0)
 
@@ -971,7 +994,21 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                                                       indexed_items)
             random_pairs.extend(predicate_sample)
 
-        data_sample = tuple((indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs)
+        if len(random_pairs) > sample_size:
+            random_pairs = random.sample(random_pairs, sample_size)
+
+        """
+        subsample_size = int((sample_size/len(predicates) + 1) * 1.1)
+        pivot = 0
+        for predicate in predicates:
+            indexed_items = numpy.roll(indexed_items, pivot, 0)
+            predicate_sample, pivot = samplePredicate(subsample_size, predicate, indexed_items)
+            random_pairs.extend(predicate_sample)
+        if len(random_pairs) > sample_size:
+            random_pairs = random.sample(random_pairs, sample_size)
+        """
+
+        data_sample = [(indexed_data[k1], indexed_data[k2]) for k1, k2 in random_pairs]
         
         return data_sample
         
@@ -1024,105 +1061,6 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
 
-    def sample(self, data_1, data_2, sample_size=150000, rand_p=0.5, indexed=False) :
-        '''
-        Draws a random sample of combinations of records from 
-        the first and second datasets, and initializes active
-        learning with this sample
-        
-        Arguments:
-        
-        data_1      -- Dictionary of records from first dataset, where the 
-                       keys are record_ids and the values are dictionaries 
-                       with the keys being field names
-        data_2      -- Dictionary of records from second dataset, same 
-                       form as data_1
-        
-        sample_size -- Size of the sample to draw
-        rand_p      -- Proportion of the sample that will be random
-        '''
-
-        if indexed :
-            d_1 = data_1
-            d_2 = data_2
-
-        else :
-            d_1 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data_1.values()))
-            d_2 = dict((i, dedupe.core.frozendict(v)) 
-                   for i, v in enumerate(data_2.values()))
-
-
-        blocked_sample_size = int( (1-rand_p) * sample_size )
-        blocked_sample = self._blockedSample(d_1, d_2, blocked_sample_size)
-
-        rand_sample_size = sample_size - len(blocked_sample)
-        random_sample = self._randomSample(d_1, d_2, rand_sample_size)
-
-        data_sample = random_sample + blocked_sample
-
-        self._loadSample(data_sample)
-
-
-    def _randomSample(self, d_1, d_2, sample_size):
-
-        if not sample_size:
-            return ()
-
-        random_pairs = dedupe.core.randomPairsMatch(len(d_1),
-                                                    len(d_2), 
-                                                    sample_size)
-        
-        data_sample = tuple((d_1[int(k1)], 
-                             d_2[int(k2)]) 
-                            for k1, k2 in random_pairs)
-
-        return data_sample
-
-    
-    def _blockedSample(self, d_1, d_2, sample_size):
-
-        if not sample_size:
-            return ()
-
-        indices = list(range(len(d_1)))
-
-        predicates = predicateGenerator(self.data_model)
-        subsample_counts = subsampleCount(sample_size, len(predicates))
-
-        random_pairs = []
-
-        for subsample_size, predicate in zip( subsample_counts, predicates ):
-            random.shuffle(indices)
-            block_dict_1 = defaultdict(list)
-            block_dict_2 = defaultdict(list)
-            for index in indices:
-                block_keys_1 = predicate( index, d_1[index] )
-                block_keys_2 = predicate( index, d_2[index] )
-                for block_key in block_keys_1:
-                    if subsample_size == 0:
-                        break;
-                    block_dict_1[block_key] = index
-                    if block_key in block_dict_2.keys():
-                        random_pairs.append([ block_dict_1[block_key], block_dict_2[block_key] ])
-                        block_dict_1.pop( block_key )
-                        block_dict_2.pop( block_key )
-                        subsample_size = subsample_size - 1
-                for block_key in block_keys_2:
-                    if subsample_size == 0:
-                        break;
-                    block_dict_2[block_key] = index
-                    if block_key in block_dict_1.keys():
-                        random_pairs.append([ block_dict_1[block_key], block_dict_2[block_key] ])
-                        block_dict_1.pop( block_key )
-                        block_dict_2.pop( block_key )
-                        subsample_size = subsample_size - 1
-                if subsample_size == 0:
-                    break;
-
-        data_sample = tuple( (d_1[k1], d_2[k2]) for k1, k2 in random_pairs )
-
-        return data_sample
 
 
 def blockedPredDict(blocker, data_dict):
@@ -1231,7 +1169,7 @@ def subsampleCount(sample_size, n_chunks):
     subsample_size = sample_size/n_chunks
     subsamples = [subsample_size] * n_chunks
 
-    for i in range(sample_size % n_chunks) :
+    for i in random.sample(range(n_chunks), sample_size % n_chunks) :
         subsamples[i] += 1
 
     return subsamples
