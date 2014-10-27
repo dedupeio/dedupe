@@ -36,7 +36,6 @@ class DedupeSampling(unittest.TestCase) :
                                                items) == [('1', '5')]
 
     def test_sample_predicates(self) :
-        random.seed(123)
         items = deque(data_dict.items())
         pred = dedupe.predicates.SimplePredicate(dedupe.predicates.sameThreeCharStartPredicate,
                                           'name')
@@ -50,7 +49,7 @@ class DedupeSampling(unittest.TestCase) :
                                                  'name')
         assert len(dedupe.sampling.dedupeBlockedSample(10, 
                                                        [pred],
-                                                       data_dict)) == 10
+                                                       data_dict)) == 1
 
 
 

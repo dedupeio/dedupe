@@ -5,25 +5,36 @@ import warnings
 
 def dedupeBlockedSample(sample_size, predicates, data) :
     items = data.items()
-    random.shuffle(items)
-    items = deque(items)
     
-    blocked_sample = []
+    blocked_sample = set([])
     remaining_sample = sample_size - len(blocked_sample)
+    previous_sample_size = 0
 
-    while remaining_sample :
+    while remaining_sample and predicates :
+        random.shuffle(items)
+        random.shuffle(predicates)
+
         new_sample = list(samplePredicates(remaining_sample, 
                                            predicates,
-                                           items))
+                                           deque(items)))
         
-        blocked_sample.extend(itertools.chain.from_iterable(new_sample))
-        
-        predicates = list(itertools.compress(predicates, new_sample))
+        blocked_sample.update(itertools.chain.from_iterable(new_sample))
 
+        predicates = [pred for pred, subsample in zip(predicates, new_sample)
+                      if subsample]
+        
         remaining_sample = sample_size - len(blocked_sample)
-        
 
-    return blocked_sample
+        growth = len(blocked_sample) - previous_sample_size
+        previous_sample_size = len(blocked_sample)
+        if not growth :
+            warnings.warn("Only able to create blocked sample of size %s" % 
+                          len(blocked_sample))
+            break
+
+
+        
+    return list(blocked_sample)
 
 def samplePredicates(sample_size, predicates, items) :
 
@@ -62,7 +73,10 @@ def samplePredicate(subsample_size, predicate, items) :
             if block_key not in block_dict :
                 block_dict[block_key] = index
             else :
-                sample.append((block_dict[block_key],
+                other_index = block_dict[block_key]
+                if other_index > index :
+                    index, other_index = other_index, index
+                sample.append((other_index,
                                index))
                 subsample_size -= 1
                 del block_dict[block_key]
@@ -76,6 +90,7 @@ def samplePredicate(subsample_size, predicate, items) :
         return sample
 
 def evenSplits(total_size, num_splits) :
+
     avg = total_size/float(num_splits) 
     split = 0
     for _ in xrange(num_splits) :
