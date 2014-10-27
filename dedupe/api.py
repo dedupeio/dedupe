@@ -26,6 +26,7 @@ except ImportError :
     from dedupe.backport import OrderedDict
 
 import dedupe
+import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
@@ -921,8 +922,8 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             indexed_data = dict((i, dedupe.core.frozendict(v)) 
                                 for i, v in enumerate(data.values()))
 
-
         blocked_sample_size = int( (1-rand_p) * sample_size )
+<<<<<<< HEAD
         blocked_sample = self._blockedSample(indexed_data, blocked_sample_size)
 
         # if blocked_sample is not fulfilled, try to fulfill remaining blocked_samples
@@ -932,6 +933,16 @@ class Dedupe(DedupeMatching, ActiveMatching) :
             if len(more_samples) < n_samples_needed:
                 warnings.warn("Unable to fulfill the proportion of blocked samples - there will be fewer blocked samples than expected")
             blocked_sample = blocked_sample + more_samples
+=======
+        
+
+        predicates = [pred for pred in predicateGenerator(self.data_model)
+                      if pred.type == 'SimplePredicate']
+
+        blocked_sample = sampling.blockedSample(indexed_data, 
+                                                predicates,
+                                                blocked_sample_size)
+>>>>>>> efed415
 
         rand_sample_size = sample_size - len(blocked_sample)
         random_sample = self._randomSample(indexed_data, rand_sample_size)
@@ -952,6 +963,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         return data_sample
 
+<<<<<<< HEAD
     def _blockedSample(self, indexed_data, sample_size) :
 
         if sample_size == 0 :
@@ -1011,6 +1023,8 @@ def samplePredicate(subsample_size, predicate, items) :
                     return sample, pivot
     else :
         return sample, pivot
+=======
+>>>>>>> efed415
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
@@ -1134,12 +1148,3 @@ def predicateGenerator(data_model) :
 
     return predicates
 
-def subsampleCount(sample_size, n_chunks):
-
-    subsample_size = sample_size/n_chunks
-    subsamples = [subsample_size] * n_chunks
-
-    for i in random.sample(range(n_chunks), sample_size % n_chunks) :
-        subsamples[i] += 1
-
-    return subsamples
