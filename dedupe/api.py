@@ -926,14 +926,13 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                                                            predicates,
                                                            indexed_data)
 
-
         random_sample_size = sample_size - len(blocked_sample_keys)
         random_sample_keys = set(dedupe.core.randomPairs(len(data),
                                                          random_sample_size))
 
         data_sample = [(indexed_data[k1], indexed_data[k2])
                        for k1, k2 
-                       in blocked_sample_keys & random_sample_keys]
+                       in blocked_sample_keys | random_sample_keys]
 
         self._loadSample(data_sample)
 
