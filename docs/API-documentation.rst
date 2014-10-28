@@ -178,7 +178,7 @@ Example
    We assume that the fields you want to compare across datasets have the
    same field name.
 
-   .. py:method:: sample(data_1, data_2, sample_size=150000, blocked_proportion=1)
+   .. py:method:: sample(data_1, data_2, sample_size=150000, blocked_proportion=0.5)
 
       Draws a random sample of combinations of records from the first and
       second datasets, and initializes active learning with this sample
