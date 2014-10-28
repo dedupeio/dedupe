@@ -366,8 +366,8 @@ def freezeData(data) : # pragma : no cover
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
-    def __init__(self, *args, **kwargs): # pragma : no cover
-        self._d = dict(*args, **kwargs)
+    def __init__(self, arg): # pragma : no cover
+        self._d = dict(arg)
 
     def __iter__(self):                  # pragma : no cover
         return iter(self._d)

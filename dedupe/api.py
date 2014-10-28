@@ -901,7 +901,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
     
     def sample(self, data, sample_size=15000, 
-               block_proportion=0.5, indexed=False) :
+               blocked_proportion=0.5) :
         '''Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
         and initialize active learning with this sample
@@ -910,27 +910,25 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         record_ids and the values are dictionaries with the keys being
         field names
         
-        sample_size       -- Size of the sample to draw
-        block_proportion  -- Proportion of the sample that will be blocked
+        sample_size         -- Size of the sample to draw
+        blocked_proportion  -- Proportion of the sample that will be blocked
         '''
-        if indexed :
-            indexed_data = data
-        else :
-            indexed_data = dict((i, dedupe.core.frozendict(v))
-                                for i, v in enumerate(data.itervalues()))
+        frozen_values = itertools.imap(dedupe.frozendict, data.itervalues())
+        
+        data = dict(itertools.izip(itertools.count(), frozen_values))
 
-        blocked_sample_size = int(block_proportion * sample_size)
+        blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
                       if pred.type == 'SimplePredicate']
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
                                                            predicates,
-                                                           indexed_data)
+                                                           data)
 
         random_sample_size = sample_size - len(blocked_sample_keys)
         random_sample_keys = set(dedupe.core.randomPairs(len(data),
                                                          random_sample_size))
 
-        data_sample = [(indexed_data[k1], indexed_data[k2])
+        data_sample = [(data[k1], data[k2])
                        for k1, k2 
                        in blocked_sample_keys | random_sample_keys]
 
@@ -957,7 +955,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
     def sample(self, data_1, data_2, sample_size=150000, 
-               blocked_proportion=None, indexed=None) :
+               blocked_proportion=None) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -975,8 +973,6 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         '''
         if blocked_proportion is not None :
             warnings.warn("blocked sampling not implemented for this method")
-        if indexed is not None :
-            warnigns.warn("indexed argument not implemented for this method")
 
         data_sample = self._sample(data_1, data_2, sample_size)
         
