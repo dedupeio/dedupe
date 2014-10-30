@@ -954,8 +954,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     Public Methods
     - sample
     """
+
     def sample(self, data_1, data_2, sample_size=150000, 
-               blocked_proportion=None) :
+               blocked_proportion=.5) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -971,11 +972,31 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         sample_size -- Size of the sample to draw
         '''
-        if blocked_proportion is not None :
+        frozen_values_1 = itertools.imap(dedupe.frozendict, data_1.itervalues())
+        frozen_values_2 = itertools.imap(dedupe.frozendict, data_2.itervalues())
+        d1 = dict(itertools.izip(itertools.count(), frozen_values_1))
+        d2 = dict(itertools.izip(itertools.count(), frozen_values_2))
+
+        if blocked_proportion == 0:
             warnings.warn("blocked sampling not implemented for this method")
 
-        data_sample = self._sample(data_1, data_2, sample_size)
-        
+        blocked_sample_size = int(blocked_proportion * sample_size)
+        predicates = [pred for pred in predicateGenerator(self.data_model)
+                      if pred.type == 'SimplePredicate']
+
+        blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
+                                                           predicates,
+                                                           d1, d2)
+
+        random_sample_size = sample_size - len(blocked_sample_keys)
+        random_sample_keys = dedupe.core.randomPairsMatch(len(d1),
+                                                    len(d2), 
+                                                    random_sample_size)
+
+        data_sample = [(data_1[k1], data_2[k2])
+                       for k1, k2 
+                       in blocked_sample_keys | random_sample_keys]
+
         self._loadSample(data_sample)
 
     def _sample(self, data_1, data_2, sample_size) :
