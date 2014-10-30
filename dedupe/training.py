@@ -69,7 +69,7 @@ class ActiveLearning(object) :
 
 def semiSupervisedNonDuplicates(data_sample,
                                 data_model,
-                                nonduplicate_confidence_threshold=.7,
+                                nonduplicate_confidence_threshold=.9,
                                 sample_size=2000):
 
     confidence = 1 - nonduplicate_confidence_threshold
@@ -151,10 +151,10 @@ def blockTraining(training_pairs,
     # Within blocks, we will compare every combination of
     # records. Therefore, we want to avoid predicates that make large
     # blocks.
-    for pred in predicate_set[:] :
-        blocks = coverage.blocks[pred].itervalues()
-        if any(len(block) >= 100 for block in blocks if block) :
-            predicate_set.remove(pred)
+    #for pred in predicate_set[:] :
+    #    blocks = coverage.blocks[pred].itervalues()
+    #    if any(len(block) >= 100 for block in blocks if block) :
+    #        predicate_set.remove(pred)
 
     # As an efficency, we can throw away the predicates that cover too
     # many distinct pairs
@@ -164,13 +164,13 @@ def blockTraining(training_pairs,
     distinct_coverage = coverage.predicateCoverage(predicate_set,
                                                    training_distinct)
 
-    for pred, pairs in distinct_coverage.items() :
-        if len(pairs) > coverage_threshold :
-            predicate_set.remove(pred)
+    #for pred, pairs in distinct_coverage.items() :
+    #    if len(pairs) > coverage_threshold :
+    #        predicate_set.remove(pred)
 
 
-    distinct_coverage = coverage.predicateCoverage(predicate_set, 
-                                                   training_distinct)
+    #distinct_coverage = coverage.predicateCoverage(predicate_set, 
+    #                                               training_distinct)
 
     final_predicate_set = findOptimumBlocking(training_dupes,
                                               predicate_set,
@@ -384,7 +384,11 @@ def stopWords(data) :
     index = TextIndex(Lexicon(Splitter()))
 
     for i, (_, doc) in enumerate(data, 1) :
-        index.index_doc(i, doc)
+        try :
+            index.index_doc(i, doc)
+        except :
+            print doc
+            raise
 
     doc_freq = [(len(index.index._wordinfo[wid]), word) 
                 for word, wid in index.lexicon.items()]

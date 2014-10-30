@@ -81,7 +81,8 @@ class ShortStringType(FieldType) :
                             dedupe.predicates.sameFiveCharStartPredicate,
                             dedupe.predicates.sameSevenCharStartPredicate,
                             dedupe.predicates.commonFourGram,
-                            dedupe.predicates.commonSixGram)
+                            dedupe.predicates.commonSixGram,
+                            dedupe.predicates.sortedAcronym)
 
 class StringType(ShortStringType) :
     comparator = normalizedAffineGapDistance
@@ -119,7 +120,10 @@ class SetType(FieldType) :
     type = "Set"
 
     _predicate_functions = (dedupe.predicates.wholeSetPredicate,
-                         dedupe.predicates.commonSetElementPredicate)
+                            dedupe.predicates.commonSetElementPredicate,
+                            dedupe.predicates.lastSetElementPredicate,
+                            dedupe.predicates.firstSetElementPredicate,
+                        )
 
     _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
 
