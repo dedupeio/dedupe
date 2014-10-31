@@ -92,14 +92,6 @@ def dedupeSamplePredicate(subsample_size, predicate, items) :
     else :
         return sample
 
-def evenSplits(total_size, num_splits) :
-
-    avg = total_size/float(num_splits) 
-    split = 0
-    for _ in xrange(num_splits) :
-        split += avg - int(split)
-        yield int(split)
-
 
 def linkBlockedSample(sample_size, predicates, d1, d2) :
 
@@ -140,7 +132,6 @@ def linkBlockedSample(sample_size, predicates, d1, d2) :
 
 
 def linkSamplePredicates(sample_size, predicates, items1, items2) :
-    print "sample_size", sample_size
     subsample_counts = evenSplits(sample_size, len(predicates))
 
     requested_samples = [   (count, predicate)
@@ -160,7 +151,6 @@ def linkSamplePredicates(sample_size, predicates, items1, items2) :
 
 
 def linkSamplePredicate(subsample_size, predicate, items1, items2) :
-    print "sampling predicate block", predicate, "with sample size", subsample_size
     pairs = []
     block_dict = defaultdict(list)
     block_dict_compare = defaultdict(list)
@@ -171,15 +161,14 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2) :
     smaller_len = min(len(items1), len(items2))
 
     #first item in interleaved_items is from items1
-    interleaved_items = [None]*(smaller_len*2)
-    interleaved_items[::2] = list(items1)[:smaller_len]
-    interleaved_items[1::2] = list(items2)[:smaller_len]
+    interleaved_items = roundrobin( 
+                    itertools.islice(items1, 0, smaller_len), 
+                    itertools.islice(items2, 0, smaller_len) )
 
     for i, item in enumerate(interleaved_items):
         # bail out if not enough pairs are found
         if (i == 1000 and len(pairs) <1) or (i == 10000 and len(pairs) <10):
-                print "BAIL. sample collected:", len(pairs)
-                return pairs
+            return pairs
         block_keys = predicate_function(item[1][field])
         for block_key in block_keys:
             if block_dict_compare.get(block_key):
@@ -189,7 +178,6 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2) :
                     pairs.append(( item[0], block_dict_compare[block_key].pop() ))
                 subsample_size = subsample_size - 1
                 if not subsample_size:
-                    print "FULFILLED. sample collected:", len(pairs)
                     return pairs
             else:
                 block_dict[block_key].append(item[0])
@@ -205,23 +193,40 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2) :
         items = items2
         compare_dict = block_dict
 
-    print "one dataset exhausted"
-    for i in range(smaller_len, larger_len):
+    for i, (index, record) in enumerate(itertools.islice(items, smaller_len, None)) :
         if (i == 1000 and len(pairs) <1) or (i == 10000 and len(pairs) <10):
-            print "BAIL. sample collected:", len(pairs)
             return pairs
         if subsample_size == 0:
-            print "FULFILLED. sample collected:", len(pairs)
             return pairs
-        block_keys = predicate_function( items[i][1][field] )
+        block_keys = predicate_function( record[field] )
         for block_key in block_keys:
             if compare_dict.get(block_key):
                 if swap:
-                    pairs.append(( compare_dict[block_key].pop(), items[i][0] ))
+                    pairs.append(( compare_dict[block_key].pop(), index ))
                 else:
-                    pairs.append(( items[i][0], compare_dict[block_key].pop() ))
+                    pairs.append(( index, compare_dict[block_key].pop() ))
                 subsample_size = subsample_size - 1
 
-    print "EXHAUSTED. sample collected:", len(pairs)
     return pairs
 
+
+def evenSplits(total_size, num_splits) :
+
+    avg = total_size/float(num_splits) 
+    split = 0
+    for _ in xrange(num_splits) :
+        split += avg - int(split)
+        yield int(split)
+
+
+def roundrobin(*iterables):
+    "roundrobin('ABC', 'D', 'EF') --> A D E B F C"
+    pending = len(iterables)
+    nexts = itertools.cycle(iter(it).next for it in iterables)
+    while pending:
+        try:
+            for next in nexts:
+                yield next()
+        except StopIteration:
+            pending -= 1
+            nexts = itertools.cycle(itertools.islice(nexts, pending))
