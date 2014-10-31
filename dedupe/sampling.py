@@ -121,12 +121,11 @@ def linkBlockedSample(sample_size, predicates, d1, d2) :
                                     deque(items1), 
                                     deque(items2)      ) 
             )
-
         blocked_sample.update(itertools.chain.from_iterable(new_sample))
 
         growth = len(blocked_sample) - previous_sample_size
         growth_rate = growth/float(remaining_sample)
-
+        
         remaining_sample = sample_size - len(blocked_sample)
         previous_sample_size = len(blocked_sample)
 
@@ -141,7 +140,7 @@ def linkBlockedSample(sample_size, predicates, d1, d2) :
 
 
 def linkSamplePredicates(sample_size, predicates, items1, items2) :
-
+    print "sample_size", sample_size
     subsample_counts = evenSplits(sample_size, len(predicates))
 
     requested_samples = [   (count, predicate)
@@ -161,64 +160,41 @@ def linkSamplePredicates(sample_size, predicates, items1, items2) :
 
 
 def linkSamplePredicate(subsample_size, predicate, items1, items2) :
+    print "sampling predicate block", predicate, "with sample size", subsample_size
     pairs = []
-    block_dict_1 = defaultdict(list)
-    block_dict_2 = defaultdict(list)
+    block_dict = defaultdict(list)
+    block_dict_compare = defaultdict(list)
     predicate_function = predicate.func
     field = predicate.field
 
     larger_len = max(len(items1), len(items2))
     smaller_len = min(len(items1), len(items2))
 
-    for i in range(smaller_len):
-        if i == 1000:
-            if len(pairs) <1 :
+    #first item in interleaved_items is from items1
+    interleaved_items = [None]*(smaller_len*2)
+    interleaved_items[::2] = list(items1)[:smaller_len]
+    interleaved_items[1::2] = list(items2)[:smaller_len]
+
+    for i, item in enumerate(interleaved_items):
+        # bail out if not enough pairs are found
+        if (i == 1000 and len(pairs) <1) or (i == 10000 and len(pairs) <10):
+                print "BAIL. sample collected:", len(pairs)
                 return pairs
-        if i == 10000:
-            if len(pairs) <10 :
-                return pairs
-        block_keys_1 = predicate_function( items1[i][1][field] )
-        block_keys_2 = predicate_function( items2[i][1][field] )
-        for block_key in block_keys_1:
-            if subsample_size == 0:
-                return pairs
-            block_dict_1[block_key].append(items1[i][0])
-            if len(block_dict_2[block_key]) > 0:
-                pairs.append(( block_dict_1[block_key].pop(), block_dict_2[block_key].pop() ))
+        block_keys = predicate_function(item[1][field])
+        for block_key in block_keys:
+            if block_dict_compare.get(block_key):
+                if i % 2: # i is odd; items1:items2::block_dict_compare:block_dict
+                    pairs.append(( block_dict_compare[block_key].pop(), item[0] ))
+                else: # i is even; items1:items2::block_dict:block_dict_compare
+                    pairs.append(( item[0], block_dict_compare[block_key].pop() ))
                 subsample_size = subsample_size - 1
-        for block_key in block_keys_2:
-            if subsample_size == 0:
-                return pairs
-            block_dict_2[block_key].append(items2[i][0])
-            if len(block_dict_1[block_key]) > 0:
-                pairs.append(( block_dict_1[block_key].pop(), block_dict_2[block_key].pop() ))
-                subsample_size = subsample_size - 1
-    """
-    if len(items1) > len(items2):
-        for i in range(smaller_len, larger_len):
-            if i == 10000:
-                if len(pairs) <10 :
+                if not subsample_size:
+                    print "FULFILLED. sample collected:", len(pairs)
                     return pairs
-            if subsample_size == 0:
-                return pairs
-            block_keys = predicate_function( items1[i][1][field] )
-            for block_key in block_keys:
-                if len(block_dict_2[block_key]) > 0:
-                    pairs.append(( items1[i][0], block_dict_2[block_key].pop() ))
-                    subsample_size = subsample_size - 1
-    elif len(items2) > len(items1):
-        for i in range(smaller_len, larger_len):
-            if i == 10000:
-                if len(pairs) <10 :
-                    return pairs
-            if subsample_size == 0:
-                return pairs
-            block_keys = predicate_function( items2[i][1][field] )
-            for block_key in block_keys:
-                if len(block_dict_1[block_key]) > 0:
-                    pairs.append(( block_dict_1[block_key].pop(), items2[i][0] ))
-                    subsample_size = subsample_size - 1
-    """
-    
+            else:
+                block_dict[block_key].append(item[0])
+        block_dict, block_dict_compare = block_dict_compare, block_dict
+
+    print "EXHAUSTED. sample collected:", len(pairs)
     return pairs
 
