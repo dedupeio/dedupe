@@ -195,6 +195,33 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2) :
                 block_dict[block_key].append(item[0])
         block_dict, block_dict_compare = block_dict_compare, block_dict
 
+    # items1:items2::block_dict_compare:block_dict
+    swap = False
+    if len(items1) > len(items2):
+        items = items1
+        compare_dict = block_dict
+    else :
+        swap = True
+        items = items2
+        compare_dict = block_dict
+
+    print "one dataset exhausted"
+    for i in range(smaller_len, larger_len):
+        if (i == 1000 and len(pairs) <1) or (i == 10000 and len(pairs) <10):
+            print "BAIL. sample collected:", len(pairs)
+            return pairs
+        if subsample_size == 0:
+            print "FULFILLED. sample collected:", len(pairs)
+            return pairs
+        block_keys = predicate_function( items[i][1][field] )
+        for block_key in block_keys:
+            if compare_dict.get(block_key):
+                if swap:
+                    pairs.append(( compare_dict[block_key].pop(), items[i][0] ))
+                else:
+                    pairs.append(( items[i][0], compare_dict[block_key].pop() ))
+                subsample_size = subsample_size - 1
+
     print "EXHAUSTED. sample collected:", len(pairs)
     return pairs
 
