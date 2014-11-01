@@ -26,8 +26,9 @@ def blockedSample(sampler, sample_size, predicates, *args) :
         previous_sample_size = len(blocked_sample)
 
         if growth_rate < 0.001 :
-            warnings.warn("%s blocked samples were requested, but only able to sample %s" % 
-                          (sample_size, len(blocked_sample)))
+            warnings.warn("%s blocked samples were requested, "
+                          "but only able to sample %s"
+                          % (sample_size, len(blocked_sample)))
             break
 
         predicates = [pred for pred, pred_sample 
