@@ -1,23 +1,21 @@
 from collections import deque
 import random
+import functools
 import itertools
 import warnings
 from collections import defaultdict
 
-def dedupeBlockedSample(sample_size, predicates, data) :
-    items = data.items()
+def blockedSample(sampler, sample_size, predicates, *args) :
     
     blocked_sample = set([])
     remaining_sample = sample_size - len(blocked_sample)
     previous_sample_size = 0
 
     while remaining_sample and predicates :
-        random.shuffle(items)
-        random.shuffle(predicates)
 
-        new_sample = list(dedupeSamplePredicates(remaining_sample, 
-                                           predicates,
-                                           deque(items)))
+        new_sample = list(sampler(remaining_sample, 
+                                  predicates,
+                                  *args))
 
         blocked_sample.update(itertools.chain.from_iterable(new_sample))
 
@@ -32,25 +30,20 @@ def dedupeBlockedSample(sample_size, predicates, data) :
                           (sample_size, len(blocked_sample)))
             break
 
-        predicates = [pred for pred, subsample in zip(predicates, new_sample)
-                      if subsample]
-
-
+        predicates = [pred for pred, pred_sample 
+                      in zip(predicates, new_sample)
+                      if pred_sample]
         
     return blocked_sample
 
 def dedupeSamplePredicates(sample_size, predicates, items) :
-
-    subsample_counts = evenSplits(sample_size, len(predicates))
-
-    requested_samples = [(count, predicate) 
-                         for count, predicate
-                         in zip(subsample_counts, predicates)
-                         if count]
+    random.shuffle(items)
+    random.shuffle(predicates)
+    items = deque(items)
 
     n_items = len(items)
 
-    for subsample_size, predicate in requested_samples :
+    for subsample_size, predicate in subsample(sample_size, predicates) : 
 
         items.rotate(random.randrange(n_items))
 
@@ -76,13 +69,9 @@ def dedupeSamplePredicate(subsample_size, predicate, items) :
             if block_key not in block_dict :
                 block_dict[block_key] = index
             else :
-                other_index = block_dict[block_key]
-                if other_index > index :
-                    index, other_index = other_index, index
-                sample.append((other_index,
-                               index))
+                pair = sort_pair(block_dict.pop(block_key), index)
+                sample.append(pair)
                 subsample_size -= 1
-                del block_dict[block_key]
 
                 if subsample_size :
                     break
@@ -92,57 +81,18 @@ def dedupeSamplePredicate(subsample_size, predicate, items) :
     else :
         return sample
 
-
-def linkBlockedSample(sample_size, predicates, d1, d2) :
-
-    items1 = d1.items()
-    items2 = d2.items()
-
-    blocked_sample = set([])
-    remaining_sample = sample_size - len(blocked_sample)
-    previous_sample_size = 0
-
-    while remaining_sample and predicates:
-        random.shuffle(items1)
-        random.shuffle(items2)
-        random.shuffle(predicates)
-
-        new_sample = list(
-            linkSamplePredicates(   remaining_sample,
-                                    predicates, 
-                                    deque(items1), 
-                                    deque(items2)      ) 
-            )
-        blocked_sample.update(itertools.chain.from_iterable(new_sample))
-
-        growth = len(blocked_sample) - previous_sample_size
-        growth_rate = growth/float(remaining_sample)
-        
-        remaining_sample = sample_size - len(blocked_sample)
-        previous_sample_size = len(blocked_sample)
-
-        if growth_rate < 0.001 :
-            warnings.warn("%s blocked samples were requested, but only able to sample %s" % 
-                (sample_size, len(blocked_sample)))
-            break
-
-        predicates = [pred for pred, subsample in zip(predicates, new_sample) if subsample]
-
-    return blocked_sample
-
-
 def linkSamplePredicates(sample_size, predicates, items1, items2) :
-    subsample_counts = evenSplits(sample_size, len(predicates))
-
-    requested_samples = [   (count, predicate)
-                            for count, predicate
-                            in zip(subsample_counts, predicates)
-                            if count     ]
+    random.shuffle(items1)
+    random.shuffle(items2)
+    random.shuffle(predicates)
     
+    items1 = deque(items1)
+    items2 = deque(items2)
+
     n_1 = len(items1)
     n_2 = len(items2)
 
-    for subsample_size, predicate in requested_samples:
+    for subsample_size, predicate in subsample(sample_size, predicates) :
 
         items1.rotate(random.randrange(n_1))
         items2.rotate(random.randrange(n_2))
@@ -151,82 +101,73 @@ def linkSamplePredicates(sample_size, predicates, items1, items2) :
 
 
 def linkSamplePredicate(subsample_size, predicate, items1, items2) :
-    pairs = []
-    block_dict = defaultdict(list)
-    block_dict_compare = defaultdict(list)
+    sample = []
+
     predicate_function = predicate.func
     field = predicate.field
 
-    larger_len = max(len(items1), len(items2))
-    smaller_len = min(len(items1), len(items2))
+    red = defaultdict(list)
+    blue = defaultdict(list)
 
-    #first item in interleaved_items is from items1
-    interleaved_items = roundrobin( 
-                    itertools.islice(items1, 0, smaller_len), 
-                    itertools.islice(items2, 0, smaller_len) )
+    for i, (index, record) in enumerate(interleave(items1, items2)):
+        if i == 20000:
+            if min(len(red), len(blue)) + len(sample) < 10 :
+                return sample
 
-    for i, item in enumerate(interleaved_items):
-        # bail out if not enough pairs are found
-        if (i == 1000 and len(pairs) <1) or (i == 10000 and len(pairs) <10):
-            return pairs
-        block_keys = predicate_function(item[1][field])
+        block_keys = predicate_function(record[field])
         for block_key in block_keys:
-            if block_dict_compare.get(block_key):
-                if i % 2: # i is odd; items1:items2::block_dict_compare:block_dict
-                    pairs.append(( block_dict_compare[block_key].pop(), item[0] ))
-                else: # i is even; items1:items2::block_dict:block_dict_compare
-                    pairs.append(( item[0], block_dict_compare[block_key].pop() ))
-                subsample_size = subsample_size - 1
-                if not subsample_size:
-                    return pairs
+            if blue.get(block_key):
+                pair = sort_pair(blue[block_key].pop(), index)
+                sample.append(pair)
+
+                subsample_size -= 1
+                if subsample_size :
+                    break
+                else :
+                    return sample
             else:
-                block_dict[block_key].append(item[0])
-        block_dict, block_dict_compare = block_dict_compare, block_dict
+                red[block_key].append(index)
 
-    # items1:items2::block_dict_compare:block_dict
-    swap = False
-    if len(items1) > len(items2):
-        items = items1
-        compare_dict = block_dict
-    else :
-        swap = True
-        items = items2
-        compare_dict = block_dict
+        red, blue = blue, red
 
-    for i, (index, record) in enumerate(itertools.islice(items, smaller_len, None)) :
-        if (i == 1000 and len(pairs) <1) or (i == 10000 and len(pairs) <10):
-            return pairs
-        if subsample_size == 0:
-            return pairs
+    for index, record in itertools.islice(items2, len(items1)) :
         block_keys = predicate_function( record[field] )
         for block_key in block_keys:
-            if compare_dict.get(block_key):
-                if swap:
-                    pairs.append(( compare_dict[block_key].pop(), index ))
-                else:
-                    pairs.append(( index, compare_dict[block_key].pop() ))
-                subsample_size = subsample_size - 1
+            if red.get(block_key):
+                pair = sort_pair(red[block_key].pop(), index)
+                sample.append(pair)
 
-    return pairs
+                subsample_size -= 1
+                if subsample_size :
+                    break
+                else :
+                    return sample
 
+    return sample
 
 def evenSplits(total_size, num_splits) :
-
     avg = total_size/float(num_splits) 
     split = 0
     for _ in xrange(num_splits) :
         split += avg - int(split)
         yield int(split)
 
+def subsample(total_size, predicates) :
+    splits = evenSplits(total_size, len(predicates))
+    for split, predicate in zip(splits, predicates) :
+        if split :
+            yield split, predicate
 
-def roundrobin(*iterables):
-    "roundrobin('ABC', 'D', 'EF') --> A D E B F C"
-    pending = len(iterables)
-    nexts = itertools.cycle(iter(it).next for it in iterables)
-    while pending:
-        try:
-            for next in nexts:
-                yield next()
-        except StopIteration:
-            pending -= 1
-            nexts = itertools.cycle(itertools.islice(nexts, pending))
+def interleave(*iterables) :
+    return itertools.chain.from_iterable(itertools.izip(*iterables))
+
+def sort_pair(a, b) :
+    if a > b :
+        return (b, a)
+    else :
+        return (a, b)
+
+dedupeBlockedSample = functools.partial(blockedSample, dedupeSamplePredicates) 
+linkBlockedSample = functools.partial(blockedSample, linkSamplePredicates) 
+
+

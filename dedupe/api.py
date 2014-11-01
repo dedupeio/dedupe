@@ -972,50 +972,39 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         sample_size -- Size of the sample to draw
         '''
+        if len(data_1) > len(data_2) :
+            data_1, data_2 = data_2, data_1
+
         frozen_values_1 = itertools.imap(dedupe.frozendict, data_1.itervalues())
         frozen_values_2 = itertools.imap(dedupe.frozendict, data_2.itervalues())
-        d1 = dict(itertools.izip(itertools.count(), frozen_values_1))
-        d2 = dict(itertools.izip(itertools.count(), frozen_values_2))
 
-        if blocked_proportion == 0:
-            warnings.warn("blocked sampling not implemented for this method")
+        data_1 = dict(itertools.izip(itertools.count(), frozen_values_1))
+
+        offset = len(data_1)
+        data_2 = dict(itertools.izip(itertools.count(offset), frozen_values_2))
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
                       if pred.type == 'SimplePredicate']
 
         blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
-                                                           predicates,
-                                                           d1, d2)
-
+                                                         predicates,
+                                                         data_1.items(), 
+                                                         data_2.items())
+        
         random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = dedupe.core.randomPairsMatch(len(d1),
-                                                    len(d2), 
-                                                    random_sample_size)
+        random_sample_keys = dedupe.core.randomPairsMatch(len(data_1),
+                                                          len(data_2), 
+                                                          random_sample_size)
 
+        random_sample_keys = set((a, b + offset) 
+                                 for a, b in random_sample_keys)
+        
         data_sample = [(data_1[k1], data_2[k2])
                        for k1, k2 
                        in blocked_sample_keys | random_sample_keys]
 
         self._loadSample(data_sample)
-
-    def _sample(self, data_1, data_2, sample_size) :
-
-        d_1 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data_1.values()))
-        d_2 = dict((i, dedupe.core.frozendict(v)) 
-                   for i, v in enumerate(data_2.values()))
-
-        random_pairs = dedupe.core.randomPairsMatch(len(d_1),
-                                                    len(d_2), 
-                                                    sample_size)
-        
-        data_sample = tuple((d_1[int(k1)], 
-                             d_2[int(k2)]) 
-                            for k1, k2 in random_pairs)
-
-        return data_sample
-
 
 
 class GazetteerMatching(RecordLinkMatching) :
