@@ -8,6 +8,7 @@ import collections
 import time
 import tempfile
 import os
+from _abcoll import KeysView
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -361,6 +362,25 @@ def freezeData(data) : # pragma : no cover
              frozendict(record_2))
             for record_1, record_2 in data]
 
+def isFrozen(data, offset) :
+    if any(KeysView(data) ^ xrange(offset, offset + len(data))) :
+        return False
+
+    for v in data.itervalues() :
+        try : 
+            hash(v)
+        except :
+            return False
+
+    return True
+
+def freezeDict(data, offset=0) :
+    if isFrozen(data, offset) :
+        return data
+    else :
+        frozen_values = itertools.imap(frozendict, data.itervalues())
+        data = dict(itertools.izip(itertools.count(offset), frozen_values))
+        return data
 
 
 class frozendict(collections.Mapping):

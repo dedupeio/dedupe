@@ -913,16 +913,15 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         sample_size         -- Size of the sample to draw
         blocked_proportion  -- Proportion of the sample that will be blocked
         '''
-        frozen_values = itertools.imap(dedupe.frozendict, data.itervalues())
-        
-        data = dict(itertools.izip(itertools.count(), frozen_values))
+        data = core.freezeDict(data)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
                       if pred.type == 'SimplePredicate']
+        
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
                                                            predicates,
-                                                           data)
+                                                           data.items())
 
         random_sample_size = sample_size - len(blocked_sample_keys)
         random_sample_keys = set(dedupe.core.randomPairs(len(data),
@@ -975,13 +974,10 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         if len(data_1) > len(data_2) :
             data_1, data_2 = data_2, data_1
 
-        frozen_values_1 = itertools.imap(dedupe.frozendict, data_1.itervalues())
-        frozen_values_2 = itertools.imap(dedupe.frozendict, data_2.itervalues())
-
-        data_1 = dict(itertools.izip(itertools.count(), frozen_values_1))
+        data_1 = core.freezeDict(data_1)
 
         offset = len(data_1)
-        data_2 = dict(itertools.izip(itertools.count(offset), frozen_values_2))
+        data_2 = core.freezeDict(data_2, offset)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
