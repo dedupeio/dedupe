@@ -8,7 +8,6 @@ import collections
 import time
 import tempfile
 import os
-from _abcoll import KeysView
 
 import dedupe.backport as backport
 import dedupe.lr as lr
@@ -363,13 +362,13 @@ def freezeData(data) : # pragma : no cover
             for record_1, record_2 in data]
 
 def isFrozen(data, offset) :
-    if any(KeysView(data) ^ xrange(offset, offset + len(data))) :
-        return False
+    hashable = collections.Hashable
+    for i in xrange(offset, offset + len(data)) :
+        if i not in data :
+            return False
 
     for v in data.itervalues() :
-        try : 
-            hash(v)
-        except :
+        if not isinstance(v, hashable) :
             return False
 
     return True
