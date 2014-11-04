@@ -52,6 +52,7 @@ def dedupeSamplePredicates(sample_size, predicates, items) :
             continue
 
         items.rotate(random.randrange(n_items))
+
         try : # the reverse method was only added in python 2.7
             items.reverse()
         except AttributeError :
@@ -109,7 +110,7 @@ def linkSamplePredicates(sample_size, predicates, items1, items2) :
             items2.reverse()
         except AttributeError :
             items1 = deque(reversed(items1))
-            items2 = deque(reversed(items1))
+            items2 = deque(reversed(items2))
 
         yield linkSamplePredicate(subsample_size, predicate, items1, items2)
 
