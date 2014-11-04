@@ -25,7 +25,6 @@ def blockedSample(sampler, sample_size, predicates, *args) :
         growth = len(blocked_sample) - previous_sample_size
         growth_rate = growth/float(remaining_sample)
 
-        print sample_size, len(blocked_sample)
         remaining_sample = sample_size - len(blocked_sample)
         previous_sample_size = len(blocked_sample)
 
@@ -49,17 +48,17 @@ def dedupeSamplePredicates(sample_size, predicates, items) :
 
         if not subsample_size :
             yield None
-        else :
+            continue
 
-            items.rotate(random.randrange(n_items))
-            try : # the reverse method was only added in python 2.7
-                items.reverse()
-            except AttributeError :
-                pass
+        items.rotate(random.randrange(n_items))
+        try : # the reverse method was only added in python 2.7
+            items.reverse()
+        except AttributeError :
+            pass
 
-            yield dedupeSamplePredicate(subsample_size,
-                                        predicate,
-                                        items)
+        yield dedupeSamplePredicate(subsample_size,
+                                    predicate,
+                                    items)
 
 def dedupeSamplePredicate(subsample_size, predicate, items) :
 
@@ -99,18 +98,18 @@ def linkSamplePredicates(sample_size, predicates, items1, items2) :
         
         if not subsample_size :
             yield None
-        else :
+            continue
 
-            items1.rotate(random.randrange(n_1))
-            items2.rotate(random.randrange(n_2))
+        items1.rotate(random.randrange(n_1))
+        items2.rotate(random.randrange(n_2))
 
-            try :
-                items1.reverse()
-                items2.reverse()
-            except AttributeError :
-                pass
+        try :
+            items1.reverse()
+            items2.reverse()
+        except AttributeError :
+            pass
 
-            yield linkSamplePredicate(subsample_size, predicate, items1, items2)
+        yield linkSamplePredicate(subsample_size, predicate, items1, items2)
 
 
 def linkSamplePredicate(subsample_size, predicate, items1, items2) :

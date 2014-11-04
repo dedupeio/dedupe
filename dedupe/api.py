@@ -997,7 +997,6 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
                                                          data_2)
         
         random_sample_size = sample_size - len(blocked_sample_keys)
-        print random_sample_size
         random_sample_keys = dedupe.core.randomPairsMatch(len(data_1),
                                                           len(data_2), 
                                                           random_sample_size)
