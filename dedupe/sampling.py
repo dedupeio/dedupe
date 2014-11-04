@@ -18,7 +18,8 @@ def blockedSample(sampler, sample_size, predicates, *args) :
                                   predicates,
                                   *args))
 
-        filtered_sample = (subsample for subsample in new_sample if subsample)
+        filtered_sample = (subsample for subsample 
+                           in new_sample if subsample)
 
         blocked_sample.update(itertools.chain.from_iterable(filtered_sample))
 
@@ -54,7 +55,7 @@ def dedupeSamplePredicates(sample_size, predicates, items) :
         try : # the reverse method was only added in python 2.7
             items.reverse()
         except AttributeError :
-            pass
+            items = deque(reversed(items))
 
         yield dedupeSamplePredicate(subsample_size,
                                     predicate,
@@ -107,7 +108,8 @@ def linkSamplePredicates(sample_size, predicates, items1, items2) :
             items1.reverse()
             items2.reverse()
         except AttributeError :
-            pass
+            items1 = deque(reversed(items1))
+            items2 = deque(reversed(items1))
 
         yield linkSamplePredicate(subsample_size, predicate, items1, items2)
 
