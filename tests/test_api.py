@@ -206,14 +206,34 @@ class LinkTest(unittest.TestCase):
 
   def test_randomSample(self) :
 
+    random.seed(233)
     self.linker.sample( data_dict, data_dict_2, 5, 1)
 
-    correct_result = (  ({'age': '50', 'name': 'linda '}, {'age': '51', 'name': 'BOB BELCHER'}), 
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '50', 'name': 'LINDA'}), 
-                        ({'age': '51', 'name': 'Bob B.'}, {'age': '15', 'name': 'TINA'}), 
-                        ({'age': '50', 'name': 'Linda'}, {'age': '50', 'name': 'LINDA '}), 
-                        ({'age': '12', 'name': 'Gene'}, {'age': '15', 'name': 'TINA'})
-                      )
+    correct_result = [(dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB B.'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'LINDA'})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'LINDA'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'bob belcher'}),
+                       dedupe.frozendict({'age': '51', 'name': 'BOB BELCHER'}))]
+
+    assert self.linker.data_sample == correct_result
+
+    self.linker.sample(data_dict, data_dict_2, 5, 0)
+
+    correct_result = [(dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '15', 'name': 'TINA'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'LINDA'})), 
+                      (dedupe.frozendict({'age': '12', 'name': 'Gene'}), 
+                       dedupe.frozendict({'age': '15', 'name': 'TINA'})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'LINDA '})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'linda '}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB BELCHER'}))]
 
     assert self.linker.data_sample == correct_result
 

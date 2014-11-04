@@ -31,25 +31,25 @@ class DedupeSampling(unittest.TestCase) :
         items = data_dict.items()
         pred = dedupe.predicates.SimplePredicate(dedupe.predicates.sameThreeCharStartPredicate,
                                           'name')
-        assert dedupe.sampling.samplePredicate(10, 
-                                               pred,
-                                               items) == [('1', '5')]
+        assert dedupe.sampling.dedupeSamplePredicate(10, 
+                                                     pred,
+                                                     items) == [('1', '5')]
 
     def test_sample_predicates(self) :
         items = deque(data_dict.items())
         pred = dedupe.predicates.SimplePredicate(dedupe.predicates.sameThreeCharStartPredicate,
                                           'name')
 
-        assert list(dedupe.sampling.samplePredicates(10, 
-                                                     [pred],
-                                                     items)) == [[('1', '5')]]
+        assert list(dedupe.sampling.dedupeSamplePredicates(10, 
+                                                           [pred], 
+                                                           items)) == [[('1', '5')]]
 
     def test_blockedSample(self) :
         pred = dedupe.predicates.SimplePredicate(dedupe.predicates.sameThreeCharStartPredicate,
                                                  'name')
         assert len(dedupe.sampling.dedupeBlockedSample(10, 
                                                        [pred],
-                                                       data_dict)) == 1
+                                                       deque(data_dict.items()))) == 1
 
 
 
