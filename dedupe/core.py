@@ -361,6 +361,25 @@ def freezeData(data) : # pragma : no cover
              frozendict(record_2))
             for record_1, record_2 in data]
 
+def isFrozen(data, offset) :
+    hashable = collections.Hashable
+    for i in xrange(offset, offset + len(data)) :
+        if i not in data :
+            return False
+
+    for v in data.itervalues() :
+        if not isinstance(v, hashable) :
+            return False
+
+    return True
+
+def freezeDict(data, offset=0) :
+    if isFrozen(data, offset) :
+        return data
+    else :
+        frozen_values = itertools.imap(frozendict, data.itervalues())
+        data = dict(itertools.izip(itertools.count(offset), frozen_values))
+        return data
 
 
 class frozendict(collections.Mapping):

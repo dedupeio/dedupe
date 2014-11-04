@@ -913,13 +913,15 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         sample_size         -- Size of the sample to draw
         blocked_proportion  -- Proportion of the sample that will be blocked
         '''
-        frozen_values = itertools.imap(dedupe.frozendict, data.itervalues())
         
-        data = dict(itertools.izip(itertools.count(), frozen_values))
+
+        data = core.freezeDict(data)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
                       if pred.type == 'SimplePredicate']
+
+        data = sampling.randomDeque(data)
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
                                                            predicates,
                                                            data)
@@ -927,6 +929,8 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         random_sample_size = sample_size - len(blocked_sample_keys)
         random_sample_keys = set(dedupe.core.randomPairs(len(data),
                                                          random_sample_size))
+
+        data = dict(data)
 
         data_sample = [(data[k1], data[k2])
                        for k1, k2 
@@ -954,8 +958,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     Public Methods
     - sample
     """
+
     def sample(self, data_1, data_2, sample_size=150000, 
-               blocked_proportion=None) :
+               blocked_proportion=.5) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -971,30 +976,42 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         sample_size -- Size of the sample to draw
         '''
-        if blocked_proportion is not None :
-            warnings.warn("blocked sampling not implemented for this method")
+        if len(data_1) > len(data_2) :
+            data_1, data_2 = data_2, data_1
 
-        data_sample = self._sample(data_1, data_2, sample_size)
+        data_1 = core.freezeDict(data_1)
+
+        offset = len(data_1)
+        data_2 = core.freezeDict(data_2, offset)
+
+        blocked_sample_size = int(blocked_proportion * sample_size)
+        predicates = [pred for pred in predicateGenerator(self.data_model)
+                      if pred.type == 'SimplePredicate']
+
+        data_1 = sampling.randomDeque(data_1)
+        data_2 = sampling.randomDeque(data_2)
+
+        blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
+                                                         predicates,
+                                                         data_1, 
+                                                         data_2)
         
+        random_sample_size = sample_size - len(blocked_sample_keys)
+        random_sample_keys = dedupe.core.randomPairsMatch(len(data_1),
+                                                          len(data_2), 
+                                                          random_sample_size)
+
+        random_sample_keys = set((a, b + offset) 
+                                 for a, b in random_sample_keys)
+
+        data_1 = dict(data_1)
+        data_2 = dict(data_2)
+        
+        data_sample = [(data_1[k1], data_2[k2])
+                       for k1, k2 
+                       in blocked_sample_keys | random_sample_keys]
+
         self._loadSample(data_sample)
-
-    def _sample(self, data_1, data_2, sample_size) :
-
-        d_1 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data_1.values()))
-        d_2 = dict((i, dedupe.core.frozendict(v)) 
-                   for i, v in enumerate(data_2.values()))
-
-        random_pairs = dedupe.core.randomPairsMatch(len(d_1),
-                                                    len(d_2), 
-                                                    sample_size)
-        
-        data_sample = tuple((d_1[int(k1)], 
-                             d_2[int(k2)]) 
-                            for k1, k2 in random_pairs)
-
-        return data_sample
-
 
 
 class GazetteerMatching(RecordLinkMatching) :
