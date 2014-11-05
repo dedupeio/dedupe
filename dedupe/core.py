@@ -65,7 +65,9 @@ def randomPairs(n_records, sample_size):
     x = numpy.trunc((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2)
     y = random_indices + x * (b + x + 2) / 2 + 1
 
-    return numpy.column_stack((x, y)).astype(int)
+    stacked = numpy.column_stack((x, y)).astype(int)
+
+    return [(p.item(), q.item()) for p, q in stacked]
 
 def randomPairsMatch(n_records_A, n_records_B, sample_size):
     """
@@ -355,17 +357,33 @@ def peek(records) :
 
 
 def freezeData(data) : # pragma : no cover
-    return [(frozendict(record_1), 
-             frozendict(record_2))
+    lfrozendict = frozendict
+    return [(lfrozendict(record_1), 
+             lfrozendict(record_2))
             for record_1, record_2 in data]
 
+def isIndexed(data, offset) :
+    hashable = collections.Hashable
+    for i in xrange(offset, offset + len(data)) :
+        if i not in data :
+            return False
+    else :
+        return True
+
+def index(data, offset=0) :
+    if isIndexed(data, offset) :
+        return data
+    else :
+        data = dict(itertools.izip(itertools.count(offset), 
+                                   data.itervalues()))
+        return data
 
 
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
-    def __init__(self, *args, **kwargs): # pragma : no cover
-        self._d = dict(*args, **kwargs)
+    def __init__(self, arg): # pragma : no cover
+        self._d = dict(arg)
 
     def __iter__(self):                  # pragma : no cover
         return iter(self._d)

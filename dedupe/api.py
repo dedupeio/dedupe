@@ -26,6 +26,7 @@ except ImportError :
     from dedupe.backport import OrderedDict
 
 import dedupe
+import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
@@ -479,7 +480,7 @@ class StaticMatching(Matching) :
 
     def __init__(self, 
                  settings_file, 
-                 num_cores=None) :
+                 num_cores=None) : # pragma : no cover
         """
         Initialize from a settings file
         #### Example usage
@@ -868,10 +869,7 @@ class ActiveMatching(Matching) :
                                               new_data)
 
 
-
-    def _loadSample(self, *args, **kwargs) : # pragma : no cover
-
-        data_sample = self._sample(*args, **kwargs)
+    def _loadSample(self, data_sample) :
 
         self._checkDataSample(data_sample) 
 
@@ -887,11 +885,13 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
     Mixin Class for Static Deduplication
     """
 
-    def __init__(self, *args, **kwargs) :
+    def __init__(self, *args, **kwargs) : # pragma : no cover
         super(StaticDedupe, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
                                      self.stop_words)
+
+import gc
 
 class Dedupe(DedupeMatching, ActiveMatching) :
     """
@@ -901,37 +901,42 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     - sample
     """
 
-    
-    def sample(self, data, sample_size=150000) :
+    def sample(self, data, sample_size=15000, 
+               blocked_proportion=0.5) :
+        '''Draw a sample of record pairs from the dataset
+        (a mix of random pairs & pairs of similar records)
+        and initialize active learning with this sample
+        
+        Arguments: data -- Dictionary of records, where the keys are
+        record_ids and the values are dictionaries with the keys being
+        field names
+        
+        sample_size         -- Size of the sample to draw
+        blocked_proportion  -- Proportion of the sample that will be blocked
         '''
-        Draw a random sample of combinations of records from 
-        the the dataset, and initialize active learning with this sample
-        
-        Arguments:
-        data        -- Dictionary of records, where the keys are record_ids 
-                       and the values are dictionaries with the keys being 
-                       field names
-        
-        sample_size -- Size of the sample to draw
-        '''
-        
-        self._loadSample(data, sample_size)
+        data = core.index(data)
 
-    def _sample(self, data, sample_size) :
+        blocked_sample_size = int(blocked_proportion * sample_size)
+        predicates = [pred for pred in predicateGenerator(self.data_model)
+                      if pred.type == 'SimplePredicate']
 
-        indexed_data = dict((i, dedupe.core.frozendict(v)) 
-                            for i, v in enumerate(data.values()))
+        data = sampling.randomDeque(data)
+        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
+                                                           predicates,
+                                                           data)
 
-        random_pairs = dedupe.core.randomPairs(len(indexed_data), 
-                                               sample_size)
+        random_sample_size = sample_size - len(blocked_sample_keys)
+        random_sample_keys = set(dedupe.core.randomPairs(len(data),
+                                                         random_sample_size))
+        data = dict(data)
 
-        data_sample = tuple((indexed_data[int(k1)], 
-                             indexed_data[int(k2)]) 
-                            for k1, k2 in random_pairs)
+        data_sample = ((data[k1], data[k2])
+                       for k1, k2 
+                       in blocked_sample_keys | random_sample_keys)
 
-        return data_sample
+        data_sample = core.freezeData(data_sample)
 
-
+        self._loadSample(data_sample)
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
@@ -953,7 +958,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
 
-    def sample(self, data_1, data_2, sample_size=150000) :
+    def sample(self, data_1, data_2, sample_size=150000, 
+               blocked_proportion=.5) :
         '''
         Draws a random sample of combinations of records from 
         the first and second datasets, and initializes active
@@ -969,25 +975,44 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         sample_size -- Size of the sample to draw
         '''
+        if len(data_1) > len(data_2) :
+            data_1, data_2 = data_2, data_1
+
+        data_1 = core.index(data_1)
+
+        offset = len(data_1)
+        data_2 = core.index(data_2, offset)
+
+        blocked_sample_size = int(blocked_proportion * sample_size)
+        predicates = [pred for pred in predicateGenerator(self.data_model)
+                      if pred.type == 'SimplePredicate']
+
+        data_1 = sampling.randomDeque(data_1)
+        data_2 = sampling.randomDeque(data_2)
+
+        blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
+                                                         predicates,
+                                                         data_1, 
+                                                         data_2)
         
-        self._loadSample(data_1, data_2, sample_size)
+        random_sample_size = sample_size - len(blocked_sample_keys)
+        random_sample_keys = dedupe.core.randomPairsMatch(len(data_1),
+                                                          len(data_2), 
+                                                          random_sample_size)
 
-    def _sample(self, data_1, data_2, sample_size) :
+        random_sample_keys = set((a, b + offset) 
+                                 for a, b in random_sample_keys)
 
-        d_1 = dict((i, dedupe.core.frozendict(v)) 
-                    for i, v in enumerate(data_1.values()))
-        d_2 = dict((i, dedupe.core.frozendict(v)) 
-                   for i, v in enumerate(data_2.values()))
-
-        random_pairs = dedupe.core.randomPairsMatch(len(d_1),
-                                                    len(d_2), 
-                                                    sample_size)
+        data_1 = dict(data_1)
+        data_2 = dict(data_2)
         
-        data_sample = tuple((d_1[int(k1)], 
-                             d_2[int(k2)]) 
-                            for k1, k2 in random_pairs)
+        data_sample = ((data_1[k1], data_2[k2])
+                       for k1, k2 
+                       in blocked_sample_keys | random_sample_keys)
 
-        return data_sample
+        data_sample = core.freezeData(data_sample)
+
+        self._loadSample(data_sample)
 
 
 class GazetteerMatching(RecordLinkMatching) :
@@ -1076,3 +1101,4 @@ def predicateGenerator(data_model) :
             predicates.update(definition.predicates)
 
     return predicates
+

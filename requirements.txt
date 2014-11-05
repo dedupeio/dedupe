@@ -3,5 +3,5 @@ hcluster>=0.2.0
 zope.interface
 zope.index
 nose
-coveralls
+coverage
 cython

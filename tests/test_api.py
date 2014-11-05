@@ -15,6 +15,22 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
                (dedupe.core.frozendict({'age': '75', 'name': 'Charlie'}), 
                 dedupe.core.frozendict({'age': '21', 'name': 'Jimbo'})))
 
+data_dict = {    '1' : {'name' : 'Bob',         'age' : '51'},
+                 '2' : {'name' : 'Linda',       'age' : '50'},
+                 '3' : {'name' : 'Gene',        'age' : '12'},
+                 '4' : {'name' : 'Tina',        'age' : '15'},
+                 '5' : {'name' : 'Bob B.',      'age' : '51'},
+                 '6' : {'name' : 'bob belcher', 'age' : '51'},
+                 '7' : {'name' : 'linda ',      'age' : '50'} }
+
+data_dict_2 = {  '1' : {'name' : 'BOB',         'age' : '51'},
+                 '2' : {'name' : 'LINDA',       'age' : '50'},
+                 '3' : {'name' : 'GENE',        'age' : '12'},
+                 '4' : {'name' : 'TINA',        'age' : '15'},
+                 '5' : {'name' : 'BOB B.',      'age' : '51'},
+                 '6' : {'name' : 'BOB BELCHER', 'age' : '51'},
+                 '7' : {'name' : 'LINDA ',      'age' : '50'} }
+
 class Match(unittest.TestCase) :
   def test_initialize_fields(self) :
     matcher = dedupe.api.Matching()
@@ -134,6 +150,7 @@ class ActiveMatch(unittest.TestCase) :
 class DedupeTest(unittest.TestCase):
   def setUp(self) : 
     random.seed(123) 
+    numpy.random.seed(456)
 
     field_definition = [{'field' : 'name', 'type': 'String'}, 
                         {'field' :'age', 'type': 'String'}]
@@ -160,30 +177,39 @@ class DedupeTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
                     ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
-  def test_sample(self) :
-    data_sample = self.deduper._sample(
-      {'1' : {'name' : 'Frank', 'age' : '72'},
-       '2' : {'name' : 'Bob', 'age' : '27'},
-       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+  def test_randomSample(self) :
 
+    random.seed(6)
+    self.deduper.sample(data_dict, 21, 1)
 
-    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
-    assert set(names) == set([("Frank", "Bob"), 
-                              ("Frank", "Jane"),
-                              ("Jane", "Bob")])
+    correct_result = [(dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'linda '}), 
+                       dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'Bob B.'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'Bob B.'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
+ 
+                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'linda '})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'Linda'}))]
 
-    self.deduper.sample({'1' : {'name' : 'Frank', 'age' : '72'},
-                         '2' : {'name' : 'Bob', 'age' : '27'},
-                         '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+    assert set(self.deduper.data_sample).issuperset(correct_result)
 
-    assert self.deduper.data_sample == data_sample
 
 
 
 
 class LinkTest(unittest.TestCase):
   def setUp(self) : 
-    random.seed(123) 
+    random.seed(123)
+    numpy.random.seed(456)
 
     field_definition = [{'field' : 'name', 'type': 'String'}, 
                         {'field' :'age', 'type': 'String'}]
@@ -206,23 +232,37 @@ class LinkTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
                     ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
-  def test_sample(self) :
-    data_sample = self.linker._sample(
-      {'1' : {'name' : 'Frank', 'age' : '72'}},
-      {'2' : {'name' : 'Bob', 'age' : '27'},
-       '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+  def test_randomSample(self) :
 
-    names = [(pair[0]['name'], pair[1]['name']) for pair in data_sample]
-    assert set(names) == set([("Frank", "Bob"), ("Frank", "Jane")])
+    random.seed(27)
+    
+    self.linker.sample( data_dict, data_dict_2, 5, 1)
 
-    self.linker.sample({'1' : {'name' : 'Frank', 'age' : '72'}},
-                       {'2' : {'name' : 'Bob', 'age' : '27'},
-                        '3' : {'name' : 'Jane', 'age' : '28'}}, 10)
+    correct_result = [(dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB B.'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'bob belcher'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB'})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'linda '}), 
+                       dedupe.frozendict({'age': '12', 'name': 'GENE'})), 
+                      (dedupe.frozendict({'age': '15', 'name': 'Tina'}), 
+                       dedupe.frozendict({'age': '15', 'name': 'TINA'}))]
 
-    assert self.linker.data_sample == data_sample
+    assert self.linker.data_sample == correct_result
 
-      
-      
+    self.linker.sample(data_dict, data_dict_2, 5, 0)
+
+    correct_result = [(dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '15', 'name': 'TINA'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'LINDA'})), 
+                      (dedupe.frozendict({'age': '12', 'name': 'Gene'}), 
+                       dedupe.frozendict({'age': '15', 'name': 'TINA'})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
+                       dedupe.frozendict({'age': '50', 'name': 'LINDA '})), 
+                      (dedupe.frozendict({'age': '50', 'name': 'linda '}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB BELCHER'}))]
 
 
 

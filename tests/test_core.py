@@ -8,16 +8,15 @@ import warnings
 class RandomPairsTest(unittest.TestCase) :
     def test_random_pair(self) :
         self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-        assert dedupe.core.randomPairs(10, 10).any()
+        assert dedupe.core.randomPairs(10, 10)
         random.seed(123)
         numpy.random.seed(123)
         random_pairs = dedupe.core.randomPairs(10, 5)
-        assert numpy.array_equal(random_pairs, 
-                                 numpy.array([[ 0,  3],
-                                              [ 3,  8],
-                                              [ 4,  9],
-                                              [ 5,  9],
-                                              [ 2,  3]]))
+        assert random_pairs == [( 0,  3),
+                                ( 3,  8),
+                                ( 4,  9),
+                                ( 5,  9),
+                                ( 2,  3)]
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
