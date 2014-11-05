@@ -480,7 +480,7 @@ class StaticMatching(Matching) :
 
     def __init__(self, 
                  settings_file, 
-                 num_cores=None) :
+                 num_cores=None) : # pragma : no cover
         """
         Initialize from a settings file
         #### Example usage
@@ -885,11 +885,13 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
     Mixin Class for Static Deduplication
     """
 
-    def __init__(self, *args, **kwargs) :
+    def __init__(self, *args, **kwargs) : # pragma : no cover
         super(StaticDedupe, self).__init__(*args, **kwargs)
 
         self.blocker = self._Blocker(self.predicates, 
                                      self.stop_words)
+
+import gc
 
 class Dedupe(DedupeMatching, ActiveMatching) :
     """
@@ -899,7 +901,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     - sample
     """
 
-    
     def sample(self, data, sample_size=15000, 
                blocked_proportion=0.5) :
         '''Draw a sample of record pairs from the dataset
@@ -913,9 +914,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         sample_size         -- Size of the sample to draw
         blocked_proportion  -- Proportion of the sample that will be blocked
         '''
-        
-
-        data = core.freezeDict(data)
+        data = core.index(data)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
@@ -929,15 +928,15 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         random_sample_size = sample_size - len(blocked_sample_keys)
         random_sample_keys = set(dedupe.core.randomPairs(len(data),
                                                          random_sample_size))
-
         data = dict(data)
 
-        data_sample = [(data[k1], data[k2])
+        data_sample = ((data[k1], data[k2])
                        for k1, k2 
-                       in blocked_sample_keys | random_sample_keys]
+                       in blocked_sample_keys | random_sample_keys)
+
+        data_sample = core.freezeData(data_sample)
 
         self._loadSample(data_sample)
-
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
@@ -979,10 +978,10 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         if len(data_1) > len(data_2) :
             data_1, data_2 = data_2, data_1
 
-        data_1 = core.freezeDict(data_1)
+        data_1 = core.index(data_1)
 
         offset = len(data_1)
-        data_2 = core.freezeDict(data_2, offset)
+        data_2 = core.index(data_2, offset)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = [pred for pred in predicateGenerator(self.data_model)
@@ -1007,9 +1006,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         data_1 = dict(data_1)
         data_2 = dict(data_2)
         
-        data_sample = [(data_1[k1], data_2[k2])
+        data_sample = ((data_1[k1], data_2[k2])
                        for k1, k2 
-                       in blocked_sample_keys | random_sample_keys]
+                       in blocked_sample_keys | random_sample_keys)
+
+        data_sample = core.freezeData(data_sample)
 
         self._loadSample(data_sample)
 
