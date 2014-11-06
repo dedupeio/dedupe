@@ -25,4 +25,6 @@ class CategoricalComparator(object):
         elif set(categories) <= self.categories_and_null :
             return numpy.nan
         else :
-            raise ValueError("field not in Source Names")
+            raise ValueError("value %s not among declared "\
+                             "set of categories: %s" %
+                             (categories, self.categories.keys()))
