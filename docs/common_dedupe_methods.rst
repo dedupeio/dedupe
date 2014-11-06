@@ -62,11 +62,13 @@
    Generate the predicates for records. Yields tuples of (predicate,
    record_id).
 
-   :param dict data: A dictionary-like object indexed by record ID
-		      where the values are dictionaries representing records.
+   :param list data: A sequence of tuples of (record_id,
+                     record_dict). Can often be created by
+                     `data_dict.items()`.
 
    .. code:: python
 
+      > data = [(1, {'name' : 'bob'}), (2, {'name' : 'suzanne'})]
       > blocked_ids = deduper.blocker(data)
       > print list(blocked_ids)
       [('foo:1', 1), ..., ('bar:1', 100)]
