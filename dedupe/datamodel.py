@@ -17,6 +17,7 @@ field_classes = {'String' : dedupe.fieldclasses.StringType,
                  'Source' : dedupe.fieldclasses.SourceType,
                  'Text' : dedupe.fieldclasses.TextType,
                  'Categorical' : dedupe.fieldclasses.CategoricalType,
+                 'Exists' : dedupe.fieldclasses.ExistsType,
                  'Custom' : dedupe.fieldclasses.CustomType,
                  'Exact' : dedupe.fieldclasses.ExactType,
                  'Interaction' : dedupe.fieldclasses.InteractionType}

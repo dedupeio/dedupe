@@ -49,7 +49,7 @@ class ActiveLearning(object) :
     def __init__(self, candidates, data_model) :
 
         self.candidates = candidates
-        self.field_distances = core.fieldDistances(self.candidates, data_model)
+        self.field_distances = core.fieldDistances(candidates, data_model)
         self.seen_indices = set()
 
     def uncertainPairs(self, data_model, dupe_ratio) :

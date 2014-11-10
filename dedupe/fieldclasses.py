@@ -1,5 +1,6 @@
 import itertools
 import dedupe
+import predicates as predicates
 import numpy
 from collections import defaultdict
 
@@ -31,6 +32,10 @@ class Variable(object) :
 
         if definition.get('has missing', False) :
             self.has_missing = True
+            try :
+                self._predicate_functions += (predicates.existsPredicate,)
+            except AttributeError :
+                pass
         else :
             self.has_missing = False
 
@@ -45,13 +50,13 @@ class FieldType(Variable) :
         else :
             self.name = "(%s: %s)" % (self.field, self.type)
 
-        self.predicates = [dedupe.predicates.SimplePredicate(pred, self.field) 
+        self.predicates = [predicates.SimplePredicate(pred, self.field) 
                            for pred in self._predicate_functions]
 
         super(FieldType, self).__init__(definition)
 
 class ExactType(FieldType) :
-    _predicate_functions = [dedupe.predicates.wholeFieldPredicate]
+    _predicate_functions = [predicates.wholeFieldPredicate]
     type = "Exact"
 
     @staticmethod
@@ -93,7 +98,7 @@ class StringType(ShortStringType) :
     def __init__(self, definition) :
         super(StringType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.predicates.TfidfPredicate(threshold, 
+        canopy_predicates = [predicates.TfidfPredicate(threshold, 
                                                             self.field)
                              for threshold in self._canopy_thresholds]
 
@@ -114,7 +119,7 @@ class LatLongType(FieldType) :
     comparator = compareLatLong
     type = "LatLong"
 
-    _predicate_functions = [dedupe.predicates.latLongGridPredicate]
+    _predicate_functions = [predicates.latLongGridPredicate]
 
 class SetType(FieldType) :
     type = "Set"
@@ -122,15 +127,14 @@ class SetType(FieldType) :
     _predicate_functions = (dedupe.predicates.wholeSetPredicate,
                             dedupe.predicates.commonSetElementPredicate,
                             dedupe.predicates.lastSetElementPredicate,
-                            dedupe.predicates.firstSetElementPredicate,
-                        )
-
+                            dedupe.predicates.firstSetElementPredicate)
+    
     _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.predicates.TfidfPredicate(threshold, 
+        canopy_predicates = [predicates.TfidfPredicate(threshold, 
                                                                self.field)
                              for threshold in self._canopy_thresholds]
 
@@ -144,7 +148,7 @@ class SetType(FieldType) :
 
 class CategoricalType(FieldType) :
     type = "Categorical"
-    _predicate_functions = [dedupe.predicates.wholeFieldPredicate]
+    _predicate_functions = [predicates.wholeFieldPredicate]
 
     def _categories(self, definition) :
         try :
@@ -170,6 +174,36 @@ class CategoricalType(FieldType) :
                                             'base name' : self.name,
                                             'has missing' : self.has_missing})
             self.dummies.append(dummy_object)
+
+
+class ExistsType(FieldType) :
+    type = "Exists"
+    _predicate_functions = [predicates.existsPredicate]
+
+    def __init__(self, definition) :
+
+        super(ExistsType, self ).__init__(definition)
+        
+        self.cat_comparator = CategoricalComparator([0, 1])
+
+        self.dummies = []
+
+        for value, combo in sorted(self.cat_comparator.combinations[2:]) :
+            dummy_object = HigherDummyType({'combo' : combo, 
+                                            'value' : value,
+                                            'base name' : self.name,
+                                            'has missing' : self.has_missing})
+            self.dummies.append(dummy_object)
+
+    def comparator(self, field_1, field_2) :
+        if field_1 and field_2 :
+            return self.cat_comparator(1, 1)
+        elif field_1 or field_2 :
+            return self.cat_comparator(0, 1)
+        else :
+            return self.cat_comparator(0, 0)
+
+
 
 class SourceType(CategoricalType) :
     type = "Source"

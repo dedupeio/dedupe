@@ -357,10 +357,26 @@ def peek(records) :
 
 
 def freezeData(data) : # pragma : no cover
-    return [(frozendict(record_1), 
-             frozendict(record_2))
+    lfrozendict = frozendict
+    return [(lfrozendict(record_1), 
+             lfrozendict(record_2))
             for record_1, record_2 in data]
 
+def isIndexed(data, offset) :
+    hashable = collections.Hashable
+    for i in xrange(offset, offset + len(data)) :
+        if i not in data :
+            return False
+    else :
+        return True
+
+def index(data, offset=0) :
+    if isIndexed(data, offset) :
+        return data
+    else :
+        data = dict(itertools.izip(itertools.count(offset), 
+                                   data.itervalues()))
+        return data
 
 
 class frozendict(collections.Mapping):

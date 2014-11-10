@@ -185,6 +185,18 @@ def sameSevenCharStartPredicate(field):
 def sortedAcronym(field) :
     return (''.join(sorted(each[0] for each in field.split())),)
 
+def existsPredicate(field) :
+    try :
+        if any(field) :
+            return (1,)
+        else :
+            return (0,)
+    except TypeError :
+        if field :
+            return (1,)
+        else :
+            return (0,1)
+
 def wholeSetPredicate(field_set):
     if field_set :
         return (unicode(field_set),)
