@@ -81,7 +81,8 @@ class ShortStringType(FieldType) :
                             dedupe.predicates.sameFiveCharStartPredicate,
                             dedupe.predicates.sameSevenCharStartPredicate,
                             dedupe.predicates.commonFourGram,
-                            dedupe.predicates.commonSixGram)
+                            dedupe.predicates.commonSixGram,
+                            dedupe.predicates.existsPredicate)
 
 class StringType(ShortStringType) :
     comparator = normalizedAffineGapDistance
@@ -113,13 +114,15 @@ class LatLongType(FieldType) :
     comparator = compareLatLong
     type = "LatLong"
 
-    _predicate_functions = [dedupe.predicates.latLongGridPredicate]
+    _predicate_functions = [dedupe.predicates.latLongGridPredicate,
+                            dedupe.predicates.existsLatLongPredicate]
 
 class SetType(FieldType) :
     type = "Set"
 
     _predicate_functions = (dedupe.predicates.wholeSetPredicate,
-                         dedupe.predicates.commonSetElementPredicate)
+                            dedupe.predicates.commonSetElementPredicate,
+                            dedupe.predicates.existsPredicate)
 
     _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
 
@@ -140,7 +143,8 @@ class SetType(FieldType) :
 
 class CategoricalType(FieldType) :
     type = "Categorical"
-    _predicate_functions = [dedupe.predicates.wholeFieldPredicate]
+    _predicate_functions = [dedupe.predicates.wholeFieldPredicate,
+                            dedupe.predicates.existsPredicate]
 
     def _categories(self, definition) :
         try :
@@ -166,6 +170,36 @@ class CategoricalType(FieldType) :
                                             'base name' : self.name,
                                             'has missing' : self.has_missing})
             self.dummies.append(dummy_object)
+
+
+class ExistsType(FieldType) :
+    type = "Exists"
+    _predicate_functions = [dedupe.predicates.existsPredicate]
+
+    def __init__(self, definition) :
+
+        super(ExistsType, self ).__init__(definition)
+        
+        self.cat_comparator = CategoricalComparator([0, 1])
+
+        self.dummies = []
+
+        for value, combo in sorted(self.cat_comparator.combinations[2:]) :
+            dummy_object = HigherDummyType({'combo' : combo, 
+                                            'value' : value,
+                                            'base name' : self.name,
+                                            'has missing' : self.has_missing})
+            self.dummies.append(dummy_object)
+
+    def comparator(self, field_1, field_2) :
+        if field_1 and field_2 :
+            return self.cat_comparator(1, 1)
+        elif field_1 or field_2 :
+            return self.cat_comparator(0, 1)
+        else :
+            return self.cat_comparator(0, 0)
+
+
 
 class SourceType(CategoricalType) :
     type = "Source"

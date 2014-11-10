@@ -183,6 +183,13 @@ def sameSevenCharStartPredicate(field):
     """return first seven characters"""
     return initials(field, 7)
 
+def existsPredicate(field) :
+    if field :
+        return (1,)
+    else :
+        return (0,)
+
+
 def wholeSetPredicate(field_set):
     try:
         set_len = len(field_set)
@@ -250,3 +257,9 @@ def latLongGridPredicate(field, base=0.1):
     
     grid = (tuple(lat_grid), tuple(long_grid))
     return str(grid)
+
+def existsLatLongPredicate(field) :
+    if any(field) :
+        return (1,)
+    else :
+        return (0,)
