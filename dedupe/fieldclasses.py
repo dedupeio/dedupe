@@ -1,5 +1,6 @@
 import itertools
 import dedupe
+import predicates as predicates
 import numpy
 from collections import defaultdict
 
@@ -31,6 +32,10 @@ class Variable(object) :
 
         if definition.get('has missing', False) :
             self.has_missing = True
+            try :
+                self._predicate_functions += (predicates.existsPredicate,)
+            except AttributeError :
+                pass
         else :
             self.has_missing = False
 
@@ -45,13 +50,13 @@ class FieldType(Variable) :
         else :
             self.name = "(%s: %s)" % (self.field, self.type)
 
-        self.predicates = [dedupe.predicates.SimplePredicate(pred, self.field) 
+        self.predicates = [predicates.SimplePredicate(pred, self.field) 
                            for pred in self._predicate_functions]
 
         super(FieldType, self).__init__(definition)
 
 class ExactType(FieldType) :
-    _predicate_functions = [dedupe.predicates.wholeFieldPredicate]
+    _predicate_functions = [predicates.wholeFieldPredicate]
     type = "Exact"
 
     @staticmethod
@@ -71,18 +76,17 @@ class ShortStringType(FieldType) :
     comparator = normalizedAffineGapDistance
     type = "ShortString"
 
-    _predicate_functions = (dedupe.predicates.wholeFieldPredicate,
-                            dedupe.predicates.tokenFieldPredicate,
-                            dedupe.predicates.firstTokenPredicate,
-                            dedupe.predicates.commonIntegerPredicate,
-                            dedupe.predicates.nearIntegersPredicate,
-                            dedupe.predicates.firstIntegerPredicate,
-                            dedupe.predicates.sameThreeCharStartPredicate,
-                            dedupe.predicates.sameFiveCharStartPredicate,
-                            dedupe.predicates.sameSevenCharStartPredicate,
-                            dedupe.predicates.commonFourGram,
-                            dedupe.predicates.commonSixGram,
-                            dedupe.predicates.existsPredicate)
+    _predicate_functions = (predicates.wholeFieldPredicate,
+                            predicates.tokenFieldPredicate,
+                            predicates.firstTokenPredicate,
+                            predicates.commonIntegerPredicate,
+                            predicates.nearIntegersPredicate,
+                            predicates.firstIntegerPredicate,
+                            predicates.sameThreeCharStartPredicate,
+                            predicates.sameFiveCharStartPredicate,
+                            predicates.sameSevenCharStartPredicate,
+                            predicates.commonFourGram,
+                            predicates.commonSixGram)
 
 class StringType(ShortStringType) :
     comparator = normalizedAffineGapDistance
@@ -93,7 +97,7 @@ class StringType(ShortStringType) :
     def __init__(self, definition) :
         super(StringType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.predicates.TfidfPredicate(threshold, 
+        canopy_predicates = [predicates.TfidfPredicate(threshold, 
                                                             self.field)
                              for threshold in self._canopy_thresholds]
 
@@ -114,22 +118,20 @@ class LatLongType(FieldType) :
     comparator = compareLatLong
     type = "LatLong"
 
-    _predicate_functions = [dedupe.predicates.latLongGridPredicate,
-                            dedupe.predicates.existsLatLongPredicate]
+    _predicate_functions = [predicates.latLongGridPredicate]
 
 class SetType(FieldType) :
     type = "Set"
 
-    _predicate_functions = (dedupe.predicates.wholeSetPredicate,
-                            dedupe.predicates.commonSetElementPredicate,
-                            dedupe.predicates.existsPredicate)
+    _predicate_functions = (predicates.wholeSetPredicate,
+                            predicates.commonSetElementPredicate)
 
     _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
 
-        canopy_predicates = [dedupe.predicates.TfidfPredicate(threshold, 
+        canopy_predicates = [predicates.TfidfPredicate(threshold, 
                                                                self.field)
                              for threshold in self._canopy_thresholds]
 
@@ -143,8 +145,7 @@ class SetType(FieldType) :
 
 class CategoricalType(FieldType) :
     type = "Categorical"
-    _predicate_functions = [dedupe.predicates.wholeFieldPredicate,
-                            dedupe.predicates.existsPredicate]
+    _predicate_functions = [predicates.wholeFieldPredicate]
 
     def _categories(self, definition) :
         try :
@@ -174,7 +175,7 @@ class CategoricalType(FieldType) :
 
 class ExistsType(FieldType) :
     type = "Exists"
-    _predicate_functions = [dedupe.predicates.existsPredicate]
+    _predicate_functions = [predicates.existsPredicate]
 
     def __init__(self, definition) :
 
