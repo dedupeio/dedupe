@@ -180,7 +180,7 @@ class DedupeTest(unittest.TestCase):
   def test_randomSample(self) :
 
     random.seed(6)
-    self.deduper.sample(data_dict, 21, 1)
+    self.deduper.sample(data_dict, 25, 1)
 
     correct_result = [(dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
                        dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
@@ -188,6 +188,7 @@ class DedupeTest(unittest.TestCase):
                        dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
                       (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
                        dedupe.frozendict({'age': '51', 'name': 'Bob B.'})), 
+                      
                       (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
                        dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
                       (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
@@ -242,13 +243,14 @@ class LinkTest(unittest.TestCase):
                        dedupe.frozendict({'age': '51', 'name': 'BOB'})), 
                       (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
                        dedupe.frozendict({'age': '51', 'name': 'BOB B.'})), 
-                      (dedupe.frozendict({'age': '51', 'name': 'bob belcher'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'BOB'})), 
                       (dedupe.frozendict({'age': '50', 'name': 'linda '}), 
                        dedupe.frozendict({'age': '12', 'name': 'GENE'})), 
+                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
+                       dedupe.frozendict({'age': '51', 'name': 'BOB B.'})), 
                       (dedupe.frozendict({'age': '15', 'name': 'Tina'}), 
                        dedupe.frozendict({'age': '15', 'name': 'TINA'}))]
 
+    print self.linker.data_sample
     assert self.linker.data_sample == correct_result
 
     self.linker.sample(data_dict, data_dict_2, 5, 0)

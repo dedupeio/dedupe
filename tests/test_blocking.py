@@ -36,10 +36,12 @@ class BlockingTest(unittest.TestCase):
   def test_dedupe_coverage(self) :
     predicates = self.data_model['fields'][1].predicates
     coverage = dedupe.training.DedupeCoverage(predicates, self.training)
+    print self.simple(coverage.overlap.keys())
     assert self.simple(coverage.overlap.keys()) ==\
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
                "TfidfPredicate: (0.4, name)", 
+               "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
                "TfidfPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
@@ -54,7 +56,8 @@ class BlockingTest(unittest.TestCase):
     assert set(str(k) for k in overlap.keys()) ==\
           set(["TfidfPredicate: (0.4, name)", 
                "TfidfPredicate: (0.6, name)", 
-              "SimplePredicate: (wholeFieldPredicate, name)", 
+               "SimplePredicate: (sortedAcronym, name)",
+               "SimplePredicate: (wholeFieldPredicate, name)", 
                "SimplePredicate: (sameThreeCharStartPredicate, name)",
                "SimplePredicate: (tokenFieldPredicate, name)", 
                "TfidfPredicate: (0.8, name)", 
@@ -66,6 +69,7 @@ class BlockingTest(unittest.TestCase):
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
                "TfidfPredicate: (0.4, name)", 
+               "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
                "TfidfPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
@@ -91,6 +95,7 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
                "TfidfPredicate: (0.8, name)", 
+               "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"])
 

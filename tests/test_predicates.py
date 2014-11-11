@@ -7,7 +7,7 @@ class TestWholeSet(unittest.TestCase):
 
     def test_full_set(self):
         block_val = predicates.wholeSetPredicate(self.s1)
-        self.assertEqual(block_val, tuple(self.s1))
+        self.assertEqual(block_val, (unicode(self.s1),))
 
     def test_empty_set(self):
         block_val = predicates.wholeSetPredicate(set())
