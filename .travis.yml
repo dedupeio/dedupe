@@ -20,7 +20,7 @@ install:
   fi
 - if [ $TRAVIS_PYTHON_VERSION == "2.7_with_system_site_packages" ]; then pip install --use-mirrors -r requirements.txt;
   fi
-- pip install coveralls
+- pip install python-coveralls
 - cython src/*.pyx
 - python setup.py develop
 - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
