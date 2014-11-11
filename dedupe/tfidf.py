@@ -35,7 +35,11 @@ class TfIdfIndex(object) :
         i = self._hash(record_id)
         self._i_to_id[i] = record_id
 
-        self._index.index_doc(i, doc)
+        try :
+            self._index.index_doc(i, doc)
+        except :
+            print doc
+            raise
 
     def unindex(self, record_id) :
         i = self._hash(record_id)

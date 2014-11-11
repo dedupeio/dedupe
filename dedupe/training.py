@@ -151,10 +151,10 @@ def blockTraining(training_pairs,
     # Within blocks, we will compare every combination of
     # records. Therefore, we want to avoid predicates that make large
     # blocks.
-    #for pred in predicate_set[:] :
-    #    blocks = coverage.blocks[pred].itervalues()
-    #    if any(len(block) >= 100 for block in blocks if block) :
-    #        predicate_set.remove(pred)
+    for pred in predicate_set[:] :
+        blocks = coverage.blocks[pred].itervalues()
+        if any(len(block) >= 200 for block in blocks if block) :
+            predicate_set.remove(pred)
 
     # As an efficency, we can throw away the predicates that cover too
     # many distinct pairs
@@ -164,9 +164,9 @@ def blockTraining(training_pairs,
     distinct_coverage = coverage.predicateCoverage(predicate_set,
                                                    training_distinct)
 
-    #for pred, pairs in distinct_coverage.items() :
-    #    if len(pairs) > coverage_threshold :
-    #        predicate_set.remove(pred)
+    for pred, pairs in distinct_coverage.items() :
+        if len(pairs) > coverage_threshold :
+            predicate_set.remove(pred)
 
 
     #distinct_coverage = coverage.predicateCoverage(predicate_set, 

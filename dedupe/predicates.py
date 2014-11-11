@@ -195,7 +195,7 @@ def existsPredicate(field) :
         if field :
             return (1,)
         else :
-            return (0,1)
+            return (0,)
 
 def wholeSetPredicate(field_set):
     if field_set :
