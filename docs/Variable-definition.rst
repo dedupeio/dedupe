@@ -170,6 +170,18 @@ Exact
     {'field' : 'city', 'type': 'Exact'}} 
 
 
+Exists
+^^^^^^
+
+'Exists' variables measure whether both, one, or neither of the fields
+are defined. This can be useful if the presence or absence of a field tells
+you something about meaningful about the record. 
+
+.. code:: python
+
+    {'field' : 'first_name', 'type': 'Exists'}} 
+
+
 
 Categorical
 ^^^^^^^^^^^
