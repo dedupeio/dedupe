@@ -290,6 +290,9 @@ class ClusteringTest(unittest.TestCase):
 class PredicatesTest(unittest.TestCase):
   def test_predicates_correctness(self):
     field = '123 16th st'
+    assert dedupe.predicates.existsPredicate(field) == (1,)
+    assert dedupe.predicates.existsPredicate('') == (0,)
+    assert dedupe.predicates.sortedAcronym(field) == ('11s',)
     assert dedupe.predicates.wholeFieldPredicate('') == ()
     assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
     assert dedupe.predicates.firstTokenPredicate(field) == ('123',)

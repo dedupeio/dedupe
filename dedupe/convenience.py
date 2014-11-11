@@ -57,7 +57,7 @@ def consoleLabel(deduper): # pragma : no cover
             deduper.markPairs(labels)
         
 
-def trainingDataLink(data_1, data_2, common_key, training_size=50000) :
+def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma : nocover
     '''
     Construct training data for consumption by the ActiveLearning 
     markPairs method from already linked datasets.
@@ -114,7 +114,7 @@ def trainingDataLink(data_1, data_2, common_key, training_size=50000) :
     return training_pairs        
         
         
-def trainingDataDedupe(data, common_key, training_size=50000) :
+def trainingDataDedupe(data, common_key, training_size=50000) : # pragma : nocover
     '''
     Construct training data for consumption by the ActiveLearning 
     markPairs method from an already deduplicated dataset.
@@ -176,12 +176,15 @@ def trainingDataDedupe(data, common_key, training_size=50000) :
     return training_pairs
 
 
-def canonicalize(record_cluster):
+def canonicalize(record_cluster): # pragma : nocover
     """
-    Constructs a canonical representation of a duplicate cluster by finding canonical values for each field
+    Constructs a canonical representation of a duplicate cluster by
+    finding canonical values for each field
 
     Arguments:
-    record_cluster     --A list of records within a duplicate cluster, where the records are dictionaries with field 
+    record_cluster     --A list of records within a duplicate cluster, where 
+                         the records are dictionaries with field 
                          names as keys and field values as values
+
     """
     return getCanonicalRep(record_cluster)

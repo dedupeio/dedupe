@@ -53,7 +53,7 @@ class Matching(object):
     def __init__(self) :
         self.blocker = None
 
-    def thresholdBlocks(self, blocks, recall_weight=1.5):
+    def thresholdBlocks(self, blocks, recall_weight=1.5): # pragma : nocover
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of

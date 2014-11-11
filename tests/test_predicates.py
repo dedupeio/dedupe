@@ -25,14 +25,32 @@ class TestSetElement(unittest.TestCase):
         block_val = predicates.commonSetElementPredicate(set())
         self.assertEqual(block_val, tuple())
 
+    def test_first_last(self) :
+        block_val = predicates.lastSetElementPredicate(self.s1)
+        assert block_val == ('red',)
+        block_val = predicates.firstSetElementPredicate(self.s1)
+        assert block_val == ('blue',)
+        block_val = predicates.firstSetElementPredicate(set([]))
+        assert block_val == ()
+        block_val = predicates.lastSetElementPredicate(set([]))
+        assert block_val == ()
+
+
 class TestLatLongGrid(unittest.TestCase):
     def setUp(self):
         self.latlong1 = (42.535, -5.012)
 
     def test_precise_latlong(self):
         block_val = predicates.latLongGridPredicate(self.latlong1)
-        print block_val
         assert block_val == (u'[42.5, -5.0]',)
+        block_val = predicates.latLongGridPredicate((0,0))
+        assert block_val == ()
+
+    def test_exists(self) :
+        block_val = predicates.existsPredicate(self.latlong1)
+        assert block_val == (1,)
+        block_val = predicates.existsPredicate((0,0)) 
+        assert block_val == (0,)
 
 if __name__ == '__main__':
     unittest.main()
