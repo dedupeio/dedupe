@@ -27,11 +27,12 @@ class TestSetElement(unittest.TestCase):
 
 class TestLatLongGrid(unittest.TestCase):
     def setUp(self):
-        self.latlong1 = (42.335, -5.212)
+        self.latlong1 = (42.535, -5.012)
 
     def test_precise_latlong(self):
         block_val = predicates.latLongGridPredicate(self.latlong1)
-        assert block_val == (u'[42.3, -5.2]',)
+        print block_val
+        assert block_val == (u'[42.5, -5.0]',)
 
 if __name__ == '__main__':
     unittest.main()
