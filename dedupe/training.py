@@ -12,10 +12,7 @@ import core
 import numpy
 import logging
 import random
-from zope.index.text.textindex import TextIndex
-from zope.index.text.lexicon import Lexicon
-from zope.index.text.lexicon import Splitter
-
+import index
 
 logger = logging.getLogger(__name__)
 
@@ -381,21 +378,21 @@ class RecordLinkCoverage(Coverage) :
         
 
 def stopWords(data) :
-    index = TextIndex(Lexicon(Splitter()))
+    tf_index = index.CanopyIndex([])
 
     for i, (_, doc) in enumerate(data, 1) :
         try :
-            index.index_doc(i, doc)
+            tf_index.index_doc(i, doc)
         except :
             print doc
             raise
 
-    doc_freq = [(len(index.index._wordinfo[wid]), word) 
-                for word, wid in index.lexicon.items()]
+    doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
+                for word, wid in tf_index.lexicon.items()]
 
     doc_freq.sort(reverse=True)
 
-    N = float(index.index.documentCount())
+    N = float(tf_index.index.documentCount())
     threshold = int(max(1000, N * 0.05))
 
     stop_words = set([])

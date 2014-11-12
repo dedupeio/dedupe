@@ -6,8 +6,8 @@ import pickle
 class TestSetCosineClass(unittest.TestCase):
     def setUp(self):
         self.ilist = [('a', 'b', 'c'),
-                      ('b', 'c', 'd'),
-                      ('d', 'e', 'f')
+                      ('b', 'c', 'd k'),
+                      ('d k', 'e', 'f')
                       ]
 
     def test_cosine(self):
@@ -16,7 +16,7 @@ class TestSetCosineClass(unittest.TestCase):
         s2 = self.ilist[1]
         cosine_sim = cosine(s1, s2)
         self.assertAlmostEqual(cosine_sim, 0.378, places=3)
-        cosine_sim = cosine(('g', 'h', 'd', 'd'), s2)
+        cosine_sim = cosine(('g', 'h', 'd k', 'd k'), s2)
         self.assertAlmostEqual(cosine_sim, 0.267, places=3)
 
     def test_cosine_na(self):
@@ -44,7 +44,7 @@ class TestSetCosineClass(unittest.TestCase):
         s2 = self.ilist[1]
         cosine_sim = cosine(s1, s2)
         self.assertAlmostEqual(cosine_sim, 0.667, places=3)
-        cosine_sim = cosine(('g', 'h', 'd'), s2)
+        cosine_sim = cosine(('g', 'h', 'd k'), s2)
         self.assertAlmostEqual(cosine_sim, 0.333, places=3)
 
     def test_cosine_pickle(self) :
