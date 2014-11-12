@@ -87,6 +87,11 @@ class ShortStringType(FieldType) :
                             dedupe.predicates.sameSevenCharStartPredicate,
                             dedupe.predicates.commonFourGram,
                             dedupe.predicates.commonSixGram,
+                            dedupe.predicates.commonTwoTokens,
+                            dedupe.predicates.commonThreeTokens,
+                            dedupe.predicates.fingerprint,
+                            dedupe.predicates.oneGramFingerprint,
+                            dedupe.predicates.twoGramFingerprint,
                             dedupe.predicates.sortedAcronym)
 
 class StringType(ShortStringType) :
@@ -127,6 +132,8 @@ class SetType(FieldType) :
     _predicate_functions = (dedupe.predicates.wholeSetPredicate,
                             dedupe.predicates.commonSetElementPredicate,
                             dedupe.predicates.lastSetElementPredicate,
+                            dedupe.predicates.commonTwoElementsPredicate,
+                            dedupe.predicates.commonThreeElementsPredicate,
                             dedupe.predicates.firstSetElementPredicate)
     
     _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
@@ -135,7 +142,7 @@ class SetType(FieldType) :
         super(SetType, self).__init__(definition)
 
         canopy_predicates = [predicates.TfidfPredicate(threshold, 
-                                                               self.field)
+                                                       self.field)
                              for threshold in self._canopy_thresholds]
 
         self.predicates += canopy_predicates

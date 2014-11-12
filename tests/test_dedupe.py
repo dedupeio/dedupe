@@ -292,6 +292,8 @@ class PredicatesTest(unittest.TestCase):
     field = '123 16th st'
     assert dedupe.predicates.existsPredicate(field) == (1,)
     assert dedupe.predicates.existsPredicate('') == (0,)
+    assert dedupe.predicates.existsPredicate(1) == (1,)
+    assert dedupe.predicates.existsPredicate(0) == (0,)
     assert dedupe.predicates.sortedAcronym(field) == ('11s',)
     assert dedupe.predicates.wholeFieldPredicate('') == ()
     assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
@@ -316,8 +318,13 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.initials(field,12) == ()
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
     assert dedupe.predicates.ngrams(field,3) == set(['123','23 ','3 1',' 16','16t','6th','th ','h s',' st'])
-
-
+    assert dedupe.predicates.commonTwoElementsPredicate((1,2,3)) == set(('1 2','2 3'))
+    assert dedupe.predicates.commonTwoElementsPredicate((1,)) == set([])
+    assert dedupe.predicates.commonThreeElementsPredicate((1,2,3)) == set(('1 2 3',))
+    assert dedupe.predicates.commonThreeElementsPredicate((1,)) == set([])
+    assert dedupe.predicates.fingerprint('time sandwich') == (u'sandwichtime',)
+    assert dedupe.predicates.oneGramFingerprint('sandwich time') == (u'acdehimnstw',)
+    assert dedupe.predicates.twoGramFingerprint('sandwich time') == (u'anchdwhicimmendsattiwi',)
 
 
 

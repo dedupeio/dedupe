@@ -38,7 +38,6 @@ class SimplePredicate(Predicate) :
         return self.func(column)
 
 
-
 class TfidfPredicate(Predicate):
     type = "TfidfPredicate"
 
@@ -161,6 +160,31 @@ def firstIntegerPredicate(field) :
         return first_token.groups()
     else :
         return ()
+
+
+def ngramsTokens(field, n) :
+    grams = set([])
+    n_tokens = len(field)
+    for i in range(n_tokens):
+        for j in range(i+n, min(n_tokens, i+n)+1):
+            grams.add(' '.join(unicode(tok) for tok in field[i:j]))
+    return grams
+
+
+def commonTwoTokens(field) :
+    return ngramsTokens(field.split(), 2)
+
+def commonThreeTokens(field) :
+    return ngramsTokens(field.split(), 3)
+
+def fingerprint(field) :
+    return (u''.join(sorted(field.split())).strip(),)
+
+def oneGramFingerprint(field) :
+    return (u''.join(sorted(ngrams(field, 1))).strip(),)
+
+def twoGramFingerprint(field) :
+    return (u''.join(sorted(gram.strip() for gram in ngrams(field, 2))),)
     
 def commonFourGram(field):
     """return 4-grams"""
@@ -210,18 +234,23 @@ def commonSetElementPredicate(field_set):
     else :
         return ()
 
-def lastSetElementPredicate(field_set) :
-    try :
-        return (unicode(sorted(field_set).pop()), )
-    except IndexError :
-        return ()
+def commonTwoElementsPredicate(field) :
+    l = sorted(field)
+    return ngramsTokens(l, 2)
 
+def commonThreeElementsPredicate(field) :
+    l = sorted(field)
+    return ngramsTokens(l, 3)
+
+def lastSetElementPredicate(field_set) :
+    if field_set :
+        return (unicode(max(field_set)), )
+    return ()
 
 def firstSetElementPredicate(field_set) :
-    try :
-        return (unicode(sorted(field_set, reverse=True).pop()), )
-    except IndexError :
-        return ()
+    if field_set :
+        return (unicode(min(field_set)), )
+    return ()
 
 def latLongGridPredicate(field, digits=1):
     """
