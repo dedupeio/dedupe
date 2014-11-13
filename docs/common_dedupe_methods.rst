@@ -20,11 +20,12 @@
 
 .. py:method:: match(data, [threshold = 0.5, [max_components = 30000]])
 
-   Identifies records that all refer to the same entity, returns tuples
-   containing a set of record ids and a confidence score as a float between 0
-   and 1. The record_ids within each set should refer to the
-   same entity and the confidence score is a measure of our confidence that
-   all the records in a cluster refer to the same entity.
+   Identifies records that all refer to the same entity, returns
+   tuples containing a sequence of record ids and corresponding
+   sequence of confidence score as a float between 0 and 1. The
+   record_ids within each set should refer to the same entity and the
+   confidence score is a measure of our confidence a particular entity
+   belongs in the cluster.
  
    This method should only used for small to moderately sized datasets for
    larger data, use matchBlocks
@@ -54,7 +55,16 @@
 
       > duplicates = deduper.match(data, threshold=0.5)
       > print duplicates
-      [(set([3,6,7]), 0.96778509), (set([2,10]),0.750963245) ..., (set([11,14]),0.1256734)]
+      [((1, 2, 3), 
+        (0.790, 
+         0.860, 
+         0.790)), 
+        ((4, 5), 
+         (0.720, 
+          0.720)), 
+        ((10, 11), 
+         (0.899, 
+          0.899))]
 
 
 .. py:method:: blocker(data)

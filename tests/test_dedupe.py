@@ -180,6 +180,7 @@ class ClusteringTest(unittest.TestCase):
                              dtype = [('pairs', 'i4', 2), 
                                       ('score', 'f4', 1)])
 
+
     #Dupes with Ids as String
     self.str_dupes = numpy.array([(('1', '2'), .86),
                                   (('1', '3'), .72),
@@ -210,31 +211,53 @@ class ClusteringTest(unittest.TestCase):
                             ((4,7), .23),
                             ((5,8), .24))
 
+  def clusterEquals(self, x, y) :
+    for cluster_a, cluster_b in zip(x, y) :
+      if cluster_a[0] != cluster_b[0] :
+        return False
+      for score_a, score_b in zip(cluster_a[1], cluster_b[1]) :
+        if round(score_a, 2) != round(score_b, 2) :
+          return False
+      else :
+        return True
+
+
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 1) == [((10, 11), 
-                                            0.89999997615814209)]
+    assert self.clusterEquals(hierarchical(self.dupes, 1),
+                              [((10, 11),  
+                                (0.899,
+                                 0.899))])
 
-    assert hierarchical(self.dupes, 0.5) == [((1, 2, 3), 
-                                              0.79000002145767212), 
-                                             ((4, 5), 
-                                              0.72000002861022949), 
-                                             ((10, 11), 
-                                              0.89999997615814209)]
+    assert self.clusterEquals(hierarchical(self.dupes, 0.5),
+                              [((1, 2, 3), 
+                                (0.790, 
+                                 0.860, 
+                                 0.790)), 
+                               ((4, 5), 
+                                (0.720, 
+                                 0.720)), 
+                               ((10, 11), 
+                                (0.899, 
+                                 0.899))])
 
-    assert hierarchical(self.dupes, 0) == [((1, 2, 3, 4, 5), 
-                                            0.41371223982064087),
-                                             ((10, 11), 
-                                              0.89999997615814209)]
+    assert self.clusterEquals(hierarchical(self.dupes, 0),
+                              [((1, 2, 3, 4, 5), 
+                                (0.5950000137090683, 
+                                 0.66000001132488251, 
+                                 0.59500001370, 
+                                 0.3550000041, 
+                                 0.635)), 
+                               ((10, 11), 
+                                (0.899, 
+                                 0.899))]
+)
+
     assert hierarchical(self.str_dupes, 1) == []
     assert zip(*hierarchical(self.str_dupes, 0.5))[0] == (('1', '2', '3'), 
                                                           ('4','5'))
     assert zip(*hierarchical(self.str_dupes, 0))[0] == (('1', '2', '3', '4', '5'),)
-    assert hierarchical(numpy.array([((1,2), .86)],
-                                    dtype = [('pairs', 'i4', 2), 
-                                             ('score', 'f4', 1)]),
-                        0.5)  == [((1, 2), 0.86000001430511475)]
 
 
   def test_greedy_matching(self):

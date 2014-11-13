@@ -110,6 +110,7 @@ def condensedDistance(dupes):
 
     condensed_distances = numpy.ones(matrix_length, 'f4')
     condensed_distances[index] = 1 - dupes['score']
+    
 
     return (i_to_id, condensed_distances)
 
@@ -150,19 +151,20 @@ def cluster(dupes, threshold=.5, max_components=30000):
             for (i, sub_cluster_id) in enumerate(partition):
                 clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
 
-            cophenetic_distances = hcluster.cophenet(linkage)
-
+            distances = hcluster.squareform(condensed_distances)
+            
             for cluster_id, items in clusters.iteritems() :
                 if len(items) > 1 :
-                    score = clusterConfidence(items, cophenetic_distances, N)
-                    clustering[cluster_id] = (tuple(i_to_id[item] 
-                                                    for item in items),
-                                              1 - score)
+                    scores = numpy.sum(distances[items, :][:, items], 0)
+                    scores /= len(items) - 1
+                    scores = 1 - scores
+                    clustering[cluster_id] =\
+                        (tuple(i_to_id[item] for item in items), tuple(scores))
 
             cluster_id += max(partition) + 1
         else:
             ids, score = sub_graph[0]
-            clustering[cluster_id] = tuple(ids), score
+            clustering[cluster_id] = (tuple(ids), tuple([score]*2))
             cluster_id += 1
             
 
