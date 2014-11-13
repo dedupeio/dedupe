@@ -1,3 +1,14 @@
+
+## 0.7.5
+Features
+- Individual record cluster membership scores
+- New predicates
+- New Exists Variable Type
+
+Bug Fixes
+- Latlong predicate fixed
+- Set TFIDF canopy working properly
+
 ## 0.7.4
 Features
 - Sampling methods now use blocked sampling
