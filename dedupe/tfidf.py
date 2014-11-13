@@ -37,9 +37,6 @@ class TfIdfIndex(object) :
 
     def search(self, doc, threshold=0) :
         query_list = self._parseTerms(doc)
-        query_list = [
-            '"%s"' % (term,) if term.upper() in ('OR', 'AND') else term
-            for term in query_list]
         query = ' OR '.join(query_list)
 
         if query :
