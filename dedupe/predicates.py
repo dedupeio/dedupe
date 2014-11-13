@@ -266,3 +266,16 @@ def latLongGridPredicate(field, digits=1):
         return (unicode([round(dim, digits) for dim in field]),)
     else :
         return ()
+
+def orderOfMagnitude(field) :
+    if field :
+        return (unicode(round(math.log10(field))), )
+    else :
+        return ()
+
+def roundTo1(field) : # thanks http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
+    if field :
+        return (unicode(round(field, -int(math.floor(math.log10(abs(field)))))),)
+    else :
+        return ()
+        
