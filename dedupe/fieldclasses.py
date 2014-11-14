@@ -349,3 +349,58 @@ class CustomType(FieldType) :
                                           self.type, 
                                           self.comparator.__name__)
 
+class USAddress(FieldType) :
+    import usaddress
+    
+    # Don't include Recipient, Place, State, Country, Zip
+    #
+    #
+    # needs to do handle missing for entire field, in addition to missing
+    # for individual components
+    
+    # need to handle PO box vs street address
+    # 
+
+    # Address Type (Street, PO Box, Intersection) : Exact with Missing
+    # 
+    # Street Address
+    # - Street Dir (pre and post)
+    # - Street Type (pre and post)
+    # - Addr # (Address Number and Prefix and Suffix)
+    # - Unit Type
+    # - Unit Number
+    # - Street Name (Pre and Post Modifier)
+    # - Building Name
+    # - Subaddress 
+    # - Subaddress ID
+    #
+    # Intersection
+    # - Street Dir1 (pre and post)
+    # - Street Type1 (pre and post)
+    # - Street Name1 (Pre and Post Modifier)
+    # - Street Dir2 (pre and post)
+    # - Street Type2 (pre and post)
+    # - Street Name2 (Pre and Post Modifier)
+    #
+    # Compare 
+    # [(field1, Street1) and (field2, Street1), 
+    #  (field1, Street2) and (field2, Street2)] 
+    # AND
+    # [(field1, Street2) and (field2, Street1), 
+    #  (field1, Street1) and (field2, Street2)] 
+    # Use min distance
+    #
+    # PO Box
+    # - Box Type
+    # - Box ID
+    # - BoxGroup Type
+    # - BoxGroup ID
+    #
+    
+    
+
+    @staticmethod
+    def comparator(field, field) :
+
+
+        
