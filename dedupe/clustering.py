@@ -155,9 +155,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
             
             for cluster_id, items in clusters.iteritems() :
                 if len(items) > 1 :
-                    scores = numpy.sum(distances[items, :][:, items], 0)
-                    scores /= len(items) - 1
-                    scores = 1 - scores
+                    scores = confidences(items, distances)
                     clustering[cluster_id] =\
                         (tuple(i_to_id[item] for item in items), tuple(scores))
 
@@ -170,18 +168,11 @@ def cluster(dupes, threshold=.5, max_components=30000):
 
     return clustering.values()
 
-def clusterConfidence(items, cophenetic_distances, N) :
-    max_score = 0
-    i, other_items = items[0], items[1:] 
-    condensor = (N * (N-1))/2 - ((N-i)*(N-i-1))/2 - i - 1
-    for j in other_items :
-        ij =  condensor + j
-        score = cophenetic_distances[ij]
-        if score > max_score : 
-            max_score = score
-
-    return max_score
-
+def confidences(items, distances) :
+    scores = numpy.sum(distances[items, :][:, items], 0)
+    scores /= len(items) - 1
+    scores = 1 - scores
+    return scores
 
 def greedyMatching(dupes, threshold=0.5):
     dupes = numpy.array(dupes)
