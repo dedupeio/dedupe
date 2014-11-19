@@ -5,7 +5,7 @@ import numpy
 from collections import defaultdict
 
 from affinegap import normalizedAffineGapDistance
-from dedupe.distance.haversine import compareLatLong
+from haversine import haversine
 from dedupe.distance.categorical import CategoricalComparator
 
 try:
@@ -121,10 +121,16 @@ class TextType(StringType) :
         self.comparator = dedupe.distance.CosineTextSimilarity(definition['corpus'])
 
 class LatLongType(FieldType) :
-    comparator = compareLatLong
     type = "LatLong"
 
     _predicate_functions = [predicates.latLongGridPredicate]
+
+    @static
+    def comparator(field_1, field_2) :
+        if field_1 == (0.0,0.0) or field_2 == (0.0,0.0) :
+            return numpy.nan
+        else :
+            return haversine(field_1, field_2)
 
 class SetType(FieldType) :
     type = "Set"
