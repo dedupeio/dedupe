@@ -1,11 +1,12 @@
 import itertools
 import dedupe
-import predicates as predicates
+import predicates
 import numpy
 from collections import defaultdict
 
 from affinegap import normalizedAffineGapDistance
 from haversine import haversine
+
 from dedupe.distance.categorical import CategoricalComparator
 
 try:
