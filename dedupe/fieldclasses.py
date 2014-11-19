@@ -4,7 +4,7 @@ import predicates as predicates
 import numpy
 from collections import defaultdict
 
-from dedupe.distance.affinegap import normalizedAffineGapDistance
+from affinegap import normalizedAffineGapDistance
 from dedupe.distance.haversine import compareLatLong
 from dedupe.distance.categorical import CategoricalComparator
 

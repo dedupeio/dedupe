@@ -1,5 +1,5 @@
 import numpy
-from dedupe.distance.affinegap import normalizedAffineGapDistance as comparator
+from affinegap import normalizedAffineGapDistance as comparator
 
 def getCentroid(attribute_variants, comparator):
     """ 

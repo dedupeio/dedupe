@@ -5,3 +5,4 @@ zope.index
 nose
 coverage
 cython
+affinegap

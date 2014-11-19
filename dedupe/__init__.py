@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-__all__ = ['affinegap',
-           'blocking',
+__all__ = ['blocking',
            'clustering',
            'core',
            'lr',
