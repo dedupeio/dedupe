@@ -3,7 +3,6 @@
 __all__ = ['blocking',
            'clustering',
            'core',
-           'lr',
            'backport',
            'predicates',
            'crossvalidation',

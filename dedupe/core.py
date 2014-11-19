@@ -10,7 +10,7 @@ import tempfile
 import os
 
 import dedupe.backport as backport
-import dedupe.lr as lr
+import rlr
 
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
@@ -105,7 +105,7 @@ def trainModel(training_data, data_model, alpha=.001):
     labels = numpy.array(training_data['label'] == 'match', dtype='i4')
     examples = training_data['distances']
 
-    (weight, bias) = lr.lr(labels, examples, alpha)
+    (weight, bias) = rlr.lr(labels, examples, alpha)
 
     for i, field_definition in enumerate(data_model['fields']) :
         field_definition.weight = float(weight[i])
