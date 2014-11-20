@@ -6,3 +6,5 @@ nose
 coverage
 cython
 affinegap
+haversine
+rlr
