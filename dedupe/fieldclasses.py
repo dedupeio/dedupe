@@ -14,9 +14,6 @@ except ImportError :
     from dedupe.backport import OrderedDict
 
 class Variable(object) :
-    def __lt__(self, other) :
-        return self.sort_level < other.sort_level
-
     def __len__(self) :
         return 1
 
@@ -43,8 +40,6 @@ class Variable(object) :
             self.has_missing = False
 
 class FieldType(Variable) :
-    sort_level = 0
-             
     def __init__(self, definition) :
         self.field = definition['field']
 
@@ -209,8 +204,6 @@ class ExistsType(CategoricalType) :
             return self.cat_comparator(0, 0)
 
 class HigherDummyType(Variable) :
-    sort_level = 1
-    
     type = "HigherOrderDummy"
 
     def __init__(self, definition) :
@@ -219,8 +212,6 @@ class HigherDummyType(Variable) :
 
 
 class InteractionType(Variable) :
-    sort_level = 2
-
     type = "Interaction"
     
     def __init__(self, definition) :
@@ -278,8 +269,6 @@ class InteractionType(Variable) :
         return atomic_interactions
 
 class MissingDataType(Variable) :
-    sort_level = 3
-
     type = "MissingData"
 
     def __init__(self, name) :

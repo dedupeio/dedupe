@@ -114,10 +114,26 @@ def trainModel(training_data, data_model, alpha=.001):
 
     return data_model
 
+def fieldDistances(record_pairs, data_model):
+    num_records = len(record_pairs)
+
+    distances = numpy.empty((num_records, len(data_model)))
+
+    field_comparators = data_model.field_comparators
+
+    for i, (record_1, record_2) in enumerate(record_pairs) :
+        for field, compare, start, stop in field_comparators :
+            distances[i,start:stop] = compare(record_1[field],
+                                              record_2[field])
+
+    distances = derivedDistances(distances, data_model)
+
+    return distances
+
 def derivedDistances(primary_distances, data_model) :
     distances = primary_distances
 
-    current_column = data_model.n_primary_fields
+    current_column = data_model.derived_start
 
     for interaction in data_model.interactions :
         distances[:,current_column] =\
@@ -135,21 +151,6 @@ def derivedDistances(primary_distances, data_model) :
 
     return distances
 
-def fieldDistances(record_pairs, data_model):
-    num_records = len(record_pairs)
-
-    distances = numpy.empty((num_records, data_model.total_fields))
-
-    field_comparators = list(data_model.field_comparators)
-
-    for i, (record_1, record_2) in enumerate(record_pairs) :
-        for field, compare, start, stop in field_comparators :
-            distances[i,start:stop] = compare(record_1[field],
-                                              record_2[field])
-
-    distances = derivedDistances(distances, data_model)
-
-    return distances
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']

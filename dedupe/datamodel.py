@@ -22,28 +22,35 @@ field_classes = {'String' : dedupe.fieldclasses.StringType,
                  'Interaction' : dedupe.fieldclasses.InteractionType}
 
 class DataModel(dict) :
+    def __len__(self) :
+        return len(self['fields'])
+
     def __init__(self, fields):
 
         self['bias'] = 0
 
         field_model = typifyFields(fields)
+        self.interaction_start = len(field_model)
+        print field_model
 
         field_model = interactions(field_model)
         field_model = missing(field_model)
 
         self['fields'] = field_model
 
-        self.total_fields = len(self['fields'])
+        self.field_comparators, self.derived_start = self._fieldComparators()
 
-    @property
-    def field_comparators(self) :
+    def _fieldComparators(self) :
         start = 0
+        stop = 0 
+        comparators = []
         for field in self['fields'] :
             if hasattr(field, 'comparator') :
                 stop = start + len(field) 
-                yield field.field, field.comparator, start, stop
+                comparators.append((field.field, field.comparator, start, stop))
                 start = stop
-        self.n_primary_fields = stop
+
+        return comparators, stop
 
 
     @property 
