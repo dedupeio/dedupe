@@ -30,10 +30,7 @@ class DataModel(dict) :
         self['bias'] = 0
 
         field_model = typifyFields(fields)
-        self.interaction_start = len(field_model)
-        print field_model
-
-        field_model = interactions(field_model)
+        field_model = interactions(fields, field_model)
         field_model = missing(field_model)
 
         self['fields'] = field_model
@@ -97,6 +94,9 @@ def typifyFields(fields) :
             raise KeyError("Field type %s not valid. Valid types include %s"
                            % (definition['type'], ', '.join(field_classes)))
 
+        if field_type == 'Interaction' :
+            continue
+
         field_object = field_class(definition)
         field_model.append(field_object)
         
@@ -112,11 +112,14 @@ def missing(field_model) :
 
     return field_model
 
-def interactions(field_model) :
+def interactions(definitions, field_model) :
     field_d = dict((field.name, field) for field in field_model)
+    interaction_class = field_classes['Interaction']
 
-    for field in field_model[:] : 
-        if hasattr(field, 'expandInteractions') :
+    for definition in definitions :
+        if definition['type'] == 'Interaction' :
+            field = interaction_class(definition)
+            field_model.append(field)
             field.expandInteractions(field_d)
             field_model.extend(field.higher_vars)
 

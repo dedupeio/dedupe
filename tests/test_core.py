@@ -164,12 +164,12 @@ class FieldDistances(unittest.TestCase):
     deduper = dedupe.Dedupe([{'field' : 'type', 
                               'variable name' : 'type',
                               'type' : 'Categorical',
-                              'categories' : ['a', 'b']},
+                              'categories' : ['a', 'b']},\
+                             {'type' : 'Interaction',
+                              'interaction variables' : ['type', 'name']},
                              {'field' : 'name',
                               'variable name' : 'name',
-                              'type' : 'String'},
-                             {'type' : 'Interaction',
-                              'interaction variables' : ['type', 'name']}]
+                              'type' : 'String'}]
                              , [])
 
     record_pairs = (({'name' : 'steven', 'type' : 'a'},
