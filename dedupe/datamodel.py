@@ -28,6 +28,8 @@ class DataModel(dict) :
         self['bias'] = 0
 
         field_model = typifyFields(fields)
+        self.derived_start = len(field_model)
+
         field_model = interactions(fields, field_model)
         field_model = missing(field_model)
 
@@ -49,7 +51,6 @@ class DataModel(dict) :
                 comparators.append((field.field, field.comparator, start, stop))
                 start = stop
 
-        self.derived_start = stop
         return comparators
 
 
