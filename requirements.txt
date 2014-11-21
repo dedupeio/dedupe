@@ -8,3 +8,4 @@ cython
 affinegap
 haversine
 rlr
+categorical-distance

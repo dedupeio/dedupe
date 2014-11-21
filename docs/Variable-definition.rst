@@ -221,56 +221,6 @@ You would create a definition like:
     {'field' : 'Business Type', 'type': 'Categorical',
     'categories' : ['taxi', 'lawyer']}}
 
-Source
-^^^^^^
-
-Usually different data sources vary in how many duplicates are contained
-within them and the patterns that make two pairs of records likely to be
-duplicates. If you are trying to link records from more than one data
-set, it can be useful to take these differences into account.
-
-If your data has a field that indicates its source, something like
-
-::
-
-    'Name'         'Source'
-    John Adams     Campaign Contributions
-    John Q. Adams  Lobbyist Registration
-    John F. Adams  Lobbyist Registration
-
-You can take these sources into account by the following field
-definition.
-
-.. code:: python
-
-    {'field' : 'Source', 'type': 'Source',
-     'sources' : ['Campaign Contributions', 'Lobbyist Registration']}}
-
-Dedupe will create a categorical variable for the source and then
-cross-interact it with all the other variables. This has the effect of
-letting dedupe learn three different models at once. Let's say that we
-had defined another variable called name. Then our total model would
-have the following variables
-
-::
-
-    bias
-    Name
-    Source
-    Source:Name
-    different sources
-    different sources:Name
-
-``Bias + Name`` would predict the probability that a pair of records
-were duplicates if both records were from ``Campaign Contributions``.
-
-``Bias + Source + Name + Source:Name`` would predict the probability
-that a pair of records were duplicates if both records were from
-``Lobbyist Registration``
-
-``Bias + different sources + Name + different sources:Name`` would
-predict the probability that a pair of records were duplicates if one
-record was from each of the two sources.
 
 Missing Data 
 ~~~~~~~~~~~~ 

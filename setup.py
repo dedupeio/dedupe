@@ -9,6 +9,7 @@ except ImportError :
 install_requires=['numpy', 
                   'fastcluster', 
                   'hcluster',
+                  'categorical-distance',
                   'rlr',
                   'affinegap',
                   'haversine',

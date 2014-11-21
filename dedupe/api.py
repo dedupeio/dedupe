@@ -139,7 +139,8 @@ class Matching(object):
         return clusters
 
     def _checkRecordType(self, record) :
-        for field, _ in self.data_model.field_comparators :
+        for field_comparator in self.data_model.field_comparators :
+            field = field_comparator[0]
             if field not in record :
                 raise ValueError("Records do not line up with data model. "
                                  "The field '%s' is in data_model but not "

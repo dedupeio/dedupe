@@ -34,22 +34,6 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 
 
 
-class SourceComparatorTest(unittest.TestCase) :
-  def test_comparator(self) :
-    deduper = dedupe.Dedupe([{'field' :'name', 'type' : 'Source',
-                              'sources' : ['a', 'b'],
-                              'has missing' : True}], ())
-
-    source_comparator = deduper.data_model['fields'][0].comparator
-    assert source_comparator('a', 'a') == 0
-    assert source_comparator('b', 'b') == 1
-    assert source_comparator('a', 'b') == 2
-    assert source_comparator('b', 'a') == 2
-    self.assertRaises(ValueError, source_comparator, 'b', 'c')
-    self.assertRaises(ValueError, source_comparator, '', 'c')
-    assert numpy.isnan(source_comparator('', 'b'))
-
-
 class DataModelTest(unittest.TestCase) :
 
   def test_data_model(self) :

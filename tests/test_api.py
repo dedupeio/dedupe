@@ -93,11 +93,11 @@ class ActiveMatch(unittest.TestCase) :
                                 'match', 'match'])
     numpy.testing.assert_almost_equal(matcher.training_data['distances'],
                                       numpy.array(
-                                        [[ 5.5, 5.0178],
-                                         [ 5.5, 3.4431],
-                                         [ 5.5, 3.7750],
-                                         [ 3.0, 5.125 ],
-                                         [ 5.5, 4.8333]]),
+                                        [[5.0178, 5.5],
+                                         [3.4431, 5.5],
+                                         [3.7750, 5.5],
+                                         [5.125,  3.0],
+                                         [4.8333, 5.5]]),
                                       4)
 
     matcher._addTrainingData(training_pairs)
@@ -107,11 +107,11 @@ class ActiveMatch(unittest.TestCase) :
 
     numpy.testing.assert_almost_equal(matcher.training_data['distances'],
                                       numpy.array(
-                                        [[ 5.5, 5.0178],
-                                         [ 5.5, 3.4431],
-                                         [ 5.5, 3.7750],
-                                         [ 3.0, 5.125 ],
-                                         [ 5.5, 4.8333]]*2),
+                                        [[5.0178, 5.5],
+                                         [3.4431, 5.5],
+                                         [3.7750, 5.5],
+                                         [5.125, 3.0 ],
+                                         [4.8333, 5.5]]*2),
                                       4)
 
   def test_markPair(self) :
@@ -131,11 +131,11 @@ class ActiveMatch(unittest.TestCase) :
                                 'match', 'match'])
     numpy.testing.assert_almost_equal(matcher.training_data['distances'],
                                       numpy.array(
-                                        [[ 5.5, 5.0178],
-                                         [ 5.5, 3.4431],
-                                         [ 5.5, 3.7750],
-                                         [ 3.0, 5.125 ],
-                                         [ 5.5, 4.8333]]),
+                                        [[5.0178, 5.5],
+                                         [3.4431, 5.5],
+                                         [3.7750, 5.5],
+                                         [5.125,  3.0 ],
+                                         [4.8333, 5.5]]),
                                       4)
 
     with warnings.catch_warnings(record=True) as w:

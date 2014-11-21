@@ -120,31 +120,6 @@ class ScoreDuplicates(unittest.TestCase):
 
 
 class FieldDistances(unittest.TestCase):
-  def test_field_distance_simple(self) :
-    fieldDistances = dedupe.core.fieldDistances
-    deduper = dedupe.Dedupe([{'field' : 'name' , 'type' :'String'},
-                             {'field' : 'source', 'type' : 'Source',
-                              'sources' : ['a', 'b']}], [])
-
-    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
-                     {'name' : 'steven', 'source' : 'a'}),)
-
-
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[0, 0.647, 0, 0, 0]]), 3)
-
-    record_pairs = (({'name' : 'steve', 'source' : 'b'}, 
-                     {'name' : 'steven', 'source' : 'b'}),)
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[1, 0.647, 0, 0, 0.647]]), 3)
-
-    record_pairs = (({'name' : 'steve', 'source' : 'a'}, 
-                     {'name' : 'steven', 'source' : 'b'}),)
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[0, 0.647, 1, 0.647, 0]]), 3)
 
   def test_exact_comparator(self) :
     fieldDistances = dedupe.core.fieldDistances      
@@ -168,6 +143,7 @@ class FieldDistances(unittest.TestCase):
 
     deduper = dedupe.Dedupe([{'field' : 'type', 
                               'type' : 'Categorical',
+
                               'categories' : ['a', 'b', 'c']}]
                              , [])
 
@@ -182,71 +158,30 @@ class FieldDistances(unittest.TestCase):
                                                          [ 0, 0, 0, 1, 0]]),
                                             3)
 
-    deduper = dedupe.Dedupe([{'field' : 'type', 'type' : 'Categorical',
-                                       'categories' : ['a', 'b', 'c']},
-                             {'field' : 'source', 'type' : 'Source',
-                                         'sources' : ['foo', 'bar']}
-                             ], [])
+  def test_comparator_interaction(self) :
+    fieldDistances = dedupe.core.fieldDistances      
 
-    record_pairs = (({'type' : 'a',
-                      'source' : 'bar'},
-                     {'type' : 'b',
-                      'source' : 'bar'}),
-                    ({'type' : 'a', 
-                      'source' : 'foo'},
-                     {'type' : 'c',
-                      'source' : 'bar'}))
+    deduper = dedupe.Dedupe([{'field' : 'type', 
+                              'variable name' : 'type',
+                              'type' : 'Categorical',
+                              'categories' : ['a', 'b']},
+                             {'field' : 'name',
+                              'variable name' : 'name',
+                              'type' : 'String'},
+                             {'type' : 'Interaction',
+                              'interaction variables' : ['type', 'name']}]
+                             , [])
+
+    record_pairs = (({'name' : 'steven', 'type' : 'a'},
+                     {'name' : 'steve', 'type' : 'b'}),
+                    ({'name' : 'steven', 'type' : 'b'},
+                     {'name' : 'steve', 'type' : 'b'}))
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-         numpy.array([[ 0.0,  1.0,  0.0,  1.0,  
-                        0.0,  0.0,  0.0,  0.0,  
-                        0.0,  0.0,  1.0,  0.0,  
-                        0.0,  0.0,  0.0,  0.0,  0.0],
-                      [ 0.0,  0.0,  0.0,  0.0,  
-                        1.0,  0.0,  1.0,  0.0,  
-                        0.0,  0.0,  0.0,  0.0,  
-                        0.0,  0.0,  0.0,  0.0,  0.0]]), 3)
-
+                                            numpy.array([[0, 1, 0.64772, 0, 0.64772],
+                                                         [1, 0, 0.64772, 0.64772, 0]]), 3)
  
 
-  def test_field_distance_interaction(self) :
-    fieldDistances = dedupe.core.fieldDistances
-    deduper = dedupe.Dedupe([{'field' : 'first_name', 
-                              'variable name' : 'first_name', 
-                              'type' :'String'},
-                             {'field' : 'last_name', 
-                              'variable name' : 'last_name', 
-                              'type' : 'String'},
-                             {'type' : 'Interaction', 
-                              'interaction variables' : ['first_name', 
-                                                      'last_name']},
-                             {'field' : 'source',
-                              'type' : 'Source',
-                              'sources' : ['a', 'b']}
-                         ], [])
-
-    record_pairs = (({'first_name' : 'steve', 
-                      'last_name' : 'smith', 
-                      'source' : 'b'}, 
-                     {'first_name' : 'steven', 
-                      'last_name' : 'smith', 
-                      'source' : 'b'}),)
-
-
-    numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
-                                                           deduper.data_model),
-                                            numpy.array([[ 0.647,
-                                                           0.5,
-                                                           1.0,
-                                                           0.0,
-                                                           0.323,
-                                                           0.647,
-                                                           0.0,
-                                                           0.0,
-                                                           0.0,
-                                                           0.5,
-                                                           0.323]]),
-                                            3)
 if __name__ == "__main__":
     unittest.main()

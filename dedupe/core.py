@@ -117,19 +117,7 @@ def trainModel(training_data, data_model, alpha=.001):
 def derivedDistances(primary_distances, data_model) :
     distances = primary_distances
 
-    current_column = len(data_model.field_comparators)
-
-    for cat_index, length in data_model.categorical_indices :
-        start = current_column
-        end = start + length
-        
-        distances[:,start:end] =\
-                (distances[:, cat_index][:,None] 
-                 == numpy.arange(2, 2 + length)[None,:])
-
-        distances[:,cat_index][distances[:,cat_index] > 1] = 0
-                             
-        current_column = end
+    current_column = data_model.n_primary_fields
 
     for interaction in data_model.interactions :
         distances[:,current_column] =\
@@ -152,12 +140,12 @@ def fieldDistances(record_pairs, data_model):
 
     distances = numpy.empty((num_records, data_model.total_fields))
 
-    field_comparators = data_model.field_comparators
+    field_comparators = list(data_model.field_comparators)
 
     for i, (record_1, record_2) in enumerate(record_pairs) :
-        for j, (field, compare) in enumerate(field_comparators) :
-            distances[i,j] = compare(record_1[field],
-                                     record_2[field])
+        for field, compare, start, stop in field_comparators :
+            distances[i,start:stop] = compare(record_1[field],
+                                              record_2[field])
 
     distances = derivedDistances(distances, data_model)
 
