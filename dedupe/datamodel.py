@@ -22,8 +22,6 @@ field_classes = {'String' : dedupe.fieldclasses.StringType,
                  'Interaction' : dedupe.fieldclasses.InteractionType}
 
 class DataModel(dict) :
-    def __len__(self) :
-        return len(self['fields'])
 
     def __init__(self, fields):
 
@@ -34,12 +32,16 @@ class DataModel(dict) :
         field_model = missing(field_model)
 
         self['fields'] = field_model
+        self.n_fields = len(self['fields'])
 
-        self.field_comparators, self.derived_start = self._fieldComparators()
-
-    def _fieldComparators(self) :
+    # Changing this from a property to just a normal attribute causes
+    # pickling problems, because we are removing static methods from
+    # their class context. This could be fixed by defining comparators
+    # outside of classes in fieldclasses
+    @property 
+    def field_comparators(self) :
         start = 0
-        stop = 0 
+        stop = 0
         comparators = []
         for field in self['fields'] :
             if hasattr(field, 'comparator') :
@@ -47,7 +49,9 @@ class DataModel(dict) :
                 comparators.append((field.field, field.comparator, start, stop))
                 start = stop
 
-        return comparators, stop
+        self.derived_start = stop
+        return comparators
+
 
 
     @property 
@@ -124,4 +128,6 @@ def interactions(definitions, field_model) :
             field_model.extend(field.higher_vars)
 
     return field_model
+
+
 

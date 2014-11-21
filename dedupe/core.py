@@ -117,7 +117,7 @@ def trainModel(training_data, data_model, alpha=.001):
 def fieldDistances(record_pairs, data_model):
     num_records = len(record_pairs)
 
-    distances = numpy.empty((num_records, len(data_model)))
+    distances = numpy.empty((num_records, data_model.n_fields))
 
     field_comparators = data_model.field_comparators
 
