@@ -75,19 +75,6 @@ class DataModel(dict) :
                 
         return indices
 
-    @property
-    def categorical_indices(self) :
-
-        indices = []
-        field_model = self['fields']
-
-        for definition in self['fields'] :
-            if hasattr(definition, 'dummies') :
-                indices.append((field_model.index(definition),
-                                len(definition.dummies)))
-
-        return indices
-
 def typifyFields(fields) :
     field_model = []
 
