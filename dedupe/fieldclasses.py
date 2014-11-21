@@ -1,5 +1,6 @@
 import itertools
 import dedupe
+import dedupe.distance
 import predicates
 import numpy
 from collections import defaultdict
