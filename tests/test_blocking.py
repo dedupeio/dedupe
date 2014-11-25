@@ -34,7 +34,7 @@ class BlockingTest(unittest.TestCase):
                                   if "CompoundPredicate" not in str(k)])
 
   def test_dedupe_coverage(self) :
-    predicates = self.data_model['fields'][1].predicates
+    predicates = self.data_model['fields'][0].predicates
     coverage = dedupe.training.DedupeCoverage(predicates, self.training)
     print self.simple(coverage.overlap.keys())
     assert self.simple(coverage.overlap.keys()).issuperset(
@@ -80,7 +80,7 @@ class BlockingTest(unittest.TestCase):
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
 
-    predicates = self.data_model['fields'][1].predicates
+    predicates = self.data_model['fields'][0].predicates
 
     coverage = dedupe.training.RecordLinkCoverage(predicates, self.training)
     print self.simple(coverage.overlap.keys())

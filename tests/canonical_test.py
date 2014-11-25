@@ -101,7 +101,6 @@ clustered_dupes = deduper.match(data_d, threshold=alpha)
 print 'Evaluate Clustering'
 confirm_dupes = set([])
 for dupes, score in clustered_dupes:
-    print score
     for pair in combinations(dupes, 2):
         confirm_dupes.add(frozenset((data_d[pair[0]], 
                                      data_d[pair[1]])))

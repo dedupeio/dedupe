@@ -1,12 +1,13 @@
 import itertools
 import dedupe
-import predicates as predicates
+import dedupe.distance
+import predicates
 import numpy
 from collections import defaultdict
 
-from dedupe.distance.affinegap import normalizedAffineGapDistance
-from dedupe.distance.haversine import compareLatLong
-from dedupe.distance.categorical import CategoricalComparator
+from affinegap import normalizedAffineGapDistance
+from haversine import haversine
+from categorical import CategoricalComparator
 
 try:
     from collections import OrderedDict
@@ -14,8 +15,8 @@ except ImportError :
     from dedupe.backport import OrderedDict
 
 class Variable(object) :
-    def __lt__(self, other) :
-        return self.sort_level < other.sort_level
+    def __len__(self) :
+        return 1
 
     def __repr__(self) :
         return self.name
@@ -40,8 +41,6 @@ class Variable(object) :
             self.has_missing = False
 
 class FieldType(Variable) :
-    sort_level = 0
-             
     def __init__(self, definition) :
         self.field = definition['field']
 
@@ -68,9 +67,6 @@ class ExactType(FieldType) :
                 return 0
         else :
             return numpy.nan
-
-
-
 
 class ShortStringType(FieldType) :
     comparator = normalizedAffineGapDistance
@@ -121,10 +117,16 @@ class TextType(StringType) :
         self.comparator = dedupe.distance.CosineTextSimilarity(definition['corpus'])
 
 class LatLongType(FieldType) :
-    comparator = compareLatLong
     type = "LatLong"
 
     _predicate_functions = [predicates.latLongGridPredicate]
+
+    @staticmethod
+    def comparator(field_1, field_2) :
+        if field_1 == (0.0,0.0) or field_2 == (0.0,0.0) :
+            return numpy.nan
+        else :
+            return haversine(field_1, field_2)
 
 class SetType(FieldType) :
     type = "Set"
@@ -172,35 +174,27 @@ class CategoricalType(FieldType) :
         categories = self._categories(definition)
 
         self.comparator = CategoricalComparator(categories)
+  
+        self.higher_dummies = []
+        for higher_dummy in self.comparator.dummy_names[1:] :
+            dummy_var = HigherDummyType({'name' : higher_dummy,
+                                         'has missing' : self.has_missing})
+            self.higher_dummies.append(dummy_var)
 
-        self.dummies = []
-
-        for value, combo in sorted(self.comparator.combinations[2:]) :
-            dummy_object = HigherDummyType({'combo' : combo, 
-                                            'value' : value,
-                                            'base name' : self.name,
-                                            'has missing' : self.has_missing})
-            self.dummies.append(dummy_object)
+    def __len__(self) :
+        return len(self.comparator.dummy_names)
 
 
-class ExistsType(FieldType) :
+class ExistsType(CategoricalType) :
     type = "Exists"
     _predicate_functions = [predicates.existsPredicate]
 
     def __init__(self, definition) :
 
-        super(ExistsType, self ).__init__(definition)
+        super(CategoricalType, self ).__init__(definition)
         
         self.cat_comparator = CategoricalComparator([0, 1])
 
-        self.dummies = []
-
-        for value, combo in sorted(self.cat_comparator.combinations[2:]) :
-            dummy_object = HigherDummyType({'combo' : combo, 
-                                            'value' : value,
-                                            'base name' : self.name,
-                                            'has missing' : self.has_missing})
-            self.dummies.append(dummy_object)
 
     def comparator(self, field_1, field_2) :
         if field_1 and field_2 :
@@ -210,38 +204,15 @@ class ExistsType(FieldType) :
         else :
             return self.cat_comparator(0, 0)
 
-
-
-class SourceType(CategoricalType) :
-    type = "Source"
-
-    def _categories(self, definition) :
-        try :
-            categories = definition["sources"]
-        except KeyError :
-            raise ValueError('No "sources" defined')
-
-        if len(categories) != 2 :
-            raise ValueError("You must supply two and only " 
-                             "two source names")
-        
-        return categories
-
 class HigherDummyType(Variable) :
-    sort_level = 1
-    
     type = "HigherOrderDummy"
 
     def __init__(self, definition) :
-        self.name = "(%s: %s)" % (str(definition['combo']), self.type)
-        self.value = definition['value']
-        self.base_name = definition['base name']
-
+        self.name = "(%s: %s)" % (str(definition['name']), self.type)
         super(HigherDummyType, self).__init__(definition)
 
-class InteractionType(Variable) :
-    sort_level = 2
 
+class InteractionType(Variable) :
     type = "Interaction"
     
     def __init__(self, definition) :
@@ -253,8 +224,6 @@ class InteractionType(Variable) :
 
         super(InteractionType, self).__init__(definition)
 
-
-
     def expandInteractions(self, field_model) :
 
         self.interaction_fields = self.atomicInteractions(self.interactions,
@@ -262,6 +231,24 @@ class InteractionType(Variable) :
         for field in self.interaction_fields :
             if field_model[field].has_missing :
                 self.has_missing = True
+
+        self.categorical(field_model)
+    
+    def categorical(self, field_model) :
+        categoricals = [field for field in self.interaction_fields
+                        if hasattr(field_model[field], "higher_dummies")]
+        noncategoricals = [field for field in self.interaction_fields
+                           if not hasattr(field_model[field], "higher_dummies")]
+
+        dummies = [field_model[field].higher_dummies 
+                   for field in categoricals]
+
+        self.higher_vars = []
+        for combo in itertools.product(*dummies) :
+            var_names = [field.name for field in combo] + noncategoricals
+            higher_var = InteractionType({'has missing' : self.has_missing,
+                                          'interaction variables' : var_names})
+            self.higher_vars.append(higher_var)
 
     def atomicInteractions(self, interactions, field_model) :
         atomic_interactions = []
@@ -282,43 +269,7 @@ class InteractionType(Variable) :
 
         return atomic_interactions
 
-
-    def dummyInteractions(self, field_model) :
-        dummy_interactions = []
-
-        categoricals = defaultdict(list)
-
-        for field in field_model.values() :
-            if hasattr(field, 'base_name') :
-                if field.base_name in self.interaction_fields :
-                    categoricals[field.base_name].append(field.name)
-
-        for base_name in categoricals :
-            categoricals[base_name].append(base_name)
-
-        base_combination = set([tuple(categoricals.keys())])
-
-        categorical_combinations = itertools.product(*categoricals.values())
-        categorical_combinations = set(categorical_combinations)
-        categorical_combinations -= base_combination
-
-        non_categoricals = tuple(set(self.interaction_fields) 
-                                 - set(categoricals.keys()))
-
-        for level in categorical_combinations :
-            interaction_fields = level + non_categoricals
-            interaction_variable = InteractionType(
-                {"interaction variables" : interaction_fields,
-                 "has missing" : self.has_missing})
-            interaction_variable.expandInteractions(field_model)
-
-            dummy_interactions.append(interaction_variable)
-
-        return dummy_interactions
-
 class MissingDataType(Variable) :
-    sort_level = 3
-
     type = "MissingData"
 
     def __init__(self, name) :

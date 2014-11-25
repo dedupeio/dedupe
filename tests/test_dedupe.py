@@ -34,22 +34,6 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 
 
 
-class SourceComparatorTest(unittest.TestCase) :
-  def test_comparator(self) :
-    deduper = dedupe.Dedupe([{'field' :'name', 'type' : 'Source',
-                              'sources' : ['a', 'b'],
-                              'has missing' : True}], ())
-
-    source_comparator = deduper.data_model['fields'][0].comparator
-    assert source_comparator('a', 'a') == 0
-    assert source_comparator('b', 'b') == 1
-    assert source_comparator('a', 'b') == 2
-    assert source_comparator('b', 'a') == 2
-    self.assertRaises(ValueError, source_comparator, 'b', 'c')
-    self.assertRaises(ValueError, source_comparator, '', 'c')
-    assert numpy.isnan(source_comparator('', 'b'))
-
-
 class DataModelTest(unittest.TestCase) :
 
   def test_data_model(self) :
@@ -96,36 +80,6 @@ class DataModelTest(unittest.TestCase) :
 
     assert data_model['fields'][2].has_missing == False
 
-
-
-
-
-class AffineGapTest(unittest.TestCase):
-  def setUp(self):
-    self.affineGapDistance = dedupe.distance.affinegap.affineGapDistance
-    self.normalizedAffineGapDistance = dedupe.distance.affinegap.normalizedAffineGapDistance
-    
-  def test_affine_gap_correctness(self):
-    assert self.affineGapDistance('a', u'b', -5, 5, 5, 1, 0.5) == 5
-    assert self.affineGapDistance('ab', 'cd', -5, 5, 5, 1, 0.5) == 10
-    assert self.affineGapDistance('ab', 'cde', -5, 5, 5, 1, 0.5) == 13
-    assert self.affineGapDistance('ab', u'cdë', -5, 5, 5, 1, 0.5) == 13
-    assert self.affineGapDistance('a', 'cde', -5, 5, 5, 1, 0.5) == 8.5
-    assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1, 0.5) == 8
-    assert self.affineGapDistance('b', 'a', -5, 5, 5, 1, 0.5) == 5
-    assert self.affineGapDistance('a', 'a', -5, 5, 5, 1, 0.5) == -5
-    assert numpy.isnan(self.affineGapDistance('a', '', -5, 5, 5, 1, 0.5))
-    assert numpy.isnan(self.affineGapDistance('', '', -5, 5, 5, 1, 0.5))
-    assert self.affineGapDistance('aba', 'aaa', -5, 5, 5, 1, 0.5) == -5
-    assert self.affineGapDistance('aaa', 'aba', -5, 5, 5, 1, 0.5) == -5
-    assert self.affineGapDistance('aaa', 'aa', -5, 5, 5, 1, 0.5) == -7
-    assert self.affineGapDistance('aaa', 'a', -5, 5, 5, 1, 0.5) == -1.5
-    assert numpy.isnan(self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5))
-    assert self.affineGapDistance('aaa', 'abba', -5, 5, 5, 1, 0.5) == 1
-    
-  def test_normalized_affine_gap_correctness(self):
-    assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
-    
 
 class ConnectedComponentsTest(unittest.TestCase) :
   def test_components(self) :
