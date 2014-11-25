@@ -14,6 +14,9 @@ def connected_components(edgelist, max_components) :
     component = {}
     indices = {}
 
+    if len(edgelist['pairs']) == 0:
+        raise StopIteration()
+
     it = numpy.nditer(edgelist['pairs'], ['external_loop'])
 
     for i, (a,b) in enumerate(it) :
@@ -107,6 +110,7 @@ def condensedDistance(dupes):
 
     condensed_distances = numpy.ones(matrix_length, 'f4')
     condensed_distances[index] = 1 - dupes['score']
+    
 
     return (i_to_id, condensed_distances)
 
@@ -147,36 +151,28 @@ def cluster(dupes, threshold=.5, max_components=30000):
             for (i, sub_cluster_id) in enumerate(partition):
                 clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
 
-            cophenetic_distances = hcluster.cophenet(linkage)
-
+            distances = hcluster.squareform(condensed_distances)
+            
             for cluster_id, items in clusters.iteritems() :
                 if len(items) > 1 :
-                    score = clusterConfidence(items, cophenetic_distances, N)
-                    clustering[cluster_id] = (tuple(i_to_id[item] 
-                                                    for item in items),
-                                              1 - score)
+                    scores = confidences(items, distances)
+                    clustering[cluster_id] =\
+                        (tuple(i_to_id[item] for item in items), tuple(scores))
 
             cluster_id += max(partition) + 1
         else:
             ids, score = sub_graph[0]
-            clustering[cluster_id] = tuple(ids), score
+            clustering[cluster_id] = (tuple(ids), tuple([score]*2))
             cluster_id += 1
             
 
     return clustering.values()
 
-def clusterConfidence(items, cophenetic_distances, N) :
-    max_score = 0
-    i, other_items = items[0], items[1:] 
-    condensor = (N * (N-1))/2 - ((N-i)*(N-i-1))/2 - i - 1
-    for j in other_items :
-        ij =  condensor + j
-        score = cophenetic_distances[ij]
-        if score > max_score : 
-            max_score = score
-
-    return max_score
-
+def confidences(items, distances) :
+    scores = numpy.sum(distances[items, :][:, items], 0)
+    scores /= len(items) - 1
+    scores = 1 - scores
+    return scores
 
 def greedyMatching(dupes, threshold=0.5):
     dupes = numpy.array(dupes)

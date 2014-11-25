@@ -34,22 +34,6 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 
 
 
-class SourceComparatorTest(unittest.TestCase) :
-  def test_comparator(self) :
-    deduper = dedupe.Dedupe([{'field' :'name', 'type' : 'Source',
-                              'sources' : ['a', 'b'],
-                              'has missing' : True}], ())
-
-    source_comparator = deduper.data_model['fields'][0].comparator
-    assert source_comparator('a', 'a') == 0
-    assert source_comparator('b', 'b') == 1
-    assert source_comparator('a', 'b') == 2
-    assert source_comparator('b', 'a') == 2
-    self.assertRaises(ValueError, source_comparator, 'b', 'c')
-    self.assertRaises(ValueError, source_comparator, '', 'c')
-    assert numpy.isnan(source_comparator('', 'b'))
-
-
 class DataModelTest(unittest.TestCase) :
 
   def test_data_model(self) :
@@ -96,36 +80,6 @@ class DataModelTest(unittest.TestCase) :
 
     assert data_model['fields'][2].has_missing == False
 
-
-
-
-
-class AffineGapTest(unittest.TestCase):
-  def setUp(self):
-    self.affineGapDistance = dedupe.distance.affinegap.affineGapDistance
-    self.normalizedAffineGapDistance = dedupe.distance.affinegap.normalizedAffineGapDistance
-    
-  def test_affine_gap_correctness(self):
-    assert self.affineGapDistance('a', u'b', -5, 5, 5, 1, 0.5) == 5
-    assert self.affineGapDistance('ab', 'cd', -5, 5, 5, 1, 0.5) == 10
-    assert self.affineGapDistance('ab', 'cde', -5, 5, 5, 1, 0.5) == 13
-    assert self.affineGapDistance('ab', u'cdë', -5, 5, 5, 1, 0.5) == 13
-    assert self.affineGapDistance('a', 'cde', -5, 5, 5, 1, 0.5) == 8.5
-    assert self.affineGapDistance('a', 'cd', -5, 5, 5, 1, 0.5) == 8
-    assert self.affineGapDistance('b', 'a', -5, 5, 5, 1, 0.5) == 5
-    assert self.affineGapDistance('a', 'a', -5, 5, 5, 1, 0.5) == -5
-    assert numpy.isnan(self.affineGapDistance('a', '', -5, 5, 5, 1, 0.5))
-    assert numpy.isnan(self.affineGapDistance('', '', -5, 5, 5, 1, 0.5))
-    assert self.affineGapDistance('aba', 'aaa', -5, 5, 5, 1, 0.5) == -5
-    assert self.affineGapDistance('aaa', 'aba', -5, 5, 5, 1, 0.5) == -5
-    assert self.affineGapDistance('aaa', 'aa', -5, 5, 5, 1, 0.5) == -7
-    assert self.affineGapDistance('aaa', 'a', -5, 5, 5, 1, 0.5) == -1.5
-    assert numpy.isnan(self.affineGapDistance('aaa', '', -5, 5, 5, 1, 0.5))
-    assert self.affineGapDistance('aaa', 'abba', -5, 5, 5, 1, 0.5) == 1
-    
-  def test_normalized_affine_gap_correctness(self):
-    assert numpy.isnan(self.normalizedAffineGapDistance('', '', -5, 5, 5, 1, 0.5))
-    
 
 class ConnectedComponentsTest(unittest.TestCase) :
   def test_components(self) :
@@ -180,6 +134,7 @@ class ClusteringTest(unittest.TestCase):
                              dtype = [('pairs', 'i4', 2), 
                                       ('score', 'f4', 1)])
 
+
     #Dupes with Ids as String
     self.str_dupes = numpy.array([(('1', '2'), .86),
                                   (('1', '3'), .72),
@@ -210,31 +165,53 @@ class ClusteringTest(unittest.TestCase):
                             ((4,7), .23),
                             ((5,8), .24))
 
+  def clusterEquals(self, x, y) :
+    for cluster_a, cluster_b in zip(x, y) :
+      if cluster_a[0] != cluster_b[0] :
+        return False
+      for score_a, score_b in zip(cluster_a[1], cluster_b[1]) :
+        if round(score_a, 2) != round(score_b, 2) :
+          return False
+      else :
+        return True
+
+
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert hierarchical(self.dupes, 1) == [((10, 11), 
-                                            0.89999997615814209)]
+    assert self.clusterEquals(hierarchical(self.dupes, 1),
+                              [((10, 11),  
+                                (0.899,
+                                 0.899))])
 
-    assert hierarchical(self.dupes, 0.5) == [((1, 2, 3), 
-                                              0.79000002145767212), 
-                                             ((4, 5), 
-                                              0.72000002861022949), 
-                                             ((10, 11), 
-                                              0.89999997615814209)]
+    assert self.clusterEquals(hierarchical(self.dupes, 0.5),
+                              [((1, 2, 3), 
+                                (0.790, 
+                                 0.860, 
+                                 0.790)), 
+                               ((4, 5), 
+                                (0.720, 
+                                 0.720)), 
+                               ((10, 11), 
+                                (0.899, 
+                                 0.899))])
 
-    assert hierarchical(self.dupes, 0) == [((1, 2, 3, 4, 5), 
-                                            0.41371223982064087),
-                                             ((10, 11), 
-                                              0.89999997615814209)]
+    assert self.clusterEquals(hierarchical(self.dupes, 0),
+                              [((1, 2, 3, 4, 5), 
+                                (0.5950000137090683, 
+                                 0.66000001132488251, 
+                                 0.59500001370, 
+                                 0.3550000041, 
+                                 0.635)), 
+                               ((10, 11), 
+                                (0.899, 
+                                 0.899))]
+)
+
     assert hierarchical(self.str_dupes, 1) == []
     assert zip(*hierarchical(self.str_dupes, 0.5))[0] == (('1', '2', '3'), 
                                                           ('4','5'))
     assert zip(*hierarchical(self.str_dupes, 0))[0] == (('1', '2', '3', '4', '5'),)
-    assert hierarchical(numpy.array([((1,2), .86)],
-                                    dtype = [('pairs', 'i4', 2), 
-                                             ('score', 'f4', 1)]),
-                        0.5)  == [((1, 2), 0.86000001430511475)]
 
 
   def test_greedy_matching(self):

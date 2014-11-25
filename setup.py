@@ -6,27 +6,13 @@ try:
 except ImportError :
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
-# from Michael Hoffman's http://www.ebi.ac.uk/~hoffman/software/sunflower/
-
-class NumpyExtension(Extension):
-
-    def __init__(self, *args, **kwargs):
-        Extension.__init__(self, *args, **kwargs)
-
-        self._include_dirs = self.include_dirs
-        del self.include_dirs  # restore overwritten property
-
-    # warning: Extension is a classic class so it's not really read-only
-
-    @property
-    def include_dirs(self):
-        from numpy import get_include
-
-        return self._include_dirs + [get_include()]
-
 install_requires=['numpy', 
                   'fastcluster', 
-                  'hcluster', 
+                  'hcluster',
+                  'categorical-distance',
+                  'rlr',
+                  'affinegap',
+                  'haversine',
                   'zope.interface', 
                   'zope.index']
 
@@ -39,16 +25,10 @@ except ImportError:
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.7.4.0',
+    version='0.7.5.1',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance'],
-    ext_modules=[NumpyExtension('dedupe.distance.affinegap', ['src/affinegap.c']),
-                 Extension('dedupe.cpredicates', ['src/cpredicates.c']),
-                 NumpyExtension('dedupe.distance.haversine', ['src/haversine.c'], libraries=['m']),
-                 NumpyExtension('dedupe.lr', sources=['src/lr.c'])],
-
-                 
-
+    ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=install_requires,
     classifiers=[

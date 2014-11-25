@@ -5,3 +5,7 @@ zope.index
 nose
 coverage
 cython
+affinegap
+haversine
+rlr
+categorical-distance

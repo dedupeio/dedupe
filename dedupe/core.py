@@ -10,7 +10,7 @@ import tempfile
 import os
 
 import dedupe.backport as backport
-import dedupe.lr as lr
+import rlr
 
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
@@ -105,7 +105,7 @@ def trainModel(training_data, data_model, alpha=.001):
     labels = numpy.array(training_data['label'] == 'match', dtype='i4')
     examples = training_data['distances']
 
-    (weight, bias) = lr.lr(labels, examples, alpha)
+    (weight, bias) = rlr.lr(labels, examples, alpha)
 
     for i, field_definition in enumerate(data_model['fields']) :
         field_definition.weight = float(weight[i])
@@ -114,22 +114,26 @@ def trainModel(training_data, data_model, alpha=.001):
 
     return data_model
 
+def fieldDistances(record_pairs, data_model):
+    num_records = len(record_pairs)
+
+    distances = numpy.empty((num_records, data_model.n_fields))
+
+    field_comparators = data_model.field_comparators
+
+    for i, (record_1, record_2) in enumerate(record_pairs) :
+        for field, compare, start, stop in field_comparators :
+            distances[i,start:stop] = compare(record_1[field],
+                                              record_2[field])
+
+    distances = derivedDistances(distances, data_model)
+
+    return distances
+
 def derivedDistances(primary_distances, data_model) :
     distances = primary_distances
 
-    current_column = len(data_model.field_comparators)
-
-    for cat_index, length in data_model.categorical_indices :
-        start = current_column
-        end = start + length
-        
-        distances[:,start:end] =\
-                (distances[:, cat_index][:,None] 
-                 == numpy.arange(2, 2 + length)[None,:])
-
-        distances[:,cat_index][distances[:,cat_index] > 1] = 0
-                             
-        current_column = end
+    current_column = data_model.derived_start
 
     for interaction in data_model.interactions :
         distances[:,current_column] =\
@@ -147,21 +151,6 @@ def derivedDistances(primary_distances, data_model) :
 
     return distances
 
-def fieldDistances(record_pairs, data_model):
-    num_records = len(record_pairs)
-
-    distances = numpy.empty((num_records, data_model.total_fields))
-
-    field_comparators = data_model.field_comparators
-
-    for i, (record_1, record_2) in enumerate(record_pairs) :
-        for j, (field, compare) in enumerate(field_comparators) :
-            distances[i,j] = compare(record_1[field],
-                                     record_2[field])
-
-    distances = derivedDistances(distances, data_model)
-
-    return distances
 
 def scorePairs(field_distances, data_model):
     fields = data_model['fields']
