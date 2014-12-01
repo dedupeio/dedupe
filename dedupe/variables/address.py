@@ -4,13 +4,30 @@ import numpy
 import usaddress
 from affinegap import normalizedAffineGapDistance as compareString
 
+STREET_PARTS = (('AddressNumberPrefix',
+                 'AddressNumber',
+                 'AddressNumberSuffix'),
+                ('StreetNamePreDirectional',
+                 'StreetNamePostDirectional'),
+                ('StreetNamePreModifier',
+                 'StreetName',
+                 'StreetNamePostModifier'),
+                ('StreetNamePostType',
+                 'StreetNamePreType'),
+                ('OccupancyType',),
+                ('OccupancyIdentifier',),
+                ('BuildingName',))
 
-
+BOX_PARTS =  (('USPSBoxGroupType',),
+              ('USPSBoxGroupID',),
+              ('USPSBoxType',),
+              ('USPSBoxID',))
 
 def consolidateAddress(address, components) :
     for component in components :
-        merged_component = ' '.join(address.get(part, '') 
-                                    for part in component)
+        merged_component = ' '.join(address[part]  
+                                    for part in component
+                                    if part in address)
         yield merged_component
 
 
@@ -46,6 +63,9 @@ def compareIntersections(address_1, address_2) :
     address_1B = tuple(consolidateAddress(address_1, street_2))
     address_2 = tuple(consolidateAddress(address_2, street_1 + street_2))
 
+    print address_1A
+    print address_1B
+    print address_2
     unpermuted_distances = []
     for part_1, part_2 in zip(address_1A + address_1B, address_2) :
         unpermuted_distances.append(compareString(part_1, part_2))
@@ -61,50 +81,6 @@ def compareIntersections(address_1, address_2) :
     
 class USAddressType(object) :
     
-    # Don't include Recipient, Place, State, Country, Zip
-    #
-    #
-    # needs to do handle missing for entire field, in addition to missing
-    # for individual components
-    
-    # need to handle PO box vs street address
-    # 
-
-    # Address Type (Street, PO Box, Intersection) : Exact with Missing
-    # 
-    # Street Address
-    # - Street Dir (pre and post)
-    # - Street Type (pre and post)
-    # - Addr # (Address Number and Prefix and Suffix)
-    # - Unit Type
-    # - Unit Number
-    # - Street Name (Pre and Post Modifier)
-    # - Building Name
-    # - Subaddress 
-    # - Subaddress ID
-    #
-    # Intersection
-    # - Street Dir1 (pre and post)
-    # - Street Type1 (pre and post)
-    # - Street Name1 (Pre and Post Modifier)
-    # - Street Dir2 (pre and post)
-    # - Street Type2 (pre and post)
-    # - Street Name2 (Pre and Post Modifier)
-    #
-    # Compare 
-    # [(field1, Street1) and (field2, Street1), 
-    #  (field1, Street2) and (field2, Street2)] 
-    # AND
-    # [(field1, Street2) and (field2, Street1), 
-    #  (field1, Street1) and (field2, Street2)] 
-    # Use min distance
-    #
-    # PO Box
-    # - Box Type
-    # - Box ID
-    # - BoxGroup Type
-    # - BoxGroup ID
-    #
     AddressType = collections.namedtuple('AddressType', 
                                          ['compare', 'indicator', 
                                           'size', 'offset'])
@@ -112,43 +88,28 @@ class USAddressType(object) :
     
     components = {'Street Address' :
                       AddressType(compare=functools.partial(compareFields,
-                                        parts = (('AddressNumberPrefix',
-                                                  'AddressNumber',
-                                                  'AddressNumberSuffix'),
-                                                 ('StreetNamePreDirectional',
-                                                  'StreetNamePostDirectional'),
-                                                 ('StreetNamePreModifier',
-                                                  'StreetName',
-                                                  'StreetNamePostModifier'),
-                                                 ('StreetNamePostType',
-                                                  'StreetNamePreType'),
-                                                 ('OccupancyType',),
-                                                 ('OccupancyIdentifier',),
-                                                 ('BuildingName',))),
-                                  size = 7,
+                                    parts = STREET_PARTS),
+                                  size = len(STREET_PARTS),
                                   indicator=[1, 0, 0],
                                   offset=0),
                   'PO Box' :
                       AddressType(compare=functools.partial(compareFields,
-                                        parts = (('USPSBoxGroupType',),
-                                                 ('USPSBoxGroupID',),
-                                                 ('USPSBoxType',),
-                                                 ('USPSBoxID',))),
-                                  size = 4,
+                                        parts = BOX_PARTS),
+                                  size = len(BOX_PARTS),
                                   indicator=[0, 1, 0],
-                                  offset=14),
+                                  offset= 2 * len(STREET_PARTS)),
                   'Intersection' :
                       AddressType(compare=compareIntersections,
                                   size=6,
                                   indicator=[0,0,1],
-                                  offset=22)}
+                                  offset = 2 * (len(STREET_PARTS) 
+                                                + len(BOX_PARTS)))}
 
     
     
     def __init__(self) :
 
         # missing? + same_type? + len(indicator) + ...
-        
         self.expanded_size = 1 + 1 + 3 + 2 * sum(address_type.size
                                                  for address_type 
                                                  in self.components.values())
@@ -173,9 +134,9 @@ class USAddressType(object) :
         distances[1] = 1
         i += 1
 
-        compare, indicator, size, offset = self.components[address_type_1]
+        compare, address_type, size, offset = self.components[address_type_1]
 
-        distances[2:5] = indicator
+        distances[2:5] = address_type
         i += 3
 
         start = i + offset
@@ -183,49 +144,14 @@ class USAddressType(object) :
         for j, dist in enumerate(compare(address_1, address_2), start) :
             distances[j] = dist
 
-        print distances
-
         i = j + 1
 
+        print distances
         unobserved_parts = numpy.isnan(distances[start:i])
         distances[start:i][unobserved_parts] = 0
         distances[i:(i + size)] = (~unobserved_parts).astype(int)
 
         return distances
-
-
-        # ['not addr', 'Null'],
-        # ['addr #', 'AddressNumber'],
-        # ['st dir pre', 'StreetNamePreDirectional'],
-        # ['st dir post', 'StreetNamePostDirectional'],
-        # ['st name', 'StreetName'],
-        # ['st type post', 'StreetNamePostType'],
-        # ['st type pre', 'StreetNamePreType'],
-        # ['intersection separator', 'IntersectionSeparator'],
-        # ['unit type', 'OccupancyType'],
-        # ['unit no', 'OccupancyIdentifier'],
-        # ['box type', 'USPSBoxType'],
-        # ['box no', 'USPSBoxID'],
-        # ['city', 'PlaceName'],
-        # ['state', 'StateName'],
-        # ['zip', 'ZipCode'],
-        # ['zip+4', 'ZipPlus4'],
-        # ['country', 'CountryName'],
-        # ['landmark', 'LandmarkName'],
-        # ['box type', 'USPSBoxType'],
-        # ['box no', 'USPSBoxID'],
-
-        # ['box group type', 'USPSBoxGroupType'],
-        # ['box group id', 'USPSBoxGroupID'],
-        # ['address number prefix', 'AddressNumberPrefix'],
-        # ['address number suffix', 'AddressNumberSuffix'],
-        # ['subaddress id', 'SubaddressIdentifier'],
-        # ['subaddress type', 'SubaddressType'],
-        # ['recipient', 'Recipient'],
-        # ['streetname modifer, pre', 'StreetNamePreModifier'],
-        # ['streetname modifer, post', 'StreetNamePostModifier'],
-        # ['building name', 'BuildingName'],
-        # ['corner/junction', 'CornerOf']
 
 
         
