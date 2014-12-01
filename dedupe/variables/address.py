@@ -88,7 +88,7 @@ class USAddressType(object) :
     
     components = {'Street Address' :
                       AddressType(compare=functools.partial(compareFields,
-                                    parts = STREET_PARTS),
+                                            parts = STREET_PARTS),
                                   size = len(STREET_PARTS),
                                   indicator=[1, 0, 0],
                                   offset=0),
