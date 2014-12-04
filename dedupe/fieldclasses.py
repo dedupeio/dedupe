@@ -177,8 +177,9 @@ class CategoricalType(FieldType) :
   
         self.higher_dummies = []
         for higher_dummy in self.comparator.dummy_names[1:] :
-            dummy_var = HigherDummyType({'name' : higher_dummy,
-                                         'has missing' : self.has_missing})
+            dummy_var = DerivedType({'name' : higher_dummy,
+                                     'type' : 'Dummy',
+                                     'has missing' : self.has_missing})
             self.higher_dummies.append(dummy_var)
 
     def __len__(self) :
@@ -204,12 +205,13 @@ class ExistsType(CategoricalType) :
         else :
             return self.cat_comparator(0, 0)
 
-class HigherDummyType(Variable) :
-    type = "HigherOrderDummy"
+class DerirvedType(Variable) :
+    type = "Derived"
 
     def __init__(self, definition) :
-        self.name = "(%s: %s)" % (str(definition['name']), self.type)
-        super(HigherDummyType, self).__init__(definition)
+        self.name = "(%s: %s)" % (str(definition['name']), 
+                                  str(definition['type']))
+        super(DerivedType, self).__init__(definition)
 
 
 class InteractionType(Variable) :
@@ -274,7 +276,7 @@ class MissingDataType(Variable) :
 
     def __init__(self, name) :
         
-        self.name = "(%s: Not Missing)" %name
+        self.name = "(%s: Not Missing)" % name
         self.weight = 0
 
         self.has_missing = False

@@ -4,24 +4,44 @@ import numpy
 import usaddress
 from affinegap import normalizedAffineGapDistance as compareString
 
-STREET_PARTS = (('AddressNumberPrefix',
-                 'AddressNumber',
-                 'AddressNumberSuffix'),
-                ('StreetNamePreDirectional',
-                 'StreetNamePostDirectional'),
-                ('StreetNamePreModifier',
-                 'StreetName',
-                 'StreetNamePostModifier'),
-                ('StreetNamePostType',
-                 'StreetNamePreType'),
-                ('OccupancyType',),
-                ('OccupancyIdentifier',),
-                ('BuildingName',))
+STREETS = (('address number',   ('AddressNumberPrefix',
+                                 'AddressNumber',
+                                 'AddressNumberSuffix')),
+           ('street direction', ('StreetNamePreDirectional',
+                                 'StreetNamePostDirectional')),
+           ('street name',      ('StreetNamePreModifier',
+                                 'StreetName',
+                                 'StreetNamePostModifier')),
+           ('street type',      ('StreetNamePostType',
+                                 'StreetNamePreType')),
+           ('occupancy type',   ('OccupancyType',)),
+           ('occupancy id',     ('OccupancyIdentifier',)),
+           ('building name',    ('BuildingName',)))
 
-BOX_PARTS =  (('USPSBoxGroupType',),
-              ('USPSBoxGroupID',),
-              ('USPSBoxType',),
-              ('USPSBoxID',))
+BOX =  (('box group type', ('USPSBoxGroupType',)),
+        ('box group id',   ('USPSBoxGroupID',)),
+        ('box type',       ('USPSBoxType',)),
+        ('box id',         ('USPSBoxID',)))
+
+INTERSECTION_A = (('street direction A', ('StreetNamePreDirectional',
+                                          'StreetNamePostDirectional')),
+                  ('street name A',      ('StreetNamePreModifier',
+                                          'StreetName',
+                                          'StreetNamePostModifier')),
+                  ('street type A',      ('StreetNamePostType',
+                                          'StreetNamePreType')))
+INTERSECTION_B = (('street direction B', ('SecondStreetNamePreDirectional',
+                                          'SecondStreetNamePostDirectional')),
+                  ('street name B',      ('SecondStreetNamePreModifier',
+                                          'SecondStreetName',
+                                          'SecondStreetNamePostModifier')),
+                  ('street type B',      ('SecondStreetNamePostType',
+                                          'SecondStreetNamePreType')))
+
+STREET_NAMES, STREET_PARTS = zip(*STREETS)
+BOX_NAMES, BOX_PARTS = zip(*BOX)
+INTERSECTION_A_PARTS, INTERSECTION_A_NAMES = zip(*INTERSECTION_A)
+INTERSECTION_B_PARTS, INTERSECTION_B_NAMES = zip(*INTERSECTION_B)
 
 def consolidateAddress(address, components) :
     for component in components :
@@ -29,7 +49,6 @@ def consolidateAddress(address, components) :
                                     for part in component
                                     if part in address)
         yield merged_component
-
 
 def zipAddress(address_1, address_2, components) :
     merged_address_1 = consolidateAddress(address_1, components)
@@ -44,28 +63,13 @@ def compareFields(address_1, address_2, parts) :
         yield compareString(part_1, part_2)
 
 def compareIntersections(address_1, address_2) :
-    street_1 = (('StreetNamePreDirectional',
-                 'StreetNamePostDirectional'),
-                ('StreetNamePreModifier',
-                 'StreetName',
-                 'StreetNamePostModifier'),
-                ('StreetNamePostType',
-                 'StreetNamePreType'))
-    street_2 = (('SecondStreetNamePreDirectional',
-                 'SecondStreetNamePostDirectional'),
-                ('SecondStreetNamePreModifier',
-                 'SecondStreetName',
-                 'SecondStreetNamePostModifier'),
-                ('SecondStreetNamePostType',
-                 'SecondStreetNamePreType'))
+    street_1 = INTERSECTION_A_PARTS
+    street_1 = INTERSECTION_B_PARTS
 
     address_1A = tuple(consolidateAddress(address_1, street_1))
     address_1B = tuple(consolidateAddress(address_1, street_2))
     address_2 = tuple(consolidateAddress(address_2, street_1 + street_2))
 
-    print address_1A
-    print address_1B
-    print address_2
     unpermuted_distances = []
     for part_1, part_2 in zip(address_1A + address_1B, address_2) :
         unpermuted_distances.append(compareString(part_1, part_2))
@@ -80,7 +84,6 @@ def compareIntersections(address_1, address_2) :
         return unpermuted_distances
     
 class USAddressType(object) :
-    
     AddressType = collections.namedtuple('AddressType', 
                                          ['compare', 'indicator', 
                                           'size', 'offset'])
@@ -100,20 +103,35 @@ class USAddressType(object) :
                                   offset= 2 * len(STREET_PARTS)),
                   'Intersection' :
                       AddressType(compare=compareIntersections,
-                                  size=6,
+                                  size = 2 * len(INTERSECTION_STREET_1),
                                   indicator=[0,0,1],
                                   offset = 2 * (len(STREET_PARTS) 
                                                 + len(BOX_PARTS)))}
 
-    
-    
-    def __init__(self) :
+    # missing? + same_type? + len(indicator) + ...
+    expanded_size = 1 + 1 + 3 + 2 * sum(address_type.size
+                                        for address_type 
+                                        in self.components.values())
 
-        # missing? + same_type? + len(indicator) + ...
-        self.expanded_size = 1 + 1 + 3 + 2 * sum(address_type.size
-                                                 for address_type 
-                                                 in self.components.values())
+    def __init__(self, definition) :
+        preamble = [('%s: Not Missing' % definition['field'], 'Dummy'),
+                    ('same address type?', 'Dummy'),
+                    ('street address Type', 'Dummy'),
+                    ('po box', 'Dummy'),
+                    ('intersection', 'Dummy')]
 
+        address_parts = [(part, 'String') 
+                         for part
+                         in (STREET_NAMES 
+                             + BOX_NAMES 
+                             + INTERSECTION_A_NAMES 
+                             + INTERSECTION_B_NAMES)]
+
+        fields = preamble + address_parts
+        
+        self.higher_vars = [DerivedType({'name' : name,
+                                         'type' : field_type})
+                            for field in fields]
 
     def comparator(self, field_1, field_2) :
         distances = numpy.zeros(self.expanded_size)
