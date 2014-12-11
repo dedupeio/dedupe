@@ -1,3 +1,4 @@
+from dedupe.fieldclasses import DerivedType
 import collections
 import functools
 import numpy
@@ -40,8 +41,8 @@ INTERSECTION_B = (('street direction B', ('SecondStreetNamePreDirectional',
 
 STREET_NAMES, STREET_PARTS = zip(*STREETS)
 BOX_NAMES, BOX_PARTS = zip(*BOX)
-INTERSECTION_A_PARTS, INTERSECTION_A_NAMES = zip(*INTERSECTION_A)
-INTERSECTION_B_PARTS, INTERSECTION_B_NAMES = zip(*INTERSECTION_B)
+INTERSECTION_A_NAMES, INTERSECTION_A_PARTS = zip(*INTERSECTION_A)
+INTERSECTION_B_NAMES, INTERSECTION_B_PARTS = zip(*INTERSECTION_B)
 
 def consolidateAddress(address, components) :
     for component in components :
@@ -103,7 +104,7 @@ class USAddressType(object) :
                                   offset= 2 * len(STREET_PARTS)),
                   'Intersection' :
                       AddressType(compare=compareIntersections,
-                                  size = 2 * len(INTERSECTION_STREET_1),
+                                  size = 2 * len(INTERSECTION_A),
                                   indicator=[0,0,1],
                                   offset = 2 * (len(STREET_PARTS) 
                                                 + len(BOX_PARTS)))}
@@ -111,7 +112,7 @@ class USAddressType(object) :
     # missing? + same_type? + len(indicator) + ...
     expanded_size = 1 + 1 + 3 + 2 * sum(address_type.size
                                         for address_type 
-                                        in self.components.values())
+                                        in components.values())
 
     def __init__(self, definition) :
         preamble = [('%s: Not Missing' % definition['field'], 'Dummy'),
@@ -127,11 +128,20 @@ class USAddressType(object) :
                              + INTERSECTION_A_NAMES 
                              + INTERSECTION_B_NAMES)]
 
-        fields = preamble + address_parts
+        self.n_parts = len(address_parts)
+
+        not_missing_address_parts = [('%s: Not Missing' % part, 'Not Missing') 
+                                     for part
+                                     in (STREET_NAMES 
+                                         + BOX_NAMES 
+                                         + INTERSECTION_A_NAMES 
+                                         + INTERSECTION_B_NAMES)]
+
+        fields = preamble + address_parts + not_missing_address_parts
         
         self.higher_vars = [DerivedType({'name' : name,
                                          'type' : field_type})
-                            for field in fields]
+                            for name, field_type in fields]
 
     def comparator(self, field_1, field_2) :
         distances = numpy.zeros(self.expanded_size)
@@ -164,10 +174,10 @@ class USAddressType(object) :
 
         i = j + 1
 
-        print distances
         unobserved_parts = numpy.isnan(distances[start:i])
         distances[start:i][unobserved_parts] = 0
-        distances[i:(i + size)] = (~unobserved_parts).astype(int)
+        unobserved_parts = (~unobserved_parts).astype(int)
+        distances[(start + self.n_parts):(i + self.n_parts)] = unobserved_parts
 
         return distances
 

@@ -220,7 +220,7 @@ class ExistsType(CategoricalType) :
         else :
             return self.cat_comparator(0, 0)
 
-class DerirvedType(Variable) :
+class DerivedType(Variable) :
     type = "Derived"
 
     def __init__(self, definition) :
