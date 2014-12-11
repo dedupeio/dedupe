@@ -81,7 +81,7 @@ class PriceType(FieldType) :
         elif price_2 == 0 :
             return numpy.nan
         else :
-            return abs(numpy.log(price_1) - numpy.log(price_2))
+            return abs(numpy.log10(price_1) - numpy.log10(price_2))
 
 class ShortStringType(FieldType) :
     comparator = normalizedAffineGapDistance

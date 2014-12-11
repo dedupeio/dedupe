@@ -35,7 +35,6 @@ class TestSetElement(unittest.TestCase):
         block_val = predicates.lastSetElementPredicate(set([]))
         assert block_val == ()
 
-
 class TestLatLongGrid(unittest.TestCase):
     def setUp(self):
         self.latlong1 = (42.535, -5.012)
@@ -51,6 +50,16 @@ class TestLatLongGrid(unittest.TestCase):
         assert block_val == (1,)
         block_val = predicates.existsPredicate((0,0)) 
         assert block_val == (0,)
+
+class TestNumericPredicates(unittest.TestCase) :
+    def test_order_of_magnitude(self) :
+        assert predicates.orderOfMagnitude(10) == (u'1',)
+        assert predicates.orderOfMagnitude(9) == (u'1',)
+        assert predicates.orderOfMagnitude(2) == (u'0',)
+
+
+    def test_round_to_1(self) :
+        assert predicates.roundTo1(22315) == (u'20000',)
 
 if __name__ == '__main__':
     unittest.main()
