@@ -191,7 +191,7 @@ class CategoricalType(FieldType) :
         self.comparator = CategoricalComparator(categories)
   
         self.higher_dummies = []
-        for higher_dummy in self.comparator.dummy_names[1:] :
+        for higher_dummy in self.comparator.dummy_names :
             dummy_var = DerivedType({'name' : higher_dummy,
                                      'type' : 'Dummy',
                                      'has missing' : self.has_missing})

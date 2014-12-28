@@ -118,14 +118,13 @@ def fieldDistances(record_pairs, data_model):
     num_records = len(record_pairs)
 
     distances = numpy.empty((num_records, data_model.n_fields))
-
     field_comparators = data_model.field_comparators
 
     for i, (record_1, record_2) in enumerate(record_pairs) :
         for field, compare, start, stop in field_comparators :
             distances[i,start:stop] = compare(record_1[field],
                                               record_2[field])
-
+    
     distances = derivedDistances(distances, data_model)
 
     return distances
