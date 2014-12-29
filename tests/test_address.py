@@ -14,6 +14,7 @@ class TestPrice(unittest.TestCase):
                          0, 0, 1, 1, 1, 1, 0,
                          0, 0, 0, 0, 0, 0, 0,
                          0, 0, 0, 0, 0]))
+
         numpy.testing.assert_almost_equal(us.comparator('po box 31', 
                                                         '124 W Main St'),
             numpy.array([1, 0, 0, 0, 0, 0,
@@ -22,7 +23,6 @@ class TestPrice(unittest.TestCase):
                          0, 0, 0, 0, 0, 0, 0,
                          0, 0, 0, 0, 0, 0, 0,
                          0, 0, 0, 0, 0]))
-
                                 
         numpy.testing.assert_almost_equal(us.comparator('po box 31', 
                                                         'po box 41'),
@@ -32,6 +32,24 @@ class TestPrice(unittest.TestCase):
                          0, 0, 0, 0, 0, 0, 0,
                          0, 0, 0, 0, 1, 1, 0,
                          0, 0, 0, 0, 0]))
+
+        numpy.testing.assert_almost_equal(us.comparator('69th and main st', 
+                                                        '70th and main st'),
+            numpy.array([1, 1, 0, 0, 1, 0,
+                         0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 3, 0, 0,
+                         0.5, 0.5, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, 0,
+                         1, 0, 0, 1, 1]))
+
+        numpy.testing.assert_equal(us.comparator('69th and main st', 
+                                                 '70th and main st'),
+                                   us.comparator('main st and 69th',
+                                                 '70th and main st'))
+
+
+        
+
 
 
 def prettyPrint(us, comparison) :
