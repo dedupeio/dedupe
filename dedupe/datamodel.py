@@ -1,7 +1,4 @@
-try:
-    from collections import OrderedDict
-except ImportError :
-    from backport import OrderedDict
+from backport import OrderedDict
 
 import itertools
 import dedupe.predicates
@@ -9,7 +6,13 @@ import dedupe.blocking
 
 import dedupe.fieldclasses
 from dedupe.fieldclasses import MissingDataType
-from dedupe.variables.address import USAddressType
+
+try :
+    from dedupe.variables.address import USAddressType
+except ImportError :
+    def USAddressType(_) :
+        raise ValueError("USAddressType not available. "
+                         "Install the 'usaddress' package")
 
 FIELD_CLASSES = {'String' : dedupe.fieldclasses.StringType,
                  'ShortString' : dedupe.fieldclasses.ShortStringType,
@@ -68,8 +71,6 @@ class DataModel(dict) :
 
         fields = self['fields']
         field_names = [field.name for field in fields]
-        print 'foo'
-        print field_names
 
         for definition in fields :
             if hasattr(definition, 'interaction_fields') :

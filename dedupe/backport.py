@@ -21,10 +21,6 @@ else :
     from multiprocessing import Process, Pool, Queue
     from multiprocessing.queues import SimpleQueue
 
-
-## {{{ http://code.activestate.com/recipes/576693/ (r9)
-# Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
-# Passes Python2.7's test suite and incorporates all the latest updates.
 try:
     from thread import get_ident as _get_ident
 except ImportError:
@@ -40,43 +36,51 @@ try :
 except ImportError :
     from ordereddict import OrderedDict
 
+try:
+    from json.scanner import py_make_scanner
+    import json
+except ImportError:
+    from simplejson.scanner import py_make_scanner
+    import simplejson as json
+
+
 def cartesian(arrays, out=None):
     """Generate a cartesian product of input arrays.
 
-Parameters
-----------
-arrays : list of array-like
-1-D arrays to form the cartesian product of.
-out : ndarray
-Array to place the cartesian product in.
-
-Returns
--------
-out : ndarray
-2-D array of shape (M, len(arrays)) containing cartesian products
-formed of input arrays.
-
-Examples
---------
->>> cartesian(([1, 2, 3], [4, 5], [6, 7]))
-array([[1, 4, 6],
-[1, 4, 7],
-[1, 5, 6],
-[1, 5, 7],
-[2, 4, 6],
-[2, 4, 7],
-[2, 5, 6],
-[2, 5, 7],
-[3, 4, 6],
-[3, 4, 7],
-[3, 5, 6],
-[3, 5, 7]])
-
-References
-----------
-http://stackoverflow.com/q/1208118
-
-"""
+    Parameters
+    ----------
+    arrays : list of array-like
+    1-D arrays to form the cartesian product of.
+    out : ndarray
+    Array to place the cartesian product in.
+    
+    Returns
+    -------
+    out : ndarray
+    2-D array of shape (M, len(arrays)) containing cartesian products
+    formed of input arrays.
+    
+    Examples
+    --------
+    >>> cartesian(([1, 2, 3], [4, 5], [6, 7]))
+    array([[1, 4, 6],
+    [1, 4, 7],
+    [1, 5, 6],
+    [1, 5, 7],
+    [2, 4, 6],
+    [2, 4, 7],
+    [2, 5, 6],
+    [2, 5, 7],
+    [3, 4, 6],
+    [3, 4, 7],
+    [3, 5, 6],
+    [3, 5, 7]])
+    
+    References
+    ----------
+    http://stackoverflow.com/q/1208118
+    
+    """
     arrays = [numpy.asarray(x).ravel() for x in arrays]
     dtype = arrays[0].dtype
 

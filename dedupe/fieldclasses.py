@@ -9,10 +9,7 @@ from affinegap import normalizedAffineGapDistance
 from haversine import haversine
 from categorical import CategoricalComparator
 
-try:
-    from collections import OrderedDict
-except ImportError :
-    from dedupe.backport import OrderedDict
+from dedupe.backport import OrderedDict
 
 class Variable(object) :
     def __len__(self) :

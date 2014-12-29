@@ -5,10 +5,6 @@ dedupe provides the main user interface for the library the
 Dedupe class
 """
 
-try:
-    import json
-except ImportError: 
-    import simplejson as json
 import itertools
 import logging
 import pickle
@@ -20,10 +16,7 @@ import copy
 import os
 from collections import defaultdict
 
-try:
-    from collections import OrderedDict
-except ImportError :
-    from dedupe.backport import OrderedDict
+from dedupe.backport import OrderedDict, json
 
 import dedupe
 import dedupe.sampling as sampling
@@ -610,8 +603,8 @@ class ActiveMatching(Matching) :
                            (len(self.data_model['fields']), ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = dedupe.backport.OrderedDict({'distinct': [], 
-                                                           'match': []})
+        self.training_pairs = OrderedDict({'distinct': [], 
+                                           'match': []})
 
 
     def cleanupTraining(self) : # pragma : no cover
