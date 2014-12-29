@@ -21,6 +21,11 @@ try:
 except ImportError:
     install_requires.append('simplejson')
 
+try : 
+    from collections import OrderedDict
+except ImportError:
+    install_requires.append('orderedict')
+
 
 setup(
     name='dedupe',
