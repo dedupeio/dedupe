@@ -37,7 +37,7 @@ except ImportError:
 
 try :
     from collections import OrderedDict
-else :
+except ImportError :
     from ordereddict import OrderedDict
 
 def cartesian(arrays, out=None):
