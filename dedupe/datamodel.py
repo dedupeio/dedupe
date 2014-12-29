@@ -68,6 +68,8 @@ class DataModel(dict) :
 
         fields = self['fields']
         field_names = [field.name for field in fields]
+        print 'foo'
+        print field_names
 
         for definition in fields :
             if hasattr(definition, 'interaction_fields') :

@@ -190,12 +190,12 @@ class CategoricalType(FieldType) :
 
         self.comparator = CategoricalComparator(categories)
   
-        self.higher_dummies = []
-        for higher_dummy in self.comparator.dummy_names :
-            dummy_var = DerivedType({'name' : higher_dummy,
+        self.higher_vars = []
+        for higher_var in self.comparator.dummy_names :
+            dummy_var = DerivedType({'name' : higher_var,
                                      'type' : 'Dummy',
                                      'has missing' : self.has_missing})
-            self.higher_dummies.append(dummy_var)
+            self.higher_vars.append(dummy_var)
 
     def __len__(self) :
         return len(self.comparator.dummy_names)
@@ -253,11 +253,11 @@ class InteractionType(Variable) :
     
     def categorical(self, field_model) :
         categoricals = [field for field in self.interaction_fields
-                        if hasattr(field_model[field], "higher_dummies")]
+                        if hasattr(field_model[field], "higher_vars")]
         noncategoricals = [field for field in self.interaction_fields
-                           if not hasattr(field_model[field], "higher_dummies")]
+                           if not hasattr(field_model[field], "higher_vars")]
 
-        dummies = [field_model[field].higher_dummies 
+        dummies = [field_model[field].higher_vars 
                    for field in categoricals]
 
         self.higher_vars = []

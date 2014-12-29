@@ -1097,9 +1097,8 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
 
 def predicateGenerator(data_model) :
     predicates = set([])
-    for definition in data_model['fields'] :
-        if hasattr(definition, 'predicates') :
-            predicates.update(definition.predicates)
+    for definition in data_model.primary_fields :
+        predicates.update(definition.predicates)
 
     return predicates
 
