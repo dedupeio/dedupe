@@ -174,7 +174,7 @@ Address
 ^^^^^^^
 
 An 'Address' variable should be used for United States addresses. It
-uses the `usaddress <http://usaddress.readthedocs.org/en/latest/`__
+uses the `usaddress <http://usaddress.readthedocs.org/en/latest/>`__
 package to split apart and address string into components like address
 number, street name, and street type and compared.
 
