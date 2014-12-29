@@ -177,6 +177,8 @@ class FieldDistances(unittest.TestCase):
                     ({'name' : 'steven', 'type' : 'b'},
                      {'name' : 'steve', 'type' : 'b'}))
 
+    print deduper.data_model
+
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
                                             numpy.array([[0, 1, 0.64772, 0, 0.64772],

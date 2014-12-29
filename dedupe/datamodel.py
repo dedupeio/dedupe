@@ -1,7 +1,4 @@
-try:
-    from collections import OrderedDict
-except ImportError :
-    from backport import OrderedDict
+from backport import OrderedDict
 
 import itertools
 import dedupe.predicates
@@ -10,7 +7,14 @@ import dedupe.blocking
 import dedupe.fieldclasses
 from dedupe.fieldclasses import MissingDataType
 
-field_classes = {'String' : dedupe.fieldclasses.StringType,
+try :
+    from dedupe.variables.address import USAddressType
+except ImportError :
+    def USAddressType(_) :
+        raise ValueError("USAddressType not available. "
+                         "Install the 'usaddress' package")
+
+FIELD_CLASSES = {'String' : dedupe.fieldclasses.StringType,
                  'ShortString' : dedupe.fieldclasses.ShortStringType,
                  'LatLong' : dedupe.fieldclasses.LatLongType,
                  'Set' : dedupe.fieldclasses.SetType, 
@@ -20,6 +24,7 @@ field_classes = {'String' : dedupe.fieldclasses.StringType,
                  'Exists' : dedupe.fieldclasses.ExistsType,
                  'Custom' : dedupe.fieldclasses.CustomType,
                  'Exact' : dedupe.fieldclasses.ExactType,
+                 'Address' : USAddressType,
                  'Interaction' : dedupe.fieldclasses.InteractionType}
 
 class DataModel(dict) :
@@ -28,14 +33,15 @@ class DataModel(dict) :
 
         self['bias'] = 0
 
-        field_model = typifyFields(fields)
-        self.derived_start = len(field_model)
+        primary_fields, data_model = typifyFields(fields)
+        self.derived_start = len(data_model)
 
-        field_model = interactions(fields, field_model)
-        field_model = missing(field_model)
+        data_model += interactions(fields, primary_fields)
+        data_model += missing(data_model)
 
-        self['fields'] = field_model
+        self['fields'] = data_model
         self.n_fields = len(self['fields'])
+        self.primary_fields = primary_fields
 
     # Changing this from a property to just a normal attribute causes
     # pickling problems, because we are removing static methods from
@@ -46,15 +52,12 @@ class DataModel(dict) :
         start = 0
         stop = 0
         comparators = []
-        for field in self['fields'] :
-            if hasattr(field, 'comparator') :
-                stop = start + len(field) 
-                comparators.append((field.field, field.comparator, start, stop))
-                start = stop
+        for field in self.primary_fields :
+            stop = start + len(field) 
+            comparators.append((field.field, field.comparator, start, stop))
+            start = stop
 
         return comparators
-
-
 
     @property 
     def missing_field_indices(self) : 
@@ -79,7 +82,8 @@ class DataModel(dict) :
         return indices
 
 def typifyFields(fields) :
-    field_model = []
+    primary_fields = []
+    data_model = []
 
     for definition in fields :
         try :
@@ -95,41 +99,45 @@ def typifyFields(fields) :
                            "include a type definition, ex. "
                            "{'field' : 'Phone', type: 'String'}")
         try :
-            field_class = field_classes[field_type]
+            field_class = FIELD_CLASSES[field_type]
         except KeyError :
             raise KeyError("Field type %s not valid. Valid types include %s"
-                           % (definition['type'], ', '.join(field_classes)))
+                           % (definition['type'], ', '.join(FIELD_CLASSES)))
 
         if field_type == 'Interaction' :
             continue
 
         field_object = field_class(definition)
-        field_model.append(field_object)
+        primary_fields.append(field_object)
         
-        if hasattr(field_object, 'higher_dummies') :
-            field_model.extend(field_object.higher_dummies)
+        if hasattr(field_object, 'higher_vars') :
+            data_model.extend(field_object.higher_vars)
+        else :
+            data_model.append(field_object)
 
-    return field_model
+    return primary_fields, data_model
 
-def missing(field_model) :
-    for definition in field_model[:] :
+def missing(data_model) :
+    missing_variables = []
+    for definition in data_model[:] :
         if definition.has_missing :
-            field_model.append(MissingDataType(definition.name))
+            missing_variables.append(MissingDataType(definition.name))
 
-    return field_model
+    return missing_variables
 
-def interactions(definitions, field_model) :
-    field_d = dict((field.name, field) for field in field_model)
-    interaction_class = field_classes['Interaction']
+def interactions(definitions, primary_fields) :
+    field_d = dict((field.name, field) for field in primary_fields)
+    interaction_class = FIELD_CLASSES['Interaction']
+
+    interactions = []
 
     for definition in definitions :
         if definition['type'] == 'Interaction' :
             field = interaction_class(definition)
-            field_model.append(field)
             field.expandInteractions(field_d)
-            field_model.extend(field.higher_vars)
+            interactions.extend(field.higher_vars)
 
-    return field_model
+    return interactions
 
 
 

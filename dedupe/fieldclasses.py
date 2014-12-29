@@ -9,10 +9,7 @@ from affinegap import normalizedAffineGapDistance
 from haversine import haversine
 from categorical import CategoricalComparator
 
-try:
-    from collections import OrderedDict
-except ImportError :
-    from dedupe.backport import OrderedDict
+from dedupe.backport import OrderedDict
 
 class Variable(object) :
     def __len__(self) :
@@ -190,11 +187,12 @@ class CategoricalType(FieldType) :
 
         self.comparator = CategoricalComparator(categories)
   
-        self.higher_dummies = []
-        for higher_dummy in self.comparator.dummy_names[1:] :
-            dummy_var = HigherDummyType({'name' : higher_dummy,
-                                         'has missing' : self.has_missing})
-            self.higher_dummies.append(dummy_var)
+        self.higher_vars = []
+        for higher_var in self.comparator.dummy_names :
+            dummy_var = DerivedType({'name' : higher_var,
+                                     'type' : 'Dummy',
+                                     'has missing' : self.has_missing})
+            self.higher_vars.append(dummy_var)
 
     def __len__(self) :
         return len(self.comparator.dummy_names)
@@ -219,12 +217,13 @@ class ExistsType(CategoricalType) :
         else :
             return self.cat_comparator(0, 0)
 
-class HigherDummyType(Variable) :
-    type = "HigherOrderDummy"
+class DerivedType(Variable) :
+    type = "Derived"
 
     def __init__(self, definition) :
-        self.name = "(%s: %s)" % (str(definition['name']), self.type)
-        super(HigherDummyType, self).__init__(definition)
+        self.name = "(%s: %s)" % (str(definition['name']), 
+                                  str(definition['type']))
+        super(DerivedType, self).__init__(definition)
 
 
 class InteractionType(Variable) :
@@ -251,11 +250,11 @@ class InteractionType(Variable) :
     
     def categorical(self, field_model) :
         categoricals = [field for field in self.interaction_fields
-                        if hasattr(field_model[field], "higher_dummies")]
+                        if hasattr(field_model[field], "higher_vars")]
         noncategoricals = [field for field in self.interaction_fields
-                           if not hasattr(field_model[field], "higher_dummies")]
+                           if not hasattr(field_model[field], "higher_vars")]
 
-        dummies = [field_model[field].higher_dummies 
+        dummies = [field_model[field].higher_vars 
                    for field in categoricals]
 
         self.higher_vars = []
@@ -289,7 +288,7 @@ class MissingDataType(Variable) :
 
     def __init__(self, name) :
         
-        self.name = "(%s: Not Missing)" %name
+        self.name = "(%s: Not Missing)" % name
         self.weight = 0
 
         self.has_missing = False

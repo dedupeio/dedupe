@@ -1,13 +1,5 @@
-try:
-    from json.scanner import py_make_scanner
-    import json
-except ImportError:
-    from simplejson.scanner import py_make_scanner
-    import simplejson as json
-
+from backport import py_make_scanner, json
 import dedupe.core
-    
-
 
 def _to_json(python_object):                                             
     if isinstance(python_object, frozenset):                                
