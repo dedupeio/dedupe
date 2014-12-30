@@ -1,6 +1,9 @@
 Variable definitions
 =================
 
+Core Variables
+--------------
+
 A variable definition describes the records that you want to match. It is
 a dictionary where the keys are the fields and the values are the
 field specification
@@ -170,19 +173,6 @@ Exact
     {'field' : 'city', 'type': 'Exact'}} 
 
 
-Address
-^^^^^^^
-
-An 'Address' variable should be used for United States addresses. It
-uses the `usaddress <http://usaddress.readthedocs.org/en/latest/>`__
-package to split apart and address string into components like address
-number, street name, and street type and compared.
-
-.. code:: python
-
-    {'field' : 'address', 'type' : 'Address'}
-
-
 Exists
 ^^^^^^
 
@@ -297,4 +287,20 @@ Will create two variables that both compare the 'name' field but
 in different ways.
 
 
+Optional Variables
+------------------
 
+Address Type
+^^^^^^^^^^^^
+
+An 'Address' variable should be used for United States addresses. It
+uses the `usaddress <http://usaddress.readthedocs.org/en/latest/>`__
+package to split apart and address string into components like address
+number, street name, and street type and compared.
+
+.. code:: python
+
+    {'field' : 'address', 'type' : 'Address'}
+
+
+Install the `dedupe-variable-address <https://pypi.python.org/pypi/dedupe-variable-address/0.0.0.1>`__ package for Address Type.
