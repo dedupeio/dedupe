@@ -9,4 +9,4 @@ affinegap
 haversine
 rlr
 categorical-distance
-usaddress
+dedupe-variable-address

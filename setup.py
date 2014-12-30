@@ -32,11 +32,10 @@ setup(
     url='https://github.com/datamade/dedupe',
     version='0.7.6.0',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
-    packages=['dedupe', 'dedupe.distance'],
+    packages=['dedupe', 'dedupe.distance', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=install_requires,
-    extras_require={'address' : ['usaddress']},
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
