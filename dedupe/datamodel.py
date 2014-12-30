@@ -1,31 +1,9 @@
 from backport import OrderedDict
 
-import itertools
-import dedupe.predicates
-import dedupe.blocking
+import dedupe.variables.fieldclasses as fieldclasses
+from dedupe.variables.fieldclasses import MissingDataType, InteractionType
 
-import dedupe.fieldclasses
-from dedupe.fieldclasses import MissingDataType
-
-try :
-    from dedupe.variables.address import USAddressType
-except ImportError :
-    def USAddressType(_) :
-        raise ValueError("USAddressType not available. "
-                         "Install the 'usaddress' package")
-
-FIELD_CLASSES = {'String' : dedupe.fieldclasses.StringType,
-                 'ShortString' : dedupe.fieldclasses.ShortStringType,
-                 'LatLong' : dedupe.fieldclasses.LatLongType,
-                 'Set' : dedupe.fieldclasses.SetType, 
-                 'Price'  : dedupe.fieldclasses.PriceType,
-                 'Text' : dedupe.fieldclasses.TextType,
-                 'Categorical' : dedupe.fieldclasses.CategoricalType,
-                 'Exists' : dedupe.fieldclasses.ExistsType,
-                 'Custom' : dedupe.fieldclasses.CustomType,
-                 'Exact' : dedupe.fieldclasses.ExactType,
-                 'Address' : USAddressType,
-                 'Interaction' : dedupe.fieldclasses.InteractionType}
+FIELD_CLASSES = dict(fieldclasses.allSubclasses(fieldclasses.FieldType))
 
 class DataModel(dict) :
 
@@ -98,14 +76,15 @@ def typifyFields(fields) :
                            "specifications are dictionaries that must "
                            "include a type definition, ex. "
                            "{'field' : 'Phone', type: 'String'}")
+            
+        if field_type == 'Interaction' :
+            continue
+
         try :
             field_class = FIELD_CLASSES[field_type]
         except KeyError :
             raise KeyError("Field type %s not valid. Valid types include %s"
                            % (definition['type'], ', '.join(FIELD_CLASSES)))
-
-        if field_type == 'Interaction' :
-            continue
 
         field_object = field_class(definition)
         primary_fields.append(field_object)
@@ -127,7 +106,7 @@ def missing(data_model) :
 
 def interactions(definitions, primary_fields) :
     field_d = dict((field.name, field) for field in primary_fields)
-    interaction_class = FIELD_CLASSES['Interaction']
+    interaction_class = InteractionType
 
     interactions = []
 

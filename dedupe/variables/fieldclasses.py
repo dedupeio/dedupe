@@ -1,7 +1,7 @@
 import itertools
 import dedupe
 import dedupe.distance
-import predicates
+import dedupe.predicates as predicates
 import numpy
 from collections import defaultdict
 
@@ -10,6 +10,8 @@ from haversine import haversine
 from categorical import CategoricalComparator
 
 from dedupe.backport import OrderedDict
+
+
 
 class Variable(object) :
     def __len__(self) :
@@ -38,6 +40,7 @@ class Variable(object) :
             self.has_missing = False
 
 class FieldType(Variable) :
+
     def __init__(self, definition) :
         self.field = definition['field']
 
@@ -313,4 +316,12 @@ class CustomType(FieldType) :
             self.name = "(%s: %s, %s)" % (self.field, 
                                           self.type, 
                                           self.comparator.__name__)
+
+
+def allSubclasses(cls) :
+    field_classes = {}
+    for q in cls.__subclasses__() :
+        yield q.type, q
+        for p in allSubclasses(q) :
+            yield p
 
