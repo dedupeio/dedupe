@@ -1,7 +1,15 @@
+import pkgutil
+
 from backport import OrderedDict
 
+import dedupe.variables
 import dedupe.variables.fieldclasses as fieldclasses
 from dedupe.variables.fieldclasses import MissingDataType, InteractionType
+
+for _, module, _  in pkgutil.iter_modules(dedupe.variables.__path__, 
+                                          'dedupe.variables.') :
+    __import__(module)
+
 
 FIELD_CLASSES = dict(fieldclasses.allSubclasses(fieldclasses.FieldType))
 
