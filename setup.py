@@ -13,7 +13,7 @@ install_requires=['numpy',
                   'rlr',
                   'affinegap',
                   'haversine',
-                  'BTrees==4.0.8'
+                  'BTrees==4.0.8',
                   'zope.interface', 
                   'zope.index']
 
