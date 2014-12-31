@@ -9,7 +9,7 @@ notifications:
     on_failure: always
   irc: chat.freenode.net#dedupe
 python:
-- "2.7"
+- '2.7'
 - '2.6'
 install:
 - pip install -r requirements.txt
