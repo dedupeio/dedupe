@@ -17,7 +17,7 @@ install_requires=['numpy',
                   'zope.index']
 
 try:
-    import json
+    from simplejson.scanner import py_make_scanner
 except ImportError:
     install_requires.append('simplejson')
 
@@ -30,7 +30,7 @@ except ImportError:
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.7.6.0',
+    version='0.7.6.2',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
