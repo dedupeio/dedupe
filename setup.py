@@ -13,8 +13,8 @@ install_requires=['numpy',
                   'rlr',
                   'affinegap',
                   'haversine',
-                  'zope.interface', 
-                  'zope.index']
+                  'zope.interface==4.1.0', 
+                  'zope.index==4.0.1']
 
 try:
     from simplejson.scanner import py_make_scanner
