@@ -30,3 +30,7 @@ deploy:
     all_branches: true
     repo: datamade/dedupe
 sudo: false
+cache:
+  directories:
+    - /home/travis/virtualenv/python2.7.9/lib/python2.7/site-packages
+    - /home/travis/virtualenv/python2.6.9/lib/python2.6/site-packages
