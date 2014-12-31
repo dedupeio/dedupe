@@ -16,7 +16,6 @@ install:
 - pip install python-coveralls
 - cython src/*.pyx
 - python setup.py develop
-- sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
 script:
 - coverage run -m nose -I canonical_test
 - python tests/canonical_test.py
@@ -30,3 +29,4 @@ deploy:
     tags: true
     all_branches: true
     repo: datamade/dedupe
+sudo: false
