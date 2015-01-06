@@ -32,7 +32,7 @@ Web interface for de-duplicating spreadsheets with up to 10,000 rows. Read about
 If you only want to use dedupe, install it this way:
 
 ```bash
-pip install "numpy>=1.6"
+pip install "numpy>=1.9"
 pip install dedupe
 ```
 
@@ -40,12 +40,12 @@ pip install dedupe
 
 Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to install. 
 If you are installing numpy for the first time, 
-[follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html). You'll need to version 1.6 of numpy or higher.
+[follow these instructions](http://docs.scipy.org/doc/numpy/user/install.html). You'll need to version 1.9 of numpy or higher.
 
 ```bash
 git clone git://github.com/datamade/dedupe.git
 cd dedupe
-pip install "numpy>=1.6"
+pip install "numpy>=1.9"
 # For python 2.7
 pip install -r requirements.txt
 # For python 2.6
