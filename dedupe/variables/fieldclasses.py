@@ -198,7 +198,7 @@ class CategoricalType(FieldType) :
             self.higher_vars.append(dummy_var)
 
     def __len__(self) :
-        return len(self.comparator.dummy_names)
+        return len(self.higher_vars)
 
 
 class ExistsType(CategoricalType) :
@@ -207,12 +207,12 @@ class ExistsType(CategoricalType) :
 
     def __init__(self, definition) :
 
-        super(CategoricalType, self ).__init__(definition)
-        
-        self.cat_comparator = CategoricalComparator([0, 1])
+        definition['categories'] = [0, 1]
+        super(ExistsType, self ).__init__(definition)
+        self.cat_comparator = self.comparator
+        self.comparator = self.exists_comparator
 
-
-    def comparator(self, field_1, field_2) :
+    def exists_comparator(self, field_1, field_2) :
         if field_1 and field_2 :
             return self.cat_comparator(1, 1)
         elif field_1 or field_2 :
