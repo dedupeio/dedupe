@@ -207,12 +207,18 @@ class ExistsType(CategoricalType) :
 
     def __init__(self, definition) :
 
-        definition['categories'] = [0, 1]
-        super(ExistsType, self ).__init__(definition)
-        self.cat_comparator = self.comparator
-        self.comparator = self.exists_comparator
+        super(CategoricalType, self ).__init__(definition)
+        
+        self.cat_comparator = CategoricalComparator([0,1])
+  
+        self.higher_vars = []
+        for higher_var in self.cat_comparator.dummy_names :
+            dummy_var = DerivedType({'name' : higher_var,
+                                     'type' : 'Dummy',
+                                     'has missing' : self.has_missing})
+            self.higher_vars.append(dummy_var)
 
-    def exists_comparator(self, field_1, field_2) :
+    def comparator(self, field_1, field_2) :
         if field_1 and field_2 :
             return self.cat_comparator(1, 1)
         elif field_1 or field_2 :
