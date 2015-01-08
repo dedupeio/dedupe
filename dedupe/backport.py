@@ -2,7 +2,9 @@ import numpy
 import weakref
 import threading
 import warnings
+import platform
 
+MULTIPROCESSING = True
 # Deal with Mac OS X issuse
 config_info = str([value for key, value in
                    numpy.__config__.__dict__.iteritems()
@@ -12,14 +14,19 @@ if "accelerate" in config_info or "veclib" in config_info :
     warnings.warn("NumPy linked against 'Accelerate.framework'. "
                   "Multiprocessing will be disabled."
                   " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
-        
+    MULTIPROCESSING = False
+elif platform.system() == 'Windows' :
+    warnings.warn("Dedupe does not currenly support multiprocessing on Windows")
+    MULTIPROCESSING = False
+
+if MULTIPROCESSING :        
+    from multiprocessing import Process, Pool, Queue
+    from multiprocessing.queues import SimpleQueue
+else :
     if not hasattr(threading.current_thread(), "_children"): 
         threading.current_thread()._children = weakref.WeakKeyDictionary()
     from multiprocessing.dummy import Process, Pool, Queue
     SimpleQueue = Queue
-else :
-    from multiprocessing import Process, Pool, Queue
-    from multiprocessing.queues import SimpleQueue
 
 try:
     from thread import get_ident as _get_ident
