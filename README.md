@@ -46,11 +46,7 @@ If you are installing numpy for the first time,
 git clone git://github.com/datamade/dedupe.git
 cd dedupe
 pip install "numpy>=1.9"
-# For python 2.7
 pip install -r requirements.txt
-# For python 2.6
-pip install -r py26_requirements.txt
-
 cython src/*.pyx
 python setup.py develop
 
