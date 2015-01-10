@@ -145,16 +145,7 @@ def blockTraining(training_pairs,
                                                training_dupes)
     predicate_set = dupe_coverage.keys()
 
-    # Within blocks, we will compare every combination of
-    # records. Therefore, we want to avoid predicates that make large
-    # blocks.
-    for pred in predicate_set[:] :
-        blocks = coverage.blocks[pred].itervalues()
-        if any(len(block) >= 200 for block in blocks if block) :
-            predicate_set.remove(pred)
-
-    # As an efficency, we can throw away the predicates that cover too
-    # many distinct pairs
+    # Throw away the predicates that cover too many distinct pairs
     coverage_threshold = eta * len(training_distinct)
     logger.info("coverage threshold: %s", coverage_threshold)
 
@@ -164,10 +155,6 @@ def blockTraining(training_pairs,
     for pred, pairs in distinct_coverage.items() :
         if len(pairs) > coverage_threshold :
             predicate_set.remove(pred)
-
-
-    #distinct_coverage = coverage.predicateCoverage(predicate_set, 
-    #                                               training_distinct)
 
     final_predicate_set = findOptimumBlocking(training_dupes,
                                               predicate_set,
@@ -259,7 +246,6 @@ class Coverage(object) :
 
     def coveredBy(self, predicates, pairs) :
         self.overlap = defaultdict(set)
-        self.blocks = defaultdict(lambda : defaultdict(set))
 
         for pair in pairs :
             (record_1_id, record_1), (record_2_id, record_2) = pair
@@ -270,14 +256,6 @@ class Coverage(object) :
                 if field_preds :
                     rec_pair = record_1_id, record_2_id
                     self.overlap[predicate].add(rec_pair)
-                    for field_pred in field_preds :
-                        self.blocks[predicate][field_pred].add(rec_pair)
-
-        # efficiency, since we are going to throw away blocks that 
-        for predicate, coverage in self.blocks.items() :
-            for field_pred, block in coverage.items() :
-                if len(block) < 100 :
-                    del self.blocks[predicate][field_pred]
 
 
     def predicateCoverage(self,
@@ -309,11 +287,6 @@ class Coverage(object) :
                              self.overlap[predicate_2])
             
             i = 0
-            for blocks in product(self.blocks[predicate_1].values(),
-                                  self.blocks[predicate_2].values()) :
-                self.blocks[compound_predicate][i] =\
-                        intersection(*blocks)
-                i += 1
 
 
 class DedupeCoverage(Coverage) :
