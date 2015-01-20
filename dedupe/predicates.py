@@ -212,14 +212,14 @@ def sortedAcronym(field) :
 def existsPredicate(field) :
     try :
         if any(field) :
-            return (1,)
+            return (u'1',)
         else :
-            return (0,)
+            return (u'0',)
     except TypeError :
         if field :
-            return (1,)
+            return (u'1',)
         else :
-            return (0,)
+            return (u'0',)
 
 def wholeSetPredicate(field_set):
     if field_set :
