@@ -603,8 +603,8 @@ class ActiveMatching(Matching) :
                            (len(self.data_model['fields']), ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
-        self.training_pairs = OrderedDict({'distinct': [], 
-                                           'match': []})
+        self.training_pairs = OrderedDict({u'distinct': [], 
+                                           u'match': []})
 
 
     def cleanupTraining(self) : # pragma : no cover
@@ -669,7 +669,7 @@ class ActiveMatching(Matching) :
                            blocks that put together many, many distinct pairs
                            that we'll have to expensively, compare as well.
         """
-        n_folds = min(numpy.sum(self.training_data['label']=='match')/3,
+        n_folds = min(numpy.sum(self.training_data['label']==u'match')/3,
                       20)
         n_folds = max(n_folds,
                       2)
@@ -703,7 +703,7 @@ class ActiveMatching(Matching) :
                                                                        self.data_model,
                                                                        sample_size=32000)
 
-        training_pairs['distinct'].extend(confident_nonduplicates)
+        training_pairs[u'distinct'].extend(confident_nonduplicates)
 
         predicate_set = predicateGenerator(self.data_model)
 
@@ -759,15 +759,15 @@ class ActiveMatching(Matching) :
             rand_int = random.randint(0, len(self.data_sample)-1)
             random_pair = self.data_sample[rand_int]
             exact_match = (random_pair[0], random_pair[0]) 
-            self._addTrainingData({'match':[exact_match, exact_match],
-                                   'distinct':[]})
+            self._addTrainingData({u'match':[exact_match, exact_match],
+                                   u'distinct':[]})
 
 
         self._trainClassifier(alpha=0.1)
 
         
-        dupe_ratio = (len(self.training_pairs['match'])
-                      /(len(self.training_pairs['distinct']) + 1.0))
+        dupe_ratio = (len(self.training_pairs[u'match'])
+                      /(len(self.training_pairs[u'distinct']) + 1.0))
 
         return self.activeLearner.uncertainPairs(self.data_model, dupe_ratio)
 
@@ -784,21 +784,21 @@ class ActiveMatching(Matching) :
         '''
         try :
             labeled_pairs.items()
-            labeled_pairs['match']
-            labeled_pairs['distinct']
+            labeled_pairs[u'match']
+            labeled_pairs[u'distinct']
         except :
             raise ValueError('labeled_pairs must be a dictionary with keys '
                              '"distinct" and "match"')
 
-        if labeled_pairs['match'] :
-            pair = labeled_pairs['match'][0]
+        if labeled_pairs[u'match'] :
+            pair = labeled_pairs[u'match'][0]
             self._checkRecordPairType(pair)
         
-        if labeled_pairs['distinct'] :
-            pair = labeled_pairs['distinct'][0]
+        if labeled_pairs[u'distinct'] :
+            pair = labeled_pairs[u'distinct'][0]
             self._checkRecordPairType(pair)
         
-        if not labeled_pairs['distinct'] and not labeled_pairs['match'] :
+        if not labeled_pairs[u'distinct'] and not labeled_pairs[u'match'] :
             warnings.warn("Didn't return any labeled record pairs")
         
 

@@ -2,20 +2,17 @@
 import dedupe
 import unittest
 import codecs
-try:
-    import json
-except ImportError: 
-    import simplejson as json
 import StringIO
-from dedupe.backport import OrderedDict
+from dedupe.backport import OrderedDict, json
+
 
 class SerializerTest(unittest.TestCase) :
   def test_writeTraining(self) :
       output = StringIO.StringIO()
       encoded_file = codecs.EncodedFile(output, data_encoding='utf8', file_encoding='ascii')
 
-      training_pairs = OrderedDict({"distinct":[(dedupe.core.frozendict({u'bar' : frozenset([u'barë']), u'foo' : u'baz'}), 
-                                                 dedupe.core.frozendict({u'foo' : u'baz'}))], "match" : []})
+      training_pairs = OrderedDict({u"distinct":[(dedupe.core.frozendict({u'bar' : frozenset([u'barë']), u'foo' : u'baz'}), 
+                                                 dedupe.core.frozendict({u'foo' : u'baz'}))], u"match" : []})
       
       json.dump(training_pairs, 
                 encoded_file, 
@@ -39,6 +36,7 @@ class SerializerTest(unittest.TestCase) :
 
       deduper.readTraining(output)
       assert repr(deduper.training_pairs) == repr(training_pairs)
+      assert deduper.training_pairs == training_pairs
 
       encoded_file.close()
 

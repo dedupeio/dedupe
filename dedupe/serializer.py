@@ -19,6 +19,14 @@ def _from_json(json_object):
 class dedupe_decoder(json.JSONDecoder):
 
     def __init__(self, **kwargs):
+        try :
+            json._toggle_speedups(False) # in simplejson, without this
+                                         # some strings can be
+                                         # bytestrings instead of
+                                         # unicode
+                                         # https://code.google.com/p/simplejson/issues/detail?id=40
+        except AttributeError :
+            pass
         json.JSONDecoder.__init__(self, object_hook=_from_json, **kwargs)
         # Use the custom JSONArray
         self.parse_array = self.JSONArray
@@ -28,3 +36,4 @@ class dedupe_decoder(json.JSONDecoder):
     def JSONArray(self, s_and_end, scan_once, **kwargs):
         values, end = json.decoder.JSONArray(s_and_end, scan_once, **kwargs)
         return tuple(values), end
+
