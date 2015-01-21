@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 import dedupe
 import unittest
+import codecs
 try:
     import json
 except ImportError: 
@@ -9,18 +11,20 @@ from dedupe.backport import OrderedDict
 
 class SerializerTest(unittest.TestCase) :
   def test_writeTraining(self) :
-      string = StringIO.StringIO()
-      training_pairs = OrderedDict({"distinct":[(dedupe.core.frozendict({u'bar' : frozenset([u'bar']), u'foo' : u'baz'}), 
+      output = StringIO.StringIO()
+      encoded_file = codecs.EncodedFile(output, data_encoding='utf8', file_encoding='ascii')
+
+      training_pairs = OrderedDict({"distinct":[(dedupe.core.frozendict({u'bar' : frozenset([u'barë']), u'foo' : u'baz'}), 
                                                  dedupe.core.frozendict({u'foo' : u'baz'}))], "match" : []})
       
       json.dump(training_pairs, 
-                string, 
+                encoded_file, 
                 default=dedupe.serializer._to_json,
-                ensure_ascii = False)
+                ensure_ascii = True)
 
-      string.seek(0)
+      encoded_file.seek(0)
 
-      loaded_training_pairs = json.load(string, 
+      loaded_training_pairs = json.load(encoded_file, 
                                         cls=dedupe.serializer.dedupe_decoder)
 
       assert loaded_training_pairs["distinct"][0] ==\
@@ -31,12 +35,12 @@ class SerializerTest(unittest.TestCase) :
 
       deduper = dedupe.Dedupe([{'field' : 'foo', 'type' : 'String'}])
 
-      string.seek(0)
+      encoded_file.seek(0)
 
-      deduper.readTraining(string)
+      deduper.readTraining(output)
       assert repr(deduper.training_pairs) == repr(training_pairs)
 
-      string.close()
+      encoded_file.close()
 
 
 if __name__ == "__main__":
