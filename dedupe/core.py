@@ -31,7 +31,7 @@ def randomPairsWithReplacement(n_records, sample_size) :
     random_indices = random_indices.reshape((-1, 2))
     random_indices.sort(axis=1)
 
-    return random_indices
+    return [(p.item(), q.item()) for p, q in random_indices]
 
 
 def randomPairs(n_records, sample_size):

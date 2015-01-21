@@ -24,12 +24,14 @@ class RandomPairsTest(unittest.TestCase) :
             assert len(w) == 1
             assert str(w[-1].message) == "Requested sample of size 1000000, only returning 45 possible pairs"
 
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            dedupe.core.randomPairs(10**40, 10)
+            sample = dedupe.core.randomPairs(10**40, 10)
             assert len(w) == 2
             assert str(w[0].message) == "There may be duplicates in the sample"
             assert "Asked to sample pairs from" in str(w[1].message)
+            set(sample)
 
         random.seed(123)
         numpy.random.seed(123)

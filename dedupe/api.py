@@ -742,7 +742,7 @@ class ActiveMatching(Matching) :
         json.dump(self.training_pairs, 
                   file_obj, 
                   default=serializer._to_json,
-                  ensure_ascii=False)
+                  ensure_ascii=True)
 
 
     def uncertainPairs(self) :
