@@ -47,9 +47,9 @@ class TestLatLongGrid(unittest.TestCase):
 
     def test_exists(self) :
         block_val = predicates.existsPredicate(self.latlong1)
-        assert block_val == (1,)
+        assert block_val == (u'1',)
         block_val = predicates.existsPredicate((0,0)) 
-        assert block_val == (0,)
+        assert block_val == (u'0',)
 
 class TestNumericPredicates(unittest.TestCase) :
     def test_order_of_magnitude(self) :
