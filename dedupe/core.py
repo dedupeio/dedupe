@@ -289,7 +289,7 @@ def fillQueue(queue, iterable, stop_signals) :
     # initial values
     i = 0
     n_records = 0
-    t0 = time.time()
+    t0 = time.clock()
     last_rate = 10000
 
     while True :
@@ -301,7 +301,7 @@ def fillQueue(queue, iterable, stop_signals) :
             i += 1
 
             if i % 10 :
-                time_delta = time.time() - t0
+                time_delta = max(time.clock() - t0, 0.0001)
 
                 current_rate = n_records/time_delta
 
@@ -316,7 +316,7 @@ def fillQueue(queue, iterable, stop_signals) :
 
                 last_rate = current_rate
                 n_records = 0
-                t0 = time.time()
+                t0 = time.clock()
                 
 
         else :

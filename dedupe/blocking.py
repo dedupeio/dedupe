@@ -35,7 +35,7 @@ class Blocker:
     #@profile
     def __call__(self, records):
 
-        start_time = time.time()
+        start_time = time.clock()
         predicates = [(':' + str(i), predicate)
                       for i, predicate
                       in enumerate(self.predicates)]
@@ -51,7 +51,7 @@ class Blocker:
             if i and i % 10000 == 0 :
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',
                              {'iteration' :i,
-                              'elapsed' :time.time() - start_time})
+                              'elapsed' :time.clock() - start_time})
 
 
 
@@ -60,9 +60,6 @@ class Blocker:
         for predicate_set in self.tfidf_fields.values() :
             for predicate in predicate_set :
                 predicate.canopy = {}
-                #if predicate._index is not None :
-                #    predicate.index = None
-                #    predicate.index_to_id = None
 
 
 class DedupeBlocker(Blocker) :
