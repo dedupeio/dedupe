@@ -507,7 +507,7 @@ class StaticMatching(Matching) :
         except (KeyError, AttributeError) :
             raise ValueError("This settings file is not compatible with "
                              "the current version of dedupe. This can happen "
-                             "if you have recently upgraded dedupe."
+                             "if you have recently upgraded dedupe.")
         except :
             print "Something has gone wrong with loading the settings file"
             raise
