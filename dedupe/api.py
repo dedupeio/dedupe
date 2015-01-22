@@ -504,10 +504,14 @@ class StaticMatching(Matching) :
             self.data_model = pickle.load(settings_file)
             self.predicates = pickle.load(settings_file)
             self.stop_words = pickle.load(settings_file)
-        except KeyError :
-            raise ValueError("The settings file doesn't seem to be in "
-                             "right format. You may want to delete the "
-                             "settings file and try again")
+        except (KeyError, AttributeError) :
+            raise ValueError("This settings file is not compatible with "
+                             "the current version of dedupe. This can happen "
+                             "if you have recently upgraded dedupe."
+        except :
+            print "Something has gone wrong with loading the settings file"
+            raise
+                             
 
         self._logLearnedWeights()
         logger.info(self.predicates)
@@ -884,8 +888,6 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
 
         self.blocker = self._Blocker(self.predicates, 
                                      self.stop_words)
-
-import gc
 
 class Dedupe(DedupeMatching, ActiveMatching) :
     """
