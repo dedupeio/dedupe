@@ -21,7 +21,7 @@ class TfIdfIndex(object) :
     def _hash32(self, x) :
         i = hash(x)
         key = int(math.copysign(i % (2**31), i))
-        while key in self._i_to_id and self._i_to_id[key] <> x:
+        while key in self._i_to_id and self._i_to_id[key] != x:
             key += 1
         return key
         
