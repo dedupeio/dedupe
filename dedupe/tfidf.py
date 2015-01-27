@@ -3,6 +3,8 @@
 import logging
 from index import CanopyIndex
 import math
+import collections
+import itertools
 
 logger = logging.getLogger(__name__)
 
@@ -13,15 +15,13 @@ class TfIdfIndex(object) :
         self._index = CanopyIndex(stop_words)
  
         self._i_to_id = {}
+        
+        self._id_to_i = collections.defaultdict(itertools.count(-2**32).next)
+        
         self._parseTerms = self._index.lexicon.parseTerms
 
-    def _hash32(self, x) :
-        i = hash(x)
-        return int(math.copysign(i % (2**31), i))
-        
-
     def index(self, record_id, doc) :
-        i = self._hash32(record_id)
+        i = self._id_to_i[record_id]
         self._i_to_id[i] = record_id
 
         try :
@@ -31,7 +31,7 @@ class TfIdfIndex(object) :
             raise
 
     def unindex(self, record_id) :
-        i = self._hash32(record_id)
+        i = self._id_to_i.pop(record_id)
         del self._i_to_id[i]
         self._index.unindex_doc(i)
 
