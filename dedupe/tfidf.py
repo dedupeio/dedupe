@@ -16,7 +16,7 @@ class TfIdfIndex(object) :
  
         self._i_to_id = {}
         
-        self._id_to_i = collections.defaultdict(itertools.count(-2**32).next)
+        self._id_to_i = collections.defaultdict(itertools.count(-2**31).next)
         
         self._parseTerms = self._index.lexicon.parseTerms
 
