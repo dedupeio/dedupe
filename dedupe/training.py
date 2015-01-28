@@ -353,13 +353,6 @@ class RecordLinkCoverage(Coverage) :
 def stopWords(data) :
     tf_index = index.CanopyIndex([])
 
-    for i, (_, doc) in enumerate(data, 1) :
-        try :
-            tf_index.index_doc(i, doc)
-        except :
-            print doc
-            raise
-
     doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
                 for word, wid in tf_index.lexicon.items()]
 
