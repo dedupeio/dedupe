@@ -1,10 +1,9 @@
 from zope.index.text.lexicon import Lexicon
-from zope.index.text.lexicon import Splitter
 from zope.index.text.stopdict import get_stopdict
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from BTrees.Length import Length
-
+import re
 
 class CanopyIndex(TextIndex) : # pragma : no cover
     def __init__(self, stop_words) : 
@@ -20,7 +19,6 @@ class CanopyLexicon(Lexicon) : # pragma : no cover
                           CustomStopWordRemover(stop_words),
                           OperatorEscaper()]
 
-
     def sourceToWordIds(self, doc): 
         if doc is None:
             doc = ''
@@ -31,6 +29,9 @@ class CanopyLexicon(Lexicon) : # pragma : no cover
             self.wordCount = Length(self.wordCount())
         self.wordCount._p_deactivate()
         return list(map(self._getWordIdCreate, last))
+
+    def isGlob(self, word) :
+        return False
 
 
 class CustomStopWordRemover(object):
@@ -61,3 +62,15 @@ def stringify(doc) :
         doc = u' '.join(u'_'.join(each.split()) for each in doc)
 
     return [doc]
+
+
+
+class Splitter(object):
+    rx = re.compile(r"(?u)\w+[\w*?]*")
+
+    def process(self, lst):
+        result = []
+        for s in lst:
+            result += self.rx.findall(s)
+
+        return result
