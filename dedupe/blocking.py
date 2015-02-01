@@ -105,9 +105,14 @@ class RecordLinkBlocker(Blocker) :
             index.index(record_id, doc)
             canopy[record_id] = (record_id,)
 
+        logger.info(time.asctime())                
+
         for predicate in self.tfidf_fields[field] :
+            logger.info("Canopy: %s", str(predicate))
             predicate.index = index
             predicate.canopy = canopy
+
+        logger.info(time.asctime())                
 
     def tfIdfUnindex(self, data_2, field) :
         '''Remove index of a given set of data'''
