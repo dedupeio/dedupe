@@ -24,11 +24,7 @@ class TfIdfIndex(object) :
         i = self._id_to_i[record_id]
         self._i_to_id[i] = record_id
 
-        try :
-            self._index.index_doc(i, doc)
-        except :
-            print doc
-            raise
+        self._index.index_doc(i, doc)
 
     def unindex(self, record_id) :
         i = self._id_to_i.pop(record_id)

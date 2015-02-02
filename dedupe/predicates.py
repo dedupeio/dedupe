@@ -46,32 +46,41 @@ class TfidfPredicate(Predicate):
         self.field = field
         self.canopy = {}
         self.threshold = threshold
-        self._index = None
+        self.index = None
 
     def __call__(self, record_id, record) :
-        centers = self.canopy.get(record_id)
+        centers = self.index.search(record[self.field], self.threshold)
 
-        if centers is not None :
-            blocks = [unicode(center) for center in centers]
-        else:
-            blocks = ()
-
+        blocks = [unicode(center) for center in centers]
+            
         return blocks
-        
-    @property
-    def index(self) :
-        return self._index
-        
-    @index.setter
-    def index(self, value) :
-        self.old_class = self.__class__
-        self.__class__ = TfidfIndexPredicate
 
-        self._index = value
 
-    @index.deleter
-    def index(self) :
-        self.__class__ = self.old_class
+
+    # def __call__(self, record_id, record) :
+    #     centers = self.canopy.get(record_id)
+
+    #     if centers is not None :
+    #         blocks = [unicode(center) for center in centers]
+    #     else:
+    #         blocks = ()
+
+    #     return blocks
+        
+    # @property
+    # def index(self) :
+    #     return self._index
+        
+    # @index.setter
+    # def index(self, value) :
+    #     self.old_class = self.__class__
+    #     self.__class__ = TfidfIndexPredicate
+
+    #     self._index = value
+
+    # @index.deleter
+    # def index(self) :
+    #     self.__class__ = self.old_class
 
 
     def __getstate__(self):
@@ -84,20 +93,20 @@ class TfidfPredicate(Predicate):
 
     def __setstate__(self, d) :
         self.__dict__ = d
-        self._index = None
+        self.index = None
         self.canopy = {}
 
-class TfidfIndexPredicate(TfidfPredicate) :
+# class TfidfIndexPredicate(TfidfPredicate) :
 
-    def __call__(self, record_id, record) :
-        centers = self.canopy.get(record_id)
+#     def __call__(self, record_id, record) :
+#         centers = self.canopy.get(record_id)
 
-        if centers is None :
-            centers = self.index.search(record[self.field], self.threshold)
+#         if centers is None :
+#             centers = self.index.search(record[self.field], self.threshold)
         
-        blocks = [unicode(center) for center in centers]
+#         blocks = [unicode(center) for center in centers]
             
-        return blocks
+#         return blocks
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"

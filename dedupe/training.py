@@ -93,6 +93,7 @@ def semiSupervisedNonDuplicates(data_sample,
     return islice(distinctPairs(), 0, sample_size)
 
 def trainingData(training_pairs, record_ids) :
+
     record_pairs = set([])
     tuple_pairs = set([])
     for pair in training_pairs :
@@ -119,17 +120,9 @@ def blockTraining(training_pairs,
         Coverage = DedupeCoverage
 
     # Setup
+    record_ids = defaultdict(itertools.count().next)
 
-    record_ids = {}
-
-    i = 0
-    for record_set in training_pairs.values() :
-        for pair in record_set :
-            for record in pair :
-                record_ids[record] = i
-                i += 1
-
-    dupe_pairs, training_dupes = trainingData(training_pairs['match'],
+    dupe_pairs, training_dupes = trainingData(training_pairs['match'], 
                                               record_ids)
 
     distinct_pairs, training_distinct = trainingData(training_pairs['distinct'],
@@ -244,14 +237,17 @@ def findOptimumBlocking(uncovered_dupes,
 
 class Coverage(object) :
 
+
     def coveredBy(self, predicates, pairs) :
+        cache = PredicateCache()
+
         self.overlap = defaultdict(set)
 
         for pair in pairs :
             (record_1_id, record_1), (record_2_id, record_2) = pair
             for predicate in predicates :
-                blocks_1 = predicate(record_1_id, record_1)
-                blocks_2 = predicate(record_2_id, record_2)
+                blocks_1 = cache[(predicate, record_1[predicate.field])]
+                blocks_2 = cache[(predicate, record_2[predicate.field])]
                 field_preds = set(blocks_1) & set(blocks_2)
                 if field_preds :
                     rec_pair = record_1_id, record_2_id
@@ -297,11 +293,14 @@ class DedupeCoverage(Coverage) :
         blocker = blocking.DedupeBlocker(predicate_set)
 
         for field in blocker.tfidf_fields :
-            field_records = [(record_id, record[field]) 
-                             for record_id, record in records]
-            stop_words = stopWords(field_records)
+            record_fields = [record[field] 
+                             for _, record 
+                             in records]
+            stop_words = stopWords(record_fields)
+            print stop_words
+            field_records = list(enumerate(set(record_fields), 1))
             blocker.stop_words[field].update(stop_words)
-            blocker.tfIdfBlock(field_records, field)
+            blocker.tfIdfIndex(set(field_records), field)
 
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)
@@ -353,6 +352,9 @@ class RecordLinkCoverage(Coverage) :
 def stopWords(data) :
     tf_index = index.CanopyIndex([])
 
+    for i, doc in enumerate(data, 1) :
+        tf_index.index_doc(i, doc)
+
     doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
                 for word, wid in tf_index.lexicon.items()]
 
@@ -371,7 +373,17 @@ def stopWords(data) :
 
     return stop_words
 
-    
+
+class PredicateCache(defaultdict) :
+    def __missing__(self, key) :
+        predicate, field = key
+        blocks = predicate(1, {predicate.field : field})
+        #if predicate.type == 'TfidfPredicate' :
+        #    print predicate, field
+        
+        self[key] = blocks
+        return blocks
+
 
 
 

@@ -63,6 +63,33 @@ class Blocker:
 
 
 class DedupeBlocker(Blocker) :
+    def tfIdfIndex(self, data_2, field): 
+        '''Creates TF/IDF index of a given set of data'''
+        predicate = next(iter(self.tfidf_fields[field]))
+
+        index = predicate.index
+        canopy = predicate.canopy
+
+        if index is None :
+            index = tfidf.TfIdfIndex(field, self.stop_words[field])
+            canopy = {}
+
+        for record_id, doc in data_2  :
+            index.index(record_id, doc)
+            canopy[record_id] = (record_id,)
+
+        logger.info(time.asctime())                
+
+        print 'hello'
+        for predicate in self.tfidf_fields[field] :
+            logger.info("Canopy: %s", str(predicate))
+            predicate.index = index
+            predicate.canopy = canopy
+
+        print index._index.documentCount()
+        logger.info(time.asctime())                
+
+
 
     def tfIdfBlock(self, data, field): 
         '''Creates TF/IDF canopy of a given set of data'''

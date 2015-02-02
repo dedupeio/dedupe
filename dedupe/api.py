@@ -265,10 +265,12 @@ class DedupeMatching(Matching) :
         blocks = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.tfIdfBlock(((record_id, record[field])
-                                     for record_id, record 
-                                     in data_d.iteritems()),
-                                    field)
+            unique_fields = set(record[field]
+                                for record_id, record 
+                                in data_d.iteritems())
+
+            self.blocker.tfIdfIndex(list(enumerate(unique_fields)), field)
+
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
             blocks[block_key][record_id] = data_d[record_id]
