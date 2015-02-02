@@ -17,7 +17,7 @@ cpdef set ngrams(basestring field, int n):
 
     cdef set grams = set([])
     cdef int i, j
-    cdef int n_char = len(field)
+    cdef int n_char = len(ufield)
     for i in range(n_char):
         for j in range(i+n, min(n_char, i+n)+1):
             grams.add(ufield[i:j])
