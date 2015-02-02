@@ -13,10 +13,11 @@ cpdef set ngrams(basestring field, int n):
     ('ded', 'edu', 'dup', 'upl', 'pli', 'lic', 'ica', 'cat', 'ate')
     """
     cdef unicode ufield = _ustring(field)
+    ufield = ufield.replace(' ', '')
 
     cdef set grams = set([])
     cdef int i, j
-    cdef int n_char = len(field)
+    cdef int n_char = len(ufield)
     for i in range(n_char):
         for j in range(i+n, min(n_char, i+n)+1):
             grams.add(ufield[i:j])
@@ -39,6 +40,7 @@ cpdef tuple initials(basestring field, int n):
     ('dedupli', )
     """
     cdef unicode ufield = _ustring(field)
+    ufield = ufield.replace(' ', '')
 
     return (ufield[:n], ) if len(ufield) > n-1 else () 
 
