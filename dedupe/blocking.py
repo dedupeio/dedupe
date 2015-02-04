@@ -78,9 +78,10 @@ class DedupeBlocker(Blocker) :
             index.index(record_id, doc)
             canopy[record_id] = (record_id,)
 
+        index._index.initSearch()
+
         logger.info(time.asctime())                
 
-        print 'hello'
         for predicate in self.tfidf_fields[field] :
             logger.info("Canopy: %s", str(predicate))
             predicate.index = index

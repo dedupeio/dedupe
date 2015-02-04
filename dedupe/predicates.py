@@ -49,6 +49,7 @@ class TfidfPredicate(Predicate):
         self.index = None
 
     def __call__(self, record_id, record) :
+
         centers = self.index.search(record[self.field], self.threshold)
 
         blocks = [unicode(center) for center in centers]

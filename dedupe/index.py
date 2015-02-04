@@ -2,14 +2,36 @@ from zope.index.text.lexicon import Lexicon
 from zope.index.text.stopdict import get_stopdict
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
+from zope.index.text.queryparser import QueryParser
 from BTrees.Length import Length
 import re
+import six
 
 class CanopyIndex(TextIndex) : # pragma : no cover
     def __init__(self, stop_words) : 
         lexicon = CanopyLexicon(stop_words)
         self.index = CosineIndex(lexicon)
         self.lexicon = lexicon
+
+    def initSearch(self) :
+        self.parser = QueryParser(self.lexicon)
+
+    #@profile
+    def apply(self, querytext, threshold, start=0, count=None):
+        tree = self.parser.parseQuery(querytext)
+        results = tree.executeQuery(self.index)
+        if results:
+            qw = self.index.query_weight(tree.terms())
+
+            # Hack to avoid ZeroDivisionError
+            if qw == 0:
+                qw = 1.0
+
+            qw *= 1.0
+
+            results = results.byValue(qw * threshold)
+
+        return results
 
 
 class CanopyLexicon(Lexicon) : # pragma : no cover

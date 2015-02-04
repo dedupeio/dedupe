@@ -36,7 +36,7 @@ class TfIdfIndex(object) :
         query = ' OR '.join(query_list)
 
         if query :
-            results = self._index.apply(query).byValue(threshold)
+            results = self._index.apply(query, threshold)
         else :
             results = []
 
