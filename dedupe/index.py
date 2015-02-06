@@ -47,8 +47,7 @@ class CanopyIndex(TextIndex) : # pragma : no cover
         for term in query_list :
             wid, weight = _wids_dict[term]
             docs = _wordinfo[wid]
-            _, result = weightedUnion(bucket, docs, 0, weight)
-            L.append((result, 1))
+            L.append((docs, weight))
             qw += l_pow(weight, 2)
 
         results = mass_weightedUnion(L)
@@ -80,10 +79,6 @@ class CanopyLexicon(Lexicon) : # pragma : no cover
             self.wordCount = Length(self.wordCount())
         self.wordCount._p_deactivate()
         return list(map(self._getWordIdCreate, last))
-
-    def isGlob(self, word) :
-        return False
-
 
 class CustomStopWordRemover(object):
     def __init__(self, stop_words) :

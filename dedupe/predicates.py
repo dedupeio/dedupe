@@ -38,6 +38,7 @@ class SimplePredicate(Predicate) :
         return self.func(column)
 
 
+
 class TfidfPredicate(Predicate):
     type = "TfidfPredicate"
 
@@ -47,6 +48,7 @@ class TfidfPredicate(Predicate):
         self.canopy = {}
         self.threshold = threshold
         self.index = None
+        self._cache = {}
 
     def __call__(self, record_id, record) :
 
@@ -54,35 +56,14 @@ class TfidfPredicate(Predicate):
 
         l_unicode = unicode
         return [l_unicode(center) for center in centers]
-            
 
-
-
-    # def __call__(self, record_id, record) :
-    #     centers = self.canopy.get(record_id)
-
-    #     if centers is not None :
-    #         blocks = [unicode(center) for center in centers]
-    #     else:
-    #         blocks = ()
-
-    #     return blocks
-        
-    # @property
-    # def index(self) :
-    #     return self._index
-        
-    # @index.setter
-    # def index(self, value) :
-    #     self.old_class = self.__class__
-    #     self.__class__ = TfidfIndexPredicate
-
-    #     self._index = value
-
-    # @index.deleter
-    # def index(self) :
-    #     self.__class__ = self.old_class
-
+    def cache(self, record_id, record) :
+        if record in self._cache :
+            return self._cache[record]
+        else :
+            centers = self(1, record) 
+            self._cache[record] = centers
+            return centers
 
     def __getstate__(self):
 
@@ -95,7 +76,7 @@ class TfidfPredicate(Predicate):
     def __setstate__(self, d) :
         self.__dict__ = d
         self.index = None
-        self.canopy = {}
+        self._cache = {}
 
 # class TfidfIndexPredicate(TfidfPredicate) :
 

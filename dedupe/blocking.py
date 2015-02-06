@@ -29,7 +29,7 @@ class Blocker:
 
         for full_predicate in predicates :
             for predicate in full_predicate :
-                if hasattr(predicate, 'canopy') :
+                if hasattr(predicate, 'index') :
                     self.tfidf_fields[predicate.field].add(predicate)
 
     #@profile
@@ -40,11 +40,14 @@ class Blocker:
                       for i, predicate
                       in enumerate(self.predicates)]
 
+        
+
         for i, record in enumerate(records) :
             record_id, instance = record
-    
+            cache = {}
             for pred_id, predicate in predicates :
                 block_keys = predicate(record_id, instance)
+                
                 for block_key in block_keys :
                     yield block_key + pred_id, record_id
             
@@ -60,7 +63,7 @@ class Blocker:
         for predicate_set in self.tfidf_fields.values() :
             for predicate in predicate_set :
                 predicate.index = None
-
+                predicate.cache = {}
 
 class DedupeBlocker(Blocker) :
     def tfIdfIndex(self, data_2, field): 
@@ -72,8 +75,8 @@ class DedupeBlocker(Blocker) :
         if index is None :
             index = tfidf.TfIdfIndex(field, self.stop_words[field])
 
-        for record_id, doc in data_2  :
-            index.index(record_id, doc)
+        for i, doc in enumerate(data_2)  :
+            index.index(i, doc)
 
         index._index.initSearch()
 
@@ -124,3 +127,12 @@ class RecordLinkBlocker(Blocker) :
             predicate.index = index
             predicate.canopy = canopy
 
+
+class PredicateCache(defaultdict) :
+    def __missing__(self, key) :
+        predicate, record = key
+        blocks = predicate(1, record)
+        if predicate.type == "TfidfPredicate" :
+            self[key] = blocks
+            
+        return blocks
