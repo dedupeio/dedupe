@@ -37,8 +37,6 @@ class CanopyIndex(TextIndex) : # pragma : no cover
     def apply(self, query_list, threshold, start=0, count=None):
         _wids_dict = self._wids_dict
         _wordinfo = self.index._wordinfo
-        weightedUnion = self.weightedUnion
-        bucket = self.empty_bucket
         l_pow = float.__pow__
 
         L = []
@@ -56,10 +54,6 @@ class CanopyIndex(TextIndex) : # pragma : no cover
         results = results.byValue(qw * threshold)
 
         return results
-
-
-    weightedUnion = BTrees.family32.IF.weightedUnion
-    empty_bucket = BTrees.family32.IF.Bucket()
 
 
 class CanopyLexicon(Lexicon) : # pragma : no cover
