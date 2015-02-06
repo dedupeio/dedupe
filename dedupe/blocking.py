@@ -44,7 +44,6 @@ class Blocker:
 
         for i, record in enumerate(records) :
             record_id, instance = record
-            cache = {}
             for pred_id, predicate in predicates :
                 block_keys = predicate(record_id, instance)
                 
