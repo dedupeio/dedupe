@@ -78,17 +78,6 @@ class TfidfPredicate(Predicate):
         self.index = None
         self._cache = {}
 
-# class TfidfIndexPredicate(TfidfPredicate) :
-
-#     def __call__(self, record_id, record) :
-#         centers = self.canopy.get(record_id)
-
-#         if centers is None :
-#             centers = self.index.search(record[self.field], self.threshold)
-        
-#         blocks = [unicode(center) for center in centers]
-            
-#         return blocks
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"
