@@ -239,19 +239,23 @@ class Coverage(object) :
 
 
     def coveredBy(self, predicates, pairs) :
-        cache = PredicateCache()
-
         self.overlap = defaultdict(set)
+        pairs = sorted(pairs)
 
-        for pair in pairs :
-            (record_1_id, record_1), (record_2_id, record_2) = pair
-            for predicate in predicates :
-                blocks_1 = cache[(predicate, record_1[predicate.field])]
-                blocks_2 = cache[(predicate, record_2[predicate.field])]
+        for predicate in predicates :
+            rec_1 = None
+            for pair in pairs :
+                (record_1_id, record_1), (record_2_id, record_2) = pair
+                if record_1_id != rec_1 :
+                    blocks_1 = predicate(record_1_id, record_1)
+                    rec_1 = record_1_id
+                    
+                blocks_2 = predicate(record_2_id, record_2)
                 field_preds = set(blocks_1) & set(blocks_2)
                 if field_preds :
                     rec_pair = record_1_id, record_2_id
                     self.overlap[predicate].add(rec_pair)
+
 
 
     def predicateCoverage(self,
@@ -372,18 +376,5 @@ def stopWords(data) :
             break
 
     return stop_words
-
-
-class PredicateCache(defaultdict) :
-    def __missing__(self, key) :
-        predicate, field = key
-        blocks = predicate(1, {predicate.field : field})
-        #if predicate.type == 'TfidfPredicate' :
-        #    print predicate, field
-        
-        self[key] = blocks
-        return blocks
-
-
 
 

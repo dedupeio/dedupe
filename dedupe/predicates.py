@@ -52,9 +52,9 @@ class TfidfPredicate(Predicate):
 
         centers = self.index.search(record[self.field], self.threshold)
 
-        blocks = [unicode(center) for center in centers]
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
             
-        return blocks
 
 
 
@@ -191,18 +191,19 @@ def fingerprint(field) :
     return (u''.join(sorted(field.split())).strip(),)
 
 def oneGramFingerprint(field) :
-    return (u''.join(sorted(ngrams(field, 1))).strip(),)
+    return (u''.join(sorted(ngrams(field.replace(' ', ''), 1))).strip(),)
 
 def twoGramFingerprint(field) :
-    return (u''.join(sorted(gram.strip() for gram in ngrams(field, 2))),)
+    return (u''.join(sorted(gram.strip() for gram 
+                            in ngrams(field.replace(' ', ''), 2))),)
     
 def commonFourGram(field):
     """return 4-grams"""
-    return ngrams(field, 4)
+    return ngrams(field.replace(' ', ''), 4)
 
 def commonSixGram(field):
     """return 6-grams"""
-    return ngrams(field, 6)
+    return ngrams(field.replace(' ', ''), 6)
 
 def sameThreeCharStartPredicate(field):
     """return first three characters"""

@@ -1,11 +1,17 @@
 from zope.index.text.lexicon import Lexicon
+from zope.index.text import parsetree
 from zope.index.text.stopdict import get_stopdict
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
-from zope.index.text.queryparser import QueryParser
+from zope.index.text.setops import mass_weightedUnion
+
+import BTrees
+
 from BTrees.Length import Length
 import re
 import six
+import math
+import numpy
 
 class CanopyIndex(TextIndex) : # pragma : no cover
     def __init__(self, stop_words) : 
@@ -14,24 +20,47 @@ class CanopyIndex(TextIndex) : # pragma : no cover
         self.lexicon = lexicon
 
     def initSearch(self) :
-        self.parser = QueryParser(self.lexicon)
+        N = float(len(self.index._docweight))
 
-    #@profile
-    def apply(self, querytext, threshold, start=0, count=None):
-        tree = self.parser.parseQuery(querytext)
-        results = tree.executeQuery(self.index)
-        if results:
-            qw = self.index.query_weight(tree.terms())
+        self._wids_dict = {}
 
-            # Hack to avoid ZeroDivisionError
-            if qw == 0:
-                qw = 1.0
+        bucket = self.index.family.IF.Bucket
+        for wid, docs in self.index._wordinfo.items() :
+            if isinstance(docs, dict) :
+                docs = bucket(docs)
+            idf = numpy.log1p(N/len(docs))
+            self.index._wordinfo[wid] = docs
+            term = self.lexicon._words[wid]
+            self._wids_dict[term] = (wid, idf)
 
-            qw *= 1.0
 
-            results = results.byValue(qw * threshold)
+    def apply(self, query_list, threshold, start=0, count=None):
+        _wids_dict = self._wids_dict
+        _wordinfo = self.index._wordinfo
+        weightedUnion = self.weightedUnion
+        bucket = self.empty_bucket
+        l_pow = float.__pow__
+
+        L = []
+        qw = 0.0
+
+        for term in query_list :
+            wid, weight = _wids_dict[term]
+            docs = _wordinfo[wid]
+            _, result = weightedUnion(bucket, docs, 0, weight)
+            L.append((result, 1))
+            qw += l_pow(weight, 2)
+
+        results = mass_weightedUnion(L)
+
+        qw = math.sqrt(qw)
+        results = results.byValue(qw * threshold)
 
         return results
+
+
+    weightedUnion = BTrees.family32.IF.weightedUnion
+    empty_bucket = BTrees.family32.IF.Bucket()
 
 
 class CanopyLexicon(Lexicon) : # pragma : no cover

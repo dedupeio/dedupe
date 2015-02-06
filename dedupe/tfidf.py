@@ -33,15 +33,14 @@ class TfIdfIndex(object) :
 
     def search(self, doc, threshold=0) :
         query_list = self._parseTerms(doc)
-        query = ' OR '.join(query_list)
-
-        if query :
-            results = self._index.apply(query, threshold)
+ 
+        if query_list :
+            results = [center for score, center 
+                       in self._index.apply(query_list, threshold)]
         else :
             results = []
 
-        return [self._i_to_id[k] 
-                for  _, k in results]
+        return results
 
     def canopy(self, token_vector, threshold) :
         canopies = {}

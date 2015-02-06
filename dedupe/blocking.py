@@ -59,7 +59,7 @@ class Blocker:
         # clear canopies to reduce memory usage
         for predicate_set in self.tfidf_fields.values() :
             for predicate in predicate_set :
-                predicate.canopy = {}
+                predicate.index = None
 
 
 class DedupeBlocker(Blocker) :
@@ -68,54 +68,20 @@ class DedupeBlocker(Blocker) :
         predicate = next(iter(self.tfidf_fields[field]))
 
         index = predicate.index
-        canopy = predicate.canopy
 
         if index is None :
             index = tfidf.TfIdfIndex(field, self.stop_words[field])
-            canopy = {}
 
         for record_id, doc in data_2  :
             index.index(record_id, doc)
-            canopy[record_id] = (record_id,)
 
         index._index.initSearch()
-
-        logger.info(time.asctime())                
 
         for predicate in self.tfidf_fields[field] :
             logger.info("Canopy: %s", str(predicate))
             predicate.index = index
-            predicate.canopy = canopy
-
-        print index._index.documentCount()
-        logger.info(time.asctime())                
 
 
-
-    def tfIdfBlock(self, data, field): 
-        '''Creates TF/IDF canopy of a given set of data'''
-
-        indices = {}
-        for predicate in self.tfidf_fields[field] :
-            index = tfidf.TfIdfIndex(field, self.stop_words[field])
-            indices[predicate] = index
-
-        base_tokens = {}
-
-        for record_id, doc in data :
-            base_tokens[record_id] = doc
-            for index in indices.values() :
-                index.index(record_id, doc)
-
-        logger.info(time.asctime())                
-
-        for predicate in self.tfidf_fields[field] :
-            logger.info("Canopy: %s", str(predicate))
-            index = indices[predicate]
-            predicate.canopy = index.canopy(base_tokens, 
-                                            predicate.threshold)
-        
-        logger.info(time.asctime())                
                
 class RecordLinkBlocker(Blocker) :
     def tfIdfIndex(self, data_2, field): 
