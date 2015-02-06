@@ -1,15 +1,11 @@
 from zope.index.text.lexicon import Lexicon
-from zope.index.text import parsetree
 from zope.index.text.stopdict import get_stopdict
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.setops import mass_weightedUnion
 
-import BTrees
-
 from BTrees.Length import Length
 import re
-import six
 import math
 import numpy
 
