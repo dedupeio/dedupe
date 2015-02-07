@@ -268,13 +268,13 @@ def latLongGridPredicate(field, digits=1):
         return ()
 
 def orderOfMagnitude(field) :
-    if field :
+    if field and field > 0 :
         return (unicode(int(round(math.log10(field)))), )
     else :
         return ()
 
 def roundTo1(field) : # thanks http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
-    if field :
+    if field and field > 0 :
         return (unicode(int(round(field, -int(math.floor(math.log10(abs(field))))))),)
     else :
         return ()
