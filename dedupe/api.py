@@ -169,7 +169,6 @@ class DedupeMatching(Matching) :
     
     def __init__(self, *args, **kwargs) :
         super(DedupeMatching, self).__init__(*args, **kwargs)
-        self._Blocker = blocking.DedupeBlocker
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
@@ -327,7 +326,6 @@ class RecordLinkMatching(Matching) :
         super(RecordLinkMatching, self).__init__(*args, **kwargs)
 
         self._cluster = clustering.greedyMatching
-        self._Blocker = blocking.RecordLinkBlocker
         self._linkage_type = "RecordLink"
 
     def match(self, data_1, data_2, threshold = 1.5) : # pragma : no cover
@@ -517,6 +515,9 @@ class StaticMatching(Matching) :
         self._logLearnedWeights()
         logger.info(self.predicates)
         logger.info(self.stop_words)
+
+        self.blocker = blocking.Blocker(self.predicates, 
+                                        self.stop_words)
 
 
 
@@ -719,8 +720,8 @@ class ActiveMatching(Matching) :
                                                           uncovered_dupes,
                                                           self._linkage_type)
 
-        self.blocker = self._Blocker(self.predicates,
-                                     self.stop_words) 
+        self.blocker = blocking.Blocker(self.predicates,
+                                        self.stop_words) 
 
 
     def writeSettings(self, file_obj): # pragma : no cover
@@ -884,12 +885,6 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
     Mixin Class for Static Deduplication
     """
 
-    def __init__(self, *args, **kwargs) : # pragma : no cover
-        super(StaticDedupe, self).__init__(*args, **kwargs)
-
-        self.blocker = self._Blocker(self.predicates, 
-                                     self.stop_words)
-
 class Dedupe(DedupeMatching, ActiveMatching) :
     """
     Mixin Class for Active Learning Deduplication
@@ -940,12 +935,6 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
     Mixin Class for Static Record Linkage
     """
-
-    def __init__(self, *args, **kwargs) :
-        super(StaticRecordLink, self).__init__(*args, **kwargs)
-
-        self.blocker = self._Blocker(self.predicates, 
-                                     self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
     """

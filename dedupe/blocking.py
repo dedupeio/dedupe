@@ -44,9 +44,9 @@ class Blocker:
 
         for i, record in enumerate(records) :
             record_id, instance = record
+
             for pred_id, predicate in predicates :
                 block_keys = predicate(record_id, instance)
-                
                 for block_key in block_keys :
                     yield block_key + pred_id, record_id
             
@@ -64,7 +64,6 @@ class Blocker:
                 predicate.index = None
                 predicate.cache = {}
 
-class DedupeBlocker(Blocker) :
     def tfIdfIndex(self, data_2, field): 
         '''Creates TF/IDF index of a given set of data'''
         predicate = next(iter(self.tfidf_fields[field]))
@@ -83,39 +82,11 @@ class DedupeBlocker(Blocker) :
             logger.info("Canopy: %s", str(predicate))
             predicate.index = index
 
-
-               
-class RecordLinkBlocker(Blocker) :
-    def tfIdfIndex(self, data_2, field): 
-        '''Creates TF/IDF index of a given set of data'''
-        predicate = next(iter(self.tfidf_fields[field]))
-
-        index = predicate.index
-        canopy = predicate.canopy
-
-        if index is None :
-            index = tfidf.TfIdfIndex(field, self.stop_words[field])
-            canopy = {}
-
-        for record_id, doc in data_2  :
-            index.index(record_id, doc)
-            canopy[record_id] = (record_id,)
-
-        logger.info(time.asctime())                
-
-        for predicate in self.tfidf_fields[field] :
-            logger.info("Canopy: %s", str(predicate))
-            predicate.index = index
-            predicate.canopy = canopy
-
-        logger.info(time.asctime())                
-
     def tfIdfUnindex(self, data_2, field) :
         '''Remove index of a given set of data'''
         predicate = next(iter(self.tfidf_fields[field]))
 
         index = predicate.index
-        canopy = predicate.canopy
 
         for record_id, _ in data_2 :
             if record_id in canopy :

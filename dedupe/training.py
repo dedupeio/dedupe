@@ -298,7 +298,7 @@ class DedupeCoverage(Coverage) :
 
         records = set(itertools.chain(*pairs))
 
-        blocker = blocking.DedupeBlocker(predicate_set)
+        blocker = blocking.Blocker(predicate_set)
 
         for field in blocker.tfidf_fields :
             record_fields = [record[field] 
@@ -306,9 +306,8 @@ class DedupeCoverage(Coverage) :
                              in records]
             stop_words = stopWords(record_fields)
             print stop_words
-            field_records = list(enumerate(set(record_fields), 1))
             blocker.stop_words[field].update(stop_words)
-            blocker.tfIdfIndex(set(field_records), field)
+            blocker.tfIdfIndex(set(record_fields), field)
 
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)
@@ -325,7 +324,7 @@ class RecordLinkCoverage(Coverage) :
             records_1.add(record_1)
             records_2.add(record_2)
 
-        blocker = blocking.RecordLinkBlocker(predicate_set)
+        blocker = blocking.Blocker(predicate_set)
 
         for field in blocker.tfidf_fields :
             field_records = [(record_id, record[field]) 
