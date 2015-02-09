@@ -119,23 +119,22 @@ class TfidfTest(unittest.TestCase):
 
   def test_unconstrained_inverted_index(self):
 
-    blocker = dedupe.blocking.DedupeBlocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
+    blocker = dedupe.blocking.Blocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
 
-    blocker.tfIdfBlock(((record_id, record["name"]) 
-                        for record_id, record 
-                        in self.data_d.iteritems()),
+    blocker.index(set(record["name"] 
+                           for record 
+                           in self.data_d.itervalues()),
                        "name")
-
-    canopy = list(blocker.tfidf_fields['name'])[0].canopy
-
-    assert canopy == {120: (120,), 130: (130,), 125: (120,), 135: (130,)}
 
     blocks = defaultdict(set)
     
     for block_key, record_id in blocker(self.data_d.items()) :
       blocks[block_key].add(record_id)
 
-    assert set([frozenset(block) for block in blocks.values()]) ==\
+    blocks = set([frozenset(block) for block in blocks.values()
+                  if len(block) > 1 ])
+
+    assert blocks ==\
         set([frozenset([120, 125]), frozenset([130, 135])])
 
 class TfIndexUnindex(unittest.TestCase) :
@@ -154,12 +153,12 @@ class TfIndexUnindex(unittest.TestCase) :
     }
 
 
-    self.blocker = dedupe.blocking.RecordLinkBlocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
+    self.blocker = dedupe.blocking.Blocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
 
     self.records_1 = dict((record_id, record) 
-                         for record_id, record 
-                         in data_d.iteritems()
-                         if record["dataset"] == 0)
+                          for record_id, record 
+                          in data_d.iteritems()
+                          if record["dataset"] == 0)
 
     self.fields_2 = dict((record_id, record["name"])
                          for record_id, record 
@@ -168,30 +167,30 @@ class TfIndexUnindex(unittest.TestCase) :
 
 
   def test_index(self):
-    self.blocker.tfIdfIndex(self.fields_2.items(), "name")
+    self.blocker.index(set(self.fields_2.values()), "name")
 
     blocks = defaultdict(set)
     
     for block_key, record_id in self.blocker(self.records_1.items()) :
       blocks[block_key].add(record_id)
 
-    assert blocks.items() == [(u'135:0', set([130]))]
+    assert blocks.items() == [(u'4:0', set([130]))]
 
 
   def test_doubled_index(self):
-    self.blocker.tfIdfIndex(self.fields_2.items(), "name")
-    self.blocker.tfIdfIndex(self.fields_2.items(), "name")
+    self.blocker.index(self.fields_2.values(), "name")
+    self.blocker.index(self.fields_2.values(), "name")
 
     blocks = defaultdict(set)
     
     for block_key, record_id in self.blocker(self.records_1.items()) :
       blocks[block_key].add(record_id)
 
-    assert blocks.items() == [(u'135:0', set([130]))]
+    assert blocks.items() == [(u'4:0', set([130]))]
 
   def test_unindex(self) :
-    self.blocker.tfIdfIndex(self.fields_2.items(), "name")
-    self.blocker.tfIdfUnindex(self.fields_2.items(), "name")
+    self.blocker.index(self.fields_2.values(), "name")
+    self.blocker.unindex(self.fields_2.values(), "name")
 
     blocks = defaultdict(set)
     

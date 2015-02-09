@@ -93,6 +93,7 @@ def semiSupervisedNonDuplicates(data_sample,
     return islice(distinctPairs(), 0, sample_size)
 
 def trainingData(training_pairs, record_ids) :
+
     record_pairs = set([])
     tuple_pairs = set([])
     for pair in training_pairs :
@@ -119,17 +120,9 @@ def blockTraining(training_pairs,
         Coverage = DedupeCoverage
 
     # Setup
+    record_ids = defaultdict(itertools.count().next)
 
-    record_ids = {}
-
-    i = 0
-    for record_set in training_pairs.values() :
-        for pair in record_set :
-            for record in pair :
-                record_ids[record] = i
-                i += 1
-
-    dupe_pairs, training_dupes = trainingData(training_pairs['match'],
+    dupe_pairs, training_dupes = trainingData(training_pairs['match'], 
                                               record_ids)
 
     distinct_pairs, training_distinct = trainingData(training_pairs['distinct'],
@@ -156,11 +149,15 @@ def blockTraining(training_pairs,
         if len(pairs) > coverage_threshold :
             predicate_set.remove(pred)
 
-    final_predicate_set = findOptimumBlocking(training_dupes,
-                                              predicate_set,
-                                              distinct_coverage,
-                                              epsilon,
-                                              coverage)
+    chvatal_predicate_set = findOptimumBlocking(training_dupes,
+                                                predicate_set,
+                                                distinct_coverage,
+                                                epsilon,
+                                                coverage)
+
+    final_predicate_set = removeSubsets(training_dupes,
+                                        chvatal_predicate_set,
+                                        coverage)
 
     logger.info('Final predicate set:')
     for predicate in final_predicate_set :
@@ -202,7 +199,7 @@ def findOptimumBlocking(uncovered_dupes,
 
     uncovered_dupes = set(uncovered_dupes)
 
-    final_predicate_set = []
+    final_predicate_set = set([])
     while len(uncovered_dupes) > epsilon:
 
         best_cover = 0
@@ -222,7 +219,7 @@ def findOptimumBlocking(uncovered_dupes,
             logger.warning('Ran out of predicates')
             break
 
-        final_predicate_set.append(best_predicate)
+        final_predicate_set.add(best_predicate)
         predicate_set.remove(best_predicate)
         
         uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
@@ -242,20 +239,72 @@ def findOptimumBlocking(uncovered_dupes,
 
     return final_predicate_set
 
+def removeSubsets(uncovered_dupes, predicate_set, coverage) :
+    dupe_coverage = coverage.predicateCoverage(predicate_set,
+                                               uncovered_dupes)
+    uncovered_dupes = set(uncovered_dupes)
+    final_set = set([])
+
+    while uncovered_dupes :
+        best_predicate = None
+        max_cover = 0
+        for predicate in dupe_coverage :
+            cover = len(dupe_coverage[predicate])
+            if cover > max_cover :
+                max_cover = cover
+                best_predicate = predicate
+
+        if best_predicate is None :
+            break
+
+        final_set.add(best_predicate)
+        predicate_set.remove(best_predicate)
+        uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
+        dupe_coverage = coverage.predicateCoverage(predicate_set,
+                                                   uncovered_dupes)
+
+    return final_set
+
 class Coverage(object) :
+    def __init__(self, predicate_set, pairs) :
+
+        records = self._records_to_index(pairs)
+
+        blocker = blocking.Blocker(predicate_set)
+
+        for field in blocker.tfidf_fields :
+            record_fields = [record[field] 
+                             for _, record 
+                             in records]
+            stop_words = stopWords(record_fields)
+            blocker.stop_words[field].update(stop_words)
+            blocker.index(set(record_fields), field)
+
+        self.stop_words = blocker.stop_words
+        self.coveredBy(blocker.predicates, pairs)
+        self.compoundPredicates()
+        blocker.resetIndices()
+
+
 
     def coveredBy(self, predicates, pairs) :
         self.overlap = defaultdict(set)
+        pairs = sorted(pairs)
 
-        for pair in pairs :
-            (record_1_id, record_1), (record_2_id, record_2) = pair
-            for predicate in predicates :
-                blocks_1 = predicate(record_1_id, record_1)
-                blocks_2 = predicate(record_2_id, record_2)
-                field_preds = set(blocks_1) & set(blocks_2)
+        for predicate in predicates :
+            rec_1 = None
+            for pair in pairs :
+                (record_1_id, record_1), (record_2_id, record_2) = pair
+                if record_1_id != rec_1 :
+                    blocks_1 = set(predicate(record_1))
+                    rec_1 = record_1_id
+                    
+                blocks_2 = predicate(record_2)
+                field_preds = blocks_1 & set(blocks_2)
                 if field_preds :
                     rec_pair = record_1_id, record_2_id
                     self.overlap[predicate].add(rec_pair)
+
 
 
     def predicateCoverage(self,
@@ -290,70 +339,20 @@ class Coverage(object) :
 
 
 class DedupeCoverage(Coverage) :
-    def __init__(self, predicate_set, pairs) :
 
-        records = set(itertools.chain(*pairs))
+    def _records_to_index(self, pairs) :
+        return set(itertools.chain(*pairs))
 
-        blocker = blocking.DedupeBlocker(predicate_set)
-
-        for field in blocker.tfidf_fields :
-            field_records = [(record_id, record[field]) 
-                             for record_id, record in records]
-            stop_words = stopWords(field_records)
-            blocker.stop_words[field].update(stop_words)
-            blocker.tfIdfBlock(field_records, field)
-
-        self.stop_words = blocker.stop_words
-        self.coveredBy(blocker.predicates, pairs)
-        self.compoundPredicates()
-        blocker._resetCanopies()
 
 class RecordLinkCoverage(Coverage) :
-    def __init__(self, predicate_set, pairs) :
 
-        records_1 = set([])
-        records_2 = set([])
-
-        for record_1, record_2 in pairs :
-            records_1.add(record_1)
-            records_2.add(record_2)
-
-        blocker = blocking.RecordLinkBlocker(predicate_set)
-
-        for field in blocker.tfidf_fields :
-            field_records = [(record_id, record[field]) 
-                             for record_id, record in records_2]
-            stop_words = stopWords(field_records)
-            blocker.stop_words[field].update(stop_words)
-            blocker.tfIdfIndex(field_records, field)
-
-            search_records = [(record_id, record[field]) 
-                              for record_id, record in records_1]
-
-        canopies = defaultdict(lambda:defaultdict(set))
-
-        for field in blocker.tfidf_fields :
-            for source_id, record in search_records :
-                for predicate in blocker.tfidf_fields[field] :
-                    candidates = predicate(source_id, {field : record})
-                    for target_id in candidates :
-                        canopies[predicate][source_id].add(target_id)
-
-        for field in blocker.tfidf_fields :
-            for predicate in blocker.tfidf_fields[field] :
-                predicate.canopy.update(canopies[predicate])
-                del predicate.index
-            
-        self.stop_words = blocker.stop_words
-        self.coveredBy(blocker.predicates, pairs)
-        self.compoundPredicates()
-        blocker._resetCanopies()
-        
+    def _records_to_index(self, pairs) :
+        return set([record_2 for _, record_2 in pairs])
 
 def stopWords(data) :
     tf_index = index.CanopyIndex([])
 
-    for i, (_, doc) in enumerate(data, 1) :
+    for i, doc in enumerate(data, 1) :
         tf_index.index_doc(i, doc)
 
     doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
@@ -373,8 +372,3 @@ def stopWords(data) :
             break
 
     return stop_words
-
-    
-
-
-

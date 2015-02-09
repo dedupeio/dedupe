@@ -33,9 +33,10 @@ class SimplePredicate(Predicate) :
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record_id, record) :
+    def __call__(self, record) :
         column = record[self.field]
         return self.func(column)
+
 
 
 class TfidfPredicate(Predicate):
@@ -44,35 +45,15 @@ class TfidfPredicate(Predicate):
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
-        self.canopy = {}
         self.threshold = threshold
-        self._index = None
+        self.index = None
 
-    def __call__(self, record_id, record) :
-        centers = self.canopy.get(record_id)
+    def __call__(self, record) :
 
-        if centers is not None :
-            blocks = [unicode(center) for center in centers]
-        else:
-            blocks = ()
+        centers = self.index.search(record[self.field], self.threshold)
 
-        return blocks
-        
-    @property
-    def index(self) :
-        return self._index
-        
-    @index.setter
-    def index(self, value) :
-        self.old_class = self.__class__
-        self.__class__ = TfidfIndexPredicate
-
-        self._index = value
-
-    @index.deleter
-    def index(self) :
-        self.__class__ = self.old_class
-
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
 
     def __getstate__(self):
 
@@ -84,20 +65,8 @@ class TfidfPredicate(Predicate):
 
     def __setstate__(self, d) :
         self.__dict__ = d
-        self._index = None
-        self.canopy = {}
+        self.index = None
 
-class TfidfIndexPredicate(TfidfPredicate) :
-
-    def __call__(self, record_id, record) :
-        centers = self.canopy.get(record_id)
-
-        if centers is None :
-            centers = self.index.search(record[self.field], self.threshold)
-        
-        blocks = [unicode(center) for center in centers]
-            
-        return blocks
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"
@@ -112,8 +81,8 @@ class CompoundPredicate(Predicate) :
         for pred in self.predicates :
             yield pred
 
-    def __call__(self, record_id, record) :
-        predicate_keys = [predicate(record_id, record)
+    def __call__(self, record) :
+        predicate_keys = [predicate(record)
                           for predicate in self.predicates]
         return [u':'.join(block_key)
                 for block_key
@@ -181,30 +150,31 @@ def fingerprint(field) :
     return (u''.join(sorted(field.split())).strip(),)
 
 def oneGramFingerprint(field) :
-    return (u''.join(sorted(ngrams(field, 1))).strip(),)
+    return (u''.join(sorted(ngrams(field.replace(' ', ''), 1))).strip(),)
 
 def twoGramFingerprint(field) :
-    return (u''.join(sorted(gram.strip() for gram in ngrams(field, 2))),)
+    return (u''.join(sorted(gram.strip() for gram 
+                            in ngrams(field.replace(' ', ''), 2))),)
     
 def commonFourGram(field):
     """return 4-grams"""
-    return ngrams(field, 4)
+    return ngrams(field.replace(' ', ''), 4)
 
 def commonSixGram(field):
     """return 6-grams"""
-    return ngrams(field, 6)
+    return ngrams(field.replace(' ', ''), 6)
 
 def sameThreeCharStartPredicate(field):
     """return first three characters"""
-    return initials(field, 3)
+    return initials(field.replace(' ', ''), 3)
 
 def sameFiveCharStartPredicate(field):
     """return first five characters"""
-    return initials(field, 5)
+    return initials(field.replace(' ', ''), 5)
 
 def sameSevenCharStartPredicate(field):
     """return first seven characters"""
-    return initials(field, 7)
+    return initials(field.replace(' ',''), 7)
 
 def sortedAcronym(field) :
     return (''.join(sorted(each[0] for each in field.split())),)

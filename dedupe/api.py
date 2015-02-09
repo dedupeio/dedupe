@@ -169,7 +169,6 @@ class DedupeMatching(Matching) :
     
     def __init__(self, *args, **kwargs) :
         super(DedupeMatching, self).__init__(*args, **kwargs)
-        self._Blocker = blocking.DedupeBlocker
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
@@ -265,18 +264,22 @@ class DedupeMatching(Matching) :
         blocks = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.tfIdfBlock(((record_id, record[field])
-                                     for record_id, record 
-                                     in data_d.iteritems()),
-                                    field)
+            unique_fields = set(record[field]
+                                for record 
+                                in data_d.itervalues())
+
+            self.blocker.index(unique_fields, field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
             blocks[block_key][record_id] = data_d[record_id]
 
-        self.blocker._resetCanopies()
+        self.blocker.resetIndices()
 
         blocks = [records for records in blocks.values()
                   if len(records) > 1]
+        
+        blocks = dict([(frozenset(d.keys()), d) for d in blocks])
+        blocks = blocks.values()
 
         for block in self._redundantFree(blocks) :
             yield block
@@ -326,7 +329,6 @@ class RecordLinkMatching(Matching) :
         super(RecordLinkMatching, self).__init__(*args, **kwargs)
 
         self._cluster = clustering.greedyMatching
-        self._Blocker = blocking.RecordLinkBlocker
         self._linkage_type = "RecordLink"
 
     def match(self, data_1, data_2, threshold = 1.5) : # pragma : no cover
@@ -449,11 +451,11 @@ class RecordLinkMatching(Matching) :
         blocked_records = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
-            fields_2 = ((record_id, record[field])
-                        for record_id, record 
-                        in data_2.iteritems())
+            fields_2 = (record[field]
+                        for record 
+                        in data_2.itervalues())
 
-            self.blocker.tfIdfIndex(fields_2, field)
+            self.blocker.index(set(fields_2), field)
 
         for block_key, record_id in self.blocker(data_2.items()) :
             blocked_records[block_key][record_id] = data_2[record_id]
@@ -461,7 +463,7 @@ class RecordLinkMatching(Matching) :
         for each in self._blockGenerator(data_1, blocked_records) :
             yield each
 
-        self.blocker._resetCanopies()
+        self.blocker.resetIndices()
 
 
 class StaticMatching(Matching) :
@@ -516,6 +518,9 @@ class StaticMatching(Matching) :
         self._logLearnedWeights()
         logger.info(self.predicates)
         logger.info(self.stop_words)
+
+        self.blocker = blocking.Blocker(self.predicates, 
+                                        self.stop_words)
 
 
 
@@ -718,8 +723,8 @@ class ActiveMatching(Matching) :
                                                           uncovered_dupes,
                                                           self._linkage_type)
 
-        self.blocker = self._Blocker(self.predicates,
-                                     self.stop_words) 
+        self.blocker = blocking.Blocker(self.predicates,
+                                        self.stop_words) 
 
 
     def writeSettings(self, file_obj): # pragma : no cover
@@ -883,12 +888,6 @@ class StaticDedupe(DedupeMatching, StaticMatching) :
     Mixin Class for Static Deduplication
     """
 
-    def __init__(self, *args, **kwargs) : # pragma : no cover
-        super(StaticDedupe, self).__init__(*args, **kwargs)
-
-        self.blocker = self._Blocker(self.predicates, 
-                                     self.stop_words)
-
 class Dedupe(DedupeMatching, ActiveMatching) :
     """
     Mixin Class for Active Learning Deduplication
@@ -939,12 +938,6 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
     Mixin Class for Static Record Linkage
     """
-
-    def __init__(self, *args, **kwargs) :
-        super(StaticRecordLink, self).__init__(*args, **kwargs)
-
-        self.blocker = self._Blocker(self.predicates, 
-                                     self.stop_words)
 
 class RecordLink(RecordLinkMatching, ActiveMatching) :
     """
@@ -1029,10 +1022,10 @@ class GazetteerMatching(RecordLinkMatching) :
     def index(self, data) : # pragma : no cover
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.tfIdfIndex(((record_id, record[field])
-                                     for record_id, record 
-                                     in data.iteritems()),
-                                    field)
+            self.blocker.index((record[field]
+                                for record 
+                                in data.itervalues()),
+                               field)
 
         for block_key, record_id in self.blocker(data.items()) :
             if block_key not in self.blocked_records :
@@ -1042,10 +1035,10 @@ class GazetteerMatching(RecordLinkMatching) :
     def unindex(self, data) : # pragma : no cover
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.tfIdfUnindex(((record_id, record[field])
-                                       for record_id, record 
-                                       in data.iteritems()),
-                                     field)
+            self.blocker.unindex((record[field]
+                                  for record 
+                                  in data.itervalues()),
+                                 field)
 
         for block_key, record_id in self.blocker(data.iteritems()) :
             try : 
