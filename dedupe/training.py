@@ -411,14 +411,3 @@ def stopWords(data) :
             break
 
     return stop_words
-
-
-class PredicateCache(defaultdict) :
-    def __missing__(self, key) :
-        predicate, record = key
-        blocks = predicate(1, record)
-        if predicate.type == "TfidfPredicate" :
-            self[key] = blocks
-            
-        return blocks
-        
