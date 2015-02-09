@@ -269,7 +269,6 @@ class Coverage(object) :
     def __init__(self, predicate_set, pairs) :
 
         records = self._records_to_index(pairs)
-        print records
 
         blocker = blocking.Blocker(predicate_set)
 

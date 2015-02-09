@@ -1022,9 +1022,9 @@ class GazetteerMatching(RecordLinkMatching) :
     def index(self, data) : # pragma : no cover
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.index(((record_id, record[field])
-                                for record_id, record 
-                                in data.iteritems()),
+            self.blocker.index((record[field]
+                                for record 
+                                in data.itervalues()),
                                field)
 
         for block_key, record_id in self.blocker(data.items()) :
@@ -1035,9 +1035,9 @@ class GazetteerMatching(RecordLinkMatching) :
     def unindex(self, data) : # pragma : no cover
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.unindex(((record_id, record[field])
-                                  for record_id, record 
-                                  in data.iteritems()),
+            self.blocker.unindex((record[field]
+                                  for record 
+                                  in data.itervalues()),
                                  field)
 
         for block_key, record_id in self.blocker(data.iteritems()) :

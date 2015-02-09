@@ -63,7 +63,7 @@ class Blocker:
             for predicate in predicate_set :
                 predicate.index = None
 
-    def index(self, data_2, field): 
+    def index(self, data, field): 
         '''Creates TF/IDF index of a given set of data'''
         predicate = next(iter(self.tfidf_fields[field]))
 
@@ -72,7 +72,7 @@ class Blocker:
         if index is None :
             index = tfidf.TfIdfIndex(field, self.stop_words[field])
 
-        for doc in data_2  :
+        for doc in data  :
             index.index(doc)
 
         index._index.initSearch()
@@ -81,14 +81,16 @@ class Blocker:
             logger.info("Canopy: %s", str(predicate))
             predicate.index = index
 
-    def unindex(self, data_2, field) :
+    def unindex(self, data, field) :
         '''Remove index of a given set of data'''
         predicate = next(iter(self.tfidf_fields[field]))
 
         index = predicate.index
 
-        for doc in data_2 :
+        for doc in data :
             index.unindex(doc)
+
+        index._index.initSearch()
 
         for predicate in self.tfidf_fields[field] :
             predicate.index = index
