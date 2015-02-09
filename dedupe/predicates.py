@@ -48,7 +48,6 @@ class TfidfPredicate(Predicate):
         self.canopy = {}
         self.threshold = threshold
         self.index = None
-        self._cache = {}
 
     def __call__(self, record_id, record) :
 
@@ -56,14 +55,6 @@ class TfidfPredicate(Predicate):
 
         l_unicode = unicode
         return [l_unicode(center) for center in centers]
-
-    def cache(self, record_id, record) :
-        if record in self._cache :
-            return self._cache[record]
-        else :
-            centers = self(1, record) 
-            self._cache[record] = centers
-            return centers
 
     def __getstate__(self):
 
@@ -76,7 +67,6 @@ class TfidfPredicate(Predicate):
     def __setstate__(self, d) :
         self.__dict__ = d
         self.index = None
-        self._cache = {}
 
 
 class CompoundPredicate(Predicate) :

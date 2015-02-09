@@ -62,7 +62,6 @@ class Blocker:
         for predicate_set in self.tfidf_fields.values() :
             for predicate in predicate_set :
                 predicate.index = None
-                predicate.cache = {}
 
     def tfIdfIndex(self, data_2, field): 
         '''Creates TF/IDF index of a given set of data'''

@@ -149,11 +149,21 @@ def blockTraining(training_pairs,
         if len(pairs) > coverage_threshold :
             predicate_set.remove(pred)
 
-    final_predicate_set = findOptimumBlocking(training_dupes,
-                                              predicate_set,
-                                              distinct_coverage,
-                                              epsilon,
-                                              coverage)
+    chvatal_predicate_set = findOptimumBlocking(training_dupes,
+                                                predicate_set,
+                                                distinct_coverage,
+                                                epsilon,
+                                                coverage)
+
+    print len(chvatal_predicate_set)
+
+    final_predicate_set = removeSubsets(training_dupes,
+                                        chvatal_predicate_set,
+                                        coverage)
+
+    print len(final_predicate_set)
+
+    
 
     logger.info('Final predicate set:')
     for predicate in final_predicate_set :
@@ -195,7 +205,7 @@ def findOptimumBlocking(uncovered_dupes,
 
     uncovered_dupes = set(uncovered_dupes)
 
-    final_predicate_set = []
+    final_predicate_set = set([])
     while len(uncovered_dupes) > epsilon:
 
         best_cover = 0
@@ -215,7 +225,7 @@ def findOptimumBlocking(uncovered_dupes,
             logger.warning('Ran out of predicates')
             break
 
-        final_predicate_set.append(best_predicate)
+        final_predicate_set.add(best_predicate)
         predicate_set.remove(best_predicate)
         
         uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
@@ -235,6 +245,32 @@ def findOptimumBlocking(uncovered_dupes,
 
     return final_predicate_set
 
+def removeSubsets(uncovered_dupes, predicate_set, coverage) :
+    dupe_coverage = coverage.predicateCoverage(predicate_set,
+                                               uncovered_dupes)
+    uncovered_dupes = set(uncovered_dupes)
+    final_set = set([])
+
+    while uncovered_dupes :
+        best_predicate = None
+        max_cover = 0
+        for predicate in dupe_coverage :
+            cover = len(dupe_coverage[predicate])
+            if cover > max_cover :
+                max_cover = cover
+                best_predicate = predicate
+
+        if best_predicate is None :
+            break
+
+        final_set.add(best_predicate)
+        predicate_set.remove(best_predicate)
+        uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
+        dupe_coverage = coverage.predicateCoverage(predicate_set,
+                                                   uncovered_dupes)
+
+    return final_set
+
 class Coverage(object) :
 
 
@@ -243,18 +279,14 @@ class Coverage(object) :
         pairs = sorted(pairs)
 
         for predicate in predicates :
-            if predicate.type == 'TfidfPredicate' :
-                pred = predicate.cache
-            else :
-                pred = predicate
             rec_1 = None
             for pair in pairs :
                 (record_1_id, record_1), (record_2_id, record_2) = pair
                 if record_1_id != rec_1 :
-                    blocks_1 = set(pred(record_1_id, record_1))
+                    blocks_1 = set(predicate(record_1_id, record_1))
                     rec_1 = record_1_id
                     
-                blocks_2 = pred(record_2_id, record_2)
+                blocks_2 = predicate(record_2_id, record_2)
                 field_preds = blocks_1 & set(blocks_2)
                 if field_preds :
                     rec_pair = record_1_id, record_2_id
