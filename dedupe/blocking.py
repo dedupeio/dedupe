@@ -57,13 +57,13 @@ class Blocker:
 
 
 
-    def _resetCanopies(self) :
+    def resetIndices(self) :
         # clear canopies to reduce memory usage
         for predicate_set in self.tfidf_fields.values() :
             for predicate in predicate_set :
                 predicate.index = None
 
-    def tfIdfIndex(self, data_2, field): 
+    def index(self, data_2, field): 
         '''Creates TF/IDF index of a given set of data'''
         predicate = next(iter(self.tfidf_fields[field]))
 
@@ -81,7 +81,7 @@ class Blocker:
             logger.info("Canopy: %s", str(predicate))
             predicate.index = index
 
-    def tfIdfUnindex(self, data_2, field) :
+    def unindex(self, data_2, field) :
         '''Remove index of a given set of data'''
         predicate = next(iter(self.tfidf_fields[field]))
 

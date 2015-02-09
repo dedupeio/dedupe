@@ -121,7 +121,7 @@ class TfidfTest(unittest.TestCase):
 
     blocker = dedupe.blocking.Blocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
 
-    blocker.tfIdfIndex(set(record["name"] 
+    blocker.index(set(record["name"] 
                            for record 
                            in self.data_d.itervalues()),
                        "name")
@@ -167,7 +167,7 @@ class TfIndexUnindex(unittest.TestCase) :
 
 
   def test_index(self):
-    self.blocker.tfIdfIndex(set(self.fields_2.values()), "name")
+    self.blocker.index(set(self.fields_2.values()), "name")
 
     blocks = defaultdict(set)
     
@@ -178,8 +178,8 @@ class TfIndexUnindex(unittest.TestCase) :
 
 
   def test_doubled_index(self):
-    self.blocker.tfIdfIndex(self.fields_2.values(), "name")
-    self.blocker.tfIdfIndex(self.fields_2.values(), "name")
+    self.blocker.index(self.fields_2.values(), "name")
+    self.blocker.index(self.fields_2.values(), "name")
 
     blocks = defaultdict(set)
     
@@ -189,8 +189,8 @@ class TfIndexUnindex(unittest.TestCase) :
     assert blocks.items() == [(u'4:0', set([130]))]
 
   def test_unindex(self) :
-    self.blocker.tfIdfIndex(self.fields_2.values(), "name")
-    self.blocker.tfIdfUnindex(self.fields_2.values(), "name")
+    self.blocker.index(self.fields_2.values(), "name")
+    self.blocker.unindex(self.fields_2.values(), "name")
 
     blocks = defaultdict(set)
     

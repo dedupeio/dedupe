@@ -268,12 +268,12 @@ class DedupeMatching(Matching) :
                                 for record 
                                 in data_d.itervalues())
 
-            self.blocker.tfIdfIndex(unique_fields, field)
+            self.blocker.index(unique_fields, field)
 
         for block_key, record_id in self.blocker(data_d.iteritems()) :
             blocks[block_key][record_id] = data_d[record_id]
 
-        self.blocker._resetCanopies()
+        self.blocker.resetIndices()
 
         blocks = [records for records in blocks.values()
                   if len(records) > 1]
@@ -451,11 +451,11 @@ class RecordLinkMatching(Matching) :
         blocked_records = defaultdict(dict)
 
         for field in self.blocker.tfidf_fields :
-            fields_2 = ((record_id, record[field])
-                        for record_id, record 
-                        in data_2.iteritems())
+            fields_2 = (record[field]
+                        for record 
+                        in data_2.itervalues())
 
-            self.blocker.tfIdfIndex(fields_2, field)
+            self.blocker.index(set(fields_2), field)
 
         for block_key, record_id in self.blocker(data_2.items()) :
             blocked_records[block_key][record_id] = data_2[record_id]
@@ -463,7 +463,7 @@ class RecordLinkMatching(Matching) :
         for each in self._blockGenerator(data_1, blocked_records) :
             yield each
 
-        self.blocker._resetCanopies()
+        self.blocker.resetIndices()
 
 
 class StaticMatching(Matching) :
@@ -1022,10 +1022,10 @@ class GazetteerMatching(RecordLinkMatching) :
     def index(self, data) : # pragma : no cover
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.tfIdfIndex(((record_id, record[field])
-                                     for record_id, record 
-                                     in data.iteritems()),
-                                    field)
+            self.blocker.index(((record_id, record[field])
+                                for record_id, record 
+                                in data.iteritems()),
+                               field)
 
         for block_key, record_id in self.blocker(data.items()) :
             if block_key not in self.blocked_records :
@@ -1035,10 +1035,10 @@ class GazetteerMatching(RecordLinkMatching) :
     def unindex(self, data) : # pragma : no cover
 
         for field in self.blocker.tfidf_fields :
-            self.blocker.tfIdfUnindex(((record_id, record[field])
-                                       for record_id, record 
-                                       in data.iteritems()),
-                                     field)
+            self.blocker.unindex(((record_id, record[field])
+                                  for record_id, record 
+                                  in data.iteritems()),
+                                 field)
 
         for block_key, record_id in self.blocker(data.iteritems()) :
             try : 

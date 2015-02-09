@@ -266,6 +266,26 @@ def removeSubsets(uncovered_dupes, predicate_set, coverage) :
     return final_set
 
 class Coverage(object) :
+    def __init__(self, predicate_set, pairs) :
+
+        records = self._records_to_index(pairs)
+        print records
+
+        blocker = blocking.Blocker(predicate_set)
+
+        for field in blocker.tfidf_fields :
+            record_fields = [record[field] 
+                             for _, record 
+                             in records]
+            stop_words = stopWords(record_fields)
+            blocker.stop_words[field].update(stop_words)
+            blocker.index(set(record_fields), field)
+
+        self.stop_words = blocker.stop_words
+        self.coveredBy(blocker.predicates, pairs)
+        self.compoundPredicates()
+        blocker.resetIndices()
+
 
 
     def coveredBy(self, predicates, pairs) :
@@ -320,48 +340,15 @@ class Coverage(object) :
 
 
 class DedupeCoverage(Coverage) :
-    def __init__(self, predicate_set, pairs) :
 
-        records = set(itertools.chain(*pairs))
+    def _records_to_index(self, pairs) :
+        return set(itertools.chain(*pairs))
 
-        blocker = blocking.Blocker(predicate_set)
-
-        for field in blocker.tfidf_fields :
-            record_fields = [record[field] 
-                             for _, record 
-                             in records]
-            stop_words = stopWords(record_fields)
-            blocker.stop_words[field].update(stop_words)
-            blocker.tfIdfIndex(set(record_fields), field)
-
-        self.stop_words = blocker.stop_words
-        self.coveredBy(blocker.predicates, pairs)
-        self.compoundPredicates()
-        blocker._resetCanopies()
 
 class RecordLinkCoverage(Coverage) :
-    def __init__(self, predicate_set, pairs) :
 
-        records_2 = set([])
-
-        for _, record_2 in pairs :
-            records_2.add(record_2)
-
-        blocker = blocking.Blocker(predicate_set)
-
-        for field in blocker.tfidf_fields :
-            field_records = [record[field]
-                             for _, record 
-                             in records_2]
-            stop_words = stopWords(field_records)
-            blocker.stop_words[field].update(stop_words)
-            blocker.tfIdfIndex(set(field_records), field)
-
-        self.stop_words = blocker.stop_words
-        self.coveredBy(blocker.predicates, pairs)
-        self.compoundPredicates()
-        blocker._resetCanopies()
-        
+    def _records_to_index(self, pairs) :
+        return set([record_2 for _, record_2 in pairs])
 
 def stopWords(data) :
     tf_index = index.CanopyIndex([])
