@@ -6,17 +6,11 @@ class ParsingTest(unittest.TestCase) :
         self.index = dedupe.tfidf.TfIdfIndex('foo')
         
     def test_keywords(self) :
-        assert self.index._parseTerms(u'`AND OR NOT ( ) ATOM \\EOF') ==\
-            ['\AND', '\OR', '\NOT', '\ATOM', '\EOF']
-        
         self.index.index('AND OR EOF NOT')
         self.index._index.initSearch()
         assert self.index.search('AND OR EOF NOT')[0] == 1
 
     def test_keywords_title(self) :
-        assert self.index._parseTerms(u'`And Or Not ( ) Atom \\Eof') ==\
-            ['\AND', '\OR', '\NOT', '\ATOM', '\EOF']
-        
         self.index.index('And Or Eof Not')
         self.index._index.initSearch()
         assert self.index.search('And Or Eof Not')[0] == 1

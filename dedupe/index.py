@@ -58,8 +58,7 @@ class CanopyLexicon(Lexicon) : # pragma : no cover
     def __init__(self, stop_words) : 
         super(CanopyLexicon, self).__init__()
         self._pipeline = [Splitter(),
-                          CustomStopWordRemover(stop_words),
-                          OperatorEscaper()]
+                          CustomStopWordRemover(stop_words)]
 
     def sourceToWordIds(self, doc): 
         if doc is None:
@@ -79,20 +78,6 @@ class CustomStopWordRemover(object):
 
     def process(self, lst):
         return [w for w in lst if not w in self.stop_words]
-
-
-class OperatorEscaper(object) :
-    def __init__(self) :
-        self.operators = {"AND"  : "\AND",
-                          "OR"   : "\OR",
-                          "NOT"  : "\NOT",
-                          "("    : "\(",
-                          ")"    : "\)",
-                          "ATOM" : "\ATOM",
-                          "EOF"  : "\EOF"}
-
-    def process(self, lst):
-        return [self.operators.get(w.upper(), w) for w in lst]
 
 
 def stringify(doc) :
