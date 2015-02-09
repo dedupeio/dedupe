@@ -33,7 +33,7 @@ class SimplePredicate(Predicate) :
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record_id, record) :
+    def __call__(self, record) :
         column = record[self.field]
         return self.func(column)
 
@@ -45,11 +45,10 @@ class TfidfPredicate(Predicate):
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
-        self.canopy = {}
         self.threshold = threshold
         self.index = None
 
-    def __call__(self, record_id, record) :
+    def __call__(self, record) :
 
         centers = self.index.search(record[self.field], self.threshold)
 
@@ -82,8 +81,8 @@ class CompoundPredicate(Predicate) :
         for pred in self.predicates :
             yield pred
 
-    def __call__(self, record_id, record) :
-        predicate_keys = [predicate(record_id, record)
+    def __call__(self, record) :
+        predicate_keys = [predicate(record)
                           for predicate in self.predicates]
         return [u':'.join(block_key)
                 for block_key

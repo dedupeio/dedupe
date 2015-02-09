@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import logging
 from index import CanopyIndex
-import math
 import collections
 import itertools
 
@@ -18,13 +17,14 @@ class TfIdfIndex(object) :
         
         self._parseTerms = self._index.lexicon.parseTerms
 
-    def index(self, record_id, doc) :
-        i = self._id_to_i[record_id]
+    def index(self, doc) :
+        i = self._id_to_i[doc]
         self._index.index_doc(i, doc)
 
-    def unindex(self, record_id) :
-        i = self._id_to_i.pop(record_id)
+    def unindex(self, doc) :
+        i = self._id_to_i.pop(doc)
         self._index.unindex_doc(i)
+        self._index.initSearch()
 
     def search(self, doc, threshold=0) :
         query_list = self._parseTerms(doc)

@@ -39,7 +39,9 @@ class CanopyIndex(TextIndex) : # pragma : no cover
         qw = 0.0
 
         for term in query_list :
-            wid, weight = _wids_dict[term]
+            wid, weight = _wids_dict.get(term, (None, None))
+            if wid is None :
+                continue
             docs = _wordinfo[wid]
             L.append((docs, weight))
             qw += l_pow(weight, 2)

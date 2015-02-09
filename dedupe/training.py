@@ -155,15 +155,9 @@ def blockTraining(training_pairs,
                                                 epsilon,
                                                 coverage)
 
-    print len(chvatal_predicate_set)
-
     final_predicate_set = removeSubsets(training_dupes,
                                         chvatal_predicate_set,
                                         coverage)
-
-    print len(final_predicate_set)
-
-    
 
     logger.info('Final predicate set:')
     for predicate in final_predicate_set :
@@ -283,10 +277,10 @@ class Coverage(object) :
             for pair in pairs :
                 (record_1_id, record_1), (record_2_id, record_2) = pair
                 if record_1_id != rec_1 :
-                    blocks_1 = set(predicate(record_1_id, record_1))
+                    blocks_1 = set(predicate(record_1))
                     rec_1 = record_1_id
                     
-                blocks_2 = predicate(record_2_id, record_2)
+                blocks_2 = predicate(record_2)
                 field_preds = blocks_1 & set(blocks_2)
                 if field_preds :
                     rec_pair = record_1_id, record_2_id
@@ -337,7 +331,6 @@ class DedupeCoverage(Coverage) :
                              for _, record 
                              in records]
             stop_words = stopWords(record_fields)
-            print stop_words
             blocker.stop_words[field].update(stop_words)
             blocker.tfIdfIndex(set(record_fields), field)
 
@@ -349,39 +342,21 @@ class DedupeCoverage(Coverage) :
 class RecordLinkCoverage(Coverage) :
     def __init__(self, predicate_set, pairs) :
 
-        records_1 = set([])
         records_2 = set([])
 
-        for record_1, record_2 in pairs :
-            records_1.add(record_1)
+        for _, record_2 in pairs :
             records_2.add(record_2)
 
         blocker = blocking.Blocker(predicate_set)
 
         for field in blocker.tfidf_fields :
-            field_records = [(record_id, record[field]) 
-                             for record_id, record in records_2]
+            field_records = [record[field]
+                             for _, record 
+                             in records_2]
             stop_words = stopWords(field_records)
             blocker.stop_words[field].update(stop_words)
-            blocker.tfIdfIndex(field_records, field)
+            blocker.tfIdfIndex(set(field_records), field)
 
-            search_records = [(record_id, record[field]) 
-                              for record_id, record in records_1]
-
-        canopies = defaultdict(lambda:defaultdict(set))
-
-        for field in blocker.tfidf_fields :
-            for source_id, record in search_records :
-                for predicate in blocker.tfidf_fields[field] :
-                    candidates = predicate(source_id, {field : record})
-                    for target_id in candidates :
-                        canopies[predicate][source_id].add(target_id)
-
-        for field in blocker.tfidf_fields :
-            for predicate in blocker.tfidf_fields[field] :
-                predicate.canopy.update(canopies[predicate])
-                del predicate.index
-            
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)
         self.compoundPredicates()

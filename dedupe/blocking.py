@@ -46,7 +46,7 @@ class Blocker:
             record_id, instance = record
 
             for pred_id, predicate in predicates :
-                block_keys = predicate(record_id, instance)
+                block_keys = predicate(instance)
                 for block_key in block_keys :
                     yield block_key + pred_id, record_id
             
@@ -72,8 +72,8 @@ class Blocker:
         if index is None :
             index = tfidf.TfIdfIndex(field, self.stop_words[field])
 
-        for i, doc in enumerate(data_2)  :
-            index.index(i, doc)
+        for doc in data_2  :
+            index.index(doc)
 
         index._index.initSearch()
 
@@ -87,21 +87,8 @@ class Blocker:
 
         index = predicate.index
 
-        for record_id, _ in data_2 :
-            if record_id in canopy :
-                index.unindex(record_id)
-                del canopy[record_id]
+        for doc in data_2 :
+            index.unindex(doc)
 
         for predicate in self.tfidf_fields[field] :
             predicate.index = index
-            predicate.canopy = canopy
-
-
-class PredicateCache(defaultdict) :
-    def __missing__(self, key) :
-        predicate, record = key
-        blocks = predicate(1, record)
-        if predicate.type == "TfidfPredicate" :
-            self[key] = blocks
-            
-        return blocks

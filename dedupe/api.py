@@ -265,8 +265,8 @@ class DedupeMatching(Matching) :
 
         for field in self.blocker.tfidf_fields :
             unique_fields = set(record[field]
-                                for record_id, record 
-                                in data_d.iteritems())
+                                for record 
+                                in data_d.itervalues())
 
             self.blocker.tfIdfIndex(unique_fields, field)
 
@@ -277,6 +277,9 @@ class DedupeMatching(Matching) :
 
         blocks = [records for records in blocks.values()
                   if len(records) > 1]
+        
+        blocks = dict([(frozenset(d.keys()), d) for d in blocks])
+        blocks = blocks.values()
 
         for block in self._redundantFree(blocks) :
             yield block
