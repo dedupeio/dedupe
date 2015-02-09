@@ -166,15 +166,15 @@ def commonSixGram(field):
 
 def sameThreeCharStartPredicate(field):
     """return first three characters"""
-    return initials(field, 3)
+    return initials(field.replace(' ', ''), 3)
 
 def sameFiveCharStartPredicate(field):
     """return first five characters"""
-    return initials(field, 5)
+    return initials(field.replace(' ', ''), 5)
 
 def sameSevenCharStartPredicate(field):
     """return first seven characters"""
-    return initials(field, 7)
+    return initials(field.replace(' ',''), 7)
 
 def sortedAcronym(field) :
     return (''.join(sorted(each[0] for each in field.split())),)
