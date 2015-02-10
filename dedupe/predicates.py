@@ -6,6 +6,8 @@ import math
 import itertools
 
 from dedupe.cpredicates import ngrams, initials
+import dedupe.tfidf as tfidf
+import dedupe.metric_tree as metric_tree
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
@@ -37,11 +39,7 @@ class SimplePredicate(Predicate) :
         column = record[self.field]
         return self.func(column)
 
-
-
-class TfidfPredicate(Predicate):
-    type = "TfidfPredicate"
-
+class IndexPredicate(Predicate) :
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
@@ -67,6 +65,17 @@ class TfidfPredicate(Predicate):
         self.__dict__ = d
         self.index = None
 
+class TfidfPredicate(IndexPredicate):
+    type = "TfidfPredicate"
+
+    def initIndex(self, stop_words) :
+        return tfidf.TfIdfIndex(stop_words)
+
+class LevenshteinPredicate(IndexPredicate) :
+    type = "LevenshteinPredicate"
+
+    def initIndex(self, stop_words) :
+        return metric_tree.LevenshteinIndex()
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"
