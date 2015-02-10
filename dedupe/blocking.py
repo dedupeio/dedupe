@@ -64,14 +64,8 @@ class Blocker:
 
     def index(self, data, field): 
         '''Creates TF/IDF index of a given set of data'''
-        indices = []
-        for index_type, predicates in self.index_fields[field].items() :
-            predicate = next(iter(predicates))
-            index = predicate.index
-            if predicate.index is None :
-                index = predicate.initIndex(self.stop_words[field])
-
-            indices.append((index_type, index))
+        indices = extractIndices(self.index_fields[field],
+                                 self.stop_words[field])
 
         for doc in data :
             for _, index in indices :
@@ -88,14 +82,32 @@ class Blocker:
 
     def unindex(self, data, field) :
         '''Remove index of a given set of data'''
-        predicate = next(iter(self.index_fields[field]))
-
-        index = predicate.index
+        indices = extractIndices(self.index_fields[field])
 
         for doc in data :
-            index.unindex(doc)
+            for _, index in indices :
+                #print doc
+                index.unindex(doc)
 
-        index._index.initSearch()
+        for index_type, index in indices :
 
-        for predicate in self.index_fields[field] :
-            predicate.index = index
+            index._index.initSearch()
+
+            for predicate in self.index_fields[field][index_type] :
+                logger.info("Canopy: %s", str(predicate))
+                predicate.index = index
+
+
+def extractIndices(index_fields, stop_words=None) :
+    
+    indices = []
+    for index_type, predicates in index_fields.items() :
+        predicate = next(iter(predicates))
+        index = predicate.index
+        if predicate.index is None :
+            index = predicate.initIndex(stop_words)
+
+        indices.append((index_type, index))
+
+    return indices
+

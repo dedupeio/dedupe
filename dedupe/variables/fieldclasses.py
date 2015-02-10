@@ -115,8 +115,11 @@ class StringType(ShortStringType) :
         super(StringType, self).__init__(definition)
 
         canopy_predicates = [predicates.TfidfPredicate(threshold, 
-                                                            self.field)
+                                                       self.field)
                              for threshold in self._canopy_thresholds]
+        canopy_predicates += [predicates.LevenshteinPredicate(threshold, 
+                                                             self.field)
+                              for threshold in (1,)]
 
         self.predicates += canopy_predicates
 
