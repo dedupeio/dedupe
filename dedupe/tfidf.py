@@ -22,6 +22,9 @@ class TfIdfIndex(object) :
     def unindex(self, doc) :
         i = self._id_to_i.pop(doc)
         self._index.unindex_doc(i)
+        self.initSearch()
+
+    def initSearch(self) :
         self._index.initSearch()
 
     def search(self, doc, threshold=0) :
