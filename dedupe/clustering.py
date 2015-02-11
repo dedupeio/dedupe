@@ -171,7 +171,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
 def confidences(items, distances) :
     scores = numpy.sum(distances[items, :][:, items]**2, 0)
     scores /= len(items) - 1
-    scores = 1 - scores
+    scores = 1 - numpy.sqrt(scores)
     return scores
 
 def greedyMatching(dupes, threshold=0.5):
