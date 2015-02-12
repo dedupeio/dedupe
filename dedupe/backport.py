@@ -44,11 +44,11 @@ except ImportError :
     from ordereddict import OrderedDict
 
 try:
-    from json.scanner import py_make_scanner
-    import json
-except ImportError:
     from simplejson.scanner import py_make_scanner
     import simplejson as json
+except ImportError:
+    from json.scanner import py_make_scanner
+    import json
 
 
 def cartesian(arrays, out=None):
