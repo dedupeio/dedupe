@@ -32,7 +32,7 @@ except ImportError:
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.7.7.0.0',
+    version='0.7.7.0.2',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.distance', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],

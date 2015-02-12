@@ -186,9 +186,9 @@ class ClusteringTest(unittest.TestCase):
 
     assert self.clusterEquals(hierarchical(self.dupes, 0.5),
                               [((1, 2, 3), 
-                                (0.790, 
+                                (0.779, 
                                  0.860, 
-                                 0.790)), 
+                                 0.779)), 
                                ((4, 5), 
                                 (0.720, 
                                  0.720)), 
@@ -198,11 +198,11 @@ class ClusteringTest(unittest.TestCase):
 
     assert self.clusterEquals(hierarchical(self.dupes, 0),
                               [((1, 2, 3, 4, 5), 
-                                (0.5950000137090683, 
-                                 0.66000001132488251, 
-                                 0.59500001370, 
-                                 0.3550000041, 
-                                 0.635)), 
+                                (0.526, 
+                                 0.565, 
+                                 0.542, 
+                                 0.320, 
+                                 0.624)), 
                                ((10, 11), 
                                 (0.899, 
                                  0.899))]
