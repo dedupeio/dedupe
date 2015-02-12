@@ -263,10 +263,11 @@ class DedupeMatching(Matching) :
 
         blocks = defaultdict(dict)
 
-        for field in self.blocker.tfidf_fields :
-            unique_fields = set(record[field]
-                                for record 
-                                in data_d.itervalues())
+        for field in self.blocker.index_fields :
+            unique_fields = sorted(set(record[field]
+                                       for record 
+                                       in data_d.itervalues()
+                                       if record[field]))
 
             self.blocker.index(unique_fields, field)
 
@@ -450,7 +451,7 @@ class RecordLinkMatching(Matching) :
 
         blocked_records = defaultdict(dict)
 
-        for field in self.blocker.tfidf_fields :
+        for field in self.blocker.index_fields :
             fields_2 = (record[field]
                         for record 
                         in data_2.itervalues())
@@ -1021,7 +1022,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
     def index(self, data) : # pragma : no cover
 
-        for field in self.blocker.tfidf_fields :
+        for field in self.blocker.index_fields :
             self.blocker.index((record[field]
                                 for record 
                                 in data.itervalues()),
@@ -1034,7 +1035,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
     def unindex(self, data) : # pragma : no cover
 
-        for field in self.blocker.tfidf_fields :
+        for field in self.blocker.index_fields :
             self.blocker.unindex((record[field]
                                   for record 
                                   in data.itervalues()),

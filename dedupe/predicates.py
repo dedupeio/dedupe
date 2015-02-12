@@ -6,6 +6,8 @@ import math
 import itertools
 
 from dedupe.cpredicates import ngrams, initials
+import dedupe.tfidf as tfidf
+import dedupe.metric_tree as metric_tree
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
@@ -37,23 +39,12 @@ class SimplePredicate(Predicate) :
         column = record[self.field]
         return self.func(column)
 
-
-
-class TfidfPredicate(Predicate):
-    type = "TfidfPredicate"
-
+class IndexPredicate(Predicate) :
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
         self.threshold = threshold
         self.index = None
-
-    def __call__(self, record) :
-
-        centers = self.index.search(record[self.field], self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
 
     def __getstate__(self):
 
@@ -67,6 +58,39 @@ class TfidfPredicate(Predicate):
         self.__dict__ = d
         self.index = None
 
+class TfidfPredicate(IndexPredicate):
+    type = "TfidfPredicate"
+
+    def __call__(self, record) :
+
+        centers = self.index.search(record[self.field], self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
+    def initIndex(self, stop_words) :
+        return tfidf.TfIdfIndex(stop_words)
+
+class LevenshteinPredicate(IndexPredicate) :
+    type = "LevenshteinPredicate"
+    
+    def __init__(self, threshold, field):
+        super(LevenshteinPredicate, self).__init__(threshold, field)
+
+        self.transitions = metric_tree.transitions(threshold)
+
+    def __call__(self, record) :
+
+        centers = self.index.search(record[self.field], 
+                                    self.transitions,
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
+
+    def initIndex(self, *args) :
+        return metric_tree.LevenshteinIndex()
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"

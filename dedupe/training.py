@@ -272,13 +272,14 @@ class Coverage(object) :
 
         blocker = blocking.Blocker(predicate_set)
 
-        for field in blocker.tfidf_fields :
+        for field in blocker.index_fields :
             record_fields = [record[field] 
                              for _, record 
-                             in records]
+                             in records
+                             if record[field]]
             stop_words = stopWords(record_fields)
             blocker.stop_words[field].update(stop_words)
-            blocker.index(set(record_fields), field)
+            blocker.index(sorted(set(record_fields)), field)
 
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)

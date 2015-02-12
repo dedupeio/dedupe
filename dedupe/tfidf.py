@@ -8,9 +8,7 @@ import itertools
 logger = logging.getLogger(__name__)
 
 class TfIdfIndex(object) :
-    def __init__(self, field, stop_words=[]) :
-        self.field = field
-
+    def __init__(self, stop_words=[]) :
         self._index = CanopyIndex(stop_words)
  
         self._id_to_i = collections.defaultdict(itertools.count(1).next)
@@ -24,6 +22,9 @@ class TfIdfIndex(object) :
     def unindex(self, doc) :
         i = self._id_to_i.pop(doc)
         self._index.unindex_doc(i)
+        self.initSearch()
+
+    def initSearch(self) :
         self._index.initSearch()
 
     def search(self, doc, threshold=0) :
