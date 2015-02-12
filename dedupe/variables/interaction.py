@@ -1,4 +1,5 @@
 from base import Variable
+import itertools
 
 class InteractionType(Variable) :
     type = "Interaction"
