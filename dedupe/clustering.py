@@ -7,6 +7,7 @@ import warnings
 import numpy
 import fastcluster
 import hcluster
+from felzenszwalb._felzenszwalb_cy import _felzenszwalb_graph as segment
 
 def connected_components(edgelist, max_components) :
 
@@ -115,7 +116,7 @@ def condensedDistance(dupes):
     return (i_to_id, condensed_distances)
 
 
-def cluster(dupes, threshold=.5, max_components=30000):
+def clusterOld(dupes, threshold=.5, max_components=30000):
     '''
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
@@ -167,6 +168,59 @@ def cluster(dupes, threshold=.5, max_components=30000):
             
 
     return clustering.values()
+
+def cluster(dupes, threshold=.5, max_components=30000):
+    '''
+    Takes in a list of duplicate pairs and clusters them in to a
+    list records that all refer to the same entity based on a given
+    threshold
+    '''
+    # dupes = [([1004, 2309], 0.9792425036430359) ([3331, 1771], 0.9880577325820923)
+    #            ([3331, 2218], 0.9754224419593811) ..., ([1674, 655], 0.7581549882888794)
+    #            ([3157, 1718], 0.9362305402755737) ([2372, 2923], 0.7735115885734558)]
+    # <class 'numpy.core.memmap.memmap'>
+
+    all_clusters = []
+
+    dupe_sub_graphs = connected_components(dupes, max_components)
+
+    counter = 0
+    for sub_graph in dupe_sub_graphs:
+        if len(sub_graph) > 1:
+
+            counter = counter + 1
+            if counter >5:
+
+                candidate_set = numpy.unique(sub_graph['pairs'])
+                candidate_set = numpy.sort(candidate_set)
+
+                (i_to_id, condensed_distances) = condensedDistance(sub_graph)
+                distances = hcluster.squareform(condensed_distances)
+
+                edges = candidate_set.searchsorted(sub_graph['pairs'])
+                costs = []
+                for i, dupe in enumerate(sub_graph):
+                    pair, score = dupe
+                    costs.append(1-score)
+
+                edges = numpy.array(edges)
+                costs = numpy.array(costs)
+
+                # set parameters here. how to incorporate threshold?
+                segs = segment(edges, costs, 1, 1)
+                num_clusters = len(set(segs))
+
+                for i in range(num_clusters):
+                    cluster_members = [idx for idx in range(len(candidate_set)) if segs[idx] == i]
+                    if len(cluster_members) > 1 :
+                        scores = confidences(cluster_members, distances)
+                        all_clusters.append( (tuple(i_to_id[item] for item in cluster_members), tuple(scores)) )
+        #only one pair in sub graph
+        else:
+            ids, score = sub_graph[0]
+            all_clusters.append( (tuple(ids), tuple([score]*2)) )
+
+    return all_clusters
 
 def confidences(items, distances) :
     scores = numpy.sum(distances[items, :][:, items]**2, 0)
