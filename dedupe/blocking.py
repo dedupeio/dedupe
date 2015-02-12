@@ -69,12 +69,11 @@ class Blocker:
 
         for doc in data :
             for _, index in indices :
-                #print doc
                 index.index(doc)
 
         for index_type, index in indices :
 
-            index._index.initSearch()
+            index.initSearch()
 
             for predicate in self.index_fields[field][index_type] :
                 logger.info("Canopy: %s", str(predicate))
@@ -86,7 +85,6 @@ class Blocker:
 
         for doc in data :
             for _, index in indices :
-                #print doc
                 index.unindex(doc)
 
         for index_type, index in indices :
