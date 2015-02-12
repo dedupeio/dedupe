@@ -37,7 +37,6 @@ setup(
     packages=['dedupe', 'dedupe.distance', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
-    dependency_links = ['http://github.com/datamade/moman/tarball/master#egg=moman'],
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 3 - Alpha',

@@ -1,8 +1,6 @@
 from finenight import iadfa
-from finenight import possibleStates
 from finenight import fsc 
-
-DISTANCE=2
+from finenight.fsc import transitions
 
 class LevenshteinIndex(object) :
     def __init__(self, stop_words=[]) :
@@ -11,16 +9,12 @@ class LevenshteinIndex(object) :
 
     def initSearch(self) :
         self._index.initSearch()
-
-        transition_states = possibleStates.genTransitions(DISTANCE)
-
-        self.etr = fsc.ErrorTolerantRecognizer(DISTANCE, 
-                                               self._index, 
-                                               transition_states)
-        
+        self.etr = fsc.ErrorTolerantRecognizer(self._index)
 
     def index(self, record) :
         self._index.createFromSortedListOfWords(record)
 
-    def search(self, doc, threshold=0) :
-        return self.etr.recognize(doc)
+    def search(self, doc, transitions, n=1) :
+        return self.etr.recognize(doc, transitions, n)
+
+

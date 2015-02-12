@@ -105,26 +105,37 @@ class ShortStringType(FieldType) :
                             dedupe.predicates.twoGramFingerprint,
                             dedupe.predicates.sortedAcronym)
 
+    _levenshtein_thresholds = (1, 2)
+
+    def __init__(self, definition) :
+        super(ShortStringType, self).__init__(definition)
+
+        index_predicates = [predicates.LevenshteinPredicate(threshold, 
+                                                             self.field)
+                            for threshold in self._levenshtein_thresholds]
+
+        self.predicates += index_predicates
+
+
 class StringType(ShortStringType) :
     comparator = normalizedAffineGapDistance
     type = "String"
 
-    _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
+    _tfidf_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(self, definition) :
         super(StringType, self).__init__(definition)
 
-        canopy_predicates = [predicates.TfidfPredicate(threshold, 
+        index_predicates = [predicates.TfidfPredicate(threshold, 
                                                        self.field)
-                             for threshold in self._canopy_thresholds]
-        canopy_predicates += [predicates.LevenshteinPredicate(threshold, 
-                                                             self.field)
-                              for threshold in (1,)]
+                             for threshold in self._tfidf_thresholds]
 
-        self.predicates += canopy_predicates
+        self.predicates += index_predicates
 
 class TextType(StringType) :
     type = "Text"
+
+    _levenshtein_thresholds = ()
 
     def __init__(self, definition) :
         super(TextType, self).__init__(definition)
@@ -156,16 +167,16 @@ class SetType(FieldType) :
                             dedupe.predicates.commonThreeElementsPredicate,
                             dedupe.predicates.firstSetElementPredicate)
     
-    _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
+    _tfidf_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
 
-        canopy_predicates = [predicates.TfidfPredicate(threshold, 
+        index_predicates = [predicates.TfidfPredicate(threshold, 
                                                        self.field)
-                             for threshold in self._canopy_thresholds]
+                             for threshold in self._tfidf_thresholds]
 
-        self.predicates += canopy_predicates
+        self.predicates += index_predicates
 
         if 'corpus' not in definition :
             definition['corpus'] = [] 

@@ -46,13 +46,6 @@ class IndexPredicate(Predicate) :
         self.threshold = threshold
         self.index = None
 
-    def __call__(self, record) :
-
-        centers = self.index.search(record[self.field], self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
-
     def __getstate__(self):
 
         result = self.__dict__.copy()
@@ -68,13 +61,35 @@ class IndexPredicate(Predicate) :
 class TfidfPredicate(IndexPredicate):
     type = "TfidfPredicate"
 
+    def __call__(self, record) :
+
+        centers = self.index.search(record[self.field], self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
     def initIndex(self, stop_words) :
         return tfidf.TfIdfIndex(stop_words)
 
 class LevenshteinPredicate(IndexPredicate) :
     type = "LevenshteinPredicate"
+    
+    def __init__(self, threshold, field):
+        super(LevenshteinPredicate, self).__init__(threshold, field)
 
-    def initIndex(self, stop_words) :
+        self.transitions = metric_tree.transitions(threshold)
+
+    def __call__(self, record) :
+
+        centers = self.index.search(record[self.field], 
+                                    self.transitions,
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
+
+    def initIndex(self, *args) :
         return metric_tree.LevenshteinIndex()
 
 class CompoundPredicate(Predicate) :
