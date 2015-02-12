@@ -28,7 +28,6 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 from dedupe.datamodel import DataModel
-import dedupe.centroid as centroid
 
 logger = logging.getLogger(__name__)
 

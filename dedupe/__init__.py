@@ -7,7 +7,6 @@ __all__ = ['blocking',
            'predicates',
            'crossvalidation',
            'distance',
-           'centroid'
            ]
 
 #from distance import affinegap

@@ -4,7 +4,7 @@ import collections
 import itertools
 import random
 from dedupe.core import randomPairs
-from centroid import getCanonicalRep
+from canonicalize.centroid import getCanonicalRep
 
 def consoleLabel(deduper): # pragma : no cover
     '''
