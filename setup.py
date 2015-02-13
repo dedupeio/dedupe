@@ -11,6 +11,7 @@ install_requires=['numpy>=1.9',
                   'hcluster',
                   'categorical-distance',
                   'rlr',
+                  'metaphone',
                   'affinegap',
                   'canonicalize',
                   'simplecosine',
@@ -38,6 +39,8 @@ setup(
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
+
+   dependency_links = ['http://github.com/al45tair/metaphone/tarball/master#egg=metaphone']
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 3 - Alpha',
