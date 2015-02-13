@@ -8,6 +8,7 @@ import numpy
 import fastcluster
 import hcluster
 from felzenszwalb._felzenszwalb_cy import _felzenszwalb_graph as segment
+from igraph import Graph
 
 def connected_components(edgelist, max_components) :
 
@@ -180,41 +181,101 @@ def cluster(dupes, threshold=.5, max_components=30000):
     #            ([3157, 1718], 0.9362305402755737) ([2372, 2923], 0.7735115885734558)]
     # <class 'numpy.core.memmap.memmap'>
 
+    # set felsenszwalb parameters here. how to incorporate threshold?
+    scale_param = 3
+    smoothing_param = 1
+
     all_clusters = []
 
     dupe_sub_graphs = connected_components(dupes, max_components)
 
-    counter = 0
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
 
-            counter = counter + 1
-            if counter >5:
+            # ####################################
+            # ########### felzenszwalb ###########
+            # ####################################
+            # candidate_set = numpy.unique(sub_graph['pairs'])
+            # candidate_set = numpy.sort(candidate_set)
 
-                candidate_set = numpy.unique(sub_graph['pairs'])
-                candidate_set = numpy.sort(candidate_set)
+            # (i_to_id, condensed_distances) = condensedDistance(sub_graph)
+            # distances = hcluster.squareform(condensed_distances)
 
-                (i_to_id, condensed_distances) = condensedDistance(sub_graph)
-                distances = hcluster.squareform(condensed_distances)
+            # edges = candidate_set.searchsorted(sub_graph['pairs'])
+            # costs = []
+            # for i, dupe in enumerate(sub_graph):
+            #     pair, score = dupe
+            #     costs.append(1-score)
 
-                edges = candidate_set.searchsorted(sub_graph['pairs'])
-                costs = []
-                for i, dupe in enumerate(sub_graph):
-                    pair, score = dupe
-                    costs.append(1-score)
+            # edges = numpy.array(edges)
+            # costs = numpy.array(costs)
 
-                edges = numpy.array(edges)
-                costs = numpy.array(costs)
+            # segs = segment(edges, costs, scale_param, smoothing_param)
 
-                # set parameters here. how to incorporate threshold?
-                segs = segment(edges, costs, 1, 1)
-                num_clusters = len(set(segs))
 
-                for i in range(num_clusters):
-                    cluster_members = [idx for idx in range(len(candidate_set)) if segs[idx] == i]
-                    if len(cluster_members) > 1 :
-                        scores = confidences(cluster_members, distances)
-                        all_clusters.append( (tuple(i_to_id[item] for item in cluster_members), tuple(scores)) )
+            # ####################################
+            # ########### igraph #################
+            # ####################################
+            candidate_set = numpy.unique(sub_graph['pairs'])
+            candidate_set = numpy.sort(candidate_set)
+
+            (i_to_id, condensed_distances) = condensedDistance(sub_graph)
+            distances = hcluster.squareform(condensed_distances)
+
+            g = Graph()
+            g.add_vertices(len(candidate_set))
+            edges = candidate_set.searchsorted(sub_graph['pairs'])
+            g.add_edges(edges)
+
+            edge_weights = []
+            for pair, score in sub_graph:
+                edge_weights.append(score)
+
+            # # 1. community_fastgreedy - automatically selects a # of clusters (that maximizes modularity score)
+            # dend = g.community_fastgreedy(edge_weights)
+            # clusters = dend.as_clustering()
+            # segs = clusters.membership
+
+            # # 2. community_infomap
+            # clusters = g.community_infomap(edge_weights)
+            # segs = clusters.membership
+
+            # # 3. community_leading_eigenvector
+            # # how to set param arpack_options?
+            # # this has poor recall w/ default arpack_options = None
+            # clusters = g.community_leading_eigenvector(weights = edge_weights)
+            # segs = clusters.membership
+
+            # # 4. community_label_propagation
+            # clusters = g.community_label_propagation(weights=edge_weights)
+            # segs = clusters.membership
+
+            # # 5. community_multilevel
+            # # this has poor recall
+            # clusters = g.community_multilevel(weights=edge_weights)
+            # segs = clusters.membership
+
+            # # 6. community_edge_betweenness
+            # dend = g.community_edge_betweenness(directed=False, weights=edge_weights)
+            # clusters = dend.as_clustering()
+            # segs = clusters.membership
+
+            # 7. community_spinglass? what is the spinglass community detection method?
+
+            # 8. community_walktrap
+            # really poor recall. perhaps set param steps?
+            # steps = length of random walks, default 4 (4 seems long considering the size of many subgraphs)
+            dend = g.community_walktrap(weights=edge_weights)
+            clusters = dend.as_clustering()
+            segs = clusters.membership
+
+
+            num_clusters = len(set(segs))
+            for i in range(num_clusters):
+                cluster_members = [idx for idx in range(len(candidate_set)) if segs[idx] == i]
+                if len(cluster_members) > 1 :
+                    scores = confidences(cluster_members, distances)
+                    all_clusters.append( (tuple(i_to_id[item] for item in cluster_members), tuple(scores)) )
         #only one pair in sub graph
         else:
             ids, score = sub_graph[0]
