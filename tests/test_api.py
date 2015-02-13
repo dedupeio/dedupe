@@ -180,7 +180,7 @@ class DedupeTest(unittest.TestCase):
   def test_randomSample(self) :
 
     random.seed(6)
-    self.deduper.sample(data_dict, 25, 1)
+    self.deduper.sample(data_dict, 30, 1)
 
     correct_result = [(dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
                        dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
