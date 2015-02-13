@@ -5,6 +5,7 @@ import re
 import math
 import itertools
 
+from metaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
 
 words = re.compile(r"[\w']+").findall
@@ -178,6 +179,9 @@ def sameSevenCharStartPredicate(field):
 
 def sortedAcronym(field) :
     return (''.join(sorted(each[0] for each in field.split())),)
+
+def doubleMetaphone(field) :
+    return [metaphone for metaphone in doublemetaphone(field) if metaphone]
 
 def existsPredicate(field) :
     try :
