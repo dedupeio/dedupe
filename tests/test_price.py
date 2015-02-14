@@ -1,6 +1,6 @@
 import unittest
 import dedupe
-from dedupe.variables.fieldclasses import PriceType
+from dedupe.variables.price import PriceType
 
 class TestPrice(unittest.TestCase):
     def test_comparator(self) :
