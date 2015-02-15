@@ -7,6 +7,8 @@ import itertools
 
 from metaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
+import dedupe.tfidf as tfidf
+import dedupe.metric_tree as metric_tree
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
@@ -38,23 +40,12 @@ class SimplePredicate(Predicate) :
         column = record[self.field]
         return self.func(column)
 
-
-
-class TfidfPredicate(Predicate):
-    type = "TfidfPredicate"
-
+class IndexPredicate(Predicate) :
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
         self.threshold = threshold
         self.index = None
-
-    def __call__(self, record) :
-
-        centers = self.index.search(record[self.field], self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
 
     def __getstate__(self):
 
@@ -67,6 +58,55 @@ class TfidfPredicate(Predicate):
     def __setstate__(self, d) :
         self.__dict__ = d
         self.index = None
+
+class TfidfPredicate(IndexPredicate):
+
+    def initIndex(self, stop_words) :
+        return tfidf.TfIdfIndex(stop_words)
+
+class TfidfTextPredicate(TfidfPredicate) :
+    type = "TfidfTextPredicate"
+
+    rx = re.compile(r"(?u)\w+[\w*?]*")
+
+    def preprocess(self, doc) :
+        return tuple(self.rx.findall(doc))
+
+    def __call__(self, record) :
+
+        centers = self.index.search(self.preprocess(record[self.field]), 
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
+class TfidfSetPredicate(TfidfPredicate) :
+    type = "TfidfSetPredicate"
+
+    def preprocess(self, doc) :
+        return doc
+
+    def __call__(self, record) :
+
+        centers = self.index.search(record[self.field], 
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
+class TfidfNGramPredicate(TfidfPredicate) :
+    type = "TfidfNGramPredicate"
+
+    def preprocess(self, doc) :
+        return tuple(ngrams(doc.replace(' ', ''), 2))
+
+    def __call__(self, record) :
+
+        centers = self.index.search(self.preprocess(record[self.field]), 
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
 
 
 class CompoundPredicate(Predicate) :
@@ -148,22 +188,31 @@ def commonThreeTokens(field) :
     return ngramsTokens(field.split(), 3)
 
 def fingerprint(field) :
-    return (u''.join(sorted(field.split())).strip(),)
+    if field :
+        return (u''.join(sorted(field.split())).strip(),)
+    else :
+        return ()
 
 def oneGramFingerprint(field) :
-    return (u''.join(sorted(ngrams(field.replace(' ', ''), 1))).strip(),)
+    if field :
+        return (u''.join(sorted(set(ngrams(field.replace(' ', ''), 1)))).strip(),)
+    else :
+        return ()
 
 def twoGramFingerprint(field) :
-    return (u''.join(sorted(gram.strip() for gram 
-                            in ngrams(field.replace(' ', ''), 2))),)
+    if len(field) > 1 :
+        return (u''.join(sorted(gram.strip() for gram 
+                                in set(ngrams(field.replace(' ', ''), 2)))),)
+    else :
+        return ()
     
 def commonFourGram(field):
     """return 4-grams"""
-    return ngrams(field.replace(' ', ''), 4)
+    return set(ngrams(field.replace(' ', ''), 4))
 
 def commonSixGram(field):
     """return 6-grams"""
-    return ngrams(field.replace(' ', ''), 6)
+    return set(ngrams(field.replace(' ', ''), 6))
 
 def sameThreeCharStartPredicate(field):
     """return first three characters"""

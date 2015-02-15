@@ -272,13 +272,14 @@ class Coverage(object) :
 
         blocker = blocking.Blocker(predicate_set)
 
-        for field in blocker.tfidf_fields :
+        for field in blocker.index_fields :
             record_fields = [record[field] 
                              for _, record 
-                             in records]
+                             in records
+                             if record[field]]
             stop_words = stopWords(record_fields)
             blocker.stop_words[field].update(stop_words)
-            blocker.index(set(record_fields), field)
+            blocker.index(sorted(set(record_fields)), field)
 
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)
@@ -323,19 +324,18 @@ class Coverage(object) :
 
     def compoundPredicates(self) :
         intersection = set.intersection
-        product = itertools.product
+
+        # compound_predicates = itertools.chain(itertools.combinations(self.overlap, 2),
+        #                                       itertools.combinations(self.overlap, 3))
 
         compound_predicates = itertools.combinations(self.overlap, 2)
 
+
         for compound_predicate in compound_predicates :
             compound_predicate = predicates.CompoundPredicate(compound_predicate)
-            predicate_1, predicate_2 = compound_predicate
-        
             self.overlap[compound_predicate] =\
-                intersection(self.overlap[predicate_1],
-                             self.overlap[predicate_2])
-            
-            i = 0
+                intersection(*[self.overlap[pred] 
+                               for pred in compound_predicate])         
 
 
 class DedupeCoverage(Coverage) :
