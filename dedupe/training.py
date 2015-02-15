@@ -324,19 +324,18 @@ class Coverage(object) :
 
     def compoundPredicates(self) :
         intersection = set.intersection
-        product = itertools.product
+
+        # compound_predicates = itertools.chain(itertools.combinations(self.overlap, 2),
+        #                                       itertools.combinations(self.overlap, 3))
 
         compound_predicates = itertools.combinations(self.overlap, 2)
 
+
         for compound_predicate in compound_predicates :
             compound_predicate = predicates.CompoundPredicate(compound_predicate)
-            predicate_1, predicate_2 = compound_predicate
-        
             self.overlap[compound_predicate] =\
-                intersection(self.overlap[predicate_1],
-                             self.overlap[predicate_2])
-            
-            i = 0
+                intersection(*[self.overlap[pred] 
+                               for pred in compound_predicate])         
 
 
 class DedupeCoverage(Coverage) :

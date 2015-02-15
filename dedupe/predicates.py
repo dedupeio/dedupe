@@ -59,38 +59,54 @@ class IndexPredicate(Predicate) :
         self.index = None
 
 class TfidfPredicate(IndexPredicate):
-    type = "TfidfPredicate"
-
-    def __call__(self, record) :
-
-        centers = self.index.search(record[self.field], self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
 
     def initIndex(self, stop_words) :
         return tfidf.TfIdfIndex(stop_words)
 
-class LevenshteinPredicate(IndexPredicate) :
-    type = "LevenshteinPredicate"
-    
-    def __init__(self, threshold, field):
-        super(LevenshteinPredicate, self).__init__(threshold, field)
+class TfidfTextPredicate(TfidfPredicate) :
+    type = "TfidfTextPredicate"
 
-        self.transitions = metric_tree.transitions(threshold)
+    rx = re.compile(r"(?u)\w+[\w*?]*")
+
+    def preprocess(self, doc) :
+        return tuple(self.rx.findall(doc))
 
     def __call__(self, record) :
 
-        centers = self.index.search(record[self.field], 
-                                    self.transitions,
+        centers = self.index.search(self.preprocess(record[self.field]), 
                                     self.threshold)
 
         l_unicode = unicode
         return [l_unicode(center) for center in centers]
 
+class TfidfSetPredicate(TfidfPredicate) :
+    type = "TfidfSetPredicate"
 
-    def initIndex(self, *args) :
-        return metric_tree.LevenshteinIndex()
+    def preprocess(self, doc) :
+        return doc
+
+    def __call__(self, record) :
+
+        centers = self.index.search(record[self.field], 
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
+class TfidfNGramPredicate(TfidfPredicate) :
+    type = "TfidfNGramPredicate"
+
+    def preprocess(self, doc) :
+        return tuple(ngrams(doc.replace(' ', ''), 2))
+
+    def __call__(self, record) :
+
+        centers = self.index.search(self.preprocess(record[self.field]), 
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"
@@ -171,22 +187,31 @@ def commonThreeTokens(field) :
     return ngramsTokens(field.split(), 3)
 
 def fingerprint(field) :
-    return (u''.join(sorted(field.split())).strip(),)
+    if field :
+        return (u''.join(sorted(field.split())).strip(),)
+    else :
+        return ()
 
 def oneGramFingerprint(field) :
-    return (u''.join(sorted(ngrams(field.replace(' ', ''), 1))).strip(),)
+    if field :
+        return (u''.join(sorted(set(ngrams(field.replace(' ', ''), 1)))).strip(),)
+    else :
+        return ()
 
 def twoGramFingerprint(field) :
-    return (u''.join(sorted(gram.strip() for gram 
-                            in ngrams(field.replace(' ', ''), 2))),)
+    if len(field) > 1 :
+        return (u''.join(sorted(gram.strip() for gram 
+                                in set(ngrams(field.replace(' ', ''), 2)))),)
+    else :
+        return ()
     
 def commonFourGram(field):
     """return 4-grams"""
-    return ngrams(field.replace(' ', ''), 4)
+    return set(ngrams(field.replace(' ', ''), 4))
 
 def commonSixGram(field):
     """return 6-grams"""
-    return ngrams(field.replace(' ', ''), 6)
+    return set(ngrams(field.replace(' ', ''), 6))
 
 def sameThreeCharStartPredicate(field):
     """return first three characters"""

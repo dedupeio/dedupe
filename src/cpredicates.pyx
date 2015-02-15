@@ -1,6 +1,6 @@
 # cython: c_string_type=unicode, c_string_encoding=utf8
 
-cpdef set ngrams(basestring field, int n):
+cpdef list ngrams(basestring field, int n):
     """ngrams returns all unique, contiguous sequences of n characters
     of a given field.
         
@@ -14,12 +14,12 @@ cpdef set ngrams(basestring field, int n):
     """
     cdef unicode ufield = _ustring(field)
 
-    cdef set grams = set([])
+    cdef list grams = []
     cdef int i, j
     cdef int n_char = len(ufield)
     for i in range(n_char):
         for j in range(i+n, min(n_char, i+n)+1):
-            grams.add(ufield[i:j])
+            grams.append(ufield[i:j])
             
     return grams
 

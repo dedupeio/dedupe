@@ -12,12 +12,8 @@ install_requires=['numpy>=1.9',
                   'categorical-distance',
                   'rlr',
                   'affinegap',
-<<<<<<< HEAD
                   'canonicalize',
                   'simplecosine',
-=======
-                  'finenight',
->>>>>>> metric_tree
                   'haversine',
                   'BTrees==4.0.8',
                   'zope.interface', 

@@ -68,10 +68,10 @@ class Blocker:
                                  self.stop_words[field])
 
         for doc in data :
-            for _, index in indices :
-                index.index(doc)
+            for _, index, preprocess in indices :
+                index.index(preprocess(doc))
 
-        for index_type, index in indices :
+        for index_type, index, _ in indices :
 
             index.initSearch()
 
@@ -102,10 +102,10 @@ def extractIndices(index_fields, stop_words=None) :
     for index_type, predicates in index_fields.items() :
         predicate = next(iter(predicates))
         index = predicate.index
+        preprocess = predicate.preprocess
         if predicate.index is None :
             index = predicate.initIndex(stop_words)
-
-        indices.append((index_type, index))
+        indices.append((index_type, index, preprocess))
 
     return indices
 
