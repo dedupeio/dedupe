@@ -25,7 +25,8 @@ class ShortStringType(FieldType) :
                             predicates.oneGramFingerprint,
                             predicates.twoGramFingerprint,
                             predicates.sortedAcronym,
-                            predicates.doubleMetaphone)
+                            predicates.doubleMetaphone,
+                            predicates.metaphoneToken)
 
 class StringType(ShortStringType) :
     comparator = normalizedAffineGapDistance
