@@ -98,7 +98,7 @@ class TfidfNGramPredicate(TfidfPredicate) :
     type = "TfidfNGramPredicate"
 
     def preprocess(self, doc) :
-        return tuple(ngrams(doc.replace(' ', ''), 2))
+        return tuple(ngrams(doc.replace(' ', ''), 6))
 
     def __call__(self, record) :
 
@@ -232,12 +232,18 @@ def sortedAcronym(field) :
 def doubleMetaphone(field) :
     return [metaphone for metaphone in doublemetaphone(field) if metaphone]
 
+def metaphoneToken(field) :
+    return [metaphone_token for metaphone_token 
+            in itertools.chain(*(doublemetaphone(token) 
+                                 for token in set(field.split())))
+            if metaphone_token]
+
 def existsPredicate(field) :
     try :
         if any(field) :
             return (u'1',)
         else :
-            return (u'0',)
+            return (u'0')
     except TypeError :
         if field :
             return (u'1',)
