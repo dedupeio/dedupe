@@ -136,7 +136,7 @@ def blockTraining(training_pairs,
     # Only consider predicates that cover at least one duplicate pair
     dupe_coverage = coverage.predicateCoverage(predicate_set,
                                                training_dupes)
-    predicate_set = dupe_coverage.keys()
+    predicate_set = set(dupe_coverage.keys())
 
     # Throw away the predicates that cover too many distinct pairs
     coverage_threshold = eta * len(training_distinct)
@@ -149,14 +149,23 @@ def blockTraining(training_pairs,
         if len(pairs) > coverage_threshold :
             predicate_set.remove(pred)
 
-    chvatal_predicate_set = findOptimumBlocking(training_dupes,
-                                                predicate_set,
-                                                distinct_coverage,
-                                                epsilon,
-                                                coverage)
+    chvatal_set, uncovered_dupes = findOptimumBlocking(training_dupes,
+                                                       predicate_set,
+                                                       distinct_coverage,
+                                                       epsilon,
+                                                       coverage)
+
+    logger.debug("Uncovered Dupes")
+    if uncovered_dupes :
+        id_records = dict((v,k) for k,v in record_ids.items())
+    for i, (rec_1, rec_2) in enumerate(uncovered_dupes) :
+        logger.debug("uncovered pair %s" % (i,))
+        logger.debug(id_records[rec_1])
+        logger.debug(id_records[rec_2])
+    
 
     final_predicate_set = removeSubsets(training_dupes,
-                                        chvatal_predicate_set,
+                                        chvatal_set,
                                         coverage)
 
     logger.info('Final predicate set:')
@@ -164,7 +173,9 @@ def blockTraining(training_pairs,
         logger.info(predicate)
 
     if final_predicate_set:
-        return final_predicate_set, coverage.stop_words
+        return (final_predicate_set, 
+                removeUnusedStopWords(coverage.stop_words,
+                                      final_predicate_set))
     else:
         raise ValueError('No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data')
 
@@ -237,7 +248,7 @@ def findOptimumBlocking(uncovered_dupes,
                        'uncovered' : len(uncovered_dupes)
                        })
 
-    return final_predicate_set
+    return final_predicate_set, uncovered_dupes
 
 def removeSubsets(uncovered_dupes, predicate_set, coverage) :
     dupe_coverage = coverage.predicateCoverage(predicate_set,
@@ -272,13 +283,14 @@ class Coverage(object) :
 
         blocker = blocking.Blocker(predicate_set)
 
-        for field in blocker.tfidf_fields :
+        for field, indices in blocker.index_fields.items() :
             record_fields = [record[field] 
                              for _, record 
-                             in records]
-            stop_words = stopWords(record_fields)
-            blocker.stop_words[field].update(stop_words)
-            blocker.index(set(record_fields), field)
+                             in records
+                             if record[field]]
+            index_stop_words = stopWords(record_fields, indices) 
+            blocker.stop_words[field].update(index_stop_words)
+            blocker.index(sorted(set(record_fields)), field)
 
         self.stop_words = blocker.stop_words
         self.coveredBy(blocker.predicates, pairs)
@@ -323,19 +335,14 @@ class Coverage(object) :
 
     def compoundPredicates(self) :
         intersection = set.intersection
-        product = itertools.product
 
         compound_predicates = itertools.combinations(self.overlap, 2)
 
         for compound_predicate in compound_predicates :
             compound_predicate = predicates.CompoundPredicate(compound_predicate)
-            predicate_1, predicate_2 = compound_predicate
-        
             self.overlap[compound_predicate] =\
-                intersection(self.overlap[predicate_1],
-                             self.overlap[predicate_2])
-            
-            i = 0
+                intersection(*[self.overlap[pred] 
+                               for pred in compound_predicate])         
 
 
 class DedupeCoverage(Coverage) :
@@ -349,26 +356,42 @@ class RecordLinkCoverage(Coverage) :
     def _records_to_index(self, pairs) :
         return set([record_2 for _, record_2 in pairs])
 
-def stopWords(data) :
-    tf_index = index.CanopyIndex([])
+def stopWords(data, indices) :
+    index_stop_words = {}
 
-    for i, doc in enumerate(data, 1) :
-        tf_index.index_doc(i, doc)
+    for index_type, predicates in indices.items() :
+        processor = next(iter(predicates)).preprocess
+        
+        tf_index = index.CanopyIndex([])
 
-    doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
-                for word, wid in tf_index.lexicon.items()]
+        for i, doc in enumerate(data, 1) :
+            tf_index.index_doc(i, processor(doc))
 
-    doc_freq.sort(reverse=True)
+        doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
+                    for word, wid in tf_index.lexicon.items()]
 
-    N = float(tf_index.index.documentCount())
-    threshold = int(max(1000, N * 0.05))
+        doc_freq.sort(reverse=True)
+        
+        N = float(tf_index.index.documentCount())
+        threshold = int(max(1000, N * 0.05))
 
-    stop_words = set([])
+        stop_words = set([])
+        
+        for frequency, word in doc_freq :
+            if frequency > threshold :
+                stop_words.add(word)
+            else :
+                break
 
-    for frequency, word in doc_freq :
-        if frequency > threshold :
-            stop_words.add(word)
-        else :
-            break
+        index_stop_words[index_type] = stop_words
 
-    return stop_words
+    return index_stop_words
+
+def removeUnusedStopWords(stop_words, predicates) : # pragma : no cover
+    new_dict = defaultdict(dict)
+    for predicate in predicates :
+        for pred in predicate :
+            if hasattr(pred, 'index') :
+                new_dict[pred.field][pred.type] = stop_words[pred.field][pred.type]
+
+    return new_dict

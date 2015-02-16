@@ -5,7 +5,9 @@ import re
 import math
 import itertools
 
+from metaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
+import dedupe.tfidf as tfidf
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
@@ -37,23 +39,12 @@ class SimplePredicate(Predicate) :
         column = record[self.field]
         return self.func(column)
 
-
-
-class TfidfPredicate(Predicate):
-    type = "TfidfPredicate"
-
+class IndexPredicate(Predicate) :
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
         self.field = field
         self.threshold = threshold
         self.index = None
-
-    def __call__(self, record) :
-
-        centers = self.index.search(record[self.field], self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
 
     def __getstate__(self):
 
@@ -67,6 +58,37 @@ class TfidfPredicate(Predicate):
         self.__dict__ = d
         self.index = None
 
+class TfidfPredicate(IndexPredicate):
+    def initIndex(self, stop_words) :
+        return tfidf.TfIdfIndex(stop_words)
+
+    def __call__(self, record) :
+
+        centers = self.index.search(self.preprocess(record[self.field]), 
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
+
+class TfidfTextPredicate(TfidfPredicate) :
+    type = "TfidfTextPredicate"
+
+    rx = re.compile(r"(?u)\w+[\w*?]*")
+
+    def preprocess(self, doc) :
+        return tuple(self.rx.findall(doc))
+
+class TfidfSetPredicate(TfidfPredicate) :
+    type = "TfidfSetPredicate"
+
+    def preprocess(self, doc) :
+        return doc
+
+class TfidfNGramPredicate(TfidfPredicate) :
+    type = "TfidfNGramPredicate"
+
+    def preprocess(self, doc) :
+        return tuple(ngrams(doc.replace(' ', ''), 2))
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"
@@ -147,22 +169,31 @@ def commonThreeTokens(field) :
     return ngramsTokens(field.split(), 3)
 
 def fingerprint(field) :
-    return (u''.join(sorted(field.split())).strip(),)
+    if field :
+        return (u''.join(sorted(field.split())).strip(),)
+    else :
+        return ()
 
 def oneGramFingerprint(field) :
-    return (u''.join(sorted(ngrams(field.replace(' ', ''), 1))).strip(),)
+    if field :
+        return (u''.join(sorted(set(ngrams(field.replace(' ', ''), 1)))).strip(),)
+    else :
+        return ()
 
 def twoGramFingerprint(field) :
-    return (u''.join(sorted(gram.strip() for gram 
-                            in ngrams(field.replace(' ', ''), 2))),)
+    if len(field) > 1 :
+        return (u''.join(sorted(gram.strip() for gram 
+                                in set(ngrams(field.replace(' ', ''), 2)))),)
+    else :
+        return ()
     
 def commonFourGram(field):
     """return 4-grams"""
-    return ngrams(field.replace(' ', ''), 4)
+    return set(ngrams(field.replace(' ', ''), 4))
 
 def commonSixGram(field):
     """return 6-grams"""
-    return ngrams(field.replace(' ', ''), 6)
+    return set(ngrams(field.replace(' ', ''), 6))
 
 def sameThreeCharStartPredicate(field):
     """return first three characters"""
@@ -178,6 +209,15 @@ def sameSevenCharStartPredicate(field):
 
 def sortedAcronym(field) :
     return (''.join(sorted(each[0] for each in field.split())),)
+
+def doubleMetaphone(field) :
+    return [metaphone for metaphone in doublemetaphone(field) if metaphone]
+
+def metaphoneToken(field) :
+    return [metaphone_token for metaphone_token 
+            in itertools.chain(*(doublemetaphone(token) 
+                                 for token in set(field.split())))
+            if metaphone_token]
 
 def existsPredicate(field) :
     try :
@@ -222,6 +262,12 @@ def firstSetElementPredicate(field_set) :
         return (unicode(min(field_set)), )
     return ()
 
+def magnitudeOfCardinality(field_set) :
+    if field_set :
+        return orderOfMagnitude(len(field_set))
+    else :
+        return ()
+
 def latLongGridPredicate(field, digits=1):
     """
     Given a lat / long pair, return the grid coordinates at the
@@ -244,8 +290,11 @@ def orderOfMagnitude(field) :
         return ()
 
 def roundTo1(field) : # thanks http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
-    if field and field > 0 :
-        return (unicode(int(round(field, -int(math.floor(math.log10(abs(field))))))),)
+    if field :
+        abs_num = abs(field)
+        order = int(math.floor(math.log10(abs_num)))
+        rounded = round(abs_num, -order)
+        return (unicode(int(math.copysign(rounded, field))),)
     else :
         return ()
         

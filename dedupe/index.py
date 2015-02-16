@@ -57,13 +57,11 @@ class CanopyIndex(TextIndex) : # pragma : no cover
 class CanopyLexicon(Lexicon) : # pragma : no cover
     def __init__(self, stop_words) : 
         super(CanopyLexicon, self).__init__()
-        self._pipeline = [Splitter(),
-                          CustomStopWordRemover(stop_words)]
+        self._pipeline = [CustomStopWordRemover(stop_words)]
 
-    def sourceToWordIds(self, doc): 
-        if doc is None:
-            doc = ''
-        last = stringify(doc) # this is changed line
+    def sourceToWordIds(self, last): 
+        if last is None:
+            last = [] 
         for element in self._pipeline:
             last = element.process(last)
         if not isinstance(self.wordCount, Length):
@@ -80,20 +78,3 @@ class CustomStopWordRemover(object):
         return [w for w in lst if not w in self.stop_words]
 
 
-def stringify(doc) :
-    if not isinstance(doc, basestring) :
-        doc = u' '.join(u'_'.join(each.split()) for each in doc)
-
-    return [doc]
-
-
-
-class Splitter(object):
-    rx = re.compile(r"(?u)\w+[\w*?]*")
-
-    def process(self, lst):
-        result = []
-        for s in lst:
-            result += self.rx.findall(s)
-
-        return result

@@ -36,46 +36,45 @@ class BlockingTest(unittest.TestCase):
   def test_dedupe_coverage(self) :
     predicates = self.data_model['fields'][0].predicates
     coverage = dedupe.training.DedupeCoverage(predicates, self.training)
-    print self.simple(coverage.overlap.keys())
     assert self.simple(coverage.overlap.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
-               "TfidfPredicate: (0.4, name)", 
+               "TfidfTextPredicate: (0.4, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfPredicate: (0.2, name)", 
+               "TfidfTextPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfPredicate: (0.6, name)", 
+               "TfidfTextPredicate: (0.6, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfPredicate: (0.8, name)", 
+               "TfidfTextPredicate: (0.8, name)", 
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
 
     overlap = coverage.predicateCoverage(predicates, self.distinct_ids)
     assert set(str(k) for k in overlap.keys()).issuperset(
-          set(["TfidfPredicate: (0.4, name)", 
-               "TfidfPredicate: (0.6, name)", 
+          set(["TfidfTextPredicate: (0.4, name)", 
+               "TfidfTextPredicate: (0.6, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (wholeFieldPredicate, name)", 
                "SimplePredicate: (sameThreeCharStartPredicate, name)",
                "SimplePredicate: (tokenFieldPredicate, name)", 
-               "TfidfPredicate: (0.8, name)", 
+               "TfidfTextPredicate: (0.8, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
-               "TfidfPredicate: (0.2, name)"]))
+               "TfidfTextPredicate: (0.2, name)"]))
 
     overlap = coverage.predicateCoverage(predicates, self.dupe_ids)
     assert set(str(k) for k in overlap.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
-               "TfidfPredicate: (0.4, name)", 
+               "TfidfTextPredicate: (0.4, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfPredicate: (0.2, name)", 
+               "TfidfTextPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfPredicate: (0.6, name)", 
+               "TfidfTextPredicate: (0.6, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfPredicate: (0.8, name)", 
+               "TfidfTextPredicate: (0.8, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
@@ -87,14 +86,14 @@ class BlockingTest(unittest.TestCase):
     assert self.simple(coverage.overlap.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
-               "TfidfPredicate: (0.4, name)", 
+               "TfidfTextPredicate: (0.4, name)", 
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfPredicate: (0.2, name)", 
+               "TfidfTextPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfPredicate: (0.6, name)", 
+               "TfidfTextPredicate: (0.6, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfPredicate: (0.8, name)", 
+               "TfidfTextPredicate: (0.8, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
@@ -119,7 +118,7 @@ class TfidfTest(unittest.TestCase):
 
   def test_unconstrained_inverted_index(self):
 
-    blocker = dedupe.blocking.Blocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
+    blocker = dedupe.blocking.Blocker([dedupe.predicates.TfidfTextPredicate(0.0, "name")])
 
     blocker.index(set(record["name"] 
                            for record 
@@ -153,7 +152,7 @@ class TfIndexUnindex(unittest.TestCase) :
     }
 
 
-    self.blocker = dedupe.blocking.Blocker([dedupe.predicates.TfidfPredicate(0.0, "name")])
+    self.blocker = dedupe.blocking.Blocker([dedupe.predicates.TfidfTextPredicate(0.0, "name")])
 
     self.records_1 = dict((record_id, record) 
                           for record_id, record 

@@ -6,7 +6,6 @@ import collections
 import itertools
 import logging
 import time
-import dedupe.tfidf as tfidf
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +18,18 @@ class Blocker:
                  stop_words = None) :
 
         if stop_words is None :
-            stop_words = defaultdict(set)
+            stop_words = defaultdict(lambda : defaultdict(set))
 
         self.predicates = predicates
 
         self.stop_words = stop_words
 
-        self.tfidf_fields = defaultdict(set)
+        self.index_fields = defaultdict(lambda:defaultdict(set))
 
         for full_predicate in predicates :
             for predicate in full_predicate :
                 if hasattr(predicate, 'index') :
-                    self.tfidf_fields[predicate.field].add(predicate)
+                    self.index_fields[predicate.field][predicate.type].add(predicate)
 
     #@profile
     def __call__(self, records):
@@ -59,38 +58,54 @@ class Blocker:
 
     def resetIndices(self) :
         # clear canopies to reduce memory usage
-        for predicate_set in self.tfidf_fields.values() :
-            for predicate in predicate_set :
+        for index_type in self.index_fields.values() :
+            for predicate in index_type.values()[0] :
                 predicate.index = None
 
     def index(self, data, field): 
         '''Creates TF/IDF index of a given set of data'''
-        predicate = next(iter(self.tfidf_fields[field]))
+        indices = extractIndices(self.index_fields[field],
+                                 self.stop_words[field])
 
-        index = predicate.index
+        for doc in data :
+            for _, index, preprocess in indices :
+                index.index(preprocess(doc))
 
-        if index is None :
-            index = tfidf.TfIdfIndex(field, self.stop_words[field])
+        for index_type, index, _ in indices :
 
-        for doc in data  :
-            index.index(doc)
+            index.initSearch()
 
-        index._index.initSearch()
-
-        for predicate in self.tfidf_fields[field] :
-            logger.info("Canopy: %s", str(predicate))
-            predicate.index = index
+            for predicate in self.index_fields[field][index_type] :
+                logger.info("Canopy: %s", str(predicate))
+                predicate.index = index
 
     def unindex(self, data, field) :
         '''Remove index of a given set of data'''
-        predicate = next(iter(self.tfidf_fields[field]))
-
-        index = predicate.index
+        indices = extractIndices(self.index_fields[field])
 
         for doc in data :
-            index.unindex(doc)
+            for _, index, preprocess in indices :
+                index.unindex(preprocess(doc))
 
-        index._index.initSearch()
+        for index_type, index, _ in indices :
 
-        for predicate in self.tfidf_fields[field] :
-            predicate.index = index
+            index._index.initSearch()
+
+            for predicate in self.index_fields[field][index_type] :
+                logger.info("Canopy: %s", str(predicate))
+                predicate.index = index
+
+
+def extractIndices(index_fields, stop_words=None) :
+    
+    indices = []
+    for index_type, predicates in index_fields.items() :
+        predicate = next(iter(predicates))
+        index = predicate.index
+        preprocess = predicate.preprocess
+        if predicate.index is None :
+            index = predicate.initIndex(stop_words[index_type])
+        indices.append((index_type, index, preprocess))
+
+    return indices
+

@@ -294,17 +294,21 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonSixGram(field) == set(['12316t', '2316th', '316ths', '16thst'])
     assert dedupe.predicates.initials(field,12) == ()
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
-    assert dedupe.predicates.ngrams(field,3) == set(['123','23 ','3 1',' 16','16t','6th','th ','h s', ' st'])
+    assert dedupe.predicates.ngrams(field,3) == ['123','23 ','3 1',' 16','16t','6th','th ','h s', ' st']
     assert dedupe.predicates.commonTwoElementsPredicate((1,2,3)) == set(('1 2','2 3'))
     assert dedupe.predicates.commonTwoElementsPredicate((1,)) == set([])
     assert dedupe.predicates.commonThreeElementsPredicate((1,2,3)) == set(('1 2 3',))
     assert dedupe.predicates.commonThreeElementsPredicate((1,)) == set([])
     
     assert dedupe.predicates.fingerprint('time sandwich') == (u'sandwichtime',)
+    assert dedupe.predicates.fingerprint('') == ()
     assert dedupe.predicates.oneGramFingerprint('sandwich time') == (u'acdehimnstw',)
+    assert dedupe.predicates.oneGramFingerprint('') == ()
     assert dedupe.predicates.twoGramFingerprint('sandwich time') == (u'anchdwhticimmendsatiwi',)
-
-
+    assert dedupe.predicates.twoGramFingerprint('1') == ()
+    assert dedupe.predicates.commonTwoTokens('foo bar') == set([u'foo bar'])
+    assert dedupe.predicates.commonTwoTokens('foo') == set([])
+    
 
 
 if __name__ == "__main__":

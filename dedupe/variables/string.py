@@ -24,7 +24,9 @@ class ShortStringType(FieldType) :
                             predicates.fingerprint,
                             predicates.oneGramFingerprint,
                             predicates.twoGramFingerprint,
-                            predicates.sortedAcronym)
+                            predicates.sortedAcronym,
+                            predicates.doubleMetaphone,
+                            predicates.metaphoneToken)
 
 class StringType(ShortStringType) :
     comparator = normalizedAffineGapDistance
@@ -35,11 +37,15 @@ class StringType(ShortStringType) :
     def __init__(self, definition) :
         super(StringType, self).__init__(definition)
 
-        canopy_predicates = [predicates.TfidfPredicate(threshold, 
-                                                            self.field)
-                             for threshold in self._canopy_thresholds]
+        self.predicates += [predicates.TfidfTextPredicate(threshold, 
+                                                          self.field)
+                            for threshold in self._canopy_thresholds]
 
-        self.predicates += canopy_predicates
+        self.predicates += [predicates.TfidfNGramPredicate(threshold, 
+                                                          self.field)
+                            for threshold in self._canopy_thresholds]
+
+
 
 class TextType(StringType) :
     type = "Text"

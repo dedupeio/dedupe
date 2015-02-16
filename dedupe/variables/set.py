@@ -10,6 +10,7 @@ class SetType(FieldType) :
                             predicates.lastSetElementPredicate,
                             predicates.commonTwoElementsPredicate,
                             predicates.commonThreeElementsPredicate,
+                            predicates.magnitudeOfCardinality,
                             predicates.firstSetElementPredicate)
     
     _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
@@ -17,7 +18,7 @@ class SetType(FieldType) :
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
 
-        canopy_predicates = [predicates.TfidfPredicate(threshold, 
+        canopy_predicates = [predicates.TfidfSetPredicate(threshold, 
                                                        self.field)
                              for threshold in self._canopy_thresholds]
 
