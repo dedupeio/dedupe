@@ -188,14 +188,3 @@ def canonicalize(record_cluster): # pragma : nocover
 
     """
     return getCanonicalRep(record_cluster)
-
-
-def clusterScore(scores) :
-    scores = 1 - scores
-    N = len(scores) 
-
-    scores *= (N-1)
-    
-    score = sum(scores)/float(2*N)
-
-    return score

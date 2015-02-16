@@ -8,7 +8,6 @@ from BTrees.Length import Length
 import re
 import math
 import numpy
-import collections
 
 class CanopyIndex(TextIndex) : # pragma : no cover
     def __init__(self, stop_words) : 
