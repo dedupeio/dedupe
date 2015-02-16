@@ -207,6 +207,13 @@ def sameSevenCharStartPredicate(field):
     """return first seven characters"""
     return initials(field.replace(' ',''), 7)
 
+def suffixArray(field) :
+    field = field.replace(' ', '')
+    n = len(field) - 4
+    if n > 0 :
+        for i in range(0, n) :
+            yield field[i:]
+
 def sortedAcronym(field) :
     return (''.join(sorted(each[0] for each in field.split())),)
 

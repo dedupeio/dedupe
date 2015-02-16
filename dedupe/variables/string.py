@@ -19,6 +19,7 @@ class ShortStringType(FieldType) :
                             predicates.sameSevenCharStartPredicate,
                             predicates.commonFourGram,
                             predicates.commonSixGram,
+                            predicates.suffixArray,
                             predicates.commonTwoTokens,
                             predicates.commonThreeTokens,
                             predicates.fingerprint,
