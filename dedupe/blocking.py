@@ -18,7 +18,7 @@ class Blocker:
                  stop_words = None) :
 
         if stop_words is None :
-            stop_words = defaultdict(dict)
+            stop_words = defaultdict(lambda : defaultdict(set))
 
         self.predicates = predicates
 

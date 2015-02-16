@@ -10,6 +10,7 @@ class SetType(FieldType) :
                             predicates.lastSetElementPredicate,
                             predicates.commonTwoElementsPredicate,
                             predicates.commonThreeElementsPredicate,
+                            predicates.magnitudeOfCardinality,
                             predicates.firstSetElementPredicate)
     
     _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)

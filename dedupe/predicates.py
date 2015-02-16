@@ -98,7 +98,7 @@ class TfidfNGramPredicate(TfidfPredicate) :
     type = "TfidfNGramPredicate"
 
     def preprocess(self, doc) :
-        return tuple(ngrams(doc.replace(' ', ''), 6))
+        return tuple(ngrams(doc.replace(' ', ''), 2))
 
     def __call__(self, record) :
 
@@ -243,7 +243,7 @@ def existsPredicate(field) :
         if any(field) :
             return (u'1',)
         else :
-            return (u'0')
+            return (u'0',)
     except TypeError :
         if field :
             return (u'1',)
@@ -280,6 +280,12 @@ def firstSetElementPredicate(field_set) :
     if field_set :
         return (unicode(min(field_set)), )
     return ()
+
+def magnitudeOfCardinality(field_set) :
+    if field_set :
+        return orderOfMagnitude(len(field_set))
+    else :
+        return ()
 
 def latLongGridPredicate(field, digits=1):
     """

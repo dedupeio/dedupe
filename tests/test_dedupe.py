@@ -294,7 +294,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonSixGram(field) == set(['12316t', '2316th', '316ths', '16thst'])
     assert dedupe.predicates.initials(field,12) == ()
     assert dedupe.predicates.initials(field,7) == ('123 16t',)
-    assert dedupe.predicates.ngrams(field,3) == set(['123','23 ','3 1',' 16','16t','6th','th ','h s', ' st'])
+    assert dedupe.predicates.ngrams(field,3) == ['123','23 ','3 1',' 16','16t','6th','th ','h s', ' st']
     assert dedupe.predicates.commonTwoElementsPredicate((1,2,3)) == set(('1 2','2 3'))
     assert dedupe.predicates.commonTwoElementsPredicate((1,)) == set([])
     assert dedupe.predicates.commonThreeElementsPredicate((1,2,3)) == set(('1 2 3',))

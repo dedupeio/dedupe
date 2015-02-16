@@ -8,6 +8,7 @@ from BTrees.Length import Length
 import re
 import math
 import numpy
+import collections
 
 class CanopyIndex(TextIndex) : # pragma : no cover
     def __init__(self, stop_words) : 
@@ -61,8 +62,7 @@ class CanopyLexicon(Lexicon) : # pragma : no cover
 
     def sourceToWordIds(self, last): 
         if last is None:
-            last = []
-        #last = stringify(doc) # this is changed line
+            last = [] 
         for element in self._pipeline:
             last = element.process(last)
         if not isinstance(self.wordCount, Length):

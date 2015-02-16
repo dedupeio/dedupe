@@ -263,10 +263,10 @@ class DedupeMatching(Matching) :
         blocks = defaultdict(dict)
 
         for field in self.blocker.index_fields :
-            unique_fields = sorted(set(record[field]
-                                       for record 
-                                       in data_d.itervalues()
-                                       if record[field]))
+            unique_fields = set(record[field]
+                                for record 
+                                in data_d.itervalues()
+                                if record[field])
 
             self.blocker.index(unique_fields, field)
 

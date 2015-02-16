@@ -136,7 +136,7 @@ def blockTraining(training_pairs,
     # Only consider predicates that cover at least one duplicate pair
     dupe_coverage = coverage.predicateCoverage(predicate_set,
                                                training_dupes)
-    predicate_set = dupe_coverage.keys()
+    predicate_set = set(dupe_coverage.keys())
 
     # Throw away the predicates that cover too many distinct pairs
     coverage_threshold = eta * len(training_distinct)
@@ -173,7 +173,9 @@ def blockTraining(training_pairs,
         logger.info(predicate)
 
     if final_predicate_set:
-        return final_predicate_set, coverage.stop_words
+        return (final_predicate_set, 
+                removeUnusedStopWords(coverage.stop_words,
+                                      final_predicate_set))
     else:
         raise ValueError('No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data')
 
@@ -334,11 +336,7 @@ class Coverage(object) :
     def compoundPredicates(self) :
         intersection = set.intersection
 
-        compound_predicates = itertools.chain(itertools.combinations(self.overlap, 2),
-                                              itertools.combinations(self.overlap, 3))
-
-        #compound_predicates = itertools.combinations(self.overlap, 2)
-
+        compound_predicates = itertools.combinations(self.overlap, 2)
 
         for compound_predicate in compound_predicates :
             compound_predicate = predicates.CompoundPredicate(compound_predicate)
@@ -388,3 +386,12 @@ def stopWords(data, indices) :
         index_stop_words[index_type] = stop_words
 
     return index_stop_words
+
+def removeUnusedStopWords(stop_words, predicates) :
+    new_dict = defaultdict(dict)
+    for predicate in predicates :
+        for pred in predicate :
+            if hasattr(pred, 'index') :
+                new_dict[pred.field][pred.type] = stop_words[pred.field][pred.type]
+
+    return new_dict
