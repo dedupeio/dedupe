@@ -8,7 +8,6 @@ import itertools
 from metaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
 import dedupe.tfidf as tfidf
-import dedupe.metric_tree as metric_tree
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
