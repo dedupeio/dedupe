@@ -387,7 +387,7 @@ def stopWords(data, indices) :
 
     return index_stop_words
 
-def removeUnusedStopWords(stop_words, predicates) :
+def removeUnusedStopWords(stop_words, predicates) : # pragma : no cover
     new_dict = defaultdict(dict)
     for predicate in predicates :
         for pred in predicate :
