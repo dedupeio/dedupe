@@ -86,6 +86,30 @@ class Matching(object):
 
         return probability[i]
 
+    def matchBlocksOld(self, blocks, threshold=.5, *args, **kwargs): # pragma : no cover
+
+        cluster_threshold = threshold * 0.7
+
+        candidate_records = self._blockedPairs(blocks)
+        
+        matches = core.scoreDuplicates(candidate_records,
+                                       self.data_model,
+                                       self.num_cores,
+                                       threshold)
+
+        logger.debug("matching done, begin clustering")
+
+        clusters = self._clusterOld(matches, 
+                                 cluster_threshold, *args, **kwargs)
+
+        try :
+            match_file = matches.filename
+            os.remove(match_file)
+        except AttributeError :
+            pass
+        
+        return clusters
+
     def matchBlocks(self, blocks, threshold=.5, *args, **kwargs): # pragma : no cover
         """
         Partitions blocked data and returns a list of clusters, where
@@ -169,7 +193,13 @@ class DedupeMatching(Matching) :
     def __init__(self, *args, **kwargs) :
         super(DedupeMatching, self).__init__(*args, **kwargs)
         self._cluster = clustering.cluster
+        self._clusterOld = clustering.clusterOld
         self._linkage_type = "Dedupe"
+
+    def matchOld(self, data, threshold = 0.5) : # pragma : no cover
+
+        blocked_pairs = self._blockData(data)
+        return self.matchBlocksOld(blocked_pairs, threshold)
 
     def match(self, data, threshold = 0.5) : # pragma : no cover
         """

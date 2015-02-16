@@ -16,6 +16,8 @@ def consoleLabel(deduper): # pragma : no cover
     '''
 
     finished = False
+    count_distinct = 0
+    count_match = 0
 
     while not finished :
         uncertain_pairs = deduper.uncertainPairs()
@@ -25,6 +27,9 @@ def consoleLabel(deduper): # pragma : no cover
         for record_pair in uncertain_pairs:
             label = ''
             labeled = False
+
+            print 'matched record pairs: %s     distinct record pairs: %s' %(count_match, count_distinct)
+            print '-'*60, '\n'
 
             for pair in record_pair:
                 for field in set(field[0] for field 
@@ -43,9 +48,11 @@ def consoleLabel(deduper): # pragma : no cover
             if label == 'y' :
                 labels['match'].append(record_pair)
                 labeled = True
+                count_match += 1
             elif label == 'n' :
                 labels['distinct'].append(record_pair)
                 labeled = True
+                count_distinct += 1
             elif label == 'f':
                 print 'Finished labeling'
                 finished = True
