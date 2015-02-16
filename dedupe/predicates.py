@@ -59,9 +59,16 @@ class IndexPredicate(Predicate) :
         self.index = None
 
 class TfidfPredicate(IndexPredicate):
-
     def initIndex(self, stop_words) :
         return tfidf.TfIdfIndex(stop_words)
+
+    def __call__(self, record) :
+
+        centers = self.index.search(self.preprocess(record[self.field]), 
+                                    self.threshold)
+
+        l_unicode = unicode
+        return [l_unicode(center) for center in centers]
 
 class TfidfTextPredicate(TfidfPredicate) :
     type = "TfidfTextPredicate"
@@ -71,42 +78,17 @@ class TfidfTextPredicate(TfidfPredicate) :
     def preprocess(self, doc) :
         return tuple(self.rx.findall(doc))
 
-    def __call__(self, record) :
-
-        centers = self.index.search(self.preprocess(record[self.field]), 
-                                    self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
-
 class TfidfSetPredicate(TfidfPredicate) :
     type = "TfidfSetPredicate"
 
     def preprocess(self, doc) :
         return doc
 
-    def __call__(self, record) :
-
-        centers = self.index.search(record[self.field], 
-                                    self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
-
 class TfidfNGramPredicate(TfidfPredicate) :
     type = "TfidfNGramPredicate"
 
     def preprocess(self, doc) :
         return tuple(ngrams(doc.replace(' ', ''), 2))
-
-    def __call__(self, record) :
-
-        centers = self.index.search(self.preprocess(record[self.field]), 
-                                    self.threshold)
-
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
-
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"
@@ -308,8 +290,11 @@ def orderOfMagnitude(field) :
         return ()
 
 def roundTo1(field) : # thanks http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
-    if field and field > 0 :
-        return (unicode(int(round(field, -int(math.floor(math.log10(abs(field))))))),)
+    if field :
+        abs_num = abs(field)
+        order = int(math.floor(math.log10(abs_num)))
+        rounded = round(abs_num, -order)
+        return (unicode(int(math.copysign(rounded, field))),)
     else :
         return ()
         

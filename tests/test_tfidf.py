@@ -18,7 +18,7 @@ class ParsingTest(unittest.TestCase) :
 
     def test_empty_search(self) :
         self.index._index.initSearch()
-        assert self.index.search(('',)) == []
+        assert self.index.search(()) == []
 
     def test_wildcards(self) :
         self.index.index(('f\o',))
