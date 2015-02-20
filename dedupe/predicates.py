@@ -221,10 +221,10 @@ def doubleMetaphone(field) :
     return [metaphone for metaphone in doublemetaphone(field) if metaphone]
 
 def metaphoneToken(field) :
-    return [metaphone_token for metaphone_token 
-            in itertools.chain(*(doublemetaphone(token) 
-                                 for token in set(field.split())))
-            if metaphone_token]
+    return set([metaphone_token for metaphone_token 
+                in itertools.chain(*(doublemetaphone(token) 
+                                     for token in set(field.split())))
+                if metaphone_token])
 
 def existsPredicate(field) :
     try :

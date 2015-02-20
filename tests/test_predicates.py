@@ -1,6 +1,11 @@
 import unittest
 from dedupe import predicates
 
+class TestMetaphone(unittest.TestCase):
+    def test_metaphone_token(self) :
+        block_val = predicates.metaphoneToken('9301 S. State St. ')
+        assert block_val == set([u'STT', u'SS'])
+
 class TestWholeSet(unittest.TestCase):
     def setUp(self):
         self.s1 = set(['red', 'blue', 'green'])
