@@ -654,9 +654,8 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=.1, uncovered_dupes=1) : # pragma : no cover
-        """
-        Keyword arguments:
+    def train(self, ppc=.1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
+        """Keyword arguments:
         ppc -- Limits the Proportion of Pairs Covered that we allow a
                predicate to cover. If a predicate puts together a fraction
                of possible pairs greater than the ppc, that predicate will
@@ -677,6 +676,13 @@ class ActiveMatching(Matching) :
                            true dupe pair may mean that we have to use
                            blocks that put together many, many distinct pairs
                            that we'll have to expensively, compare as well.
+
+        index_predicates -- Should dedupe consider predicates that
+                            rely upon indexing the data. Index predicates can 
+                            be slower and take susbstantial memory.
+
+                            Defaults to True.
+
         """
         n_folds = min(numpy.sum(self.training_data['label']==u'match')/3,
                       20)
@@ -693,7 +699,7 @@ class ActiveMatching(Matching) :
 
 
         self._trainClassifier(alpha)
-        self._trainBlocker(ppc, uncovered_dupes)
+        self._trainBlocker(ppc, uncovered_dupes, index_predicates)
 
 
     def _trainClassifier(self, alpha=.1) : # pragma : no cover
@@ -705,7 +711,7 @@ class ActiveMatching(Matching) :
         self._logLearnedWeights()
 
     
-    def _trainBlocker(self, ppc=1, uncovered_dupes=1) : # pragma : no cover
+    def _trainBlocker(self, ppc=1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
         training_pairs = copy.deepcopy(self.training_pairs)
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
@@ -714,7 +720,8 @@ class ActiveMatching(Matching) :
 
         training_pairs[u'distinct'].extend(confident_nonduplicates)
 
-        predicate_set = predicateGenerator(self.data_model)
+        predicate_set = predicateGenerator(self.data_model, 
+                                           index_predicates)
 
         (self.predicates, 
          self.stop_words) = dedupe.training.blockTraining(training_pairs,
@@ -912,8 +919,9 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         data = core.index(data)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = [pred for pred in predicateGenerator(self.data_model)
-                      if pred.type == 'SimplePredicate']
+        predicates = list(predicateGenerator(self.data_model, 
+                                             index_predicates=False))
+
 
         data = sampling.randomDeque(data)
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
@@ -973,8 +981,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         data_2 = core.index(data_2, offset)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = [pred for pred in predicateGenerator(self.data_model)
-                      if pred.type == 'SimplePredicate']
+        predicates = list(predicateGenerator(self.data_model, 
+                                             index_predicates=False))
 
         data_1 = sampling.randomDeque(data_1)
         data_2 = sampling.randomDeque(data_2)
@@ -1083,10 +1091,17 @@ class Gazetteer(RecordLink, GazetteerMatching):
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
-def predicateGenerator(data_model) :
+def predicateGenerator(data_model, index_predicates) :
     predicates = set([])
     for definition in data_model.primary_fields :
-        predicates.update(definition.predicates)
+        if not index_predicates :
+            filtered_predicates = []
+            for predicate in definition.predicates :
+                if not hasattr(predicate, 'index') :
+                    filtered_predicates.append(predicate)
+            predicates.update(filtered_predicates)
+        else :
+            predicates.update(definition.predicates)
 
     return predicates
 

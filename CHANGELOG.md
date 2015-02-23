@@ -1,3 +1,6 @@
+## Unreleased
+Features
+- train method has argument for not considering index predicates
 
 ## 0.7.5
 Features
@@ -12,7 +15,7 @@ Bug Fixes
 ## 0.7.4
 Features
 - Sampling methods now use blocked sampling
-	
+
 ## 0.7.0
 Version 0.7.0 is backwards compatible, except for the match method of Gazetteer class
 

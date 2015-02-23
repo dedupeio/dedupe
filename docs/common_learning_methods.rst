@@ -35,35 +35,44 @@
       deduper.markPairs(labeled_examples)
 
 
-.. py:method:: train([ppc=1.0, [uncovered_dupes=1]])
+.. py:method:: train([ppc=0.1, [uncovered_dupes=1, [index_predicates=True]]])
 
    Learn final pairwise classifier and blocking rules. Requires that
    adequate training data has been already been provided.
 
    :param float ppc: Limits the Proportion of Pairs Covered that we
-		      allow a predicate to cover. If a predicate puts
-		      together a fraction of possible pairs greater
-		      than the ppc, that predicate will be removed
-		      from consideration.
+		     allow a predicate to cover. If a predicate puts
+		     together a fraction of possible pairs greater
+		     than the ppc, that predicate will be removed from
+		     consideration.
 
-		      As the size of the data increases, the user will
-		      generally want to reduce ppc.
+		     As the size of the data increases, the user will
+		     generally want to reduce ppc.
 
-		      ppc should be a value between 0.0 and 1.0
+		     ppc should be a value between 0.0 and
+		     1.0. Defaults to 0.1
 
    :param int uncovered_dupes: The number of true dupes pairs in our
-				training data that we can accept will
-				not be put into any block. If true
-				true duplicates are never in the same
-				block, we will never compare them, and
-				may never declare them to be
-				duplicates.
+			       training data that we can accept will
+			       not be put into any block. If true true
+			       duplicates are never in the same block,
+			       we will never compare them, and may
+			       never declare them to be duplicates.
 
-				However, requiring that we cover every
-				single true dupe pair may mean that we
-				have to use blocks that put together
-				many, many distinct pairs that we'll
-				have to expensively, compare as well.
+			       However, requiring that we cover every
+			       single true dupe pair may mean that we
+			       have to use blocks that put together
+			       many, many distinct pairs that we'll
+			       have to expensively, compare as well.
+
+			       Defaults to 1
+
+   :param bool index_predicates: Should dedupe consider predicates
+				 that rely upon indexing the
+				 data. Index predicates can be slower
+				 and take susbstantial memory.
+
+				 Defaults to True
 
    .. code:: python
 
