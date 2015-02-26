@@ -41,23 +41,3 @@
    if you care twice as much about recall as you do precision, set
    recall\_weight to 2.
 
-.. py:method::  matchBlocks(blocks, threshold=.5)
-
-   Partitions blocked data and returns a list of clusters, where each
-   cluster is a tuple of record ids
-
-   .. code:: python
-
-       clustered_dupes = deduper.matchBlocks(blocked_data, threshold)
-
-   Keyword arguments
-
-   ``blocks`` Sequence of tuples of records, where each tuple is a set of
-   records covered by a blocking predicate.
-
-   ``threshold`` Number between 0 and 1 (default is .5). We will only
-   consider as duplicates record pairs as duplicates if their estimated
-   duplicate likelihood is greater than the threshold.
-
-   Lowering the number will increase recall, raising it will increase
-   precision.
