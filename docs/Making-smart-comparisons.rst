@@ -110,7 +110,7 @@ That leaves us with two blocks - The '160' block, which contains records
 Again, we're applying the "first three words" predicate function to the
 address field in our data, the function outputs the following features -
 160, 160, 123, 123 - and then we group together the records that have
-identical features into "blocks".
+identical features into "blocks". 
 
 Others simple predicates Dedupe uses include: 
 
@@ -124,26 +124,22 @@ Others simple predicates Dedupe uses include:
 * common four gram 
 * common six gram
 
-Canopies
-~~~~~~~~
+Index Blocks
+~~~~~~~~~~~~
 
-Dedupe also uses another way of producing blocks called canopies, which
-`was developed by Andrew McCallum, Kamal Nigamy, and Lyle
-Ungar <http://www.kamalnigam.com/papers/canopy-kdd00.pdf>`__.
+Dedupe also uses another way of producing blocks from searching and
+index. First, we create a special data structure, like an `inverted
+index <http://en.wikipedia.org/wiki/Inverted_index>`__, that lets us
+quickly find records similar to target records. We populate the index
+with all the unique values that appear in field. 
 
-Here's the basic idea: We start with the first record in our data. We
-add it to a new canopy group and call it the target record. We then go
-through the rest of the records. If a record is close enough to target
-record then we add it to the canopy group. Once we have passed through
-the data, we find the next record that was not assigned to a canopy and
-this become our target record for a new canopy and we repeat the process
-until every record is part of a canopy.
+When blocking, for each record we search the index for values similar to
+the record's field. We block together records that share at least one
+common search result.
 
-In order to build canopies, we need a distance that we can compute
-without have to compare every single record, which is what we were
-trying to avoid in the first place. We use the the `cosine of TF/IDF
-weighted word
-vectors <http://en.wikipedia.org/wiki/Vector_Space_Model>`__.
+Index predicates require building an index from all the unique values
+in a field. This can take substantial time and memory. Index
+predicates are also usually slower than predicate blocking.
 
 Combining blocking rules
 ------------------------

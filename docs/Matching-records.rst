@@ -98,8 +98,8 @@ duplicates.
 
 Once we have learned these good weights, we want to use them to find
 which records are duplicates. But turns out that doing this the naive
-way will usually not work, and `we'll have to do something
-smarter <Blocking>`__.
+way will usually not work, and :doc:`we'll have to do something
+smarter <Making-smart-comparisons>`.
 
 Active learning
 ~~~~~~~~~~~~~~~
@@ -126,9 +126,7 @@ label.
 Other field distances
 ~~~~~~~~~~~~~~~~~~~~~
 
-Right now we have only implemented a string metric as our measure of the
-distances between fields. Dedupe can be extended to use other string
-metrics or other distance measures. For example, if records had reliable
-geographic point information, we could define a field distance that was
-the distance between two geographic points.
+We have implemented a number of field distance measures. See :doc:`the
+details about variables <Variable-definition>`.
+
 

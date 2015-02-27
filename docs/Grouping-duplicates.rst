@@ -42,3 +42,10 @@ membership--the distance of the points to the centroid. Depending on how
 we choose that threshold, we'll get very different groups, and we will
 want to choose this threshold wisely.
 
+In recent years, there have been some very exciting research that
+solve the problem of turning pairwise distances into clusters, by
+avoiding making pairwise comparisons altogether. Unfortunately, these
+developments are not compatible with dedupe's pairwise approach. See,
+`Michael Wick, et.al, 2012. "A Discriminative Hierarchical Model for Fast Coreference at Large Scale" <http://people.cs.umass.edu/~sameer/files/hierar-coref-acl12.pdf>`__
+and `Rebecca C. Steorts, et. al., 2013. "A Bayesian Approach to Graphical Record Linkage and De-duplication" <http://arxiv.org/abs/1312.4645>`__.
+
