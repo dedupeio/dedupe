@@ -7,11 +7,11 @@ environment:
     - PYTHON: "C:\\Python27_32"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
-      CONDA_PY: "27"
-
+  
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+    - powershell .\\appveyor\\install.ps1
 
   # Don't install from requirements-pip.txt, python-coveralls has broken dependencies on windows it seems.
   - pip install numpy
