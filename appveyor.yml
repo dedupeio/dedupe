@@ -1,0 +1,32 @@
+# Continuous integration procedure for AppVeyor
+# Based on https://raw.githubusercontent.com/choderalab/itctools/master/appveyor.yml
+
+environment:
+
+  matrix:
+    - PYTHON: "C:\\Python27_32"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "32"
+      CONDA_PY: "27"
+
+
+install:
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+
+  # Don't install from requirements-pip.txt, python-coveralls has broken dependencies on windows it seems.
+  - pip install numpy
+  - pip install -r requirements.txt
+  - cython src/*.pyx
+  - python setup.py develop
+
+build: false
+
+test_script:
+  # Nosetests take care of unit tests
+  # Behave runs the example scripts and tries to verify if it produces the right output
+  - coverage run -m nose -I canonical_test
+
+on_success:
+  # Could run coveralls here but will leave that to travis tests
+  - echo Build succesful!
+  - coverage report
