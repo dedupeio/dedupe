@@ -16,7 +16,7 @@ install:
   # Don't install from requirements-pip.txt, python-coveralls has broken dependencies on windows it seems.
   - pip install numpy
   - pip install -r requirements.txt
-  - cython src/*.pyx
+  - cython src/cpredicates.pyx
   - python setup.py develop
 
 build: false
