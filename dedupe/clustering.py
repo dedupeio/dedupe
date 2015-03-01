@@ -112,7 +112,7 @@ def condensedDistance(dupes):
     condensed_distances[index] = 1 - dupes['score']
     
 
-    return (i_to_id, condensed_distances)
+    return i_to_id, condensed_distances, N
 
 
 def cluster(dupes, threshold=.5, max_components=30000):
@@ -135,8 +135,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
 
-            (i_to_id, condensed_distances) = condensedDistance(sub_graph)
-            N = max(i_to_id) + 1
+            i_to_id, condensed_distances, N = condensedDistance(sub_graph)
 
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
@@ -151,11 +150,9 @@ def cluster(dupes, threshold=.5, max_components=30000):
             for (i, sub_cluster_id) in enumerate(partition):
                 clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
 
-            distances = hcluster.squareform(condensed_distances)
-            
             for cluster_id, items in clusters.iteritems() :
                 if len(items) > 1 :
-                    scores = confidences(items, distances)
+                    scores = confidences(items, condensed_distances, N)
                     clustering[cluster_id] =\
                         (tuple(i_to_id[item] for item in items), tuple(scores))
 
@@ -168,8 +165,14 @@ def cluster(dupes, threshold=.5, max_components=30000):
 
     return clustering.values()
 
-def confidences(items, distances) :
-    scores = numpy.sum(distances[items, :][:, items]**2, 0)
+def confidences(items, condensed_distances, d) :
+    scores = dict.fromkeys(items, 0)
+    for i, j in itertools.combinations(items, 2) :
+        index = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
+        square_dist = condensed_distances[index]**2
+        scores[i] += square_dist
+        scores[j] += square_dist
+    scores = numpy.array([v for (k, v) in sorted(scores.items())])
     scores /= len(items) - 1
     scores = 1 - numpy.sqrt(scores)
     return scores
