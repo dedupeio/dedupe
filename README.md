@@ -1,4 +1,5 @@
 # Dedupe Python Library
+[![Linux build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Linux build)](https://travis-ci.org/datamade/dedupe)[![Windows build](https://img.shields.io/appveyor/ci/datamade/dedupe.svg?style=flat-square&label=Windows build)](https://ci.appveyor.com/project/datamade/dedupe)[![Coverage](https://img.shields.io/coveralls/datamade/dedupe.svg?style=flat-square)](https://coveralls.io/r/datamade/dedupe?branch=master)
 
 _dedupe is a python library that uses machine learning to perform de-duplication and entity resolution quickly on structured data._
 
@@ -69,9 +70,6 @@ For more information and for instructions on how to enable this, [refer to the
 wiki](http://dedupe.readthedocs.org/en/latest/OSX-Install-Notes.html).
 
 ## Testing
-
-[<img src="https://travis-ci.org/datamade/dedupe.png" />](https://travis-ci.org/datamade/dedupe)[![Coverage Status](https://coveralls.io/repos/datamade/dedupe/badge.png?branch=master)](https://coveralls.io/r/datamade/dedupe?branch=master)
-
 Unit tests of core dedupe functions
 ```bash
 coverage run -m nose -I canonical_test
