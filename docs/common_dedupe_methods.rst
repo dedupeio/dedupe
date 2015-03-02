@@ -66,6 +66,24 @@
          (0.899, 
           0.899))]
 
+.. py:attribute:: blocker.index_fields 
+   
+   A dictionary of the Index Predicates that will used for blocking. The
+   keys are the fields the predicates will operate on. 
+
+.. py:method:: blocker.index(field_data, field)
+
+   Indexes the data from a field for use in a index predicate. 
+
+   :param set field data: The unique field values that appear in your data.
+   :param string field: The name of the field
+
+   .. code:: python
+
+      for field in deduper.blocker.index_fields :
+	     field_data = set(record[field] for record in data)
+	     deduper.index(field_data, field)
+
 
 .. py:method:: blocker(data)
 

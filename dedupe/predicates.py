@@ -64,11 +64,15 @@ class TfidfPredicate(IndexPredicate):
 
     def __call__(self, record) :
 
-        centers = self.index.search(self.preprocess(record[self.field]), 
-                                    self.threshold)
+        try :
+            centers = self.index.search(self.preprocess(record[self.field]), 
+                                        self.threshold)
 
-        l_unicode = unicode
-        return [l_unicode(center) for center in centers]
+            l_unicode = unicode
+            return [l_unicode(center) for center in centers]
+        except :
+            raise AttributeError("Attempting to block with an index "
+                                 "predicate without indexing records")
 
 class TfidfTextPredicate(TfidfPredicate) :
     type = "TfidfTextPredicate"
