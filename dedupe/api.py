@@ -125,6 +125,7 @@ class Matching(object):
 
         try :
             match_file = matches.filename
+            del matches
             os.remove(match_file)
         except AttributeError :
             pass
