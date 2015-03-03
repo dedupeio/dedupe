@@ -17,6 +17,7 @@ install_requires=['numpy>=1.9',
                   'simplecosine',
                   'haversine',
                   'BTrees==4.0.8',
+                  'simplejson',
                   'zope.interface', 
                   'zope.index']
 
