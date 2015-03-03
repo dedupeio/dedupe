@@ -272,7 +272,6 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.existsPredicate(1) == ('1',)
     assert dedupe.predicates.existsPredicate(0) == ('0',)
     assert dedupe.predicates.sortedAcronym(field) == ('11s',)
-    assert dedupe.predicates.wholeFieldPredicate('') == ()
     assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
     assert dedupe.predicates.firstTokenPredicate(field) == ('123',)
     assert dedupe.predicates.firstTokenPredicate('') == ()
@@ -301,9 +300,7 @@ class PredicatesTest(unittest.TestCase):
     assert dedupe.predicates.commonThreeElementsPredicate((1,)) == set([])
     
     assert dedupe.predicates.fingerprint('time sandwich') == (u'sandwichtime',)
-    assert dedupe.predicates.fingerprint('') == ()
     assert dedupe.predicates.oneGramFingerprint('sandwich time') == (u'acdehimnstw',)
-    assert dedupe.predicates.oneGramFingerprint('') == ()
     assert dedupe.predicates.twoGramFingerprint('sandwich time') == (u'anchdwhticimmendsatiwi',)
     assert dedupe.predicates.twoGramFingerprint('1') == ()
     assert dedupe.predicates.commonTwoTokens('foo bar') == set([u'foo bar'])
