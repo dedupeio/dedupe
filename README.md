@@ -37,6 +37,23 @@ pip install "numpy>=1.9"
 pip install dedupe
 ```
 
+### Windows Install Notes
+We recommending [installing some of dedupe's dependencies from a wheel](https://pip.pypa.io/en/latest/user_guide.html#installing-from-wheels), particularly [numpy](http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy) and [fastcluster](http://www.lfd.uci.edu/~gohlke/pythonlibs/#fastcluster). 
+
+#### OS X Install Notes
+
+Before installing, you may need to set the following environmental
+variables from the command line 
+
+```bash 
+export CFLAGS=-Qunused-arguments 
+export CPPFLAGS=-Qunused-arguments
+```
+
+With default configurations, dedupe cannot do parallel processing on Mac OS X.
+For more information and for instructions on how to enable this, [refer to the
+wiki](http://dedupe.readthedocs.org/en/latest/OSX-Install-Notes.html).
+
 ### Developers
 
 Dedupe requires [numpy](http://numpy.scipy.org/), which can be complicated to install. 
@@ -54,20 +71,6 @@ python setup.py develop
 #If these tests pass, then everything should have been installed correctly!
 coverage run -m nose -I canonical_test
 ```
-
-#### OS X Install Notes
-
-Before installing, you may need to set the following environmental
-variables from the command line 
-
-```bash 
-export CFLAGS=-Qunused-arguments 
-export CPPFLAGS=-Qunused-arguments
-```
-
-With default configurations, dedupe cannot do parallel processing on Mac OS X.
-For more information and for instructions on how to enable this, [refer to the
-wiki](http://dedupe.readthedocs.org/en/latest/OSX-Install-Notes.html).
 
 ## Testing
 Unit tests of core dedupe functions
