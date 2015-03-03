@@ -8,7 +8,7 @@ except ImportError :
 
 install_requires=['numpy>=1.9', 
                   'fastcluster', 
-                  'hcluster',
+                  'hcluster>=0.3.0',
                   'categorical-distance',
                   'rlr',
                   'metafone',
