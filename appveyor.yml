@@ -12,9 +12,7 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - powershell .\\appveyor\\install.ps1
-  - powershell .\\appveyor\\install-miniconda.ps1
-
-  # Don't install from requirements-pip.txt, python-coveralls has broken dependencies on windows it seems.
+  - pip install conda
   - conda install numpy Cython fastcluster
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
