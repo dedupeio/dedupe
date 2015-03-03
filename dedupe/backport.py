@@ -16,7 +16,7 @@ if "accelerate" in config_info or "veclib" in config_info :
                   " http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html")
     MULTIPROCESSING = False
 elif platform.system() == 'Windows' :
-    warnings.warn("Dedupe does not currenly support multiprocessing on Windows")
+    warnings.warn("Dedupe does not currently support multiprocessing on Windows")
     MULTIPROCESSING = False
 
 if MULTIPROCESSING :        
@@ -28,27 +28,10 @@ else :
     from multiprocessing.dummy import Process, Pool, Queue
     SimpleQueue = Queue
 
-try:
-    from thread import get_ident as _get_ident
-except ImportError:
-    from dummy_thread import get_ident as _get_ident
-
-try:
-    from _abcoll import KeysView, ValuesView, ItemsView
-except ImportError:
-    pass
-
 try :
     from collections import OrderedDict
 except ImportError :
     from ordereddict import OrderedDict
-
-try:
-    from simplejson.scanner import py_make_scanner
-    import simplejson as json
-except ImportError:
-    from json.scanner import py_make_scanner
-    import json
 
 
 def cartesian(arrays, out=None):

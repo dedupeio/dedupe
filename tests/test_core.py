@@ -35,8 +35,8 @@ class RandomPairsTest(unittest.TestCase) :
 
         random.seed(123)
         numpy.random.seed(123)
-        assert numpy.array_equal(dedupe.core.randomPairs(11**9, 1),
-                                 numpy.array([[1228959102, 1840268610]]))
+        assert numpy.array_equal(dedupe.core.randomPairs(10**3, 1),
+                                 numpy.array([(292, 413)]))
 
 
 

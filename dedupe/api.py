@@ -15,8 +15,9 @@ import warnings
 import copy
 import os
 from collections import defaultdict
+import simplejson as json
 
-from dedupe.backport import OrderedDict, json
+from dedupe.backport import OrderedDict
 
 import dedupe
 import dedupe.sampling as sampling
@@ -124,6 +125,7 @@ class Matching(object):
 
         try :
             match_file = matches.filename
+            del matches
             os.remove(match_file)
         except AttributeError :
             pass

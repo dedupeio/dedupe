@@ -8,7 +8,7 @@ except ImportError :
 
 install_requires=['numpy>=1.9', 
                   'fastcluster', 
-                  'hcluster',
+                  'hcluster>=0.3.0',
                   'categorical-distance',
                   'rlr',
                   'metafone',
@@ -17,13 +17,9 @@ install_requires=['numpy>=1.9',
                   'simplecosine',
                   'haversine',
                   'BTrees==4.0.8',
+                  'simplejson',
                   'zope.interface', 
                   'zope.index']
-
-try:
-    from json.scanner import py_make_scanner
-except ImportError:
-    install_requires.append('simplejson')
 
 try : 
     from collections import OrderedDict
@@ -39,8 +35,7 @@ setup(
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
-
-   dependency_links = ['http://github.com/al45tair/metaphone/tarball/master#egg=metaphone'],
+    dependency_links = ['http://github.com/datamade/hcluster/tarball/master#egg=hcluster-0.3.0'],
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 3 - Alpha',

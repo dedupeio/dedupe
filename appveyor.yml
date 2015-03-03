@@ -12,9 +12,8 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - powershell .\\appveyor\\install.ps1
-
-  # Don't install from requirements-pip.txt, python-coveralls has broken dependencies on windows it seems.
-  - pip install numpy
+  - pip install --use-wheel --no-index http://bunkum.us/numpy-1.9.2+mkl-cp27-none-win32.whl
+  - pip install --use-wheel --no-index http://bunkum.us/fastcluster-1.1.13-cp27-none-win32.whl
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
   - python setup.py develop
@@ -25,6 +24,7 @@ test_script:
   # Nosetests take care of unit tests
   # Behave runs the example scripts and tries to verify if it produces the right output
   - coverage run -m nose -I canonical_test
+  - python tests/canonical_test.py
 
 on_success:
   # Could run coveralls here but will leave that to travis tests
