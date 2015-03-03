@@ -1,4 +1,5 @@
-from backport import py_make_scanner, json
+import simplejson as json
+from simplejson.scanner import py_make_scanner
 import dedupe.core
 
 def _to_json(python_object):                                             

@@ -21,11 +21,6 @@ install_requires=['numpy>=1.9',
                   'zope.interface', 
                   'zope.index']
 
-try:
-    from json.scanner import py_make_scanner
-except ImportError:
-    install_requires.append('simplejson')
-
 try : 
     from collections import OrderedDict
 except ImportError:

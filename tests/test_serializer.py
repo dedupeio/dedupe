@@ -3,8 +3,8 @@ import dedupe
 import unittest
 import codecs
 import StringIO
-from dedupe.backport import OrderedDict, json
-
+from dedupe.backport import OrderedDict
+import simplejson as json
 
 class SerializerTest(unittest.TestCase) :
   def test_writeTraining(self) :
