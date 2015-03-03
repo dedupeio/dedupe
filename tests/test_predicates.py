@@ -14,10 +14,6 @@ class TestWholeSet(unittest.TestCase):
         block_val = predicates.wholeSetPredicate(self.s1)
         self.assertEqual(block_val, (unicode(self.s1),))
 
-    def test_empty_set(self):
-        block_val = predicates.wholeSetPredicate(set())
-        self.assertEqual(block_val, tuple())
-
 class TestSetElement(unittest.TestCase):
     def setUp(self):
         self.s1 = set(['red', 'blue', 'green'])
@@ -35,10 +31,6 @@ class TestSetElement(unittest.TestCase):
         assert block_val == ('red',)
         block_val = predicates.firstSetElementPredicate(self.s1)
         assert block_val == ('blue',)
-        block_val = predicates.firstSetElementPredicate(set([]))
-        assert block_val == ()
-        block_val = predicates.lastSetElementPredicate(set([]))
-        assert block_val == ()
 
     def test_magnitude(self) :
         block_val = predicates.magnitudeOfCardinality(self.s1)

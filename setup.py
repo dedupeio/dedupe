@@ -8,7 +8,7 @@ except ImportError :
 
 install_requires=['numpy>=1.9', 
                   'fastcluster', 
-                  'hcluster>=0.3.0',
+                  'dedupe-hcluster',
                   'categorical-distance',
                   'rlr',
                   'metafone',
@@ -30,12 +30,11 @@ except ImportError:
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.7.7.1.3',
+    version='0.7.7.1.6',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
-    dependency_links = ['http://github.com/datamade/hcluster/tarball/master#egg=hcluster-0.3.0'],
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 3 - Alpha',

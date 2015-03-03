@@ -37,7 +37,17 @@ class SimplePredicate(Predicate) :
 
     def __call__(self, record) :
         column = record[self.field]
-        return self.func(column)
+        if column :
+            return self.func(column)
+        else :
+            return ()
+
+class ExistsPredicate(SimplePredicate) :
+    def __call__(self, record) :
+        if record[self.field] :
+            return ('1',)
+        else :
+            return ('0',)
 
 class IndexPredicate(Predicate) :
     def __init__(self, threshold, field):
@@ -63,16 +73,20 @@ class TfidfPredicate(IndexPredicate):
         return tfidf.TfIdfIndex(stop_words)
 
     def __call__(self, record) :
+        column = record[self.field]
+        if column :
+            try :
+                centers = self.index.search(self.preprocess(column), 
+                                            self.threshold)
 
-        try :
-            centers = self.index.search(self.preprocess(record[self.field]), 
-                                        self.threshold)
+                l_unicode = unicode
+                return [l_unicode(center) for center in centers]
+            except :
+                raise AttributeError("Attempting to block with an index "
+                                     "predicate without indexing records")
 
-            l_unicode = unicode
-            return [l_unicode(center) for center in centers]
-        except :
-            raise AttributeError("Attempting to block with an index "
-                                 "predicate without indexing records")
+        else :
+            return ()
 
 class TfidfTextPredicate(TfidfPredicate) :
     type = "TfidfTextPredicate"
@@ -117,11 +131,7 @@ class CompoundPredicate(Predicate) :
 
 def wholeFieldPredicate(field):
     """return the whole field"""
-
-    if field:
-        return (unicode(field), )
-    else:
-        return ()
+    return (unicode(field), )
 
 def tokenFieldPredicate(field):
     """returns the tokens"""
@@ -173,16 +183,10 @@ def commonThreeTokens(field) :
     return ngramsTokens(field.split(), 3)
 
 def fingerprint(field) :
-    if field :
-        return (u''.join(sorted(field.split())).strip(),)
-    else :
-        return ()
+    return (u''.join(sorted(field.split())).strip(),)
 
 def oneGramFingerprint(field) :
-    if field :
-        return (u''.join(sorted(set(ngrams(field.replace(' ', ''), 1)))).strip(),)
-    else :
-        return ()
+    return (u''.join(sorted(set(ngrams(field.replace(' ', ''), 1)))).strip(),)
 
 def twoGramFingerprint(field) :
     if len(field) > 1 :
@@ -243,17 +247,11 @@ def existsPredicate(field) :
             return (u'0',)
 
 def wholeSetPredicate(field_set):
-    if field_set :
-        return (unicode(field_set),)
-    else :
-        return ()
+    return (unicode(field_set),)
 
 def commonSetElementPredicate(field_set):
     """return set as individual elements"""
-    if field_set :
-        return tuple([unicode(each) for each in field_set])
-    else :
-        return ()
+    return tuple([unicode(each) for each in field_set])
 
 def commonTwoElementsPredicate(field) :
     l = sorted(field)
@@ -264,20 +262,13 @@ def commonThreeElementsPredicate(field) :
     return ngramsTokens(l, 3)
 
 def lastSetElementPredicate(field_set) :
-    if field_set :
-        return (unicode(max(field_set)), )
-    return ()
+    return (unicode(max(field_set)), )
 
 def firstSetElementPredicate(field_set) :
-    if field_set :
-        return (unicode(min(field_set)), )
-    return ()
+    return (unicode(min(field_set)), )
 
 def magnitudeOfCardinality(field_set) :
-    if field_set :
-        return orderOfMagnitude(len(field_set))
-    else :
-        return ()
+    return orderOfMagnitude(len(field_set))
 
 def latLongGridPredicate(field, digits=1):
     """
@@ -295,17 +286,14 @@ def latLongGridPredicate(field, digits=1):
         return ()
 
 def orderOfMagnitude(field) :
-    if field and field > 0 :
+    if field > 0 :
         return (unicode(int(round(math.log10(field)))), )
     else :
         return ()
 
 def roundTo1(field) : # thanks http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
-    if field :
-        abs_num = abs(field)
-        order = int(math.floor(math.log10(abs_num)))
-        rounded = round(abs_num, -order)
-        return (unicode(int(math.copysign(rounded, field))),)
-    else :
-        return ()
+    abs_num = abs(field)
+    order = int(math.floor(math.log10(abs_num)))
+    rounded = round(abs_num, -order)
+    return (unicode(int(math.copysign(rounded, field))),)
         
