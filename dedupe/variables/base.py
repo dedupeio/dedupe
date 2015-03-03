@@ -20,7 +20,7 @@ class Variable(object) :
         if definition.get('has missing', False) :
             self.has_missing = True
             try :
-                self._predicate_functions += (predicates.existsPredicate,)
+                self.predicates += [predicates.ExistsPredicate]
             except AttributeError :
                 pass
         else :
@@ -81,8 +81,6 @@ class CustomType(FieldType) :
             self.name = "(%s: %s, %s)" % (self.field, 
                                           self.type, 
                                           self.comparator.__name__)
-
-
 
 
 def allSubclasses(cls) :

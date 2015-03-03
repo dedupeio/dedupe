@@ -5,7 +5,7 @@ from dedupe import predicates
 
 class ExistsType(CategoricalType) :
     type = "Exists"
-    _predicate_functions = [predicates.existsPredicate]
+    _predicate_functions = []
 
     def __init__(self, definition) :
 

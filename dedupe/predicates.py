@@ -42,6 +42,13 @@ class SimplePredicate(Predicate) :
         else :
             return ()
 
+class ExistsPredicate(SimplePredicate) :
+    def __call__(self, record) :
+        if record[self.field] :
+            return ('1',)
+        else :
+            return ('0',)
+
 class IndexPredicate(Predicate) :
     def __init__(self, threshold, field):
         self.__name__ = '(%s, %s)' % (threshold, field)
