@@ -35,6 +35,8 @@ class SerializerTest(unittest.TestCase) :
       encoded_file.seek(0)
 
       deduper.readTraining(output)
+      print deduper.training_pairs
+      print training_pairs
       assert repr(deduper.training_pairs) == repr(training_pairs)
       assert deduper.training_pairs == training_pairs
 
