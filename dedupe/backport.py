@@ -28,20 +28,11 @@ else :
     from multiprocessing.dummy import Process, Pool, Queue
     SimpleQueue = Queue
 
-try:
-    from thread import get_ident as _get_ident
-except ImportError:
-    from dummy_thread import get_ident as _get_ident
-
-try:
-    from _abcoll import KeysView, ValuesView, ItemsView
-except ImportError:
-    pass
-
 try :
     from collections import OrderedDict
 except ImportError :
     from ordereddict import OrderedDict
+
 
 def cartesian(arrays, out=None):
     """Generate a cartesian product of input arrays.
