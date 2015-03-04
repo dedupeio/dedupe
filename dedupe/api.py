@@ -414,14 +414,13 @@ class RecordLinkMatching(Matching) :
 
             if base :
                 if len(base[0]) < 3 :
-                    raise ValueError("Each block must be a made up of two "
-                                     "sequences, (base_sequence, target_sequence)")
+                    raise ValueError("Each sequence must be made up of 3-tuple "
+                                     "like (record_id, record, covered_blocks)")
                 self._checkRecordType(base[0][1])
             if target :
                 if len(target[0]) < 3 :
-                    raise ValueError("Each block must be a made up of two "
-                                     "sequences, (base_sequence, target_sequence)")
-                
+                    raise ValueError("Each sequence must be made up of 3-tuple "
+                                     "like (record_id, record, covered_blocks)")
                 self._checkRecordType(target[0][1])
 
     def _blockGenerator(self, messy_data, blocked_records) :
