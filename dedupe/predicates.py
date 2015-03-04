@@ -42,12 +42,26 @@ class SimplePredicate(Predicate) :
         else :
             return ()
 
-class ExistsPredicate(SimplePredicate) :
-    def __call__(self, record) :
-        if record[self.field] :
+class ExistsPredicate(Predicate) :
+    type = "ExistsPredicate"
+
+    def __init__(self, field) :
+        self.__name__ = "(Exists, %s)" % (field,)
+        self.field = field
+
+
+    @staticmethod
+    def func(column) :
+        if column :
             return ('1',)
         else :
             return ('0',)
+
+
+    def __call__(self, record) :
+        column = record[self.field]
+        return self.func(column)
+
 
 class IndexPredicate(Predicate) :
     def __init__(self, threshold, field):

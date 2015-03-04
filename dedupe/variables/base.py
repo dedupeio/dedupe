@@ -20,7 +20,7 @@ class Variable(object) :
         if definition.get('has missing', False) :
             self.has_missing = True
             try :
-                self.predicates += [predicates.ExistsPredicate]
+                self.predicates += [predicates.ExistsPredicate(definition['field'])]
             except AttributeError :
                 pass
         else :
