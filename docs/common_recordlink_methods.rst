@@ -102,13 +102,13 @@
 		       .. code :: python
 
 		          blocks =((
-			            [((1, {'name' : 'Pat', 'address' : '123 Main'}), set([]))],
-			            [((3, {'name' : 'Pat', 'address' : '123 Main'}), set([]))]
+			            [(1, {'name' : 'Pat', 'address' : '123 Main'}, set([]))],
+			            [(3, {'name' : 'Pat', 'address' : '123 Main'}, set([]))]
 				    ), 
 			           (
-				    [((1, {'name' : 'Pat', 'address' : '123 Main'}), set([1])),
-				     ((2, {'name' : 'Sam', 'address' : '123 Main'}), set([]))],
-			            [((3, {'name' : 'Pat', 'address' : '123 Main'}), set([1]))]
+				    [(1, {'name' : 'Pat', 'address' : '123 Main'}, set([1])),
+				     (2, {'name' : 'Sam', 'address' : '123 Main'}, set([]))],
+			            [(3, {'name' : 'Pat', 'address' : '123 Main'}, set([1]))]
 			            
 				    )
 				   )

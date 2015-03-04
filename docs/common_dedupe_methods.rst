@@ -149,13 +149,13 @@
 		       .. code :: python
 
 		          blocks =((
-			            ((1, {'name' : 'Pat', 'address' : '123 Main'}), set([])),
-			            ((2, {'name' : 'Pat', 'address' : '123 Main'}), set([]))
+			            (1, {'name' : 'Pat', 'address' : '123 Main'}, set([])),
+			            (2, {'name' : 'Pat', 'address' : '123 Main'}, set([]))
 				    ), 
 			           (
-				    ((1, {'name' : 'Pat', 'address' : '123 Main'}), set([1])),
-			            ((2, {'name' : 'Pat', 'address' : '123 Main'}), set([1])),
-			            ((3, {'name' : 'Sam', 'address' : '123 Main'}), set([]))
+				    (1, {'name' : 'Pat', 'address' : '123 Main'}, set([1])),
+			            (2, {'name' : 'Pat', 'address' : '123 Main'}, set([1])),
+			            (3, {'name' : 'Sam', 'address' : '123 Main'}, set([]))
 				    )
 				   )
 			  deduper.matchBlocks(blocks)
