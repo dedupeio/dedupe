@@ -1,6 +1,6 @@
 import pkgutil
 
-from backport import OrderedDict
+from collections import OrderedDict
 
 import dedupe.variables
 import dedupe.variables.base as base

@@ -1,5 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from builtins import range, next, zip
+from future.utils import viewvalues
+import sys
+if sys.version < '3':
+    text_type = unicode
+    binary_type = str
+else:
+    text_type = str
+    binary_type = bytes
+    unicode = str
 
 import itertools
 import warnings
@@ -56,9 +66,9 @@ def randomPairs(n_records, sample_size):
 
         random_indices = numpy.arange(n)
     else :
-        random_indices = numpy.random.randint(n, size=sample_size)
-        
-    random_indices.dtype = 'uint'
+        random_indices = numpy.random.randint(int(n), size=sample_size)
+
+    random_indices = random_indices.astype('uint')
 
     b = 1 - 2 * n_records
 
@@ -102,7 +112,7 @@ def trainModel(training_data, data_model, alpha=.001):
     Use logistic regression to train weights for all fields in the data model
     """
     
-    labels = numpy.array(training_data['label'] == 'match', dtype='i4')
+    labels = numpy.array(training_data['label'] == b'match', dtype='i4')
     examples = training_data['distances']
 
     (weight, bias) = rlr.lr(labels, examples, alpha)
@@ -217,9 +227,12 @@ def mergeScores(score_queue, result_queue, stop_signals) :
         else :
             seen_signals += 1
 
+        
+    print(scored_pairs)
+
     if len(scored_pairs) :
         python_type = type(scored_pairs['pairs'][0][0])
-        if python_type is str or python_type is unicode :
+        if python_type is binary_type or python_type is text_type :
             max_length = len(max(numpy.ravel(scored_pairs['pairs']), key=len))
             python_type = (unicode, max_length)
         
@@ -247,7 +260,7 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
         from multiprocessing.dummy import Process, Pool, Queue
         SimpleQueue = Queue
     else :
-        from backport import Process, Pool, SimpleQueue
+        from .backport import Process, Pool, SimpleQueue
 
     record_pairs_queue = SimpleQueue()
     score_queue =  SimpleQueue()
@@ -258,7 +271,7 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
     map_processes = [Process(target=score_records,
                              args=(record_pairs_queue,
                                    score_queue))
-                     for _ in xrange(n_map_processes)]
+                     for _ in range(n_map_processes)]
     [process.start() for process in map_processes]
 
     reduce_process = Process(target=mergeScores,
@@ -293,7 +306,7 @@ def fillQueue(queue, iterable, stop_signals) :
     last_rate = 10000
 
     while True :
-        chunk = list(itertools.islice(iterable, chunk_size))
+        chunk = list(itertools.islice(iterable, int(chunk_size)))
         if chunk :
             queue.put(chunk)
 
@@ -322,18 +335,18 @@ def fillQueue(queue, iterable, stop_signals) :
         else :
             # put poison pills in queue to tell scorers that they are
             # done
-            [queue.put(None) for _ in xrange(stop_signals)]
+            [queue.put(None) for _ in range(stop_signals)]
             break
 
 def peek(records) :
     try :
-        record = records.next()
-    except AttributeError as e:
-        if "has no attribute 'next'" not in str(e) :
+        record = next(records)
+    except TypeError as e:
+        if "not an iterator" not in str(e) :
             raise
         try :
             records = iter(records)
-            record = records.next()
+            record = next(records)
         except StopIteration :
             return None, records
     except StopIteration :
@@ -352,7 +365,7 @@ def freezeData(data) : # pragma : no cover
 
 def isIndexed(data, offset) :
     hashable = collections.Hashable
-    for i in xrange(offset, offset + len(data)) :
+    for i in range(offset, offset + len(data)) :
         if i not in data :
             return False
     else :
@@ -362,8 +375,8 @@ def index(data, offset=0) :
     if isIndexed(data, offset) :
         return data
     else :
-        data = dict(itertools.izip(itertools.count(offset), 
-                                   data.itervalues()))
+        data = dict(zip(itertools.count(offset), 
+                        viewvalues(data)))
         return data
 
 
@@ -383,7 +396,7 @@ class frozendict(collections.Mapping):
         return self._d[key]
 
     def __repr__(self) :
-        return '<frozendict %s>' % repr(self._d)
+        return u'<frozendict %s>' % repr(self._d)
 
     def __hash__(self):
         try:

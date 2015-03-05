@@ -6,6 +6,7 @@ import numpy
 import random
 import itertools
 import collections
+from collections import OrderedDict
 
 DATA = {  100 : {"name": "Bob", "age": "50"},
           105 : {"name": "Charlie", "age": "75"},
@@ -37,7 +38,6 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
 class DataModelTest(unittest.TestCase) :
 
   def test_data_model(self) :
-    OrderedDict = dedupe.backport.OrderedDict
     DataModel = dedupe.datamodel.DataModel
     
     self.assertRaises(TypeError, DataModel)
@@ -170,7 +170,7 @@ class ClusteringTest(unittest.TestCase):
       if cluster_a[0] != cluster_b[0] :
         return False
       for score_a, score_b in zip(cluster_a[1], cluster_b[1]) :
-        if round(score_a, 2) != round(score_b, 2) :
+        if abs(score_a - score_b) > 0.001 :
           return False
       else :
         return True
@@ -179,10 +179,11 @@ class ClusteringTest(unittest.TestCase):
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    assert self.clusterEquals(hierarchical(self.dupes, 1),
+    print(list(hierarchical(self.dupes, 1)))
+    assert self.clusterEquals(list(hierarchical(self.dupes, 1)),
                               [((10, 11),  
-                                (0.899,
-                                 0.899))])
+                                (0.89999,
+                                 0.89999))])
 
     assert self.clusterEquals(hierarchical(self.dupes, 0.5),
                               [((1, 2, 3), 
@@ -205,13 +206,11 @@ class ClusteringTest(unittest.TestCase):
                                  0.624)), 
                                ((10, 11), 
                                 (0.899, 
-                                 0.899))]
-)
+                                 0.899))])
 
-    assert hierarchical(self.str_dupes, 1) == []
-    assert zip(*hierarchical(self.str_dupes, 0.5))[0] == (('1', '2', '3'), 
-                                                          ('4','5'))
-    assert zip(*hierarchical(self.str_dupes, 0))[0] == (('1', '2', '3', '4', '5'),)
+    assert list(hierarchical(self.str_dupes, 1)) == []
+    assert list(zip(*hierarchical(self.str_dupes, 0.5)))[0] == ((b'1', b'2', b'3'),                                                           (b'4', b'5'))
+    assert list(zip(*hierarchical(self.str_dupes, 0)))[0] == ((b'1', b'2', b'3', b'4', b'5'),)
 
 
   def test_greedy_matching(self):

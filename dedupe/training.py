@@ -2,17 +2,13 @@
 # -*- coding: utf-8 -*-
 
 # provides functions for selecting a sample of training data
-
 from collections import defaultdict
 import itertools
 from itertools import combinations, islice
-import blocking
-import predicates
-import core
+from . import blocking, predicates, core, index
 import numpy
 import logging
 import random
-import index
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +116,10 @@ def blockTraining(training_pairs,
         Coverage = DedupeCoverage
 
     # Setup
-    record_ids = defaultdict(itertools.count().next)
+    try : # py 2
+        record_ids = defaultdict(itertools.count().next) 
+    except AttributeError : # py 3
+        record_ids = defaultdict(itertools.count().__next__)
 
     dupe_pairs, training_dupes = trainingData(training_pairs['match'], 
                                               record_ids)

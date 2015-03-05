@@ -1,6 +1,6 @@
 import numpy
 from dedupe import predicates
-from base import FieldType
+from .base import FieldType
 
 class PriceType(FieldType) :
     _predicate_functions = [predicates.orderOfMagnitude,

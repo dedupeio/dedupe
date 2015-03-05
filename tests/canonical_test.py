@@ -1,8 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+from future.utils import viewitems
+from builtins import range
+
 from itertools import combinations
 import csv
 import exampleIO
+
 import dedupe
 import os
 import time
@@ -14,11 +19,12 @@ optp.add_option('-v', '--verbose', dest='verbose', action='count',
                 help='Increase verbosity (specify multiple times for more)'
                 )
 (opts, args) = optp.parse_args()
-log_level = logging.WARNING 
-if opts.verbose == 1:
-    log_level = logging.INFO
-elif opts.verbose >= 2:
-    log_level = logging.DEBUG
+log_level = logging.WARNING
+if opts.verbose is not None : 
+    if opts.verbose == 1:
+        log_level = logging.INFO
+    elif opts.verbose >= 2:
+        log_level = logging.DEBUG
 logging.getLogger().setLevel(log_level)
 
 #logging.basicConfig(level=log_level)
@@ -37,7 +43,7 @@ def canonicalImport(filename):
         reader = csv.DictReader(f)
         for (i, row) in enumerate(reader):
             clean_row = [(k, preProcess(v)) for (k, v) in
-                         row.iteritems()]
+                         viewitems(row)]
             data_d[i] = dedupe.core.frozendict(clean_row)
 
     return data_d, reader.fieldnames
@@ -48,14 +54,14 @@ def evaluateDuplicates(found_dupes, true_dupes):
     false_positives = found_dupes.difference(true_dupes)
     uncovered_dupes = true_dupes.difference(found_dupes)
 
-    print 'found duplicate'
-    print len(found_dupes)
+    print('found duplicate')
+    print(len(found_dupes))
 
-    print 'precision'
-    print 1 - len(false_positives) / float(len(found_dupes))
+    print('precision')
+    print(1 - len(false_positives) / float(len(found_dupes)))
 
-    print 'recall'
-    print len(true_positives) / float(len(true_dupes))
+    print('recall')
+    print(len(true_positives) / float(len(true_dupes)))
 
 
 settings_file = 'canonical_learned_settings.json'
@@ -71,7 +77,7 @@ duplicates_s = set(frozenset(pair) for pair in training_pairs['match'])
 
 t0 = time.time()
 
-print 'number of known duplicate pairs', len(duplicates_s)
+print('number of known duplicate pairs', len(duplicates_s))
 
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
@@ -95,10 +101,10 @@ else:
 alpha = deduper.threshold(data_d, 1.5)
 
 # print candidates
-print 'clustering...'
+print('clustering...')
 clustered_dupes = deduper.match(data_d, threshold=alpha)
 
-print 'Evaluate Clustering'
+print('Evaluate Clustering')
 confirm_dupes = set([])
 for dupes, score in clustered_dupes:
     for pair in combinations(dupes, 2):
@@ -107,4 +113,4 @@ for dupes, score in clustered_dupes:
 
 evaluateDuplicates(confirm_dupes, duplicates_s)
 
-print 'ran in ', time.time() - t0, 'seconds'
+print('ran in ', time.time() - t0, 'seconds')

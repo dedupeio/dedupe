@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
-from index import CanopyIndex
+from .index import CanopyIndex
 import collections
 import itertools
 
@@ -11,7 +11,11 @@ class TfIdfIndex(object) :
     def __init__(self, stop_words=[]) :
         self._index = CanopyIndex(stop_words)
  
-        self._id_to_i = collections.defaultdict(itertools.count(1).next)
+        try : # py 2
+            self._id_to_i = collections.defaultdict(itertools.count(1).next)
+        except AttributeError : # py 3
+            self._id_to_i = collections.defaultdict(itertools.count(1).__next__)
+
         
         self._parseTerms = self._index.lexicon.parseTerms
 
