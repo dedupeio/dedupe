@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from builtins import input
 
 import collections
 import itertools
@@ -38,7 +39,7 @@ def consoleLabel(deduper): # pragma : no cover
             print('Do these records refer to the same thing?')
             valid_response = False
             while not valid_response:
-                label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
+                label = input('(y)es / (n)o / (u)nsure / (f)inished\n')
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
 

@@ -135,8 +135,6 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2) :
             if min(len(red), len(blue)) + len(sample) < 10 :
                 return sample
 
-        print(record)
-
         block_keys = predicate_function(record[field])
         for block_key in block_keys:
             if blue.get(block_key):
