@@ -54,7 +54,10 @@ def dedupeSamplePredicates(sample_size, predicates, items) :
             continue
 
         items.rotate(random.randrange(n_items))
-        items.reverse()
+        try : # the reverse method was only added in python 2.7
+            items.reverse()
+        except AttributeError :
+            items = deque(reversed(items))
 
         yield dedupeSamplePredicate(subsample_size,
                                     predicate,
