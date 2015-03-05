@@ -193,8 +193,6 @@ class DedupeTest(unittest.TestCase):
                       
                       (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
                        dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
-                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'Bob B.'})), 
                       (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
                        dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
  
