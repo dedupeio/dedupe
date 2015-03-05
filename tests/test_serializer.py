@@ -8,16 +8,17 @@ from collections import OrderedDict
 import simplejson as json
 
 import sys
-if sys.version < '3' :
-  from StringIO import StringIO
-else :
-  from io import StringIO
 
 
 class SerializerTest(unittest.TestCase) :
   def test_writeTraining(self) :
+    if sys.version < '3' :
+      from StringIO import StringIO
       output = StringIO()
       encoded_file = codecs.EncodedFile(output, data_encoding='utf8', file_encoding='ascii')
+    else :
+      from io import StringIO
+      encoded_file = StringIO()
 
       training_pairs = OrderedDict(
         {u"distinct":[

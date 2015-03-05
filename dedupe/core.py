@@ -227,9 +227,6 @@ def mergeScores(score_queue, result_queue, stop_signals) :
         else :
             seen_signals += 1
 
-        
-    print(scored_pairs)
-
     if len(scored_pairs) :
         python_type = type(scored_pairs['pairs'][0][0])
         if python_type is binary_type or python_type is text_type :
