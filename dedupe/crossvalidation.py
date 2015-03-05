@@ -94,7 +94,7 @@ class AlphaTester(object) :
         bias = data_model['bias']
 
         predictions = numpy.dot(validation['distances'], weight) + bias
-        true_labels = validation['label'] == 'match'
+        true_labels = validation['label'] == b'match'
 
         return scorePredictions(true_labels, predictions)
         
