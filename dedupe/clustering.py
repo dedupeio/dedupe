@@ -185,7 +185,7 @@ def greedyMatching(dupes, threshold=0.5):
     clusters = []
 
     sorted_dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
-    dupes_list = [dupe for dupe in sorted_dupes if dupe[1] >= threshold]
+    dupes_list = (dupe for dupe in sorted_dupes if dupe[1] >= threshold)
 
     for vertices, score in dupes_list:
         a, b = vertices

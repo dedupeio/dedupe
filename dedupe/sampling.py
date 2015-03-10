@@ -18,9 +18,9 @@ def blockedSample(sampler, sample_size, predicates, *args) :
     while remaining_sample and predicates :
         random.shuffle(predicates)
 
-        new_sample = list(sampler(remaining_sample, 
-                                  predicates,
-                                  *args))
+        new_sample = sampler(remaining_sample, 
+                             predicates,
+                             *args)
 
         filtered_sample = (subsample for subsample 
                            in new_sample if subsample)
