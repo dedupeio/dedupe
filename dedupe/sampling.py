@@ -1,3 +1,4 @@
+from __future__ import division
 from builtins import range, zip
 
 from collections import deque
@@ -9,7 +10,7 @@ from collections import defaultdict
 
 def blockedSample(sampler, sample_size, predicates, *args) :
     
-    blocked_sample = set([])
+    blocked_sample = set()
     remaining_sample = sample_size - len(blocked_sample)
     previous_sample_size = 0
 
@@ -26,7 +27,7 @@ def blockedSample(sampler, sample_size, predicates, *args) :
         blocked_sample.update(itertools.chain.from_iterable(filtered_sample))
 
         growth = len(blocked_sample) - previous_sample_size
-        growth_rate = growth/float(remaining_sample)
+        growth_rate = growth/remaining_sample
 
         remaining_sample = sample_size - len(blocked_sample)
         previous_sample_size = len(blocked_sample)
@@ -176,7 +177,7 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2) :
     return sample
 
 def evenSplits(total_size, num_splits) :
-    avg = total_size/float(num_splits) 
+    avg = total_size/num_splits
     split = 0
     for _ in range(num_splits) :
         split += avg - int(split)

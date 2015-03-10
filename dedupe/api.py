@@ -4,7 +4,7 @@
 dedupe provides the main user interface for the library the
 Dedupe class
 """
-from __future__ import print_function
+from __future__ import print_function, division
 from future.utils import viewitems, viewvalues
 
 import itertools
@@ -785,7 +785,7 @@ class ActiveMatching(Matching) :
 
         
         dupe_ratio = (len(self.training_pairs[u'match'])
-                      /(len(self.training_pairs[u'distinct']) + 1.0))
+                      /(len(self.training_pairs[u'distinct']) + 1))
 
         return self.activeLearner.uncertainPairs(self.data_model, dupe_ratio)
 

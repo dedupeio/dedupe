@@ -1,3 +1,5 @@
+from __future__ import division
+
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.stopdict import get_stopdict
 from zope.index.text.textindex import TextIndex
@@ -16,7 +18,7 @@ class CanopyIndex(TextIndex) : # pragma : no cover
         self.lexicon = lexicon
 
     def initSearch(self) :
-        N = float(len(self.index._docweight))
+        N = len(self.index._docweight)
 
         self._wids_dict = {}
 
@@ -36,7 +38,7 @@ class CanopyIndex(TextIndex) : # pragma : no cover
         l_pow = float.__pow__
 
         L = []
-        qw = 0.0
+        qw = 0
 
         for term in query_list :
             wid, weight = _wids_dict.get(term, (None, None))

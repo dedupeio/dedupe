@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import division
 from builtins import range
 
 import numpy
@@ -111,8 +112,8 @@ def scorePredictions(true_labels, predictions) :
         predicted_dupes = numpy.sum(predictions > 0)
         true_dupes = numpy.sum(true_labels)
 
-        recall = true_predicted_dupes/float(true_dupes)
-        precision = true_predicted_dupes/float(predicted_dupes)
+        recall = true_predicted_dupes/true_dupes
+        precision = true_predicted_dupes/predicted_dupes
 
         score = 2 * recall * precision / (recall + precision)
 
@@ -126,7 +127,7 @@ def reduceScores(scores) :
     scores = [score for score in scores if score is not None]
 
     if scores :
-        average_score = sum(scores)/float(len(scores))
+        average_score = sum(scores)/len(scores)
     else :
         average_score = 0
 

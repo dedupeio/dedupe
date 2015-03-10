@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # provides functions for selecting a sample of training data
+from __future__ import division
+
 from collections import defaultdict
 import itertools
 from itertools import combinations, islice
@@ -22,7 +24,7 @@ def findUncertainPairs(field_distances, data_model, bias=0.5):
 
     probability = core.scorePairs(field_distances, data_model)
 
-    p_max = (1.0 - bias)
+    p_max = (1 - bias)
     logger.info(p_max)
 
     informativity = numpy.copy(probability)
@@ -217,7 +219,7 @@ def findOptimumBlocking(uncovered_dupes,
         for predicate in dupe_coverage :
             dupes = len(dupe_coverage[predicate])
             distinct = len(distinct_coverage[predicate])
-            cover = (dupes + 1.0)/(distinct + 1.0)
+            cover = (dupes + 1)/(distinct + 1)
             if cover > best_cover:
                 best_cover = cover
                 best_predicate = predicate
@@ -372,7 +374,7 @@ def stopWords(data, indices) :
 
         doc_freq.sort(reverse=True)
         
-        N = float(tf_index.index.documentCount())
+        N = tf_index.index.documentCount()
         threshold = int(max(1000, N * 0.05))
 
         stop_words = set()
