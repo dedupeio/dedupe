@@ -59,7 +59,7 @@ class Blocker:
     def resetIndices(self) :
         # clear canopies to reduce memory usage
         for index_type in self.index_fields.values() :
-            for predicate in index_type.values()[0] :
+            for predicate in list(index_type.values())[0] :
                 predicate.index = None
 
     def index(self, data, field): 

@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from future.utils import viewitems
 
 import itertools
 
@@ -54,10 +55,10 @@ def connected_components(edgelist, max_components) :
             indices[root_a].append(i)
 
     for root in component :
-	n_components = len(component[root])
-	sub_graph = edgelist[indices[root]]
-
-	if n_components > max_components :
+        n_components = len(component[root])
+        sub_graph = edgelist[indices[root]]
+        
+        if n_components > max_components :
             threshold = numpy.min(sub_graph['score'])
             threshold *= 1.1 
             warnings.warn('A component contained %s elements. '
@@ -109,8 +110,8 @@ def condensedDistance(dupes):
     index = matrix_length - row_step + col - row - 1
 
     condensed_distances = numpy.ones(matrix_length, 'f4')
-    condensed_distances[index] = 1 - dupes['score']
-    
+    condensed_distances[index.astype(int)] = 1 - dupes['score']
+
 
     return i_to_id, condensed_distances, N
 
@@ -150,7 +151,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
             for (i, sub_cluster_id) in enumerate(partition):
                 clusters.setdefault(cluster_id + sub_cluster_id, []).append(i)
 
-            for cluster_id, items in clusters.iteritems() :
+            for cluster_id, items in viewitems(clusters) :
                 if len(items) > 1 :
                     scores = confidences(items, condensed_distances, N)
                     clustering[cluster_id] =\

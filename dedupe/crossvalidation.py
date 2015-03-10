@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from builtins import range
 
 import numpy
 import logging
@@ -20,7 +21,7 @@ def gridSearch(training_data,
     if num_cores < 2 :
         from multiprocessing.dummy import Pool
     else :
-        from backport import Pool
+        from .backport import Pool
 
     pool = Pool()
 
@@ -65,8 +66,8 @@ def kFolds(training_data, k):
         raise ValueError("At least two traning datum are required")
 
     train_dtype = training_data.dtype
-    slices = [training_data[i::k] for i in xrange(k)]
-    for i in xrange(k):
+    slices = [training_data[i::k] for i in range(k)]
+    for i in range(k):
         validation = slices[i]
         training = [datum for s in slices if s is not validation for datum in s]
         validation = numpy.array(validation, train_dtype)
@@ -93,7 +94,7 @@ class AlphaTester(object) :
         bias = data_model['bias']
 
         predictions = numpy.dot(validation['distances'], weight) + bias
-        true_labels = validation['label'] == 'match'
+        true_labels = validation['label'] == b'match'
 
         return scorePredictions(true_labels, predictions)
         

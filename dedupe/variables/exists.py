@@ -1,6 +1,6 @@
-from base import DerivedType
+from .base import DerivedType
 from categorical import CategoricalComparator
-from categorical_type import CategoricalType
+from .categorical_type import CategoricalType
 from dedupe import predicates
 
 class ExistsType(CategoricalType) :

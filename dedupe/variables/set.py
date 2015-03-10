@@ -1,4 +1,4 @@
-from base import FieldType
+from .base import FieldType
 from dedupe import predicates
 from simplecosine.cosine import CosineSetSimilarity
 

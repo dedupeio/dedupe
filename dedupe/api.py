@@ -4,6 +4,8 @@
 dedupe provides the main user interface for the library the
 Dedupe class
 """
+from __future__ import print_function
+from future.utils import viewitems, viewvalues
 
 import itertools
 import logging
@@ -14,10 +16,8 @@ import random
 import warnings
 import copy
 import os
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import simplejson as json
-
-from dedupe.backport import OrderedDict
 
 import dedupe
 import dedupe.sampling as sampling
@@ -31,6 +31,7 @@ import dedupe.clustering as clustering
 from dedupe.datamodel import DataModel
 
 logger = logging.getLogger(__name__)
+
 
 class Matching(object):
     """
@@ -233,7 +234,7 @@ class DedupeMatching(Matching) :
         block, blocks = core.peek(blocks)
         self._checkBlock(block)
 
-	combinations = itertools.combinations
+        combinations = itertools.combinations
 
         pairs = (combinations(block, 2) for block in blocks)
 
@@ -267,12 +268,12 @@ class DedupeMatching(Matching) :
         for field in self.blocker.index_fields :
             unique_fields = set(record[field]
                                 for record 
-                                in data_d.itervalues()
+                                in viewvalues(data_d)
                                 if record[field])
 
             self.blocker.index(unique_fields, field)
 
-        for block_key, record_id in self.blocker(data_d.iteritems()) :
+        for block_key, record_id in self.blocker(viewitems(data_d)) :
             blocks[block_key][record_id] = data_d[record_id]
 
         self.blocker.resetIndices()
@@ -296,7 +297,7 @@ class DedupeMatching(Matching) :
 
         for block_id, records in enumerate(blocks) :
 
-            for record_id, record in records.iteritems() :
+            for record_id, record in viewitems(records) :
                 coverage[record_id].append(block_id)
 
         for block_id, records in enumerate(blocks) :
@@ -304,7 +305,7 @@ class DedupeMatching(Matching) :
                 logger.info("%s blocks" % block_id)
 
             marked_records = []
-            for record_id, record in records.iteritems() :
+            for record_id, record in viewitems(records) :
                 smaller_ids = set([covered_id for covered_id 
                                    in coverage[record_id] 
                                    if covered_id < block_id])
@@ -381,7 +382,7 @@ class RecordLinkMatching(Matching) :
                          recall. I.e. if you care twice as much about
                          recall as you do precision, set recall_weight
                          to 2.
-        """
+x        """
 
         blocked_pairs = self._blockData(data_1, data_2)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
@@ -398,7 +399,7 @@ class RecordLinkMatching(Matching) :
         block, blocks = core.peek(blocks)
         self._checkBlock(block)
 
-	product = itertools.product
+        product = itertools.product
 
         pairs = (product(base, target) for base, target in blocks)
 
@@ -424,7 +425,7 @@ class RecordLinkMatching(Matching) :
                 self._checkRecordType(target[0][1])
 
     def _blockGenerator(self, messy_data, blocked_records) :
-        block_groups = itertools.groupby(self.blocker(messy_data.iteritems()), 
+        block_groups = itertools.groupby(self.blocker(viewitems(messy_data)), 
                                          lambda x : x[1])
 
         for i, (record_id, block_keys) in enumerate(block_groups) :
@@ -454,7 +455,7 @@ class RecordLinkMatching(Matching) :
         for field in self.blocker.index_fields :
             fields_2 = (record[field]
                         for record 
-                        in data_2.itervalues())
+                        in viewvalues(data_2))
 
             self.blocker.index(set(fields_2), field)
 
@@ -512,7 +513,7 @@ class StaticMatching(Matching) :
                              "the current version of dedupe. This can happen "
                              "if you have recently upgraded dedupe.")
         except :
-            print "Something has gone wrong with loading the settings file"
+            print("Something has gone wrong with loading the settings file")
             raise
                              
 
@@ -1033,7 +1034,7 @@ class GazetteerMatching(RecordLinkMatching) :
         for field in self.blocker.index_fields :
             self.blocker.index((record[field]
                                 for record 
-                                in data.itervalues()),
+                                in viewvalues(data)),
                                field)
 
         for block_key, record_id in self.blocker(data.items()) :
@@ -1046,10 +1047,10 @@ class GazetteerMatching(RecordLinkMatching) :
         for field in self.blocker.index_fields :
             self.blocker.unindex((record[field]
                                   for record 
-                                  in data.itervalues()),
+                                  in viewvalues(data)),
                                  field)
 
-        for block_key, record_id in self.blocker(data.iteritems()) :
+        for block_key, record_id in self.blocker(viewitems(data)) :
             try : 
                 del self.blocked_records[block_key][record_id]
             except KeyError :

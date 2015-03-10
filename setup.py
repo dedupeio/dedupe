@@ -21,16 +21,10 @@ install_requires=['numpy>=1.9',
                   'zope.interface', 
                   'zope.index']
 
-try : 
-    from collections import OrderedDict
-except ImportError:
-    install_requires.append('ordereddict')
-
-
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.7.7.1.9',
+    version='0.8.0.0.0',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
@@ -46,9 +40,8 @@ setup(
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
         'Programming Language :: Cython', 
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 2 :: Only',
+        'Programming Language :: Python :: 3.4',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Information Analysis'],

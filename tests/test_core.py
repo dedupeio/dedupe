@@ -52,16 +52,14 @@ class RandomPairsTest(unittest.TestCase) :
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             pairs = dedupe.core.randomPairsMatch(10, 10, 200)
-            assert len(w) == 1
-            assert str(w[-1].message) == "Requested sample of size 200, only returning 100 possible pairs"
+            assert str(w[0].message) == "Requested sample of size 200, only returning 100 possible pairs"
 
         assert len(pairs) == 100
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             pairs = dedupe.core.randomPairsMatch(10, 10, 200)
-            assert len(w) == 1
-            assert str(w[-1].message) == "Requested sample of size 200, only returning 100 possible pairs"
+            assert str(w[0].message) == "Requested sample of size 200, only returning 100 possible pairs"
 
 
         random.seed(123)
@@ -109,9 +107,6 @@ class ScoreDuplicates(unittest.TestCase):
     scores = dedupe.core.scoreDuplicates(self.records,
                                          self.data_model,
                                          2)
-
-    print scores.dtype
-
 
     numpy.testing.assert_equal(scores['pairs'], 
                                self.desired_scored_pairs['pairs'])
@@ -178,8 +173,6 @@ class FieldDistances(unittest.TestCase):
                      {'name' : 'steve', 'type' : 'b'}),
                     ({'name' : 'steven', 'type' : 'b'},
                      {'name' : 'steve', 'type' : 'b'}))
-
-    print deduper.data_model
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),

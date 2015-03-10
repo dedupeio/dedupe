@@ -2,6 +2,8 @@ import dedupe
 from collections import defaultdict
 import unittest
 
+from future.utils import viewitems, viewvalues
+
 class BlockingTest(unittest.TestCase):
   def setUp(self):
     self.frozendict = dedupe.core.frozendict
@@ -82,7 +84,6 @@ class BlockingTest(unittest.TestCase):
     predicates = self.data_model['fields'][0].predicates
 
     coverage = dedupe.training.RecordLinkCoverage(predicates, self.training)
-    print self.simple(coverage.overlap.keys())
     assert self.simple(coverage.overlap.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
@@ -122,7 +123,7 @@ class TfidfTest(unittest.TestCase):
 
     blocker.index(set(record["name"] 
                            for record 
-                           in self.data_d.itervalues()),
+                           in viewvalues(self.data_d)),
                        "name")
 
     blocks = defaultdict(set)
@@ -156,12 +157,12 @@ class TfIndexUnindex(unittest.TestCase) :
 
     self.records_1 = dict((record_id, record) 
                           for record_id, record 
-                          in data_d.iteritems()
+                          in viewitems(data_d)
                           if record["dataset"] == 0)
 
     self.fields_2 = dict((record_id, record["name"])
                          for record_id, record 
-                         in data_d.iteritems()
+                         in viewitems(data_d)
                          if record["dataset"] == 1)
 
 
@@ -173,7 +174,7 @@ class TfIndexUnindex(unittest.TestCase) :
     for block_key, record_id in self.blocker(self.records_1.items()) :
       blocks[block_key].add(record_id)
 
-    assert blocks.items() == [(u'4:0', set([130]))]
+    assert list(blocks.items())[0][1] == set([130])
 
 
   def test_doubled_index(self):
@@ -185,7 +186,7 @@ class TfIndexUnindex(unittest.TestCase) :
     for block_key, record_id in self.blocker(self.records_1.items()) :
       blocks[block_key].add(record_id)
 
-    assert blocks.items() == [(u'4:0', set([130]))]
+    assert list(blocks.items()) == [(u'4:0', set([130]))]
 
   def test_unindex(self) :
     self.blocker.index(self.fields_2.values(), "name")

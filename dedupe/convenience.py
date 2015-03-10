@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+from builtins import input
+
 import collections
 import itertools
 import random
@@ -30,13 +33,13 @@ def consoleLabel(deduper): # pragma : no cover
                 for field in set(field[0] for field 
                                  in deduper.data_model.field_comparators) :
                     line = "%s : %s" % (field, pair[field])
-                    print line
-                print 
+                    print(line)
+                print() 
 
-            print 'Do these records refer to the same thing?'
+            print('Do these records refer to the same thing?')
             valid_response = False
             while not valid_response:
-                label = raw_input('(y)es / (n)o / (u)nsure / (f)inished\n')
+                label = input('(y)es / (n)o / (u)nsure / (f)inished\n')
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
 
@@ -47,10 +50,10 @@ def consoleLabel(deduper): # pragma : no cover
                 labels['distinct'].append(record_pair)
                 labeled = True
             elif label == 'f':
-                print 'Finished labeling'
+                print('Finished labeling')
                 finished = True
             elif label != 'u':
-                print 'Nonvalid response'
+                print('Nonvalid response')
                 raise
 
         if labeled :

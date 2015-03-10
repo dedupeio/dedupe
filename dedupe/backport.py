@@ -3,11 +3,15 @@ import weakref
 import threading
 import warnings
 import platform
+import sys
+
+from future.utils import viewitems
+from future.builtins import range
 
 MULTIPROCESSING = True
 # Deal with Mac OS X issuse
 config_info = str([value for key, value in
-                   numpy.__config__.__dict__.iteritems()
+                   viewitems(numpy.__config__.__dict__)
                    if key.endswith("_info")]).lower()
 
 if "accelerate" in config_info or "veclib" in config_info :
@@ -21,18 +25,15 @@ elif platform.system() == 'Windows' :
 
 if MULTIPROCESSING :        
     from multiprocessing import Process, Pool, Queue
-    from multiprocessing.queues import SimpleQueue
+    if sys.version < '3':
+        from multiprocessing.queues import SimpleQueue
+    else :
+        from multiprocessing import SimpleQueue
 else :
     if not hasattr(threading.current_thread(), "_children"): 
         threading.current_thread()._children = weakref.WeakKeyDictionary()
     from multiprocessing.dummy import Process, Pool, Queue
     SimpleQueue = Queue
-
-try :
-    from collections import OrderedDict
-except ImportError :
-    from ordereddict import OrderedDict
-
 
 def cartesian(arrays, out=None):
     """Generate a cartesian product of input arrays.
@@ -82,7 +83,7 @@ def cartesian(arrays, out=None):
     out[:, 0] = numpy.repeat(arrays[0], m)
     if arrays[1:]:
         cartesian(arrays[1:], out=out[0:m, 1:])
-        for j in xrange(1, arrays[0].size):
+        for j in range(1, arrays[0].size):
             out[j * m:(j + 1) * m, 1:] = out[0:m, 1:]
     return out
 

@@ -1,3 +1,5 @@
+from builtins import range, zip
+
 from collections import deque
 import random
 import functools
@@ -176,7 +178,7 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2) :
 def evenSplits(total_size, num_splits) :
     avg = total_size/float(num_splits) 
     split = 0
-    for _ in xrange(num_splits) :
+    for _ in range(num_splits) :
         split += avg - int(split)
         yield int(split)
 
@@ -186,7 +188,7 @@ def subsample(total_size, predicates) :
         yield split, predicate
 
 def interleave(*iterables) :
-    return itertools.chain.from_iterable(itertools.izip(*iterables))
+    return itertools.chain.from_iterable(zip(*iterables))
 
 def sort_pair(a, b) :
     if a > b :
