@@ -266,10 +266,10 @@ class DedupeMatching(Matching) :
         blocks = defaultdict(dict)
 
         for field in self.blocker.index_fields :
-            unique_fields = set(record[field]
-                                for record 
-                                in viewvalues(data_d)
-                                if record[field])
+            unique_fields = {record[field]
+                             for record 
+                             in viewvalues(data_d)
+                             if record[field]}
 
             self.blocker.index(unique_fields, field)
 
@@ -278,10 +278,10 @@ class DedupeMatching(Matching) :
 
         self.blocker.resetIndices()
 
-        blocks = [records for records in blocks.values()
-                  if len(records) > 1]
+        blocks = (records for records in blocks.values()
+                  if len(records) > 1)
         
-        blocks = dict([(frozenset(d.keys()), d) for d in blocks])
+        blocks = {frozenset(d.keys()) : d for d in blocks}
         blocks = blocks.values()
 
         for block in self._redundantFree(blocks) :
@@ -306,9 +306,9 @@ class DedupeMatching(Matching) :
 
             marked_records = []
             for record_id, record in viewitems(records) :
-                smaller_ids = set([covered_id for covered_id 
-                                   in coverage[record_id] 
-                                   if covered_id < block_id])
+                smaller_ids = {covered_id for covered_id 
+                               in coverage[record_id] 
+                               if covered_id < block_id}
                 marked_records.append((record_id, record, smaller_ids))
 
             yield marked_records
@@ -432,7 +432,7 @@ x        """
             if i % 100 == 0 :
                 logger.info("%s records" % i)
 
-            A = [(record_id, messy_data[record_id], set([]))]
+            A = [(record_id, messy_data[record_id], set())]
 
             B = {}
 
@@ -440,7 +440,7 @@ x        """
                 if block_key in blocked_records :
                     B.update(blocked_records[block_key])
 
-            B = [(rec_id, record, set([]))
+            B = [(rec_id, record, set())
                  for rec_id, record
                  in B.items()]
 
@@ -999,8 +999,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
                                                           len(data_2), 
                                                           random_sample_size)
 
-        random_sample_keys = set((a, b + offset) 
-                                 for a, b in random_sample_keys)
+        random_sample_keys = {(a, b + offset) 
+                              for a, b in random_sample_keys}
 
         data_1 = dict(data_1)
         data_2 = dict(data_2)
@@ -1094,7 +1094,7 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
 def predicateGenerator(data_model, index_predicates) :
-    predicates = set([])
+    predicates = set()
     for definition in data_model.primary_fields :
         if not index_predicates :
             filtered_predicates = []

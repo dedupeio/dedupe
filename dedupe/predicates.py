@@ -183,7 +183,7 @@ def firstIntegerPredicate(field) :
 
 
 def ngramsTokens(field, n) :
-    grams = set([])
+    grams = set()
     n_tokens = len(field)
     for i in range(n_tokens):
         for j in range(i+n, min(n_tokens, i+n)+1):
@@ -244,10 +244,10 @@ def doubleMetaphone(field) :
     return [metaphone for metaphone in doublemetaphone(field) if metaphone]
 
 def metaphoneToken(field) :
-    return set([metaphone_token for metaphone_token 
-                in itertools.chain(*(doublemetaphone(token) 
-                                     for token in set(field.split())))
-                if metaphone_token])
+    return {metaphone_token for metaphone_token 
+            in itertools.chain(*(doublemetaphone(token) 
+                                 for token in set(field.split())))
+            if metaphone_token}
 
 def existsPredicate(field) :
     try :

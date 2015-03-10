@@ -90,8 +90,8 @@ def semiSupervisedNonDuplicates(data_sample,
 
 def trainingData(training_pairs, record_ids) :
 
-    record_pairs = set([])
-    tuple_pairs = set([])
+    record_pairs = set()
+    tuple_pairs = set()
     for pair in training_pairs :
         record_pairs.add(tuple([(record_ids[record], record) 
                                 for record in pair]))
@@ -156,7 +156,7 @@ def blockTraining(training_pairs,
 
     logger.debug("Uncovered Dupes")
     if uncovered_dupes :
-        id_records = dict((v,k) for k,v in record_ids.items())
+        id_records = {v : k for k, v in record_ids.items()}
     for i, (rec_1, rec_2) in enumerate(uncovered_dupes) :
         logger.debug("uncovered pair %s" % (i,))
         logger.debug(id_records[rec_1])
@@ -209,7 +209,7 @@ def findOptimumBlocking(uncovered_dupes,
 
     uncovered_dupes = set(uncovered_dupes)
 
-    final_predicate_set = set([])
+    final_predicate_set = set()
     while len(uncovered_dupes) > epsilon:
 
         best_cover = 0
@@ -253,7 +253,7 @@ def removeSubsets(uncovered_dupes, predicate_set, coverage) :
     dupe_coverage = coverage.predicateCoverage(predicate_set,
                                                uncovered_dupes)
     uncovered_dupes = set(uncovered_dupes)
-    final_set = set([])
+    final_set = set()
 
     while uncovered_dupes :
         best_predicate = None
@@ -354,7 +354,7 @@ class DedupeCoverage(Coverage) :
 class RecordLinkCoverage(Coverage) :
 
     def _records_to_index(self, pairs) :
-        return set([record_2 for _, record_2 in pairs])
+        return {record_2 for _, record_2 in pairs}
 
 def stopWords(data, indices) :
     index_stop_words = {}
@@ -375,7 +375,7 @@ def stopWords(data, indices) :
         N = float(tf_index.index.documentCount())
         threshold = int(max(1000, N * 0.05))
 
-        stop_words = set([])
+        stop_words = set()
         
         for frequency, word in doc_freq :
             if frequency > threshold :

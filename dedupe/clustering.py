@@ -25,7 +25,7 @@ def connected_components(edgelist, max_components) :
         root_b = root.get(b)
 
         if root_a is None and root_b is None :
-            component[a] = set([a, b])
+            component[a] = {a, b}
             indices[a] = [i]
             root[a] = root[b] = a
         elif root_a is None or root_b is None :
@@ -180,8 +180,8 @@ def confidences(items, condensed_distances, d) :
 
 def greedyMatching(dupes, threshold=0.5):
     dupes = numpy.array(dupes)
-    covered_vertex_A = set([])
-    covered_vertex_B = set([])
+    covered_vertex_A = set()
+    covered_vertex_B = set()
     clusters = []
 
     sorted_dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
