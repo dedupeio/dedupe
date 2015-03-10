@@ -1,5 +1,6 @@
 from __future__ import division
 from builtins import range, zip
+from future.utils import viewitems
 
 from collections import deque
 import random
@@ -55,10 +56,7 @@ def dedupeSamplePredicates(sample_size, predicates, items) :
             continue
 
         items.rotate(random.randrange(n_items))
-        try : # the reverse method was only added in python 2.7
-            items.reverse()
-        except AttributeError :
-            items = deque(reversed(items))
+        items.reverse()
 
         yield dedupeSamplePredicate(subsample_size,
                                     predicate,
@@ -198,10 +196,7 @@ def sort_pair(a, b) :
         return (a, b)
 
 def randomDeque(data) :
-    try : # viewitems comes in at python 2.7
-        data_q = deque(random.sample(data.viewitems(), len(data)))
-    except AttributeError : 
-        data_q = deque(random.sample(data.items(), len(data)))
+    data_q = deque(random.sample(viewitems(data), len(data)))
     
     return data_q
 
