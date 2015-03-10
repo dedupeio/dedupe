@@ -309,12 +309,13 @@ class Coverage(object) :
                 if record_1_id != rec_1 :
                     blocks_1 = set(predicate(record_1))
                     rec_1 = record_1_id
-                    
-                blocks_2 = predicate(record_2)
-                field_preds = blocks_1 & set(blocks_2)
-                if field_preds :
-                    rec_pair = record_1_id, record_2_id
-                    self.overlap[predicate].add(rec_pair)
+
+                if blocks_1 :
+                    blocks_2 = predicate(record_2)
+                    field_preds = blocks_1 & set(blocks_2)
+                    if field_preds :
+                        rec_pair = record_1_id, record_2_id
+                        self.overlap[predicate].add(rec_pair)
 
 
 

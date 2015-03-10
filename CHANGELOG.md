@@ -1,6 +1,21 @@
-## Unreleased
+## 0.8.0
+Support for Python 3.4 added. Support for Python 2.6 dropped.
+
 Features
+- Windows OS supported
 - train method has argument for not considering index predicates
+- TfIDFNGram Index Predicate added (for shorter string)
+- SuffixArray Predicate
+- Double Metaphone Predicates
+- Predicates for numbers, OrderOfMagnitude, Round
+- Set Predicate OrderOfCardinality
+- Final, learned predicates list will now often be smaller without
+  loss of coverage
+- Variables refactored to support external extensions like
+  https://github.com/datamade/dedupe-variable-address
+- Categorical distance, regularized logistic regression, affine gap
+  distance, canicalization have been turned into separate libraries.
+- Simplejson is now dependency
 
 ## 0.7.5
 Features
