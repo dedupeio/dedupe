@@ -654,7 +654,7 @@ class ActiveMatching(Matching) :
 
         self._addTrainingData(training_pairs)
 
-        self._trainClassifier()
+        self._trainClassifier(0.1)
 
     def train(self, ppc=.1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
         """Keyword arguments:
@@ -686,6 +686,21 @@ class ActiveMatching(Matching) :
                             Defaults to True.
 
         """
+        self._trainClassifier()
+        self._trainBlocker(ppc, uncovered_dupes, index_predicates)
+
+    def _trainClassifier(self, alpha=None) : # pragma : no cover
+
+        if alpha is None :
+            alpha = self._regularizer()
+
+        self.data_model = core.trainModel(self.training_data,
+                                          self.data_model, 
+                                          alpha)
+
+        self._logLearnedWeights()
+
+    def _regularizer(self) :
         n_folds = min(numpy.sum(self.training_data['label']==u'match')/3,
                       20)
         n_folds = max(n_folds,
@@ -699,18 +714,8 @@ class ActiveMatching(Matching) :
                                            self.num_cores,
                                            k=n_folds)
 
+        return alpha
 
-        self._trainClassifier(alpha)
-        self._trainBlocker(ppc, uncovered_dupes, index_predicates)
-
-
-    def _trainClassifier(self, alpha=.1) : # pragma : no cover
-
-        self.data_model = core.trainModel(self.training_data,
-                                          self.data_model, 
-                                          alpha)
-
-        self._logLearnedWeights()
 
     
     def _trainBlocker(self, ppc=1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
@@ -781,7 +786,7 @@ class ActiveMatching(Matching) :
                                    u'distinct':[]})
 
 
-        self._trainClassifier(alpha=0.1)
+        self._trainClassifier(0.1)
 
         
         dupe_ratio = (len(self.training_pairs[u'match'])
