@@ -497,8 +497,6 @@ class StaticMatching(Matching) :
         learned from ActiveMatching. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        super(StaticMatching, self).__init__()
-
         if num_cores is None :
             self.num_cores = multiprocessing.cpu_count()
         else :
@@ -523,6 +521,9 @@ class StaticMatching(Matching) :
 
         self.blocker = blocking.Blocker(self.predicates, 
                                         self.stop_words)
+
+        super(StaticMatching, self).__init__()
+
 
 
 
@@ -590,8 +591,6 @@ class ActiveMatching(Matching) :
         In in the record dictionary the keys are the names of the
         record field and values are the record values.
         """
-        super(ActiveMatching, self).__init__()
-
         self.data_model = DataModel(variable_definition)
 
         self.data_sample = data_sample
@@ -617,6 +616,7 @@ class ActiveMatching(Matching) :
         self.training_pairs = OrderedDict({u'distinct': [], 
                                            u'match': []})
 
+        super(ActiveMatching, self).__init__()
 
     def cleanupTraining(self) : # pragma : no cover
         '''
