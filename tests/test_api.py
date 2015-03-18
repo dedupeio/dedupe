@@ -32,13 +32,6 @@ data_dict_2 = {  '1': {'name' : 'BOB',         'age' : '51'},
                  '6': {'name' : 'BOB BELCHER', 'age' : '51'},
                  '7': {'name' : 'LINDA ',      'age' : '50'} }
 
-class Match(unittest.TestCase) :
-  def test_initialize_fields(self) :
-    matcher = dedupe.api.Matching()
-
-    assert matcher.blocker is None
-
-
 
 class ActiveMatch(unittest.TestCase) :
   def setUp(self) :
