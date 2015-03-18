@@ -43,9 +43,8 @@ class Matching(object):
     - `thresholdBlocks`
     - `matchBlocks`
     """
-
     def __init__(self) :
-        self.blocker = None
+        pass
 
     def thresholdBlocks(self, blocks, recall_weight=1.5): # pragma : nocover
         """
@@ -522,7 +521,6 @@ class StaticMatching(Matching) :
         self.blocker = blocking.Blocker(self.predicates, 
                                         self.stop_words)
 
-        super(StaticMatching, self).__init__()
 
 
 
@@ -616,7 +614,8 @@ class ActiveMatching(Matching) :
         self.training_pairs = OrderedDict({u'distinct': [], 
                                            u'match': []})
 
-        super(ActiveMatching, self).__init__()
+        self.blocker = None
+
 
     def cleanupTraining(self) : # pragma : no cover
         '''
