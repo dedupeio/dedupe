@@ -18,6 +18,7 @@ import copy
 import os
 from collections import defaultdict, OrderedDict
 import simplejson as json
+import rlr
 
 import dedupe
 import dedupe.sampling as sampling
@@ -150,7 +151,7 @@ class Matching(object):
             try:
                 for field in value_1 :
                     logger.info((field.name, field.weight))
-            except TypeError:
+            except TypeError :
                 logger.info((key_1, value_1))
 
 
@@ -614,6 +615,7 @@ class ActiveMatching(Matching) :
         self.training_pairs = OrderedDict({u'distinct': [], 
                                            u'match': []})
 
+        self.learner = rlr.lr
         self.blocker = None
 
 
@@ -695,6 +697,7 @@ class ActiveMatching(Matching) :
 
         self.data_model = core.trainModel(self.training_data,
                                           self.data_model, 
+                                          self.learner,
                                           alpha)
 
         self._logLearnedWeights()
@@ -708,7 +711,7 @@ class ActiveMatching(Matching) :
         logger.info('%d folds', n_folds)
 
         alpha = crossvalidation.gridSearch(self.training_data,
-                                           core.trainModel, 
+                                           self.learner,
                                            self.data_model, 
                                            self.num_cores,
                                            k=n_folds)

@@ -7,12 +7,14 @@ import numpy
 import logging
 import warnings
 
+import dedupe.core
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 def gridSearch(training_data,
-               trainer,
+               learner,
                original_data_model,
                num_cores,
                k=3,
@@ -32,7 +34,7 @@ def gridSearch(training_data,
     best_score = 0
     best_alpha = 0.01
 
-    alpha_tester = AlphaTester(original_data_model, trainer)
+    alpha_tester = AlphaTester(original_data_model, learner)
 
     for alpha in search_space:
 
@@ -82,12 +84,15 @@ def kFolds(training_data, k):
             break
 
 class AlphaTester(object) :
-    def __init__(self, data_model, trainer) : # pragma : no cover
+    def __init__(self, data_model, learner) : # pragma : no cover
         self.data_model = data_model
-        self.trainer = trainer
+        self.learner = learner
 
     def __call__(self, training, validation, alpha) :
-        data_model = self.trainer(training, self.data_model, alpha)
+        data_model = dedupe.core.trainModel(training, 
+                                            self.data_model, 
+                                            self.learner, 
+                                            alpha)
 
         weight = numpy.array([field.weight
                               for field in 
@@ -100,27 +105,26 @@ class AlphaTester(object) :
         return scorePredictions(true_labels, predictions)
         
 def scorePredictions(true_labels, predictions) :
+    # http://en.wikipedia.org/wiki/Matthews_correlation_coefficient
 
-    true_dupes = numpy.sum(true_labels)
-    true_predicted_dupes = numpy.sum(predictions[true_labels == 1] > 0)
+    true_dupes = numpy.sum(predictions[true_labels == 1] > 0)
+    false_dupes = numpy.sum(predictions[true_labels == 0] > 0)
 
-    if not true_dupes :
-        score = None
+    true_distinct = numpy.sum(predictions[true_labels == 0] < 0)
+    false_distinct = numpy.sum(predictions[true_labels == 1] < 0)
 
-    elif true_predicted_dupes :
+    if not (true_dupes + false_dupes) * (true_distinct + false_distinct) :
+        return 0
+    
+    matthews_cc = ((true_dupes * true_distinct 
+                    - false_dupes * false_distinct)
+                   /numpy.sqrt((true_dupes + false_dupes)
+                               * (true_dupes + false_distinct)
+                               * (true_distinct + false_dupes)
+                               * (true_distinct + false_distinct)))
 
-        predicted_dupes = numpy.sum(predictions > 0)
-        true_dupes = numpy.sum(true_labels)
 
-        recall = true_predicted_dupes/true_dupes
-        precision = true_predicted_dupes/predicted_dupes
-
-        score = 2 * recall * precision / (recall + precision)
-
-    else :
-        score = 0
-
-    return score
+    return matthews_cc
 
 def reduceScores(scores) :
     

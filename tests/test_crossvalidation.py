@@ -27,7 +27,7 @@ class scoreTest(unittest.TestCase) :
     def test_no_true(self) :
         score = dedupe.crossvalidation.scorePredictions(numpy.zeros(5), 
                                                         numpy.ones(5))
-        assert score is None
+        assert score == 0
 
     def test_no_predicted(self) :
         score = dedupe.crossvalidation.scorePredictions(numpy.ones(5), 
@@ -42,7 +42,7 @@ class scoreTest(unittest.TestCase) :
     def test_all_predicted(self) :
         score = dedupe.crossvalidation.scorePredictions(numpy.array([1,0,1,0]), 
                                                         numpy.array([1,1,0,0]))
-        assert score == 0.5
+        assert score == 0
 
 
 class scoreReduction(unittest.TestCase) :

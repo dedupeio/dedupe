@@ -20,7 +20,6 @@ import tempfile
 import os
 
 import dedupe.backport as backport
-import rlr
 
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
@@ -107,7 +106,7 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
         return set_pairs
 
 
-def trainModel(training_data, data_model, alpha=.001):
+def trainModel(training_data, data_model, learner=None, alpha=.001):
     """
     Use logistic regression to train weights for all fields in the data model
     """
@@ -115,7 +114,7 @@ def trainModel(training_data, data_model, alpha=.001):
     labels = numpy.array(training_data['label'] == b'match', dtype='i4')
     examples = training_data['distances']
 
-    (weight, bias) = rlr.lr(labels, examples, alpha)
+    weight, bias = learner(labels, examples, alpha)
 
     for i, field_definition in enumerate(data_model['fields']) :
         field_definition.weight = float(weight[i])
