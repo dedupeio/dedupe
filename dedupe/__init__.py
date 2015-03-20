@@ -1,15 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-__all__ = ['blocking',
-           'clustering',
-           'core',
-           'backport',
-           'predicates',
-           'crossvalidation',
-           ]
+from pkgutil import extend_path
+__path__ = extend_path(__path__, __name__)
 
-from .api import StaticDedupe, Dedupe
-from .api import StaticRecordLink, RecordLink
-from .api import StaticGazetteer, Gazetteer
-from .core import randomPairs, randomPairsMatch, frozendict
-from .convenience import consoleLabel, trainingDataDedupe, trainingDataLink, canonicalize
+from dedupe._init import *
