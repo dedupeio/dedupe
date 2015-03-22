@@ -12,19 +12,19 @@ class TfIdfIndex(object) :
         self._index = CanopyIndex(stop_words)
  
         try : # py 2
-            self._id_to_i = collections.defaultdict(itertools.count(1).next)
+            self._doc_to_id = collections.defaultdict(itertools.count(1).next)
         except AttributeError : # py 3
-            self._id_to_i = collections.defaultdict(itertools.count(1).__next__)
+            self._doc_to_id = collections.defaultdict(itertools.count(1).__next__)
 
         
         self._parseTerms = self._index.lexicon.parseTerms
 
     def index(self, doc) :
-        i = self._id_to_i[doc]
+        i = self._doc_to_id[doc]
         self._index.index_doc(i, doc)
 
     def unindex(self, doc) :
-        i = self._id_to_i.pop(doc)
+        i = self._doc_to_id.pop(doc)
         self._index.unindex_doc(i)
         self.initSearch()
 

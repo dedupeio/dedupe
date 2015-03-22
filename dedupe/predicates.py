@@ -83,45 +83,108 @@ class IndexPredicate(Predicate) :
         self.__dict__ = d
         self.index = None
 
-class TfidfPredicate(IndexPredicate):
+class TfidfIndexPredicate(IndexPredicate) :
     def initIndex(self, stop_words) :
         return tfidf.TfIdfIndex(stop_words)
+    
 
+class TfidfSearchPredicate(TfidfIndexPredicate):
     def __call__(self, record) :
         column = record[self.field]
         if column :
             try :
                 centers = self.index.search(self.preprocess(column), 
                                             self.threshold)
-
-                l_str = str
-                return [l_str(center) for center in centers]
             except AttributeError :
                 raise AttributeError("Attempting to block with an index "
                                      "predicate without indexing records")
 
+            l_str = str
+            return [l_str(center) for center in centers]
+
         else :
             return ()
 
-class TfidfTextPredicate(TfidfPredicate) :
-    type = "TfidfTextPredicate"
+class TfidfCanopyPredicate(TfidfIndexPredicate):
+    def __init__(self, *args, **kwargs) :
+        super(TfidfCanopyPredicate, self).__init__(*args, **kwargs)
+        self.canopy = {}
 
+    def __setstate__(self, *args, **kwargs) :
+        super(TfidfCanopyPredicate, self).__setstate__(*args, **kwargs)
+        self.canopy ={}
+
+    def __call__(self, record) :
+        block_key = None
+        column = record[self.field]
+
+        if column :
+
+            doc = self.preprocess(column)
+
+            try :
+                doc_id = self.index._doc_to_id[doc]
+            except AttributeError :
+                raise AttributeError("Attempting to block with an index "
+                                     "predicate without indexing records")
+
+            if doc_id in self.canopy :
+                block_key = self.canopy[doc_id]
+            else :
+                canopy_members = self.index.search(doc,
+                                                   self.threshold)
+                for member in canopy_members :
+                    if member not in self.canopy :
+                        self.canopy[member] = doc_id
+
+                if canopy_members :
+                    block_key = doc_id
+
+        if block_key is None :
+            return []
+        else :
+            return [str(block_key)]
+
+
+class TfidfTextPredicate(object) :
     rx = re.compile(r"(?u)\w+[\w*?]*")
 
     def preprocess(self, doc) :
         return tuple(self.rx.findall(doc))
 
-class TfidfSetPredicate(TfidfPredicate) :
-    type = "TfidfSetPredicate"
-
+class TfidfSetPredicate(object) :
     def preprocess(self, doc) :
         return doc
 
-class TfidfNGramPredicate(TfidfPredicate) :
-    type = "TfidfNGramPredicate"
-
+class TfidfNGramPredicate(object) :
     def preprocess(self, doc) :
         return tuple(ngrams(doc.replace(' ', ''), 2))
+
+class TfidfTextSearchPredicate(TfidfTextPredicate, 
+                               TfidfSearchPredicate) :
+    type = "TfidfTextSearchPredicate"
+
+class TfidfSetSearchPredicate(TfidfSetPredicate, 
+                              TfidfSearchPredicate) :
+    type = "TfidfSetSearchPredicate"
+
+class TfidfNGramSearchPredicate(TfidfNGramPredicate, 
+                                TfidfSearchPredicate) :
+    type = "TfidfNGramSearchPredicate"
+
+class TfidfTextCanopyPredicate(TfidfTextPredicate, 
+                               TfidfCanopyPredicate) :
+    type = "TfidfTextCanopyPredicate"
+
+class TfidfSetCanopyPredicate(TfidfSetPredicate, 
+                              TfidfCanopyPredicate) :
+    type = "TfidfSetCanopyPredicate"
+
+class TfidfNGramCanopyPredicate(TfidfNGramPredicate, 
+                                TfidfCanopyPredicate) :
+    type = "TfidfNGramCanopyPredicate"
+
+
 
 class CompoundPredicate(Predicate) :
     type = "CompoundPredicate"

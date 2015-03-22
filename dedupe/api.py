@@ -730,7 +730,8 @@ class ActiveMatching(Matching) :
         training_pairs[u'distinct'].extend(confident_nonduplicates)
 
         predicate_set = predicateGenerator(self.data_model, 
-                                           index_predicates)
+                                           index_predicates,
+                                           self.canopies)
 
         (self.predicates, 
          self.stop_words) = dedupe.training.blockTraining(training_pairs,
@@ -911,6 +912,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     Public Methods
     - sample
     """
+    canopies = True
 
     def sample(self, data, sample_size=15000, 
                blocked_proportion=0.5) :
@@ -929,7 +931,8 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(predicateGenerator(self.data_model, 
-                                             index_predicates=False))
+                                             index_predicates=False,
+                                             canopies=self.canopies))
 
 
         data = sampling.randomDeque(data)
@@ -963,6 +966,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     Public Methods
     - sample
     """
+    canopies = False
 
     def sample(self, data_1, data_2, sample_size=150000, 
                blocked_proportion=.5) :
@@ -991,7 +995,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(predicateGenerator(self.data_model, 
-                                             index_predicates=False))
+                                             index_predicates=False,
+                                             canopies=self.canopies))
 
         data_1 = sampling.randomDeque(data_1)
         data_2 = sampling.randomDeque(data_2)
@@ -1100,17 +1105,21 @@ class Gazetteer(RecordLink, GazetteerMatching):
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
-def predicateGenerator(data_model, index_predicates) :
+def predicateGenerator(data_model, index_predicates, canopies) :
+    print(index_predicates, canopies)
     predicates = set()
     for definition in data_model.primary_fields :
-        if not index_predicates :
-            filtered_predicates = []
-            for predicate in definition.predicates :
-                if not hasattr(predicate, 'index') :
-                    filtered_predicates.append(predicate)
-            predicates.update(filtered_predicates)
-        else :
-            predicates.update(definition.predicates)
+        for predicate in definition.predicates :
+            if hasattr(predicate, 'index') :
+                if index_predicates :
+                    if hasattr(predicate, 'canopy') :
+                        if canopies :
+                            predicates.add(predicate)
+                    else :
+                        if not canopies :
+                            predicates.add(predicate)
+            else :
+                predicates.add(predicate)
 
     return predicates
 

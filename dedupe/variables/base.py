@@ -46,6 +46,8 @@ class MissingDataType(Variable) :
         self.has_missing = False
 
 class FieldType(Variable) :
+    _index_thresholds = []
+    _index_predicates = []
 
     def __init__(self, definition) :
         self.field = definition['field']
@@ -58,9 +60,13 @@ class FieldType(Variable) :
         self.predicates = [predicates.SimplePredicate(pred, self.field) 
                            for pred in self._predicate_functions]
 
+        self.predicates += indexPredicates(self._index_predicates,
+                                           self._index_thresholds,
+                                           self.field)
+
+
         super(FieldType, self).__init__(definition)
 
-    
 class CustomType(FieldType) :
     type = "Custom"
     _predicate_functions = []
@@ -90,3 +96,12 @@ def allSubclasses(cls) :
         for p in allSubclasses(q) :
             yield p
 
+def indexPredicates(predicates, thresholds, field) :
+    index_predicates = []
+    for predicate in predicates :
+        for threshold in thresholds :
+            index_predicates.append(predicate(threshold, field))
+
+    return index_predicates
+
+    

@@ -13,16 +13,12 @@ class SetType(FieldType) :
                             predicates.magnitudeOfCardinality,
                             predicates.firstSetElementPredicate)
     
-    _canopy_thresholds = (0.2, 0.4, 0.6, 0.8)
+    _index_predicates = (predicates.TfidfSetSearchPredicate,
+                         predicates.TfidfSetCanopyPredicate)
+    _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(self, definition) :
         super(SetType, self).__init__(definition)
-
-        canopy_predicates = [predicates.TfidfSetPredicate(threshold, 
-                                                       self.field)
-                             for threshold in self._canopy_thresholds]
-
-        self.predicates += canopy_predicates
 
         if 'corpus' not in definition :
             definition['corpus'] = [] 
