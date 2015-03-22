@@ -1106,7 +1106,6 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
 def predicateGenerator(data_model, index_predicates, canopies) :
-    print(index_predicates, canopies)
     predicates = set()
     for definition in data_model.primary_fields :
         for predicate in definition.predicates :
