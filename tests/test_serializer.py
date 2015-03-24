@@ -26,7 +26,8 @@ class SerializerTest(unittest.TestCase) :
             {u"distinct":[
                 (dedupe.core.frozendict(OrderedDict(((u'bar', 
                                                       frozenset([u'barë'])),
-                                                    (u'foo', u'baz')))), 
+                                                     ('baz', (1,2)),
+                                                     (u'foo', u'baz')))), 
                  dedupe.core.frozendict({u'foo' : u'baz'}))], 
              u"match" : []})
 
