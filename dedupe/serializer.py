@@ -6,6 +6,9 @@ def _to_json(python_object):
     if isinstance(python_object, frozenset):                                
         return {'__class__': 'frozenset',
                 '__value__': list(python_object)}
+    if isinstance(python_object, tuple) :
+        return {'__class__': 'tuple',
+                '__value__': list(python_object)}
     if isinstance(python_object, dedupe.core.frozendict) :
         return dict(python_object)
 
@@ -15,6 +18,8 @@ def _from_json(json_object):
     if '__class__' in json_object:                            
         if json_object['__class__'] == 'frozenset':
             return frozenset(json_object['__value__'])
+        if json_object['__class__'] == 'tuple':
+            return tuple(json_object['__value__'])
     return json_object
 
 class dedupe_decoder(json.JSONDecoder):
