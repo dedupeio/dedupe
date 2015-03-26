@@ -170,12 +170,12 @@ def confidences(items, condensed_distances, d) :
     scores = dict.fromkeys(items, 0)
     for i, j in itertools.combinations(items, 2) :
         index = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
-        square_dist = condensed_distances[index]**2
-        scores[i] += square_dist
-        scores[j] += square_dist
+        dist = condensed_distances[index]
+        scores[i] += dist
+        scores[j] += dist
     scores = numpy.array([v for (k, v) in sorted(scores.items())])
     scores /= len(items) - 1
-    scores = 1 - numpy.sqrt(scores)
+    scores = 1 - scores
     return scores
 
 def greedyMatching(dupes, threshold=0.5):

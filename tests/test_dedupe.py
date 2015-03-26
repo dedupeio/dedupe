@@ -179,7 +179,6 @@ class ClusteringTest(unittest.TestCase):
 
   def test_hierarchical(self):
     hierarchical = dedupe.clustering.cluster
-    print(list(hierarchical(self.dupes, 1)))
     assert self.clusterEquals(list(hierarchical(self.dupes, 1)),
                               [((10, 11),  
                                 (0.89999,
@@ -187,9 +186,9 @@ class ClusteringTest(unittest.TestCase):
 
     assert self.clusterEquals(hierarchical(self.dupes, 0.5),
                               [((1, 2, 3), 
-                                (0.779, 
+                                (0.79, 
                                  0.860, 
-                                 0.779)), 
+                                 0.79)), 
                                ((4, 5), 
                                 (0.720, 
                                  0.720)), 
@@ -197,13 +196,14 @@ class ClusteringTest(unittest.TestCase):
                                 (0.899, 
                                  0.899))])
 
+    print(hierarchical(self.dupes, 0.0))
     assert self.clusterEquals(hierarchical(self.dupes, 0),
                               [((1, 2, 3, 4, 5), 
-                                (0.526, 
-                                 0.565, 
-                                 0.542, 
-                                 0.320, 
-                                 0.624)), 
+                                (0.595, 
+                                 0.660, 
+                                 0.595, 
+                                 0.355, 
+                                 0.635)), 
                                ((10, 11), 
                                 (0.899, 
                                  0.899))])
