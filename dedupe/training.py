@@ -173,10 +173,12 @@ def blockTraining(training_pairs,
     for predicate in final_predicate_set :
         logger.info(predicate)
 
+    final_predicates = tuple(final_predicate_set)
+
     if final_predicate_set:
-        return (final_predicate_set, 
+        return (final_predicates, 
                 removeUnusedStopWords(coverage.stop_words,
-                                      final_predicate_set))
+                                      final_predicates))
     else:
         raise ValueError('No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data')
 
