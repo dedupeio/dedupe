@@ -1079,13 +1079,10 @@ class GazetteerMatching(RecordLinkMatching) :
         for larger data, use matchBlocks
         
         Arguments:
-        data_1    -- Dictionary of records from first dataset, where the 
-                     keys are record_ids and the values are dictionaries
-                     with the keys being field names
+        messy_data -- Dictionary of records from messy dataset, where the 
+                      keys are record_ids and the values are dictionaries with 
+                      the keys being field names
 
-        data_2    -- Dictionary of records from second dataset, same form 
-                     as data_1
-                                          
         threshold -- Number between 0 and 1 (default is .5). We will consider
                      records as potential duplicates if the predicted 
                      probability of being a duplicate is above the threshold.
@@ -1093,8 +1090,9 @@ class GazetteerMatching(RecordLinkMatching) :
                      Lowering the number will increase recall, raising it
                      will increase precision
         
-        n_matches -- Maximum number of possible matches from data_2
-                     for each record in data_1
+        n_matches -- Maximum number of possible matches from the canonical 
+                     record set to match against each record in the messy
+                     record set
         """
         blocked_pairs = self._blockData(messy_data)
         return self.matchBlocks(blocked_pairs, threshold, n_matches)
