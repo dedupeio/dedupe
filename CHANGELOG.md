@@ -14,7 +14,7 @@ Features
 - Variables refactored to support external extensions like
   https://github.com/datamade/dedupe-variable-address
 - Categorical distance, regularized logistic regression, affine gap
-  distance, canicalization have been turned into separate libraries.
+  distance, canonicalization have been turned into separate libraries.
 - Simplejson is now dependency
 
 ## 0.7.5
