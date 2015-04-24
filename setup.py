@@ -25,7 +25,7 @@ install_requires=['numpy>=1.9',
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='0.8.0.1.1',
+    version='0.8.0.1.2',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
