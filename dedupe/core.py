@@ -21,6 +21,9 @@ import os
 
 import dedupe.backport as backport
 
+class ChildProcessError(Exception) :
+    pass
+
 def randomPairsWithReplacement(n_records, sample_size) :
     # If the population is very large relative to the sample
     # size than we'll get very few duplicates by chance
@@ -185,7 +188,13 @@ class ScoreRecords(object) :
             if record_pairs is None :
                 break
 
-            self.fieldDistance(record_pairs)
+            try :
+                filtered_pairs = self.fieldDistance(record_pairs)
+                if filtered_pairs is not None :
+                    score_queue.put(filtered_pairs)
+            except Exception as e :
+                score_queue.put(e)
+                raise
 
         score_queue.put(None)
 
@@ -212,7 +221,7 @@ class ScoreRecords(object) :
             
             filtered_pairs = scored_pairs[scores > self.threshold]
 
-            self.score_queue.put(filtered_pairs)
+            return filtered_pairs
 
 def mergeScores(score_queue, result_queue, stop_signals) :
     scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
@@ -221,6 +230,10 @@ def mergeScores(score_queue, result_queue, stop_signals) :
     seen_signals = 0
     while seen_signals < stop_signals  :
         score_chunk = score_queue.get()
+        if isinstance(score_chunk, Exception) :
+            result_queue.put(score_chunk)
+            return
+
         if score_chunk is not None :
             scored_pairs = numpy.concatenate((scored_pairs, score_chunk))
         else :
@@ -279,6 +292,9 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
     fillQueue(record_pairs_queue, records, n_map_processes)
 
     result = result_queue.get()
+    if isinstance(result, Exception) :
+        raise ChildProcessError
+
     if result :
         scored_pairs_file, dtype = result
         scored_pairs = numpy.memmap(scored_pairs_file,
