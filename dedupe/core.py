@@ -269,7 +269,7 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
         from multiprocessing.dummy import Process, Pool, Queue
         SimpleQueue = Queue
     else :
-        from .backport import Process, Pool, SimpleQueue, Queue
+        from .backport import Process, Pool, SimpleQueue
 
     record_pairs_queue = SimpleQueue()
     score_queue =  SimpleQueue()
