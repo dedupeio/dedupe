@@ -220,7 +220,12 @@ def mergeScores(score_queue, result_queue, stop_signals) :
 
     seen_signals = 0
     while seen_signals < stop_signals  :
-        score_chunk = score_queue.get()
+        try :
+            score_chunk = score_queue.get(timeout=600)
+        except Exception as e:
+            result_queue.put(e) 
+            raise
+
         if score_chunk is not None :
             scored_pairs = numpy.concatenate((scored_pairs, score_chunk))
         else :
@@ -256,11 +261,11 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
         from multiprocessing.dummy import Process, Pool, Queue
         SimpleQueue = Queue
     else :
-        from .backport import Process, Pool, SimpleQueue
+        from .backport import Process, Pool, SimpleQueue, Queue
 
-    record_pairs_queue = SimpleQueue()
-    score_queue =  SimpleQueue()
-    result_queue = SimpleQueue()
+    record_pairs_queue = Queue()
+    score_queue =  Queue()
+    result_queue = Queue()
 
     n_map_processes = max(num_cores-1, 1)
     score_records = ScoreRecords(data_model, threshold) 
@@ -279,6 +284,9 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
     fillQueue(record_pairs_queue, records, n_map_processes)
 
     result = result_queue.get()
+    if isinstance(result, Exception) :
+        raise(result)
+
     if result :
         scored_pairs_file, dtype = result
         scored_pairs = numpy.memmap(scored_pairs_file,
@@ -304,7 +312,7 @@ def fillQueue(queue, iterable, stop_signals) :
     while True :
         chunk = list(itertools.islice(iterable, int(chunk_size)))
         if chunk :
-            queue.put(chunk)
+            queue.put(chunk, timeout=600)
 
             n_records += chunk_size
             i += 1
