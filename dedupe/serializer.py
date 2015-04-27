@@ -26,7 +26,7 @@ class dedupe_encoder(json.JSONEncoder):
             python_object = {'__class__': 'tuple',
                     '__value__': list(python_object)}
         
-        return python_object
+        return json.JSONEncoder.encode(python_object)
 
 class dedupe_decoder(json.JSONDecoder):
 
