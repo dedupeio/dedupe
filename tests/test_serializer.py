@@ -23,17 +23,17 @@ class SerializerTest(unittest.TestCase) :
             encoded_file = StringIO()
 
         training_pairs = OrderedDict(
-            {u"distinct":[
-                (dedupe.core.frozendict(OrderedDict(((u'bar', 
-                                                      frozenset([u'barë'])),
-                                                     ('baz', (1,2)),
-                                                     (u'foo', u'baz')))), 
-                 dedupe.core.frozendict({u'foo' : u'baz'}))], 
+            {u"distinct":[(
+                dedupe.core.frozendict({u'bar' : frozenset([u'barë']),
+                                        'baz' : (1,2),
+                                        u'foo' : u'baz'}),
+                dedupe.core.frozendict({u'foo' : u'baz'}))], 
              u"match" : []})
 
         json.dump(training_pairs, 
                   encoded_file, 
-                  cls=dedupe.serializer.dedupe_encoder,
+                  default=dedupe.serializer._to_json,
+                  tuple_as_array=False,
                   ensure_ascii = True)
 
         encoded_file.seek(0)
@@ -41,13 +41,14 @@ class SerializerTest(unittest.TestCase) :
         loaded_training_pairs = json.load(encoded_file,
                                           cls=dedupe.serializer.dedupe_decoder)
 
-        assert loaded_training_pairs["distinct"][0] ==\
-            training_pairs["distinct"][0]
+        assert loaded_training_pairs["distinct"][0][0] ==\
+            dict(training_pairs["distinct"][0][0])
 
         assert isinstance(loaded_training_pairs["distinct"][0][0]["bar"], 
                           frozenset)
 
-        assert isinstance(loaded_training_pairs['distinct'][0][0]['baz'], tuple)
+        assert isinstance(loaded_training_pairs['distinct'][0][0]['baz'], 
+                          tuple)
 
         deduper = dedupe.Dedupe([{'field' : 'foo', 'type' : 'String'}])
 
