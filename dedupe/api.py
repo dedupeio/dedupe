@@ -767,7 +767,7 @@ class ActiveMatching(Matching) :
 
         json.dump(self.training_pairs, 
                   file_obj, 
-                  default=serializer._to_json,
+                  cls=serializer.dedupe_encoder,
                   ensure_ascii=True)
 
 

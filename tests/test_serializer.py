@@ -33,7 +33,7 @@ class SerializerTest(unittest.TestCase) :
 
         json.dump(training_pairs, 
                   encoded_file, 
-                  default=dedupe.serializer._to_json,
+                  cls=dedupe.serializer.dedupe_encoder,
                   ensure_ascii = True)
 
         encoded_file.seek(0)
@@ -46,6 +46,8 @@ class SerializerTest(unittest.TestCase) :
 
         assert isinstance(loaded_training_pairs["distinct"][0][0]["bar"], 
                           frozenset)
+
+        assert isinstance(loaded_training_pairs['distinct'][0][0]['baz'], tuple)
 
         deduper = dedupe.Dedupe([{'field' : 'foo', 'type' : 'String'}])
 
