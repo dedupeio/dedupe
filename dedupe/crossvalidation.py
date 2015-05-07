@@ -19,7 +19,7 @@ def gridSearch(training_data,
                num_cores,
                k=3,
                search_space=[.00001, .0001, .001, .01, .1, 1],
-               randomize=True):
+               random_seed=None):
 
     if num_cores < 2 :
         from multiprocessing.dummy import Pool
@@ -28,7 +28,8 @@ def gridSearch(training_data,
 
     pool = Pool()
 
-    training_data = training_data[numpy.random.permutation(training_data.size)]
+    prng = numpy.random.RandomState(random_seed)
+    training_data = training_data[prng.permutation(training_data.size)]
 
     logger.info('using cross validation to find optimum alpha...')
     best_score = 0

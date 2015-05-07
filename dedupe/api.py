@@ -544,7 +544,8 @@ class ActiveMatching(Matching) :
     def __init__(self, 
                  variable_definition, 
                  data_sample = None,
-                 num_cores = None) :
+                 num_cores = None,
+                 random_seed = None) :
         """
         Initialize from a data model and data sample.
 
@@ -606,6 +607,8 @@ class ActiveMatching(Matching) :
             self.num_cores = multiprocessing.cpu_count()
         else :
             self.num_cores = num_cores
+
+        self.random_seed = random_seed
 
         training_dtype = [('label', 'S8'), 
                           ('distances', 'f4', 
@@ -714,7 +717,8 @@ class ActiveMatching(Matching) :
                                            self.learner,
                                            self.data_model, 
                                            self.num_cores,
-                                           k=n_folds)
+                                           k=n_folds,
+                                           random_seed=self.random_seed)
 
         return alpha
 
