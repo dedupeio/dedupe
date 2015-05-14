@@ -1,7 +1,8 @@
 from .base import FieldType
 from dedupe import predicates
 
-from affinegap import normalizedAffineGapDistance
+#from affinegap import normalizedAffineGapDistance
+from highered import CRFEditDistance as stringDistance
 from simplecosine.cosine import CosineTextSimilarity, CosineSetSimilarity
 
 base_predicate_functions = (predicates.wholeFieldPredicate,
@@ -22,7 +23,7 @@ base_predicate_functions = (predicates.wholeFieldPredicate,
 class ShortStringType(FieldType) :
     type = "ShortString"
 
-    comparator = normalizedAffineGapDistance
+    comparator = stringDistance()
 
     _predicate_functions = (base_predicate_functions 
                             + (predicates.commonFourGram,
