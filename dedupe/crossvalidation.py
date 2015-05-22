@@ -89,18 +89,10 @@ class AlphaTester(object) :
         self.learner = learner
 
     def __call__(self, training, validation, alpha) :
-        try :
-            data_model = dedupe.core.trainModel(training, 
-                                                self.data_model, 
-                                                self.learner, 
-                                                alpha)
-        # We are still shaking out some bugs from the LBFGS optimizer
-        # Once we have this sorted we will remove
-        except Exception as e :
-            warnings.warn(str(e))
-            warnings.warn(str(training))
-            return None
-            
+        data_model = dedupe.core.trainModel(training, 
+                                            self.data_model, 
+                                            self.learner, 
+                                            alpha)
 
         weight = numpy.array([field.weight
                               for field in 
