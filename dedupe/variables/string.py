@@ -1,7 +1,6 @@
 from .base import FieldType
 from dedupe import predicates
 
-#from affinegap import normalizedAffineGapDistance
 from highered import CRFEditDistance as stringDistance
 from simplecosine.cosine import CosineTextSimilarity, CosineSetSimilarity
 
