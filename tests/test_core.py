@@ -120,10 +120,8 @@ class FieldDistances(unittest.TestCase):
 
   def test_exact_comparator(self) :
     fieldDistances = dedupe.core.fieldDistances      
-    deduper = dedupe.Dedupe([{'field' : 'name', 
-                              'type' : 'String'},
-                             {'field' : 'name',
-                              'type' : 'Exact'}
+    deduper = dedupe.Dedupe([{'field' : 'name',
+                               'type' : 'Exact'}
                          ])
 
     record_pairs = (({'name' : 'Shmoo'}, {'name' : 'Shmee'}),
@@ -131,8 +129,8 @@ class FieldDistances(unittest.TestCase):
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[ 2.5, 0.0],
-                                                         [ 0.5, 1.0]]),
+                                            numpy.array([[0.0],
+                                                         [1.0]]),
                                             3)
 
   def test_comparator(self) :
@@ -166,18 +164,18 @@ class FieldDistances(unittest.TestCase):
                               'interaction variables' : ['type', 'name']},
                              {'field' : 'name',
                               'variable name' : 'name',
-                              'type' : 'String'}]
+                              'type' : 'Exact'}]
                              , [])
 
     record_pairs = (({'name' : 'steven', 'type' : 'a'},
-                     {'name' : 'steve', 'type' : 'b'}),
+                     {'name' : 'steven', 'type' : 'b'}),
                     ({'name' : 'steven', 'type' : 'b'},
-                     {'name' : 'steve', 'type' : 'b'}))
+                     {'name' : 'steven', 'type' : 'b'}))
 
     numpy.testing.assert_array_almost_equal(fieldDistances(record_pairs, 
                                                            deduper.data_model),
-                                            numpy.array([[0, 1, 0.64772, 0, 0.64772],
-                                                         [1, 0, 0.64772, 0.64772, 0]]), 3)
+                                            numpy.array([[0, 1, 1, 0, 1],
+                                                         [1, 0, 1, 1, 0]]), 3)
  
 
 class FrozenDictTest(unittest.TestCase):
