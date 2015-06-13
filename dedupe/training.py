@@ -397,5 +397,6 @@ def removeUnusedStopWords(stop_words, predicates) : # pragma : no cover
         for pred in predicate :
             if hasattr(pred, 'index') :
                 new_dict[pred.field][pred.type] = stop_words[pred.field][pred.type]
+    logger.info(new_dict)
 
     return new_dict
