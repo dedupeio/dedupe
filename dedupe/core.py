@@ -126,7 +126,7 @@ def trainModel(training_data, data_model, learner=None, alpha=.001):
 
     return data_model
 
-def fieldDistances(record_pairs, data_model):
+def fieldDistances(record_pairs, data_model=None):
     num_records = len(record_pairs)
 
     distances = numpy.empty((num_records, data_model.n_fields))

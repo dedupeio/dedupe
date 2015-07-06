@@ -6,8 +6,8 @@ from __future__ import division
 
 from collections import defaultdict
 import itertools
-from itertools import combinations, islice
-from . import blocking, predicates, core, index
+import functools
+from . import blocking, predicates, core, index, backport
 import numpy
 import logging
 import random
@@ -41,10 +41,19 @@ class ActiveLearning(object) :
     data model, and update our uncertainty. Repeat until user tells us she is
     finished.
     """
-    def __init__(self, candidates, data_model) :
+    def __init__(self, candidates, data_model, num_processes) :
 
         self.candidates = candidates
-        self.field_distances = core.fieldDistances(candidates, data_model)
+
+        pool = backport.Pool(num_processes)
+
+        fieldDistance = functools.partial(core.fieldDistances, 
+                                          data_model = data_model)
+
+        field_distances = pool.imap(fieldDistance, 
+                                    chunker(candidates, 100))
+
+        self.field_distances = numpy.concatenate(list(field_distances))
         self.seen_indices = set()
 
     def uncertainPairs(self, data_model, dupe_ratio) :
@@ -88,7 +97,7 @@ def semiSupervisedNonDuplicates(data_sample,
                 if score < confidence :
                     yield (pair)
 
-    return islice(distinctPairs(), 0, sample_size)
+    return itertools.islice(distinctPairs(), 0, sample_size)
 
 def trainingData(training_pairs, record_ids) :
 
@@ -400,3 +409,7 @@ def removeUnusedStopWords(stop_words, predicates) : # pragma : no cover
     logger.info(new_dict)
 
     return new_dict
+
+
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))

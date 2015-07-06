@@ -592,20 +592,21 @@ class ActiveMatching(Matching) :
         """
         self.data_model = DataModel(variable_definition)
 
+        if num_cores is None :
+            self.num_cores = multiprocessing.cpu_count()
+        else :
+            self.num_cores = num_cores
+
         self.data_sample = data_sample
 
         if self.data_sample :
             self._checkDataSample(self.data_sample)
             self.activeLearner = training.ActiveLearning(self.data_sample, 
-                                                         self.data_model)
+                                                         self.data_model,
+                                                         self.num_cores)
         else :
             self.data_sample = []
             self.activeLearner = None
-
-        if num_cores is None :
-            self.num_cores = multiprocessing.cpu_count()
-        else :
-            self.num_cores = num_cores
 
         training_dtype = [('label', 'S8'), 
                           ('distances', 'f4', 
@@ -897,7 +898,8 @@ class ActiveMatching(Matching) :
         self.data_sample = data_sample
 
         self.activeLearner = training.ActiveLearning(self.data_sample, 
-                                                     self.data_model)
+                                                     self.data_model,
+                                                     self.num_cores)
 
 
 
