@@ -45,15 +45,15 @@ class ActiveLearning(object) :
 
         self.candidates = candidates
 
-        pool = backport.Pool(num_processes)
-
         fieldDistance = functools.partial(core.fieldDistances, 
                                           data_model = data_model)
 
-        field_distances = pool.imap(fieldDistance, 
-                                    chunker(candidates, 100))
+        pool = backport.Pool(num_processes)
+        self.field_distances = numpy.concatenate(
+            pool.map(fieldDistance, 
+                     chunker(candidates, 100),
+                     2))
 
-        self.field_distances = numpy.concatenate(list(field_distances))
         self.seen_indices = set()
 
     def uncertainPairs(self, data_model, dupe_ratio) :
