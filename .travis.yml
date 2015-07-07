@@ -13,8 +13,6 @@ python:
 - '3.4'
 install:
 - pip install numpy
-- locate Python.h
-- locate arrayobject.h
 - pip install -r requirements.txt
 - pip install coveralls
 - cython src/*.pyx
