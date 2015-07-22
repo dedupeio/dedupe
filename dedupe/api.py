@@ -988,6 +988,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         
         sample_size -- Size of the sample to draw
         '''
+        if len(data_1) == 0:
+            raise ValueError('Dictionary of records from first dataset is empty.')
+        elif len(data_2) == 0:
+            raise ValueError('Dictionary of records from second dataset is empty.')
+
         if len(data_1) > len(data_2) :
             data_1, data_2 = data_2, data_1
 
