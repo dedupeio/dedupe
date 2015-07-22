@@ -107,8 +107,11 @@ def linkSamplePredicates(sample_size, predicates, items1, items2) :
             yield None
             continue
 
-        items1.rotate(random.randrange(n_1))
-        items2.rotate(random.randrange(n_2))
+        try:
+            items1.rotate(random.randrange(n_1))
+            items2.rotate(random.randrange(n_2))
+        except ValueError :
+            raise ValueError("Empty itemset.")
 
         try :
             items1.reverse()
