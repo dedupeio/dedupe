@@ -334,7 +334,7 @@ class RecordLinkMatching(Matching) :
         self._cluster = clustering.greedyMatching
         self._linkage_type = "RecordLink"
 
-    def match(self, data_1, data_2, threshold = 1.5) : # pragma : no cover
+    def match(self, data_1, data_2, threshold = 0.5) : # pragma : no cover
         """
         Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
