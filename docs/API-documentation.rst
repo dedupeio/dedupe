@@ -244,6 +244,9 @@ couple of methods.
 .. py:class:: Gazetteer
 
    .. include:: common_gazetteer_methods.rst
+   .. include:: common_learning_methods.rst
+   .. include:: common_methods.rst
+
 
 
 :class:`StaticGazetteer` Objects
@@ -259,6 +262,7 @@ couple of methods.
 .. py:class:: StaticGazetteer
 
    .. include:: common_gazetteer_methods.rst
+   .. include:: common_methods.rst
 
 
 
