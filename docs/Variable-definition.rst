@@ -295,8 +295,8 @@ Address Type
 
 An 'Address' variable should be used for United States addresses. It
 uses the `usaddress <http://usaddress.readthedocs.org/en/latest/>`__
-package to split apart and address string into components like address
-number, street name, and street type and compared.
+package to split apart an address string into components like address
+number, street name, and street type and compares component to component.
 
 .. code:: python
 
@@ -304,3 +304,32 @@ number, street name, and street type and compared.
 
 
 Install the `dedupe-variable-address <https://pypi.python.org/pypi/dedupe-variable-address/0.0.0.1>`__ package for Address Type.
+
+Name Type
+^^^^^^^^^
+
+An 'Name' variable should be used for American names. It uses the
+`probablepeople <http://probablepeople.readthedocs.org/en/latest/>`__
+package to split apart an name string into components like give name,
+surname, and generaaddress number, street name, and generational
+suffix and compares component to component.
+
+.. code:: python
+
+    {'field' : 'name', 'type' : 'Name'}
+
+
+Install the `dedupe-variable-address <https://pypi.python.org/pypi/dedupe-variable-address/0.0.0.1>`__ package for Address Type.
+
+
+Optional Edit Distance
+----------------------
+
+For String, ShortString, Address, and Name fields, you can choose to
+use the a conditional random field distance measure for strings. This
+measure can give you more accurate results but is much slower than the
+default edit distance.
+
+.. code:: python
+
+    {'field' : 'name', 'type' : 'String', 'crf' : True}

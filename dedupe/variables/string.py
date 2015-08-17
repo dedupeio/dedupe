@@ -1,8 +1,11 @@
 from .base import FieldType
 from dedupe import predicates
 
-from highered import CRFEditDistance as stringDistance
+from affinegap import normalizedAffineGapDistance as affineGap
+from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity, CosineSetSimilarity
+
+crfEd = CRFEditDistance()
 
 base_predicate_functions = (predicates.wholeFieldPredicate,
                             predicates.firstTokenPredicate,
@@ -22,8 +25,6 @@ base_predicate_functions = (predicates.wholeFieldPredicate,
 class ShortStringType(FieldType) :
     type = "ShortString"
 
-    comparator = stringDistance()
-
     _predicate_functions = (base_predicate_functions 
                             + (predicates.commonFourGram,
                                predicates.commonSixGram,
@@ -35,6 +36,15 @@ class ShortStringType(FieldType) :
     _index_predicates = (predicates.TfidfNGramCanopyPredicate, 
                          predicates.TfidfNGramSearchPredicate)
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
+
+    def __init__(self, definition) :
+        super(ShortStringType, self).__init__(definition)
+
+        if definition.get('crf', False) == True :
+            self.comparator = crfEd
+        else :
+            self.comparator = affineGap
+
 
 class StringType(ShortStringType) :
     type = "String"
