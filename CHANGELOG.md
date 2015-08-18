@@ -1,3 +1,10 @@
+## 1.0.0
+Features
+- Speed up learning
+- Parallelize sampling
+- Optional CRF Edit Distance
+- 
+
 ## 0.8.0
 Support for Python 3.4 added. Support for Python 2.6 dropped.
 
