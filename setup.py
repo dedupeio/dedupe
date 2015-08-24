@@ -6,8 +6,7 @@ try:
 except ImportError :
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
-install_requires=['numpy>=1.9', 
-                  'fastcluster', 
+install_requires=['fastcluster', 
                   'dedupe-hcluster',
                   'affinegap',
                   'categorical-distance',
@@ -26,12 +25,13 @@ install_requires=['numpy>=1.9',
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='1.0.0',
+    version='1.0.2',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=install_requires,
+    setup_requires=['numpy >= 1.9.2'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

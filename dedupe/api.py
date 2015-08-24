@@ -793,11 +793,20 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier(0.1)
 
-        
-        dupe_ratio = (len(self.training_pairs[u'match'])
-                      /(len(self.training_pairs[u'distinct']) + 1))
+        bias = len(self.training_pairs[u'match'])
+        if bias :
+            bias /= (bias
+                     + len(self.training_pairs[u'distinct']))
 
-        return self.activeLearner.uncertainPairs(self.data_model, dupe_ratio)
+        min_examples = min(len(self.training_pairs[u'match']),
+                           len(self.training_pairs[u'distinct']))
+
+        regularizer = 10 
+
+        bias = ((0.5 * min_examples + bias * regularizer)
+                /(min_examples + regularizer))
+
+        return self.activeLearner.uncertainPairs(self.data_model, bias)
 
     def markPairs(self, labeled_pairs) :
         '''

@@ -56,10 +56,10 @@ class ActiveLearning(object) :
 
         self.seen_indices = set()
 
-    def uncertainPairs(self, data_model, dupe_ratio) :
+    def uncertainPairs(self, data_model, dupe_proportion) :
         uncertain_indices = findUncertainPairs(self.field_distances,
                                                data_model,
-                                               dupe_ratio)
+                                               dupe_proportion)
 
         for uncertain_index in uncertain_indices:
             if uncertain_index not in self.seen_indices:
