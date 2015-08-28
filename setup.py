@@ -20,6 +20,7 @@ install_requires=['fastcluster',
                   'zope.interface', 
                   'BTrees>=4.1.4',
                   'simplejson',
+                  'numpy>=1.9.2'
                   'zope.index']
 
 setup(
@@ -31,7 +32,7 @@ setup(
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=install_requires,
-    setup_requires=['numpy >= 1.9.2'],
+    setup_requires=['numpy>=1.9.2'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
