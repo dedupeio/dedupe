@@ -20,7 +20,7 @@ install_requires=['fastcluster',
                   'zope.interface', 
                   'BTrees>=4.1.4',
                   'simplejson',
-                  'numpy>=1.9.2'
+                  'numpy>=1.9.2',
                   'zope.index']
 
 setup(
