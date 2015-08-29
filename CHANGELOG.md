@@ -1,3 +1,7 @@
+## 1.1.0
+Features
+- Handle FuzzyCategoricalType in datamodel
+
 ## 1.0.0
 Features
 - Speed up learning

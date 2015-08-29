@@ -303,12 +303,12 @@ number, street name, and street type and compares component to component.
     {'field' : 'address', 'type' : 'Address'}
 
 
-Install the `dedupe-variable-address <https://pypi.python.org/pypi/dedupe-variable-address/0.0.0.1>`__ package for Address Type.
+Install the `dedupe-variable-address <https://pypi.python.org/pypi/dedupe-variable-address>`__ package for Address Type.
 
 Name Type
 ^^^^^^^^^
 
-An 'Name' variable should be used for American names. It uses the
+A 'Name' variable should be used for American names. It uses the
 `probablepeople <http://probablepeople.readthedocs.org/en/latest/>`__
 package to split apart an name string into components like give name,
 surname, and generaaddress number, street name, and generational
@@ -319,7 +319,27 @@ suffix and compares component to component.
     {'field' : 'name', 'type' : 'Name'}
 
 
-Install the `dedupe-variable-address <https://pypi.python.org/pypi/dedupe-variable-address/0.0.0.1>`__ package for Address Type.
+Install the `dedupe-variable-name <https://pypi.python.org/pypi/dedupe-variable-name>`__ package for Name Type.
+
+Fuzzy Category
+^^^^^^^^^^^^^^
+
+A 'FuzzyCategorical' variable should be used for when you for
+categorical data that has variations. Occupations are example, where
+the you may have Attorney, Counsel, and Lawyer. For this variable
+type, you need to supply a corpus of records that contain your focal
+record and other field types. This corpus should either be all the 
+data you are trying to link or a representative sample.
+
+.. code:: python
+
+    {'field' : 'occupation', 'type' : 'FuzzyCategorical',
+     'corpus' : [{'name' : 'Jim Doe', 'occupation' : 'Attorney'},
+                 {'name' : 'Jim Doe', 'occupation' : 'Lawyer'}]}
+
+
+Install the `dedupe-variable-fuzzycategory <https://pypi.python.org/pypi/dedupe-variable-fuzzycategory>`__ package for the FuzzyCategorical Type.
+
 
 
 Optional Edit Distance

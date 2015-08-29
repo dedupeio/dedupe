@@ -89,6 +89,11 @@ def typifyFields(fields) :
         if field_type == 'Interaction' :
             continue
 
+        if field_type == 'FuzzyCategorical' and 'other fields' not in definition :
+            definition['other fields'] = [d['field'] for d in fields
+                                          if 'field' in d
+                                          and d['field'] != definition['field']]
+
         try :
             field_class = FIELD_CLASSES[field_type]
         except KeyError :
