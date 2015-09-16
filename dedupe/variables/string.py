@@ -2,7 +2,10 @@ from .base import FieldType
 from dedupe import predicates
 
 from affinegap import normalizedAffineGapDistance as affineGap
+from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity, CosineSetSimilarity
+
+crfEd = CRFEditDistance()
 
 base_predicate_functions = (predicates.wholeFieldPredicate,
                             predicates.firstTokenPredicate,
@@ -38,11 +41,7 @@ class ShortStringType(FieldType) :
         super(ShortStringType, self).__init__(definition)
 
         if definition.get('crf', False) == True :
-            try :
-                from highered import CRFEditDistance
-                self.comparator = CRFEditDistance()
-            except ImportError :
-                raise ImportError("You have requested the crf edit distance but don't have the necessary libraries installed. Try `pip install highered` to instal what you need.")
+            self.comparator = crfEd
         else :
             self.comparator = affineGap
 
