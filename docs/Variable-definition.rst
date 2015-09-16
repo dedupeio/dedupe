@@ -24,9 +24,7 @@ String Types
 
 A 'String' type variable must declare the name of the record field to
 compare a 'String' type declaration ex.  
-``{'field' : 'Address', type:'String'}`` 
-The string type expects fields to be of class
-string. Missing data should be represented as an empty string ``''``
+``{'field' : 'Address', type:'String'}`` The string type expects fields to be of class string.
 
 String types are compared using `affine gap string
 distance <http://en.wikipedia.org/wiki/Gap_penalty#Affine>`__.
@@ -81,8 +79,7 @@ Custom Types
 A 'Custom' type field must have specify the field it wants to compare,
 a 'type' declaration of 'Custom', and a 'comparator' declaration. The
 comparator must be a function that can take in two field values and
-return a number or a numpy.nan when one or both of the fields is
-missing.
+return a number.
 
 Example custom comparator:
 
@@ -94,8 +91,6 @@ Example custom comparator:
             return 0         
         else:             
             return 1     
-    else :         
-        return numpy.nan
 
 variable definition:
 
@@ -111,8 +106,7 @@ A 'LatLong' type field must have as the name of a field and a 'type'
 declaration of custom. LatLong fields are compared using the
 `Haversine Formula <http://en.wikipedia.org/wiki/Haversine_formula>`__. 
 A 'LatLong' type field must consist of tuples of floats corresponding
-to a latitude and a longitude. If data is missing, this should be
-represented by a tuple of 0s ``(0.0, 0.0)``
+to a latitude and a longitude. 
 
 .. code:: python
 
@@ -227,8 +221,14 @@ You would create a definition like:
 
 Missing Data 
 ~~~~~~~~~~~~ 
-If one or both fields are missing, the field comparator should return
-``numpy.nan.`` By default, dedupe will replace these values with zeros. 
+If the value of field is missing, that missing value should be represented as 
+a ``None``
+
+.. code:: python
+
+   data = [{'Name' : 'AA Taxi', 'Phone' : '773.555.1124'},
+           {'Name' : 'AA Taxi', 'Phone' : None},
+           {'Name' : None, 'Phone' : '773-555-1123'}]
 
 If you want to model this missing data for a field, you can set ``'has
 missing' : True`` in the variable definition. This creates a new,

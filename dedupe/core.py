@@ -133,9 +133,17 @@ def fieldDistances(record_pairs, data_model=None):
     field_comparators = data_model.field_comparators
 
     for i, (record_1, record_2) in enumerate(record_pairs) :
+        
         for field, compare, start, stop in field_comparators :
-            distances[i,start:stop] = compare(record_1[field],
-                                              record_2[field])
+            if record_1[field] is not None and record_2[field] is not None :
+                distances[i,start:stop] = compare(record_1[field],
+                                                  record_2[field])
+            elif hasattr(compare, 'missing') :
+                distances[i,start:stop] = compare(record_1[field],
+                                                  record_2[field])
+            else :
+                distances[i,start:stop] = numpy.nan
+
     
     distances = derivedDistances(distances, data_model)
 
