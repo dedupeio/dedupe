@@ -218,6 +218,17 @@ You would create a definition like:
     {'field' : 'Business Type', 'type': 'Categorical',
     'categories' : ['taxi', 'lawyer']}}
 
+Price
+~~~~~
+
+Price variables are useful for comparing positive, nonzero numbers
+like prices. The values of 'Price' field must be a positive float. If
+the value is 0 or negative, then an exception will be raised. 
+
+.. code:: python
+
+    {'field' : 'cost', 'type': 'Price'}
+
 
 Missing Data 
 ~~~~~~~~~~~~ 
