@@ -1,3 +1,7 @@
+
+## 1.1.1
+- None now treated as missing data indicator. Warnings for deprecations of older types of missing data indicators
+
 ## 1.1.0
 Features
 - Handle FuzzyCategoricalType in datamodel
