@@ -219,7 +219,7 @@ You would create a definition like:
     'categories' : ['taxi', 'lawyer']}}
 
 Price
-~~~~~
+^^^^^
 
 Price variables are useful for comparing positive, nonzero numbers
 like prices. The values of 'Price' field must be a positive float. If
@@ -228,74 +228,6 @@ the value is 0 or negative, then an exception will be raised.
 .. code:: python
 
     {'field' : 'cost', 'type': 'Price'}
-
-
-Missing Data 
-~~~~~~~~~~~~ 
-If the value of field is missing, that missing value should be represented as 
-a ``None``
-
-.. code:: python
-
-   data = [{'Name' : 'AA Taxi', 'Phone' : '773.555.1124'},
-           {'Name' : 'AA Taxi', 'Phone' : None},
-           {'Name' : None, 'Phone' : '773-555-1123'}]
-
-If you want to model this missing data for a field, you can set ``'has
-missing' : True`` in the variable definition. This creates a new,
-additional field representing whether the data was present or not and
-zeros out the missing data.
-
-If there is missing data, but you did not declare ``'has
-missing' : True`` then the missing data will simply be zeroed out and
-no field will be created to account for missing data.
-
-This approach is called 'response augmented data' and is described in
-Benjamin Marlin's thesis `"Missing Data Problems in Machine Learning"
-<http://people.cs.umass.edu/~marlin/research/phd_thesis/marlin-phd-thesis.pdf>`__. Basically,
-this approach says that, even without looking at the value of the
-field comparisons, the pattern of observed and missing responses will
-affect the probability that a pair of records are a match.
-
-This approach makes a few assumptions that are usually not completely true:
-
-- Whether a field is missing data is not associated with any other
-  field missing data
-- That the weighting of the observed differences in field A should be
-  the same regardless of whether field B is missing.
-
-
-If you define an an interaction with a field that you declared to have
-missing data, then ``has missing : True`` will also be set for the
-Interaction field.
-
-Longer example of a variable definition:
-
-.. code:: python
-
-    variables = [{'field' : 'name', 'type' : 'String'},
-                 {'field' : 'address', 'type' : 'String'},
-                 {'field' : 'city', 'type' : 'String'},
-                 {'field' : 'zip', 'type' : 'Custom', 'comparator' : sameOrNotComparator},
-                 {field' : 'cuisine', 'type' : 'String', 'has missing': True}
-                 {'type' : 'Interaction', 'interaction variables' : ['name', 'city']}
-                 ]
-
-Multiple Variables comparing same field
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
-It is possible to define multiple variables that all compare the same
-variable.
-
-For example 
-
-.. code:: python
-
-    variables = [{'field' : 'name', 'type' : 'String'},
-                 {'field' : 'name', 'type' : 'Text'}]
-
-
-Will create two variables that both compare the 'name' field but 
-in different ways.
 
 
 Optional Variables
@@ -353,6 +285,74 @@ Install the `dedupe-variable-fuzzycategory <https://pypi.python.org/pypi/dedupe-
 
 
 
+Missing Data 
+------------ 
+If the value of field is missing, that missing value should be represented as 
+a ``None``
+
+.. code:: python
+
+   data = [{'Name' : 'AA Taxi', 'Phone' : '773.555.1124'},
+           {'Name' : 'AA Taxi', 'Phone' : None},
+           {'Name' : None, 'Phone' : '773-555-1123'}]
+
+If you want to model this missing data for a field, you can set ``'has
+missing' : True`` in the variable definition. This creates a new,
+additional field representing whether the data was present or not and
+zeros out the missing data.
+
+If there is missing data, but you did not declare ``'has
+missing' : True`` then the missing data will simply be zeroed out and
+no field will be created to account for missing data.
+
+This approach is called 'response augmented data' and is described in
+Benjamin Marlin's thesis `"Missing Data Problems in Machine Learning"
+<http://people.cs.umass.edu/~marlin/research/phd_thesis/marlin-phd-thesis.pdf>`__. Basically,
+this approach says that, even without looking at the value of the
+field comparisons, the pattern of observed and missing responses will
+affect the probability that a pair of records are a match.
+
+This approach makes a few assumptions that are usually not completely true:
+
+- Whether a field is missing data is not associated with any other
+  field missing data
+- That the weighting of the observed differences in field A should be
+  the same regardless of whether field B is missing.
+
+
+If you define an an interaction with a field that you declared to have
+missing data, then ``has missing : True`` will also be set for the
+Interaction field.
+
+Longer example of a variable definition:
+
+.. code:: python
+
+    variables = [{'field' : 'name', 'type' : 'String'},
+                 {'field' : 'address', 'type' : 'String'},
+                 {'field' : 'city', 'type' : 'String'},
+                 {'field' : 'zip', 'type' : 'Custom', 'comparator' : sameOrNotComparator},
+                 {field' : 'cuisine', 'type' : 'String', 'has missing': True}
+                 {'type' : 'Interaction', 'interaction variables' : ['name', 'city']}
+                 ]
+
+Multiple Variables comparing same field
+--------------------------------------- 
+It is possible to define multiple variables that all compare the same
+variable.
+
+For example 
+
+.. code:: python
+
+    variables = [{'field' : 'name', 'type' : 'String'},
+                 {'field' : 'name', 'type' : 'Text'}]
+
+
+Will create two variables that both compare the 'name' field but 
+in different ways.
+
+
 Optional Edit Distance
 ----------------------
 
@@ -364,3 +364,5 @@ default edit distance.
 .. code:: python
 
     {'field' : 'name', 'type' : 'String', 'crf' : True}
+
+
