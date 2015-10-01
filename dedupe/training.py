@@ -53,6 +53,8 @@ class ActiveLearning(object) :
             pool.map(fieldDistance, 
                      chunker(candidates, 100),
                      2))
+        
+        pool.terminate()
 
         self.seen_indices = set()
 
