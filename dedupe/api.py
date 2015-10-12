@@ -963,6 +963,10 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         data_sample = core.freezeData(data_sample)
 
+        # data can be a very large object, so we'll free it up as soon
+        # as possible
+        del data
+
         self._loadSample(data_sample)
 
 
