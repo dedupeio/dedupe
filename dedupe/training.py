@@ -241,7 +241,7 @@ def findOptimumBlocking(uncovered_dupes,
 
 
         if not best_predicate:
-            logger.warning('Ran out of predicates')
+            logger.warning("Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that you dedupe may never compare. If you are getting bad results, try increasing the ppc argument to the train method (if it less than 1.0)")
             break
 
         final_predicate_set.add(best_predicate)
