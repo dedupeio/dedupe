@@ -957,9 +957,9 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                                                          random_sample_size))
         data = dict(data)
 
-        data_sample = ((data[k1], data[k2])
+        data_sample = [(data[k1], data[k2])
                        for k1, k2 
-                       in blocked_sample_keys | random_sample_keys)
+                       in blocked_sample_keys | random_sample_keys]
 
         data_sample = core.freezeData(data_sample)
 
