@@ -12,8 +12,8 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - powershell .\\appveyor\\install.ps1
-  - pip install --use-wheel --no-index http://bunkum.us/numpy-1.9.2+mkl-cp27-none-win32.whl
-  - pip install --use-wheel --no-index http://bunkum.us/fastcluster-1.1.13-cp27-none-win32.whl
+  - pip install -i https://pypi.binstar.org/carlkl/simple numpy
+  - pip install -i https://pypi.binstar.org/omnia/simply fastcluster
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
   - python setup.py develop --verbose
