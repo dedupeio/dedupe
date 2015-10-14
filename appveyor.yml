@@ -13,7 +13,7 @@ install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - powershell .\\appveyor\\install.ps1
   - pip install -i https://pypi.binstar.org/carlkl/simple numpy
-  - pip install -i https://pypi.binstar.org/omnia/simply fastcluster
+  - pip install -i https://pypi.binstar.org/omnia/simple fastcluster
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
   - python setup.py develop --verbose
