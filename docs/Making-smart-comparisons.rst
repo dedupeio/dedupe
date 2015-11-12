@@ -83,7 +83,7 @@ for that field. These features could be "the first 3 characters of the
 field," "every word in the field," and so on. Records that share the
 same feature become part of a block.
 
-Let's take an example. Let's use use a "first 3 character" predicate on
+Let's take an example. Let's use a "first 3 character" predicate on
 the **address field** below..
 
 +-------------+-----------+--------------------------+--------------+----------+
