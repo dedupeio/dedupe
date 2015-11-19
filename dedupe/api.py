@@ -644,6 +644,9 @@ class ActiveMatching(Matching) :
         training_pairs = json.load(training_file, 
                                    cls=serializer.dedupe_decoder)
 
+        if not any(training_pairs.values()) :
+            raise EmptyTrainingException("The training file seems to contain no training examples")
+            
 
         for (label, examples) in training_pairs.items():
             if examples :
@@ -1141,3 +1144,5 @@ def predicateGenerator(data_model, index_predicates, canopies) :
 
     return predicates
 
+class EmptyTrainingException(Exception) :
+    pass
