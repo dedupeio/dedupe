@@ -13,7 +13,7 @@ python:
 - '3.4'
 install:
 - pip install numpy>=1.9.2
-- pip install -r requirements.txt
+- pip install --upgrade -r requirements.txt
 - pip install coveralls
 - cython src/*.pyx
 - python setup.py develop
