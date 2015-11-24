@@ -15,8 +15,6 @@ class Variable(object) :
 
     def __init__(self, definition) :
 
-        self.weight = 0
-
         if definition.get('has missing', False) :
             self.has_missing = True
             try :
@@ -41,7 +39,6 @@ class MissingDataType(Variable) :
     def __init__(self, name) :
         
         self.name = "(%s: Not Missing)" % name
-        self.weight = 0
 
         self.has_missing = False
 
