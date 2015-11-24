@@ -21,7 +21,7 @@ class DataModel(object) :
     def __init__(self, fields):
 
         primary_fields, variables = typifyFields(fields)
-        self._primary_fields = primary_fields
+        self.primary_fields = primary_fields
         self._derived_start = len(variables)
 
         variables += interactions(fields, primary_fields)
@@ -44,7 +44,7 @@ class DataModel(object) :
         start = 0
         stop = 0
         comparators = []
-        for field in self._primary_fields :
+        for field in self.primary_fields :
             stop = start + len(field) 
             comparators.append((field.field, field.comparator, start, stop))
             start = stop
@@ -53,7 +53,7 @@ class DataModel(object) :
 
     def predicates(self, index_predicates=True, canopies=True) :
         predicates = set()
-        for definition in self._primary_fields :
+        for definition in self.primary_fields :
             for predicate in definition.predicates :
                 if hasattr(predicate, 'index') :
                     if index_predicates :
@@ -206,21 +206,8 @@ def interaction_indices(variables) :
 
     return indices
 
-def _pickle_method(method):
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
-    return _unpickle_method, (func_name, obj, cls)
-
-def _unpickle_method(func_name, obj, cls):
-    for cls in cls.mro():
-        try:
-            func = cls.__dict__[func_name]
-        except KeyError:
-            pass
-        else:
-            break
-        return func.__get__(obj, cls)
+def reduce_method(m):
+    return (getattr, (m.__self__, m.__func__.__name__))
 
 import types
-copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+copyreg.pickle(types.MethodType, reduce_method)

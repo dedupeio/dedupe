@@ -489,12 +489,11 @@ class StaticMatching(Matching) :
             self.predicates = pickle.load(settings_file)
             self.stop_words = pickle.load(settings_file)
         except (KeyError, AttributeError) :
-            raise ValueError("This settings file is not compatible with "
-                             "the current version of dedupe. This can happen "
-                             "if you have recently upgraded dedupe.")
+            raise SettingsFileLoadingException("This settings file is not compatible with "
+                                               "the current version of dedupe. This can happen "
+                                               "if you have recently upgraded dedupe.")
         except :
-            print("Something has gone wrong with loading the settings file")
-            raise
+            raise SettingsFileLoadingException("Something has gone wrong with loading the settings file. Try deleting the file")
                              
 
         logger.info(self.predicates)
@@ -770,7 +769,7 @@ class ActiveMatching(Matching) :
         bias = ((0.5 * min_examples + bias * regularizer)
                 /(min_examples + regularizer))
 
-        return self.activeLearner.uncertainPairs(self.data_model, bias)
+        return self.activeLearner.uncertainPairs(self.classifier, bias)
 
     def markPairs(self, labeled_pairs) :
         '''
@@ -1086,4 +1085,7 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
 class EmptyTrainingException(Exception) :
+    pass
+
+class SettingsFileLoadingException(Exception) :
     pass
