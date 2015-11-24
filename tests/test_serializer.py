@@ -51,6 +51,7 @@ class SerializerTest(unittest.TestCase) :
                           tuple)
 
         deduper = dedupe.Dedupe([{'field' : 'foo', 'type' : 'String'}])
+        deduper.classifier.cv = False
 
         encoded_file.seek(0)
 

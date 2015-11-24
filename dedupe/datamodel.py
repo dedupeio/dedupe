@@ -2,6 +2,7 @@ import pkgutil
 
 from collections import OrderedDict
 import numpy
+import copyreg
 
 import dedupe.variables
 import dedupe.variables.base as base
@@ -205,10 +206,6 @@ def interaction_indices(variables) :
 
     return indices
 
-
-
-
-
 def _pickle_method(method):
     func_name = method.im_func.__name__
     obj = method.im_self
@@ -225,6 +222,5 @@ def _unpickle_method(func_name, obj, cls):
             break
         return func.__get__(obj, cls)
 
-import copy_reg
 import types
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+copyreg.pickle(types.MethodType, _pickle_method, _unpickle_method)
