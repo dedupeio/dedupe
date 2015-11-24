@@ -22,7 +22,7 @@ def findUncertainPairs(field_distances, classifier, bias=0.5):
     least certainty whether the pair are duplicates or distinct.
     """
 
-    probability = classifier.score(field_distances)
+    probability = classifier.predict_proba(field_distances)
 
     p_max = (1 - bias)
     logger.info(p_max)
@@ -81,7 +81,7 @@ def semiSupervisedNonDuplicates(data_sample,
     def distinctPairs() :
         data_slice = data_sample[0:sample_size]
         pair_distance = data_model.distances(data_slice)
-        scores = classifier.score(pair_distance)
+        scores = classifier.predict_proba(pair_distance)[:,1]
 
         sample_n = 0
         for score, pair in zip(scores, data_sample) :
@@ -92,7 +92,7 @@ def semiSupervisedNonDuplicates(data_sample,
         if sample_n < sample_size and len(data_sample) > sample_size :
             for pair in data_sample[sample_size:] :
                 pair_distance = data_model.distances([pair])
-                score = classifier.score(pair_distance)
+                score = classifier.predict_proba(pair_distance)
                 
                 if score < confidence :
                     yield (pair)

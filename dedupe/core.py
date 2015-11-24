@@ -113,7 +113,7 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
 class ScoreRecords(object) :
     def __init__(self, data_model, classifier, threshold) :
         self.data_model = data_model
-        self.classifer = classifier
+        self.classifier = classifier
         self.threshold = threshold
         self.score_queue = None
 
@@ -149,7 +149,7 @@ class ScoreRecords(object) :
 
         if records :
             distances = self.data_model.distances(records)
-            scores = self.classifier.predict(distances)
+            scores = self.classifier.predict_proba(distances)[:,1]
 
             scored_pairs = numpy.rec.fromarrays((ids, scores),
                                                 dtype= [('pairs', 'object', 2), 
@@ -200,7 +200,7 @@ def mergeScores(score_queue, result_queue, stop_signals) :
     else :
         result_queue.put(scored_pairs)
 
-def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
+def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     if num_cores < 2 :
         from multiprocessing.dummy import Process, Pool, Queue
         SimpleQueue = Queue
@@ -212,7 +212,7 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
     result_queue = SimpleQueue()
 
     n_map_processes = max(num_cores-1, 1)
-    score_records = ScoreRecords(data_model, threshold) 
+    score_records = ScoreRecords(data_model, classifier, threshold) 
     map_processes = [Process(target=score_records,
                              args=(record_pairs_queue,
                                    score_queue))

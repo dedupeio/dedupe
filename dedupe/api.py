@@ -25,7 +25,6 @@ import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
-import dedupe.crossvalidation as crossvalidation
 import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
@@ -67,6 +66,7 @@ class Matching(object):
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
+                                           self.classifier,
                                            self.num_cores)['score']
 
         probability.sort()
@@ -116,6 +116,7 @@ class Matching(object):
         
         matches = core.scoreDuplicates(candidate_records,
                                        self.data_model,
+                                       self.classifier,
                                        self.num_cores,
                                        threshold)
 
@@ -484,6 +485,7 @@ class StaticMatching(Matching) :
 
         try:
             self.data_model = pickle.load(settings_file)
+            self.classifier = pickle.load(settings_file)
             self.predicates = pickle.load(settings_file)
             self.stop_words = pickle.load(settings_file)
         except (KeyError, AttributeError) :
@@ -495,7 +497,6 @@ class StaticMatching(Matching) :
             raise
                              
 
-        self._logLearnedWeights()
         logger.info(self.predicates)
         logger.info(self.stop_words)
 
@@ -507,6 +508,8 @@ class StaticMatching(Matching) :
 
 
 class ActiveMatching(Matching) :
+    classifier = rlr.lr
+
     """
     Class for training dedupe extends Matching.
     
@@ -596,7 +599,6 @@ class ActiveMatching(Matching) :
         self.training_pairs = OrderedDict({u'distinct': [], 
                                            u'match': []})
 
-        self.classifier = rlr.lr
         self.blocker = None
 
 
@@ -679,8 +681,7 @@ class ActiveMatching(Matching) :
                              dtype='i4')
         examples = self.training_data['distances']
 
-
-        self.classifier(labels, examples)
+        self.classifier.fit(examples, labels)
 
     
     def _trainBlocker(self, ppc=1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
@@ -688,6 +689,7 @@ class ActiveMatching(Matching) :
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model,
+                                                                       self.classifier,
                                                                        sample_size=32000)
 
         training_pairs[u'distinct'].extend(confident_nonduplicates)
@@ -716,6 +718,7 @@ class ActiveMatching(Matching) :
         """
 
         pickle.dump(self.data_model, file_obj)
+        pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
         pickle.dump(dict(self.stop_words), file_obj)
 

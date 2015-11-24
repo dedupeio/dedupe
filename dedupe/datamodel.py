@@ -1,6 +1,7 @@
 import pkgutil
 
 from collections import OrderedDict
+import numpy
 
 import dedupe.variables
 import dedupe.variables.base as base
@@ -25,13 +26,13 @@ class DataModel(object) :
         variables += interactions(fields, primary_fields)
         variables += missing(variables)
 
+        self._missing_field_indices = missing_field_indices(variables)
+        self._interactions = interaction_indices(variables) 
+
         self._variables = variables
 
-        self._missing_field_indices = missing_field_indices(variables)
-        self._interactions = interactions(variables) :
-
     def __len__(self) :
-        return len(self.variables)
+        return len(self._variables)
 
     # Changing this from a property to just a normal attribute causes
     # pickling problems, because we are removing static methods from
@@ -105,7 +106,7 @@ class DataModel(object) :
 
         distances[:,:current_column][missing_data] = 0
 
-        if data_model.missing_field_indices :
+        if self._missing_field_indices :
             distances[:,current_column:] =\
                 1 - missing_data[:,self._missing_field_indices]
 
@@ -190,7 +191,7 @@ def missing_field_indices(variables) :
             in enumerate(variables)
             if definition.has_missing]
 
-def interactions(variables) :
+def interaction_indices(variables) :
     indices = []
 
     field_names = [field.name for field in variables]
@@ -208,3 +209,22 @@ def interactions(variables) :
 
 
 
+def _pickle_method(method):
+    func_name = method.im_func.__name__
+    obj = method.im_self
+    cls = method.im_class
+    return _unpickle_method, (func_name, obj, cls)
+
+def _unpickle_method(func_name, obj, cls):
+    for cls in cls.mro():
+        try:
+            func = cls.__dict__[func_name]
+        except KeyError:
+            pass
+        else:
+            break
+        return func.__get__(obj, cls)
+
+import copy_reg
+import types
+copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
