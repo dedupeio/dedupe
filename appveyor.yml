@@ -15,7 +15,7 @@ install:
   - pip install -i https://pypi.anaconda.org/carlkl/simple numpy
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
-  - python install -e .
+  - pip install -e .
 
 build: false
 
