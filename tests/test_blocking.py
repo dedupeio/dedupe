@@ -8,8 +8,7 @@ class BlockingTest(unittest.TestCase):
   def setUp(self):
     self.frozendict = dedupe.core.frozendict
 
-    field_definition = [{'field' : 'name', 'type': 'String'}, 
-                        {'field' :'age', 'type': 'String'}]
+    field_definition = [{'field' : 'name', 'type': 'String'}]
     self.data_model = dedupe.Dedupe(field_definition).data_model
     self.training_pairs = {
         0: [((1, self.frozendict({"name": "Bob", "age": "50"})),
@@ -36,65 +35,65 @@ class BlockingTest(unittest.TestCase):
                                   if "CompoundPredicate" not in str(k)])
 
   def test_dedupe_coverage(self) :
-    predicates = self.data_model['fields'][0].predicates
+    predicates = self.data_model.predicates()
     coverage = dedupe.training.DedupeCoverage(predicates, self.training)
     assert self.simple(coverage.overlap.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
-               "TfidfTextSearchPredicate: (0.4, name)", 
+               "TfidfTextCanopyPredicate: (0.4, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.2, name)", 
+               "TfidfTextCanopyPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.6, name)", 
+               "TfidfTextCanopyPredicate: (0.6, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.8, name)", 
+               "TfidfTextCanopyPredicate: (0.8, name)", 
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
 
     overlap = coverage.predicateCoverage(predicates, self.distinct_ids)
     assert set(str(k) for k in overlap.keys()).issuperset(
-          set(["TfidfTextSearchPredicate: (0.4, name)", 
-               "TfidfTextSearchPredicate: (0.6, name)", 
+          set(["TfidfTextCanopyPredicate: (0.4, name)", 
+               "TfidfTextCanopyPredicate: (0.6, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (wholeFieldPredicate, name)", 
                "SimplePredicate: (sameThreeCharStartPredicate, name)",
                "SimplePredicate: (tokenFieldPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.8, name)", 
+               "TfidfTextCanopyPredicate: (0.8, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.2, name)"]))
+               "TfidfTextCanopyPredicate: (0.2, name)"]))
 
     overlap = coverage.predicateCoverage(predicates, self.dupe_ids)
     assert set(str(k) for k in overlap.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
-               "TfidfTextSearchPredicate: (0.4, name)", 
+               "TfidfTextCanopyPredicate: (0.4, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.2, name)", 
+               "TfidfTextCanopyPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.6, name)", 
+               "TfidfTextCanopyPredicate: (0.6, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.8, name)", 
+               "TfidfTextCanopyPredicate: (0.8, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
 
-    predicates = self.data_model['fields'][0].predicates
+    predicates = self.data_model.predicates()
 
     coverage = dedupe.training.RecordLinkCoverage(predicates, self.training)
     assert self.simple(coverage.overlap.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
-               "TfidfTextSearchPredicate: (0.4, name)", 
+               "TfidfTextCanopyPredicate: (0.4, name)", 
                "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.2, name)", 
+               "TfidfTextCanopyPredicate: (0.2, name)", 
                "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.6, name)", 
+               "TfidfTextCanopyPredicate: (0.6, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
                "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfTextSearchPredicate: (0.8, name)", 
+               "TfidfTextCanopyPredicate: (0.8, name)", 
                "SimplePredicate: (sortedAcronym, name)",
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))

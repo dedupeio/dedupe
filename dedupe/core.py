@@ -149,7 +149,7 @@ class ScoreRecords(object) :
 
         if records :
             distances = self.data_model.distances(records)
-            scores = self.classifier.predict_proba(distances)[:,1]
+            scores = self.classifier.predict_proba(distances)[:,-1]
 
             scored_pairs = numpy.rec.fromarrays((ids, scores),
                                                 dtype= [('pairs', 'object', 2), 

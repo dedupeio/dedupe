@@ -41,7 +41,6 @@ class DataModelTest(unittest.TestCase) :
     DataModel = dedupe.datamodel.DataModel
     
     self.assertRaises(TypeError, DataModel)
-    assert DataModel({}) == {'fields': [], 'bias': 0}
 
     data_model = DataModel([{'field' : 'a', 
                             'variable name' : 'a', 
@@ -52,7 +51,7 @@ class DataModelTest(unittest.TestCase) :
                             {'type' : 'Interaction', 
                              'interaction variables' : ['a', 'b']}])
 
-    assert data_model['fields'][2].interaction_fields  == ['a', 'b']
+    assert data_model._interaction_indices == [[0, 1]]
 
     data_model = DataModel([{'field' : 'a', 
                              'variable name' : 'a', 
@@ -64,8 +63,7 @@ class DataModelTest(unittest.TestCase) :
                             {'type' : 'Interaction', 
                              'interaction variables' : ['a', 'b']}])
 
-    #print data_model['fields']
-    assert data_model['fields'][2].has_missing == True
+    assert data_model._missing_field_indices == [0, 2]
 
     data_model = DataModel([{'field' : 'a', 
                              'variable name' : 'a', 
@@ -77,8 +75,7 @@ class DataModelTest(unittest.TestCase) :
                             {'type' : 'Interaction', 
                              'interaction variables' : ['a', 'b']}])
 
-
-    assert data_model['fields'][2].has_missing == False
+    assert data_model._missing_field_indices == []
 
 
 class ConnectedComponentsTest(unittest.TestCase) :

@@ -27,7 +27,7 @@ class DataModel(object) :
         variables += missing(variables)
 
         self._missing_field_indices = missing_field_indices(variables)
-        self._interactions = interaction_indices(variables) 
+        self._interaction_indices = interaction_indices(variables) 
 
         self._variables = variables
 
@@ -50,7 +50,7 @@ class DataModel(object) :
 
         return comparators
 
-    def predicates(self, index_predicates, canopies) :
+    def predicates(self, index_predicates=True, canopies=True) :
         predicates = set()
         for definition in self._primary_fields :
             for predicate in definition.predicates :
@@ -96,7 +96,7 @@ class DataModel(object) :
 
         current_column = self._derived_start
 
-        for interaction in self._interactions :
+        for interaction in self._interaction_indices :
             distances[:,current_column] =\
                     numpy.prod(distances[:,interaction], axis=1)
 
