@@ -109,22 +109,14 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
         return set_pairs
 
 
-def trainModel(training_data, data_model, learner=None, alpha=.001):
+def trainModel(training_data, data_model, classifier):
     """
-    Use logistic regression to train weights for all fields in the data model
+    Train Classifier
     """
-    
     labels = numpy.array(training_data['label'] == b'match', dtype='i4')
     examples = training_data['distances']
 
-    weight, bias = learner(labels, examples, alpha)
-
-    for i, field_definition in enumerate(data_model['fields']) :
-        field_definition.weight = float(weight[i])
-
-    data_model['bias'] = bias
-
-    return data_model
+    classifier.train(labels, examples)
 
 def fieldDistances(record_pairs, data_model=None):
     num_records = len(record_pairs)
@@ -170,18 +162,8 @@ def derivedDistances(primary_distances, data_model) :
 
     return distances
 
-
-def scorePairs(field_distances, data_model):
-    fields = data_model['fields']
-
-    field_weights = [field.weight for field in fields]
-    bias = data_model['bias']
-
-    scores = numpy.dot(field_distances, field_weights)
-
-    scores = numpy.exp(scores + bias) / (1 + numpy.exp(scores + bias))
-
-    return scores
+def scorePairs(field_distances, classifier):
+    return classifier.score(field_distances)
 
 class ScoreRecords(object) :
     def __init__(self, data_model, threshold) :

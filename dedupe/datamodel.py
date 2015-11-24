@@ -18,8 +18,6 @@ class DataModel(dict) :
 
     def __init__(self, fields):
 
-        self['bias'] = 0
-
         primary_fields, data_model = typifyFields(fields)
         self.derived_start = len(data_model)
 

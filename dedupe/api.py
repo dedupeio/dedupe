@@ -142,19 +142,6 @@ class Matching(object):
                                  "in a record" % field)
 
 
-    def _logLearnedWeights(self): # pragma: no cover
-        """
-        Log learned weights and bias terms
-        """
-        logger.info('Learned Weights')
-        for (key_1, value_1) in self.data_model.items():
-            try:
-                for field in value_1 :
-                    logger.info((field.name, field.weight))
-            except TypeError :
-                logger.info((key_1, value_1))
-
-
 class DedupeMatching(Matching) :
     """
     Class for Deduplication, extends Matching.
@@ -695,33 +682,12 @@ class ActiveMatching(Matching) :
         self._trainBlocker(ppc, uncovered_dupes, index_predicates)
 
     def _trainClassifier(self, alpha=None) : # pragma : no cover
+        labels = numpy.array(self.training_data['label'] == b'match', 
+                             dtype='i4')
+        examples = self.training_data['distances']
 
-        if alpha is None :
-            alpha = self._regularizer()
 
-        self.data_model = core.trainModel(self.training_data,
-                                          self.data_model, 
-                                          self.learner,
-                                          alpha)
-
-        self._logLearnedWeights()
-
-    def _regularizer(self) :
-        n_folds = min(numpy.sum(self.training_data['label']==u'match')/3,
-                      20)
-        n_folds = max(n_folds,
-                      2)
-
-        logger.info('%d folds', n_folds)
-
-        alpha = crossvalidation.gridSearch(self.training_data,
-                                           self.learner,
-                                           self.data_model, 
-                                           self.num_cores,
-                                           k=n_folds)
-
-        return alpha
-
+        self.classifier(labels, examples)
 
     
     def _trainBlocker(self, ppc=1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
