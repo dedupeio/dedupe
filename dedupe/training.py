@@ -45,12 +45,9 @@ class ActiveLearning(object) :
 
         self.candidates = candidates
 
-        fieldDistance = functools.partial(core.fieldDistances, 
-                                          data_model = data_model)
-
         pool = backport.Pool(num_processes)
         self.field_distances = numpy.concatenate(
-            pool.map(fieldDistance, 
+            pool.map(data_model.distances, 
                      chunker(candidates, 100),
                      2))
         
@@ -83,7 +80,7 @@ def semiSupervisedNonDuplicates(data_sample,
 
     def distinctPairs() :
         data_slice = data_sample[0:sample_size]
-        pair_distance = core.fieldDistances(data_slice, data_model)
+        pair_distance = data_model.distances(data_slice)
         scores = classifier.score(pair_distance)
 
         sample_n = 0
@@ -94,7 +91,7 @@ def semiSupervisedNonDuplicates(data_sample,
 
         if sample_n < sample_size and len(data_sample) > sample_size :
             for pair in data_sample[sample_size:] :
-                pair_distance = core.fieldDistances([pair], data_model)
+                pair_distance = data_model.distances([pair])
                 score = classifier.score(pair_distance)
                 
                 if score < confidence :

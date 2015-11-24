@@ -14,57 +14,112 @@ for _, module, _  in pkgutil.iter_modules(dedupe.variables.__path__,
 
 FIELD_CLASSES = dict(base.allSubclasses(base.FieldType))
 
-class DataModel(dict) :
+class DataModel(object) :
 
     def __init__(self, fields):
 
-        primary_fields, data_model = typifyFields(fields)
-        self.derived_start = len(data_model)
+        primary_fields, variables = typifyFields(fields)
+        self._primary_fields = primary_fields
+        self._derived_start = len(variables)
 
-        data_model += interactions(fields, primary_fields)
-        data_model += missing(data_model)
+        variables += interactions(fields, primary_fields)
+        variables += missing(variables)
 
-        self['fields'] = data_model
-        self.n_fields = len(self['fields'])
-        self.primary_fields = primary_fields
+        self._variables = variables
+
+        self._missing_field_indices = missing_field_indices(variables)
+        self._interactions = interactions(variables) :
+
+    def __len__(self) :
+        return len(self.variables)
 
     # Changing this from a property to just a normal attribute causes
     # pickling problems, because we are removing static methods from
     # their class context. This could be fixed by defining comparators
     # outside of classes in fieldclasses
     @property 
-    def field_comparators(self) :
+    def _field_comparators(self) :
         start = 0
         stop = 0
         comparators = []
-        for field in self.primary_fields :
+        for field in self._primary_fields :
             stop = start + len(field) 
             comparators.append((field.field, field.comparator, start, stop))
             start = stop
 
         return comparators
 
-    @property 
-    def missing_field_indices(self) : 
-        return [i for i, definition 
-                in enumerate(self['fields'])
-                if definition.has_missing]
+    def predicates(self, index_predicates, canopies) :
+        predicates = set()
+        for definition in self._primary_fields :
+            for predicate in definition.predicates :
+                if hasattr(predicate, 'index') :
+                    if index_predicates :
+                        if hasattr(predicate, 'canopy') :
+                            if canopies :
+                                predicates.add(predicate)
+                        else :
+                            if not canopies :
+                                predicates.add(predicate)
+                else :
+                    predicates.add(predicate)
 
-    @property
-    def interactions(self) :
-        indices = []
+        return predicates
 
-        fields = self['fields']
-        field_names = [field.name for field in fields]
 
-        for definition in fields :
-            if hasattr(definition, 'interaction_fields') :
-                interaction_indices = []
-                for interaction_field in definition.interaction_fields :
-                    interaction_indices.append(field_names.index(interaction_field))
-                indices.append(interaction_indices)
-                
-        return indices
+    def distances(self, record_pairs):
+        num_records = len(record_pairs)
+
+        distances = numpy.empty((num_records, len(self)))
+        field_comparators = self._field_comparators
+
+        for i, (record_1, record_2) in enumerate(record_pairs) :
+
+            for field, compare, start, stop in field_comparators :
+                if record_1[field] is not None and record_2[field] is not None :
+                    distances[i,start:stop] = compare(record_1[field],
+                                                      record_2[field])
+                elif hasattr(compare, 'missing') :
+                    distances[i,start:stop] = compare(record_1[field],
+                                                      record_2[field])
+                else :
+                    distances[i,start:stop] = numpy.nan
+
+
+        distances = self._derivedDistances(distances)
+
+        return distances
+
+    def _derivedDistances(self, primary_distances) :
+        distances = primary_distances
+
+        current_column = self._derived_start
+
+        for interaction in self._interactions :
+            distances[:,current_column] =\
+                    numpy.prod(distances[:,interaction], axis=1)
+
+            current_column += 1
+
+        missing_data = numpy.isnan(distances[:,:current_column])
+
+        distances[:,:current_column][missing_data] = 0
+
+        if data_model.missing_field_indices :
+            distances[:,current_column:] =\
+                1 - missing_data[:,self._missing_field_indices]
+
+        return distances
+
+
+    def check(self, record) :
+        for field_comparator in self._field_comparators :
+            field = field_comparator[0]
+            if field not in record :
+                raise ValueError("Records do not line up with data model. "
+                                 "The field '%s' is in data_model but not "
+                                 "in a record" % field)
+
 
 def typifyFields(fields) :
     primary_fields = []
@@ -129,6 +184,27 @@ def interactions(definitions, primary_fields) :
             interactions.extend(field.higher_vars)
 
     return interactions
+
+def missing_field_indices(variables) : 
+    return [i for i, definition 
+            in enumerate(variables)
+            if definition.has_missing]
+
+def interactions(variables) :
+    indices = []
+
+    field_names = [field.name for field in variables]
+
+    for definition in variables :
+        if hasattr(definition, 'interaction_fields') :
+            interaction_indices = []
+            for interaction_field in definition.interaction_fields :
+                interaction_indices.append(field_names.index(interaction_field))
+            indices.append(interaction_indices)
+
+    return indices
+
+
 
 
 

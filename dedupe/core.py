@@ -109,53 +109,11 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
         return set_pairs
 
 
-def fieldDistances(record_pairs, data_model=None):
-    num_records = len(record_pairs)
-
-    distances = numpy.empty((num_records, data_model.n_fields))
-    field_comparators = data_model.field_comparators
-
-    for i, (record_1, record_2) in enumerate(record_pairs) :
-        
-        for field, compare, start, stop in field_comparators :
-            if record_1[field] is not None and record_2[field] is not None :
-                distances[i,start:stop] = compare(record_1[field],
-                                                  record_2[field])
-            elif hasattr(compare, 'missing') :
-                distances[i,start:stop] = compare(record_1[field],
-                                                  record_2[field])
-            else :
-                distances[i,start:stop] = numpy.nan
-
-    
-    distances = derivedDistances(distances, data_model)
-
-    return distances
-
-def derivedDistances(primary_distances, data_model) :
-    distances = primary_distances
-
-    current_column = data_model.derived_start
-
-    for interaction in data_model.interactions :
-        distances[:,current_column] =\
-                numpy.prod(distances[:,interaction], axis=1)
-
-        current_column += 1
-
-    missing_data = numpy.isnan(distances[:,:current_column])
-
-    distances[:,:current_column][missing_data] = 0
-
-    if data_model.missing_field_indices :
-        distances[:,current_column:] =\
-            1 - missing_data[:,data_model.missing_field_indices]
-
-    return distances
 
 class ScoreRecords(object) :
-    def __init__(self, data_model, threshold) :
+    def __init__(self, data_model, classifier, threshold) :
         self.data_model = data_model
+        self.classifer = classifier
         self.threshold = threshold
         self.score_queue = None
 
@@ -190,7 +148,7 @@ class ScoreRecords(object) :
                 records.append((record_1, record_2))
 
         if records :
-            distances = fieldDistances(records, self.data_model)
+            distances = self.data_model.distances(records)
             scores = self.classifier.predict(distances)
 
             scored_pairs = numpy.rec.fromarrays((ids, scores),

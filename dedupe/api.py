@@ -133,13 +133,6 @@ class Matching(object):
         
         return clusters
 
-    def _checkRecordType(self, record) :
-        for field_comparator in self.data_model.field_comparators :
-            field = field_comparator[0]
-            if field not in record :
-                raise ValueError("Records do not line up with data model. "
-                                 "The field '%s' is in data_model but not "
-                                 "in a record" % field)
 
 
 class DedupeMatching(Matching) :
@@ -246,7 +239,7 @@ class DedupeMatching(Matching) :
                                  "smaller_ids must be a set")
 
         
-            self._checkRecordType(block[0][1])
+            self.data_model.check(block[0][1])
 
     def _blockData(self, data_d):
 
@@ -404,12 +397,12 @@ x        """
                 if len(base[0]) < 3 :
                     raise ValueError("Each sequence must be made up of 3-tuple "
                                      "like (record_id, record, covered_blocks)")
-                self._checkRecordType(base[0][1])
+                self.data_model.check(base[0][1])
             if target :
                 if len(target[0]) < 3 :
                     raise ValueError("Each sequence must be made up of 3-tuple "
                                      "like (record_id, record, covered_blocks)")
-                self._checkRecordType(target[0][1])
+                self.data_model.check(target[0][1])
 
     def _blockGenerator(self, messy_data, blocked_records) :
         block_groups = itertools.groupby(self.blocker(viewitems(messy_data)), 
@@ -597,13 +590,13 @@ class ActiveMatching(Matching) :
 
         training_dtype = [('label', 'S8'), 
                           ('distances', 'f4', 
-                           (len(self.data_model['fields']), ))]
+                           (len(self.data_model), ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = OrderedDict({u'distinct': [], 
                                            u'match': []})
 
-        self.learner = rlr.lr
+        self.classifier = rlr.lr
         self.blocker = None
 
 
@@ -699,9 +692,8 @@ class ActiveMatching(Matching) :
 
         training_pairs[u'distinct'].extend(confident_nonduplicates)
 
-        predicate_set = predicateGenerator(self.data_model, 
-                                           index_predicates,
-                                           self.canopies)
+        predicate_set = self.data_model.predicates(index_predicates,
+                                                   self.canopies)
 
         (self.predicates, 
          self.stop_words) = dedupe.training.blockTraining(training_pairs,
@@ -831,8 +823,8 @@ class ActiveMatching(Matching) :
             raise ValueError("A pair of record_pairs must be made up of two "
                              "dictionaries ")
 
-        self._checkRecordType(record_pair[0])
-        self._checkRecordType(record_pair[1])
+        self.data_model.check(record_pair[0])
+        self.data_model.check(record_pair[1])
 
     def  _checkDataSample(self, data_sample) :
         try :
@@ -862,8 +854,7 @@ class ActiveMatching(Matching) :
                                    dtype=self.training_data.dtype)
 
             new_data['label'] = labels
-            new_data['distances'] = core.fieldDistances(examples, 
-                                                        self.data_model)
+            new_data['distances'] = self.data_model.distances(examples)
 
             self.training_data = numpy.append(self.training_data, 
                                               new_data)
@@ -911,9 +902,8 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         data = core.index(data)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(predicateGenerator(self.data_model, 
-                                             index_predicates=False,
-                                             canopies=self.canopies))
+        predicates = list(self.data_model.predicates(index_predicates=False,
+                                                             canopies=self.canopies))
 
 
         data = sampling.randomDeque(data)
@@ -984,9 +974,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         data_2 = core.index(data_2, offset)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(predicateGenerator(self.data_model, 
-                                             index_predicates=False,
-                                             canopies=self.canopies))
+        predicates = list(self.data_model.predicates(index_predicates=False,
+                                                     canopies=self.canopies))
 
         data_1 = sampling.randomDeque(data_1)
         data_2 = sampling.randomDeque(data_2)
@@ -1092,23 +1081,6 @@ class Gazetteer(RecordLink, GazetteerMatching):
 
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
-
-def predicateGenerator(data_model, index_predicates, canopies) :
-    predicates = set()
-    for definition in data_model.primary_fields :
-        for predicate in definition.predicates :
-            if hasattr(predicate, 'index') :
-                if index_predicates :
-                    if hasattr(predicate, 'canopy') :
-                        if canopies :
-                            predicates.add(predicate)
-                    else :
-                        if not canopies :
-                            predicates.add(predicate)
-            else :
-                predicates.add(predicate)
-
-    return predicates
 
 class EmptyTrainingException(Exception) :
     pass
