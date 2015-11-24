@@ -109,15 +109,6 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
         return set_pairs
 
 
-def trainModel(training_data, data_model, classifier):
-    """
-    Train Classifier
-    """
-    labels = numpy.array(training_data['label'] == b'match', dtype='i4')
-    examples = training_data['distances']
-
-    classifier.train(labels, examples)
-
 def fieldDistances(record_pairs, data_model=None):
     num_records = len(record_pairs)
 
@@ -162,9 +153,6 @@ def derivedDistances(primary_distances, data_model) :
 
     return distances
 
-def scorePairs(field_distances, classifier):
-    return classifier.score(field_distances)
-
 class ScoreRecords(object) :
     def __init__(self, data_model, threshold) :
         self.data_model = data_model
@@ -203,7 +191,7 @@ class ScoreRecords(object) :
 
         if records :
             distances = fieldDistances(records, self.data_model)
-            scores = scorePairs(distances, self.data_model)
+            scores = self.classifier.predict(distances)
 
             scored_pairs = numpy.rec.fromarrays((ids, scores),
                                                 dtype= [('pairs', 'object', 2), 
