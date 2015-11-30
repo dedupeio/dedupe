@@ -109,83 +109,11 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
         return set_pairs
 
 
-def trainModel(training_data, data_model, learner=None, alpha=.001):
-    """
-    Use logistic regression to train weights for all fields in the data model
-    """
-    
-    labels = numpy.array(training_data['label'] == b'match', dtype='i4')
-    examples = training_data['distances']
-
-    weight, bias = learner(labels, examples, alpha)
-
-    for i, field_definition in enumerate(data_model['fields']) :
-        field_definition.weight = float(weight[i])
-
-    data_model['bias'] = bias
-
-    return data_model
-
-def fieldDistances(record_pairs, data_model=None):
-    num_records = len(record_pairs)
-
-    distances = numpy.empty((num_records, data_model.n_fields))
-    field_comparators = data_model.field_comparators
-
-    for i, (record_1, record_2) in enumerate(record_pairs) :
-        
-        for field, compare, start, stop in field_comparators :
-            if record_1[field] is not None and record_2[field] is not None :
-                distances[i,start:stop] = compare(record_1[field],
-                                                  record_2[field])
-            elif hasattr(compare, 'missing') :
-                distances[i,start:stop] = compare(record_1[field],
-                                                  record_2[field])
-            else :
-                distances[i,start:stop] = numpy.nan
-
-    
-    distances = derivedDistances(distances, data_model)
-
-    return distances
-
-def derivedDistances(primary_distances, data_model) :
-    distances = primary_distances
-
-    current_column = data_model.derived_start
-
-    for interaction in data_model.interactions :
-        distances[:,current_column] =\
-                numpy.prod(distances[:,interaction], axis=1)
-
-        current_column += 1
-
-    missing_data = numpy.isnan(distances[:,:current_column])
-
-    distances[:,:current_column][missing_data] = 0
-
-    if data_model.missing_field_indices :
-        distances[:,current_column:] =\
-            1 - missing_data[:,data_model.missing_field_indices]
-
-    return distances
-
-
-def scorePairs(field_distances, data_model):
-    fields = data_model['fields']
-
-    field_weights = [field.weight for field in fields]
-    bias = data_model['bias']
-
-    scores = numpy.dot(field_distances, field_weights)
-
-    scores = numpy.exp(scores + bias) / (1 + numpy.exp(scores + bias))
-
-    return scores
 
 class ScoreRecords(object) :
-    def __init__(self, data_model, threshold) :
+    def __init__(self, data_model, classifier, threshold) :
         self.data_model = data_model
+        self.classifier = classifier
         self.threshold = threshold
         self.score_queue = None
 
@@ -220,8 +148,8 @@ class ScoreRecords(object) :
                 records.append((record_1, record_2))
 
         if records :
-            distances = fieldDistances(records, self.data_model)
-            scores = scorePairs(distances, self.data_model)
+            distances = self.data_model.distances(records)
+            scores = self.classifier.predict_proba(distances)[:,-1]
 
             scored_pairs = numpy.rec.fromarrays((ids, scores),
                                                 dtype= [('pairs', 'object', 2), 
@@ -272,7 +200,7 @@ def mergeScores(score_queue, result_queue, stop_signals) :
     else :
         result_queue.put(scored_pairs)
 
-def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
+def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     if num_cores < 2 :
         from multiprocessing.dummy import Process, Pool, Queue
         SimpleQueue = Queue
@@ -284,7 +212,7 @@ def scoreDuplicates(records, data_model, num_cores=1, threshold=0) :
     result_queue = SimpleQueue()
 
     n_map_processes = max(num_cores-1, 1)
-    score_records = ScoreRecords(data_model, threshold) 
+    score_records = ScoreRecords(data_model, classifier, threshold) 
     map_processes = [Process(target=score_records,
                              args=(record_pairs_queue,
                                    score_queue))

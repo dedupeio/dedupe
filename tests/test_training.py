@@ -9,7 +9,10 @@ class SemiSupervisedNonDuplicates(unittest.TestCase) :
     def test_empty_sample(self) :
 
         assert len(list(self.sSND(self.deduper.data_sample, 
-                                  self.deduper.data_model, 0.7, 2000))) == 0
+                                  self.deduper.data_model, 
+                                  self.deduper.classifier,
+                                  0.7, 
+                                  2000))) == 0
 
 
 if __name__ == "__main__":

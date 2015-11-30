@@ -14,7 +14,7 @@ import random
 
 logger = logging.getLogger(__name__)
 
-def findUncertainPairs(field_distances, data_model, bias=0.5):
+def findUncertainPairs(field_distances, classifier, bias=0.5):
     """
     Given a set of field distances and a data model return the
     indices of the record pairs in order of uncertainty. For example,
@@ -22,7 +22,7 @@ def findUncertainPairs(field_distances, data_model, bias=0.5):
     least certainty whether the pair are duplicates or distinct.
     """
 
-    probability = core.scorePairs(field_distances, data_model)
+    probability = classifier.predict_proba(field_distances)[:,-1]
 
     p_max = (1 - bias)
     logger.info(p_max)
@@ -45,12 +45,9 @@ class ActiveLearning(object) :
 
         self.candidates = candidates
 
-        fieldDistance = functools.partial(core.fieldDistances, 
-                                          data_model = data_model)
-
         pool = backport.Pool(num_processes)
         self.field_distances = numpy.concatenate(
-            pool.map(fieldDistance, 
+            pool.map(data_model.distances, 
                      chunker(candidates, 100),
                      2))
         
@@ -58,9 +55,9 @@ class ActiveLearning(object) :
 
         self.seen_indices = set()
 
-    def uncertainPairs(self, data_model, dupe_proportion) :
+    def uncertainPairs(self, classifier, dupe_proportion) :
         uncertain_indices = findUncertainPairs(self.field_distances,
-                                               data_model,
+                                               classifier,
                                                dupe_proportion)
 
         for uncertain_index in uncertain_indices:
@@ -75,6 +72,7 @@ class ActiveLearning(object) :
 
 def semiSupervisedNonDuplicates(data_sample,
                                 data_model,
+                                classifier,
                                 nonduplicate_confidence_threshold=.9,
                                 sample_size=2000):
 
@@ -82,8 +80,8 @@ def semiSupervisedNonDuplicates(data_sample,
 
     def distinctPairs() :
         data_slice = data_sample[0:sample_size]
-        pair_distance = core.fieldDistances(data_slice, data_model)
-        scores = core.scorePairs(pair_distance, data_model)
+        pair_distance = data_model.distances(data_slice)
+        scores = classifier.predict_proba(pair_distance)[:,-1]
 
         sample_n = 0
         for score, pair in zip(scores, data_sample) :
@@ -93,8 +91,8 @@ def semiSupervisedNonDuplicates(data_sample,
 
         if sample_n < sample_size and len(data_sample) > sample_size :
             for pair in data_sample[sample_size:] :
-                pair_distance = core.fieldDistances([pair], data_model)
-                score = core.scorePairs(pair_distance, data_model)
+                pair_distance = data_model.distances([pair])
+                score = classifier.predict_proba(pair_distance)[:,-1]
                 
                 if score < confidence :
                     yield (pair)

@@ -25,7 +25,6 @@ import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
-import dedupe.crossvalidation as crossvalidation
 import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
@@ -67,6 +66,7 @@ class Matching(object):
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks), 
                                            self.data_model, 
+                                           self.classifier,
                                            self.num_cores)['score']
 
         probability.sort()
@@ -116,6 +116,7 @@ class Matching(object):
         
         matches = core.scoreDuplicates(candidate_records,
                                        self.data_model,
+                                       self.classifier,
                                        self.num_cores,
                                        threshold)
 
@@ -133,26 +134,6 @@ class Matching(object):
         
         return clusters
 
-    def _checkRecordType(self, record) :
-        for field_comparator in self.data_model.field_comparators :
-            field = field_comparator[0]
-            if field not in record :
-                raise ValueError("Records do not line up with data model. "
-                                 "The field '%s' is in data_model but not "
-                                 "in a record" % field)
-
-
-    def _logLearnedWeights(self): # pragma: no cover
-        """
-        Log learned weights and bias terms
-        """
-        logger.info('Learned Weights')
-        for (key_1, value_1) in self.data_model.items():
-            try:
-                for field in value_1 :
-                    logger.info((field.name, field.weight))
-            except TypeError :
-                logger.info((key_1, value_1))
 
 
 class DedupeMatching(Matching) :
@@ -259,7 +240,7 @@ class DedupeMatching(Matching) :
                                  "smaller_ids must be a set")
 
         
-            self._checkRecordType(block[0][1])
+            self.data_model.check(block[0][1])
 
     def _blockData(self, data_d):
 
@@ -417,12 +398,12 @@ x        """
                 if len(base[0]) < 3 :
                     raise ValueError("Each sequence must be made up of 3-tuple "
                                      "like (record_id, record, covered_blocks)")
-                self._checkRecordType(base[0][1])
+                self.data_model.check(base[0][1])
             if target :
                 if len(target[0]) < 3 :
                     raise ValueError("Each sequence must be made up of 3-tuple "
                                      "like (record_id, record, covered_blocks)")
-                self._checkRecordType(target[0][1])
+                self.data_model.check(target[0][1])
 
     def _blockGenerator(self, messy_data, blocked_records) :
         block_groups = itertools.groupby(self.blocker(viewitems(messy_data)), 
@@ -504,18 +485,17 @@ class StaticMatching(Matching) :
 
         try:
             self.data_model = pickle.load(settings_file)
+            self.classifier = pickle.load(settings_file)
             self.predicates = pickle.load(settings_file)
             self.stop_words = pickle.load(settings_file)
         except (KeyError, AttributeError) :
-            raise ValueError("This settings file is not compatible with "
-                             "the current version of dedupe. This can happen "
-                             "if you have recently upgraded dedupe.")
+            raise SettingsFileLoadingException("This settings file is not compatible with "
+                                               "the current version of dedupe. This can happen "
+                                               "if you have recently upgraded dedupe.")
         except :
-            print("Something has gone wrong with loading the settings file")
-            raise
+            raise SettingsFileLoadingException("Something has gone wrong with loading the settings file. Try deleting the file")
                              
 
-        self._logLearnedWeights()
         logger.info(self.predicates)
         logger.info(self.stop_words)
 
@@ -527,6 +507,8 @@ class StaticMatching(Matching) :
 
 
 class ActiveMatching(Matching) :
+    classifier = rlr.RegularizedLogisticRegression()
+
     """
     Class for training dedupe extends Matching.
     
@@ -610,13 +592,12 @@ class ActiveMatching(Matching) :
 
         training_dtype = [('label', 'S8'), 
                           ('distances', 'f4', 
-                           (len(self.data_model['fields']), ))]
+                           (len(self.data_model), ))]
 
         self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = OrderedDict({u'distinct': [], 
                                            u'match': []})
 
-        self.learner = rlr.lr
         self.blocker = None
 
 
@@ -695,33 +676,11 @@ class ActiveMatching(Matching) :
         self._trainBlocker(ppc, uncovered_dupes, index_predicates)
 
     def _trainClassifier(self, alpha=None) : # pragma : no cover
+        labels = numpy.array(self.training_data['label'] == b'match', 
+                             dtype='i4')
+        examples = self.training_data['distances']
 
-        if alpha is None :
-            alpha = self._regularizer()
-
-        self.data_model = core.trainModel(self.training_data,
-                                          self.data_model, 
-                                          self.learner,
-                                          alpha)
-
-        self._logLearnedWeights()
-
-    def _regularizer(self) :
-        n_folds = min(numpy.sum(self.training_data['label']==u'match')/3,
-                      20)
-        n_folds = max(n_folds,
-                      2)
-
-        logger.info('%d folds', n_folds)
-
-        alpha = crossvalidation.gridSearch(self.training_data,
-                                           self.learner,
-                                           self.data_model, 
-                                           self.num_cores,
-                                           k=n_folds)
-
-        return alpha
-
+        self.classifier.fit(examples, labels)
 
     
     def _trainBlocker(self, ppc=1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
@@ -729,13 +688,13 @@ class ActiveMatching(Matching) :
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
                                                                        self.data_model,
+                                                                       self.classifier,
                                                                        sample_size=32000)
 
         training_pairs[u'distinct'].extend(confident_nonduplicates)
 
-        predicate_set = predicateGenerator(self.data_model, 
-                                           index_predicates,
-                                           self.canopies)
+        predicate_set = self.data_model.predicates(index_predicates,
+                                                   self.canopies)
 
         (self.predicates, 
          self.stop_words) = dedupe.training.blockTraining(training_pairs,
@@ -758,6 +717,7 @@ class ActiveMatching(Matching) :
         """
 
         pickle.dump(self.data_model, file_obj)
+        pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
         pickle.dump(dict(self.stop_words), file_obj)
 
@@ -809,7 +769,7 @@ class ActiveMatching(Matching) :
         bias = ((0.5 * min_examples + bias * regularizer)
                 /(min_examples + regularizer))
 
-        return self.activeLearner.uncertainPairs(self.data_model, bias)
+        return self.activeLearner.uncertainPairs(self.classifier, bias)
 
     def markPairs(self, labeled_pairs) :
         '''
@@ -865,8 +825,8 @@ class ActiveMatching(Matching) :
             raise ValueError("A pair of record_pairs must be made up of two "
                              "dictionaries ")
 
-        self._checkRecordType(record_pair[0])
-        self._checkRecordType(record_pair[1])
+        self.data_model.check(record_pair[0])
+        self.data_model.check(record_pair[1])
 
     def  _checkDataSample(self, data_sample) :
         try :
@@ -896,8 +856,7 @@ class ActiveMatching(Matching) :
                                    dtype=self.training_data.dtype)
 
             new_data['label'] = labels
-            new_data['distances'] = core.fieldDistances(examples, 
-                                                        self.data_model)
+            new_data['distances'] = self.data_model.distances(examples)
 
             self.training_data = numpy.append(self.training_data, 
                                               new_data)
@@ -945,9 +904,8 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         data = core.index(data)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(predicateGenerator(self.data_model, 
-                                             index_predicates=False,
-                                             canopies=self.canopies))
+        predicates = list(self.data_model.predicates(index_predicates=False,
+                                                             canopies=self.canopies))
 
 
         data = sampling.randomDeque(data)
@@ -1018,9 +976,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         data_2 = core.index(data_2, offset)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(predicateGenerator(self.data_model, 
-                                             index_predicates=False,
-                                             canopies=self.canopies))
+        predicates = list(self.data_model.predicates(index_predicates=False,
+                                                     canopies=self.canopies))
 
         data_1 = sampling.randomDeque(data_1)
         data_2 = sampling.randomDeque(data_2)
@@ -1127,22 +1084,8 @@ class Gazetteer(RecordLink, GazetteerMatching):
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
     pass
 
-def predicateGenerator(data_model, index_predicates, canopies) :
-    predicates = set()
-    for definition in data_model.primary_fields :
-        for predicate in definition.predicates :
-            if hasattr(predicate, 'index') :
-                if index_predicates :
-                    if hasattr(predicate, 'canopy') :
-                        if canopies :
-                            predicates.add(predicate)
-                    else :
-                        if not canopies :
-                            predicates.add(predicate)
-            else :
-                predicates.add(predicate)
-
-    return predicates
-
 class EmptyTrainingException(Exception) :
+    pass
+
+class SettingsFileLoadingException(Exception) :
     pass
