@@ -640,7 +640,7 @@ class ActiveMatching(Matching) :
 
         self._addTrainingData(training_pairs)
 
-        self._trainClassifier(0.1)
+        self._trainClassifier()
 
     def train(self, ppc=.1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
         """Keyword arguments:
@@ -675,7 +675,7 @@ class ActiveMatching(Matching) :
         self._trainClassifier()
         self._trainBlocker(ppc, uncovered_dupes, index_predicates)
 
-    def _trainClassifier(self, alpha=None) : # pragma : no cover
+    def _trainClassifier(self) : # pragma : no cover
         labels = numpy.array(self.training_data['label'] == b'match', 
                              dtype='i4')
         examples = self.training_data['distances']
@@ -754,7 +754,7 @@ class ActiveMatching(Matching) :
                                    u'distinct':[random_pair]})
 
 
-        self._trainClassifier(0.1)
+        self._trainClassifier()
 
         bias = len(self.training_pairs[u'match'])
         if bias :
