@@ -751,7 +751,7 @@ class ActiveMatching(Matching) :
             random_pair = self.data_sample[rand_int]
             exact_match = (random_pair[0], random_pair[0]) 
             self._addTrainingData({u'match':[exact_match, exact_match],
-                                   u'distinct':[]})
+                                   u'distinct':[random_pair]})
 
 
         self._trainClassifier(0.1)
