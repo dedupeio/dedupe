@@ -6,6 +6,7 @@ import collections
 import itertools
 import logging
 import time
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +19,13 @@ class Blocker:
                  stop_words = None) :
 
         if stop_words is None :
-            stop_words = defaultdict(lambda : defaultdict(set))
+            stop_words = defaultdict(partial(defaultdict, set))
 
         self.predicates = predicates
 
         self.stop_words = stop_words
 
-        self.index_fields = defaultdict(lambda:defaultdict(set))
+        self.index_fields = defaultdict(partial(defaultdict, set))
 
         for full_predicate in predicates :
             for predicate in full_predicate :
