@@ -4,40 +4,28 @@ Mac OS X Install Notes
 
 
 Apple’s implementation of `BLAS <http://en.wikipedia.org/wiki/BLAS>`__
-does not support using `BLAS calls on both sides of a
-fork <http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html>`__.
-The upshot of this is that, when using NumPy functions that rely on BLAS
-calls within a forked process (such as ones created when you push a job
-into a multiprocessing pool) the fork might never actually fully exit.
-Which means you end up with orphaned processes until the process that
-was originally forked exits. Since under the hood Dedupe relies upon
-NumPy calls within a multiprocessing pool, this can be an issue if you
-are planning on running something like a daemon process that then forks
-off processes that run Dedupe.
+does not support using `BLAS calls on both sides of a fork
+<http://mail.scipy.org/pipermail/numpy-discussion/2012-August/063589.html>`__.
+
+The upshot of this is that you can't do parallel processing with numpy
+(which uses BLAS).
 
 One way to get around this is to compile NumPy against a different
 implementation of BLAS such as
 `OpenBLAS <https://github.com/xianyi/OpenBLAS>`__. Here’s how you might
 go about that:
 
-Clone and build OpenBLAS source with ``USE_OPENMP=0`` flag
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Install OpenBlas with Homebrew Science
+~~~~~~~~~~~~~~~~~~~~~
+You can install OpenBlas from with Homebrew Science.
 
 .. code:: bash
 
-    $ git clone https://github.com/xianyi/OpenBLAS.git
-    $ cd OpenBLAS
-    $ make USE_OPENMP=0 (or `make BINARY=64 USE_OPENMP=0` for 64 bit)
-    $ mkdir /usr/local/opt/openblas # Change this to suit your needs
-    $ make PREFIX=/usr/local/opt/openblas install # Make sure this matches the path above
+    $ brew install homebrew/science/openblas
+
 
 Clone and build NumPy
 ~~~~~~~~~~~~~~~~~~~~~
-
-Make sure it knows where you just built OpenBLAS. This involves editing
-the site.cfg file within the NumPy source (see
-http://stackoverflow.com/a/14391693/1907889 for details). The paths that
-you’ll enter in there are relative to the ones used in step one above.
 
 .. code:: bash
 
@@ -55,6 +43,10 @@ Edit site.cfg and uncomment/update the code to match below:
     library_dirs = /usr/local/opt/openblas/lib
     include_dirs = /usr/local/opt/openblas/include
 
+You may need to change the ``library_dirs`` and ``include_dirs`` paths
+to match where you installed OpenBlas (see
+http://stackoverflow.com/a/14391693/1907889 for details).
+
 Then install with:
 
 ::
@@ -68,9 +60,4 @@ Then reinstall Dedupe:
     pip uninstall Dedupe
     python setup.py install
 
-The `Homebrew Science <https://github.com/Homebrew/homebrew-science>`__
-formulae also offer an OpenBLAS formula. Installing is simple:
 
-::
-
-    brew install homebrew/science/openblas
