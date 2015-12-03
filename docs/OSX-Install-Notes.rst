@@ -69,11 +69,8 @@ Then reinstall Dedupe:
     python setup.py install
 
 The `Homebrew Science <https://github.com/Homebrew/homebrew-science>`__
-formulae also offer an OpenBLAS formula but as of this writing it `was
-still
-referencing <https://github.com/Homebrew/homebrew-science/blob/master/openblas.rb>`__
-the current release of OpenBLAS (0.2.8) which does not include a fix for
-`a bug <https://github.com/xianyi/OpenBLAS/issues/294>`__ which is the
-whole reason this is necessary in the first place. Once that fix is
-rolled into a release and the Homebrew formula is updated, this will be
-a better approach to getting this setup.
+formulae also offer an OpenBLAS formula. Installing is simple:
+
+::
+
+    brew install homebrew/science/openblas
