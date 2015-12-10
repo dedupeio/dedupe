@@ -85,7 +85,7 @@ Example custom comparator:
 
 .. code:: python
 
-  python def sameOrNotComparator(field_1, field_2) :     
+  def sameOrNotComparator(field_1, field_2) :     
     if field_1 and field_2 :         
         if field_1 == field_2 :             
             return 0         
