@@ -378,7 +378,8 @@ def stopWords(data, indices) :
         tf_index = index.CanopyIndex([])
 
         for i, doc in enumerate(data, 1) :
-            tf_index.index_doc(i, processor(doc))
+            if doc :
+                tf_index.index_doc(i, processor(doc))
 
         doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
                     for word, wid in tf_index.lexicon.items()]

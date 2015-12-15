@@ -31,7 +31,6 @@ class Blocker:
                 if hasattr(predicate, 'index') :
                     self.index_fields[predicate.field][predicate.type].add(predicate)
 
-    #@profile
     def __call__(self, records):
 
         start_time = time.clock()
@@ -70,8 +69,9 @@ class Blocker:
                                  self.stop_words[field])
 
         for doc in data :
-            for _, index, preprocess in indices :
-                index.index(preprocess(doc))
+            if doc :
+                for _, index, preprocess in indices :
+                    index.index(preprocess(doc))
 
         for index_type, index, _ in indices :
 
@@ -86,8 +86,9 @@ class Blocker:
         indices = extractIndices(self.index_fields[field])
 
         for doc in data :
-            for _, index, preprocess in indices :
-                index.unindex(preprocess(doc))
+            if doc :
+                for _, index, preprocess in indices :
+                    index.unindex(preprocess(doc))
 
         for index_type, index, _ in indices :
 
