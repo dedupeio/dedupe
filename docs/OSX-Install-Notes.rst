@@ -38,6 +38,14 @@ Edit site.cfg and uncomment/update the code to match below:
 
 ::
 
+    [DEFAULT]
+    library_dirs = /usr/local/opt/openblas/lib
+    include_dirs = /usr/local/opt/openblas/include
+
+    [atlas]
+    atlas_libs = openblas
+    libraries = openblas
+
     [openblas]
     libraries = openblas
     library_dirs = /usr/local/opt/openblas/lib
