@@ -6,6 +6,7 @@ from builtins import input
 import collections
 import itertools
 import random
+import sys
 from dedupe.core import randomPairs
 from canonicalize.centroid import getCanonicalRep
 
@@ -33,13 +34,14 @@ def consoleLabel(deduper): # pragma : no cover
                 for field in set(field.field for field 
                                  in deduper.data_model.primary_fields) :
                     line = "%s : %s" % (field, pair[field])
-                    print(line)
-                print() 
+                    print(line, file=sys.stderr)
+                print(file=sys.stderr) 
 
-            print('Do these records refer to the same thing?')
+            print('Do these records refer to the same thing?', file=sys.stderr)
             valid_response = False
             while not valid_response:
-                label = input('(y)es / (n)o / (u)nsure / (f)inished\n')
+                print('(y)es / (n)o / (u)nsure / (f)inished', file=sys.stderr)
+                label = input()
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
 
@@ -50,10 +52,10 @@ def consoleLabel(deduper): # pragma : no cover
                 labels['distinct'].append(record_pair)
                 labeled = True
             elif label == 'f':
-                print('Finished labeling')
+                print('Finished labeling', file=sys.stderr)
                 finished = True
             elif label != 'u':
-                print('Nonvalid response')
+                print('Nonvalid response', file=sys.stderr)
                 raise
 
         if labeled :
