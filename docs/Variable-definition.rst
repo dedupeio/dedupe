@@ -151,11 +151,11 @@ are good when the effect of two predictors is not simply additive.
 
 .. code:: python
 
-    [{'field' : 'Name', 'variable name' : 'name', : 'type': 'String'},
-     {'field' : 'Zip', 'variable name' : 'zip',  :'type': 'Custom', 
+    [{'field': 'Name', 'variable name': 'name', 'type': 'String'},
+     {'field': 'Zip', 'variable name': 'zip', 'type': 'Custom', 
       'comparator' : sameOrNotComparator},
      {'type': 'Interaction', 
-      'interaction variables' : ['name', 'zip']}} 
+      'interaction variables': ['name', 'zip']}]
 
 Exact
 ^^^^^
