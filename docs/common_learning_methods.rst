@@ -98,7 +98,7 @@
 
    .. code:: python
 
-      with open('./my_training.json', 'rb') as f:
+      with open('./my_training.json') as f:
           deduper.readTraining(f)
 
 .. py:method:: writeSettings(file_obj)
