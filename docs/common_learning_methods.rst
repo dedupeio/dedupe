@@ -87,7 +87,7 @@
 
    .. code:: python
 
-      with open('./my_training.json', 'wb') as f:
+      with open('./my_training.json', 'w') as f:
           deduper.writeTraining(f)
 
 .. py:method:: readTraining(training_file)
