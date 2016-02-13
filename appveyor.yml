@@ -10,12 +10,12 @@ environment:
   
 
 install:
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%;C:\\MinGW\\bin;C:\\MinGW\\mingw32\\bin;C:\\MinGW\\msys\\1.0\\bin"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
   - powershell .\\appveyor\\install.ps1
-  - pip install -i https://pypi.anaconda.org/carlkl/simple numpy
+  - pip install http://nipy.bic.berkeley.edu/scipy_installers/atlas_builds/numpy-1.10.4-cp27-none-win32.whl
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
-  - pip install --global-option build_ext --global-option --compiler=mingw32 -e . 
+  - pip install -e . 
 
 build: false
 
