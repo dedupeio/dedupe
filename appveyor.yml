@@ -7,11 +7,10 @@ environment:
     - PYTHON: "C:\\Python27_32"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
-      Compiler: mingw
   
 
 install:
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%;C:\MinGW\bin;C:\MinGW\mingw32\bin;C:\MinGW\msys\1.0\bin"
   - powershell .\\appveyor\\install.ps1
   - pip install -i https://pypi.anaconda.org/carlkl/simple numpy
   - pip install -r requirements.txt
