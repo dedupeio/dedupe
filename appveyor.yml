@@ -16,7 +16,7 @@ install:
   - pip install -i https://pypi.anaconda.org/carlkl/simple numpy
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
-  - pip install -e .
+  - pip install --global-option build_ext --global-option --compiler=mingw32 -e . 
 
 build: false
 
