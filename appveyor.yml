@@ -10,7 +10,7 @@ environment:
   
 
 install:
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%;C:\MinGW\bin;C:\MinGW\mingw32\bin;C:\MinGW\msys\1.0\bin"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%;C:\\MinGW\\bin;C:\\MinGW\\mingw32\\bin;C:\\MinGW\\msys\\1.0\\bin"
   - powershell .\\appveyor\\install.ps1
   - pip install -i https://pypi.anaconda.org/carlkl/simple numpy
   - pip install -r requirements.txt
