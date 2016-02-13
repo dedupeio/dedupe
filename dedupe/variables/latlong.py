@@ -7,5 +7,7 @@ class LatLongType(FieldType) :
 
     _predicate_functions = [predicates.latLongGridPredicate]
 
-    comparator = haversine
+    @staticmethod
+    def comparator(x, y) :
+        return haversine(x, y)
 
