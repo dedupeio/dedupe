@@ -86,7 +86,8 @@ else:
     fields = [{'field' : 'name', 'type': 'String'},
               {'field' : 'name', 'type': 'Exact'},
               {'field' : 'address', 'type': 'String'},
-              {'field' : 'cuisine', 'type': 'ShortString'},
+              {'field' : 'cuisine', 'type': 'ShortString', 
+               'has missing' : True},
               {'field' : 'city', 'type' : 'ShortString'}
               ]
 

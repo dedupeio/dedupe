@@ -13,12 +13,9 @@ logger = logging.getLogger(__name__)
 
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
-    def __init__(self, 
-                 predicates, 
-                 stop_words = None) :
+    def __init__(self, predicates, stop_words = None) :
 
-        if stop_words is None :
-            stop_words = defaultdict(lambda : defaultdict(set))
+        stop_words = defaultdict(lambda : defaultdict(set))
 
         self.predicates = predicates
 
@@ -52,8 +49,6 @@ class Blocker:
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',
                              {'iteration' :i,
                               'elapsed' :time.clock() - start_time})
-
-
 
     def resetIndices(self) :
         # clear canopies to reduce memory usage

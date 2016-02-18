@@ -18,6 +18,7 @@ import collections
 import time
 import tempfile
 import os
+import functools
 
 import dedupe.backport as backport
 
@@ -327,7 +328,7 @@ def index(data, offset=0) :
                         viewvalues(data)))
         return data
 
-
+functools.total_ordering
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
@@ -345,6 +346,9 @@ class frozendict(collections.Mapping):
 
     def __repr__(self) :
         return u'<frozendict %s>' % repr(self._d)
+
+    def __lt__(self, other) :
+        return hash(self) < hash(other)
 
     def __hash__(self):
         try:

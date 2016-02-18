@@ -11,33 +11,30 @@ class BlockingTest(unittest.TestCase):
     field_definition = [{'field' : 'name', 'type': 'String'}]
     self.data_model = dedupe.Dedupe(field_definition).data_model
     self.training_pairs = {
-        0: [((1, self.frozendict({"name": "Bob", "age": "50"})),
-             (2, self.frozendict({"name": "Bob", "age": "75"}))),
-            ((3, self.frozendict({"name": "Meredith", "age": "40"})),
-             (4, self.frozendict({"name": "Sue", "age": "10"})))], 
-        1: [((5, self.frozendict({"name": "Jimmy", "age": "20"})),
-             (6, self.frozendict({"name": "Jimbo", "age": "21"}))),
-            ((7, self.frozendict({"name": "Willy", "age": "35"})),
-             (8, self.frozendict({"name": "William", "age": "35"}))),
-            ((9, self.frozendict({"name": "William", "age": "36"})),
-             (8, self.frozendict({"name": "William", "age": "35"})))]
+        'match': [(self.frozendict({"name": "Bob", "age": "50"}),
+             self.frozendict({"name": "Bob", "age": "75"})),
+            (self.frozendict({"name": "Meredith", "age": "40"}),
+             self.frozendict({"name": "Sue", "age": "10"}))], 
+        'distinct': [(self.frozendict({"name": "Jimmy", "age": "20"}),
+             self.frozendict({"name": "Jimbo", "age": "21"})),
+            (self.frozendict({"name": "Willy", "age": "35"}),
+             self.frozendict({"name": "William", "age": "35"})),
+            (self.frozendict({"name": "William", "age": "36"}),
+             self.frozendict({"name": "William", "age": "35"}))]
       }
 
-    self.training = self.training_pairs[0] + self.training_pairs[1]
-    self.distinct_ids = [tuple([pair[0][0], pair[1][0]])
-                         for pair in
-                         self.training_pairs[0]]
-    self.dupe_ids = [tuple([pair[0][0], pair[1][0]])
-                     for pair in
-                     self.training_pairs[1]]
+    self.training = self.training_pairs['match'] + self.training_pairs['distinct']
 
     self.simple = lambda x : set([str(k) for k in x 
                                   if "CompoundPredicate" not in str(k)])
 
   def test_dedupe_coverage(self) :
     predicates = self.data_model.predicates()
-    coverage = dedupe.training.DedupeCoverage(predicates, self.training)
-    assert self.simple(coverage.overlap.keys()).issuperset(
+    blocker = dedupe.blocking.Blocker(predicates)
+    dedupe.training.prepare_index(blocker, self.training_pairs, "Dedupe")
+
+    coverage = dedupe.training.coveredBy(blocker.predicates, self.training)
+    assert self.simple(coverage.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
                "TfidfTextCanopyPredicate: (0.4, name)", 
@@ -50,52 +47,6 @@ class BlockingTest(unittest.TestCase):
                "TfidfTextCanopyPredicate: (0.8, name)", 
                "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (firstTokenPredicate, name)", 
-               "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
-
-    overlap = coverage.predicateCoverage(predicates, self.distinct_ids)
-    assert set(str(k) for k in overlap.keys()).issuperset(
-          set(["TfidfTextCanopyPredicate: (0.4, name)", 
-               "TfidfTextCanopyPredicate: (0.6, name)", 
-               "SimplePredicate: (sortedAcronym, name)",
-               "SimplePredicate: (wholeFieldPredicate, name)", 
-               "SimplePredicate: (sameThreeCharStartPredicate, name)",
-               "SimplePredicate: (tokenFieldPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.8, name)", 
-               "SimplePredicate: (firstTokenPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.2, name)"]))
-
-    overlap = coverage.predicateCoverage(predicates, self.dupe_ids)
-    assert set(str(k) for k in overlap.keys()).issuperset(
-          set(["SimplePredicate: (tokenFieldPredicate, name)", 
-               "SimplePredicate: (commonSixGram, name)", 
-               "TfidfTextCanopyPredicate: (0.4, name)", 
-               "SimplePredicate: (sortedAcronym, name)",
-               "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.2, name)", 
-               "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.6, name)", 
-               "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.8, name)", 
-               "SimplePredicate: (firstTokenPredicate, name)", 
-               "SimplePredicate: (commonFourGram, name)", 
-               "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
-
-    predicates = self.data_model.predicates()
-
-    coverage = dedupe.training.RecordLinkCoverage(predicates, self.training)
-    assert self.simple(coverage.overlap.keys()).issuperset(
-          set(["SimplePredicate: (tokenFieldPredicate, name)", 
-               "SimplePredicate: (commonSixGram, name)", 
-               "TfidfTextCanopyPredicate: (0.4, name)", 
-               "SimplePredicate: (sameThreeCharStartPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.2, name)", 
-               "SimplePredicate: (sameFiveCharStartPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.6, name)", 
-               "SimplePredicate: (firstTokenPredicate, name)", 
-               "SimplePredicate: (wholeFieldPredicate, name)", 
-               "TfidfTextCanopyPredicate: (0.8, name)", 
-               "SimplePredicate: (sortedAcronym, name)",
-               "SimplePredicate: (commonFourGram, name)", 
                "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
 
 
