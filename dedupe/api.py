@@ -217,7 +217,7 @@ class DedupeMatching(Matching) :
 
         combinations = itertools.combinations
 
-        pairs = (combinations(block, 2) for block in blocks)
+        pairs = (combinations(sorted(block), 2) for block in blocks)
 
         return itertools.chain.from_iterable(pairs) 
 
@@ -266,7 +266,7 @@ class DedupeMatching(Matching) :
         blocks = blocks.values()
 
         for block in self._redundantFree(blocks) :
-            yield sorted(block)
+            yield block
 
     def _redundantFree(self, blocks) :
         """
@@ -444,7 +444,7 @@ x        """
             blocked_records[block_key][record_id] = data_2[record_id]
 
         for each in self._blockGenerator(data_1, blocked_records) :
-            yield sorted(each)
+            yield each
 
         self.blocker.resetIndices()
 
@@ -1019,7 +1019,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
     def _blockData(self, messy_data) :
         for each in self._blockGenerator(messy_data, self.blocked_records) :
-            yield sorted(each)
+            yield each
 
 
     def index(self, data) : # pragma : no cover
