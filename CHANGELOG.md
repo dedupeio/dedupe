@@ -1,4 +1,7 @@
 
+## 1.3.0
+- If we have enough training data, consider Compound predicates of length 3 in addition to predicates of length 2
+
 ## 1.1.1
 - None now treated as missing data indicator. Warnings for deprecations of older types of missing data indicators
 
