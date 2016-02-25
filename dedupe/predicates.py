@@ -88,8 +88,8 @@ class IndexPredicate(Predicate) :
         self.index = None
 
 class TfidfIndexPredicate(IndexPredicate) :
-    def initIndex(self, stop_words) :
-        return tfidf.TfIdfIndex(stop_words)
+    def initIndex(self) :
+        return tfidf.TfIdfIndex()
     
 
 class TfidfSearchPredicate(TfidfIndexPredicate):

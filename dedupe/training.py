@@ -265,43 +265,8 @@ def compound(cover, compound_length) :
 
     return cover
 
-
-def stopWords(data, indices) :
-    index_stop_words = {}
-
-    for index_type, predicates in indices.items() :
-        processor = next(iter(predicates)).preprocess
-        
-        tf_index = index.CanopyIndex([])
-
-        for i, doc in enumerate(data, 1) :
-            if doc :
-                tf_index.index_doc(i, processor(doc))
-
-        doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
-                    for word, wid in tf_index.lexicon.items()]
-
-        doc_freq.sort(reverse=True)
-        
-        N = tf_index.index.documentCount()
-        threshold = int(max(1000, N * 0.05))
-
-        stop_words = set()
-        
-        for frequency, word in doc_freq :
-            if frequency > threshold :
-                stop_words.add(word)
-            else :
-                break
-
-        index_stop_words[index_type] = stop_words
-
-    return index_stop_words
-
-
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
-
 
 def remaining_cover(coverage, covered=set()) :
     null_covers = []
@@ -326,8 +291,6 @@ def prepare_index(blocker, pairs, matching) :
                          for record 
                          in records
                          if record[field]]
-        #index_stop_words = stopWords(record_fields, indices) 
-        #blocker.stop_words[field].update(index_stop_words)
         blocker.index(sorted(set(record_fields)), field)
 
 
