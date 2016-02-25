@@ -66,25 +66,25 @@ cython src/*.pyx
 python setup.py develop
 
 #If these tests pass, then everything should have been installed correctly!
-coverage run -m nose -I canonical_test
+nosetests
 ```
 
 ## Testing
 Unit tests of core dedupe functions
 ```bash
-coverage run -m nose -I canonical_test
+nosetests
 ```
 
 #### Test using canonical dataset from Bilenko's research
   
 Using Deduplication
 ```bash
-python tests/canonical_test.py
+python tests/canonical.py
 ```
 
 Using Record Linkage
 ```bash
-python tests/canonical_test_matching.py
+python tests/canonical_matching.py
 ```
 
 
