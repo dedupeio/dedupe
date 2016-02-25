@@ -22,8 +22,8 @@ build: false
 test_script:
   # Nosetests take care of unit tests
   # Behave runs the example scripts and tries to verify if it produces the right output
-  - coverage run -m nose -I canonical_test
-  - python tests/canonical_test.py
+  - coverage run -m nose
+  - python tests/canonical.py
 
 on_success:
   # Could run coveralls here but will leave that to travis tests

@@ -18,8 +18,8 @@ install:
 - cython src/*.pyx
 - python setup.py develop
 script:
-- coverage run -m nose -I canonical_test
-- python tests/canonical_test.py
+- coverage run -m nose
+- python tests/canonical.py
 after_success: coveralls
 deploy:
   provider: pypi
