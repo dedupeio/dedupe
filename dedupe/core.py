@@ -350,6 +350,12 @@ class frozendict(collections.Mapping):
     def __lt__(self, other) :
         return hash(self) < hash(other)
 
+    def __eq__(self, other) :
+        if hasattr(other, '_d') :
+            return self._d == other._d
+        else :
+            return False
+
     def __hash__(self):
         try:
             return self._cached_hash
