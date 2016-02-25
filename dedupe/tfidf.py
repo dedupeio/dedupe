@@ -8,8 +8,8 @@ import itertools
 logger = logging.getLogger(__name__)
 
 class TfIdfIndex(object) :
-    def __init__(self, stop_words=[]) :
-        self._index = CanopyIndex(stop_words)
+    def __init__(self):
+        self._index = CanopyIndex()
  
         try : # py 2
             self._doc_to_id = collections.defaultdict(itertools.count(1).next)

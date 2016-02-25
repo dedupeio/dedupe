@@ -3,7 +3,7 @@ import unittest
 
 class ParsingTest(unittest.TestCase) :
     def setUp(self) :
-        self.index = dedupe.tfidf.TfIdfIndex('foo')
+        self.index = dedupe.tfidf.TfIdfIndex()
         
     def test_keywords(self) :
         self.index.index(('AND', 'OR', 'EOF', 'NOT'))

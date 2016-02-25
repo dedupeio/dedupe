@@ -487,7 +487,6 @@ class StaticMatching(Matching) :
             self.data_model = pickle.load(settings_file)
             self.classifier = pickle.load(settings_file)
             self.predicates = pickle.load(settings_file)
-            self.stop_words = pickle.load(settings_file)
         except (KeyError, AttributeError) :
             raise SettingsFileLoadingException("This settings file is not compatible with "
                                                "the current version of dedupe. This can happen "
@@ -497,14 +496,9 @@ class StaticMatching(Matching) :
                              
 
         logger.info(self.predicates)
-        logger.info(self.stop_words)
 
-        self.blocker = blocking.Blocker(self.predicates, 
-                                        self.stop_words)
-
-
-
-
+        self.blocker = blocking.Blocker(self.predicates)
+        
 
 class ActiveMatching(Matching) :
     classifier = rlr.RegularizedLogisticRegression()
@@ -696,15 +690,13 @@ class ActiveMatching(Matching) :
         predicate_set = self.data_model.predicates(index_predicates,
                                                    self.canopies)
 
-        (self.predicates, 
-         self.stop_words) = dedupe.training.blockTraining(training_pairs,
-                                                          predicate_set,
-                                                          ppc,
-                                                          uncovered_dupes,
-                                                          self._linkage_type)
+        self.predicates = dedupe.training.blockTraining(training_pairs,
+                                                        predicate_set,
+                                                        ppc,
+                                                        uncovered_dupes,
+                                                        self._linkage_type)
 
-        self.blocker = blocking.Blocker(self.predicates,
-                                        self.stop_words) 
+        self.blocker = blocking.Blocker(self.predicates)
 
 
     def writeSettings(self, file_obj): # pragma : no cover
@@ -719,7 +711,6 @@ class ActiveMatching(Matching) :
         pickle.dump(self.data_model, file_obj)
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
-        pickle.dump(dict(self.stop_words), file_obj)
 
     def writeTraining(self, file_obj): # pragma : no cover
         """

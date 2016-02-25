@@ -79,7 +79,7 @@ def dedupeSamplePredicate(subsample_size, predicate, items) :
                 return sample
 
         
-        block_keys = predicate_function(record[field])
+        block_keys = predicate_function(column)
         
         for block_key in block_keys:
             if block_key not in block_dict :

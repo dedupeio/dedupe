@@ -23,7 +23,11 @@ class Predicate(object) :
         return "%s: %s" % (self.type, self.__name__)
 
     def __hash__(self):
-        return hash(repr(self))
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(repr(self))
+            return h
 
     def __eq__(self, other) :
         return repr(self) == repr(other)
@@ -84,8 +88,8 @@ class IndexPredicate(Predicate) :
         self.index = None
 
 class TfidfIndexPredicate(IndexPredicate) :
-    def initIndex(self, stop_words) :
-        return tfidf.TfIdfIndex(stop_words)
+    def initIndex(self) :
+        return tfidf.TfIdfIndex()
     
 
 class TfidfSearchPredicate(TfidfIndexPredicate):
@@ -185,23 +189,16 @@ class TfidfNGramCanopyPredicate(TfidfNGramPredicate,
     type = "TfidfNGramCanopyPredicate"
 
 
-
-class CompoundPredicate(Predicate) :
+class CompoundPredicate(tuple) :
     type = "CompoundPredicate"
 
-    def __init__(self, predicates) :
-        self.predicates = predicates
-        self.__name__ = u'(%s)' % u', '.join([str(pred)
-                                              for pred in 
-                                              predicates])
-
-    def __iter__(self) :
-        for pred in self.predicates :
-            yield pred
+    @property
+    def __name__(self) :
+        return u'(%s)' % u', '.join(str(pred) for pred in self)
 
     def __call__(self, record) :
         predicate_keys = [predicate(record)
-                          for predicate in self.predicates]
+                          for predicate in self]
         return [u':'.join(block_key)
                 for block_key
                 in itertools.product(*predicate_keys)]

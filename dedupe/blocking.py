@@ -13,16 +13,9 @@ logger = logging.getLogger(__name__)
 
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
-    def __init__(self, 
-                 predicates, 
-                 stop_words = None) :
-
-        if stop_words is None :
-            stop_words = defaultdict(lambda : defaultdict(set))
+    def __init__(self, predicates) :
 
         self.predicates = predicates
-
-        self.stop_words = stop_words
 
         self.index_fields = defaultdict(lambda:defaultdict(set))
 
@@ -53,20 +46,18 @@ class Blocker:
                              {'iteration' :i,
                               'elapsed' :time.clock() - start_time})
 
-
-
     def resetIndices(self) :
         # clear canopies to reduce memory usage
         for index_type in self.index_fields.values() :
-            for predicate in list(index_type.values())[0] :
-                predicate.index = None
-                if hasattr(predicate, 'canopy') :
-                    predicate.canopy = {}
+            for predicates in index_type.values() :
+                for predicate in predicates :
+                    predicate.index = None
+                    if hasattr(predicate, 'canopy') :
+                        predicate.canopy = {}
 
     def index(self, data, field): 
         '''Creates TF/IDF index of a given set of data'''
-        indices = extractIndices(self.index_fields[field],
-                                 self.stop_words[field])
+        indices = extractIndices(self.index_fields[field])
 
         for doc in data :
             if doc :
@@ -99,15 +90,15 @@ class Blocker:
                 predicate.index = index
 
 
-def extractIndices(index_fields, stop_words=None) :
+def extractIndices(index_fields) :
     
     indices = []
     for index_type, predicates in index_fields.items() :
-        predicate = next(iter(predicates))
+        predicate = next(iter(predicates)) 
         index = predicate.index
         preprocess = predicate.preprocess
         if predicate.index is None :
-            index = predicate.initIndex(stop_words[index_type])
+            index = predicate.initIndex()
         indices.append((index_type, index, preprocess))
 
     return indices

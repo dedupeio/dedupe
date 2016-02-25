@@ -3,6 +3,7 @@
 
 # provides functions for selecting a sample of training data
 from __future__ import division
+from future.utils import viewitems, viewkeys, viewvalues
 
 from collections import defaultdict
 import itertools
@@ -111,92 +112,52 @@ def trainingData(training_pairs, record_ids) :
     return record_pairs, tuple_pairs
     
 
-def blockTraining(training_pairs,
+def blockTraining(pairs,
                   predicate_set,
                   eta=.1,
-                  epsilon=.1,
+                  epsilon=0,
                   matching = "Dedupe"):
     '''
     Takes in a set of training pairs and predicates and tries to find
     a good set of blocking rules.
     '''
 
-    if matching == "RecordLink" :
-        Coverage = RecordLinkCoverage
+    blocker = blocking.Blocker(predicate_set)
+    prepare_index(blocker, pairs, matching)
+
+    if len(pairs['match']) < 50 :
+        compound_length = 2
     else :
-        Coverage = DedupeCoverage
+        compound_length = 3
 
-    # Setup
-    try : # py 2
-        record_ids = defaultdict(itertools.count().next) 
-    except AttributeError : # py 3
-        record_ids = defaultdict(itertools.count().__next__)
+    dupe_cover = cover(blocker, pairs['match'], compound_length)
+    distinct_cover = cover(blocker, pairs['distinct'], compound_length)
 
-    dupe_pairs, training_dupes = trainingData(training_pairs['match'], 
-                                              record_ids)
-
-    distinct_pairs, training_distinct = trainingData(training_pairs['distinct'],
-                                                     record_ids)
-    
-    coverage = Coverage(predicate_set,
-                        dupe_pairs | distinct_pairs)
-
-    predicate_set = coverage.overlap.keys()
-    
-    # Only consider predicates that cover at least one duplicate pair
-    dupe_coverage = coverage.predicateCoverage(predicate_set,
-                                               training_dupes)
-    predicate_set = set(dupe_coverage.keys())
+    distinct_count = defaultdict(int, {pred : len(pairs)
+                                       for pred, pairs
+                                       in viewitems(distinct_cover)})
 
     # Throw away the predicates that cover too many distinct pairs
-    coverage_threshold = eta * len(training_distinct)
+    coverage_threshold = eta * len(pairs['distinct'])
     logger.info("coverage threshold: %s", coverage_threshold)
+    dupe_cover = {pred : pairs
+                  for pred, pairs
+                  in viewitems(dupe_cover)
+                  if distinct_count[pred] < coverage_threshold}
 
-    distinct_coverage = coverage.predicateCoverage(predicate_set,
-                                                   training_distinct)
+    chvatal_set = greedy(dupe_cover.copy(), distinct_count, epsilon)
 
-    for pred, pairs in distinct_coverage.items() :
-        if len(pairs) > coverage_threshold :
-            predicate_set.remove(pred)
-
-    chvatal_set, uncovered_dupes = findOptimumBlocking(training_dupes,
-                                                       predicate_set,
-                                                       distinct_coverage,
-                                                       epsilon,
-                                                       coverage)
-
-    logger.debug("Uncovered Dupes")
-    if uncovered_dupes :
-        id_records = {v : k for k, v in record_ids.items()}
-    for i, (rec_1, rec_2) in enumerate(uncovered_dupes) :
-        logger.debug("uncovered pair %s" % (i,))
-        logger.debug(id_records[rec_1])
-        logger.debug(id_records[rec_2])
-    
-
-    final_predicate_set = removeSubsets(training_dupes,
-                                        chvatal_set,
-                                        coverage)
+    dupe_cover = {pred : dupe_cover[pred] for pred in chvatal_set}
+        
+    final_predicates = tuple(dominating(dupe_cover))
 
     logger.info('Final predicate set:')
-    for predicate in final_predicate_set :
+    for predicate in final_predicates :
         logger.info(predicate)
 
-    final_predicates = tuple(final_predicate_set)
+    return final_predicates
 
-    if final_predicate_set:
-        return (final_predicates, 
-                removeUnusedStopWords(coverage.stop_words,
-                                      final_predicates))
-    else:
-        raise ValueError('No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data')
-
-
-def findOptimumBlocking(uncovered_dupes,
-                        predicate_set,
-                        distinct_coverage,
-                        epsilon,
-                        coverage):
+def greedy(dupe_cover, distinct_count, epsilon):
 
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
@@ -217,200 +178,123 @@ def findOptimumBlocking(uncovered_dupes,
     #
     # (predicate_covered_dupe_pairs + 1)/ (predicate_covered_distinct_pairs + 1)
 
-    dupe_coverage = coverage.predicateCoverage(predicate_set,
-                                               uncovered_dupes)
+    uncovered_dupes = set.union(*dupe_cover.values())
+    final_predicates = set()
 
-    uncovered_dupes = set(uncovered_dupes)
-
-    final_predicate_set = set()
-    while len(uncovered_dupes) > epsilon:
-
-        best_cover = 0
-        best_predicate = None
-        for predicate in dupe_coverage :
-            dupes = len(dupe_coverage[predicate])
-            distinct = len(distinct_coverage[predicate])
-            cover = (dupes + 1)/(distinct + 1)
-            if cover > best_cover:
-                best_cover = cover
-                best_predicate = predicate
-                best_distinct = distinct
-                best_dupes = dupes
-
-
-        if not best_predicate:
-            logger.warning("Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that you dedupe may never compare. If you are getting bad results, try increasing the ppc argument to the train method (if it less than 1.0)")
-            break
-
-        final_predicate_set.add(best_predicate)
-        predicate_set.remove(best_predicate)
+    while len(uncovered_dupes) > epsilon and dupe_cover :
+        cost = lambda p : distinct_count[p]/len(dupe_cover[p])
         
-        uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
-        dupe_coverage = coverage.predicateCoverage(predicate_set,
-                                                   uncovered_dupes)
+        best_predicate = min(dupe_cover, key = cost)
+        final_predicates.add(best_predicate)
 
+        covered = dupe_cover.pop(best_predicate)        
+        uncovered_dupes = uncovered_dupes - covered
+        remaining_cover(dupe_cover, covered)
 
         logger.debug(best_predicate)
-        logger.debug('cover: %(cover)f, found_dupes: %(found_dupes)d, '
-                      'found_distinct: %(found_distinct)d, '
-                      'uncovered dupes: %(uncovered)d',
-                      {'cover' : best_cover,
-                       'found_dupes' : best_dupes,
-                       'found_distinct' : best_distinct,
-                       'uncovered' : len(uncovered_dupes)
-                       })
+        logger.debug('uncovered dupes: %(uncovered)d',
+                     {'uncovered' : len(uncovered_dupes)})
 
-    return final_predicate_set, uncovered_dupes
+    if not final_predicates:
+        raise ValueError('No predicate found! We could not '
+                         'learn a single good predicate. '
+                         'Maybe give Dedupe more training data')
 
-def removeSubsets(uncovered_dupes, predicate_set, coverage) :
-    dupe_coverage = coverage.predicateCoverage(predicate_set,
-                                               uncovered_dupes)
-    uncovered_dupes = set(uncovered_dupes)
-    final_set = set()
+    if len(uncovered_dupes) > epsilon :
+        logger.warning(OUT_OF_PREDICATES_WARNING)
+
+    return final_predicates
+
+def dominating(dupe_cover) :
+
+    uncovered_dupes = set.union(*dupe_cover.values())
+    final_predicates = set()
 
     while uncovered_dupes :
-        best_predicate = None
-        max_cover = 0
-        for predicate in dupe_coverage :
-            cover = len(dupe_coverage[predicate])
-            if cover > max_cover :
-                max_cover = cover
-                best_predicate = predicate
+        score = lambda p : len(dupe_cover[p])
 
-        if best_predicate is None :
-            break
+        best_predicate = max(dupe_cover, key=score)
+        final_predicates.add(best_predicate)
 
-        final_set.add(best_predicate)
-        predicate_set.remove(best_predicate)
-        uncovered_dupes = uncovered_dupes - dupe_coverage[best_predicate]
-        dupe_coverage = coverage.predicateCoverage(predicate_set,
-                                                   uncovered_dupes)
+        covered = dupe_cover.pop(best_predicate)
+        uncovered_dupes = uncovered_dupes - covered
 
-    return final_set
+        remaining_cover(dupe_cover, covered)
 
-class Coverage(object) :
-    def __init__(self, predicate_set, pairs) :
+    return final_predicates
 
-        records = self._records_to_index(pairs)
+def cover(blocker, pairs, compound_length) :
+    cover = coveredBy(blocker.predicates, pairs)
+    cover = compound(cover, compound_length)
+    remaining_cover(cover)
+    return cover
 
-        blocker = blocking.Blocker(predicate_set)
-
-        for field, indices in blocker.index_fields.items() :
-            record_fields = [record[field] 
-                             for _, record 
-                             in records
-                             if record[field]]
-            index_stop_words = stopWords(record_fields, indices) 
-            blocker.stop_words[field].update(index_stop_words)
-            blocker.index(sorted(set(record_fields)), field)
-
-        self.stop_words = blocker.stop_words
-        self.coveredBy(blocker.predicates, pairs)
-        self.compoundPredicates()
-        blocker.resetIndices()
-
-
-
-    def coveredBy(self, predicates, pairs) :
-        self.overlap = defaultdict(set)
-        pairs = sorted(pairs)
-
-        for predicate in predicates :
-            rec_1 = None
-            for pair in pairs :
-                (record_1_id, record_1), (record_2_id, record_2) = pair
-                if record_1_id != rec_1 :
-                    blocks_1 = set(predicate(record_1))
-                    rec_1 = record_1_id
-
-                if blocks_1 :
-                    blocks_2 = predicate(record_2)
-                    field_preds = blocks_1 & set(blocks_2)
-                    if field_preds :
-                        rec_pair = record_1_id, record_2_id
-                        self.overlap[predicate].add(rec_pair)
-
-
-
-    def predicateCoverage(self,
-                          predicate_set,
-                          pairs) :
-
-        coverage = defaultdict(set)
-        pairs = set(pairs)
-
-        for predicate in predicate_set :
-            covered_pairs = pairs.intersection(self.overlap[predicate])
-            if covered_pairs :
-                coverage[predicate] = covered_pairs
-
-        return coverage
-
-    def compoundPredicates(self) :
-        intersection = set.intersection
-
-        compound_predicates = itertools.combinations(self.overlap, 2)
-
-        for compound_predicate in compound_predicates :
-            compound_predicate = predicates.CompoundPredicate(compound_predicate)
-            self.overlap[compound_predicate] =\
-                intersection(*[self.overlap[pred] 
-                               for pred in compound_predicate])         
-
-
-class DedupeCoverage(Coverage) :
-
-    def _records_to_index(self, pairs) :
-        return set(itertools.chain(*pairs))
-
-
-class RecordLinkCoverage(Coverage) :
-
-    def _records_to_index(self, pairs) :
-        return {record_2 for _, record_2 in pairs}
-
-def stopWords(data, indices) :
-    index_stop_words = {}
-
-    for index_type, predicates in indices.items() :
-        processor = next(iter(predicates)).preprocess
+def coveredBy(predicates, pairs) :
+    cover = {}
+    pairs = sorted(pairs)
         
-        tf_index = index.CanopyIndex([])
-
-        for i, doc in enumerate(data, 1) :
-            if doc :
-                tf_index.index_doc(i, processor(doc))
-
-        doc_freq = [(len(tf_index.index._wordinfo[wid]), word) 
-                    for word, wid in tf_index.lexicon.items()]
-
-        doc_freq.sort(reverse=True)
-        
-        N = tf_index.index.documentCount()
-        threshold = int(max(1000, N * 0.05))
-
-        stop_words = set()
-        
-        for frequency, word in doc_freq :
-            if frequency > threshold :
-                stop_words.add(word)
-            else :
-                break
-
-        index_stop_words[index_type] = stop_words
-
-    return index_stop_words
-
-def removeUnusedStopWords(stop_words, predicates) : # pragma : no cover
-    new_dict = defaultdict(dict)
     for predicate in predicates :
-        for pred in predicate :
-            if hasattr(pred, 'index') :
-                new_dict[pred.field][pred.type] = stop_words[pred.field][pred.type]
-    logger.info(new_dict)
+        rec_1 = None
+        for pair in pairs :
+            record_1, record_2 = pair
+            if record_1 != rec_1 :
+                blocks_1 = set(predicate(record_1))
+                rec_1 = record_1
 
-    return new_dict
+            if blocks_1 :
+                blocks_2 = predicate(record_2)
+                field_preds = blocks_1 & set(blocks_2)
+                if field_preds :
+                    cover.setdefault(predicate, set()).add(pair)
 
+    return cover
+
+def compound(cover, compound_length) :
+    simple_predicates = list(cover)
+    CP = predicates.CompoundPredicate
+
+    for i in range(2, compound_length+1) :
+        compound_predicates = itertools.combinations(simple_predicates, i)
+                                                             
+        for compound_predicate in compound_predicates :
+            a, b = compound_predicate[:-1], compound_predicate[-1]
+            if len(a) == 1 :
+                a = a[0]
+
+            cover[CP(compound_predicate)] = cover[a] & cover[b]
+
+    return cover
 
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+def remaining_cover(coverage, covered=set()) :
+    null_covers = []
+    for predicate, uncovered in viewitems(coverage) :
+        uncovered -= covered
+        if not uncovered :
+            null_covers.append(predicate)
+
+    for predicate in null_covers :
+        del coverage[predicate]
+
+def prepare_index(blocker, pairs, matching) :
+    if matching == "RecordLink" :
+        unroll = lambda p : {record_2 for _, record_2 in p}
+    else :
+        unroll = lambda p : set().union(*p)
+
+    records = unroll(itertools.chain.from_iterable(viewvalues(pairs)))
+    
+    for field, indices in blocker.index_fields.items() :
+        record_fields = [record[field] 
+                         for record 
+                         in records
+                         if record[field]]
+        blocker.index(sorted(set(record_fields)), field)
+
+
+       
+
+OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that you dedupe may never compare. If you are getting bad results, try increasing the ppc argument to the train method (if it less than 1.0)"
+
