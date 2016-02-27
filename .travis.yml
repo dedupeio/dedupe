@@ -19,7 +19,7 @@ install:
 - python setup.py develop
 script:
 - coverage run -m nose
-- python tests/canonical.py
+- python tests/canonical.py -vv
 after_success: coveralls
 deploy:
   provider: pypi
