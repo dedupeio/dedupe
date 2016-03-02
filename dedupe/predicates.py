@@ -6,6 +6,7 @@ import re
 import math
 import itertools
 import string
+import sys
 
 from metaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
@@ -16,7 +17,15 @@ integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
 
-PUNCTUATION = set(string.punctuation)
+if sys.version < '3':
+    PUNCTUATION = string.punctuation
+    def strip_punc(s) :
+        s = s.encode('utf-8').translate(None, PUNCTUATION)
+        return s.decode('utf-8')
+else :
+    PUNCTABLE = str.maketrans("", "", string.punctuation)
+    def strip_punc(s) :
+        return s.translate(PUNCTABLE)
 
 class Predicate(object) :
     def __iter__(self) :
@@ -54,9 +63,7 @@ class StringPredicate(SimplePredicate) :
     def __call__(self, record) :
         column = record[self.field]
         if column :
-            column = ''.join(ch for ch in column
-                             if ch not in PUNCTUATION)
-            return self.func(column)
+            return self.func(strip_punc(column))
         else :
             return ()
 
