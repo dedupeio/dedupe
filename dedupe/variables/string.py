@@ -24,7 +24,7 @@ base_predicates = (predicates.wholeFieldPredicate,
 
 
 class BaseStringType(FieldType) :
-    type = "BaseString"
+    type = None
 
     def __init__(self, definition) :
         self.field = definition['field']
@@ -69,9 +69,6 @@ class ShortStringType(BaseStringType) :
             self.comparator = crfEd
         else :
             self.comparator = affineGap
-
-        Variable.__init__(self, definition)
-
 
 class StringType(ShortStringType) :
     type = "String"
