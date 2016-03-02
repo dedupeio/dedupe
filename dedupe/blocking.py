@@ -17,12 +17,12 @@ class Blocker:
 
         self.predicates = predicates
 
-        self.index_fields = defaultdict(lambda:defaultdict(set))
+        self.index_fields = defaultdict(lambda:defaultdict(list))
 
         for full_predicate in predicates :
             for predicate in full_predicate :
                 if hasattr(predicate, 'index') :
-                    self.index_fields[predicate.field][predicate.type].add(predicate)
+                    self.index_fields[predicate.field][predicate.type].append(predicate)
 
     def __call__(self, records):
 
@@ -94,7 +94,7 @@ def extractIndices(index_fields) :
     
     indices = []
     for index_type, predicates in index_fields.items() :
-        predicate = next(iter(predicates)) 
+        predicate = predicates[0]
         index = predicate.index
         preprocess = predicate.preprocess
         if predicate.index is None :
