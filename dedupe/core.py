@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from builtins import range, next, zip
-from future.utils import viewvalues
+from future.utils import viewvalues, viewitems
 import sys
 if sys.version < '3':
     text_type = unicode
@@ -360,7 +360,7 @@ class frozendict(collections.Mapping):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(frozenset(self._d.items()))
+            h = self._cached_hash = hash(frozenset(viewitems(self._d)))
             return h
 
 
