@@ -99,7 +99,7 @@ else:
         deduper.writeSettings(f)
 
 
-alpha = deduper.threshold(data_d, 1.5)
+alpha = deduper.threshold(data_d, 1)
 
 # print candidates
 print('clustering...')
