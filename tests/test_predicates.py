@@ -4,9 +4,9 @@ from future.builtins import str
 
 class TestPuncStrip(unittest.TestCase):
     def test_sevenchar(self) :
-        s1 = predicates.SimplePredicate(predicates.sameSevenCharStartPredicate,
+        s1 = predicates.StringPredicate(predicates.sameSevenCharStartPredicate,
                                         'foo')
-        assert s1({'foo' : 'fo,18v*1vaad80'}) == s1({'foo' : 'fo18v1vaad80'})
+        assert s1({'foo' : u'fo,18v*1vaad80'}) == s1({'foo' : u'fo18v1vaad80'})
 
     def test_set(self) :
         s1 = predicates.SimplePredicate(predicates.wholeSetPredicate,

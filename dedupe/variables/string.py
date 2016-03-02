@@ -1,4 +1,4 @@
-from .base import FieldType
+from .base import FieldType, Variable, indexPredicates
 from dedupe import predicates
 
 from affinegap import normalizedAffineGapDistance as affineGap
@@ -7,25 +7,49 @@ from simplecosine.cosine import CosineTextSimilarity, CosineSetSimilarity
 
 crfEd = CRFEditDistance()
 
-base_predicate_functions = (predicates.wholeFieldPredicate,
-                            predicates.firstTokenPredicate,
-                            predicates.commonIntegerPredicate,
-                            predicates.nearIntegersPredicate,
-                            predicates.firstIntegerPredicate,
-                            predicates.sameThreeCharStartPredicate,
-                            predicates.sameFiveCharStartPredicate,
-                            predicates.sameSevenCharStartPredicate,
-                            predicates.commonTwoTokens,
-                            predicates.commonThreeTokens,
-                            predicates.fingerprint,
-                            predicates.oneGramFingerprint,
-                            predicates.twoGramFingerprint,
-                            predicates.sortedAcronym)
+base_predicates = (predicates.wholeFieldPredicate,
+                   predicates.firstTokenPredicate,
+                   predicates.commonIntegerPredicate,
+                   predicates.nearIntegersPredicate,
+                   predicates.firstIntegerPredicate,
+                   predicates.sameThreeCharStartPredicate,
+                   predicates.sameFiveCharStartPredicate,
+                   predicates.sameSevenCharStartPredicate,
+                   predicates.commonTwoTokens,
+                   predicates.commonThreeTokens,
+                   predicates.fingerprint,
+                   predicates.oneGramFingerprint,
+                   predicates.twoGramFingerprint,
+                   predicates.sortedAcronym)
 
-class ShortStringType(FieldType) :
+
+class BaseStringType(FieldType) :
+    type = "BaseString"
+
+    def __init__(self, definition) :
+        self.field = definition['field']
+
+        if 'variable name' in definition :
+            self.name = definition['variable name'] 
+        else :
+            self.name = "(%s: %s)" % (self.field, self.type)
+
+        self.predicates = [predicates.StringPredicate(pred, self.field) 
+                           for pred in self._predicate_functions]
+
+        self.predicates += indexPredicates(self._index_predicates,
+                                           self._index_thresholds,
+                                           self.field)
+
+        Variable.__init__(self, definition)
+
+    
+
+
+class ShortStringType(BaseStringType) :
     type = "ShortString"
 
-    _predicate_functions = (base_predicate_functions 
+    _predicate_functions = (base_predicates 
                             + (predicates.commonFourGram,
                                predicates.commonSixGram,
                                predicates.tokenFieldPredicate,
@@ -37,6 +61,7 @@ class ShortStringType(FieldType) :
                          predicates.TfidfNGramSearchPredicate)
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
+
     def __init__(self, definition) :
         super(ShortStringType, self).__init__(definition)
 
@@ -44,6 +69,8 @@ class ShortStringType(FieldType) :
             self.comparator = crfEd
         else :
             self.comparator = affineGap
+
+        Variable.__init__(self, definition)
 
 
 class StringType(ShortStringType) :
@@ -55,10 +82,10 @@ class StringType(ShortStringType) :
                          predicates.TfidfTextSearchPredicate)
 
 
-class TextType(FieldType) :
+class TextType(BaseStringType) :
     type = "Text"
 
-    _predicate_functions = base_predicate_functions 
+    _predicate_functions = base_predicates 
 
     _index_predicates = (predicates.TfidfTextCanopyPredicate, 
                          predicates.TfidfTextSearchPredicate)
@@ -66,7 +93,6 @@ class TextType(FieldType) :
 
     def __init__(self, definition) :
         super(TextType, self).__init__(definition)
-
 
         if 'corpus' not in definition :
             definition['corpus'] = []

@@ -16,6 +16,8 @@ integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
 
+PUNCTUATION = set(string.punctuation)
+
 class Predicate(object) :
     def __iter__(self) :
         yield self
@@ -41,22 +43,20 @@ class SimplePredicate(Predicate) :
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    @staticmethod
-    def preprocess(column) :
-        return column.translate(None, string.punctuation)
-
-    @staticmethod
-    def noprocess(column) :
-        return column
-
     def __call__(self, record) :
         column = record[self.field]
         if column :
-            try :
-                return self.func(self.preprocess(column))
-            except :
-                self.preprocess = self.noprocess
-                return self.func(self.preprocess(column))
+            return self.func(column)
+        else :
+            return ()
+
+class StringPredicate(SimplePredicate) :
+    def __call__(self, record) :
+        column = record[self.field]
+        if column :
+            column = ''.join(ch for ch in column
+                             if ch not in PUNCTUATION)
+            return self.func(column)
         else :
             return ()
 
