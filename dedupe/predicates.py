@@ -41,10 +41,18 @@ class SimplePredicate(Predicate) :
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
+    @staticmethod
+    def preprocess(column) :
+        return column.translate(None, string.punctuation)
+
     def __call__(self, record) :
         column = record[self.field]
         if column :
-            return self.func(column.translate(None, string.punctuation))
+            try :
+                return self.func(self.preprocess(column))
+            except :
+                self.preprocess = lambda column : column
+                return self.func(self.preprocess(column))
         else :
             return ()
 

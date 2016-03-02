@@ -8,6 +8,13 @@ class TestPuncStrip(unittest.TestCase):
                                         'foo')
         assert s1({'foo' : 'fo,18v*1vaad80'}) == s1({'foo' : 'fo18v1vaad80'})
 
+    def test_set(self) :
+        s1 = predicates.SimplePredicate(predicates.wholeSetPredicate,
+                                        'foo')
+        colors = set(['red', 'blue', 'green'])
+        assert s1({'foo' : colors}) == (str(colors),)
+
+
 class TestMetaphone(unittest.TestCase):
     def test_metaphone_token(self) :
         block_val = predicates.metaphoneToken('9301 S. State St. ')
