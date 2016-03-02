@@ -2,6 +2,12 @@ import unittest
 from dedupe import predicates
 from future.builtins import str
 
+class TestPuncStrip(unittest.TestCase):
+    def test_sevenchar(self) :
+        s1 = predicates.SimplePredicate(predicates.sameSevenCharStartPredicate,
+                                        'foo')
+        assert s1({'foo' : 'fo,18v*1vaad80'}) == s1({'foo' : 'fo18v1vaad80'})
+
 class TestMetaphone(unittest.TestCase):
     def test_metaphone_token(self) :
         block_val = predicates.metaphoneToken('9301 S. State St. ')

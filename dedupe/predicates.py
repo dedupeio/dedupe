@@ -5,6 +5,7 @@ from builtins import str
 import re
 import math
 import itertools
+import string
 
 from metaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
@@ -43,7 +44,7 @@ class SimplePredicate(Predicate) :
     def __call__(self, record) :
         column = record[self.field]
         if column :
-            return self.func(column)
+            return self.func(column.translate(None, string.punctuation))
         else :
             return ()
 
