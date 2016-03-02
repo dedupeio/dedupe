@@ -130,8 +130,6 @@ def blockTraining(pairs,
     else :
         compound_length = 3
 
-    total_dupes = set().union(*pairs['match'])
-
     dupe_cover = cover(blocker, pairs['match'], compound_length)
     distinct_cover = cover(blocker, pairs['distinct'], compound_length)
 
@@ -150,13 +148,14 @@ def blockTraining(pairs,
     if not dupe_cover : 
         raise ValueError(NO_PREDICATES_ERROR)
 
-    uncoverable_dupes = len(total_dupes - set.union(*viewvalues(dupe_cover)))
+    uncoverable_dupes = set(pairs['match']) - set.union(*viewvalues(dupe_cover))
 
-    if uncoverable_dupes > epsilon :
+    if len(uncoverable_dupes) > epsilon :
         logger.warning(OUT_OF_PREDICATES_WARNING)
+        logger.debug(uncoverable_dupes)
         epsilon = 0
     else :
-        epsilon -= uncoverable_dupes
+        epsilon -= len(uncoverable_dupes)
 
     chvatal_set = greedy(dupe_cover.copy(), distinct_count, epsilon)
 
