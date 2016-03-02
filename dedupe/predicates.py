@@ -45,13 +45,17 @@ class SimplePredicate(Predicate) :
     def preprocess(column) :
         return column.translate(None, string.punctuation)
 
+    @staticmethod
+    def noprocess(column) :
+        return column
+
     def __call__(self, record) :
         column = record[self.field]
         if column :
             try :
                 return self.func(self.preprocess(column))
             except :
-                self.preprocess = lambda column : column
+                self.preprocess = self.noprocess
                 return self.func(self.preprocess(column))
         else :
             return ()
