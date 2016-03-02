@@ -130,6 +130,8 @@ def blockTraining(pairs,
     else :
         compound_length = 3
 
+    total_dupes = set().union(*pairs['match'])
+
     dupe_cover = cover(blocker, pairs['match'], compound_length)
     distinct_cover = cover(blocker, pairs['distinct'], compound_length)
 
@@ -144,6 +146,17 @@ def blockTraining(pairs,
                   for pred, pairs
                   in viewitems(dupe_cover)
                   if distinct_count[pred] < coverage_threshold}
+
+    if not dupe_cover : 
+        raise ValueError(NO_PREDICATES_ERROR)
+
+    uncoverable_dupes = len(total_dupes - set.union(*viewvalues(dupe_cover)))
+
+    if uncoverable_dupes > epsilon :
+        logger.warning(OUT_OF_PREDICATES_WARNING)
+        epsilon = 0
+    else :
+        epsilon -= uncoverable_dupes
 
     chvatal_set = greedy(dupe_cover.copy(), distinct_count, epsilon)
 
@@ -194,14 +207,6 @@ def greedy(dupe_cover, distinct_count, epsilon):
         logger.debug(best_predicate)
         logger.debug('uncovered dupes: %(uncovered)d',
                      {'uncovered' : len(uncovered_dupes)})
-
-    if not final_predicates:
-        raise ValueError('No predicate found! We could not '
-                         'learn a single good predicate. '
-                         'Maybe give Dedupe more training data')
-
-    if len(uncovered_dupes) > epsilon :
-        logger.warning(OUT_OF_PREDICATES_WARNING)
 
     return final_predicates
 
@@ -293,8 +298,6 @@ def prepare_index(blocker, pairs, matching) :
                          if record[field]]
         blocker.index(sorted(set(record_fields)), field)
 
+OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try decreasing the ppc argument to the train method"
 
-       
-
-OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the ppc argument to the train method (if it is less than 1.0)"
-
+NO_PREDICATES_ERROR = "No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data or reducing the ppc argument to the train method"
