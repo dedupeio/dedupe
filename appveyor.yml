@@ -12,7 +12,7 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - powershell .\\appveyor\\install.ps1
-  - pip install http://nipy.bic.berkeley.edu/scipy_installers/atlas_builds/numpy-1.10.4-cp27-none-win32.whl
+  - pip install numpy
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
   - pip install -e . 
