@@ -42,7 +42,7 @@ cd dedupe
 pip install "numpy>=1.9"
 pip install -r requirements.txt
 cython src/*.pyx
-python setup.py develop
+pip install -e .
 
 #If these tests pass, then everything should have been installed correctly!
 nosetests
