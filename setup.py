@@ -6,8 +6,7 @@ try:
 except ImportError :
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
-install_requires=['numpy>=1.9',
-                  'fastcluster', 
+install_requires=['fastcluster', 
                   'dedupe-hcluster',
                   'affinegap>=1.3',
                   'categorical-distance>=1.7',
