@@ -31,3 +31,4 @@ deploy:
     all_branches: true
     repo: datamade/dedupe
 sudo: false
+cache: pip
