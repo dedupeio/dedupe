@@ -1,5 +1,5 @@
 # Dedupe Python Library
-[![Linux build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Linux build)](https://travis-ci.org/datamade/dedupe)[![Windows build](https://img.shields.io/appveyor/ci/fgregg/dedupe.svg?style=flat-square&label=Windows build)](https://ci.appveyor.com/project/fgregg/dedupe)[![Coverage](https://img.shields.io/coveralls/datamade/dedupe.svg?style=flat-square)](https://coveralls.io/r/datamade/dedupe?branch=master)
+[![Linux build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Linux build)](https://travis-ci.org/datamade/dedupe)[![Mac OS X build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Mac OS X build)](https://travis-ci.org/datamade/dedupe)[![Windows build](https://img.shields.io/appveyor/ci/fgregg/dedupe.svg?style=flat-square&label=Windows build)](https://ci.appveyor.com/project/fgregg/dedupe)[![Coverage](https://img.shields.io/coveralls/datamade/dedupe.svg?style=flat-square)](https://coveralls.io/r/datamade/dedupe?branch=master)
 
 _dedupe is a python library that uses machine learning to perform de-duplication and entity resolution quickly on structured data._
 
@@ -42,7 +42,7 @@ cd dedupe
 pip install "numpy>=1.9"
 pip install -r requirements.txt
 cython src/*.pyx
-python setup.py develop
+pip install -e .
 
 #If these tests pass, then everything should have been installed correctly!
 nosetests
@@ -90,7 +90,7 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 ## Copyright
 
-Copyright (c) 2014 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/datamade/dedupe/blob/master/LICENSE).
+Copyright (c) 2016 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/datamade/dedupe/blob/master/LICENSE).
 
 Third-party copyright in this distribution is noted where applicable.
 

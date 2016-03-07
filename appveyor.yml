@@ -2,16 +2,18 @@
 # Based on https://raw.githubusercontent.com/choderalab/itctools/master/appveyor.yml
 
 environment:
+  password:
+    secure: iKL44Unvl2VVQcb/+lPQ/OVTCVh70tSywWq5KbqFWNU=
 
   matrix:
-    - PYTHON: "C:\\Python27_32"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "32"
-  
+    - arch : 32
+      python : 27
+    - arch : 64
+      python : 34
 
 install:
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - powershell .\\appveyor\\install.ps1
+  - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
+  - python -m pip install --upgrade pip
   - pip install numpy
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
@@ -25,7 +27,28 @@ test_script:
   - coverage run -m nose
   - python tests/canonical.py
 
+after_test:
+  - pip install wheel
+  - pip wheel --wheel-dir=wheelhouse .
+
+artifacts:
+  - path: wheelhouse\*
+
 on_success:
   # Could run coveralls here but will leave that to travis tests
   - echo Build succesful!
   - coverage report
+
+deploy_script:
+  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
+  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+  - echo repository=https://pypi.python.org/pypi     >> %USERPROFILE%\\.pypirc
+  - echo username=fgregg                             >> %USERPROFILE%\\.pypirc
+  - echo password=%password%                         >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - pip install wheel
+  - if "%APPVEYOR_REPO_TAG%"=="true" ( python setup.py bdist_wheel upload )
+
+deploy : on

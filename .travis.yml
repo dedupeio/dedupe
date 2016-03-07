@@ -1,33 +1,55 @@
 branches:
   only:
   - master
-  - development
+  - /^v.*$/
 language: python
 notifications:
   email:
     on_success: change
     on_failure: always
   irc: chat.freenode.net#dedupe
-python:
-- '2.7'
-- '3.4'
+matrix:
+  include:
+  - os: linux
+    python: 3.4
+  - os: linux
+    python: 2.7
+  - os: osx
+    language: generic
+    env: TERRYFY_PYTHON='system 2'
+  - os: osx
+    language: generic
+    env: TERRYFY_PYTHON='homebrew 2'
+  - os: osx
+    language: generic
+    env: TERRYFY_PYTHON='homebrew 3'
+before_install:
+- echo $TEST_ENCRYPT
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then git clone https://github.com/MacPython/terryfy;
+  fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source terryfy/travis_tools.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then get_python_environment $TERRYFY_PYTHON
+  venv; fi
+- if [[ "$TERRYFY_PYTHON" == "homebrew 3" ]]; then alias pip=`which pip3` ; fi
 install:
 - pip install numpy>=1.9.2
 - pip install --upgrade -r requirements.txt
 - pip install coveralls
 - cython src/*.pyx
-- python setup.py develop
+- pip install -e .
 script:
 - coverage run -m nose
 - python tests/canonical.py -vv
-after_success: coveralls
-deploy:
-  provider: pypi
-  user: fgregg
-  password:
-    secure: O/EwutOV8DmlYJ7dPJ2st7nGDKEaTaA/gwx7mxzFQYYlyJ7Iu87QXwEY3gPGFOGDh6eyg2qMqtKPTJnXTnltb8ROFX61WKu3F/do1cORFPDQneOAzyzL7ID+a7RaMaeUQ1gRFDo5nJuGGW8wmC8LZUjwcrtrx2zlYcEydq1CW+A=
-  on:
-    tags: true
-    all_branches: true
-    repo: datamade/dedupe
-sudo: false
+after_success:
+- coveralls
+- echo [distutils]                                  > ~/.pypirc
+- echo index-servers = pypi                        >> ~/.pypirc
+- echo [pypi]                                      >> ~/.pypirc
+- echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
+- echo username=fgregg                             >> ~/.pypirc
+- echo password=$PYPIPASSWORD                      >> ~/.pypirc
+- python setup.py bdist_wheel upload
+env:
+  global:
+  - secure: WRJqfQkRlNRoVnCGhpInM4OAc+cBRHP4wuPtJv7EFRymDUTXkB9FIHi9IiKYeFZlZ75NC0sig4275usSPnDVHCznwf5WHAgmr7N042+BInF0ddR3jcMqpTKh2WYmRYC1gstn5dwKC+KJnUPg5n1PZcqhvAIzSITtCRfLDDNICOw=
+  - secure: WvNbsbfZVsApuAykrvvWlykSvQz8pVe9I7OMYTN8NC8ybTLzvxrk8GJeI3enchYFyMevpnJ+M/1g3oxfOnRavN8+45mA/lMuCMZImT5wrPnjiPLl4gG2kEGbjAjlHpu+LbmQa6MU8jgYNWis5cXIvQcw8bY2TEcbPs5XWVFQRTE=
