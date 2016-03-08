@@ -4,10 +4,10 @@
 environment:
 
   matrix:
-    - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "32"
-  
+    - arch : 32
+      python : 27
+    - arch : 64
+      python : 34
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\scripts;%PATH%"
