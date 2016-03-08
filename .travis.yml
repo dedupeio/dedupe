@@ -27,7 +27,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then git clone https://github.com/MacPython/terryfy; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source terryfy/travis_tools.sh; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then get_python_environment $TERRYFY_PYTHON venv; fi
-  - if [[ "$TERRYFY_PYTHON" == "homebrew 3"]]; then alias pip=`which pip3`; fi
+  - if [[ "$TERRYFY_PYTHON" == "homebrew 3"]]; then alias pip=`which pip3` ; fi
 install:
 - pip install numpy>=1.9.2
 - pip install --upgrade -r requirements.txt
