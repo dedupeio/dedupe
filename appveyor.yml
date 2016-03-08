@@ -10,7 +10,7 @@ environment:
       python : 34
 
 install:
-  - "SET PATH=%PYTHON%;%PYTHON%\\scripts;%PATH%"
+  - "SET PATH=C:\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
   - pip install numpy
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
