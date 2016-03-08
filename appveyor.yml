@@ -11,7 +11,6 @@ environment:
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - powershell .\\appveyor\\install.ps1
   - pip install numpy
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
