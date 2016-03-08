@@ -11,7 +11,6 @@ environment:
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\scripts;%PATH%"
-  - "echo %path%"
   - pip install numpy
   - pip install -r requirements.txt
   - cython src/cpredicates.pyx
