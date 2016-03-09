@@ -43,6 +43,7 @@ deploy_script:
      - "echo [pypi] > %USERPROFILE%\\.pypirc"
      - "echo username: fgregg >> %USERPROFILE%\\.pypirc"
      - "echo password: %password% >> %USERPROFILE%\\.pypirc"
+     - set HOME=%USERPROFILE%
      - pip install wheel
      - if "%APPVEYOR_REPO_TAG%"=="true" ( python setup.py bdist_wheel upload )
 
