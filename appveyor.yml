@@ -2,6 +2,8 @@
 # Based on https://raw.githubusercontent.com/choderalab/itctools/master/appveyor.yml
 
 environment:
+  password:
+    secure: iKL44Unvl2VVQcb/+lPQ/OVTCVh70tSywWq5KbqFWNU=
 
   matrix:
     - arch : 32
@@ -36,3 +38,12 @@ on_success:
   # Could run coveralls here but will leave that to travis tests
   - echo Build succesful!
   - coverage report
+
+deploy_script:
+     - "echo [pypi] > %USERPROFILE%\\.pypirc"
+     - "echo username: fgregg >> %USERPROFILE%\\.pypirc"
+     - "echo password: %password% >> %USERPROFILE%\\.pypirc"
+     - pip install wheel
+     - if($env:appveyor_repo_tag -eq 'True') { python setup.py bdist_wheel upload }
+
+deploy : on
