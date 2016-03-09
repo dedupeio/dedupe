@@ -40,11 +40,15 @@ on_success:
   - coverage report
 
 deploy_script:
-     - "echo [pypi] > %USERPROFILE%\\.pypirc"
-     - "echo username: fgregg >> %USERPROFILE%\\.pypirc"
-     - "echo password: %password% >> %USERPROFILE%\\.pypirc"
-     - set HOME=%USERPROFILE%
-     - pip install wheel
-     - if "%APPVEYOR_REPO_TAG%"=="true" ( python setup.py bdist_wheel upload )
+  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
+  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+  - echo repository=https://pypi.python.org/pypi     >> %USERPROFILE%\\.pypirc
+  - echo username=rigbots                            >> %USERPROFILE%\\.pypirc
+  - echo password=%password%                         >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - pip install wheel
+  - if "%APPVEYOR_REPO_TAG%"=="true" ( python setup.py bdist_wheel upload )
 
 deploy : on
