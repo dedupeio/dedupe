@@ -1,7 +1,7 @@
 branches:
   only:
   - master
-  - "/^v*$/"
+  - "/^v.*$/"
 language: python
 notifications:
   email:
