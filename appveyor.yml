@@ -47,4 +47,3 @@ deploy_script:
      - if ($env:%APPVEYOR_REPO_TAG% -eq "true" -or $env:APPVEYOR_REPO_TAG -eq "True") { python setup.py bdist_wheel upload }
 
 deploy : on
-  appveyor_repo_tag: true
