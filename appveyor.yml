@@ -27,10 +27,10 @@ test_script:
 
 after_test:
   - pip install wheel
-  - python setup.py bdist_wheel
+  - pip wheel .
 
 artifacts:
-  - path: dist\*
+  - path: wheelhouse\*
 
 on_success:
   # Could run coveralls here but will leave that to travis tests
