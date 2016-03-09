@@ -27,7 +27,7 @@ test_script:
 
 after_test:
   - pip install wheel
-  - pip wheel .
+  - pip wheel --wheel-dir=wheelhouse .
 
 artifacts:
   - path: wheelhouse\*
