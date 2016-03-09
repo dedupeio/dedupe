@@ -43,7 +43,8 @@ deploy_script:
      - "echo [pypi] > %USERPROFILE%\\.pypirc"
      - "echo username: fgregg >> %USERPROFILE%\\.pypirc"
      - "echo password: %password% >> %USERPROFILE%\\.pypirc"
-     - python setup.py bdist_wheel upload
+     - pip install wheel
+     - if ($env:%APPVEYOR_REPO_TAG% -eq "true" -or $env:APPVEYOR_REPO_TAG -eq "True") { python setup.py bdist_wheel upload }
 
 deploy : on
   appveyor_repo_tag: true

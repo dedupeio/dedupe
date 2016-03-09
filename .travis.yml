@@ -40,6 +40,8 @@ script:
 - coverage run -m nose
 - python tests/canonical.py -vv
 after_success: coveralls
+before_deploy:
+  pip install twine
 deploy:
   provider: pypi
   user: fgregg
