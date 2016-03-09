@@ -25,7 +25,7 @@ test_script:
   - coverage run -m nose
   - python tests/canonical.py
 
-after_tests:
+after_test:
   - pip install wheel
   - python setup.py bdist_wheel
 
