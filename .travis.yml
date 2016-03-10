@@ -40,8 +40,6 @@ script:
 - coverage run -m nose
 - python tests/canonical.py -vv
 after_success: coveralls
-before_deploy:
-  pip install twine
 deploy:
   provider: pypi
   user: fgregg
@@ -49,7 +47,7 @@ deploy:
     secure: eYGYv4qdMdB/s+EAaREMmaZSWZzzDFGMD6BgR5dNm730f5851yXOKbtGdUXMQUtsxHjVCk8s5M98kHNZFIS3sjbyKSvJH4iBeu448SFkl/Bk32bwSmKTRLO/8B5y5p3axAA32bsVEEo2ZIn2jT1JmATxMYxPZphg7GscO5kVX+Y=
   on:
     tags: true
-    distributions: sdist bdist_wheel
+    distributions: bdist_wheel
     repo: datamade/dedupe
 sudo: false
 cache: pip
