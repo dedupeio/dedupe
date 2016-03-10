@@ -3,7 +3,7 @@
 
 environment:
   password:
-    secure: iKL44Unvl2VVQcb/+lPQ/OVTCVh70tSywWq5KbqFWNU=
+    secure: uOcv5TOm/CgwOmiLQhNX+g==
 
   matrix:
     - arch : 32

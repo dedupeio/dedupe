@@ -47,7 +47,8 @@ after_success:
 - echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
 - echo username=fgregg                             >> ~/.pypirc
 - echo password=$PYPIPASSWORD                      >> ~/.pypirc
-- python setup.py bdist_wheel upload
+- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then python setup.py bdist_wheel upload; fi
+- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "linux" ]]; then python setup.py sdist upload; fi
 env:
   global:
   - secure: CCKpDzr04ii1u2Yx87ean9cnQK4g/AEOeMdgNLJxxbdH8eluPqLX3f2z5GDvyoRhY6IWPJsVUwo7VhPcu8HOaD65gV92b4M4BL4Qf7gdO8SUio6xcHshy01xskJ+i8vyuI2V6BnWwOJG6V6SSvVhn4F9sTjQEDzuLyZUIbVHOFM=
