@@ -26,13 +26,21 @@ def consoleLabel(deduper): # pragma : no cover
 
         labels = {'distinct' : [], 'match' : []}
 
+        fieldnames = []
+        fieldnameset = set()
+        for fieldname in (field.field for field
+                                 in deduper.data_model.primary_fields):
+            if fieldname not in fieldnameset:
+                fieldnameset.add(fieldname)
+                fieldnames.append(fieldname)
+
+
         for record_pair in uncertain_pairs:
             label = ''
             labeled = False
 
             for pair in record_pair:
-                for field in set(field.field for field 
-                                 in deduper.data_model.primary_fields) :
+                for field in fieldnames:
                     line = "%s : %s" % (field, pair[field])
                     print(line, file=sys.stderr)
                 print(file=sys.stderr) 
