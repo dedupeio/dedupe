@@ -6,18 +6,10 @@ environment:
     secure: uOcv5TOm/CgwOmiLQhNX+g==
 
   matrix:
-    - arch : 32
-      python : 27
-    - arch : 32
-      python : 34
-    - arch : 32
-      python : 35
-    - arch : 64
-      python : 27
-    - arch : 64
-      python : 34
-    - arch : 64
-      python : 35
+    - python : 27
+    - python : 27-x64
+    - python : 34
+    - python : 34-x64
 
 install:
   - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
