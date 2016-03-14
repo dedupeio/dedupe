@@ -10,6 +10,11 @@ import sys
 from dedupe.core import randomPairs
 from canonicalize.centroid import getCanonicalRep
 
+def unique(seq) :
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
+
 def consoleLabel(deduper): # pragma : no cover
     '''
     Command line interface for presenting and labeling training pairs
@@ -22,6 +27,9 @@ def consoleLabel(deduper): # pragma : no cover
     finished = False
 
     while not finished :
+        n_match, n_distinct = (len(deduper.training_pairs['match']),
+                               len(deduper.training_pairs['distinct']))
+
         uncertain_pairs = deduper.uncertainPairs()
 
         labels = {'distinct' : [], 'match' : []}
@@ -31,12 +39,13 @@ def consoleLabel(deduper): # pragma : no cover
             labeled = False
 
             for pair in record_pair:
-                for field in set(field.field for field 
-                                 in deduper.data_model.primary_fields) :
+                for field in unique(field.field for field in deduper.data_model.primary_fields) :
                     line = "%s : %s" % (field, pair[field])
                     print(line, file=sys.stderr)
                 print(file=sys.stderr) 
 
+            print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
+                  file=sys.stderr)
             print('Do these records refer to the same thing?', file=sys.stderr)
             valid_response = False
             while not valid_response:
