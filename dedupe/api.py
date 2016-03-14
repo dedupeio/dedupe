@@ -636,7 +636,7 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=.1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
+    def train(self, ppc=.1, uncovered_dupes=None, index_predicates=True, pud=0.025) : # pragma : no cover
         """Keyword arguments:
         ppc -- Limits the Proportion of Pairs Covered that we allow a
                predicate to cover. If a predicate puts together a fraction
@@ -659,6 +659,19 @@ class ActiveMatching(Matching) :
                            blocks that put together many, many distinct pairs
                            that we'll have to expensively, compare as well.
 
+                           uncoverd_dupes is deprecated in favor of pud
+
+        pud -- The proportion of true dupe pairs in our training data
+               that that we can accept will not be put into any
+               block. If true true duplicates are never in the same
+               block, we will never compare them, and may never
+               declare them to be duplicates.
+
+               If both pud and uncovered_dupes are set, uncovered_dupes will
+               take priority
+
+               pud should be a float between 0.0 and 1.0
+
         index_predicates -- Should dedupe consider predicates that
                             rely upon indexing the data. Index predicates can 
                             be slower and take susbstantial memory.
@@ -666,6 +679,11 @@ class ActiveMatching(Matching) :
                             Defaults to True.
 
         """
+        if uncovered_dupes is None :
+            uncovered_dupes = int(pud * len(self.training_pairs['match']))
+        else :
+            warnings.warn("The uncovered_dupes argument of the train method will be deprecated in dedupe 1.4, please use the pud argument instead", DeprecationWarning) 
+                    
         self._trainClassifier()
         self._trainBlocker(ppc, uncovered_dupes, index_predicates)
 
@@ -677,7 +695,7 @@ class ActiveMatching(Matching) :
         self.classifier.fit(examples, labels)
 
     
-    def _trainBlocker(self, ppc=1, uncovered_dupes=1, index_predicates=True) : # pragma : no cover
+    def _trainBlocker(self, ppc, uncovered_dupes, index_predicates) : # pragma : no cover
         training_pairs = copy.deepcopy(self.training_pairs)
 
         confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,

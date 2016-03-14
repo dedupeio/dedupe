@@ -1,3 +1,8 @@
+## 1.3.8
+- Console labeler now shows fields in the order they are defined in
+  the data model. The labeler also reports number of labeled examples
+- `pud` argument added to the `train` method. Proportion of uncovered
+  dupes. This deprecates `uncovered_dupes` argument
 
 ## 1.3.0
 - If we have enough training data, consider Compound predicates of length 3 in addition to predicates of length 2

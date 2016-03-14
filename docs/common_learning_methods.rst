@@ -35,7 +35,7 @@
       deduper.markPairs(labeled_examples)
 
 
-.. py:method:: train([ppc=0.1, [uncovered_dupes=1, [index_predicates=True]]])
+.. py:method:: train([ppc=0.1, [uncovered_dupes=None, [index_predicates=True, [pud=0.025]]]])
 
    Learn final pairwise classifier and blocking rules. Requires that
    adequate training data has been already been provided.
@@ -46,26 +46,25 @@
 		     than the ppc, that predicate will be removed from
 		     consideration.
 
-		     As the size of the data increases, the user will
-		     generally want to reduce ppc.
+		     If you are comparing too many records (clustering
+		     is taking to long), you may want to decrease the
+		     value of ppc.
 
 		     ppc should be a value between 0.0 and
 		     1.0. Defaults to 0.1
 
-   :param int uncovered_dupes: The number of true dupes pairs in our
-			       training data that we can accept will
-			       not be put into any block. If true true
-			       duplicates are never in the same block,
-			       we will never compare them, and may
-			       never declare them to be duplicates.
+   :param float pud: The proportion of true dupes pairs in our
+	             training data that we can accept will not be put
+	             into any block. If true duplicates are never
+	             in the same block, we will never compare them,
+	             and can never declare them to be duplicates.
 
-			       However, requiring that we cover every
-			       single true dupe pair may mean that we
-			       have to use blocks that put together
-			       many, many distinct pairs that we'll
-			       have to expensively, compare as well.
+		     If you are comparing too many records (clustering
+		     is taking too long), you may want to increase
+		     pud.
 
-			       Defaults to 1
+	             pud should be a value between 0.0 and
+	             1.0. Defaults to 0.025
 
    :param bool index_predicates: Should dedupe consider predicates
 				 that rely upon indexing the
@@ -73,6 +72,23 @@
 				 and take susbstantial memory.
 
 				 Defaults to True
+
+   :param int uncovered_dupes: __DEPRECATED__ The number of true dupes
+			       pairs in our training data that we can
+			       accept will not be put into any
+			       block. If true true duplicates are
+			       never in the same block, we will never
+			       compare them, and can never declare
+			       them to be duplicates.
+
+			       However, requiring that we cover every
+			       single true dupe pair may mean that we
+			       have to use blocks that put together
+			       many, many distinct pairs that we'll
+			       have to expensively, compare as well.
+
+			       Defaults to None
+
 
    .. code:: python
 
