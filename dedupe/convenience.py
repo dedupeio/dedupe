@@ -25,6 +25,10 @@ def consoleLabel(deduper): # pragma : no cover
     '''
 
     finished = False
+    fields = unique(field.field
+                    for field
+                    in deduper.data_model.primary_fields)
+
 
     while not finished :
         n_match, n_distinct = (len(deduper.training_pairs['match']),
@@ -39,7 +43,7 @@ def consoleLabel(deduper): # pragma : no cover
             labeled = False
 
             for pair in record_pair:
-                for field in unique(field.field for field in deduper.data_model.primary_fields) :
+                for field in fields:
                     line = "%s : %s" % (field, pair[field])
                     print(line, file=sys.stderr)
                 print(file=sys.stderr) 
