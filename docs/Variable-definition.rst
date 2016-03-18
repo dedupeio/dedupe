@@ -251,11 +251,12 @@ Install the `dedupe-variable-address <https://pypi.python.org/pypi/dedupe-variab
 Name Type
 ^^^^^^^^^
 
-A 'Name' variable should be used for American names. It uses the
-`probablepeople <http://probablepeople.readthedocs.org/en/latest/>`__
-package to split apart an name string into components like give name,
-surname, and generaaddress number, street name, and generational
-suffix and compares component to component.
+A 'Name' variable should be used for a field that contains American
+names, corporations and households. It uses the `probablepeople
+<http://probablepeople.readthedocs.org/en/latest/>`__ package to split
+apart an name string into components like give name, surname,
+generational suffix, for people names, and abbreviation, company type,
+and legal form for corporations.
 
 .. code:: python
 
