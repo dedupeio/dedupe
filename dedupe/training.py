@@ -15,6 +15,17 @@ import random
 
 logger = logging.getLogger(__name__)
 
+def comparisons(block_count) :
+    comparison_count = {}
+    for predicate, blocks in viewitems(block_count) :
+        count = 0
+        for covered_ids in viewvalues(blocks) :
+            N = len(covered_ids)
+            count += (N * N-1)/2
+        comparison_count[predicate] = count
+
+    return comparison_count
+
 def findUncertainPairs(field_distances, classifier, bias=0.5):
     """
     Given a set of field distances and a data model return the
@@ -70,36 +81,6 @@ class ActiveLearning(object) :
 
         return uncertain_pairs
 
-
-def semiSupervisedNonDuplicates(data_sample,
-                                data_model,
-                                classifier,
-                                nonduplicate_confidence_threshold=.9,
-                                sample_size=2000):
-
-    confidence = 1 - nonduplicate_confidence_threshold
-
-    def distinctPairs() :
-        data_slice = data_sample[0:sample_size]
-        pair_distance = data_model.distances(data_slice)
-        scores = classifier.predict_proba(pair_distance)[:,-1]
-
-        sample_n = 0
-        for score, pair in zip(scores, data_sample) :
-            if score < confidence :
-                yield pair
-                sample_n += 1
-
-        if sample_n < sample_size and len(data_sample) > sample_size :
-            for pair in data_sample[sample_size:] :
-                pair_distance = data_model.distances([pair])
-                score = classifier.predict_proba(pair_distance)[:,-1]
-                
-                if score < confidence :
-                    yield (pair)
-
-    return itertools.islice(distinctPairs(), 0, sample_size)
-
 def trainingData(training_pairs, record_ids) :
 
     record_pairs = set()
@@ -114,9 +95,11 @@ def trainingData(training_pairs, record_ids) :
 
 def blockTraining(pairs,
                   predicate_set,
-                  eta=.1,
-                  epsilon=0,
-                  matching = "Dedupe"):
+                  records,
+                  max_comparisons,
+                  recall,
+                  matching = "Dedupe",
+                  num_records=None):
     '''
     Takes in a set of training pairs and predicates and tries to find
     a good set of blocking rules.
@@ -128,28 +111,30 @@ def blockTraining(pairs,
     if len(pairs['match']) < 50 :
         compound_length = 2
     else :
-        compound_length = 3
+        compound_length = 2
 
     dupe_cover = cover(blocker, pairs['match'], compound_length)
-    distinct_cover = cover(blocker, pairs['distinct'], compound_length)
 
-    distinct_count = defaultdict(int, {pred : len(pairs)
-                                       for pred, pairs
-                                       in viewitems(distinct_cover)})
+    total_cover = coveredRecords(blocker, records, 2)
+    comparison_count = comparisons(total_cover)
+        
+    del total_cover
 
-    # Throw away the predicates that cover too many distinct pairs
-    coverage_threshold = eta * len(pairs['distinct'])
-    logger.info("coverage threshold: %s", coverage_threshold)
+    import pdb
+    pdb.set_trace()
+    
     dupe_cover = {pred : pairs
                   for pred, pairs
                   in viewitems(dupe_cover)
-                  if distinct_count[pred] < coverage_threshold}
+                  if comparison_count[pred] < max_comparisons}
 
     if not dupe_cover : 
         raise ValueError(NO_PREDICATES_ERROR)
 
     uncoverable_dupes = set(pairs['match']) - set.union(*viewvalues(dupe_cover))
 
+    epsilon = int((1.0 - recall) * len(pairs['match']))
+    
     if len(uncoverable_dupes) > epsilon :
         logger.warning(OUT_OF_PREDICATES_WARNING)
         logger.debug(uncoverable_dupes)
@@ -157,7 +142,7 @@ def blockTraining(pairs,
     else :
         epsilon -= len(uncoverable_dupes)
 
-    chvatal_set = greedy(dupe_cover.copy(), distinct_count, epsilon)
+    chvatal_set = greedy(dupe_cover.copy(), comparison_count, epsilon)
 
     dupe_cover = {pred : dupe_cover[pred] for pred in chvatal_set}
         
@@ -169,7 +154,7 @@ def blockTraining(pairs,
 
     return final_predicates
 
-def greedy(dupe_cover, distinct_count, epsilon):
+def greedy(dupe_cover, comparison_count, epsilon):
 
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
@@ -194,10 +179,12 @@ def greedy(dupe_cover, distinct_count, epsilon):
     final_predicates = set()
 
     while len(uncovered_dupes) > epsilon and dupe_cover :
-        cost = lambda p : distinct_count[p]/len(dupe_cover[p])
+        cost = lambda p : comparison_count[p]/len(dupe_cover[p])
         
         best_predicate = min(dupe_cover, key = cost)
         final_predicates.add(best_predicate)
+
+        print(cost(best_predicate))
 
         covered = dupe_cover.pop(best_predicate)        
         uncovered_dupes = uncovered_dupes - covered
@@ -228,12 +215,12 @@ def dominating(dupe_cover) :
     return final_predicates
 
 def cover(blocker, pairs, compound_length) :
-    cover = coveredBy(blocker.predicates, pairs)
+    cover = coveredPairs(blocker.predicates, pairs)
     cover = compound(cover, compound_length)
     remaining_cover(cover)
     return cover
 
-def coveredBy(predicates, pairs) :
+def coveredPairs(predicates, pairs) :
     cover = {}
     pairs = sorted(pairs)
         
@@ -253,8 +240,37 @@ def coveredBy(predicates, pairs) :
 
     return cover
 
+def coveredRecords(blocker, records, compound_length) :
+    CP = predicates.CompoundPredicate
+
+    cover = defaultdict(lambda : defaultdict(set))
+    block_index = defaultdict(lambda : defaultdict(set))
+
+    for predicate in blocker.predicates :
+        for id, record in enumerate(viewvalues(records)) :
+            blocks = predicate(record)
+            for block in blocks :
+                cover[predicate][block].add(id)
+                block_index[predicate][id].add(block)
+
+    i = 0
+    for a, b in itertools.combinations(sorted(cover), 2) :
+        i += 1
+        print(i)
+        ab = CP((a,b))
+        for x, ids in viewitems(cover[a]) :
+            seen_blocks = set()
+            for id in ids :
+                for y in block_index[b][id] - seen_blocks :
+                    cover[ab][x,y] = ids & cover[b][y]
+                    seen_blocks.add(y)
+
+    return cover
+                    
+        
+
 def compound(cover, compound_length) :
-    simple_predicates = list(cover)
+    simple_predicates = sorted(cover)
     CP = predicates.CompoundPredicate
 
     for i in range(2, compound_length+1) :
