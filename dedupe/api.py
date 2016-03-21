@@ -17,6 +17,7 @@ import warnings
 import copy
 import os
 from collections import defaultdict, OrderedDict
+
 import simplejson as json
 import rlr
 
@@ -636,41 +637,21 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=.1, uncovered_dupes=None, index_predicates=True, pud=0.025) : # pragma : no cover
+    def train(self, maximum_comparisons=1000000, recall=0.975, index_predicates=True, num_records=None) : # pragma : no cover
         """Keyword arguments:
-        ppc -- Limits the Proportion of Pairs Covered that we allow a
-               predicate to cover. If a predicate puts together a fraction
-               of possible pairs greater than the ppc, that predicate will
-               be removed from consideration.
 
-               As the size of the data increases, the user will generally
-               want to reduce ppc.
+        maximum_comparisons -- The maximum number of comparisons a
+                               blocking rule is allowed to make. 
 
-               ppc should be a value between 0.0 and 1.0
+                               Defaults to 1000000
 
-        uncovered_dupes -- The number of true dupes pairs in our training
-                           data that we can accept will not be put into any
-                           block. If true true duplicates are never in the
-                           same block, we will never compare them, and may
-                           never declare them to be duplicates.
+        recall -- The proportion of true dupe pairs in our training
+                  data that that we the learned blocks must cover. If
+                  we lower the recall, there will be pairs of true
+                  dupes that we will never directly compare.
 
-                           However, requiring that we cover every single
-                           true dupe pair may mean that we have to use
-                           blocks that put together many, many distinct pairs
-                           that we'll have to expensively, compare as well.
-
-                           uncoverd_dupes is deprecated in favor of pud
-
-        pud -- The proportion of true dupe pairs in our training data
-               that that we can accept will not be put into any
-               block. If true true duplicates are never in the same
-               block, we will never compare them, and may never
-               declare them to be duplicates.
-
-               If both pud and uncovered_dupes are set, uncovered_dupes will
-               take priority
-
-               pud should be a float between 0.0 and 1.0
+                  recall should be a float between 0.0 and 1.0, the default
+                  is 0.975
 
         index_predicates -- Should dedupe consider predicates that
                             rely upon indexing the data. Index predicates can 
@@ -678,14 +659,19 @@ class ActiveMatching(Matching) :
 
                             Defaults to True.
 
+        num_records -- The number of total records in your dataset. 
+                        
+                       Defaults to length of sample
         """
-        if uncovered_dupes is None :
-            uncovered_dupes = int(pud * len(self.training_pairs['match']))
-        else :
-            warnings.warn("The uncovered_dupes argument of the train method will be deprecated in dedupe 1.4, please use the pud argument instead", DeprecationWarning) 
+        if num_records is None :
+            num_records = len(self.data)
+        
                     
         self._trainClassifier()
-        self._trainBlocker(ppc, uncovered_dupes, index_predicates)
+        self._trainBlocker(maximum_comparisons,
+                           recall,
+                           index_predicates,
+                           num_records)
 
     def _trainClassifier(self) : # pragma : no cover
         labels = numpy.array(self.training_data['label'] == b'match', 
@@ -695,23 +681,17 @@ class ActiveMatching(Matching) :
         self.classifier.fit(examples, labels)
 
     
-    def _trainBlocker(self, ppc, uncovered_dupes, index_predicates) : # pragma : no cover
+    def _trainBlocker(self, maximum_comparisons, recall, index_predicates, num_records) : # pragma : no cover
         training_pairs = copy.deepcopy(self.training_pairs)
-
-        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model,
-                                                                       self.classifier,
-                                                                       sample_size=32000)
-
-        training_pairs[u'distinct'].extend(confident_nonduplicates)
 
         predicate_set = self.data_model.predicates(index_predicates,
                                                    self.canopies)
 
         self.predicates = dedupe.training.blockTraining(training_pairs,
                                                         predicate_set,
-                                                        ppc,
-                                                        uncovered_dupes,
+                                                        self.sampled_records,
+                                                        maximum_comparisons,
+                                                        recall,
                                                         self._linkage_type)
 
         self.blocker = blocking.Blocker(self.predicates)
@@ -911,6 +891,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_proportion  -- Proportion of the sample that will be blocked
         '''
         data = core.index(data)
+        self.sampled_records = Sample(data, 900)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False,
@@ -932,10 +913,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
                        in blocked_sample_keys | random_sample_keys]
 
         data_sample = core.freezeData(data_sample)
-
-        # data can be a very large object, so we'll free it up as soon
-        # as possible
-        del data
 
         self._loadSample(data_sample)
 
@@ -1098,3 +1075,13 @@ class EmptyTrainingException(Exception) :
 
 class SettingsFileLoadingException(Exception) :
     pass
+
+class Sample(dict) :
+    def __init__(self, d, sample_size) :
+        if len(d) <= sample_size :
+            super(Sample, self).__init__(d)
+        else :
+            super(Sample, self).__init__({k : d[k]
+                                          for k
+                                          in random.sample(d, sample_size)})
+        self.original_length = len(d)

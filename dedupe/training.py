@@ -15,12 +15,12 @@ import random
 
 logger = logging.getLogger(__name__)
 
-def comparisons(block_count) :
+def comparisons(block_count, multiplier=1) :
     comparison_count = {}
     for predicate, blocks in viewitems(block_count) :
         count = 0
         for covered_ids in viewvalues(blocks) :
-            N = len(covered_ids)
+            N = len(covered_ids) * multiplier
             count += (N * N-1)/2
         comparison_count[predicate] = count
 
@@ -93,13 +93,11 @@ def trainingData(training_pairs, record_ids) :
     return record_pairs, tuple_pairs
     
 
-def blockTraining(pairs,
-                  predicate_set,
-                  records,
+def blockTraining(blocker,
+                  comparisons,
+                  matches,
                   max_comparisons,
-                  recall,
-                  matching = "Dedupe",
-                  num_records=None):
+                  recall) :
     '''
     Takes in a set of training pairs and predicates and tries to find
     a good set of blocking rules.
@@ -116,13 +114,9 @@ def blockTraining(pairs,
     dupe_cover = cover(blocker, pairs['match'], compound_length)
 
     total_cover = coveredRecords(blocker, records, 2)
-    comparison_count = comparisons(total_cover)
+    comparison_count = comparisons(total_cover,
+                                   records.original_length/len(records))
         
-    del total_cover
-
-    import pdb
-    pdb.set_trace()
-    
     dupe_cover = {pred : pairs
                   for pred, pairs
                   in viewitems(dupe_cover)
@@ -240,31 +234,64 @@ def coveredPairs(predicates, pairs) :
 
     return cover
 
-def coveredRecords(blocker, records, compound_length) :
+#@profile
+def coveredRecordsDedupe(blocker, records) :
     CP = predicates.CompoundPredicate
 
-    cover = defaultdict(lambda : defaultdict(set))
-    block_index = defaultdict(lambda : defaultdict(set))
+    cover = {}
+    block_index = {}
 
     for predicate in blocker.predicates :
-        for id, record in enumerate(viewvalues(records)) :
+        cover[predicate] = {}
+        block_index[predicate] = {}
+        for id, record in viewvalues(records) :
             blocks = predicate(record)
             for block in blocks :
-                cover[predicate][block].add(id)
-                block_index[predicate][id].add(block)
+                cover[predicate].setdefault(block, set()).add(id)
 
+    return cover
+
+def coveredRecordsLink(blocker, record_1, records_2) :
+    CP = predicates.CompoundPredicate
+
+    cover = {}
+    block_index = {}
+
+    for predicate in blocker.predicates :
+        cover[predicate] = {}
+        block_index[predicate] = {}
+        for id, record in viewvalues(records_2) :
+            blocks = predicate(record)
+            for block in blocks :
+                cover[predicate].setdefault(block, (set(), set()))[0].add(id)
+
+        current_blocks = set(cover[predicate])
+        for id, record in viewvaues(records_1) :
+            blocks = set(predicate(record))
+            for block in blocks & current_blocks :
+                cover[predicate][block][1].add(id)
+                    
+
+    for predicate, blocks in viewitems(cover) :
+        for block_id, block in viewitems(blocks) :
+            cover[predicate][block_id] = {hash(prod)
+                                          for prod
+                                          in itertools.product(*block)}
+
+    return cover
+
+
+
+def compoundRecord()
     i = 0
     for a, b in itertools.combinations(sorted(cover), 2) :
-        i += 1
-        print(i)
-        ab = CP((a,b))
-        for x, ids in viewitems(cover[a]) :
-            seen_blocks = set()
-            for id in ids :
-                for y in block_index[b][id] - seen_blocks :
-                    cover[ab][x,y] = ids & cover[b][y]
-                    seen_blocks.add(y)
-
+        cover_b = cover[b]
+        block_b = block_index[b]
+        b_ids = set(block_b)
+        cover[CP((a,b))] = {(x,y) : ids & cover_b[y]
+                            for x, ids in viewitems(cover[a])
+                            for id in ids & b_ids 
+                            for y in block_b[id]}
     return cover
                     
         
