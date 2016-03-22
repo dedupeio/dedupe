@@ -263,13 +263,13 @@ def coveredRecordsLink(blocker, record_1, records_2) :
         for id, record in viewvalues(records_2) :
             blocks = predicate(record)
             for block in blocks :
-                cover[predicate].setdefault(block, (set(), set()))[0].add(id)
+                cover[predicate].setdefault(block, (set(), set()))[1].add(id)
 
         current_blocks = set(cover[predicate])
         for id, record in viewvaues(records_1) :
             blocks = set(predicate(record))
             for block in blocks & current_blocks :
-                cover[predicate][block][1].add(id)
+                cover[predicate][block][0].add(id)
                     
 
     for predicate, blocks in viewitems(cover) :
