@@ -91,10 +91,30 @@ def trainingData(training_pairs, record_ids) :
         tuple_pairs.add(tuple([record_ids[record] 
                                for record in pair]))
     return record_pairs, tuple_pairs
+
+def linkBlockTraining(predicate_set,
+                      sampled_records_1,
+                      sampled_records_2,
+                      matches,
+                      max_comparisons,
+                      recall) :
+
+    blocker = blocking.Blocker(predicate_set)
+    prepare_index(blocker, sampled_records, matching)
+
+    total_cover = coveredLink(blocker, sampled_records_1, sampled_records_2)
+
+    # this isn't quite the right multiplier
+    comparison_count = comparisons(total_cover,
+                                   records.original_length/len(records)) 
+        
+
+
+    return blockTraining(blocker, comparison_count, matches, max_comparison, recall)
     
 
 def blockTraining(blocker,
-                  comparisons,
+                  comparison_count,
                   matches,
                   max_comparisons,
                   recall) :
@@ -103,9 +123,6 @@ def blockTraining(blocker,
     a good set of blocking rules.
     '''
 
-    blocker = blocking.Blocker(predicate_set)
-    prepare_index(blocker, pairs, matching)
-
     if len(pairs['match']) < 50 :
         compound_length = 2
     else :
@@ -113,10 +130,6 @@ def blockTraining(blocker,
 
     dupe_cover = cover(blocker, pairs['match'], compound_length)
 
-    total_cover = coveredRecords(blocker, records, 2)
-    comparison_count = comparisons(total_cover,
-                                   records.original_length/len(records))
-        
     dupe_cover = {pred : pairs
                   for pred, pairs
                   in viewitems(dupe_cover)
@@ -282,7 +295,14 @@ def coveredRecordsLink(blocker, record_1, records_2) :
 
 
 
-def compoundRecord()
+def compoundBlocks(cover, compound_length) :
+
+    block_index = {}
+    for predicate, blocks in viewitems(cover):
+        for block_id, blocks in viewitems(blocks) :
+            for id blocks :
+                block_index[predicate].setdefault(id, set()).add(block_id)
+
     i = 0
     for a, b in itertools.combinations(sorted(cover), 2) :
         cover_b = cover[b]
