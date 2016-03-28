@@ -328,7 +328,7 @@ def index(data, offset=0) :
                         viewvalues(data)))
         return data
 
-functools.total_ordering
+@functools.total_ordering
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 

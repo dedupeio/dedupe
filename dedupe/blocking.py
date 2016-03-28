@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from future.utils import viewitems, viewvalues
+
 from collections import defaultdict
 import collections
 import itertools
@@ -88,6 +90,14 @@ class Blocker:
             for predicate in self.index_fields[field][index_type] :
                 logger.info("Canopy: %s", str(predicate))
                 predicate.index = index
+
+    def indexAll(self, data_d) :
+        for field in self.index_fields :
+            unique_fields = {record[field]
+                             for record 
+                             in viewvalues(data_d)
+                             if record[field]}
+            self.index(unique_fields, field)
 
 
 def extractIndices(index_fields) :
