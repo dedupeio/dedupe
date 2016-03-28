@@ -300,7 +300,7 @@ def compoundBlocks(cover, compound_length) :
     block_index = {}
     for predicate, blocks in viewitems(cover):
         for block_id, blocks in viewitems(blocks) :
-            for id blocks :
+            for id in blocks :
                 block_index[predicate].setdefault(id, set()).add(block_id)
 
     i = 0
@@ -344,21 +344,6 @@ def remaining_cover(coverage, covered=set()) :
 
     for predicate in null_covers :
         del coverage[predicate]
-
-def prepare_index(blocker, pairs, matching) :
-    if matching == "RecordLink" :
-        unroll = lambda p : {record_2 for _, record_2 in p}
-    else :
-        unroll = lambda p : set().union(*p)
-
-    records = unroll(itertools.chain.from_iterable(viewvalues(pairs)))
-    
-    for field, indices in blocker.index_fields.items() :
-        record_fields = [record[field] 
-                         for record 
-                         in records
-                         if record[field]]
-        blocker.index(sorted(set(record_fields)), field)
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the ppc argument to the train method"
 

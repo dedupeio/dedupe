@@ -5,7 +5,7 @@ dedupe provides the main user interface for the library the
 Dedupe class
 """
 from __future__ import print_function, division
-from future.utils import viewitems, viewvalues
+from future.utils import viewitems, viewvalues, viewkeys
 
 import itertools
 import logging
@@ -247,24 +247,18 @@ class DedupeMatching(Matching) :
 
         blocks = defaultdict(dict)
 
-        for field in self.blocker.index_fields :
-            unique_fields = {record[field]
-                             for record 
-                             in viewvalues(data_d)
-                             if record[field]}
-
-            self.blocker.index(unique_fields, field)
+        self.blocker.indexAll(data_d)
 
         for block_key, record_id in self.blocker(viewitems(data_d)) :
             blocks[block_key][record_id] = data_d[record_id]
 
         self.blocker.resetIndices()
 
-        blocks = (records for records in blocks.values()
-                  if len(records) > 1)
-        
-        blocks = {frozenset(d.keys()) : d for d in blocks}
-        blocks = blocks.values()
+        seen_blocks = set()
+        blocks = [records for records in viewvalues(blocks)
+                  if len(records) > 1
+                  and not (frozenset(records.keys()) in seen_blocks
+                           or seen_blocks.add(frozenset(records.keys())))]
 
         for block in self._redundantFree(blocks) :
             yield block
@@ -429,17 +423,11 @@ x        """
             if B :
                 yield (A, B)
 
-
     def _blockData(self, data_1, data_2) :
 
         blocked_records = defaultdict(dict)
 
-        for field in self.blocker.index_fields :
-            fields_2 = (record[field]
-                        for record 
-                        in viewvalues(data_2))
-
-            self.blocker.index(set(fields_2), field)
+        self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items()) :
             blocked_records[block_key][record_id] = data_2[record_id]
@@ -687,12 +675,12 @@ class ActiveMatching(Matching) :
         predicate_set = self.data_model.predicates(index_predicates,
                                                    self.canopies)
 
-        self.predicates = dedupe.training.blockTraining(training_pairs,
-                                                        predicate_set,
-                                                        self.sampled_records,
+        blocker, comparison_count = self.comparisons(predicate_set)
+
+        self.predicates = dedupe.training.blockTraining(blocker,
+                                                        comparison_count,
                                                         maximum_comparisons,
-                                                        recall,
-                                                        self._linkage_type)
+                                                        recall)
 
         self.blocker = blocking.Blocker(self.predicates)
 
@@ -916,6 +904,16 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         self._loadSample(data_sample)
 
+    
+    def comparisons(self) :
+        self._blockData()
+        blocker.indexAll(self.sampled_records)
+        total_cover = training.coveredRecordDedupe(blocker,
+                                                   self.sampled_records)
+        comparison_count = training.comparisons(total_cover, 1)
+        return comparison_count
+
+
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
@@ -992,6 +990,13 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         self._loadSample(data_sample)
 
+    def comparisons(self, blocker) :
+        blocker.indexAll(self.sampled_records_2)
+        total_cover = self._blockData(self.sampled_records_1,
+                                      self.sampled_records_2)
+        comparison_count = training.comparisons(total_cover, 1)
+        return comparison_count
+
 
 class GazetteerMatching(RecordLinkMatching) :
     
@@ -1010,11 +1015,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
     def index(self, data) : # pragma : no cover
 
-        for field in self.blocker.index_fields :
-            self.blocker.index((record[field]
-                                for record 
-                                in viewvalues(data)),
-                               field)
+        self.blocker.indexAll(data)
 
         for block_key, record_id in self.blocker(data.items()) :
             if block_key not in self.blocked_records :
