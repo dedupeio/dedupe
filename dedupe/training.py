@@ -183,7 +183,7 @@ class DedupeBlockLearner(BlockLearner) :
                 for id in blocks :
                     block_index[predicate].setdefault(id, set()).add(block_id)
 
-        for a, b in itertools.combinations(sorted(cover), 2) :
+        for a, b in itertools.combinations(sorted(cover, key=str), 2) :
             cover_b = cover[b]
             block_b = block_index[b]
             b_ids = set(block_b)
@@ -270,7 +270,7 @@ class RecordLinkBlockLearner(BlockLearner) :
                 for id in blocks[0] :
                     first_block_index[predicate].setdefault(id, set()).add(block_id)
 
-        for a, b in itertools.combinations(sorted(cover), 2) :
+        for a, b in itertools.combinations(sorted(cover, key=str), 2) :
             cover_b = cover[b]
             first_blocks_b = first_block_index[b]
             first_ids_b = set(first_blocks_b)
@@ -372,7 +372,7 @@ def coveredPairs(predicates, pairs) :
     return cover
 
 def compound(cover, compound_length) :
-    simple_predicates = sorted(cover)
+    simple_predicates = sorted(cover, key=str)
     CP = predicates.CompoundPredicate
 
     for i in range(2, compound_length+1) :
