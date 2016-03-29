@@ -124,10 +124,15 @@ class DedupeBlockLearner(BlockLearner) :
         self.blocker = blocking.Blocker(predicates)
         self.matches = matches
 
+        try :
+            offset = max(sampled_records)
+        except ValueError :
+            offset = 0
+
         sampled_records.update({i : record
                                 for i, record
                                 in enumerate(set().union(*matches),
-                                             max(sampled_records))})
+                                             offset)})
 
         self.blocker.indexAll(sampled_records)
 
@@ -197,12 +202,17 @@ class RecordLinkBlockLearner(BlockLearner) :
         self.blocker = blocking.Blocker(predicates)
         self.matches = matches
 
+        try :
+            offset = max(sampled_records_2)
+        except ValueError :
+            offset = 0
+
         sampled_records_2.update({i : record
                                   for i, record
                                   in enumerate({record_2
                                                 for _, record_2
                                                 in matches},
-                                               max(sampled_records_2))})
+                                               offset)})
         
         self.blocker.indexAll(sampled_records_2)
 
@@ -266,11 +276,12 @@ class RecordLinkBlockLearner(BlockLearner) :
             first_ids_b = set(first_blocks_b)
             a_b = CP((a,b))
             cover[a_b] = {}
-            for x, (first_ids_a, second_ids_a) in viewitems(cover[a]) :
-                for id in first_ids_a & first_ids_b :
+            for x, (first_ids_x, second_ids_x) in viewitems(cover[a]) :
+                for id in first_ids_x & first_ids_b :
                     for y in first_blocks_b[id] :
-                        cover[a_b][x,y] = (first_ids_a & cover_b[y][0],
-                                           second_ids_a & cover_b[y][1])
+                        first_ids_y, second_ids_y = cover_b[y]
+                        cover[a_b][x,y] = (first_ids_x & first_ids_y,
+                                           second_ids_x & second_ids_y)
         return cover    
 
     

@@ -30,10 +30,12 @@ class BlockingTest(unittest.TestCase):
 
   def test_dedupe_coverage(self) :
     predicates = self.data_model.predicates()
-    blocker = dedupe.blocking.Blocker(predicates)
-    dedupe.training.prepare_index(blocker, self.training_pairs, "Dedupe")
-
-    coverage = dedupe.training.coveredBy(blocker.predicates, self.training)
+    sample = dedupe.api.Sample({}, 0)
+    bl = dedupe.training.DedupeBlockLearner(predicates,
+                                            self.training,
+                                            sample)
+    coverage = dedupe.training.coveredPairs(bl.blocker.predicates,
+                                            self.training)
     assert self.simple(coverage.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
                "SimplePredicate: (commonSixGram, name)", 
