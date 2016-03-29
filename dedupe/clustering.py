@@ -170,7 +170,7 @@ def confidences(items, condensed_distances, d) :
     scores = dict.fromkeys(items, 0)
     for i, j in itertools.combinations(items, 2) :
         index = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
-        dist = condensed_distances[index.astype(int)]
+        dist = condensed_distances[int(index)]
         scores[i] += dist
         scores[j] += dist
     scores = numpy.array([v for (k, v) in sorted(scores.items())])
