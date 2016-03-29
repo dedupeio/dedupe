@@ -670,10 +670,9 @@ class ActiveMatching(Matching) :
         predicate_set = self.data_model.predicates(index_predicates,
                                                    self.canopies)
 
-        block_learner = self._blockLearner(predicate_set)
+        block_learner = self._blockLearner(predicate_set, matches)
 
-        self.predicates = block_learner.learn(matches,
-                                              maximum_comparisons,
+        self.predicates = block_learner.learn(maximum_comparisons,
                                               recall)
 
 
@@ -898,8 +897,10 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         self._loadSample(data_sample)
 
-    def _blockLearner(self, predicates) :
-        return training.DedupeBlockLearner(predicates, self.sampled_records)
+    def _blockLearner(self, predicates, matches) :
+        return training.DedupeBlockLearner(predicates,
+                                           matches,
+                                           self.sampled_records)
     
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
@@ -941,9 +942,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
             data_1, data_2 = data_2, data_1
 
         data_1 = core.index(data_1)
+        self.sampled_records_1 = Sample(data_1, 400)
 
         offset = len(data_1)
         data_2 = core.index(data_2, offset)
+        self.sampled_records_2 = Sample(data_2, 400)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False,
@@ -976,8 +979,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         self._loadSample(data_sample)
 
-    def _blockLearner(self, predicates) :
+    def _blockLearner(self, predicates, matches) :
         return training.RecordLinkBlockLearner(predicates,
+                                               matches,
                                                self.sampled_records_1,
                                                self.sampled_records_2)
 

@@ -71,21 +71,21 @@ class ActiveLearning(object) :
         return uncertain_pairs
 
 class BlockLearner(object) :
-    def learn(self, matches, max_comparisons, recall) :
+    def learn(self, max_comparisons, recall) :
         '''
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
 
-        if len(matches) < 50 :
+        if len(self.matches) < 50 :
             compound_length = 2
         else :
             compound_length = 2
 
-        dupe_cover = cover(self.blocker, matches, compound_length)
+        dupe_cover = cover(self.blocker, self.matches, compound_length)
 
-        comparison_count = self.comparisons(compoundBlocks(self.total_cover,
-                                                           compound_length))
+        comparison_count = self.comparisons(self.compoundBlocks(self.total_cover,
+                                                                compound_length))
 
         dupe_cover = {pred : pairs
                       for pred, pairs
@@ -95,9 +95,9 @@ class BlockLearner(object) :
         if not dupe_cover : 
             raise ValueError(NO_PREDICATES_ERROR)
 
-        uncoverable_dupes = set(matches) - set.union(*viewvalues(dupe_cover))
+        uncoverable_dupes = set(self.matches) - set.union(*viewvalues(dupe_cover))
 
-        epsilon = int((1.0 - recall) * len(matches))
+        epsilon = int((1.0 - recall) * len(self.matches))
 
         if len(uncoverable_dupes) > epsilon :
             logger.warning(OUT_OF_PREDICATES_WARNING)
@@ -120,13 +120,24 @@ class BlockLearner(object) :
               
     
 class DedupeBlockLearner(BlockLearner) :
-    def __init__(self, predicates, sampled_records) :
+    def __init__(self, predicates, matches, sampled_records) :
         self.blocker = blocking.Blocker(predicates)
+        self.matches = matches
+
+        sampled_records.update({i : record
+                                for i, record
+                                in enumerate(set().union(*matches),
+                                             max(sampled_records))})
+
         self.blocker.indexAll(sampled_records)
 
         self.total_cover = self.coveredRecords(self.blocker, sampled_records)
 
         self.multiplier = sampled_records.original_length/len(sampled_records)
+
+    def matchedRecords(self, matches, offset) :
+        return {i : record for i, record in enumerate(set().union(*matches),
+                                                      offset)}
 
     @staticmethod
     def coveredRecords(blocker, records) :
@@ -156,18 +167,55 @@ class DedupeBlockLearner(BlockLearner) :
 
         return comparison_count
 
+    @staticmethod
+    def compoundBlocks(cover, compound_length) :
+        CP = predicates.CompoundPredicate
+
+        block_index = {}
+        for predicate, blocks in viewitems(cover):
+            block_index[predicate] = {}
+            for block_id, blocks in viewitems(blocks) :
+                for id in blocks :
+                    block_index[predicate].setdefault(id, set()).add(block_id)
+
+        for a, b in itertools.combinations(sorted(cover), 2) :
+            cover_b = cover[b]
+            block_b = block_index[b]
+            b_ids = set(block_b)
+            cover[CP((a,b))] = {(x,y) : ids & cover_b[y]
+                                for x, ids in viewitems(cover[a])
+                                for id in ids & b_ids 
+                                for y in block_b[id]}
+        return cover    
 
 class RecordLinkBlockLearner(BlockLearner) :
-    def __init__(self, predicates, sampled_records_1, sampled_records_2) :
+    def __init__(self,
+                 predicates,
+                 matches,
+                 sampled_records_1,
+                 sampled_records_2) :
         self.blocker = blocking.Blocker(predicates)
+        self.matches = matches
+
+        sampled_records_2.update({i : record
+                                  for i, record
+                                  in enumerate({record_2
+                                                for _, record_2
+                                                in matches},
+                                               max(sampled_records_2))})
+        
         self.blocker.indexAll(sampled_records_2)
 
         self.total_cover = self.coveredRecords(self.blocker,
                                                sampled_records_1,
                                                sampled_records_2)
 
+        self.multiplier_1 = sampled_records_1.original_length/len(sampled_records_1)
+        self.multiplier_2 = sampled_records_2.original_length/len(sampled_records_2)
+
+
     @staticmethod
-    def coveredRecords(blocker, record_1, records_2) :
+    def coveredRecords(blocker, records_1, records_2) :
         CP = predicates.CompoundPredicate
 
         cover = {}
@@ -176,38 +224,56 @@ class RecordLinkBlockLearner(BlockLearner) :
         for predicate in blocker.predicates :
             cover[predicate] = {}
             block_index[predicate] = {}
-            for id, record in viewvalues(records_2) :
+            for id, record in viewitems(records_2) :
                 blocks = predicate(record)
                 for block in blocks :
                     cover[predicate].setdefault(block, (set(), set()))[1].add(id)
 
             current_blocks = set(cover[predicate])
-            for id, record in viewvaues(records_1) :
+            for id, record in viewitems(records_1) :
                 blocks = set(predicate(record))
                 for block in blocks & current_blocks :
                     cover[predicate][block][0].add(id)
 
-
-        for predicate, blocks in viewitems(cover) :
-            for block_id, block in viewitems(blocks) :
-                cover[predicate][block_id] = {hash(prod)
-                                              for prod
-                                              in itertools.product(*block)}
-
         return cover
 
-    @staticmethod
-    def comparisons(block_cover, multiplier=1) :
+    def comparisons(self, block_cover) :
         comparison_count = {}
-        for predicate, blocks in viewitems(block_count) :
+        for predicate, blocks in viewitems(block_cover) :
             count = 0
-            for covered_ids in viewvalues(blocks) :
-                N = len(covered_ids) * multiplier
-                count += (N * N-1)/2
+            for A, B in viewvalues(blocks) :
+                N = len(A) * self.multiplier_1
+                M = len(B) * self.multiplier_2
+                count += N * M
             comparison_count[predicate] = count
 
         return comparison_count
 
+    @staticmethod
+    def compoundBlocks(cover, compound_length) :
+        CP = predicates.CompoundPredicate
+
+        first_block_index = {}
+        for predicate, blocks in viewitems(cover):
+            first_block_index[predicate] = {}
+            for block_id, blocks in viewitems(blocks) :
+                for id in blocks[0] :
+                    first_block_index[predicate].setdefault(id, set()).add(block_id)
+
+        for a, b in itertools.combinations(sorted(cover), 2) :
+            cover_b = cover[b]
+            first_blocks_b = first_block_index[b]
+            first_ids_b = set(first_blocks_b)
+            a_b = CP((a,b))
+            cover[a_b] = {}
+            for x, (first_ids_a, second_ids_a) in viewitems(cover[a]) :
+                for id in first_ids_a & first_ids_b :
+                    for y in first_blocks_b[id] :
+                        cover[a_b][x,y] = (first_ids_a & cover_b[y][0],
+                                           second_ids_a & cover_b[y][1])
+        return cover    
+
+    
 def greedy(dupe_cover, comparison_count, epsilon):
 
     # Greedily find the predicates that, at each step, covers the
@@ -308,28 +374,6 @@ def compound(cover, compound_length) :
 
             cover[CP(compound_predicate)] = cover[a] & cover[b]
 
-    return cover
-
-
-def compoundBlocks(cover, compound_length) :
-    CP = predicates.CompoundPredicate
-
-    block_index = {}
-    for predicate, blocks in viewitems(cover):
-        block_index[predicate] = {}
-        for block_id, blocks in viewitems(blocks) :
-            for id in blocks :
-                block_index[predicate].setdefault(id, set()).add(block_id)
-
-    i = 0
-    for a, b in itertools.combinations(sorted(cover), 2) :
-        cover_b = cover[b]
-        block_b = block_index[b]
-        b_ids = set(block_b)
-        cover[CP((a,b))] = {(x,y) : ids & cover_b[y]
-                            for x, ids in viewitems(cover[a])
-                            for id in ids & b_ids 
-                            for y in block_b[id]}
     return cover
 
 def chunker(seq, size):
