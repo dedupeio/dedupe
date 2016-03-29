@@ -625,7 +625,7 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, maximum_comparisons=1000000, recall=0.975, index_predicates=True, num_records=None) : # pragma : no cover
+    def train(self, maximum_comparisons=1000000, recall=0.975, index_predicates=True) : # pragma : no cover
         """Keyword arguments:
 
         maximum_comparisons -- The maximum number of comparisons a
@@ -651,15 +651,10 @@ class ActiveMatching(Matching) :
                         
                        Defaults to length of sample
         """
-        if num_records is None :
-            num_records = len(self.data)
-        
-                    
         self._trainClassifier()
         self._trainBlocker(maximum_comparisons,
                            recall,
-                           index_predicates,
-                           num_records)
+                           index_predicates)
 
     def _trainClassifier(self) : # pragma : no cover
         labels = numpy.array(self.training_data['label'] == b'match', 
@@ -669,21 +664,20 @@ class ActiveMatching(Matching) :
         self.classifier.fit(examples, labels)
 
     
-    def _trainBlocker(self, maximum_comparisons, recall, index_predicates, num_records) : # pragma : no cover
-        training_pairs = copy.deepcopy(self.training_pairs)
+    def _trainBlocker(self, maximum_comparisons, recall, index_predicates) : # pragma : no cover
+        matches = self.training_pairs['match'][:]
 
         predicate_set = self.data_model.predicates(index_predicates,
                                                    self.canopies)
 
-        blocker, comparison_count = self.comparisons(predicate_set)
+        block_learner = self._blockLearner(predicate_set)
 
-        self.predicates = dedupe.training.blockTraining(blocker,
-                                                        comparison_count,
-                                                        maximum_comparisons,
-                                                        recall)
+        self.predicates = block_learner.learn(matches,
+                                              maximum_comparisons,
+                                              recall)
+
 
         self.blocker = blocking.Blocker(self.predicates)
-
 
     def writeSettings(self, file_obj): # pragma : no cover
         """
@@ -904,17 +898,9 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         self._loadSample(data_sample)
 
+    def _blockLearner(self, predicates) :
+        return training.DedupeBlockLearner(predicates, self.sampled_records)
     
-    def comparisons(self) :
-        self._blockData()
-        blocker.indexAll(self.sampled_records)
-        total_cover = training.coveredRecordDedupe(blocker,
-                                                   self.sampled_records)
-        comparison_count = training.comparisons(total_cover, 1)
-        return comparison_count
-
-
-
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
     Mixin Class for Static Record Linkage
@@ -990,13 +976,10 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         self._loadSample(data_sample)
 
-    def comparisons(self, blocker) :
-        blocker.indexAll(self.sampled_records_2)
-        total_cover = self._blockData(self.sampled_records_1,
-                                      self.sampled_records_2)
-        comparison_count = training.comparisons(total_cover, 1)
-        return comparison_count
-
+    def _blockLearner(self, predicates) :
+        return training.RecordLinkBlockLearner(predicates,
+                                               self.sampled_records_1,
+                                               self.sampled_records_2)
 
 class GazetteerMatching(RecordLinkMatching) :
     
