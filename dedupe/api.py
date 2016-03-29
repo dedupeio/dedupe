@@ -1071,5 +1071,5 @@ class Sample(dict) :
         else :
             super(Sample, self).__init__({k : d[k]
                                           for k
-                                          in random.sample(d, sample_size)})
+                                          in random.sample(viewkeys(d), sample_size)})
         self.original_length = len(d)
