@@ -172,11 +172,12 @@ class DedupeCompounder(Compounder) :
         b_ids = set(b_index)
         cover_b = self.cover[b]
         seen_blocks = set()
+        seen_blocks_add = seen_blocks.add
         return {(x, y) : x_ids & cover_b[y]
                 for x, x_ids in viewitems(cover_a)
                 for id in x_ids & b_ids
                 for y in b_index[id]
-                if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
+                if not ((x,y) in seen_blocks or seen_blocks_add((x,y)))}
 
 class DedupeBlockLearner(BlockLearner) :
     Compounder = DedupeCompounder
@@ -225,11 +226,12 @@ class RecordLinkCompounder(Compounder) :
         first_b = set(b_index)
         cover_b = self.cover[b]
         seen_blocks = set()
+        seen_blocks_add = seen_blocks.add
         return {(x, y) : (first & cover_b[y][0], second & cover_b[y][1])
                 for x, (first, second) in viewitems(cover_a)
                 for id in first & first_b
                 for y in b_index[id]
-                if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
+                if not ((x,y) in seen_blocks or seen_blocks_add((x,y)))}
     
 class RecordLinkBlockLearner(BlockLearner) :
     Compounder = RecordLinkCompounder
