@@ -40,7 +40,6 @@ def findUncertainPairs(field_distances, classifier, bias=0.5):
 
     return numpy.argsort(-informativity)
 
-
 class ActiveLearning(object) :
     """
     Ask the user to label the record pair we are most uncertain of. Train the
@@ -179,18 +178,6 @@ class DedupeCompounder(Compounder) :
                 for y in b_index[id]
                 if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
 
-class RecordLinkCompounder(Compounder) :
-    def overlap(self, cover_a, b) :
-        b_index = self.block_index[b]
-        first_b = set(b_index)
-        cover_b = self.cover[b]
-        seen_blocks = set()
-        return {(x, y) : (first & cover_b[y][0], second & cover_b[y][1])
-                for x, (first, second) in viewitems(cover_a)
-                for id in first & first_b
-                for y in b_index[id]
-                if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
-    
 class DedupeBlockLearner(BlockLearner) :
     Compounder = DedupeCompounder
     
@@ -203,10 +190,12 @@ class DedupeBlockLearner(BlockLearner) :
 
         self.blocker = blocking.Blocker(predicates)
 
-    def unroll(self, matches) :
+    @staticmethod
+    def unroll(matches) : # pragma : no cover
         return set().union(*matches)
 
-    def _blocks(self, blocks) :
+    @staticmethod
+    def _blocks(blocks) : # pragma : no cover
         return blocks
 
     @staticmethod
@@ -230,6 +219,18 @@ class DedupeBlockLearner(BlockLearner) :
         N = len(ids) * self.multiplier
         return (N * (N - 1))/2
 
+class RecordLinkCompounder(Compounder) :
+    def overlap(self, cover_a, b) :
+        b_index = self.block_index[b]
+        first_b = set(b_index)
+        cover_b = self.cover[b]
+        seen_blocks = set()
+        return {(x, y) : (first & cover_b[y][0], second & cover_b[y][1])
+                for x, (first, second) in viewitems(cover_a)
+                for id in first & first_b
+                for y in b_index[id]
+                if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
+    
 class RecordLinkBlockLearner(BlockLearner) :
     Compounder = RecordLinkCompounder
     
@@ -246,11 +247,12 @@ class RecordLinkBlockLearner(BlockLearner) :
 
         self.blocker = blocking.Blocker(predicates)
 
-
-    def unroll(self, matches) :
+    @staticmethod
+    def unroll(matches) : # pragma : no cover
         return {record_2 for _, record_2 in matches}
 
-    def _blocks(self, blocks) :
+    @staticmethod
+    def _blocks(blocks) : # pragma : no cover
         return blocks[0]
  
     @staticmethod
