@@ -76,16 +76,11 @@ class BlockLearner(object) :
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
+        compound_length = 2
+        
+        dupe_cover = cover(self.blocker, self.matches, 2)
 
-        if len(self.matches) < 50 :
-            compound_length = 2
-        else :
-            compound_length = 2
-
-        dupe_cover = cover(self.blocker, self.matches, compound_length)
-
-        comparison_count = self.comparisons(self.total_cover,
-                                            compound_length)
+        comparison_count = self.comparisons(self.total_cover, compound_length)
 
         dupe_cover = {pred : pairs
                       for pred, pairs
@@ -176,7 +171,8 @@ class DedupeBlockLearner(BlockLearner) :
                     block_index[predicate].setdefault(id, set()).add(block_id)
 
         comparison_count = {}
-        for a, b in itertools.combinations(sorted(cover, key=str), 2) :
+        for a, b in itertools.combinations(sorted(cover, key=str),
+                                           compound_length) :
             cover_b = cover[b]
             block_b = block_index[b]
             b_ids = set(block_b)
@@ -265,7 +261,8 @@ class RecordLinkBlockLearner(BlockLearner) :
                     first_block_index[predicate].setdefault(id, set()).add(block_id)
 
         comparison_count = {}
-        for a, b in itertools.combinations(sorted(cover, key=str), 2) :
+        for a, b in itertools.combinations(sorted(cover, key=str),
+                                           compound_length) :
             cover_b = cover[b]
             first_blocks_b = first_block_index[b]
             first_b = set(first_blocks_b)

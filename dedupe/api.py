@@ -625,7 +625,7 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, maximum_comparisons=1000000, recall=0.975, index_predicates=True) : # pragma : no cover
+    def train(self, ppc=None, uncovered_dupes=None, maximum_comparisons=1000000, recall=0.95, index_predicates=True) : # pragma : no cover
         """Keyword arguments:
 
         maximum_comparisons -- The maximum number of comparisons a
@@ -646,11 +646,13 @@ class ActiveMatching(Matching) :
                             be slower and take susbstantial memory.
 
                             Defaults to True.
-
-        num_records -- The number of total records in your dataset. 
-                        
-                       Defaults to length of sample
         """
+        if ppc is not None :
+            warnings.warn('`ppc` is a deprecated argument to train. Use `maximum_comparisons` to set the maximum number records a block is allowed to cover')
+
+        if uncovered_dupes is not None :
+            warnings.warn('`uncovered_dupes` is a deprecated argument to traing. Use recall to set the proportion of true pairs that the blocking rules must cover')
+        
         self._trainClassifier()
         self._trainBlocker(maximum_comparisons,
                            recall,
