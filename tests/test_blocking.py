@@ -24,17 +24,16 @@ class BlockingTest(unittest.TestCase):
       }
 
     self.training = self.training_pairs['match'] + self.training_pairs['distinct']
+    self.training_records = set().union(*self.training)
 
     self.simple = lambda x : set([str(k) for k in x 
                                   if "CompoundPredicate" not in str(k)])
 
   def test_dedupe_coverage(self) :
     predicates = self.data_model.predicates()
-    sample = dedupe.api.Sample({}, 0)
-    bl = dedupe.training.DedupeBlockLearner(predicates,
-                                            self.training,
-                                            sample)
-    coverage = dedupe.training.coveredPairs(bl.blocker.predicates,
+    blocker = dedupe.blocking.Blocker(predicates)
+    blocker.indexAll({i : x for i, x in enumerate(self.training_records)})
+    coverage = dedupe.training.coveredPairs(blocker.predicates,
                                             self.training)
     assert self.simple(coverage.keys()).issuperset(
           set(["SimplePredicate: (tokenFieldPredicate, name)", 
