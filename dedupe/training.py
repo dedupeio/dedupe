@@ -280,7 +280,8 @@ class RecordLinkBlockLearner(BlockLearner) :
 
         return cover
 
-    def pairs(self, (A, B)) :
+    def pairs(self, blocks) :
+        A, B = blocks
         N = len(A) * self.multiplier_1
         M = len(B) * self.multiplier_2
         return N * M
