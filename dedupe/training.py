@@ -312,8 +312,6 @@ def greedy(dupe_cover, comparison_count, epsilon):
         best_predicate = min(dupe_cover, key = cost)
         final_predicates.add(best_predicate)
 
-        print(cost(best_predicate))
-
         covered = dupe_cover.pop(best_predicate)        
         uncovered_dupes = uncovered_dupes - covered
         remaining_cover(dupe_cover, covered)
@@ -397,6 +395,6 @@ def remaining_cover(coverage, covered=set()) :
     for predicate in null_covers :
         del coverage[predicate]
 
-OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the ppc argument to the train method"
+OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
 
-NO_PREDICATES_ERROR = "No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data or increasing the ppc argument to the train method"
+NO_PREDICATES_ERROR = "No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data or increasing the `max_comparisons` argument to the train method"
