@@ -875,7 +875,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_proportion  -- Proportion of the sample that will be blocked
         '''
         data = core.index(data)
-        self.sampled_records = Sample(data, 900)
+        self.sampled_records = Sample(data, 1200)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False,

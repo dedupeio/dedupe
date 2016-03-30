@@ -289,8 +289,6 @@ def greedy(dupe_cover, comparison_count, epsilon):
         best_predicate = min(dupe_cover, key = cost)
         final_predicates.add(best_predicate)
 
-        print(cost(best_predicate))
-
         covered = dupe_cover.pop(best_predicate)        
         uncovered_dupes = uncovered_dupes - covered
         remaining_cover(dupe_cover, covered)
