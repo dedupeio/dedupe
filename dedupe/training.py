@@ -84,8 +84,8 @@ class BlockLearner(object) :
 
         dupe_cover = cover(self.blocker, self.matches, compound_length)
 
-        comparison_count = self.comparisons(self.compoundBlocks(self.total_cover,
-                                                                compound_length))
+        comparison_count = self.comparisons(self.total_cover,
+                                            compound_length)
 
         dupe_cover = {pred : pairs
                       for pred, pairs
@@ -161,19 +161,11 @@ class DedupeBlockLearner(BlockLearner) :
 
         return cover
 
-    def comparisons(self, block_cover) :
-        comparison_count = {}
-        for predicate, blocks in viewitems(block_cover) :
-            count = 0
-            for covered_ids in viewvalues(blocks) :
-                N = len(covered_ids) * self.multiplier
-                count += (N * N-1)/2
-            comparison_count[predicate] = count
+    def pairs(self, ids) :
+        N = len(ids) * self.multiplier
+        return (N * (N - 1))/2
 
-        return comparison_count
-
-    @staticmethod
-    def compoundBlocks(cover, compound_length) :
+    def comparisons(self, cover, compound_length) :
         CP = predicates.CompoundPredicate
 
         block_index = {}
@@ -183,15 +175,25 @@ class DedupeBlockLearner(BlockLearner) :
                 for id in blocks :
                     block_index[predicate].setdefault(id, set()).add(block_id)
 
+        comparison_count = {}
         for a, b in itertools.combinations(sorted(cover, key=str), 2) :
             cover_b = cover[b]
             block_b = block_index[b]
             b_ids = set(block_b)
-            cover[CP((a,b))] = {(x,y) : ids & cover_b[y]
-                                for x, ids in viewitems(cover[a])
-                                for id in ids & b_ids 
-                                for y in block_b[id]}
-        return cover    
+            seen_blocks = set()
+            comparison_count[CP((a,b))] = sum(self.pairs(ids & cover_b[y])
+                                              for x, ids in viewitems(cover[a])
+                                              for id in ids & b_ids 
+                                              for y in block_b[id]
+                                              if not ((x,y) in seen_blocks
+                                                      or seen_blocks.add((x,y))))
+
+        for pred, blocks in viewitems(cover) :
+            comparison_count[pred] = sum(self.pairs(ids)
+                                         for ids
+                                         in viewvalues(blocks))
+
+        return comparison_count
 
 class RecordLinkBlockLearner(BlockLearner) :
     def __init__(self,
@@ -247,20 +249,12 @@ class RecordLinkBlockLearner(BlockLearner) :
 
         return cover
 
-    def comparisons(self, block_cover) :
-        comparison_count = {}
-        for predicate, blocks in viewitems(block_cover) :
-            count = 0
-            for A, B in viewvalues(blocks) :
-                N = len(A) * self.multiplier_1
-                M = len(B) * self.multiplier_2
-                count += N * M
-            comparison_count[predicate] = count
+    def pairs(self, A, B) :
+        N = len(A) * self.multiplier_1
+        M = len(B) * self.multiplier_2
+        return N * M
 
-        return comparison_count
-
-    @staticmethod
-    def compoundBlocks(cover, compound_length) :
+    def comparisons(self, cover, compound_length) :
         CP = predicates.CompoundPredicate
 
         first_block_index = {}
@@ -270,19 +264,25 @@ class RecordLinkBlockLearner(BlockLearner) :
                 for id in blocks[0] :
                     first_block_index[predicate].setdefault(id, set()).add(block_id)
 
+        comparison_count = {}
         for a, b in itertools.combinations(sorted(cover, key=str), 2) :
             cover_b = cover[b]
             first_blocks_b = first_block_index[b]
-            first_ids_b = set(first_blocks_b)
-            a_b = CP((a,b))
-            cover[a_b] = {}
-            for x, (first_ids_x, second_ids_x) in viewitems(cover[a]) :
-                for id in first_ids_x & first_ids_b :
-                    for y in first_blocks_b[id] :
-                        first_ids_y, second_ids_y = cover_b[y]
-                        cover[a_b][x,y] = (first_ids_x & first_ids_y,
-                                           second_ids_x & second_ids_y)
-        return cover    
+            first_b = set(first_blocks_b)
+            seen_blocks = set()
+            comparison_count[CP((a,b))] = sum(self.pairs(first & cover_b[y][0],
+                                                         second & cover_b[y][1])
+                                              for x, (first, second) in viewitems(cover[a])
+                                              for id in first & first_b 
+                                              for y in first_blocks_b[id]
+                                              if not ((x,y) in seen_blocks
+                                                      or seen_blocks.add((x,y))))
+        for pred, blocks in viewitems(cover) :
+            comparison_count[pred] = sum(self.pairs(a,b)
+                                         for a, b
+                                         in viewvalues(blocks))
+                            
+        return comparison_count    
 
     
 def greedy(dupe_cover, comparison_count, epsilon):

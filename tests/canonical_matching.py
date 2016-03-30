@@ -73,7 +73,7 @@ t0 = time.time()
 print('number of known duplicate pairs', len(duplicates_s))
 
 if os.path.exists(settings_file):
-    with open(settings_file) as f :
+    with open(settings_file, 'rb') as f :
         deduper = dedupe.StaticRecordLink(f)
 else:
     fields = [{'field': 'name', 'type': 'String'},
