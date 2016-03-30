@@ -124,9 +124,76 @@ class BlockLearner(object) :
             logger.info(predicate)
 
         return final_predicates
-              
+
+    def comparisons(self, cover, compound_length) :
+        CP = predicates.CompoundPredicate
+
+        block_index = {}
+        for predicate, blocks in viewitems(cover):
+            block_index[predicate] = {}
+            for block_id, blocks in viewitems(blocks) :
+                for id in self._blocks(blocks) :
+                    block_index[predicate].setdefault(id, set()).add(block_id)
+
+        compounder = self.Compounder(cover, block_index)
+        comparison_count = {}
+        simple_predicates = sorted(cover, key=str)
+
+        for i in range(2, compound_length+1) :
+            for combo in itertools.combinations(simple_predicates, i) :
+                comparison_count[CP(combo)] = sum(self.pairs(ids)
+                                                  for ids in 
+                                                  viewvalues(compounder(combo)))
+        for pred in simple_predicates :
+            comparison_count[pred] = sum(self.pairs(ids)
+                                         for ids
+                                         in viewvalues(cover[pred]))
+
+        return comparison_count    
+
+class Compounder(object) :
+    def __init__(self, cover, block_index) :
+        self.cover = cover
+        self.block_index = block_index
+
+    @lru_cache(2)
+    def __call__(self, compound_predicate) :
+        a, b = compound_predicate[:-1], compound_predicate[-1]
+
+        if len(a) > 1 :
+            cover_a = self(a)
+        else :
+            cover_a = self.cover[a[0]]
+
+        return self.overlap(cover_a, b)
+
+class DedupeCompounder(Compounder) :
+    def overlap(self, cover_a, b) :
+        b_index = self.block_index[b]
+        b_ids = set(b_index)
+        cover_b = self.cover[b]
+        seen_blocks = set()
+        return {(x, y) : x_ids & cover_b[y]
+                for x, x_ids in viewitems(cover_a)
+                for id in x_ids & b_ids
+                for y in b_index[id]
+                if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
+
+class RecordLinkCompounder(Compounder) :
+    def overlap(self, cover_a, b) :
+        b_index = self.block_index[b]
+        first_b = set(b_index)
+        cover_b = self.cover[b]
+        seen_blocks = set()
+        return {(x, y) : (first & cover_b[y][0], second & cover_b[y][1])
+                for x, (first, second) in viewitems(cover_a)
+                for id in first & first_b
+                for y in b_index[id]
+                if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
     
 class DedupeBlockLearner(BlockLearner) :
+    Compounder = DedupeCompounder
+    
     def __init__(self, predicates, sampled_records) :
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(sampled_records)
@@ -138,6 +205,9 @@ class DedupeBlockLearner(BlockLearner) :
 
     def unroll(self, matches) :
         return set().union(*matches)
+
+    def _blocks(self, blocks) :
+        return blocks
 
     @staticmethod
     def coveredRecords(blocker, records) :
@@ -160,34 +230,9 @@ class DedupeBlockLearner(BlockLearner) :
         N = len(ids) * self.multiplier
         return (N * (N - 1))/2
 
-    def comparisons(self, cover, compound_length) :
-        CP = predicates.CompoundPredicate
-
-        block_index = {}
-        for predicate, blocks in viewitems(cover):
-            block_index[predicate] = {}
-            for block_id, blocks in viewitems(blocks) :
-                for id in blocks :
-                    block_index[predicate].setdefault(id, set()).add(block_id)
-
-        compounder = DedupeCompounder(cover, block_index)
-        comparison_count = {}
-        simple_predicates = sorted(cover, key=str)
-
-        for i in range(2, compound_length+1) :
-            for combo in itertools.combinations(simple_predicates, i):
-                comparison_count[CP(combo)] = sum(self.pairs(ids)
-                                                  for ids in 
-                                                  viewvalues(compounder(combo)))
-
-        for pred in simple_predicates :
-            comparison_count[pred] = sum(self.pairs(ids)
-                                         for ids
-                                         in viewvalues(cover[pred]))
-
-        return comparison_count
-
 class RecordLinkBlockLearner(BlockLearner) :
+    Compounder = RecordLinkCompounder
+    
     def __init__(self, predicates, sampled_records_1, sampled_records_2) :
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(sampled_records_2)
@@ -201,9 +246,13 @@ class RecordLinkBlockLearner(BlockLearner) :
 
         self.blocker = blocking.Blocker(predicates)
 
+
     def unroll(self, matches) :
         return {record_2 for _, record_2 in matches}
 
+    def _blocks(self, blocks) :
+        return blocks[0]
+ 
     @staticmethod
     def coveredRecords(blocker, records_1, records_2) :
         CP = predicates.CompoundPredicate
@@ -227,36 +276,10 @@ class RecordLinkBlockLearner(BlockLearner) :
 
         return cover
 
-    def pairs(self, A, B) :
+    def pairs(self, (A, B)) :
         N = len(A) * self.multiplier_1
         M = len(B) * self.multiplier_2
         return N * M
-
-    def comparisons(self, cover, compound_length) :
-        CP = predicates.CompoundPredicate
-
-        block_index = {}
-        for predicate, blocks in viewitems(cover):
-            block_index[predicate] = {}
-            for block_id, blocks in viewitems(blocks) :
-                for id in blocks[0] :
-                    block_index[predicate].setdefault(id, set()).add(block_id)
-
-        compounder = RecordLinkCompounder(cover, block_index)
-        comparison_count = {}
-        simple_predicates = sorted(cover, key=str)
-
-        for i in range(2, compound_length+1) :
-            for combo in itertools.combinations(simple_predicates, i) :
-                comparison_count[CP(combo)] = sum(self.pairs(*ids)
-                                                  for ids in 
-                                                  viewvalues(compounder(combo)))
-        for pred in simple_predicates :
-            comparison_count[pred] = sum(self.pairs(*ids)
-                                         for ids
-                                         in viewvalues(cover[pred]))
-
-        return comparison_count    
 
     
 def greedy(dupe_cover, comparison_count, epsilon):
@@ -373,57 +396,6 @@ def remaining_cover(coverage, covered=set()) :
         del coverage[predicate]
 
 
-class DedupeCompounder(object) :
-    def __init__(self, cover, block_index) :
-        self.cover = cover
-        self.block_index = block_index
-
-    @lru_cache(2)
-    def __call__(self, compound_predicate) :
-        a, b = compound_predicate[:-1], compound_predicate[-1]
-
-        if len(a) > 1 :
-            cover_a = self(a)
-        else :
-            cover_a = self.cover[a[0]]
-
-        b_index = self.block_index[b]
-        b_ids = set(b_index)
-        cover_b = self.cover[b]
-        seen_blocks = set()
-        cp_cover = {(x, y) : x_ids & cover_b[y]
-                    for x, x_ids in viewitems(cover_a)
-                    for id in x_ids & b_ids
-                    for y in b_index[id]
-                    if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
-        
-        return cp_cover
-
-class RecordLinkCompounder(object) :
-    def __init__(self, cover, block_index) :
-        self.cover = cover
-        self.block_index = block_index
-
-    @lru_cache(2)
-    def __call__(self, compound_predicate) :
-        a, b = compound_predicate[:-1], compound_predicate[-1]
-
-        if len(a) > 1 :
-            cover_a = self(a)
-        else :
-            cover_a = self.cover[a[0]]
-
-        b_index = self.block_index[b]
-        first_b = set(b_index)
-        cover_b = self.cover[b]
-        seen_blocks = set()
-        cp_cover = {(x, y) : (first & cover_b[y][0], second & cover_b[y][1])
-                    for x, (first, second) in viewitems(cover_a)
-                    for id in first & first_b
-                    for y in b_index[id]
-                    if not ((x,y) in seen_blocks or seen_blocks.add((x,y)))}
-        
-        return cp_cover
         
         
 
