@@ -5,7 +5,7 @@ dedupe provides the main user interface for the library the
 Dedupe class
 """
 from __future__ import print_function, division
-from future.utils import viewitems, viewvalues
+from future.utils import viewitems, viewvalues, viewkeys
 
 import itertools
 import logging
@@ -17,6 +17,7 @@ import warnings
 import copy
 import os
 from collections import defaultdict, OrderedDict
+
 import simplejson as json
 import rlr
 
@@ -246,24 +247,18 @@ class DedupeMatching(Matching) :
 
         blocks = defaultdict(dict)
 
-        for field in self.blocker.index_fields :
-            unique_fields = {record[field]
-                             for record 
-                             in viewvalues(data_d)
-                             if record[field]}
-
-            self.blocker.index(unique_fields, field)
+        self.blocker.indexAll(data_d)
 
         for block_key, record_id in self.blocker(viewitems(data_d)) :
             blocks[block_key][record_id] = data_d[record_id]
 
         self.blocker.resetIndices()
 
-        blocks = (records for records in blocks.values()
-                  if len(records) > 1)
-        
-        blocks = {frozenset(d.keys()) : d for d in blocks}
-        blocks = blocks.values()
+        seen_blocks = set()
+        blocks = [records for records in viewvalues(blocks)
+                  if len(records) > 1
+                  and not (frozenset(records.keys()) in seen_blocks
+                           or seen_blocks.add(frozenset(records.keys())))]
 
         for block in self._redundantFree(blocks) :
             yield block
@@ -428,17 +423,11 @@ x        """
             if B :
                 yield (A, B)
 
-
     def _blockData(self, data_1, data_2) :
 
         blocked_records = defaultdict(dict)
 
-        for field in self.blocker.index_fields :
-            fields_2 = (record[field]
-                        for record 
-                        in viewvalues(data_2))
-
-            self.blocker.index(set(fields_2), field)
+        self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items()) :
             blocked_records[block_key][record_id] = data_2[record_id]
@@ -636,56 +625,38 @@ class ActiveMatching(Matching) :
 
         self._trainClassifier()
 
-    def train(self, ppc=.1, uncovered_dupes=None, index_predicates=True, pud=0.025) : # pragma : no cover
+    def train(self, ppc=None, uncovered_dupes=None, maximum_comparisons=1000000, recall=0.95, index_predicates=True) : # pragma : no cover
         """Keyword arguments:
-        ppc -- Limits the Proportion of Pairs Covered that we allow a
-               predicate to cover. If a predicate puts together a fraction
-               of possible pairs greater than the ppc, that predicate will
-               be removed from consideration.
 
-               As the size of the data increases, the user will generally
-               want to reduce ppc.
+        maximum_comparisons -- The maximum number of comparisons a
+                               blocking rule is allowed to make. 
 
-               ppc should be a value between 0.0 and 1.0
+                               Defaults to 1000000
 
-        uncovered_dupes -- The number of true dupes pairs in our training
-                           data that we can accept will not be put into any
-                           block. If true true duplicates are never in the
-                           same block, we will never compare them, and may
-                           never declare them to be duplicates.
+        recall -- The proportion of true dupe pairs in our training
+                  data that that we the learned blocks must cover. If
+                  we lower the recall, there will be pairs of true
+                  dupes that we will never directly compare.
 
-                           However, requiring that we cover every single
-                           true dupe pair may mean that we have to use
-                           blocks that put together many, many distinct pairs
-                           that we'll have to expensively, compare as well.
-
-                           uncoverd_dupes is deprecated in favor of pud
-
-        pud -- The proportion of true dupe pairs in our training data
-               that that we can accept will not be put into any
-               block. If true true duplicates are never in the same
-               block, we will never compare them, and may never
-               declare them to be duplicates.
-
-               If both pud and uncovered_dupes are set, uncovered_dupes will
-               take priority
-
-               pud should be a float between 0.0 and 1.0
+                  recall should be a float between 0.0 and 1.0, the default
+                  is 0.975
 
         index_predicates -- Should dedupe consider predicates that
                             rely upon indexing the data. Index predicates can 
                             be slower and take susbstantial memory.
 
                             Defaults to True.
-
         """
-        if uncovered_dupes is None :
-            uncovered_dupes = int(pud * len(self.training_pairs['match']))
-        else :
-            warnings.warn("The uncovered_dupes argument of the train method will be deprecated in dedupe 1.4, please use the pud argument instead", DeprecationWarning) 
-                    
+        if ppc is not None :
+            warnings.warn('`ppc` is a deprecated argument to train. Use `maximum_comparisons` to set the maximum number records a block is allowed to cover')
+
+        if uncovered_dupes is not None :
+            warnings.warn('`uncovered_dupes` is a deprecated argument to traing. Use recall to set the proportion of true pairs that the blocking rules must cover')
+        
         self._trainClassifier()
-        self._trainBlocker(ppc, uncovered_dupes, index_predicates)
+        self._trainBlocker(maximum_comparisons,
+                           recall,
+                           index_predicates)
 
     def _trainClassifier(self) : # pragma : no cover
         labels = numpy.array(self.training_data['label'] == b'match', 
@@ -695,27 +666,20 @@ class ActiveMatching(Matching) :
         self.classifier.fit(examples, labels)
 
     
-    def _trainBlocker(self, ppc, uncovered_dupes, index_predicates) : # pragma : no cover
-        training_pairs = copy.deepcopy(self.training_pairs)
-
-        confident_nonduplicates = training.semiSupervisedNonDuplicates(self.data_sample,
-                                                                       self.data_model,
-                                                                       self.classifier,
-                                                                       sample_size=32000)
-
-        training_pairs[u'distinct'].extend(confident_nonduplicates)
+    def _trainBlocker(self, maximum_comparisons, recall, index_predicates) : # pragma : no cover
+        matches = self.training_pairs['match'][:]
 
         predicate_set = self.data_model.predicates(index_predicates,
                                                    self.canopies)
 
-        self.predicates = dedupe.training.blockTraining(training_pairs,
-                                                        predicate_set,
-                                                        ppc,
-                                                        uncovered_dupes,
-                                                        self._linkage_type)
+        block_learner = self._blockLearner(predicate_set)
+
+        self.predicates = block_learner.learn(matches,
+                                              maximum_comparisons,
+                                              recall)
+
 
         self.blocker = blocking.Blocker(self.predicates)
-
 
     def writeSettings(self, file_obj): # pragma : no cover
         """
@@ -911,6 +875,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_proportion  -- Proportion of the sample that will be blocked
         '''
         data = core.index(data)
+        self.sampled_records = Sample(data, 900)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False,
@@ -933,13 +898,12 @@ class Dedupe(DedupeMatching, ActiveMatching) :
 
         data_sample = core.freezeData(data_sample)
 
-        # data can be a very large object, so we'll free it up as soon
-        # as possible
-        del data
-
         self._loadSample(data_sample)
 
-
+    def _blockLearner(self, predicates) :
+        return training.DedupeBlockLearner(predicates,
+                                           self.sampled_records)
+    
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
     Mixin Class for Static Record Linkage
@@ -980,9 +944,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
             data_1, data_2 = data_2, data_1
 
         data_1 = core.index(data_1)
+        self.sampled_records_1 = Sample(data_1, 500)
 
         offset = len(data_1)
         data_2 = core.index(data_2, offset)
+        self.sampled_records_2 = Sample(data_2, 500)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False,
@@ -1015,6 +981,10 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
 
         self._loadSample(data_sample)
 
+    def _blockLearner(self, predicates) :
+        return training.RecordLinkBlockLearner(predicates,
+                                               self.sampled_records_1,
+                                               self.sampled_records_2)
 
 class GazetteerMatching(RecordLinkMatching) :
     
@@ -1033,11 +1003,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
     def index(self, data) : # pragma : no cover
 
-        for field in self.blocker.index_fields :
-            self.blocker.index((record[field]
-                                for record 
-                                in viewvalues(data)),
-                               field)
+        self.blocker.indexAll(data)
 
         for block_key, record_id in self.blocker(data.items()) :
             if block_key not in self.blocked_records :
@@ -1098,3 +1064,13 @@ class EmptyTrainingException(Exception) :
 
 class SettingsFileLoadingException(Exception) :
     pass
+
+class Sample(dict) :
+    def __init__(self, d, sample_size) :
+        if len(d) <= sample_size :
+            super(Sample, self).__init__(d)
+        else :
+            super(Sample, self).__init__({k : d[k]
+                                          for k
+                                          in random.sample(viewkeys(d), sample_size)})
+        self.original_length = len(d)

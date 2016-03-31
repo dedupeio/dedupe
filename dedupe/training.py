@@ -13,6 +13,11 @@ import numpy
 import logging
 import random
 
+try :
+    from functools import lru_cache
+except ImportError :
+    from backports.functools_lru_cache import lru_cache    
+
 logger = logging.getLogger(__name__)
 
 def findUncertainPairs(field_distances, classifier, bias=0.5):
@@ -34,7 +39,6 @@ def findUncertainPairs(field_distances, classifier, bias=0.5):
 
 
     return numpy.argsort(-informativity)
-
 
 class ActiveLearning(object) :
     """
@@ -70,106 +74,220 @@ class ActiveLearning(object) :
 
         return uncertain_pairs
 
+class BlockLearner(object) :
+    def learn(self, matches, max_comparisons, recall) :
+        '''
+        Takes in a set of training pairs and predicates and tries to find
+        a good set of blocking rules.
+        '''
+        if len(self.blocker.predicates) <= 40 :
+            compound_length = 3
+        else :
+            compound_length = 2
 
-def semiSupervisedNonDuplicates(data_sample,
-                                data_model,
-                                classifier,
-                                nonduplicate_confidence_threshold=.9,
-                                sample_size=2000):
-
-    confidence = 1 - nonduplicate_confidence_threshold
-
-    def distinctPairs() :
-        data_slice = data_sample[0:sample_size]
-        pair_distance = data_model.distances(data_slice)
-        scores = classifier.predict_proba(pair_distance)[:,-1]
-
-        sample_n = 0
-        for score, pair in zip(scores, data_sample) :
-            if score < confidence :
-                yield pair
-                sample_n += 1
-
-        if sample_n < sample_size and len(data_sample) > sample_size :
-            for pair in data_sample[sample_size:] :
-                pair_distance = data_model.distances([pair])
-                score = classifier.predict_proba(pair_distance)[:,-1]
-                
-                if score < confidence :
-                    yield (pair)
-
-    return itertools.islice(distinctPairs(), 0, sample_size)
-
-def trainingData(training_pairs, record_ids) :
-
-    record_pairs = set()
-    tuple_pairs = set()
-    for pair in training_pairs :
-        record_pairs.add(tuple([(record_ids[record], record) 
-                                for record in pair]))
-        tuple_pairs.add(tuple([record_ids[record] 
-                               for record in pair]))
-    return record_pairs, tuple_pairs
-    
-
-def blockTraining(pairs,
-                  predicate_set,
-                  eta=.1,
-                  epsilon=0,
-                  matching = "Dedupe"):
-    '''
-    Takes in a set of training pairs and predicates and tries to find
-    a good set of blocking rules.
-    '''
-
-    blocker = blocking.Blocker(predicate_set)
-    prepare_index(blocker, pairs, matching)
-
-    if len(pairs['match']) < 50 :
-        compound_length = 2
-    else :
-        compound_length = 3
-
-    dupe_cover = cover(blocker, pairs['match'], compound_length)
-    distinct_cover = cover(blocker, pairs['distinct'], compound_length)
-
-    distinct_count = defaultdict(int, {pred : len(pairs)
-                                       for pred, pairs
-                                       in viewitems(distinct_cover)})
-
-    # Throw away the predicates that cover too many distinct pairs
-    coverage_threshold = eta * len(pairs['distinct'])
-    logger.info("coverage threshold: %s", coverage_threshold)
-    dupe_cover = {pred : pairs
-                  for pred, pairs
-                  in viewitems(dupe_cover)
-                  if distinct_count[pred] < coverage_threshold}
-
-    if not dupe_cover : 
-        raise ValueError(NO_PREDICATES_ERROR)
-
-    uncoverable_dupes = set(pairs['match']) - set.union(*viewvalues(dupe_cover))
-
-    if len(uncoverable_dupes) > epsilon :
-        logger.warning(OUT_OF_PREDICATES_WARNING)
-        logger.debug(uncoverable_dupes)
-        epsilon = 0
-    else :
-        epsilon -= len(uncoverable_dupes)
-
-    chvatal_set = greedy(dupe_cover.copy(), distinct_count, epsilon)
-
-    dupe_cover = {pred : dupe_cover[pred] for pred in chvatal_set}
+        self.blocker.indexAll({i : record
+                               for i, record
+                               in enumerate(self.unroll(matches))})
         
-    final_predicates = tuple(dominating(dupe_cover))
+        dupe_cover = cover(self.blocker, matches, compound_length)
 
-    logger.info('Final predicate set:')
-    for predicate in final_predicates :
-        logger.info(predicate)
+        comparison_count = self.comparisons(self.total_cover, compound_length)
 
-    return final_predicates
+        dupe_cover = {pred : pairs
+                      for pred, pairs
+                      in viewitems(dupe_cover)
+                      if comparison_count[pred] < max_comparisons}
 
-def greedy(dupe_cover, distinct_count, epsilon):
+        if not dupe_cover : 
+            raise ValueError(NO_PREDICATES_ERROR)
+
+        uncoverable_dupes = set(matches) - set.union(*viewvalues(dupe_cover))
+
+        epsilon = int((1.0 - recall) * len(matches))
+
+        if len(uncoverable_dupes) > epsilon :
+            logger.warning(OUT_OF_PREDICATES_WARNING)
+            logger.debug(uncoverable_dupes)
+            epsilon = 0
+        else :
+            epsilon -= len(uncoverable_dupes)
+
+        chvatal_set = greedy(dupe_cover.copy(), comparison_count, epsilon)
+
+        dupe_cover = {pred : dupe_cover[pred] for pred in chvatal_set}
+
+        final_predicates = tuple(dominating(dupe_cover))
+
+        logger.info('Final predicate set:')
+        for predicate in final_predicates :
+            logger.info(predicate)
+
+        return final_predicates
+
+    def comparisons(self, cover, compound_length) :
+        CP = predicates.CompoundPredicate
+
+        block_index = {}
+        for predicate, blocks in viewitems(cover):
+            block_index[predicate] = {}
+            for block_id, blocks in viewitems(blocks) :
+                for id in self._blocks(blocks) :
+                    block_index[predicate].setdefault(id, set()).add(block_id)
+
+        compounder = self.Compounder(cover, block_index)
+        comparison_count = {}
+        simple_predicates = sorted(cover, key=str)
+
+        for i in range(2, compound_length+1) :
+            for combo in itertools.combinations(simple_predicates, i) :
+                comparison_count[CP(combo)] = sum(self.pairs(ids)
+                                                  for ids in 
+                                                  viewvalues(compounder(combo)))
+        for pred in simple_predicates :
+            comparison_count[pred] = sum(self.pairs(ids)
+                                         for ids
+                                         in viewvalues(cover[pred]))
+
+        return comparison_count    
+
+class Compounder(object) :
+    def __init__(self, cover, block_index) :
+        self.cover = cover
+        self.block_index = block_index
+
+    @lru_cache(2)
+    def __call__(self, compound_predicate) :
+        a, b = compound_predicate[:-1], compound_predicate[-1]
+
+        if len(a) > 1 :
+            cover_a = self(a)
+        else :
+            cover_a = self.cover[a[0]]
+
+        return self.overlap(cover_a, b)
+
+class DedupeCompounder(Compounder) :
+    def overlap(self, cover_a, b) :
+        b_index = self.block_index[b]
+        b_ids = set(b_index)
+        cover_b = self.cover[b]
+        seen_blocks = set()
+        seen_blocks_add = seen_blocks.add
+        return {(x, y) : x_ids & cover_b[y]
+                for x, x_ids in viewitems(cover_a)
+                for id in x_ids & b_ids
+                for y in b_index[id]
+                if not ((x,y) in seen_blocks or seen_blocks_add((x,y)))}
+
+class DedupeBlockLearner(BlockLearner) :
+    Compounder = DedupeCompounder
+    
+    def __init__(self, predicates, sampled_records) :
+        blocker = blocking.Blocker(predicates)
+        blocker.indexAll(sampled_records)
+
+        self.total_cover = self.coveredRecords(blocker, sampled_records)
+        self.multiplier = sampled_records.original_length/len(sampled_records)
+
+        self.blocker = blocking.Blocker(predicates)
+
+    @staticmethod
+    def unroll(matches) : # pragma : no cover
+        return set().union(*matches)
+
+    @staticmethod
+    def _blocks(blocks) : # pragma : no cover
+        return blocks
+
+    @staticmethod
+    def coveredRecords(blocker, records) :
+        CP = predicates.CompoundPredicate
+
+        cover = {}
+        block_index = {}
+
+        for predicate in blocker.predicates :
+            cover[predicate] = {}
+            block_index[predicate] = {}
+            for id, record in viewitems(records) :
+                blocks = predicate(record)
+                for block in blocks :
+                    cover[predicate].setdefault(block, set()).add(id)
+
+        return cover
+
+    def pairs(self, ids) :
+        N = len(ids) * self.multiplier
+        return (N * (N - 1))/2
+
+class RecordLinkCompounder(Compounder) :
+    def overlap(self, cover_a, b) :
+        b_index = self.block_index[b]
+        first_b = set(b_index)
+        cover_b = self.cover[b]
+        seen_blocks = set()
+        seen_blocks_add = seen_blocks.add
+        return {(x, y) : (first & cover_b[y][0], second & cover_b[y][1])
+                for x, (first, second) in viewitems(cover_a)
+                for id in first & first_b
+                for y in b_index[id]
+                if not ((x,y) in seen_blocks or seen_blocks_add((x,y)))}
+    
+class RecordLinkBlockLearner(BlockLearner) :
+    Compounder = RecordLinkCompounder
+    
+    def __init__(self, predicates, sampled_records_1, sampled_records_2) :
+        blocker = blocking.Blocker(predicates)
+        blocker.indexAll(sampled_records_2)
+
+        self.total_cover = self.coveredRecords(blocker,
+                                               sampled_records_1,
+                                               sampled_records_2)
+
+        self.multiplier_1 = sampled_records_1.original_length/len(sampled_records_1)
+        self.multiplier_2 = sampled_records_2.original_length/len(sampled_records_2)
+
+        self.blocker = blocking.Blocker(predicates)
+
+    @staticmethod
+    def unroll(matches) : # pragma : no cover
+        return {record_2 for _, record_2 in matches}
+
+    @staticmethod
+    def _blocks(blocks) : # pragma : no cover
+        return blocks[0]
+ 
+    @staticmethod
+    def coveredRecords(blocker, records_1, records_2) :
+        CP = predicates.CompoundPredicate
+
+        cover = {}
+        block_index = {}
+
+        for predicate in blocker.predicates :
+            cover[predicate] = {}
+            block_index[predicate] = {}
+            for id, record in viewitems(records_2) :
+                blocks = predicate(record)
+                for block in blocks :
+                    cover[predicate].setdefault(block, (set(), set()))[1].add(id)
+
+            current_blocks = set(cover[predicate])
+            for id, record in viewitems(records_1) :
+                blocks = set(predicate(record))
+                for block in blocks & current_blocks :
+                    cover[predicate][block][0].add(id)
+
+        return cover
+
+    def pairs(self, blocks) :
+        A, B = blocks
+        N = len(A) * self.multiplier_1
+        M = len(B) * self.multiplier_2
+        return N * M
+
+    
+def greedy(dupe_cover, comparison_count, epsilon):
 
     # Greedily find the predicates that, at each step, covers the
     # most duplicates and covers the least distinct pairs, due to
@@ -194,7 +312,7 @@ def greedy(dupe_cover, distinct_count, epsilon):
     final_predicates = set()
 
     while len(uncovered_dupes) > epsilon and dupe_cover :
-        cost = lambda p : distinct_count[p]/len(dupe_cover[p])
+        cost = lambda p : comparison_count[p]/len(dupe_cover[p])
         
         best_predicate = min(dupe_cover, key = cost)
         final_predicates.add(best_predicate)
@@ -228,12 +346,12 @@ def dominating(dupe_cover) :
     return final_predicates
 
 def cover(blocker, pairs, compound_length) :
-    cover = coveredBy(blocker.predicates, pairs)
+    cover = coveredPairs(blocker.predicates, pairs)
     cover = compound(cover, compound_length)
     remaining_cover(cover)
     return cover
 
-def coveredBy(predicates, pairs) :
+def coveredPairs(predicates, pairs) :
     cover = {}
     pairs = sorted(pairs)
         
@@ -254,7 +372,7 @@ def coveredBy(predicates, pairs) :
     return cover
 
 def compound(cover, compound_length) :
-    simple_predicates = list(cover)
+    simple_predicates = sorted(cover, key=str)
     CP = predicates.CompoundPredicate
 
     for i in range(2, compound_length+1) :
@@ -282,21 +400,10 @@ def remaining_cover(coverage, covered=set()) :
     for predicate in null_covers :
         del coverage[predicate]
 
-def prepare_index(blocker, pairs, matching) :
-    if matching == "RecordLink" :
-        unroll = lambda p : {record_2 for _, record_2 in p}
-    else :
-        unroll = lambda p : set().union(*p)
 
-    records = unroll(itertools.chain.from_iterable(viewvalues(pairs)))
-    
-    for field, indices in blocker.index_fields.items() :
-        record_fields = [record[field] 
-                         for record 
-                         in records
-                         if record[field]]
-        blocker.index(sorted(set(record_fields)), field)
+        
+        
 
-OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the ppc argument to the train method"
+OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
 
-NO_PREDICATES_ERROR = "No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data or increasing the ppc argument to the train method"
+NO_PREDICATES_ERROR = "No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data or increasing the `max_comparisons` argument to the train method"

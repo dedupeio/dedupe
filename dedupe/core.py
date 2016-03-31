@@ -33,7 +33,7 @@ def randomPairsWithReplacement(n_records, sample_size) :
     try :
         random_indices = numpy.random.randint(n_records, 
                                               size=sample_size*2)
-    except OverflowError:
+    except (OverflowError, ValueError):
         max_int = numpy.iinfo('int').max
         warnings.warn("Asked to sample pairs from %d records, will only sample pairs from first %d records" % (n_records, max_int))
         random_indices = numpy.random.randint(max_int, 
