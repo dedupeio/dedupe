@@ -1,3 +1,9 @@
+## 1.4.0
+- Block learning now tries to minimize the total number of comparisons
+  not just the comparisons of distinct records. This decouples makes
+  block learning from learning classifier learning. This change has
+  requires new, different arguments to the train method.
+
 ## 1.3.8
 - Console labeler now shows fields in the order they are defined in
   the data model. The labeler also reports number of labeled examples
