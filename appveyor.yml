@@ -10,10 +10,10 @@ environment:
     - python : 27-x64
     - python : 34
     - python : 34-x64
-      DISTUTILS_USE_SDK: "1"   
 
 install:
   - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
+  - echo "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 > "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64/vcvars64.bat"
   - python -m pip install --upgrade pip
   - pip install numpy
   - pip install -r requirements.txt
