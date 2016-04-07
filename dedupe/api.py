@@ -573,6 +573,9 @@ class ActiveMatching(Matching) :
             self.data_sample = []
             self.activeLearner = None
 
+        # Override _loadSampledRecords() to load blocking data from data_sample.
+        self._loadSampledRecords(data_sample)
+
         training_dtype = [('label', 'S8'),
                           ('distances', 'f4', 
                            (len(self.data_model), ))]
@@ -844,6 +847,10 @@ class ActiveMatching(Matching) :
                                                      self.data_model,
                                                      self.num_cores)
 
+    def _loadSampledRecords(self, data_sample):
+        """Override to load blocking data from data_sample."""
+        self.sampled_records = None
+
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
     """
@@ -859,15 +866,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
     canopies = True
 
-    def __init__(self, *args, **kwargs):
-        super(Dedupe, self).__init__(*args, **kwargs)
-        data_sample = kwargs.get('data_sample')
-        if data_sample:
-            recs = itertools.chain.from_iterable(data_sample)
-            data = dict(enumerate(recs))
-            self.sampled_records = Sample(data, 900)
-        else:
-            self.sampled_records = None
 
     def sample(self, data, sample_size=15000,
                blocked_proportion=0.5) :
@@ -910,7 +908,16 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     def _blockLearner(self, predicates) :
         return training.DedupeBlockLearner(predicates,
                                            self.sampled_records)
-    
+
+    def _loadSampledRecords(self, data_sample):
+        if data_sample:
+            recs = itertools.chain.from_iterable(data_sample)
+            data = dict(enumerate(recs))
+            self.sampled_records = Sample(data, 900)
+        else:
+            self.sampled_records = None
+
+
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
     Mixin Class for Static Record Linkage
@@ -925,21 +932,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     """
     canopies = False
 
-    def __init__(self, *args, **kwargs):
-        super(RecordLink, self).__init__(*args, **kwargs)
-        data_sample = kwargs.get('data_sample')
-        if data_sample:
-            data_1 = dict(enumerate(x for (x, y) in data_sample))
-            offset = len(data_1)
-            data_2 = dict(enumerate((y for (x, y) in data_sample), offset))
-            self.sampled_records_1 = Sample(data_1, 500)
-            self.sampled_records_2 = Sample(data_2, 500)
-        else:
-            self.sampled_records_1 = None
-            self.sampled_records_2 = None
-
-
-    def sample(self, data_1, data_2, sample_size=150000, 
+    def sample(self, data_1, data_2, sample_size=150000,
                blocked_proportion=.5) :
         '''
         Draws a random sample of combinations of records from 
@@ -1006,6 +999,18 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return training.RecordLinkBlockLearner(predicates,
                                                self.sampled_records_1,
                                                self.sampled_records_2)
+
+    def _loadSampledRecords(self, data_sample):
+        if data_sample:
+            data_1 = dict(enumerate(x for (x, y) in data_sample))
+            offset = len(data_1)
+            data_2 = dict(enumerate((y for (x, y) in data_sample), offset))
+            self.sampled_records_1 = Sample(data_1, 500)
+            self.sampled_records_2 = Sample(data_2, 500)
+        else:
+            self.sampled_records_1 = None
+            self.sampled_records_2 = None
+
 
 class GazetteerMatching(RecordLinkMatching) :
     
