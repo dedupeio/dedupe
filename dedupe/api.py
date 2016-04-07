@@ -489,6 +489,7 @@ class StaticMatching(Matching) :
         self.blocker = blocking.Blocker(self.predicates)
         
 
+
 class ActiveMatching(Matching) :
     classifier = rlr.RegularizedLogisticRegression()
 
@@ -562,18 +563,21 @@ class ActiveMatching(Matching) :
         else :
             self.num_cores = num_cores
 
-        self.data_sample = data_sample
-
-        if self.data_sample :
-            self._checkDataSample(self.data_sample)
-            self.activeLearner = training.ActiveLearning(self.data_sample, 
+        if data_sample :
+            self._checkDataSample(data_sample)
+            self.data_sample = data_sample
+            self.activeLearner = training.ActiveLearning(self.data_sample,
                                                          self.data_model,
                                                          self.num_cores)
+            self._load_sampled_records(data_sample)
         else :
             self.data_sample = []
             self.activeLearner = None
+            self.sampled_records = None
 
-        training_dtype = [('label', 'S8'), 
+
+
+        training_dtype = [('label', 'S8'),
                           ('distances', 'f4', 
                            (len(self.data_model), ))]
 
@@ -582,7 +586,6 @@ class ActiveMatching(Matching) :
                                            u'match': []})
 
         self.blocker = None
-
 
     def cleanupTraining(self) : # pragma : no cover
         '''
@@ -845,6 +848,13 @@ class ActiveMatching(Matching) :
                                                      self.data_model,
                                                      self.num_cores)
 
+    def _load_sampled_records(self, data_sample, sample_size=900):
+        if data_sample:
+            recs = itertools.chain.from_iterable(data_sample)
+            data = dict(enumerate(recs))
+            self.sampled_records = Sample(data, sample_size)
+        else:
+            self.sampled_records = None
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
@@ -861,7 +871,8 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
     canopies = True
 
-    def sample(self, data, sample_size=15000, 
+
+    def sample(self, data, sample_size=15000,
                blocked_proportion=0.5) :
         '''Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
