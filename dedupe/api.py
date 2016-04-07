@@ -569,13 +569,9 @@ class ActiveMatching(Matching) :
             self.activeLearner = training.ActiveLearning(self.data_sample,
                                                          self.data_model,
                                                          self.num_cores)
-            self._load_sampled_records(data_sample)
         else :
             self.data_sample = []
             self.activeLearner = None
-            self.sampled_records = None
-
-
 
         training_dtype = [('label', 'S8'),
                           ('distances', 'f4', 
@@ -848,14 +844,6 @@ class ActiveMatching(Matching) :
                                                      self.data_model,
                                                      self.num_cores)
 
-    def _load_sampled_records(self, data_sample, sample_size=900):
-        if data_sample:
-            recs = itertools.chain.from_iterable(data_sample)
-            data = dict(enumerate(recs))
-            self.sampled_records = Sample(data, sample_size)
-        else:
-            self.sampled_records = None
-
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
     """
@@ -871,6 +859,15 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
     canopies = True
 
+    def __init__(self, *args, **kwargs):
+        super(Dedupe, self).__init__(*args, **kwargs)
+        data_sample = kwargs.get('data_sample')
+        if data_sample:
+            recs = itertools.chain.from_iterable(data_sample)
+            data = dict(enumerate(recs))
+            self.sampled_records = Sample(data, 900)
+        else:
+            self.sampled_records = None
 
     def sample(self, data, sample_size=15000,
                blocked_proportion=0.5) :
@@ -891,7 +888,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False,
                                                              canopies=self.canopies))
-
 
         data = sampling.randomDeque(data)
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
@@ -928,6 +924,20 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     - sample
     """
     canopies = False
+
+    def __init__(self, *args, **kwargs):
+        super(RecordLink, self).__init__(*args, **kwargs)
+        data_sample = kwargs.get('data_sample')
+        if data_sample:
+            data_1 = dict(enumerate(x for (x, y) in data_sample))
+            offset = len(data_1)
+            data_2 = dict(enumerate((y for (x, y) in data_sample), offset))
+            self.sampled_records_1 = Sample(data_1, 500)
+            self.sampled_records_2 = Sample(data_2, 500)
+        else:
+            self.sampled_records_1 = None
+            self.sampled_records_2 = None
+
 
     def sample(self, data_1, data_2, sample_size=150000, 
                blocked_proportion=.5) :
@@ -1085,3 +1095,7 @@ class Sample(dict) :
                                           for k
                                           in random.sample(viewkeys(d), sample_size)})
         self.original_length = len(d)
+
+
+
+
