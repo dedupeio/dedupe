@@ -849,7 +849,7 @@ class ActiveMatching(Matching) :
 
     def _loadSampledRecords(self, data_sample):
         """Override to load blocking data from data_sample."""
-        self.sampled_records = None
+        pass
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
