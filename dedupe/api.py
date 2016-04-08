@@ -489,6 +489,7 @@ class StaticMatching(Matching) :
         self.blocker = blocking.Blocker(self.predicates)
         
 
+
 class ActiveMatching(Matching) :
     classifier = rlr.RegularizedLogisticRegression()
 
@@ -562,18 +563,20 @@ class ActiveMatching(Matching) :
         else :
             self.num_cores = num_cores
 
-        self.data_sample = data_sample
-
-        if self.data_sample :
-            self._checkDataSample(self.data_sample)
-            self.activeLearner = training.ActiveLearning(self.data_sample, 
+        if data_sample :
+            self._checkDataSample(data_sample)
+            self.data_sample = data_sample
+            self.activeLearner = training.ActiveLearning(self.data_sample,
                                                          self.data_model,
                                                          self.num_cores)
         else :
             self.data_sample = []
             self.activeLearner = None
 
-        training_dtype = [('label', 'S8'), 
+        # Override _loadSampledRecords() to load blocking data from data_sample.
+        self._loadSampledRecords(data_sample)
+
+        training_dtype = [('label', 'S8'),
                           ('distances', 'f4', 
                            (len(self.data_model), ))]
 
@@ -582,7 +585,6 @@ class ActiveMatching(Matching) :
                                            u'match': []})
 
         self.blocker = None
-
 
     def cleanupTraining(self) : # pragma : no cover
         '''
@@ -845,6 +847,9 @@ class ActiveMatching(Matching) :
                                                      self.data_model,
                                                      self.num_cores)
 
+    def _loadSampledRecords(self, data_sample):
+        """Override to load blocking data from data_sample."""
+
 
 
 class StaticDedupe(DedupeMatching, StaticMatching) :
@@ -861,7 +866,8 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     """
     canopies = True
 
-    def sample(self, data, sample_size=15000, 
+
+    def sample(self, data, sample_size=15000,
                blocked_proportion=0.5) :
         '''Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
@@ -880,7 +886,6 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False,
                                                              canopies=self.canopies))
-
 
         data = sampling.randomDeque(data)
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
@@ -903,7 +908,16 @@ class Dedupe(DedupeMatching, ActiveMatching) :
     def _blockLearner(self, predicates) :
         return training.DedupeBlockLearner(predicates,
                                            self.sampled_records)
-    
+
+    def _loadSampledRecords(self, data_sample):
+        if data_sample:
+            recs = itertools.chain.from_iterable(data_sample)
+            data = dict(enumerate(recs))
+            self.sampled_records = Sample(data, 900)
+        else:
+            self.sampled_records = None
+
+
 class StaticRecordLink(RecordLinkMatching, StaticMatching) :
     """
     Mixin Class for Static Record Linkage
@@ -918,7 +932,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
     """
     canopies = False
 
-    def sample(self, data_1, data_2, sample_size=150000, 
+    def sample(self, data_1, data_2, sample_size=150000,
                blocked_proportion=.5) :
         '''
         Draws a random sample of combinations of records from 
@@ -985,6 +999,18 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         return training.RecordLinkBlockLearner(predicates,
                                                self.sampled_records_1,
                                                self.sampled_records_2)
+
+    def _loadSampledRecords(self, data_sample):
+        if data_sample:
+            data_1 = dict(enumerate(x for (x, y) in data_sample))
+            offset = len(data_1)
+            data_2 = dict(enumerate((y for (x, y) in data_sample), offset))
+            self.sampled_records_1 = Sample(data_1, 500)
+            self.sampled_records_2 = Sample(data_2, 500)
+        else:
+            self.sampled_records_1 = None
+            self.sampled_records_2 = None
+
 
 class GazetteerMatching(RecordLinkMatching) :
     
@@ -1074,3 +1100,7 @@ class Sample(dict) :
                                           for k
                                           in random.sample(viewkeys(d), sample_size)})
         self.original_length = len(d)
+
+
+
+
