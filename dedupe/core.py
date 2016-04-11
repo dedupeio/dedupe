@@ -143,7 +143,7 @@ class ScoreRecords(object) :
             ((id_1, record_1, smaller_ids_1), 
              (id_2, record_2, smaller_ids_2)) = record_pair
 
-            if set.isdisjoint(smaller_ids_1, smaller_ids_2) :
+            if smaller_ids_1.isdisjoint(smaller_ids_2) :
                 
                 ids.append((id_1, id_2))
                 records.append((record_1, record_2))
