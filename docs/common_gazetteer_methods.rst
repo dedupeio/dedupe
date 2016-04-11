@@ -58,15 +58,26 @@
         (((4, 6), 0.96), 
          ((4, 5), 0.63))]
 
+.. py:method::  threshold(messy_data, recall_weight = 1.5) 
+
+   Returns the threshold that maximizes the expected F score, a
+   weighted average of precision and recall for a sample of data.
+
+   :param dict messy_data: a dictionary of records from a messy
+			   dataset, where the keys are record_ids and
+			   the values are dictionaries with the keys
+			   being field names.
+
+   :param float recall_weight: Sets the tradeoff between precision and
+                               recall. I.e. if you care twice as much
+                               about recall as you do precision, set
+                               recall_weight to 2.
+
 
 .. py:method::  matchBlocks(blocks, threshold=.5, n_matches=2)
 
    Partitions blocked data and returns a list of clusters, where each
    cluster is a tuple of record ids
-
-   .. code:: python
-
-       clustered_dupes = deduper.matchBlocks(blocked_data, threshold)
 
    :param list blocks: Sequence of records blocks. Each record block
 		       is a tuple containing two sequences of records,
@@ -138,4 +149,8 @@
 			 canonical_data to return for each record in
 			 messy_data. Defaults to 1
 
+
+   .. code:: python
+
+       clustered_dupes = deduper.matchBlocks(blocked_data, threshold)
 

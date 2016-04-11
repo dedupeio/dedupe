@@ -358,7 +358,7 @@ class RecordLinkMatching(Matching) :
                          recall. I.e. if you care twice as much about
                          recall as you do precision, set recall_weight
                          to 2.
-x        """
+        """
 
         blocked_pairs = self._blockData(data_1, data_2)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
@@ -1078,6 +1078,27 @@ class GazetteerMatching(RecordLinkMatching) :
         """
         blocked_pairs = self._blockData(messy_data)
         return self.matchBlocks(blocked_pairs, threshold, n_matches)
+
+    def threshold(self, messy_data, recall_weight = 1.5) : # pragma : no cover
+        """
+        Returns the threshold that maximizes the expected F score,
+        a weighted average of precision and recall for a sample of
+        data. 
+
+        Arguments:
+        messy_data -- Dictionary of records from messy dataset, where the 
+                      keys are record_ids and the values are dictionaries with 
+                      the keys being field names
+
+        recall_weight -- Sets the tradeoff between precision and
+                         recall. I.e. if you care twice as much about
+                         recall as you do precision, set recall_weight
+                         to 2.
+        """
+
+        blocked_pairs = self._blockData(messy_data)
+        return self.thresholdBlocks(blocked_pairs, recall_weight)
+
 
 class Gazetteer(RecordLink, GazetteerMatching):
     pass
