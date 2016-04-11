@@ -18,7 +18,7 @@ class TestPuncStrip(unittest.TestCase):
 class TestMetaphone(unittest.TestCase):
     def test_metaphone_token(self) :
         block_val = predicates.metaphoneToken('9301 S. State St. ')
-        assert block_val == set([u'STT', u'SS'])
+        assert block_val == set([u'STT', u'S', u'ST'])
 
 class TestWholeSet(unittest.TestCase):
     def setUp(self):
