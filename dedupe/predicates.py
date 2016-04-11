@@ -8,7 +8,7 @@ import itertools
 import string
 import sys
 
-from metaphone import doublemetaphone
+from doublemetaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
 import dedupe.tfidf as tfidf
 
