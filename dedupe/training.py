@@ -13,11 +13,6 @@ import numpy
 import logging
 import random
 
-try :
-    from functools import lru_cache
-except ImportError :
-    from backports.functools_lru_cache import lru_cache    
-
 logger = logging.getLogger(__name__)
 
 def findUncertainPairs(field_distances, classifier, bias=0.5):
@@ -131,8 +126,9 @@ class BlockLearner(object) :
         for predicate, blocks in viewitems(cover):
             block_index[predicate] = {}
             for block_id, blocks in viewitems(blocks) :
-                for id in self._blocks(blocks) :
-                    block_index[predicate].setdefault(id, set()).add(block_id)
+                for record_id in self._blocks(blocks) :
+                    block_index[predicate].setdefault(record_id,
+                                                      set()).add(block_id)
 
         compounder = self.Compounder(cover, block_index)
         comparison_count = {}
@@ -140,13 +136,9 @@ class BlockLearner(object) :
 
         for i in range(2, compound_length+1) :
             for combo in itertools.combinations(simple_predicates, i) :
-                comparison_count[CP(combo)] = sum(self.pairs(ids)
-                                                  for ids in 
-                                                  viewvalues(compounder(combo)))
+                comparison_count[CP(combo)] = self.estimate(compounder(combo))
         for pred in simple_predicates :
-            comparison_count[pred] = sum(self.pairs(ids)
-                                         for ids
-                                         in viewvalues(cover[pred]))
+            comparison_count[pred] = self.estimate(viewvalues(cover[pred]))
 
         return comparison_count    
 
@@ -154,30 +146,38 @@ class Compounder(object) :
     def __init__(self, cover, block_index) :
         self.cover = cover
         self.block_index = block_index
-
-    @lru_cache(2)
+        self._cached_predicate = None
+        self._cached_blocks = None
+        
     def __call__(self, compound_predicate) :
         a, b = compound_predicate[:-1], compound_predicate[-1]
 
         if len(a) > 1 :
-            cover_a = self(a)
+            if a == self._cached_predicate :
+                a_blocks = self._cached_blocks
+            else :
+                a_blocks = self._cached_blocks = list(self(a))
+                self._cached_predicate = a
         else :
-            cover_a = self.cover[a[0]]
+            a_blocks = viewvalues(self.cover[a[0]])
 
-        return self.overlap(cover_a, b)
+        return self.overlap(a_blocks, b)
 
 class DedupeCompounder(Compounder) :
-    def overlap(self, cover_a, b) :
+    def overlap(self, a_blocks, b) :
         b_index = self.block_index[b]
-        b_ids = set(b_index)
+        b_index_get = b_index.get
         cover_b = self.cover[b]
-        seen_blocks = set()
-        seen_blocks_add = seen_blocks.add
-        return {(x, y) : x_ids & cover_b[y]
-                for x, x_ids in viewitems(cover_a)
-                for id in x_ids & b_ids
-                for y in b_index[id]
-                if not ((x,y) in seen_blocks or seen_blocks_add((x,y)))}
+        null_set = set()
+        for x_ids in a_blocks :
+            seen_y = set()
+            for record_id in x_ids :
+                b_blocks = b_index_get(record_id, null_set)
+                for y in b_blocks :
+                    if y not in seen_y :
+                        yield x_ids & cover_b[y]
+                seen_y |= b_blocks
+
 
 class DedupeBlockLearner(BlockLearner) :
     Compounder = DedupeCompounder
@@ -204,11 +204,9 @@ class DedupeBlockLearner(BlockLearner) :
         CP = predicates.CompoundPredicate
 
         cover = {}
-        block_index = {}
 
         for predicate in blocker.predicates :
             cover[predicate] = {}
-            block_index[predicate] = {}
             for id, record in viewitems(records) :
                 blocks = predicate(record)
                 for block in blocks :
@@ -216,22 +214,28 @@ class DedupeBlockLearner(BlockLearner) :
 
         return cover
 
-    def pairs(self, ids) :
-        N = len(ids) * self.multiplier
-        return (N * (N - 1))/2
+    def estimate(self, blocks):
+        lengths = numpy.fromiter((len(ids) for ids in blocks), int)
+        return numpy.sum((lengths * self.multiplier) *
+                         (lengths * self.multiplier - 1) /
+                         2)
+        
+        
 
 class RecordLinkCompounder(Compounder) :
-    def overlap(self, cover_a, b) :
+    def overlap(self, a_blocks, b) :
         b_index = self.block_index[b]
-        first_b = set(b_index)
+        b_index_get = b_index.get
         cover_b = self.cover[b]
-        seen_blocks = set()
-        seen_blocks_add = seen_blocks.add
-        return {(x, y) : (first & cover_b[y][0], second & cover_b[y][1])
-                for x, (first, second) in viewitems(cover_a)
-                for id in first & first_b
-                for y in b_index[id]
-                if not ((x,y) in seen_blocks or seen_blocks_add((x,y)))}
+        null_set = set()
+        for first, second in a_blocks:
+            seen_y = set()
+            for record_id in first:
+                b_blocks = b_index_get(record_id, null_set)
+                for y in b_blocks:
+                    if y not in seen_y :
+                        yield first & cover_b[y][0], second & cover_b[y][1]
+                    seen_y |= b_blocks
     
 class RecordLinkBlockLearner(BlockLearner) :
     Compounder = RecordLinkCompounder
@@ -262,11 +266,9 @@ class RecordLinkBlockLearner(BlockLearner) :
         CP = predicates.CompoundPredicate
 
         cover = {}
-        block_index = {}
 
         for predicate in blocker.predicates :
             cover[predicate] = {}
-            block_index[predicate] = {}
             for id, record in viewitems(records_2) :
                 blocks = predicate(record)
                 for block in blocks :
@@ -280,11 +282,13 @@ class RecordLinkBlockLearner(BlockLearner) :
 
         return cover
 
-    def pairs(self, blocks) :
-        A, B = blocks
-        N = len(A) * self.multiplier_1
-        M = len(B) * self.multiplier_2
-        return N * M
+    def estimate(self, blocks):
+        A, B = backport.iunzip(blocks, 2)
+        lengths_A = numpy.fromiter((len(ids) for ids in A), float)
+        lengths_B = numpy.fromiter((len(ids) for ids in B), float)
+        return numpy.sum((lengths_A * self.multiplier_1) *
+                         (lengths_B * self.multiplier_2))
+
 
     
 def greedy(dupe_cover, comparison_count, epsilon):
@@ -400,9 +404,6 @@ def remaining_cover(coverage, covered=set()) :
     for predicate in null_covers :
         del coverage[predicate]
 
-
-        
-        
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
 

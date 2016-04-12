@@ -19,6 +19,7 @@ import time
 import tempfile
 import os
 import functools
+import operator
 
 import dedupe.backport as backport
 
@@ -313,15 +314,10 @@ def freezeData(data) : # pragma : no cover
             for record_1, record_2 in data]
 
 def isIndexed(data, offset) :
-    hashable = collections.Hashable
-    for i in range(offset, offset + len(data)) :
-        if i not in data :
-            return False
-    else :
-        return True
+    return all(i in data for i in range(offset, offset + len(data)))
 
 def index(data, offset=0) :
-    if isIndexed(data, offset) :
+    if isIndexed(data, offset):
         return data
     else :
         data = dict(zip(itertools.count(offset), 
@@ -415,3 +411,13 @@ def cartesian(arrays, out=None): # pragma : no cover
         for j in range(1, arrays[0].size):
             out[j * m:(j + 1) * m, 1:] = out[0:m, 1:]
     return out
+
+def iunzip(iterable, internal_length): # pragma : no cover
+    """Iunzip is the same as zip(*iter) but returns iterators, instead of 
+    expand the iterator. Mostly used for large sequence"""
+
+    _tmp, iterable = itertools.tee(iterable, 2)
+    iters = itertools.tee(iterable, internal_length)
+    return (itertools.imap(operator.itemgetter(i), it) for i, it in enumerate(iters))        
+        
+
