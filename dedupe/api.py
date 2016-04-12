@@ -45,7 +45,7 @@ class Matching(object):
     - `matchBlocks`
     """
     def __init__(self) :
-        self.loaded_indices = False
+        pass
 
     def thresholdBlocks(self, blocks, recall_weight=1.5): # pragma : nocover
         """
@@ -601,6 +601,7 @@ class ActiveMatching(Matching) :
                                            u'match': []})
 
         self.blocker = None
+        self.loaded_indices = False
 
     def cleanupTraining(self) : # pragma : no cover
         '''
