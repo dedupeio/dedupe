@@ -18,7 +18,8 @@ install_requires=['fastcluster',
                   'simplecosine>=1.1',
                   'haversine>=0.4.1',
                   'BTrees>=4.1.4',
-                  'simplejson']
+                  'simplejson',
+                  'zope.index']
 
 setup(
     name='dedupe',
