@@ -45,7 +45,7 @@ class Matching(object):
     - `matchBlocks`
     """
     def __init__(self) :
-        pass
+        self.loaded_indices = False
 
     def thresholdBlocks(self, blocks, recall_weight=1.5): # pragma : nocover
         """
@@ -135,6 +135,14 @@ class Matching(object):
         
         return clusters
 
+    def writeIndices(self, file_obj):
+        indices = {}
+        for full_predicate in self.predicates :
+            for predicate in full_predicate :
+                if hasattr(predicate, 'index') and predicate.index :
+                    indices[predicate] = predicate.index._index
+
+        pickle.dump(indices, file_obj)
 
 
 class DedupeMatching(Matching) :
@@ -247,12 +255,11 @@ class DedupeMatching(Matching) :
 
         blocks = defaultdict(dict)
 
-        self.blocker.indexAll(data_d)
+        if not self.loaded_indices:
+            self.blocker.indexAll(data_d)
 
         for block_key, record_id in self.blocker(viewitems(data_d)) :
             blocks[block_key][record_id] = data_d[record_id]
-
-        self.blocker.resetIndices()
 
         seen_blocks = set()
         blocks = [records for records in viewvalues(blocks)
@@ -427,15 +434,14 @@ class RecordLinkMatching(Matching) :
 
         blocked_records = defaultdict(dict)
 
-        self.blocker.indexAll(data_2)
+        if not self.loaded_indices :
+            self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items()) :
             blocked_records[block_key][record_id] = data_2[record_id]
 
         for each in self._blockGenerator(data_1, blocked_records) :
             yield each
-
-        self.blocker.resetIndices()
 
 
 class StaticMatching(Matching) :
@@ -487,8 +493,18 @@ class StaticMatching(Matching) :
         logger.info(self.predicates)
 
         self.blocker = blocking.Blocker(self.predicates)
+        self.loaded_indices = False
         
+    def readIndices(self, indices_file) :
+        indices = pickle.load(indices_file)
+        for full_predicate in self.predicates :
+            for predicate in full_predicate :
+                if hasattr(predicate, "index") and predicate.index is None :
+                    predicate.index = predicate.initIndex()
+                    predicate.index._index = indices[predicate]
 
+        self.loaded_indices = True
+                
 
 class ActiveMatching(Matching) :
     classifier = rlr.RegularizedLogisticRegression()
