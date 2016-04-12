@@ -42,9 +42,12 @@
 			   Lowering the number will increase
 			   recall, raising it will increase
 			   precision
+
    :param int n_matches: the maximum number of possible matches from
 			 canonical_data to return for each record in
-			 messy_data. Defaults to 1
+			 messy_data. If set to `None` all possible
+			 matches above the threshold will be
+			 returned. Defaults to 1
 
 
    .. code:: python
@@ -74,7 +77,7 @@
                                recall_weight to 2.
 
 
-.. py:method::  matchBlocks(blocks, threshold=.5, n_matches=2)
+.. py:method::  matchBlocks(blocks, threshold=.5, n_matches=1)
 
    Partitions blocked data and returns a list of clusters, where each
    cluster is a tuple of record ids
@@ -147,7 +150,9 @@
 
    :param int n_matches: the maximum number of possible matches from
 			 canonical_data to return for each record in
-			 messy_data. Defaults to 1
+			 messy_data. If set to `None` all possible
+			 matches above the threshold will be
+			 returned. Defaults to 1
 
 
    .. code:: python

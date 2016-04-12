@@ -211,7 +211,7 @@ def gazetteMatching(dupes, threshold=0.5, n_matches=1):
         for pair, score in dupes_list:
             a, b = pair
             if a == group :
-                if i < n_matches :
+                if n_matches is None or i < n_matches :
                     matches.append((pair, score))
                     i += 1
             else :
