@@ -283,7 +283,7 @@ class RecordLinkBlockLearner(BlockLearner) :
         return cover
 
     def estimate(self, blocks):
-        A, B = backport.iunzip(blocks, 2)
+        A, B = core.iunzip(blocks, 2)
         lengths_A = numpy.fromiter((len(ids) for ids in A), float)
         lengths_B = numpy.fromiter((len(ids) for ids in B), float)
         return numpy.sum((lengths_A * self.multiplier_1) *
