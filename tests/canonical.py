@@ -27,13 +27,6 @@ if opts.verbose is not None :
         log_level = logging.DEBUG
 logging.getLogger().setLevel(log_level)
 
-#logging.basicConfig(level=log_level)
-
-
-#import random
-#import sys
-#random.seed(365072799328404092)
-
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
 
@@ -64,7 +57,8 @@ def evaluateDuplicates(found_dupes, true_dupes):
     print(len(true_positives) / float(len(true_dupes)))
 
 
-settings_file = 'canonical_learned_settings.json'
+settings_file = 'canonical_learned_settings'
+indices_file = 'canonical_indices'
 raw_data = 'tests/datasets/restaurant-nophone-training.csv'
 
 data_d, header = canonicalImport(raw_data)
@@ -82,6 +76,8 @@ print('number of known duplicate pairs', len(duplicates_s))
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
         deduper = dedupe.StaticDedupe(f, 1)
+    with open(indices_file, 'rb') as f:
+        deduper.readIndices(f)
 else:
     fields = [{'field' : 'name', 'type': 'String'},
               {'field' : 'name', 'type': 'Exact'},
@@ -104,6 +100,10 @@ alpha = deduper.threshold(data_d, 1)
 # print candidates
 print('clustering...')
 clustered_dupes = deduper.match(data_d, threshold=alpha)
+
+with open(indices_file, 'wb') as f:
+    deduper.writeIndices(f)
+
 
 print('Evaluate Clustering')
 confirm_dupes = set([])
