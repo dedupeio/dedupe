@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import range, next, zip
+from builtins import range, next, zip, map
 from future.utils import viewvalues, viewitems
 import sys
 if sys.version < '3':
@@ -418,6 +418,4 @@ def iunzip(iterable, internal_length): # pragma : no cover
 
     _tmp, iterable = itertools.tee(iterable, 2)
     iters = itertools.tee(iterable, internal_length)
-    return (itertools.imap(operator.itemgetter(i), it) for i, it in enumerate(iters))        
-        
-
+    return (map(operator.itemgetter(i), it) for i, it in enumerate(iters))

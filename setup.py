@@ -24,7 +24,7 @@ install_requires=['fastcluster',
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='1.4.2',
+    version='1.4.3',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
