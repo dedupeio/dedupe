@@ -884,8 +884,7 @@ class Dedupe(DedupeMatching, ActiveMatching) :
         self.sampled_records = Sample(data, 900)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False,
-                                                             canopies=self.canopies))
+        predicates = list(self.data_model.predicates(index_predicates=False))
 
         data = sampling.randomDeque(data)
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
@@ -965,8 +964,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         self.sampled_records_2 = Sample(data_2, 500)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False,
-                                                     canopies=self.canopies))
+        predicates = list(self.data_model.predicates(index_predicates=False))
 
         data_1 = sampling.randomDeque(data_1)
         data_2 = sampling.randomDeque(data_2)
