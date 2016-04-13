@@ -1,3 +1,7 @@
+## 1.4.1
+- Now uses C version of double metaphone for speed
+- Much faster compounding of blocks in block learning
+
 ## 1.4.0
 - Block learning now tries to minimize the total number of comparisons
   not just the comparisons of distinct records. This decouples makes
