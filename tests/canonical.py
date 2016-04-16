@@ -58,7 +58,6 @@ def evaluateDuplicates(found_dupes, true_dupes):
 
 
 settings_file = 'canonical_learned_settings'
-indices_file = 'canonical_indices'
 raw_data = 'tests/datasets/restaurant-nophone-training.csv'
 
 data_d, header = canonicalImport(raw_data)
@@ -76,8 +75,7 @@ print('number of known duplicate pairs', len(duplicates_s))
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
         deduper = dedupe.StaticDedupe(f, 1)
-    with open(indices_file, 'rb') as f:
-        deduper.readIndices(f)
+        
 else:
     fields = [{'field' : 'name', 'type': 'String'},
               {'field' : 'name', 'type': 'Exact'},
@@ -101,8 +99,8 @@ alpha = deduper.threshold(data_d, 1)
 print('clustering...')
 clustered_dupes = deduper.match(data_d, threshold=alpha)
 
-with open(indices_file, 'wb') as f:
-    deduper.writeIndices(f)
+with open(settings_file, 'wb') as f:
+    deduper.writeSettings(f, indexes=True)
 
 
 print('Evaluate Clustering')

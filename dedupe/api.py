@@ -135,14 +135,33 @@ class Matching(object):
         
         return clusters
 
-    def writeIndices(self, file_obj):
+    def writeSettings(self, file_obj, indexes=False): # pragma : no cover
+        """
+        Write a settings file containing the 
+        data model and predicates to a file object
+
+        Keyword arguments:
+        file_obj -- file object to write settings data into
+        """
+
+        pickle.dump(self.data_model, file_obj)
+        pickle.dump(self.classifier, file_obj)
+        pickle.dump(self.predicates, file_obj)
+
+        if indexes:
+            self._writeIndices(file_obj)
+
+    def _writeIndices(self, file_obj):
         indices = {}
+        doc_to_ids = {}
         for full_predicate in self.predicates :
             for predicate in full_predicate :
                 if hasattr(predicate, 'index') and predicate.index :
                     indices[predicate] = predicate.index._index
+                    doc_to_ids[predicate] = dict(predicate.index._doc_to_id)
 
         pickle.dump(indices, file_obj)
+        pickle.dump(doc_to_ids, file_obj)
 
 
 class DedupeMatching(Matching) :
@@ -487,21 +506,35 @@ class StaticMatching(Matching) :
                                                "the current version of dedupe. This can happen "
                                                "if you have recently upgraded dedupe.")
         except :
+            raise
             raise SettingsFileLoadingException("Something has gone wrong with loading the settings file. Try deleting the file")
-                             
 
+        self.loaded_indices = False
+        
+        try:
+            indices = pickle.load(settings_file)
+            doc_to_ids = pickle.load(settings_file)
+            self._loadIndices(indices, doc_to_ids)
+        except EOFError:
+            pass
+        except (KeyError, AttributeError) :
+            raise SettingsFileLoadingException("This settings file is not compatible with "
+                                               "the current version of dedupe. This can happen "
+                                               "if you have recently upgraded dedupe.")
+        except :
+            raise SettingsFileLoadingException("Something has gone wrong with loading the settings file. Try deleting the file")
+        
         logger.info(self.predicates)
 
         self.blocker = blocking.Blocker(self.predicates)
-        self.loaded_indices = False
         
-    def readIndices(self, indices_file) :
-        indices = pickle.load(indices_file)
+    def _loadIndices(self, indices, doc_to_ids) :
         for full_predicate in self.predicates :
             for predicate in full_predicate :
                 if hasattr(predicate, "index") and predicate.index is None :
                     predicate.index = predicate.initIndex()
                     predicate.index._index = indices[predicate]
+                    predicate.index._doc_to_id = doc_to_ids[predicate]
 
         self.loaded_indices = True
                 
@@ -699,19 +732,6 @@ class ActiveMatching(Matching) :
 
 
         self.blocker = blocking.Blocker(self.predicates)
-
-    def writeSettings(self, file_obj): # pragma : no cover
-        """
-        Write a settings file containing the 
-        data model and predicates to a file object
-
-        Keyword arguments:
-        file_obj -- file object to write settings data into
-        """
-
-        pickle.dump(self.data_model, file_obj)
-        pickle.dump(self.classifier, file_obj)
-        pickle.dump(self.predicates, file_obj)
 
     def writeTraining(self, file_obj): # pragma : no cover
         """

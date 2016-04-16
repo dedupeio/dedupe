@@ -96,7 +96,6 @@ class IndexPredicate(Predicate) :
         self.index = None
 
     def __getstate__(self):
-
         result = self.__dict__.copy()
 
         return {'__name__': result['__name__'],
