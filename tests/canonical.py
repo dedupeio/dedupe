@@ -100,7 +100,7 @@ print('clustering...')
 clustered_dupes = deduper.match(data_d, threshold=alpha)
 
 with open(settings_file, 'wb') as f:
-    deduper.writeSettings(f, indexes=True)
+    deduper.writeSettings(f, index=True)
 
 
 print('Evaluate Clustering')

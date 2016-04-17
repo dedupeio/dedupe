@@ -162,6 +162,10 @@ class TfidfCanopyPredicate(TfidfIndexPredicate):
 
                 if canopy_members :
                     block_key = doc_id
+                    self.canopy[doc_id] = doc_id
+                else:
+                    self.canopy[doc_id] = None
+
 
         if block_key is None :
             return []

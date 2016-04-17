@@ -33,7 +33,7 @@ def findUncertainPairs(field_distances, classifier, bias=0.5):
     informativity[probability >= p_max] = (1 - probability[probability >= p_max])/(1-p_max)
 
 
-    return numpy.argsort(-informativity)
+    return numpy.argmax(informativity)
 
 class ActiveLearning(object) :
     """
@@ -53,17 +53,13 @@ class ActiveLearning(object) :
         
         pool.terminate()
 
-        self.seen_indices = set()
-
     def uncertainPairs(self, classifier, dupe_proportion) :
-        uncertain_indices = findUncertainPairs(self.field_distances,
-                                               classifier,
-                                               dupe_proportion)
-
-        for uncertain_index in uncertain_indices:
-            if uncertain_index not in self.seen_indices:
-                self.seen_indices.add(uncertain_index)
-                break
+        uncertain_index = findUncertainPairs(self.field_distances,
+                                             classifier,
+                                             dupe_proportion)
+        
+        self.field_distances = numpy.delete(self.field_distances,
+                                            uncertain_index, axis=0)
 
         uncertain_pairs = [self.candidates[uncertain_index]]
 

@@ -135,7 +135,7 @@ class Matching(object):
         
         return clusters
 
-    def writeSettings(self, file_obj, indexes=False): # pragma : no cover
+    def writeSettings(self, file_obj, index=False): # pragma : no cover
         """
         Write a settings file containing the 
         data model and predicates to a file object
@@ -148,21 +148,25 @@ class Matching(object):
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
 
-        if indexes:
+        if index:
             self._writeIndices(file_obj)
 
     def _writeIndices(self, file_obj):
         indices = {}
         doc_to_ids = {}
+        canopies = {}
         for full_predicate in self.predicates :
             for predicate in full_predicate :
                 if hasattr(predicate, 'index') and predicate.index :
-                    indices[predicate] = predicate.index._index
                     doc_to_ids[predicate] = dict(predicate.index._doc_to_id)
+                    if hasattr(predicate, "canopy"):
+                        canopies[predicate] = predicate.canopy
+                    else:
+                        indices[predicate] = predicate.index._index
 
+        pickle.dump(canopies, file_obj)
         pickle.dump(indices, file_obj)
         pickle.dump(doc_to_ids, file_obj)
-
 
 class DedupeMatching(Matching) :
     """
@@ -512,9 +516,7 @@ class StaticMatching(Matching) :
         self.loaded_indices = False
         
         try:
-            indices = pickle.load(settings_file)
-            doc_to_ids = pickle.load(settings_file)
-            self._loadIndices(indices, doc_to_ids)
+            self._loadIndices(settings_file)
         except EOFError:
             pass
         except (KeyError, AttributeError) :
@@ -528,13 +530,20 @@ class StaticMatching(Matching) :
 
         self.blocker = blocking.Blocker(self.predicates)
         
-    def _loadIndices(self, indices, doc_to_ids) :
+    def _loadIndices(self, settings_file) :
+        canopies = pickle.load(settings_file)
+        indices = pickle.load(settings_file)
+        doc_to_ids = pickle.load(settings_file)
+
         for full_predicate in self.predicates :
             for predicate in full_predicate :
                 if hasattr(predicate, "index") and predicate.index is None :
                     predicate.index = predicate.initIndex()
-                    predicate.index._index = indices[predicate]
                     predicate.index._doc_to_id = doc_to_ids[predicate]
+                    if hasattr(predicate, "canopy"):
+                        predicate.canopy = canopies[predicate]
+                    else:
+                        predicate.index._index = indices[predicate]
 
         self.loaded_indices = True
                 

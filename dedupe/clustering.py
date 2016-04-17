@@ -59,8 +59,9 @@ def connected_components(edgelist, max_components) :
         sub_graph = edgelist[indices[root]]
         
         if n_components > max_components :
-            threshold = numpy.min(sub_graph['score'])
-            threshold *= 1.1 
+            min_score = numpy.min(sub_graph['score'])
+            min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
+            threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
             warnings.warn('A component contained %s elements. '
                           'Components larger than %s are '
                           're-filtered. The threshold for this '
