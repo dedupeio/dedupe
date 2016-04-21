@@ -329,9 +329,9 @@ Longer example of a variable definition:
 
 .. code:: python
 
-    variables = [{'field' : 'name', 'type' : 'String'},
+    variables = [{'field' : 'name', 'variable name' : 'name', 'type' : 'String'},
                  {'field' : 'address', 'type' : 'String'},
-                 {'field' : 'city', 'type' : 'String'},
+                 {'field' : 'city', variable name' : 'city', 'type' : 'String'},
                  {'field' : 'zip', 'type' : 'Custom', 'comparator' : sameOrNotComparator},
                  {field' : 'cuisine', 'type' : 'String', 'has missing': True}
                  {'type' : 'Interaction', 'interaction variables' : ['name', 'city']}
