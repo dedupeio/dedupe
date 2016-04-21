@@ -14,7 +14,7 @@ for _, module, _  in pkgutil.iter_modules(dedupe.variables.__path__,
     __import__(module)
 
 
-FIELD_CLASSES = dict(base.allSubclasses(base.FieldType))
+FIELD_CLASSES = {k : v for k, v in base.allSubclasses(base.FieldType) if k}
 
 class DataModel(object) :
 
