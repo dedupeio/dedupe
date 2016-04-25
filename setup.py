@@ -24,11 +24,10 @@ install_requires=['fastcluster',
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='1.4.3',
+    version='1.4.4',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
-    license='The MIT License: http://www.opensource.org/licenses/mit-license.php',
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 4 - Beta',
