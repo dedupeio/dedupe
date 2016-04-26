@@ -1018,25 +1018,22 @@ class RecordLink(RecordLinkMatching, ActiveMatching) :
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False))
 
-        data_1 = sampling.randomDeque(data_1)
-        data_2 = sampling.randomDeque(data_2)
+        deque_1 = sampling.randomDeque(data_1)
+        deque_2 = sampling.randomDeque(data_2)
 
         blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
                                                          predicates,
-                                                         data_1, 
-                                                         data_2)
-        
+                                                         deque_1, 
+                                                         deque_2)
+
         random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = dedupe.core.randomPairsMatch(len(data_1),
-                                                          len(data_2), 
+        random_sample_keys = dedupe.core.randomPairsMatch(len(deque_1),
+                                                          len(deque_2), 
                                                           random_sample_size)
 
         random_sample_keys = {(a, b + offset) 
                               for a, b in random_sample_keys}
 
-        data_1 = dict(data_1)
-        data_2 = dict(data_2)
-        
         data_sample = ((data_1[k1], data_2[k2])
                        for k1, k2 
                        in blocked_sample_keys | random_sample_keys)

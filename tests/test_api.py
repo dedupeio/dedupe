@@ -16,21 +16,21 @@ DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}),
                (dedupe.core.frozendict({'age': '75', 'name': 'Charlie'}), 
                 dedupe.core.frozendict({'age': '21', 'name': 'Jimbo'})))
 
-data_dict = OrderedDict((('1', {'name' : 'Bob',         'age' : '51'}),
-                         ('2', {'name' : 'Linda',       'age' : '50'}),
-                         ('3', {'name' : 'Gene',        'age' : '12'}),
-                         ('4', {'name' : 'Tina',        'age' : '15'}),
-                         ('5', {'name' : 'Bob B.',      'age' : '51'}),
-                         ('6', {'name' : 'bob belcher', 'age' : '51'}),
-                         ('7', {'name' : 'linda ',      'age' : '50'})))
+data_dict = OrderedDict(((0, {'name' : 'Bob',         'age' : '51'}),
+                         (1, {'name' : 'Linda',       'age' : '50'}),
+                         (2, {'name' : 'Gene',        'age' : '12'}),
+                         (3, {'name' : 'Tina',        'age' : '15'}),
+                         (4, {'name' : 'Bob B.',      'age' : '51'}),
+                         (5, {'name' : 'bob belcher', 'age' : '51'}),
+                         (6, {'name' : 'linda ',      'age' : '50'})))
 
-data_dict_2 = OrderedDict((('1', {'name' : 'BOB',         'age' : '51'}),
-                           ('2', {'name' : 'LINDA',       'age' : '50'}),
-                           ('3', {'name' : 'GENE',        'age' : '12'}),
-                           ('4', {'name' : 'TINA',        'age' : '15'}),
-                           ('5', {'name' : 'BOB B.',      'age' : '51'}),
-                           ('6', {'name' : 'BOB BELCHER', 'age' : '51'}),
-                           ('7', {'name' : 'LINDA ',      'age' : '50'})))
+data_dict_2 = OrderedDict(((7, {'name' : 'BOB',         'age' : '51'}),
+                           (8, {'name' : 'LINDA',       'age' : '50'}),
+                           (9, {'name' : 'GENE',        'age' : '12'}),
+                           (10, {'name' : 'TINA',        'age' : '15'}),
+                           (11, {'name' : 'BOB B.',      'age' : '51'}),
+                           (12, {'name' : 'BOB BELCHER', 'age' : '51'}),
+                           (13, {'name' : 'LINDA ',      'age' : '50'})))
 
 
 class ActiveMatch(unittest.TestCase) :
@@ -204,6 +204,7 @@ class LinkTest(unittest.TestCase):
   def test_randomSample(self) :
 
     random.seed(27)
+    numpy.random.seed(43)
 
     self.linker.sample( data_dict, data_dict_2, 50, 1)
 
