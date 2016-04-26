@@ -54,3 +54,26 @@
 			       about recall as you do precision, set
 			       recall\_weight to 2.
 
+
+.. py:method:: writeSettings(file_obj, [index=False])
+
+   Write a settings file that contains the data model and predicates
+   to a file object.
+
+   :param file file_obj: File object.
+   :param index bool: Should the indexes of index predicates be
+                        saved. You will probably only want to call
+                        this after indexing all of your records.
+			 
+
+   .. code:: python
+
+      with open('my_learned_settings', 'wb') as f:
+          deduper.writeSettings(f, indexes=True)
+
+			       
+.. py:attribute:: loaded_indices
+
+   Indicates whether indices for index predicates was loaded from a
+   settings file.
+		  

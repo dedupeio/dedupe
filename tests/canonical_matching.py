@@ -86,11 +86,11 @@ else:
     deduper.sample(data_1, data_2, 10000) 
     deduper.markPairs(training_pairs)
     deduper.train()
-    with open(settings_file, 'wb') as f:
-        deduper.writeSettings(f)
-
 
 alpha = deduper.threshold(data_1, data_2)
+
+with open(settings_file, 'wb') as f:
+    deduper.writeSettings(f, index=True)
 
 
 # print candidates

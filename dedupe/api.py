@@ -135,7 +135,38 @@ class Matching(object):
         
         return clusters
 
+    def writeSettings(self, file_obj, index=False): # pragma : no cover
+        """
+        Write a settings file containing the 
+        data model and predicates to a file object
 
+        Keyword arguments:
+        file_obj -- file object to write settings data into
+        """
+
+        pickle.dump(self.data_model, file_obj)
+        pickle.dump(self.classifier, file_obj)
+        pickle.dump(self.predicates, file_obj)
+
+        if index:
+            self._writeIndices(file_obj)
+
+    def _writeIndices(self, file_obj):
+        indices = {}
+        doc_to_ids = {}
+        canopies = {}
+        for full_predicate in self.predicates :
+            for predicate in full_predicate :
+                if hasattr(predicate, 'index') and predicate.index :
+                    doc_to_ids[predicate] = dict(predicate.index._doc_to_id)
+                    if hasattr(predicate, "canopy"):
+                        canopies[predicate] = predicate.canopy
+                    else:
+                        indices[predicate] = predicate.index._index
+
+        pickle.dump(canopies, file_obj)
+        pickle.dump(indices, file_obj)
+        pickle.dump(doc_to_ids, file_obj)
 
 class DedupeMatching(Matching) :
     """
@@ -247,12 +278,11 @@ class DedupeMatching(Matching) :
 
         blocks = defaultdict(dict)
 
-        self.blocker.indexAll(data_d)
+        if not self.loaded_indices:
+            self.blocker.indexAll(data_d)
 
         for block_key, record_id in self.blocker(viewitems(data_d)) :
             blocks[block_key][record_id] = data_d[record_id]
-
-        self.blocker.resetIndices()
 
         seen_blocks = set()
         blocks = [records for records in viewvalues(blocks)
@@ -427,15 +457,14 @@ class RecordLinkMatching(Matching) :
 
         blocked_records = defaultdict(dict)
 
-        self.blocker.indexAll(data_2)
+        if not self.loaded_indices :
+            self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items()) :
             blocked_records[block_key][record_id] = data_2[record_id]
 
         for each in self._blockGenerator(data_1, blocked_records) :
             yield each
-
-        self.blocker.resetIndices()
 
 
 class StaticMatching(Matching) :
@@ -477,18 +506,53 @@ class StaticMatching(Matching) :
             self.classifier = pickle.load(settings_file)
             self.predicates = pickle.load(settings_file)
         except (KeyError, AttributeError) :
-            raise SettingsFileLoadingException("This settings file is not compatible with "
-                                               "the current version of dedupe. This can happen "
-                                               "if you have recently upgraded dedupe.")
+            raise SettingsFileLoadingException(
+                "This settings file is not compatible with "
+                "the current version of dedupe. This can happen "
+                "if you have recently upgraded dedupe.")
         except :
-            raise SettingsFileLoadingException("Something has gone wrong with loading the settings file. Try deleting the file")
-                             
+            raise
+            raise SettingsFileLoadingException(
+                "Something has gone wrong with loading the settings file. "
+                "Try deleting the file")
 
+        self.loaded_indices = False
+        
+        try:
+            self._loadIndices(settings_file)
+        except EOFError:
+            pass
+        except (KeyError, AttributeError) :
+            raise SettingsFileLoadingException(
+                "This settings file is not compatible with "
+                "the current version of dedupe. This can happen "
+                "if you have recently upgraded dedupe.")
+        except :
+            raise SettingsFileLoadingException(
+                "Something has gone wrong with loading the settings file. "
+                "Try deleting the file")
+        
         logger.info(self.predicates)
 
         self.blocker = blocking.Blocker(self.predicates)
         
+    def _loadIndices(self, settings_file) :
+        canopies = pickle.load(settings_file)
+        indices = pickle.load(settings_file)
+        doc_to_ids = pickle.load(settings_file)
 
+        for full_predicate in self.predicates :
+            for predicate in full_predicate :
+                if hasattr(predicate, "index") and predicate.index is None :
+                    predicate.index = predicate.initIndex()
+                    predicate.index._doc_to_id = doc_to_ids[predicate]
+                    if hasattr(predicate, "canopy"):
+                        predicate.canopy = canopies[predicate]
+                    else:
+                        predicate.index._index = indices[predicate]
+
+        self.loaded_indices = True
+                
 
 class ActiveMatching(Matching) :
     classifier = rlr.RegularizedLogisticRegression()
@@ -585,6 +649,7 @@ class ActiveMatching(Matching) :
                                            u'match': []})
 
         self.blocker = None
+        self.loaded_indices = False
 
     def cleanupTraining(self) : # pragma : no cover
         '''
@@ -682,19 +747,6 @@ class ActiveMatching(Matching) :
 
 
         self.blocker = blocking.Blocker(self.predicates)
-
-    def writeSettings(self, file_obj): # pragma : no cover
-        """
-        Write a settings file containing the 
-        data model and predicates to a file object
-
-        Keyword arguments:
-        file_obj -- file object to write settings data into
-        """
-
-        pickle.dump(self.data_model, file_obj)
-        pickle.dump(self.classifier, file_obj)
-        pickle.dump(self.predicates, file_obj)
 
     def writeTraining(self, file_obj): # pragma : no cover
         """
@@ -1017,8 +1069,6 @@ class GazetteerMatching(RecordLinkMatching) :
 
         self._cluster = clustering.gazetteMatching
         self._linkage_type = "GazetteerMatching"
-        self.blocked_records = OrderedDict({})
-
 
     def _blockData(self, messy_data) :
         for each in self._blockGenerator(messy_data, self.blocked_records) :
@@ -1097,12 +1147,48 @@ class GazetteerMatching(RecordLinkMatching) :
         blocked_pairs = self._blockData(messy_data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
+    def writeSettings(self, file_obj, index=False): # pragma : no cover
+        """
+        Write a settings file containing the 
+        data model and predicates to a file object
+
+        Keyword arguments:
+        file_obj -- file object to write settings data into
+        """
+        super(GazetteerMatching, self).writeSettings(file_obj, index)
+
+        if index:
+            pickle.dump(self.blocked_records, file_obj)
+
+    
 
 class Gazetteer(RecordLink, GazetteerMatching):
-    pass
+    def __init__(self, *args, **kwargs):
+        super(StaticGazetteer, self).__init__(*args, **kwargs)
+        self.blocked_records = OrderedDict({})
 
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
-    pass
+    def __init__(self, *args, **kwargs):
+        super(StaticGazetteer, self).__init__(*args, **kwargs)
+
+        settings_file = args[0]
+
+        try:
+            self.blocked_records = pickle.load(settings_file)
+        except EOFError:
+            self.blocked_records = OrderedDict({})
+        except (KeyError, AttributeError) :
+            raise SettingsFileLoadingException(
+                "This settings file is not compatible with "
+                "the current version of dedupe. This can happen "
+                "if you have recently upgraded dedupe.")
+        except :
+            raise SettingsFileLoadingException(
+                "Something has gone wrong with loading the settings file. "
+                "Try deleting the file")
+
+        
+
 
 class EmptyTrainingException(Exception) :
     pass

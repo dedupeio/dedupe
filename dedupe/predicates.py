@@ -96,7 +96,6 @@ class IndexPredicate(Predicate) :
         self.index = None
 
     def __getstate__(self):
-
         result = self.__dict__.copy()
 
         return {'__name__': result['__name__'],
@@ -163,6 +162,10 @@ class TfidfCanopyPredicate(TfidfIndexPredicate):
 
                 if canopy_members :
                     block_key = doc_id
+                    self.canopy[doc_id] = doc_id
+                else:
+                    self.canopy[doc_id] = None
+
 
         if block_key is None :
             return []

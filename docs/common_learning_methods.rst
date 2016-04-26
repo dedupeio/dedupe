@@ -92,18 +92,6 @@
       with open('./my_training.json') as f:
           deduper.readTraining(f)
 
-.. py:method:: writeSettings(file_obj)
-
-   Write a settings file that contains the data model and predicates
-   to a file object.
-
-   :param file file_obj: File object.
-
-   .. code:: python
-
-      with open('my_learned_settings', 'wb') as f:
-          deduper.writeSettings(f)
-
 .. py:method:: cleanupTraining()
 
    Delete data we used for training.
