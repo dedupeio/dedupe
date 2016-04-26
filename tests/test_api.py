@@ -24,13 +24,13 @@ data_dict = OrderedDict((('1', {'name' : 'Bob',         'age' : '51'}),
                          ('6', {'name' : 'bob belcher', 'age' : '51'}),
                          ('7', {'name' : 'linda ',      'age' : '50'})))
 
-data_dict_2 = {  '1': {'name' : 'BOB',         'age' : '51'},
-                 '2': {'name' : 'LINDA',       'age' : '50'},
-                 '3': {'name' : 'GENE',        'age' : '12'},
-                 '4': {'name' : 'TINA',        'age' : '15'},
-                 '5': {'name' : 'BOB B.',      'age' : '51'},
-                 '6': {'name' : 'BOB BELCHER', 'age' : '51'},
-                 '7': {'name' : 'LINDA ',      'age' : '50'} }
+data_dict_2 = OrderedDict((('1', {'name' : 'BOB',         'age' : '51'}),
+                           ('2', {'name' : 'LINDA',       'age' : '50'}),
+                           ('3', {'name' : 'GENE',        'age' : '12'}),
+                           ('4', {'name' : 'TINA',        'age' : '15'}),
+                           ('5', {'name' : 'BOB B.',      'age' : '51'}),
+                           ('6', {'name' : 'BOB BELCHER', 'age' : '51'}),
+                           ('7', {'name' : 'LINDA ',      'age' : '50'})))
 
 
 class ActiveMatch(unittest.TestCase) :
