@@ -1163,7 +1163,7 @@ class GazetteerMatching(RecordLinkMatching) :
     
 
 class Gazetteer(RecordLink, GazetteerMatching):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs): # pragma : no cover
         super(StaticGazetteer, self).__init__(*args, **kwargs)
         self.blocked_records = OrderedDict({})
 
@@ -1186,9 +1186,6 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
-
-        
-
 
 class EmptyTrainingException(Exception) :
     pass

@@ -1,3 +1,7 @@
+## 1.4.5
+- Block indexes can now be persisted by using the index=True argument
+  in the writeSettings method
+
 ## 1.4.1
 - Now uses C version of double metaphone for speed
 - Much faster compounding of blocks in block learning
