@@ -506,12 +506,15 @@ class StaticMatching(Matching) :
             self.classifier = pickle.load(settings_file)
             self.predicates = pickle.load(settings_file)
         except (KeyError, AttributeError) :
-            raise SettingsFileLoadingException("This settings file is not compatible with "
-                                               "the current version of dedupe. This can happen "
-                                               "if you have recently upgraded dedupe.")
+            raise SettingsFileLoadingException(
+                "This settings file is not compatible with "
+                "the current version of dedupe. This can happen "
+                "if you have recently upgraded dedupe.")
         except :
             raise
-            raise SettingsFileLoadingException("Something has gone wrong with loading the settings file. Try deleting the file")
+            raise SettingsFileLoadingException(
+                "Something has gone wrong with loading the settings file. "
+                "Try deleting the file")
 
         self.loaded_indices = False
         
@@ -520,11 +523,14 @@ class StaticMatching(Matching) :
         except EOFError:
             pass
         except (KeyError, AttributeError) :
-            raise SettingsFileLoadingException("This settings file is not compatible with "
-                                               "the current version of dedupe. This can happen "
-                                               "if you have recently upgraded dedupe.")
+            raise SettingsFileLoadingException(
+                "This settings file is not compatible with "
+                "the current version of dedupe. This can happen "
+                "if you have recently upgraded dedupe.")
         except :
-            raise SettingsFileLoadingException("Something has gone wrong with loading the settings file. Try deleting the file")
+            raise SettingsFileLoadingException(
+                "Something has gone wrong with loading the settings file. "
+                "Try deleting the file")
         
         logger.info(self.predicates)
 
@@ -1063,8 +1069,6 @@ class GazetteerMatching(RecordLinkMatching) :
 
         self._cluster = clustering.gazetteMatching
         self._linkage_type = "GazetteerMatching"
-        self.blocked_records = OrderedDict({})
-
 
     def _blockData(self, messy_data) :
         for each in self._blockGenerator(messy_data, self.blocked_records) :
@@ -1143,12 +1147,48 @@ class GazetteerMatching(RecordLinkMatching) :
         blocked_pairs = self._blockData(messy_data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
+    def writeSettings(self, file_obj, index=False): # pragma : no cover
+        """
+        Write a settings file containing the 
+        data model and predicates to a file object
+
+        Keyword arguments:
+        file_obj -- file object to write settings data into
+        """
+        super(GazetteerMatching, self).writeSettings(file_obj, index)
+
+        if index:
+            pickle.dump(self.blocked_records, file_obj)
+
+    
 
 class Gazetteer(RecordLink, GazetteerMatching):
-    pass
+    def __init__(self, *args, **kwargs):
+        super(StaticGazetteer, self).__init__(*args, **kwargs)
+        self.blocked_records = OrderedDict({})
 
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
-    pass
+    def __init__(self, *args, **kwargs):
+        super(StaticGazetteer, self).__init__(*args, **kwargs)
+
+        settings_file = args[0]
+
+        try:
+            self.blocked_records = pickle.load(settings_file)
+        except EOFError:
+            self.blocked_records = OrderedDict({})
+        except (KeyError, AttributeError) :
+            raise SettingsFileLoadingException(
+                "This settings file is not compatible with "
+                "the current version of dedupe. This can happen "
+                "if you have recently upgraded dedupe.")
+        except :
+            raise SettingsFileLoadingException(
+                "Something has gone wrong with loading the settings file. "
+                "Try deleting the file")
+
+        
+
 
 class EmptyTrainingException(Exception) :
     pass
