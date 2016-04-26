@@ -1161,7 +1161,7 @@ class GazetteerMatching(RecordLinkMatching) :
 
 class Gazetteer(RecordLink, GazetteerMatching):
     def __init__(self, *args, **kwargs): # pragma : no cover
-        super(StaticGazetteer, self).__init__(*args, **kwargs)
+        super(Gazetteer, self).__init__(*args, **kwargs)
         self.blocked_records = OrderedDict({})
 
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
