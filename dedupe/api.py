@@ -51,7 +51,7 @@ class Matching(object):
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
-        blocked data. 
+        blocked data.
 
         Keyword arguments:
         blocks --        Sequence of tuples of records, where each
@@ -136,7 +136,7 @@ class Matching(object):
 
     def writeSettings(self, file_obj, index=False):  # pragma : no cover
         """
-        Write a settings file containing the 
+        Write a settings file containing the
         data model and predicates to a file object
 
         Keyword arguments:
@@ -172,7 +172,7 @@ class DedupeMatching(Matching):
     """
     Class for Deduplication, extends Matching.
 
-    Use DedupeMatching when you have a dataset that can contain 
+    Use DedupeMatching when you have a dataset that can contain
     multiple references to the same entity.
 
     Public methods:
@@ -218,7 +218,7 @@ class DedupeMatching(Matching):
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
-        data. 
+        data.
 
         Arguments:
         data          -- Dictionary of records, where the keys are record_ids
@@ -342,7 +342,7 @@ class RecordLinkMatching(Matching):
         """
         Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
-        between 0 and 1. The record_ids within each set should refer to the 
+        between 0 and 1. The record_ids within each set should refer to the
         same entity and the confidence score is the estimated probability that
         the records refer to the same entity.
 
@@ -350,15 +350,15 @@ class RecordLinkMatching(Matching):
         for larger data, use matchBlocks
 
         Arguments:
-        data_1    -- Dictionary of records from first dataset, where the 
+        data_1    -- Dictionary of records from first dataset, where the
                      keys are record_ids and the values are dictionaries
                      with the keys being field names
 
-        data_2    -- Dictionary of records from second dataset, same form 
+        data_2    -- Dictionary of records from second dataset, same form
                      as data_1
 
         threshold -- Number between 0 and 1 (default is .5). We will consider
-                     records as potential duplicates if the predicted 
+                     records as potential duplicates if the predicted
                      probability of being a duplicate is above the threshold.
 
                      Lowering the number will increase recall, raising it
@@ -372,14 +372,14 @@ class RecordLinkMatching(Matching):
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
-        data. 
+        data.
 
         Arguments:
-        data_1        --  Dictionary of records from first dataset, where the 
-                          keys are record_ids and the values are dictionaries 
+        data_1        --  Dictionary of records from first dataset, where the
+                          keys are record_ids and the values are dictionaries
                           with the keys being field names
 
-        data_2        --  Dictionary of records from second dataset, same form 
+        data_2        --  Dictionary of records from second dataset, same form
                           as data_1
 
         recall_weight -- Sets the tradeoff between precision and
@@ -556,7 +556,7 @@ class ActiveMatching(Matching):
 
     """
     Class for training dedupe extends Matching.
-    
+
     Public methods:
     - __init__
     - readTraining
@@ -605,10 +605,10 @@ class ActiveMatching(Matching):
         #### Additional detail
 
         A field definition is a list of dictionaries where each dictionary
-        describes a variable to use for comparing records. 
+        describes a variable to use for comparing records.
 
         For details about variable types, check the documentation.
-        <http://dedupe.readthedocs.org>`_ 
+        <http://dedupe.readthedocs.org>`_
 
         In the data_sample, each element is a tuple of two
         records. Each record is, in turn, a tuple of the record's key and
@@ -693,7 +693,7 @@ class ActiveMatching(Matching):
         """Keyword arguments:
 
         maximum_comparisons -- The maximum number of comparisons a
-                               blocking rule is allowed to make. 
+                               blocking rule is allowed to make.
 
                                Defaults to 1000000
 
@@ -706,7 +706,7 @@ class ActiveMatching(Matching):
                   is 0.975
 
         index_predicates -- Should dedupe consider predicates that
-                            rely upon indexing the data. Index predicates can 
+                            rely upon indexing the data. Index predicates can
                             be slower and take susbstantial memory.
 
                             Defaults to True.
@@ -975,16 +975,16 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
     def sample(self, data_1, data_2, sample_size=150000,
                blocked_proportion=.5):
         '''
-        Draws a random sample of combinations of records from 
+        Draws a random sample of combinations of records from
         the first and second datasets, and initializes active
         learning with this sample
 
         Arguments:
 
-        data_1      -- Dictionary of records from first dataset, where the 
-                       keys are record_ids and the values are dictionaries 
+        data_1      -- Dictionary of records from first dataset, where the
+                       keys are record_ids and the values are dictionaries
                        with the keys being field names
-        data_2      -- Dictionary of records from second dataset, same 
+        data_2      -- Dictionary of records from second dataset, same
                        form as data_1
 
         sample_size -- Size of the sample to draw
@@ -1088,7 +1088,7 @@ class GazetteerMatching(RecordLinkMatching):
     def match(self, messy_data, threshold=0.5, n_matches=1):  # pragma : no cover
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
-        between 0 and 1. The record_ids within each set should refer to the 
+        between 0 and 1. The record_ids within each set should refer to the
         same entity and the confidence score is the estimated probability that
         the records refer to the same entity.
 
@@ -1096,18 +1096,18 @@ class GazetteerMatching(RecordLinkMatching):
         for larger data, use matchBlocks
 
         Arguments:
-        messy_data -- Dictionary of records from messy dataset, where the 
-                      keys are record_ids and the values are dictionaries with 
+        messy_data -- Dictionary of records from messy dataset, where the
+                      keys are record_ids and the values are dictionaries with
                       the keys being field names
 
         threshold -- Number between 0 and 1 (default is .5). We will consider
-                     records as potential duplicates if the predicted 
+                     records as potential duplicates if the predicted
                      probability of being a duplicate is above the threshold.
 
                      Lowering the number will increase recall, raising it
                      will increase precision
 
-        n_matches -- Maximum number of possible matches from the canonical 
+        n_matches -- Maximum number of possible matches from the canonical
                      record set to match against each record in the messy
                      record set
         """
@@ -1118,11 +1118,11 @@ class GazetteerMatching(RecordLinkMatching):
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
-        data. 
+        data.
 
         Arguments:
-        messy_data -- Dictionary of records from messy dataset, where the 
-                      keys are record_ids and the values are dictionaries with 
+        messy_data -- Dictionary of records from messy dataset, where the
+                      keys are record_ids and the values are dictionaries with
                       the keys being field names
 
         recall_weight -- Sets the tradeoff between precision and
@@ -1136,7 +1136,7 @@ class GazetteerMatching(RecordLinkMatching):
 
     def writeSettings(self, file_obj, index=False):  # pragma : no cover
         """
-        Write a settings file containing the 
+        Write a settings file containing the
         data model and predicates to a file object
 
         Keyword arguments:
