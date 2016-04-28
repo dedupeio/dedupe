@@ -49,19 +49,20 @@ class Matching(object):
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma : nocover
         """
-        Returns the threshold that maximizes the expected F score,
-        a weighted average of precision and recall for a sample of
+        Returns the threshold that maximizes the expected F score, a
+        weighted average of precision and recall for a sample of
         blocked data.
 
-        Keyword arguments:
-        blocks --        Sequence of tuples of records, where each
-                         tuple is a set of records covered by a blocking
-                         predicate
+        Arguments:
+
+        blocks -- Sequence of tuples of records, where each tuple is a
+                  set of records covered by a blocking predicate
 
         recall_weight -- Sets the tradeoff between precision and
                          recall. I.e. if you care twice as much about
                          recall as you do precision, set recall_weight
                          to 2.
+
         """
 
         probability = core.scoreDuplicates(self._blockedPairs(blocks),
@@ -88,30 +89,25 @@ class Matching(object):
 
         return probability[i]
 
-    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):  # pragma : no cover
+    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
         """
         Partitions blocked data and returns a list of clusters, where
         each cluster is a tuple of record ids
 
         Keyword arguments:
-        blocks --     Sequence of tuples of records, where each
-                      tuple is a set of records covered by a blocking
-                      predicate
 
-        threshold --  Number between 0 and 1 (default is .5). We will
+        blocks -- Sequence of tuples of records, where each tuple is a
+                  set of records covered by a blocking predicate
+
+        threshold -- Number between 0 and 1 (default is .5). We will
                       only consider as duplicates record pairs as
-                      duplicates if their estimated duplicate likelihood is
-                      greater than the threshold.
+                      duplicates if their estimated duplicate
+                      likelihood is greater than the threshold.
 
-                      Lowering the number will increase recall, raising it
-                      will increase precision
-
+                      Lowering the number will increase recall,
+                      raising it will increase precision
 
         """
-        # Setting the cluster threshold this ways is not principled,
-        # but seems to reliably help performance
-        cluster_threshold = threshold * 0.7
-
         candidate_records = self._blockedPairs(blocks)
 
         matches = core.scoreDuplicates(candidate_records,
@@ -122,8 +118,7 @@ class Matching(object):
 
         logger.debug("matching done, begin clustering")
 
-        clusters = self._cluster(matches,
-                                 cluster_threshold, *args, **kwargs)
+        clusters = self._cluster(matches, threshold, *args, **kwargs)
 
         try:
             match_file = matches.filename
@@ -188,27 +183,31 @@ class DedupeMatching(Matching):
         self._linkage_type = "Dedupe"
 
     def match(self, data, threshold=0.5):  # pragma : no cover
-        """
-        Identifies records that all refer to the same entity, returns tuples
-        containing a set of record ids and a confidence score as a float between 0
-        and 1. The record_ids within each set should refer to the
-        same entity and the confidence score is a measure of our confidence that
-        all the records in a cluster refer to the same entity.
+        """Identifies records that all refer to the same entity, returns
+        tuples
 
-        This method should only used for small to moderately sized datasets
-        for larger data, use matchBlocks
+        containing a set of record ids and a confidence score as a
+        float between 0 and 1. The record_ids within each set should
+        refer to the same entity and the confidence score is a measure
+        of our confidence that all the records in a cluster refer to
+        the same entity.
+
+        This method should only used for small to moderately sized
+        datasets for larger data, use matchBlocks
 
         Arguments:
-        data      --  Dictionary of records, where the keys are record_ids
-                      and the values are dictionaries with the keys being
-                      field names
 
-        threshold --  Number between 0 and 1 (default is .5). We will consider
-                      records as potential duplicates if the predicted probability
-                      of being a duplicate is above the threshold.
+        data -- Dictionary of records, where the keys are record_ids
+                and the values are dictionaries with the keys being
+                field names
 
-                      Lowering the number will increase recall, raising it
-                      will increase precision
+        threshold -- Number between 0 and 1 (default is .5). We will
+                      consider records as potential duplicates if the
+                      predicted probability of being a duplicate is
+                      above the threshold.
+
+                      Lowering the number will increase recall,
+                      raising it will increase precision
 
         """
         blocked_pairs = self._blockData(data)
@@ -256,13 +255,15 @@ class DedupeMatching(Matching):
         if block:
             try:
                 if len(block[0]) < 3:
-                    raise ValueError("Each item in a block must be a "
-                                     "sequence of record_id, record, and smaller ids "
-                                     "and the records also must be dictionaries")
+                    raise ValueError(
+                        "Each item in a block must be a sequence "
+                        "of record_id, record, and smaller ids and "
+                        "the records also must be dictionaries")
             except:
-                raise ValueError("Each item in a block must be a "
-                                 "sequence of record_id, record, and smaller ids "
-                                 "and the records also must be dictionaries")
+                raise ValueError(
+                        "Each item in a block must be a sequence of "
+                        "record_id, record, and smaller ids and the "
+                        "records also must be dictionaries")
             try:
                 block[0][1].items()
                 block[0][2].isdisjoint([])
@@ -284,9 +285,9 @@ class DedupeMatching(Matching):
 
         seen_blocks = set()
         blocks = [records for records in viewvalues(blocks)
-                  if len(records) > 1
-                  and not (frozenset(records.keys()) in seen_blocks
-                           or seen_blocks.add(frozenset(records.keys())))]
+                  if len(records) > 1 and
+                  not (frozenset(records.keys()) in seen_blocks or
+                       seen_blocks.add(frozenset(records.keys())))]
 
         for block in self._redundantFree(blocks):
             yield block
@@ -368,7 +369,7 @@ class RecordLinkMatching(Matching):
         blocked_pairs = self._blockData(data_1, data_2)
         return self.matchBlocks(blocked_pairs, threshold)
 
-    def threshold(self, data_1, data_2, recall_weight=1.5):  # pragma : no cover
+    def threshold(self, data_1, data_2, recall_weight=1.5):  # pragma: no cover
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -419,13 +420,15 @@ class RecordLinkMatching(Matching):
 
             if base:
                 if len(base[0]) < 3:
-                    raise ValueError("Each sequence must be made up of 3-tuple "
-                                     "like (record_id, record, covered_blocks)")
+                    raise ValueError(
+                            "Each sequence must be made up of 3-tuple "
+                            "like (record_id, record, covered_blocks)")
                 self.data_model.check(base[0][1])
             if target:
                 if len(target[0]) < 3:
-                    raise ValueError("Each sequence must be made up of 3-tuple "
-                                     "like (record_id, record, covered_blocks)")
+                    raise ValueError(
+                              "Each sequence must be made up of 3-tuple "
+                              "like (record_id, record, covered_blocks)")
                 self.data_model.check(target[0][1])
 
     def _blockGenerator(self, messy_data, blocked_records):
@@ -467,10 +470,12 @@ class RecordLinkMatching(Matching):
 
 class StaticMatching(Matching):
     """
-    Class for initializing a dedupe object from a settings file, extends Matching.
+    Class for initializing a dedupe object from a settings file,
+    extends Matching.
 
     Public methods:
     - __init__
+
     """
 
     def __init__(self,
@@ -580,8 +585,10 @@ class ActiveMatching(Matching):
             # initialize from a defined set of fields
             fields = [{'field' : 'Site name', 'type': 'String'},
                       {'field' : 'Address', 'type': 'String'},
-                      {'field' : 'Zip', 'type': 'String', 'Has Missing':True},
-                      {'field' : 'Phone', 'type': 'String', 'Has Missing':True},
+                      {'field' : 'Zip', 'type': 'String',
+                       'Has Missing':True},
+                      {'field' : 'Phone', 'type': 'String',
+                       'Has Missing':True},
                      ]
 
             data_sample = [
@@ -781,8 +788,8 @@ class ActiveMatching(Matching):
 
         bias = len(self.training_pairs[u'match'])
         if bias:
-            bias /= (bias
-                     + len(self.training_pairs[u'distinct']))
+            bias /= (bias +
+                     len(self.training_pairs[u'distinct']))
 
         min_examples = min(len(self.training_pairs[u'match']),
                            len(self.training_pairs[u'distinct']))
@@ -1193,5 +1200,6 @@ class Sample(dict):
         else:
             super(Sample, self).__init__({k: d[k]
                                           for k
-                                          in random.sample(viewkeys(d), sample_size)})
+                                          in random.sample(viewkeys(d),
+                                                           sample_size)})
         self.original_length = len(d)
