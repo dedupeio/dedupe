@@ -110,7 +110,7 @@ def condensedDistance(dupes):
     row_step = (N - row) * (N - row - 1) / 2
     index = matrix_length - row_step + col - row - 1
 
-    condensed_distances = numpy.ones(matrix_length, 'f4')
+    condensed_distances = numpy.ones(matrix_length, numpy.double)
     condensed_distances[index.astype(int)] = 1 - dupes['score']
 
 
