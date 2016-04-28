@@ -61,7 +61,7 @@ class ActiveLearning(object) :
         self.field_distances = numpy.delete(self.field_distances,
                                             uncertain_index, axis=0)
 
-        uncertain_pairs = [self.candidates[uncertain_index]]
+        uncertain_pairs = [self.candidates.pop(uncertain_index)]
 
         return uncertain_pairs
 
