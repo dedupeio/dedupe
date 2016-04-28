@@ -110,9 +110,8 @@ def condensedDistance(dupes):
     row_step = (N - row) * (N - row - 1) / 2
     index = matrix_length - row_step + col - row - 1
 
-    condensed_distances = numpy.ones(matrix_length, numpy.double)
+    condensed_distances = numpy.ones(matrix_length, 'double')
     condensed_distances[index.astype(int)] = 1 - dupes['score']
-
 
     return i_to_id, condensed_distances, N
 
@@ -141,7 +140,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
 
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
-                                          preserve_input=False)
+                                          preserve_input=True)
 
             partition = hcluster.fcluster(linkage, 
                                           threshold,
