@@ -97,4 +97,4 @@ Third-party copyright in this distribution is noted where applicable.
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 
-Gregg, Forest, and Derek Eder. 2014. Dedupe. https://github.com/datamade/dedupe.
+Gregg, Forest, and Derek Eder. 2016. Dedupe. https://github.com/datamade/dedupe.
