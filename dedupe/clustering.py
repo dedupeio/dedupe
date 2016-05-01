@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from future.utils import viewitems
+from future.utils import viewitems, viewvalues
 
 import itertools
 
@@ -145,21 +145,19 @@ def cluster(dupes, threshold=.5, max_components=30000):
             partition = hcluster.fcluster(linkage, 
                                           threshold,
                                           criterion='distance')
-            partition += cluster_id
 
             clusters = {}
 
-            for i, cluster_id in enumerate(partition):
-                clusters.setdefault(cluster_id, []).append(i_to_id[i])
+            for i, partition_id in enumerate(partition):
+                clusters.setdefault(partition_id, []).append(i_to_id[i])
 
-            for cluster_id, items in viewitems(clusters) :
+            for items in viewvalues(clusters) :
                 if len(items) > 1 :
                     items = tuple(items)
                     scores = confidences(items, sub_graph)
                     clustering[cluster_id] = (items, scores)
+                    cluster_id += 1
 
-            if clustering:
-                cluster_id = max(clustering) + 1
         else:
             ids, score = sub_graph[0]
             clustering[cluster_id] = (tuple(ids), tuple([score]*2))
