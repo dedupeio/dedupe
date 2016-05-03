@@ -16,24 +16,11 @@ import random
 logger = logging.getLogger(__name__)
 
 def findUncertainPairs(field_distances, classifier, bias=0.5):
-    """
-    Given a set of field distances and a data model return the
-    indices of the record pairs in order of uncertainty. For example,
-    the first indices corresponds to the record pair where we have the
-    least certainty whether the pair are duplicates or distinct.
-    """
 
+    bias = 1 - bias
     probability = classifier.predict_proba(field_distances)[:,-1]
 
-    p_max = (1 - bias)
-    logger.info(p_max)
-
-    informativity = numpy.copy(probability)
-    informativity[probability < p_max] /= p_max
-    informativity[probability >= p_max] = (1 - probability[probability >= p_max])/(1-p_max)
-
-
-    return numpy.argmax(informativity)
+    return numpy.argmin(numpy.abs(bias - probability))
 
 class ActiveLearning(object) :
     """

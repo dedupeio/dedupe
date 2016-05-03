@@ -150,7 +150,7 @@ class ScoreRecords(object) :
                 records.append((record_1, record_2))
 
         if records :
-            ids = numpy.array(ids, dtype=('object', 2))
+            ids = numpy.array(ids)
             
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:,-1]
