@@ -15,13 +15,6 @@ import random
 
 logger = logging.getLogger(__name__)
 
-def findUncertainPairs(field_distances, classifier, bias=0.5):
-
-    bias = 1 - bias
-    probability = classifier.predict_proba(field_distances)[:,-1]
-
-    return numpy.argmin(numpy.abs(bias - probability))
-
 class ActiveLearning(object) :
     """
     Ask the user to label the record pair we are most uncertain of. Train the
@@ -41,9 +34,12 @@ class ActiveLearning(object) :
         pool.terminate()
 
     def uncertainPairs(self, classifier, dupe_proportion) :
-        uncertain_index = findUncertainPairs(self.field_distances,
-                                             classifier,
-                                             dupe_proportion)
+        probability = classifier.predict_proba(self.field_distances)[:,-1]
+
+        target_uncertainty = 1 - dupe_proportion
+        uncertain_index = numpy.argmin(numpy.abs(target_uncertainty -
+                                                 probability))
+
         
         self.field_distances = numpy.delete(self.field_distances,
                                             uncertain_index, axis=0)
