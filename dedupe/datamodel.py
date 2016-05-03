@@ -72,7 +72,7 @@ class DataModel(object) :
     def distances(self, record_pairs):
         num_records = len(record_pairs)
 
-        distances = numpy.empty((num_records, len(self)))
+        distances = numpy.empty((num_records, len(self)), 'f4')
         field_comparators = self._field_comparators
 
         for i, (record_1, record_2) in enumerate(record_pairs) :

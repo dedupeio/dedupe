@@ -150,16 +150,20 @@ class ScoreRecords(object) :
                 records.append((record_1, record_2))
 
         if records :
+            ids = numpy.array(ids, dtype=('object', 2))
+            
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:,-1]
 
-            scored_pairs = numpy.rec.fromarrays((ids, scores),
-                                                dtype= [('pairs', 'object', 2), 
-                                                        ('score', 'f4', 1)])
-            
-            filtered_pairs = scored_pairs[scores > self.threshold]
+            mask = scores > self.threshold
 
-            return filtered_pairs
+            scored_pairs = numpy.empty(numpy.count_nonzero(mask),
+                                       dtype=[('pairs', 'object', 2), 
+                                              ('score', 'f4', 1)])
+            scored_pairs['pairs'] = ids[mask]
+            scored_pairs['score'] = scores[mask]
+
+            return scored_pairs
 
 def mergeScores(score_queue, result_queue, stop_signals) :
     scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 

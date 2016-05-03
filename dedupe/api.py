@@ -735,7 +735,7 @@ class ActiveMatching(Matching):
 
     def _trainClassifier(self):  # pragma : no cover
         labels = numpy.array(self.training_data['label'] == b'match',
-                             dtype='i4')
+                             dtype='int32')
         examples = self.training_data['distances']
 
         self.classifier.fit(examples, labels)
