@@ -48,6 +48,9 @@ class ActiveLearning(object) :
 
         return uncertain_pairs
 
+    def __len__(self):
+        return len(self.candidates)
+
 class BlockLearner(object) :
     def learn(self, matches, max_comparisons, recall) :
         '''
