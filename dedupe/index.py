@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class CanopyIndex(TextIndex) : # pragma : no cover
+class CanopyIndex(TextIndex) : # pragma: no cover
     def __init__(self) : 
         lexicon = CanopyLexicon()
         self.index = CosineIndex(lexicon)
@@ -63,7 +63,7 @@ class CanopyIndex(TextIndex) : # pragma : no cover
         return results
 
 
-class CanopyLexicon(Lexicon) : # pragma : no cover
+class CanopyLexicon(Lexicon) : # pragma: no cover
     def sourceToWordIds(self, last): 
         if last is None:
             last = [] 

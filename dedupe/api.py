@@ -47,7 +47,7 @@ class Matching(object):
     def __init__(self):
         pass
 
-    def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma : nocover
+    def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma: nocover
         """
         Returns the threshold that maximizes the expected F score, a
         weighted average of precision and recall for a sample of
@@ -129,7 +129,7 @@ class Matching(object):
 
         return clusters
 
-    def writeSettings(self, file_obj, index=False):  # pragma : no cover
+    def writeSettings(self, file_obj, index=False):  # pragma: no cover
         """
         Write a settings file containing the
         data model and predicates to a file object
@@ -182,7 +182,7 @@ class DedupeMatching(Matching):
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
-    def match(self, data, threshold=0.5):  # pragma : no cover
+    def match(self, data, threshold=0.5):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
         tuples
 
@@ -213,7 +213,7 @@ class DedupeMatching(Matching):
         blocked_pairs = self._blockData(data)
         return self.matchBlocks(blocked_pairs, threshold)
 
-    def threshold(self, data, recall_weight=1.5):  # pragma : no cover
+    def threshold(self, data, recall_weight=1.5):  # pragma: no cover
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -339,7 +339,7 @@ class RecordLinkMatching(Matching):
         self._cluster = clustering.greedyMatching
         self._linkage_type = "RecordLink"
 
-    def match(self, data_1, data_2, threshold=0.5):  # pragma : no cover
+    def match(self, data_1, data_2, threshold=0.5):  # pragma: no cover
         """
         Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
@@ -480,7 +480,7 @@ class StaticMatching(Matching):
 
     def __init__(self,
                  settings_file,
-                 num_cores=None):  # pragma : no cover
+                 num_cores=None):  # pragma: no cover
         """
         Initialize from a settings file
         #### Example usage
@@ -656,7 +656,7 @@ class ActiveMatching(Matching):
         self.blocker = None
         self.loaded_indices = False
 
-    def cleanupTraining(self):  # pragma : no cover
+    def cleanupTraining(self):  # pragma: no cover
         '''
         Clean up data we used for training. Free up memory.
         '''
@@ -696,7 +696,7 @@ class ActiveMatching(Matching):
 
         self._trainClassifier()
 
-    def train(self, ppc=None, uncovered_dupes=None, maximum_comparisons=1000000, recall=0.95, index_predicates=True):  # pragma : no cover
+    def train(self, ppc=None, uncovered_dupes=None, maximum_comparisons=1000000, recall=0.95, index_predicates=True):  # pragma: no cover
         """Keyword arguments:
 
         maximum_comparisons -- The maximum number of comparisons a
@@ -733,14 +733,14 @@ class ActiveMatching(Matching):
                            recall,
                            index_predicates)
 
-    def _trainClassifier(self):  # pragma : no cover
+    def _trainClassifier(self):  # pragma: no cover
         labels = numpy.array(self.training_data['label'] == b'match',
                              dtype='int8')
         examples = self.training_data['distances']
 
         self.classifier.fit(examples, labels)
 
-    def _trainBlocker(self, maximum_comparisons, recall, index_predicates):  # pragma : no cover
+    def _trainBlocker(self, maximum_comparisons, recall, index_predicates):  # pragma: no cover
         matches = self.training_pairs['match'][:]
 
         predicate_set = self.data_model.predicates(index_predicates,
@@ -754,7 +754,7 @@ class ActiveMatching(Matching):
 
         self.blocker = blocking.Blocker(self.predicates)
 
-    def writeTraining(self, file_obj):  # pragma : no cover
+    def writeTraining(self, file_obj):  # pragma: no cover
         """
         Write to a json file that contains labeled examples
 
@@ -1069,7 +1069,7 @@ class GazetteerMatching(RecordLinkMatching):
         for each in self._blockGenerator(messy_data, self.blocked_records):
             yield each
 
-    def index(self, data):  # pragma : no cover
+    def index(self, data):  # pragma: no cover
 
         self.blocker.indexAll(data)
 
@@ -1078,7 +1078,7 @@ class GazetteerMatching(RecordLinkMatching):
                 self.blocked_records[block_key] = {}
             self.blocked_records[block_key][record_id] = data[record_id]
 
-    def unindex(self, data):  # pragma : no cover
+    def unindex(self, data):  # pragma: no cover
 
         for field in self.blocker.index_fields:
             self.blocker.unindex((record[field]
@@ -1092,7 +1092,7 @@ class GazetteerMatching(RecordLinkMatching):
             except KeyError:
                 pass
 
-    def match(self, messy_data, threshold=0.5, n_matches=1):  # pragma : no cover
+    def match(self, messy_data, threshold=0.5, n_matches=1):  # pragma: no cover
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
         between 0 and 1. The record_ids within each set should refer to the
@@ -1121,7 +1121,7 @@ class GazetteerMatching(RecordLinkMatching):
         blocked_pairs = self._blockData(messy_data)
         return self.matchBlocks(blocked_pairs, threshold, n_matches)
 
-    def threshold(self, messy_data, recall_weight=1.5):  # pragma : no cover
+    def threshold(self, messy_data, recall_weight=1.5):  # pragma: no cover
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -1141,7 +1141,7 @@ class GazetteerMatching(RecordLinkMatching):
         blocked_pairs = self._blockData(messy_data)
         return self.thresholdBlocks(blocked_pairs, recall_weight)
 
-    def writeSettings(self, file_obj, index=False):  # pragma : no cover
+    def writeSettings(self, file_obj, index=False):  # pragma: no cover
         """
         Write a settings file containing the
         data model and predicates to a file object
@@ -1157,7 +1157,7 @@ class GazetteerMatching(RecordLinkMatching):
 
 class Gazetteer(RecordLink, GazetteerMatching):
 
-    def __init__(self, *args, **kwargs):  # pragma : no cover
+    def __init__(self, *args, **kwargs):  # pragma: no cover
         super(Gazetteer, self).__init__(*args, **kwargs)
         self.blocked_records = OrderedDict({})
 

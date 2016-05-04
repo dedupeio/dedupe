@@ -311,7 +311,7 @@ def peek(records) :
     return record, itertools.chain([record], records)
 
 
-def freezeData(data) : # pragma : no cover
+def freezeData(data) : # pragma: no cover
     lfrozendict = frozendict
     return [(lfrozendict(record_1), 
              lfrozendict(record_2))
@@ -332,16 +332,16 @@ def index(data, offset=0) :
 class frozendict(collections.Mapping):
     """Don't forget the docstrings!!"""
 
-    def __init__(self, arg): # pragma : no cover
+    def __init__(self, arg): # pragma: no cover
         self._d = dict(arg)
 
-    def __iter__(self):                  # pragma : no cover
+    def __iter__(self):                  # pragma: no cover
         return iter(self._d)
 
-    def __len__(self):                   # pragma : no cover
+    def __len__(self):                   # pragma: no cover
         return len(self._d)
 
-    def __getitem__(self, key):          # pragma : no cover
+    def __getitem__(self, key):          # pragma: no cover
         return self._d[key]
 
     def __repr__(self) :
@@ -364,7 +364,7 @@ class frozendict(collections.Mapping):
             return h
 
 
-def cartesian(arrays, out=None): # pragma : no cover
+def cartesian(arrays, out=None): # pragma: no cover
     """Generate a cartesian product of input arrays.
 
     Parameters
@@ -416,7 +416,7 @@ def cartesian(arrays, out=None): # pragma : no cover
             out[j * m:(j + 1) * m, 1:] = out[0:m, 1:]
     return out
 
-def iunzip(iterable, internal_length): # pragma : no cover
+def iunzip(iterable, internal_length): # pragma: no cover
     """Iunzip is the same as zip(*iter) but returns iterators, instead of 
     expand the iterator. Mostly used for large sequence"""
 
