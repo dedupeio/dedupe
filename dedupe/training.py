@@ -171,11 +171,11 @@ class DedupeBlockLearner(BlockLearner) :
         self.blocker = blocking.Blocker(predicates)
 
     @staticmethod
-    def unroll(matches) : # pragma : no cover
+    def unroll(matches) : # pragma: no cover
         return set().union(*matches)
 
     @staticmethod
-    def _blocks(blocks) : # pragma : no cover
+    def _blocks(blocks) : # pragma: no cover
         return blocks
 
     @staticmethod
@@ -233,11 +233,11 @@ class RecordLinkBlockLearner(BlockLearner) :
         self.blocker = blocking.Blocker(predicates)
 
     @staticmethod
-    def unroll(matches) : # pragma : no cover
+    def unroll(matches) : # pragma: no cover
         return {record_2 for _, record_2 in matches}
 
     @staticmethod
-    def _blocks(blocks) : # pragma : no cover
+    def _blocks(blocks) : # pragma: no cover
         return blocks[0]
  
     @staticmethod
