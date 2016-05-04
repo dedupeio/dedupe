@@ -27,7 +27,6 @@ class ActiveLearningTest(unittest.TestCase):
                                                         self.data_model, 1)
         assert len(active_learner) == original_N
         pair = active_learner.uncertainPairs(self.classifier, 0.5)
-        print(self.classifier.predict_proba(xrange(10)))
         assert pair == [({"name": "Jimmy", "age": "20"},
                          {"name": "Jimbo", "age": "21"})]
         assert len(active_learner) == original_N - 1
