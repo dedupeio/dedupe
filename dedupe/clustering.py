@@ -110,10 +110,10 @@ def condensedDistance(dupes):
     row_step = (N - row) * (N - row - 1) / 2
     index = matrix_length - row_step + col - row - 1
 
-    condensed_distances = numpy.ones(matrix_length, 'double')
+    condensed_distances = numpy.ones(matrix_length, 'f4')
     condensed_distances[index.astype(int)] = 1 - dupes['score']
 
-    return i_to_id, condensed_distances
+    return i_to_id, condensed_distances, N
 
 
 def cluster(dupes, threshold=.5, max_components=30000):
@@ -136,11 +136,11 @@ def cluster(dupes, threshold=.5, max_components=30000):
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
 
-            i_to_id, condensed_distances = condensedDistance(sub_graph)
+            i_to_id, condensed_distances, N = condensedDistance(sub_graph)
 
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid', 
-                                          preserve_input=False)
+                                          preserve_input=True)
 
             partition = hcluster.fcluster(linkage, 
                                           threshold,
@@ -149,13 +149,14 @@ def cluster(dupes, threshold=.5, max_components=30000):
             clusters = {}
 
             for i, partition_id in enumerate(partition):
-                clusters.setdefault(partition_id, []).append(i_to_id[i])
+                clusters.setdefault(partition_id, []).append(i)
 
             for items in viewvalues(clusters) :
                 if len(items) > 1 :
                     items = tuple(items)
-                    scores = confidences(items, sub_graph)
-                    clustering[cluster_id] = (items, scores)
+                    scores = confidences(items, condensed_distances, N)
+                    clustering[cluster_id] = (tuple(i_to_id[i] for i in items),
+                                              scores)
                     cluster_id += 1
 
         else:
@@ -166,19 +167,17 @@ def cluster(dupes, threshold=.5, max_components=30000):
 
     return clustering.values()
 
-def confidences(items, sub_graph) :
+def confidences(items, condensed_distances, d) :
     scores = dict.fromkeys(items, 0)
     for i, j in itertools.combinations(items, 2) :
-        dists = sub_graph[(sub_graph['pairs'] == (i,j)).all(axis=1)]['score']
-        if dists:
-            dist = dists[0]
-        else:
-            dist = 0
+        index = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
+        dist = condensed_distances[int(index)]
         scores[i] += dist
         scores[j] += dist
-    scores = numpy.array([v for (k, v) in sorted(viewitems(scores))])
+    scores = numpy.array([v for (k, v) in sorted(scores.items())])
     scores /= len(items) - 1
-    return tuple(scores)
+    scores = 1 - scores
+    return scores
 
 def greedyMatching(dupes, threshold=0.5):
     dupes = numpy.array(dupes)
