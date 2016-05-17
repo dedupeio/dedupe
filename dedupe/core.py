@@ -244,6 +244,9 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     else :
         scored_pairs = result
 
+    reduce_process.join()
+    [process.join() for process in map_processes]
+
     return scored_pairs
 
 

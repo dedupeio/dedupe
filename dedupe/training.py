@@ -30,8 +30,9 @@ class ActiveLearning(object) :
             pool.map(data_model.distances, 
                      chunker(candidates, 100),
                      2))
-        
-        pool.terminate()
+
+        pool.close()
+        pool.join()
 
     def uncertainPairs(self, classifier, dupe_proportion) :
         probability = classifier.predict_proba(self.field_distances)[:,-1]
