@@ -32,7 +32,6 @@ before_install:
 - if [[ "$TERRYFY_PYTHON" == "homebrew 3" ]]; then alias pip=`which pip3` ; fi
 install:
 - pip install --upgrade pip
-- pip install numpy>=1.9.2
 - pip install --upgrade -r requirements.txt
 - pip install coveralls
 - cython src/*.pyx
