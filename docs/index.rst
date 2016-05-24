@@ -50,28 +50,13 @@ Features
 Installation
 ============
 
-Dedupe requires `numpy <http://numpy.scipy.org/>`__, which can be
-complicated to install.  If you are installing numpy for the first
-time, `follow these instructions
-<http://docs.scipy.org/doc/numpy/user/install.html>`__. You'll need to
-version 1.6 of numpy or higher.
-
-
 .. code-block:: bash
 
-   pip install "numpy>=1.6"
+   pip install "numpy>=1.9"
    pip install dedupe
 
 Mac OS X Install Notes
 ----------------------
-
-Before installing, you may need to set the following environmental
-variables from the command line
-
-.. code-block:: bash
-
-   export CFLAGS=-Qunused-arguments 
-   export CPPFLAGS=-Qunused-arguments
 
 With default configurations, dedupe cannot do parallel processing on Mac OS X.
 :doc:`Read about instructions on how to enable this <OSX-Install-Notes>`.
