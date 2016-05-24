@@ -32,7 +32,7 @@ before_install:
 - if [[ "$TERRYFY_PYTHON" == "homebrew 3" ]]; then alias pip=`which pip3` ; fi
 install:
 - pip install --upgrade pip
-- pip uninstall numpy
+- /usr/bin/yes | sudo pip uninstall numpy
 - pip install --upgrade -r requirements.txt
 - pip install coveralls
 - cython src/*.pyx
