@@ -152,15 +152,13 @@ blocks. These combinations blocks are called disjunctive blocks.
 Learning good blocking rules for given data
 -------------------------------------------
 
-Dedupe comes with a long set of predicate blocks and can create canopies
-for any field. When these are combined dedupe have hundreds of possible
-blocking rules to choose from. We will want to find a small set of these
-rules that minimizes the number of distinct records in a block while
-ensuring that nearly all true duplicates are in some block.
+Dedupe comes with a long set of predicates, and when these are
+combined dedupe can have hundreds of possible blocking rules to choose
+from. We will want to find a small set of these rules that covers
+every labeled duplicated pair but minimizes the total number pairs
+dedupe will have to compare.
 
 While we approach this problem by using greedy algorithm, particularly
 `Chvatal's Greedy Set-Cover
 algorithm <http://www.cs.ucr.edu/~neal/Papers/Young08SetCover.pdf>`__.
-With a set of pairs that are labeled as distinct pairs or duplicate
-pairs, and we try to find the best set of predicates.
 
