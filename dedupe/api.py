@@ -16,7 +16,6 @@ import warnings
 import copy
 import os
 from collections import defaultdict, OrderedDict
-import inspect
 
 import numpy
 import simplejson as json
@@ -30,6 +29,7 @@ import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.datamodel as datamodel
+import dedupe.backport as backport
 
 logger = logging.getLogger(__name__)
 
@@ -739,7 +739,7 @@ class ActiveMatching(Matching):
                              dtype='int8')
         examples = self.training_data['distances']
 
-        classifier_args = inspect.signature(self.classifier.fit).parameters
+        classifier_args = backport.signature(self.classifier.fit).parameters
 
         classifier_args = {k : kwargs[k]
                            for k
