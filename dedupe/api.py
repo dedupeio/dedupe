@@ -16,6 +16,7 @@ import warnings
 import copy
 import os
 from collections import defaultdict, OrderedDict
+import inspect
 
 import numpy
 import simplejson as json
@@ -733,12 +734,18 @@ class ActiveMatching(Matching):
                            recall,
                            index_predicates)
 
-    def _trainClassifier(self):  # pragma: no cover
+    def _trainClassifier(self, **kwargs):  # pragma: no cover
         labels = numpy.array(self.training_data['label'] == b'match',
                              dtype='int8')
         examples = self.training_data['distances']
 
-        self.classifier.fit(examples, labels)
+        classifier_args = inspect.signature(self.classifier.fit).parameters
+
+        classifier_args = {k : kwargs[k]
+                           for k
+                           in viewkeys(kwargs) & classifier_args}
+
+        self.classifier.fit(examples, labels, **classifier_args)
 
     def _trainBlocker(self, maximum_comparisons, recall, index_predicates):  # pragma: no cover
         matches = self.training_pairs['match'][:]
@@ -784,7 +791,7 @@ class ActiveMatching(Matching):
             self._addTrainingData({u'match': [exact_match, exact_match],
                                    u'distinct': [random_pair]})
 
-        self._trainClassifier()
+        self._trainClassifier(cv=0)
 
         bias = len(self.training_pairs[u'match'])
         if bias:
@@ -897,6 +904,7 @@ class ActiveMatching(Matching):
 
     def _loadSampledRecords(self, data_sample):
         """Override to load blocking data from data_sample."""
+
 
 
 class StaticDedupe(DedupeMatching, StaticMatching):
