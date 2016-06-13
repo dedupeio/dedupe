@@ -1,11 +1,11 @@
 .. py:attribute:: classifier
 
    By default, the classifier is a `L2 regularized logistic regression
-   classifier <https://pypi.python.org/pypi/rlr>`. If you want to use
+   classifier <https://pypi.python.org/pypi/rlr>`_. If you want to use
    a different classifier, you can overwrite this attribute with your
    custom object. Your classifier object must be have `fit` and
    `predict_proba` methods, like `sklearn models
-   <http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html>`.
+   <http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html>`_.
 
    .. code:: python
 
