@@ -16,9 +16,6 @@ matrix:
     python: 2.7
   - os: osx
     language: generic
-    env: TERRYFY_PYTHON='system 2'
-  - os: osx
-    language: generic
     env: TERRYFY_PYTHON='homebrew 2'
   - os: osx
     language: generic

@@ -9,7 +9,7 @@ except ImportError :
 install_requires=['fastcluster', 
                   'dedupe-hcluster',
                   'affinegap>=1.3',
-                  'categorical-distance>=1.7',
+                  'categorical-distance>=1.9',
                   'future',
                   'rlr>=2.3',
                   'doublemetaphone',
