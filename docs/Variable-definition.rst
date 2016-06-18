@@ -237,7 +237,7 @@ Address Type
 ^^^^^^^^^^^^
 
 An 'Address' variable should be used for United States addresses. It
-uses the `usaddress <http://usaddress.readthedocs.org/en/latest/>`__
+uses the `usaddress <https://usaddress.readthedocs.io/en/latest/>`__
 package to split apart an address string into components like address
 number, street name, and street type and compares component to component.
 
@@ -253,7 +253,7 @@ Name Type
 
 A 'Name' variable should be used for a field that contains American
 names, corporations and households. It uses the `probablepeople
-<http://probablepeople.readthedocs.org/en/latest/>`__ package to split
+<https://probablepeople.readthedocs.io/en/latest/>`__ package to split
 apart an name string into components like give name, surname,
 generational suffix, for people names, and abbreviation, company type,
 and legal form for corporations.
