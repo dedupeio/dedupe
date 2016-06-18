@@ -32,7 +32,7 @@ Features
 Features
 - Speed up learning
 - Parallelize sampling
-- Optional [CRF Edit Distance](http://dedupe.readthedocs.org/en/latest/Variable-definition.html#optional-edit-distance)
+- Optional [CRF Edit Distance](https://dedupe.readthedocs.io/en/latest/Variable-definition.html#optional-edit-distance)
 
 ## 0.8.0
 Support for Python 3.4 added. Support for Python 2.6 dropped.

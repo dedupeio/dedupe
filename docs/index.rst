@@ -20,7 +20,7 @@ dedupe takes in human training data and comes up with the best rules for your da
 Important links
 ===============
 
-* Documentation: http://dedupe.rtfd.org/
+* Documentation: https://dedupe.readthedocs.io/
 * Repository: https://github.com/datamade/dedupe
 * Issues: https://github.com/datamade/dedupe/issues
 * Examples: https://github.com/datamade/dedupe-examples

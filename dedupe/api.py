@@ -616,7 +616,7 @@ class ActiveMatching(Matching):
         describes a variable to use for comparing records.
 
         For details about variable types, check the documentation.
-        <http://dedupe.readthedocs.org>`_
+        <https://dedupe.readthedocs.io>`_
 
         In the data_sample, each element is a tuple of two
         records. Each record is, in turn, a tuple of the record's key and

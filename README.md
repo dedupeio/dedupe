@@ -12,7 +12,7 @@ __dedupe__ will help you:
 dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
 
 ## Important links
-* Documentation: http://dedupe.rtfd.org/
+* Documentation: https://dedupe.readthedocs.io/
 * Repository: https://github.com/datamade/dedupe
 * Issues: https://github.com/datamade/dedupe/issues
 * Examples: https://github.com/datamade/dedupe-examples
