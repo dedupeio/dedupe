@@ -1,4 +1,4 @@
-# cython: c_string_type=unicode, c_string_encoding=utf8
+# cython: c_string_type=unicode, c_string_encoding=utf8, infertypes=True
 
 cpdef list ngrams(basestring field, int n):
     """ngrams returns all unique, contiguous sequences of n characters
@@ -34,13 +34,13 @@ cpdef tuple initials(basestring field, int n):
     
     usage:
     >>> initials("dedupe", 7)
-    ()
+    ('dedupe', )
     >>> initials("deduplication", 7)
     ('dedupli', )
     """
     cdef unicode ufield = _ustring(field)
 
-    return (ufield[:n], ) if len(ufield) > n-1 else () 
+    return (ufield[:n], )
 
 
 
