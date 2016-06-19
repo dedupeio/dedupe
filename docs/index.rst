@@ -23,6 +23,7 @@ Important links
 * Documentation: https://dedupe.readthedocs.io/
 * Repository: https://github.com/datamade/dedupe
 * Issues: https://github.com/datamade/dedupe/issues
+* Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication  
 * Examples: https://github.com/datamade/dedupe-examples
 * IRC channel, `#dedupe on irc.freenode.net <http://webchat.freenode.net/?channels=dedupe>`__
 
