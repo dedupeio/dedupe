@@ -21,7 +21,7 @@ dedupe takes in human training data and comes up with the best rules for your da
 
 ## Tools built with dedupe
 
-### [Dedupe.io](dedup.io)
+### [Dedupe.io](https://dedupe.io/)
 A full service web product powered by dedupe for quickly and automatically finding similar rows in a spreadsheet or database, using machine learning methods. Supports advanced record linkage, continuous matching and API integrations. [See the product page](https://dedupe.io/) and the [launch blog post](https://datamade.us/blog/introducing-dedupeio).
 
 ### [csvdedupe](https://github.com/datamade/csvdedupe)
