@@ -8,14 +8,13 @@ Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
 entity. 
 
-.. py:class:: Dedupe(variable_definition, [data_sample=None, [num_cores]])
+.. py:class:: Dedupe(variable_definition, [num_cores]])
 
    Initialize a Dedupe object with a :doc:`field definition <Variable-definition>`
 
    :param dict variable_definition: A variable definition is list of 
 				    dictionaries describing the variables
 				    will be used for training a model.
-   :param data_sample: is an optional argument that we discuss below
    :param int num_cores: the number of cpus to use for parallel
 			 processing, defaults to the number of cpus
 			 available on the machine
@@ -38,40 +37,7 @@ entity.
 
       deduper = dedupe.Dedupe(variables)
 
-      deduper.sample(your_data)
-
-   If your data won't fit in memory, you'll have to prepare a sample
-   of the data yourself and pass it to Dedupe.
-
-   ``data_sample`` should be a sequence of tuples, where each tuple
-   contains a pair of records, and each record is a `dict` like
-   object that contains the field names you declared in
-   field\_definitions as keys.
-
-   For example, a data_sample with only one pair of records,
-
-   .. code:: python
-
-      data_sample = [({'city': 'san francisco',
-	               'address': '300 de haro st.',
-		       'name': "sally's cafe & bakery",
-		       'cuisine': 'american'},
-	              {'city': 'san francisco',
-	               'address': '1328 18th st.',
-                       'name': 'san francisco bbq',
-                       'cuisine': 'thai'})]
-
-      deduper = dedupe.Dedupe(variables, data_sample)
-      
-   See `MySQL
-   <http://datamade.github.io/dedupe-examples/docs/mysql_example.html#section-11>`__ for
-   an example of how to create a data sample yourself.
-
    .. py:method:: sample(data[, [sample_size=15000[, blocked_proportion=0.5]])
-
-      If you did not initialize the Dedupe object with a data_sample, you
-      will need to call this method to take a random sample of your data to be
-      used for training.
 
       :param dict data: A dictionary-like object indexed by record ID
 			where the values are dictionaries representing records.
@@ -81,7 +47,7 @@ entity.
 
       .. code:: python
 
-	 data_sample = deduper.sample(data_d, 150000, .5)
+	 deduper.sample(data_d, 150000, .5)
 
 
 
@@ -158,15 +124,13 @@ Example
     [({'A1' : {'name' : 'howard'}}, {'B1' : {'name' : 'howie'}})]
 
 
-.. py:class:: RecordLink(variable_definition, [data_sample=None, [num_cores]])
+.. py:class:: RecordLink(variable_definition, [num_cores])
 
    Initialize a Dedupe object with a variable definition
 
    :param dict variable_definition: A variable definition is list of 
 				    dictionaries describing the variables
 				    will be used for training a model.
-   :param data_sample: is an optional argument that `we'll discuss fully
-		       below <#wiki-sample-dedupe>`__
    :param int num_cores: the number of cpus to use for parallel
 			 processing, defaults to the number of cpus
 			 available on the machine
@@ -273,7 +237,8 @@ Convenience Functions
 
    .. code:: python
 
-      > dedupe = Dedupe(variables, data_sample)
+      > dedupe = Dedupe(variables)
+      > dedupe.sample(data)
       > dedupe.consoleLabel(dedupe)
 
 .. py:function:: trainingDataLink(data_1, data_2, common_key[, training_size])
@@ -327,73 +292,4 @@ Convenience Functions
                   names as keys and field values as values
 
    .. code:: python
-
-.. py:function:: randomPairs(n_records, sample_size)
-
-   If you have N records there are :math:`\frac{N(N-1)}{2}` unique
-   pairs of records (where each record is different and order doesn't
-   matter). If we indexed the N records from 0 to N-1, we would have
-   :math:`\frac{N(N-1)}{2}` corresponding pairs of indices ::
-   
-      (0, 1)
-      (0, 2)
-      ...
-      (0, N-2)
-      (0, N-1)
-      (1, 2)
-      (1, 3)
-      ...
-      (N-3, N-2)
-      (N-3, N-1)
-      (N-2, N-1)
-
-   randomPairs returns a random sample from the set of unique pairs of
-   indices. The function attempts to draw the sample without
-   replacement, but may draw a sample with replacement. If that
-   happens, you will be warned.
-
-   This can be useful when you need to create a sample of pairs from
-   your data, but you don't want to pass all of your data into
-   :py:meth:`~Dedupe.sample` because, for instance, all your data is
-   too big to fit into memory.
-
-   :param int n_record: the number of records in your record set
-
-   :param int sample_size: the size of sample you desire
-      
-.. py:function:: randomPairsMatch(n_records_a, n_records_b, sample_size)
-
-   If you have two record sets of length N and M, there are :math:`NM`
-   unique pairs of records (where each record is from a different
-   record set and order doesn't matter). If we indexed the N records
-   from 0 to N-1, we would have :math:`NM` corresponding pairs of
-   indices ::
-
-       (0, 0)
-       (0, 1)
-       ...
-       (0, M-1)
-       (1, 0)
-       (1, 1)
-       ...
-       (N-1, 0)
-       (N-1, 1)
-       ...
-       (N-1, M-1)
- 
-   randomPairs returns a random sample from the set of unique pairs of
-   indices. The function attempts to draw the sample without
-   replacement, but may draw a sample with replacement. If that
-   happens, you will be warned.
-
-   This can be useful when you need to create a sample of pairs from
-   your data, but you don't want to pass all of your data into
-   :py:meth:`~Dedupe.sample` because, for instance, all your data is
-   too big to fit into memory.
-
-   :param int n_record_a: the number of records in your first record set
-
-   :param int n_record_b: the number of records in your second record set
-
-   :param int sample_size: the size of sample you desire
 
