@@ -1,3 +1,9 @@
+## 1.4.15
+- frozendicts have finally been removed
+- first N char predicates return their entire length if length is less
+  than N, instead of nothing
+- crossvalidation is skipped in active learning if using default rlr learner
+
 ## 1.4.5
 - Block indexes can now be persisted by using the index=True argument
   in the writeSettings method
