@@ -36,9 +36,9 @@ def canonicalImport(filename):
     with open(filename) as f:
         reader = csv.DictReader(f)
         for i, row in enumerate(reader):
-            clean_row = [(k, preProcess(v)) for (k, v) in
-                         viewitems(row)]
-            data_d[filename + str(i)] = dedupe.core.frozendict(clean_row) 
+            clean_row = {k : preProcess(v) for (k, v) in
+                         viewitems(row)}
+            data_d[filename + str(i)] = clean_row
 
 
     return data_d, reader.fieldnames
@@ -65,8 +65,18 @@ data_1, header = canonicalImport('tests/datasets/restaurant-1.csv')
 data_2, _ = canonicalImport('tests/datasets/restaurant-2.csv')
 
 training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
-                                         
-duplicates_s = set(frozenset(pair) for pair in training_pairs['match'])
+
+all_data = data_1.copy()
+all_data.update(data_2)
+
+duplicates_s = set()
+for _, pair in itertools.groupby(sorted(all_data.items(),
+                                        key=lambda x: x[1]['unique_id']),
+                                 key=lambda x: x[1]['unique_id']):
+    pair = list(pair)
+    if len(pair) == 2:
+        a, b = pair
+        duplicates_s.add(frozenset((a[0], b[0])))
 
 t0 = time.time()
 
@@ -82,7 +92,7 @@ else:
               {'field': 'city','type' : 'String'}
               ]
 
-    gazetteer = dedupe.Gazeteer(fields)
+    gazetteer = dedupe.Gazetteer(fields)
     gazetteer.sample(data_1, data_2, 10000) 
     gazetteer.markPairs(training_pairs)
     gazetteer.train()
@@ -101,7 +111,7 @@ print('clustering...')
 clustered_dupes = gazetteer.match(data_1, threshold=alpha, n_matches=1)
 
 print('Evaluate Clustering')
-confirm_dupes = set(frozenset((data_1[pair[0]], data_2[pair[1]]))
+confirm_dupes = set(frozenset(pair)
                     for matches in clustered_dupes
                     for pair, score in matches)
 
