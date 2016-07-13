@@ -688,6 +688,8 @@ class ActiveMatching(Matching):
             if examples:
                 self._checkRecordPairType(examples[0])
 
+            examples = core.freezeData(examples)
+
             training_pairs[label] = examples
             self.training_pairs[label].extend(examples)
 
@@ -837,7 +839,7 @@ class ActiveMatching(Matching):
             warnings.warn("Didn't return any labeled record pairs")
 
         for label, pairs in labeled_pairs.items():
-            self.training_pairs[label].extend(pairs)
+            self.training_pairs[label].extend(core.freezeData(pairs))
 
         self._addTrainingData(labeled_pairs)
 
@@ -953,6 +955,8 @@ class Dedupe(DedupeMatching, ActiveMatching):
                        for k1, k2
                        in blocked_sample_keys | random_sample_keys]
 
+        data_sample = core.freezeData(data_sample)
+
         self._loadSample(data_sample)
 
     def _blockLearner(self, predicates):
@@ -1036,9 +1040,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         random_sample_keys = {(a, b + offset)
                               for a, b in random_sample_keys}
 
-        data_sample = [(data_1[k1], data_2[k2])
+        data_sample = ((data_1[k1], data_2[k2])
                        for k1, k2
-                       in blocked_sample_keys | random_sample_keys]
+                       in blocked_sample_keys | random_sample_keys)
+
+        data_sample = core.freezeData(data_sample)
 
         self._loadSample(data_sample)
 

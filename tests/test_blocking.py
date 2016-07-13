@@ -6,28 +6,25 @@ from future.utils import viewitems, viewvalues
 
 class BlockingTest(unittest.TestCase):
   def setUp(self):
+    self.frozendict = dedupe.core.frozendict
 
     field_definition = [{'field' : 'name', 'type': 'String'}]
     self.data_model = dedupe.Dedupe(field_definition).data_model
     self.training_pairs = {
-        'match': [({"name": "Bob", "age": "50"},
-                   {"name": "Bob", "age": "75"}),
-                  ({"name": "Meredith", "age": "40"},
-                   {"name": "Sue", "age": "10"})], 
-        'distinct': [({"name": "Jimmy", "age": "20"},
-                      {"name": "Jimbo", "age": "21"}),
-                     ({"name": "Willy", "age": "35"},
-                      {"name": "William", "age": "35"}),
-                     ({"name": "William", "age": "36"},
-                      {"name": "William", "age": "35"})]
-    }
+        'match': [(self.frozendict({"name": "Bob", "age": "50"}),
+             self.frozendict({"name": "Bob", "age": "75"})),
+            (self.frozendict({"name": "Meredith", "age": "40"}),
+             self.frozendict({"name": "Sue", "age": "10"}))], 
+        'distinct': [(self.frozendict({"name": "Jimmy", "age": "20"}),
+             self.frozendict({"name": "Jimbo", "age": "21"})),
+            (self.frozendict({"name": "Willy", "age": "35"}),
+             self.frozendict({"name": "William", "age": "35"})),
+            (self.frozendict({"name": "William", "age": "36"}),
+             self.frozendict({"name": "William", "age": "35"}))]
+      }
 
     self.training = self.training_pairs['match'] + self.training_pairs['distinct']
-    self.training_records = []
-    for pair in self.training:
-      for record in pair:
-        if record not in self.training_records:
-          self.training_records.append(record)
+    self.training_records = set().union(*self.training)
 
     self.simple = lambda x : set([str(k) for k in x 
                                   if "CompoundPredicate" not in str(k)])

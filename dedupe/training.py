@@ -79,11 +79,7 @@ class BlockLearner(object) :
         if not dupe_cover : 
             raise ValueError(NO_PREDICATES_ERROR)
 
-        coverable_dupes = set.union(*viewvalues(dupe_cover))
-        uncoverable_dupes = []
-        for i, pair in enumerate(sorted(matches)):
-            if i not in coverable_dupes:
-                uncoverable_dupes.append(pair)
+        uncoverable_dupes = set(matches) - set.union(*viewvalues(dupe_cover))
 
         epsilon = int((1.0 - recall) * len(matches))
 
@@ -180,7 +176,7 @@ class DedupeBlockLearner(BlockLearner) :
 
     @staticmethod
     def unroll(matches) : # pragma: no cover
-        return unique((record for pair in matches for record in pair))
+        return set().union(*matches)
 
     @staticmethod
     def _blocks(blocks) : # pragma: no cover
@@ -242,7 +238,7 @@ class RecordLinkBlockLearner(BlockLearner) :
 
     @staticmethod
     def unroll(matches) : # pragma: no cover
-        return unique((record_2 for _, record_2 in matches))
+        return {record_2 for _, record_2 in matches}
 
     @staticmethod
     def _blocks(blocks) : # pragma: no cover
@@ -348,7 +344,7 @@ def coveredPairs(predicates, pairs) :
         
     for predicate in predicates :
         rec_1 = None
-        for i, pair in enumerate(pairs) :
+        for pair in pairs :
             record_1, record_2 = pair
             if record_1 != rec_1 :
                 blocks_1 = set(predicate(record_1))
@@ -358,7 +354,7 @@ def coveredPairs(predicates, pairs) :
                 blocks_2 = predicate(record_2)
                 field_preds = blocks_1 & set(blocks_2)
                 if field_preds :
-                    cover.setdefault(predicate, set()).add(i)
+                    cover.setdefault(predicate, set()).add(pair)
 
     return cover
 
@@ -390,9 +386,6 @@ def remaining_cover(coverage, covered=set()) :
 
     for predicate in null_covers :
         del coverage[predicate]
-
-def unique(seq):
-    return list(k for k,_ in itertools.groupby(sorted(seq)))
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"

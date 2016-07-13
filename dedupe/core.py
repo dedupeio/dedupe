@@ -314,6 +314,12 @@ def peek(records) :
     return record, itertools.chain([record], records)
 
 
+def freezeData(data) : # pragma: no cover
+    lfrozendict = frozendict
+    return [(lfrozendict(record_1), 
+             lfrozendict(record_2))
+            for record_1, record_2 in data]
+
 def isIndexed(data, offset) :
     return all(i in data for i in range(offset, offset + len(data)))
 
@@ -324,6 +330,42 @@ def index(data, offset=0) :
         data = dict(zip(itertools.count(offset), 
                         viewvalues(data)))
         return data
+
+@functools.total_ordering
+class frozendict(collections.Mapping):
+    """Don't forget the docstrings!!"""
+
+    def __init__(self, arg): # pragma: no cover
+        self._d = dict(arg)
+
+    def __iter__(self):                  # pragma: no cover
+        return iter(self._d)
+
+    def __len__(self):                   # pragma: no cover
+        return len(self._d)
+
+    def __getitem__(self, key):          # pragma: no cover
+        return self._d[key]
+
+    def __repr__(self) :
+        return u'<frozendict %s>' % repr(self._d)
+
+    def __lt__(self, other) :
+        return hash(self) < hash(other)
+
+    def __eq__(self, other) :
+        if hasattr(other, '_d') :
+            return self._d == other._d
+        else :
+            return False
+
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(frozenset(viewitems(self._d)))
+            return h
+
 
 def cartesian(arrays, out=None): # pragma: no cover
     """Generate a cartesian product of input arrays.
