@@ -81,7 +81,7 @@ class BlockLearner(object) :
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
         uncoverable_dupes = []
-        for i, pair in enumerate(sorted(matches)):
+        for i, pair in enumerate(matches):
             if i not in coverable_dupes:
                 uncoverable_dupes.append(pair)
 
@@ -344,7 +344,6 @@ def cover(blocker, pairs, compound_length) :
 
 def coveredPairs(predicates, pairs) :
     cover = {}
-    pairs = sorted(pairs)
         
     for predicate in predicates :
         rec_1 = None
@@ -392,7 +391,11 @@ def remaining_cover(coverage, covered=set()) :
         del coverage[predicate]
 
 def unique(seq):
-    return list(k for k,_ in itertools.groupby(sorted(seq)))
+    cleaned = []
+    for each in seq:
+        if each not in cleaned:
+            cleaned.append(each)
+    return cleaned
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
