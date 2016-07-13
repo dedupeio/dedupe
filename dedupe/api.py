@@ -588,6 +588,7 @@ class ActiveMatching(Matching):
 
     def __init__(self,
                  variable_definition,
+                 data_sample=None,
                  num_cores=None):
         """
         Initialize from a data model and data sample.
@@ -615,6 +616,9 @@ class ActiveMatching(Matching):
         <https://dedupe.readthedocs.io>`_
         """
         self.data_model = datamodel.DataModel(variable_definition)
+
+        if data_sample is not None:
+            raise UserWarning('data_sample is deprecated, use the .sample method')
 
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
@@ -828,7 +832,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
         original_length     -- Length of original data, should be set if `data` is 
                                a sample of full data
         '''
-        self.data_model.check(next(viewvalues(data)))
+        self.data_model.check(next(iter(viewvalues(data))))
         
         data = core.index(data)
 
@@ -878,7 +882,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
     canopies = False
 
     def sample(self, data_1, data_2, sample_size=150000,
-               blocked_proportion=.5, original_length_1, original_length_2):
+               blocked_proportion=.5, original_length_1=None,
+               original_length_2=None):
         '''
         Draws a random sample of combinations of records from
         the first and second datasets, and initializes active
@@ -901,18 +906,22 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
             raise ValueError(
                 'Dictionary of records from second dataset is empty.')
 
-        self.data_model.check(next(viewvalues(data_1)))
-        self.data_model.check(next(viewvalues(data_2)))
+        self.data_model.check(next(iter(viewvalues(data_1))))
+        self.data_model.check(next(iter(viewvalues(data_2))))
         
         if len(data_1) > len(data_2):
             data_1, data_2 = data_2, data_1
 
         data_1 = core.index(data_1)
-        self.sampled_records_1 = Sample(data_1, 500)
+        if original_length_1 is None:
+            original_length_1 = len(data_1)
+        self.sampled_records_1 = Sample(data_1, 500, original_length_1)
 
         offset = len(data_1)
         data_2 = core.index(data_2, offset)
-        self.sampled_records_2 = Sample(data_2, 500)
+        if original_length_2 is None:
+            original_length_2 = len(data_2)
+        self.sampled_records_2 = Sample(data_2, 500, original_length_2)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.data_model.predicates(index_predicates=False))

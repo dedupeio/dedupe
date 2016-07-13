@@ -8,7 +8,7 @@ Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
 entity. 
 
-.. py:class:: Dedupe(variable_definition, [num_cores]])
+.. py:class:: Dedupe(variable_definition, [num_cores])
 
    Initialize a Dedupe object with a :doc:`field definition <Variable-definition>`
 
@@ -19,11 +19,7 @@ entity.
 			 processing, defaults to the number of cpus
 			 available on the machine
 
-   In order to learn how to deduplicate records, dedupe needs a sample
-   of records you are trying to deduplicate. If your data is not too
-   large (fits in memory), you can pass your data to the
-   :py:meth:`~Dedupe.sample` method and dedupe will take a sample for
-   you.
+   :param ppc: __DEPRECATED__				 			 
 
    .. code:: python
 
@@ -37,18 +33,31 @@ entity.
 
       deduper = dedupe.Dedupe(variables)
 
-   .. py:method:: sample(data[, [sample_size=15000[, blocked_proportion=0.5]])
+   .. py:method:: sample(data[, [sample_size=15000[, blocked_proportion=0.5[, original_length]]])
+		  
+   In order to learn how to deduplicate your records, dedupe needs a
+   sample of your records to train on. This method takes a mixture of
+   random sample of pairs of records and a selection of pairs of
+   records that are much more likely to be duplicates.
+		  
+   :param dict data: A dictionary-like object indexed by record ID
+		     where the values are dictionaries representing records.
+   :param int sample_size: Number of record tuples to return. Defaults
+			   to 15,000.
+   :param float blocked_proportion: The proportion of record pairs
+                                    to be sampled from similar
+                                    records, as opposed to randomly
+                                    selected pairs. Defaults to
+                                    0.5.
+   :param original_length: If `data` is a subsample of all your data,
+                           `original_length` should be the size of
+                           your complete data. By default,
+                           `original_length` defaults to the length of
+                           `data`.
+				       
+   .. code:: python
 
-      :param dict data: A dictionary-like object indexed by record ID
-			where the values are dictionaries representing records.
-      :param int sample_size: Number of record tuples to return. Defaults
-			      to 15,000.
-      :param float blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.5.
-
-      .. code:: python
-
-	 deduper.sample(data_d, 150000, .5)
-
+      deduper.sample(data_d, 150000, .5)
 
 
    .. include:: common_learning_methods.rst
@@ -139,23 +148,40 @@ Example
    We assume that the fields you want to compare across datasets have the
    same field name.
 
-   .. py:method:: sample(data_1, data_2, sample_size=150000, blocked_proportion=0.5)
+   .. py:method:: sample(data_1, data_2, [sample_size=150000[, blocked_proportion=0.5, [original_length_1[, original_length_2]]]])
 
-      Draws a random sample of combinations of records from the first and
-      second datasets, and initializes active learning with this sample
+   In order to learn how to link your records, dedupe needs a
+   sample of your records to train on. This method takes a mixture of
+   random sample of pairs of records and a selection of pairs of
+   records that are much more likely to be duplicates.
 
-      :param dict data_1: A dictionary of records from first dataset,
-			  where the keys are record_ids and the
-			  values are dictionaries with the keys being
-			  field names.
-      :param dict data_2: A dictionary of records from second dataset,
-			  same form as data_1
-      :param int sample_size: The size of the sample to draw. Defaults to 150,000     
-      :param float blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.5.
+   :param dict data_1: A dictionary of records from first dataset,
+		       where the keys are record_ids and the
+		       values are dictionaries with the keys being
+		       field names.
+   :param dict data_2: A dictionary of records from second dataset,
+		       same form as data_1
+   :param int sample_size: The size of the sample to draw. Defaults to 150,000     
+   :param float blocked_proportion: The proportion of record pairs to
+                                    be sampled from similar records,
+                                    as opposed to randomly selected
+                                    pairs. Defaults to 0.5.
+   :param original_length_1: If `data_1` is a subsample of your first dataset,
+                             `original_length_1` should be the size of
+                             the complete first dataset. By default,
+                             `original_length_1` defaults to the length of
+                             `data_1`
+   :param original_length_1: If `data_2` is a subsample of your first dataset,
+                             `original_length_2` should be the size of
+                             the complete first dataset. By default,
+                             `original_length_2` defaults to the length of
+                             `data_2`
+				    
+   
 
-      .. code:: python
-
-	  linker.sample(data_1, data_2, 150000)
+   .. code:: python
+	     
+      linker.sample(data_1, data_2, 150000)
 
    .. include:: common_recordlink_methods.rst
    .. include:: common_learning_methods.rst
