@@ -63,7 +63,7 @@ setup(
     * Repository: https://github.com/datamade/dedupe
     * Issues: https://github.com/datamade/dedupe/issues
     * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
-    * IRC channel, #dedupe on irc.freenode.net
+    * IRC channel, `#dedupe on irc.freenode.net <http://webchat.freenode.net/?channels=dedupe>`_
     * Examples: https://github.com/datamade/dedupe-examples
     """
     )
