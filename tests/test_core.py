@@ -173,21 +173,5 @@ class FieldDistances(unittest.TestCase):
                                                          [1, 0, 1, 1, 0]]), 3)
  
 
-class FrozenDictTest(unittest.TestCase):
-
-    def test_hash_is_order_insensitive(self):
-        frozendict = dedupe.core.frozendict
-
-        test_dict = {'smtp': 21, 'dict': 2628}
-        reverse_test_dict = {'dict': 2628, 'smtp': 21}
-        assert test_dict == reverse_test_dict
-
-        test_frozendict = frozendict(test_dict)
-        reverse_test_frozendict = frozendict(reverse_test_dict)
-        assert frozendict(test_dict) == frozendict(reverse_test_dict)
-
-        assert hash(test_frozendict) == hash(reverse_test_frozendict)
-
-
 if __name__ == "__main__":
     unittest.main()

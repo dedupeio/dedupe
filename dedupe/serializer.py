@@ -17,8 +17,6 @@ def _to_json(python_object) :
     elif isinstance(python_object, tuple) :
         python_object = {'__class__': 'tuple',
                          '__value__': list(python_object)}
-    elif isinstance(python_object, dedupe.core.frozendict) :
-        python_object = dict(python_object)
     else :
         raise TypeError(repr(python_object) + ' is not JSON serializable') 
 

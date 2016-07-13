@@ -4,7 +4,7 @@ from __future__ import print_function
 from future.utils import viewitems
 from builtins import range
 
-from itertools import combinations
+from itertools import combinations, groupby
 import csv
 import exampleIO
 
@@ -35,9 +35,9 @@ def canonicalImport(filename):
     with open(filename) as f:
         reader = csv.DictReader(f)
         for (i, row) in enumerate(reader):
-            clean_row = [(k, preProcess(v)) for (k, v) in
-                         viewitems(row)]
-            data_d[i] = dedupe.core.frozendict(clean_row)
+            clean_row = {k : preProcess(v) for (k, v) in
+                         viewitems(row)}
+            data_d[i] = clean_row
 
     return data_d, reader.fieldnames
 
@@ -66,11 +66,18 @@ training_pairs = dedupe.trainingDataDedupe(data_d,
                                            'unique_id', 
                                            5000)
 
-duplicates_s = set(frozenset(pair) for pair in training_pairs['match'])
+duplicates = set()
+for _, pair in groupby(sorted(data_d.items(),
+                              key=lambda x: x[1]['unique_id']),
+                       key=lambda x: x[1]['unique_id']):
+    pair = list(pair)
+    if len(pair) == 2:
+        a, b = pair
+        duplicates.add(frozenset((a[0], b[0])))
 
 t0 = time.time()
 
-print('number of known duplicate pairs', len(duplicates_s))
+print('number of known duplicate pairs', len(duplicates))
 
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
@@ -107,9 +114,8 @@ print('Evaluate Clustering')
 confirm_dupes = set([])
 for dupes, score in clustered_dupes:
     for pair in combinations(dupes, 2):
-        confirm_dupes.add(frozenset((data_d[pair[0]], 
-                                     data_d[pair[1]])))
+        confirm_dupes.add(frozenset(pair))
 
-evaluateDuplicates(confirm_dupes, duplicates_s)
+evaluateDuplicates(confirm_dupes, duplicates)
 
 print('ran in ', time.time() - t0, 'seconds')
