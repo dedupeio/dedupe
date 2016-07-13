@@ -7,6 +7,7 @@ import collections
 import itertools
 import random
 import sys
+from dedupe.core import randomPairs
 from canonicalize.centroid import getCanonicalRep
 
 def unique(seq) :
