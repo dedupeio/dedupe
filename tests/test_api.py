@@ -5,16 +5,16 @@ import numpy
 import warnings
 from collections import OrderedDict
 
-DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
-                dedupe.core.frozendict({'age': '50', 'name': 'Bob'})),
-               (dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
-                dedupe.core.frozendict({'age': '35', 'name': 'William'})),
-               (dedupe.core.frozendict({'age': '10', 'name': 'Sue'}), 
-                dedupe.core.frozendict({'age': '35', 'name': 'William'})),
-               (dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
-                dedupe.core.frozendict({'age': '20', 'name': 'Jimmy'})),
-               (dedupe.core.frozendict({'age': '75', 'name': 'Charlie'}), 
-                dedupe.core.frozendict({'age': '21', 'name': 'Jimbo'})))
+DATA_SAMPLE = (({'age': '27', 'name': 'Kyle'}, 
+                {'age': '50', 'name': 'Bob'}),
+               ({'age': '27', 'name': 'Kyle'}, 
+                {'age': '35', 'name': 'William'}),
+               ({'age': '10', 'name': 'Sue'}, 
+                {'age': '35', 'name': 'William'}),
+               ({'age': '27', 'name': 'Kyle'}, 
+                {'age': '20', 'name': 'Jimmy'}),
+               ({'age': '75', 'name': 'Charlie'}, 
+                {'age': '21', 'name': 'Jimbo'}))
 
 data_dict = OrderedDict(((0, {'name' : 'Bob',         'age' : '51'}),
                          (1, {'name' : 'Linda',       'age' : '50'}),
@@ -155,23 +155,19 @@ class DedupeTest(unittest.TestCase):
     numpy.random.seed(6)
     self.deduper.sample(data_dict, 30, 1)
 
-    correct_result = [(dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
-                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'Bob B.'})), 
-                      
-                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
-                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'bob belcher'})), 
- 
-                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
-                       dedupe.frozendict({'age': '50', 'name': 'linda '}))]
+    correct_result = [({'age': '50', 'name': 'Linda'}, 
+                       {'age': '51', 'name': 'bob belcher'}), 
+                      ({'age': '51', 'name': 'Bob'}, 
+                       {'age': '51', 'name': 'Bob B.'}), 
+                      ({'age': '51', 'name': 'Bob'}, 
+                       {'age': '51', 'name': 'bob belcher'}), 
+                      ({'age': '51', 'name': 'Bob B.'}, 
+                       {'age': '51', 'name': 'bob belcher'}), 
+                      ({'age': '50', 'name': 'Linda'}, 
+                       {'age': '50', 'name': 'linda '})]
 
-    print(set(correct_result) - set(self.deduper.data_sample))
-    assert set(self.deduper.data_sample).issuperset(correct_result)
-
-
+    for pair in correct_result:
+      assert pair in self.deduper.data_sample
 
 
 
@@ -208,29 +204,30 @@ class LinkTest(unittest.TestCase):
 
     self.linker.sample( data_dict, data_dict_2, 50, 1)
 
-    correct_result = [(dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'BOB'})), 
-                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'BOB B.'})), 
-                      (dedupe.frozendict({'age': '51', 'name': 'Bob'}), 
-                       dedupe.frozendict({'age': '51', 'name': 'BOB B.'})), 
-                      (dedupe.frozendict({'age': '15', 'name': 'Tina'}), 
-                       dedupe.frozendict({'age': '15', 'name': 'TINA'}))]
+    correct_result = [({'age': '51', 'name': 'Bob B.'}, 
+                       {'age': '51', 'name': 'BOB'}), 
+                      ({'age': '51', 'name': 'Bob B.'}, 
+                       {'age': '51', 'name': 'BOB B.'}), 
+                      ({'age': '51', 'name': 'Bob'}, 
+                       {'age': '51', 'name': 'BOB B.'}), 
+                      ({'age': '15', 'name': 'Tina'}, 
+                       {'age': '15', 'name': 'TINA'})]
 
-    assert set(self.linker.data_sample).issuperset(correct_result)
+    for pair in correct_result:
+      assert pair in self.linker.data_sample
 
     self.linker.sample(data_dict, data_dict_2, 5, 0)
 
-    correct_result = [(dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
-                       dedupe.frozendict({'age': '15', 'name': 'TINA'})), 
-                      (dedupe.frozendict({'age': '51', 'name': 'Bob B.'}), 
-                       dedupe.frozendict({'age': '50', 'name': 'LINDA'})), 
-                      (dedupe.frozendict({'age': '12', 'name': 'Gene'}), 
-                       dedupe.frozendict({'age': '15', 'name': 'TINA'})), 
-                      (dedupe.frozendict({'age': '50', 'name': 'Linda'}), 
-                       dedupe.frozendict({'age': '50', 'name': 'LINDA '})), 
-                      (dedupe.frozendict({'age': '50', 'name': 'linda '}), 
-                       dedupe.frozendict({'age': '51', 'name': 'BOB BELCHER'}))]
+    correct_result = [({'age': '51', 'name': 'Bob B.'}, 
+                       {'age': '15', 'name': 'TINA'}), 
+                      ({'age': '51', 'name': 'Bob B.'}, 
+                       {'age': '50', 'name': 'LINDA'}), 
+                      ({'age': '12', 'name': 'Gene'}, 
+                       {'age': '15', 'name': 'TINA'}), 
+                      ({'age': '50', 'name': 'Linda'}, 
+                       {'age': '50', 'name': 'LINDA '}), 
+                      ({'age': '50', 'name': 'linda '}, 
+                       {'age': '51', 'name': 'BOB BELCHER'})]
 
 
 

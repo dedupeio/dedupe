@@ -20,16 +20,16 @@ DATA = {  100 : {"name": "Bob", "age": "50"},
           145 : {"name": "Kyle", "age": "27"}
         }
 
-DATA_SAMPLE = ((dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
-                dedupe.core.frozendict({'age': '50', 'name': 'Bob'})),
-               (dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
-                dedupe.core.frozendict({'age': '35', 'name': 'William'})),
-               (dedupe.core.frozendict({'age': '10', 'name': 'Sue'}), 
-                dedupe.core.frozendict({'age': '35', 'name': 'William'})),
-               (dedupe.core.frozendict({'age': '27', 'name': 'Kyle'}), 
-                dedupe.core.frozendict({'age': '20', 'name': 'Jimmy'})),
-               (dedupe.core.frozendict({'age': '75', 'name': 'Charlie'}), 
-                dedupe.core.frozendict({'age': '21', 'name': 'Jimbo'})))
+DATA_SAMPLE = (({'age': '27', 'name': 'Kyle'}, 
+                {'age': '50', 'name': 'Bob'}),
+               ({'age': '27', 'name': 'Kyle'}, 
+                {'age': '35', 'name': 'William'}),
+               ({'age': '10', 'name': 'Sue'}, 
+                {'age': '35', 'name': 'William'}),
+               ({'age': '27', 'name': 'Kyle'}, 
+                {'age': '20', 'name': 'Jimmy'}),
+               ({'age': '75', 'name': 'Charlie'}, 
+                {'age': '21', 'name': 'Jimbo'}))
 
 
 

@@ -44,7 +44,7 @@ entity.
    of the data yourself and pass it to Dedupe.
 
    ``data_sample`` should be a sequence of tuples, where each tuple
-   contains a pair of records, and each record is a :py:class:`frozendict`
+   contains a pair of records, and each record is a `dict` like
    object that contains the field names you declared in
    field\_definitions as keys.
 
@@ -52,17 +52,14 @@ entity.
 
    .. code:: python
 
-      data_sample = [(
-                      (dedupe.frozendict({'city': 'san francisco',
-	                                  'address': '300 de haro st.',
-		                          'name': "sally's cafe & bakery",
-		                          'cuisine': 'american'}),
-	               dedupe.frozendict({'city': 'san francisco',
-	                                  'address': '1328 18th st.',
-                                          'name': 'san francisco bbq',
-                                          'cuisine': 'thai'})
-	               )
-	              ]
+      data_sample = [({'city': 'san francisco',
+	               'address': '300 de haro st.',
+		       'name': "sally's cafe & bakery",
+		       'cuisine': 'american'},
+	              {'city': 'san francisco',
+	               'address': '1328 18th st.',
+                       'name': 'san francisco bbq',
+                       'cuisine': 'thai'})]
 
       deduper = dedupe.Dedupe(variables, data_sample)
       
@@ -400,12 +397,3 @@ Convenience Functions
 
    :param int sample_size: the size of sample you desire
 
-.. py:class:: frozendict(d)
-  
-   Initialize a frozendict object. `frozendicts` are like normal
-   python dictionaries except 1. you can't change them and 2. you can
-   hash them. We depend on the hashing in a few places when we are
-   training Dedupe. 
-
-   :param dict d: a dictionary, typically a dictionary representing
-                  your record
