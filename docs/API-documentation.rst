@@ -8,7 +8,7 @@ Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
 entity. 
 
-.. py:class:: Dedupe(variable_definition, [num_cores])
+.. py:class:: Dedupe(variable_definition, [data_sample[, [num_cores]])
 
    Initialize a Dedupe object with a :doc:`field definition <Variable-definition>`
 
@@ -19,7 +19,7 @@ entity.
 			 processing, defaults to the number of cpus
 			 available on the machine
 
-   :param ppc: __DEPRECATED__				 			 
+   :param data_sample: __DEPRECATED__
 
    .. code:: python
 
@@ -133,7 +133,7 @@ Example
     [({'A1' : {'name' : 'howard'}}, {'B1' : {'name' : 'howie'}})]
 
 
-.. py:class:: RecordLink(variable_definition, [num_cores])
+.. py:class:: RecordLink(variable_definition, [data_sample, [[num_cores]])
 
    Initialize a Dedupe object with a variable definition
 
@@ -143,7 +143,7 @@ Example
    :param int num_cores: the number of cpus to use for parallel
 			 processing, defaults to the number of cpus
 			 available on the machine
-
+   :param data_sample: __DEPRECATED__
 
    We assume that the fields you want to compare across datasets have the
    same field name.
