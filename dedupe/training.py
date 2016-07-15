@@ -80,10 +80,8 @@ class BlockLearner(object) :
             raise ValueError(NO_PREDICATES_ERROR)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
-        uncoverable_dupes = []
-        for i, pair in enumerate(matches):
-            if i not in coverable_dupes:
-                uncoverable_dupes.append(pair)
+        uncoverable_dupes = [pair for i, pair in enumerate(matches)
+                             if i not in coverable_dupes]
 
         epsilon = int((1.0 - recall) * len(matches))
 
@@ -188,8 +186,6 @@ class DedupeBlockLearner(BlockLearner) :
 
     @staticmethod
     def coveredRecords(blocker, records) :
-        CP = predicates.CompoundPredicate
-
         cover = {}
 
         for predicate in blocker.predicates :
@@ -206,8 +202,6 @@ class DedupeBlockLearner(BlockLearner) :
         return numpy.sum((lengths * self.multiplier) *
                          (lengths * self.multiplier - 1) /
                          2)
-        
-        
 
 class RecordLinkCompounder(Compounder) :
     def overlap(self, a_blocks, b) :
@@ -250,8 +244,6 @@ class RecordLinkBlockLearner(BlockLearner) :
  
     @staticmethod
     def coveredRecords(blocker, records_1, records_2) :
-        CP = predicates.CompoundPredicate
-
         cover = {}
 
         for predicate in blocker.predicates :
@@ -346,18 +338,11 @@ def coveredPairs(predicates, pairs) :
     cover = {}
         
     for predicate in predicates :
-        rec_1 = None
-        for i, pair in enumerate(pairs) :
+        for i, pair in enumerate(pairs):
             record_1, record_2 = pair
-            if record_1 != rec_1 :
-                blocks_1 = set(predicate(record_1))
-                rec_1 = record_1
-
-            if blocks_1 :
-                blocks_2 = predicate(record_2)
-                field_preds = blocks_1 & set(blocks_2)
-                if field_preds :
-                    cover.setdefault(predicate, set()).add(i)
+            field_preds = set(predicate(record_1)) & set(predicate(record_2))
+            if field_preds :
+                cover.setdefault(predicate, set()).add(i)
 
     return cover
 
