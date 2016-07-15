@@ -338,11 +338,10 @@ def coveredPairs(predicates, pairs) :
     cover = {}
         
     for predicate in predicates :
-        for i, pair in enumerate(pairs):
-            record_1, record_2 = pair
-            field_preds = set(predicate(record_1)) & set(predicate(record_2))
-            if field_preds :
-                cover.setdefault(predicate, set()).add(i)
+        cover[predicate] = {i for i, (record_1, record_2)
+                            in enumerate(pairs)
+                            if (set(predicate(record_1)) &
+                                set(predicate(record_2)))}
 
     return cover
 
