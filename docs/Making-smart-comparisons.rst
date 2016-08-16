@@ -11,18 +11,18 @@ to return.
 
 How long would it take to duplicate a thousand records?
 
-Within a data set of thousand records, there are :math:`\frac{1{,}000
+Within a dataset of thousand records, there are :math:`\frac{1{,}000
 \times 999}{2} = 499{,}500` unique pairs of records. If we
 compared all of them using our magic function it would take six days.
 
 But, one second is a **long** time, let's say we sped it up so that we
 can make 10,000 comparisons per second. Now we can get through our
-thousand record long dataset in less than a minute
+thousand-record-long dataset in less than a minute
 
-Feeling good about our super fast comparison function, let's take on a
-data set of 100,000 records. Now there are
+Feeling good about our super-fast comparison function, let's take on a
+dataset of 100,000 records. Now there are
 :math:`\frac{100{,}000 \times 99{,}999}{2} = 4{,}999{,}950{,}000` unique possible
-pairs. If we compare all of them with our super fast comparison function,
+pairs. If we compare all of them with our super-fast comparison function,
 it will take six days again.
 
 If we want to work with moderately sized data, we have to find a way of
@@ -34,7 +34,7 @@ Duplicates are rare
 In real world data, nearly all possible pairs of records are not
 duplicates.
 
-In this four record example below, only two pairs of records are
+In this four-record example below, only two pairs of records are
 duplicates--(1, 2) and (3, 4), while there are four unique
 pairs of records that are not duplicates--(1,3), (1,4), (2,3), and (2,4). 
 Typically, as the size of the dataset grows, the fraction of pairs of records
@@ -53,17 +53,17 @@ that are duplicates gets very small very quickly.
 +-------------+-----------+--------------------------+--------------+----------+
 
 
-If we could only compare records that were true duplicates we would not
-run into the explosion of comparisons. Of course if already knew where
+If we could only compare records that were true duplicates, we wouldn't
+run into the explosion of comparisons. Of course, if we already knew where
 the true duplicates were, we wouldn't need to compare any individual
-records. Unfortunately we don't but we do quite well if just compare
+records. Unfortunately we don't, but we do quite well if just compare
 records that are somewhat similar.
 
 Blocking
 --------
 
-Duplicate records almost always share some *thing* in common. If we
-define groups of data that share some thing and only compare the records
+Duplicate records almost always share some*thing* in common. If we
+define groups of data that share something and only compare the records
 in that group, or *block*, then we can dramatically reduce the number of
 comparisons we will make. If define these blocks well, then we will make
 very few comparisons and still have confidence that will compare records
@@ -75,7 +75,7 @@ blocks and canopies.
 Predicate blocks
 ~~~~~~~~~~~~~~~~
 
-A predicate block is a bundle of records that all share a feature - a
+A predicate block is a bundle of records that all share a feature -- a
 feature produced by a simple function called a predicate.
 
 Predicate functions take in a record field, and output a set of features
@@ -108,8 +108,8 @@ That leaves us with two blocks - The '160' block, which contains records
      } 
 
 Again, we're applying the "first three words" predicate function to the
-address field in our data, the function outputs the following features -
-160, 160, 123, 123 - and then we group together the records that have
+address field in our data, the function outputs the following features --
+160, 160, 123, 123 -- and then we group together the records that have
 identical features into "blocks". 
 
 Others simple predicates Dedupe uses include: 
@@ -153,12 +153,12 @@ Learning good blocking rules for given data
 -------------------------------------------
 
 Dedupe comes with a long set of predicates, and when these are
-combined dedupe can have hundreds of possible blocking rules to choose
+combined Dedupe can have hundreds of possible blocking rules to choose
 from. We will want to find a small set of these rules that covers
 every labeled duplicated pair but minimizes the total number pairs
 dedupe will have to compare.
 
-While we approach this problem by using greedy algorithm, particularly
+While we approach this problem by using greedy algorithms, particularly
 `Chvatal's Greedy Set-Cover
 algorithm <http://www.cs.ucr.edu/~neal/Papers/Young08SetCover.pdf>`__.
 
