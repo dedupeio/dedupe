@@ -27,6 +27,15 @@ Important links
 * Examples: https://github.com/datamade/dedupe-examples
 * IRC channel, `#dedupe on irc.freenode.net <http://webchat.freenode.net/?channels=dedupe>`__
 
+Tools built with dedupe
+=======================
+
+**`Dedupe.io <https://dedupe.io/>`__**
+A full service web service powered by dedupe for de-duplicating and find matches in your messy data. It provides an easy-to-use interface and provides cluster review and automation, as well as advanced record linkage, continuous matching and API integrations. `See the product page <https://dedupe.io/>`__ and the `launch blog post <https://datamade.us/blog/introducing-dedupeio>`__.
+
+**`csvdedupe <https://github.com/datamade/csvdedupe>`__**
+Command line tool for de-duplicating and `linking <https://github.com/datamade/csvdedupe#csvlink-usage>`__ CSV files. Read about it on `Source Knight-Mozilla OpenNews <https://source.opennews.org/en-US/articles/introducing-cvsdedupe/>`__.
+
 Contents
 ========
 

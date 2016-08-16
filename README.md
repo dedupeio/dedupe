@@ -22,7 +22,7 @@ dedupe takes in human training data and comes up with the best rules for your da
 ## Tools built with dedupe
 
 ### [Dedupe.io](https://dedupe.io/)
-A full service web product powered by dedupe for quickly and automatically finding similar rows in a spreadsheet or database, using machine learning methods. Supports advanced record linkage, continuous matching and API integrations. [See the product page](https://dedupe.io/) and the [launch blog post](https://datamade.us/blog/introducing-dedupeio).
+A full service web service powered by dedupe for de-duplicating and find matches in your messy data. It provides an easy-to-use interface and provides cluster review and automation, as well as advanced record linkage, continuous matching and API integrations. [See the product page](https://dedupe.io/) and the [launch blog post](https://datamade.us/blog/introducing-dedupeio).
 
 ### [csvdedupe](https://github.com/datamade/csvdedupe)
 Command line tool for de-duplicating and [linking](https://github.com/datamade/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
