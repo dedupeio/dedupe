@@ -548,14 +548,16 @@ class StaticMatching(Matching):
             for predicate in full_predicate:
                 if hasattr(predicate, "index") and predicate.index is None:
                     predicate.index = predicate.initIndex()
-                    doc_to_id_max_id = max(doc_to_ids[predicate].values())
+                    max_id = max(doc_to_ids[predicate].values())
                     try:
                         predicate.index._doc_to_id = defaultdict(
-                            itertools.count(doc_to_id_max_id + 1).next)
+                            itertools.count(max_id + 1).next,
+                            doc_to_ids[predicate])
 
                     except AttributeError:  # py 3
                         predicate.index._doc_to_id = defaultdict(
-                            itertools.count(doc_to_id_max_id + 1).__next__)
+                            itertools.count(max_id + 1).__next__,
+                            doc_to_ids[predicate])
 
                     if hasattr(predicate, "canopy"):
                         predicate.canopy = canopies[predicate]
