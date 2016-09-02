@@ -64,7 +64,7 @@ entity.
       deduper = dedupe.Dedupe(variables, data_sample)
       
    See `MySQL
-   <http://open-city.github.com/dedupe/doc/mysql_example.html>`__ for
+   <http://datamade.github.io/dedupe-examples/docs/mysql_example.html#section-11>`__ for
    an example of how to create a data sample yourself.
 
    .. py:method:: sample(data[, [sample_size=15000[, blocked_proportion=0.5]])
