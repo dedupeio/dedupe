@@ -255,24 +255,20 @@ class DedupeMatching(Matching):
     def _checkBlock(self, block):
         if block:
             try:
-                if len(block[0]) < 3:
-                    raise ValueError(
-                        "Each item in a block must be a sequence "
-                        "of record_id, record, and smaller ids and "
-                        "the records also must be dictionaries")
+                id, record, smaller_ids = block[0]
             except:
                 raise ValueError(
                         "Each item in a block must be a sequence of "
                         "record_id, record, and smaller ids and the "
                         "records also must be dictionaries")
             try:
-                block[0][1].items()
-                block[0][2].isdisjoint([])
+                record.items()
+                smaller_ids.isdisjoint([])
             except:
                 raise ValueError("The record must be a dictionary and "
                                  "smaller_ids must be a set")
 
-            self.data_model.check(block[0][1])
+            self.data_model.check(record)
 
     def _blockData(self, data_d):
 
@@ -420,17 +416,21 @@ class RecordLinkMatching(Matching):
                                  "sequences, (base_sequence, target_sequence)")
 
             if base:
-                if len(base[0]) < 3:
+                try:
+                    base_id, base_record, base_smaller_ids = base[0]
+                except:
                     raise ValueError(
                             "Each sequence must be made up of 3-tuple "
                             "like (record_id, record, covered_blocks)")
-                self.data_model.check(base[0][1])
+                self.data_model.check(base_record)
             if target:
-                if len(target[0]) < 3:
+                try:
+                    target_id, target_record, target_smaller_ids = target[0]
+                except:
                     raise ValueError(
                               "Each sequence must be made up of 3-tuple "
                               "like (record_id, record, covered_blocks)")
-                self.data_model.check(target[0][1])
+                self.data_model.check(target_record)
 
     def _blockGenerator(self, messy_data, blocked_records):
         block_groups = itertools.groupby(self.blocker(viewitems(messy_data)),
