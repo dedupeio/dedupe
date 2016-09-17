@@ -1,7 +1,7 @@
 # Dedupe Python Library
 [![Linux build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Linux build)](https://travis-ci.org/datamade/dedupe)[![Mac OS X build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Mac OS X build)](https://travis-ci.org/datamade/dedupe)[![Windows build](https://img.shields.io/appveyor/ci/fgregg/dedupe/master.svg?style=flat-square&label=Windows build)](https://ci.appveyor.com/project/fgregg/dedupe)[![Coverage](https://img.shields.io/coveralls/datamade/dedupe.svg?style=flat-square)](https://coveralls.io/r/datamade/dedupe?branch=master)
 
-_dedupe is a python library that uses machine learning to perform de-duplication and entity resolution quickly on structured data._
+_dedupe is a python library that uses machine learning to perform fuzzy matching, deduplication and entity resolution quickly on structured data._
 
 __dedupe__ will help you: 
 
