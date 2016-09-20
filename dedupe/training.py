@@ -3,15 +3,12 @@
 
 # provides functions for selecting a sample of training data
 from __future__ import division
-from future.utils import viewitems, viewkeys, viewvalues
+from future.utils import viewitems, viewvalues
 
-from collections import defaultdict
 import itertools
-import functools
-from . import blocking, predicates, core, index, backport
+from . import blocking, predicates, core
 import numpy
 import logging
-import random
 
 logger = logging.getLogger(__name__)
 
