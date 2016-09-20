@@ -30,6 +30,7 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.datamodel as datamodel
 import dedupe.backport as backport
+import dedupe.labeler as labeler
 
 logger = logging.getLogger(__name__)
 
@@ -645,22 +646,17 @@ class ActiveMatching(Matching):
         if data_sample:
             self._checkDataSample(data_sample)
             self.data_sample = data_sample
-            self.activeLearner = training.ActiveLearning(self.data_sample,
-                                                         self.data_model,
-                                                         self.num_cores)
+            self.active_learner = labeler.ActiveLearner(self.data_model,
+                                                        self.data_sample,
+                                                        self.num_cores)
         else:
             self.data_sample = []
-            self.activeLearner = None
+            self.active_learner = None
 
         # Override _loadSampledRecords() to load blocking data from
         # data_sample.
         self._loadSampledRecords(data_sample)
 
-        training_dtype = [('label', 'S8'),
-                          ('distances', 'f4',
-                           (len(self.data_model), ))]
-
-        self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = OrderedDict({u'distinct': [],
                                            u'match': []})
 
@@ -671,9 +667,8 @@ class ActiveMatching(Matching):
         '''
         Clean up data we used for training. Free up memory.
         '''
-        del self.training_data
         del self.training_pairs
-        del self.activeLearner
+        del self.active_learner
         del self.data_sample
 
     def readTraining(self, training_file):
@@ -700,8 +695,6 @@ class ActiveMatching(Matching):
 
             training_pairs[label] = examples
             self.training_pairs[label].extend(examples)
-
-        self._addTrainingData(training_pairs)
 
         self._trainClassifier()
 
@@ -742,18 +735,19 @@ class ActiveMatching(Matching):
                            recall,
                            index_predicates)
 
-    def _trainClassifier(self, **kwargs):  # pragma: no cover
-        labels = numpy.array(self.training_data['label'] == b'match',
-                             dtype='int8')
-        examples = self.training_data['distances']
+    def _trainClassifier(self):
+        y = []
+        examples = []
+        weights = []
+        for label, pairs in self.training_pairs.items():
+            for pair in pairs:
+                y.append(1 if label == 'match' else 0)
+                examples.append(pair)
+                weights.append(1)
 
-        classifier_args = backport.signature(self.classifier.fit).parameters
-
-        classifier_args = {k : kwargs[k]
-                           for k
-                           in viewkeys(kwargs) & classifier_args}
-
-        self.classifier.fit(examples, labels, **classifier_args)
+        self.classifier.fit(self.data_model.distances(examples), y, weights)
+            
+            
 
     def _trainBlocker(self, maximum_comparisons, recall, index_predicates):  # pragma: no cover
         matches = self.training_pairs['match'][:]
@@ -792,29 +786,7 @@ class ActiveMatching(Matching):
 
         '''
 
-        if self.training_data.shape[0] == 0:
-            rand_int = random.randint(0, len(self.data_sample) - 1)
-            random_pair = self.data_sample[rand_int]
-            exact_match = (random_pair[0], random_pair[0])
-            self._addTrainingData({u'match': [exact_match, exact_match],
-                                   u'distinct': [random_pair]})
-
-        self._trainClassifier(cv=0)
-
-        bias = len(self.training_pairs[u'match'])
-        if bias:
-            bias /= (bias +
-                     len(self.training_pairs[u'distinct']))
-
-        min_examples = min(len(self.training_pairs[u'match']),
-                           len(self.training_pairs[u'distinct']))
-
-        regularizer = 10
-
-        bias = ((0.5 * min_examples + bias * regularizer) /
-                (min_examples + regularizer))
-
-        return self.activeLearner.uncertainPairs(self.classifier, bias)
+        return self.active_learner.get()
 
     def markPairs(self, labeled_pairs):
         '''
@@ -848,8 +820,8 @@ class ActiveMatching(Matching):
 
         for label, pairs in labeled_pairs.items():
             self.training_pairs[label].extend(pairs)
-
-        self._addTrainingData(labeled_pairs)
+            for pair in pairs:
+                self.active_learner.mark(pair, 1 if label == 'match' else 0, 1)
 
     def _checkRecordPairType(self, record_pair):
         try:
@@ -882,33 +854,15 @@ class ActiveMatching(Matching):
         else:
             warnings.warn("You submitted an empty data_sample")
 
-    def _addTrainingData(self, labeled_pairs):
-        """
-        Appends training data to the training data collection.
-        """
-
-        for label, examples in labeled_pairs.items():
-            n_examples = len(examples)
-            labels = [label] * n_examples
-
-            new_data = numpy.empty(n_examples,
-                                   dtype=self.training_data.dtype)
-
-            new_data['label'] = labels
-            new_data['distances'] = self.data_model.distances(examples)
-
-            self.training_data = numpy.append(self.training_data,
-                                              new_data)
-
     def _loadSample(self, data_sample):
 
         self._checkDataSample(data_sample)
 
         self.data_sample = data_sample
 
-        self.activeLearner = training.ActiveLearning(self.data_sample,
-                                                     self.data_model,
-                                                     self.num_cores)
+        self.active_learner = labeler.ActiveLearner(self.data_model,
+                                                    self.data_sample,
+                                                    self.num_cores)
 
     def _loadSampledRecords(self, data_sample):
         """Override to load blocking data from data_sample."""

@@ -94,7 +94,7 @@ else:
 
     deduper = dedupe.Dedupe(fields, num_cores=5)
     deduper.sample(data_d, 10000)
-    deduper.markPairs(training_pairs)
+    deduper.training_pairs = training_pairs
     deduper.train()
     with open(settings_file, 'wb') as f:
         deduper.writeSettings(f)

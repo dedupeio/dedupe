@@ -15,43 +15,6 @@ import random
 
 logger = logging.getLogger(__name__)
 
-class ActiveLearning(object) :
-    """
-    Ask the user to label the record pair we are most uncertain of. Train the
-    data model, and update our uncertainty. Repeat until user tells us she is
-    finished.
-    """
-    def __init__(self, candidates, data_model, num_processes) :
-
-        self.candidates = candidates
-
-        pool = backport.Pool(num_processes)
-        self.field_distances = numpy.concatenate(
-            pool.map(data_model.distances, 
-                     chunker(candidates, 100),
-                     2))
-
-        pool.close()
-        pool.join()
-
-    def uncertainPairs(self, classifier, dupe_proportion) :
-        probability = classifier.predict_proba(self.field_distances)[:,-1]
-
-        target_uncertainty = 1 - dupe_proportion
-        uncertain_index = numpy.argmin(numpy.abs(target_uncertainty -
-                                                 probability))
-
-        
-        self.field_distances = numpy.delete(self.field_distances,
-                                            uncertain_index, axis=0)
-
-        uncertain_pairs = [self.candidates.pop(uncertain_index)]
-
-        return uncertain_pairs
-
-    def __len__(self):
-        return len(self.candidates)
-
 class BlockLearner(object) :
     def learn(self, matches, max_comparisons, recall) :
         '''
@@ -360,9 +323,6 @@ def compound(cover, compound_length) :
             cover[CP(compound_predicate)] = cover[a] & cover[b]
 
     return cover
-
-def chunker(seq, size):
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 def remaining_cover(coverage, covered=set()) :
     null_covers = []
