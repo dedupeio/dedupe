@@ -3,7 +3,7 @@ import rlr
 import random
 
 class ActiveLearner(rlr.RegularizedLogisticRegression):
-    def __init__(self, data_model, candidates, num_processes):
+    def __init__(self, data_model, candidates):
         super().__init__()
         
         self.data_model = data_model
