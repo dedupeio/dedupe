@@ -46,11 +46,7 @@ class ActiveLearner(rlr.RegularizedLogisticRegression):
     def mark(self, pair, y, case_weight):
         
         self.y = numpy.append(self.y, y)
-        try:
-            self.X = numpy.vstack([self.X, self.transform([pair])])
-        except:
-            import pdb
-            pdb.set_trace()
+        self.X = numpy.vstack([self.X, self.transform([pair])])
         self.case_weights = numpy.append(self.case_weights, case_weight)
 
         super().fit(self.X, self.y, self.case_weights, cv=0)
