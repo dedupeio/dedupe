@@ -30,6 +30,7 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.datamodel as datamodel
 import dedupe.backport as backport
+import dedupe.labeler as labeler
 
 logger = logging.getLogger(__name__)
 
@@ -252,24 +253,6 @@ class DedupeMatching(Matching):
 
         return itertools.chain.from_iterable(pairs)
 
-    def _checkBlock(self, block):
-        if block:
-            try:
-                id, record, smaller_ids = block[0]
-            except:
-                raise ValueError(
-                        "Each item in a block must be a sequence of "
-                        "record_id, record, and smaller ids and the "
-                        "records also must be dictionaries")
-            try:
-                record.items()
-                smaller_ids.isdisjoint([])
-            except:
-                raise ValueError("The record must be a dictionary and "
-                                 "smaller_ids must be a set")
-
-            self.data_model.check(record)
-
     def _blockData(self, data_d):
 
         blocks = defaultdict(dict)
@@ -314,6 +297,24 @@ class DedupeMatching(Matching):
                 marked_records.append((record_id, record, smaller_ids))
 
             yield marked_records
+
+    def _checkBlock(self, block):
+        if block:
+            try:
+                id, record, smaller_ids = block[0]
+            except:
+                raise ValueError(
+                        "Each item in a block must be a sequence of "
+                        "record_id, record, and smaller ids and the "
+                        "records also must be dictionaries")
+            try:
+                record.items()
+                smaller_ids.isdisjoint([])
+            except:
+                raise ValueError("The record must be a dictionary and "
+                                 "smaller_ids must be a set")
+
+            self.data_model.check(record)
 
 
 class RecordLinkMatching(Matching):
@@ -407,31 +408,6 @@ class RecordLinkMatching(Matching):
 
         return itertools.chain.from_iterable(pairs)
 
-    def _checkBlock(self, block):
-        if block:
-            try:
-                base, target = block
-            except:
-                raise ValueError("Each block must be a made up of two "
-                                 "sequences, (base_sequence, target_sequence)")
-
-            if base:
-                try:
-                    base_id, base_record, base_smaller_ids = base[0]
-                except:
-                    raise ValueError(
-                            "Each sequence must be made up of 3-tuple "
-                            "like (record_id, record, covered_blocks)")
-                self.data_model.check(base_record)
-            if target:
-                try:
-                    target_id, target_record, target_smaller_ids = target[0]
-                except:
-                    raise ValueError(
-                              "Each sequence must be made up of 3-tuple "
-                              "like (record_id, record, covered_blocks)")
-                self.data_model.check(target_record)
-
     def _blockGenerator(self, messy_data, blocked_records):
         block_groups = itertools.groupby(self.blocker(viewitems(messy_data)),
                                          lambda x: x[1])
@@ -468,6 +444,31 @@ class RecordLinkMatching(Matching):
         for each in self._blockGenerator(data_1, blocked_records):
             yield each
 
+    def _checkBlock(self, block):
+        if block:
+            try:
+                base, target = block
+            except:
+                raise ValueError("Each block must be a made up of two "
+                                 "sequences, (base_sequence, target_sequence)")
+
+            if base:
+                try:
+                    base_id, base_record, base_smaller_ids = base[0]
+                except:
+                    raise ValueError(
+                            "Each sequence must be made up of 3-tuple "
+                            "like (record_id, record, covered_blocks)")
+                self.data_model.check(base_record)
+            if target:
+                try:
+                    target_id, target_record, target_smaller_ids = target[0]
+                except:
+                    raise ValueError(
+                              "Each sequence must be made up of 3-tuple "
+                              "like (record_id, record, covered_blocks)")
+                self.data_model.check(target_record)
+            
 
 class StaticMatching(Matching):
     """
@@ -569,6 +570,7 @@ class StaticMatching(Matching):
 
 class ActiveMatching(Matching):
     classifier = rlr.RegularizedLogisticRegression()
+    ActiveLearner = labeler.ActiveLearner
 
     """
     Class for training dedupe extends Matching.
@@ -645,22 +647,16 @@ class ActiveMatching(Matching):
         if data_sample:
             self._checkDataSample(data_sample)
             self.data_sample = data_sample
-            self.activeLearner = training.ActiveLearning(self.data_sample,
-                                                         self.data_model,
-                                                         self.num_cores)
+            self.active_learner = self.ActiveLearner(self.data_model,
+                                                     self.data_sample)
         else:
             self.data_sample = []
-            self.activeLearner = None
+            self.active_learner = None
 
         # Override _loadSampledRecords() to load blocking data from
         # data_sample.
         self._loadSampledRecords(data_sample)
 
-        training_dtype = [('label', 'S8'),
-                          ('distances', 'f4',
-                           (len(self.data_model), ))]
-
-        self.training_data = numpy.zeros(0, dtype=training_dtype)
         self.training_pairs = OrderedDict({u'distinct': [],
                                            u'match': []})
 
@@ -671,9 +667,8 @@ class ActiveMatching(Matching):
         '''
         Clean up data we used for training. Free up memory.
         '''
-        del self.training_data
         del self.training_pairs
-        del self.activeLearner
+        del self.active_learner
         del self.data_sample
 
     def readTraining(self, training_file):
@@ -686,24 +681,9 @@ class ActiveMatching(Matching):
         '''
 
         logger.info('reading training from file')
-
         training_pairs = json.load(training_file,
                                    cls=serializer.dedupe_decoder)
-
-        if not any(training_pairs.values()):
-            raise EmptyTrainingException(
-                "The training file seems to contain no training examples")
-
-        for (label, examples) in training_pairs.items():
-            if examples:
-                self._checkRecordPairType(examples[0])
-
-            training_pairs[label] = examples
-            self.training_pairs[label].extend(examples)
-
-        self._addTrainingData(training_pairs)
-
-        self._trainClassifier()
+        self.markPairs(training_pairs)
 
     def train(self, ppc=None, uncovered_dupes=None, maximum_comparisons=1000000, recall=0.95, index_predicates=True):  # pragma: no cover
         """Keyword arguments:
@@ -737,23 +717,12 @@ class ActiveMatching(Matching):
                           'to train. Use recall to set the proportion '
                           'of true pairs that the blocking rules must cover')
 
-        self._trainClassifier()
+        examples, y = flatten_training(self.training_pairs)
+        self.classifier.fit(self.data_model.distances(examples), y)            
+
         self._trainBlocker(maximum_comparisons,
                            recall,
                            index_predicates)
-
-    def _trainClassifier(self, **kwargs):  # pragma: no cover
-        labels = numpy.array(self.training_data['label'] == b'match',
-                             dtype='int8')
-        examples = self.training_data['distances']
-
-        classifier_args = backport.signature(self.classifier.fit).parameters
-
-        classifier_args = {k : kwargs[k]
-                           for k
-                           in viewkeys(kwargs) & classifier_args}
-
-        self.classifier.fit(examples, labels, **classifier_args)
 
     def _trainBlocker(self, maximum_comparisons, recall, index_predicates):  # pragma: no cover
         matches = self.training_pairs['match'][:]
@@ -792,41 +761,37 @@ class ActiveMatching(Matching):
 
         '''
 
-        if self.training_data.shape[0] == 0:
-            rand_int = random.randint(0, len(self.data_sample) - 1)
-            random_pair = self.data_sample[rand_int]
-            exact_match = (random_pair[0], random_pair[0])
-            self._addTrainingData({u'match': [exact_match, exact_match],
-                                   u'distinct': [random_pair]})
-
-        self._trainClassifier(cv=0)
-
-        bias = len(self.training_pairs[u'match'])
-        if bias:
-            bias /= (bias +
-                     len(self.training_pairs[u'distinct']))
-
-        min_examples = min(len(self.training_pairs[u'match']),
-                           len(self.training_pairs[u'distinct']))
-
-        regularizer = 10
-
-        bias = ((0.5 * min_examples + bias * regularizer) /
-                (min_examples + regularizer))
-
-        return self.activeLearner.uncertainPairs(self.classifier, bias)
+        return self.active_learner.get()
 
     def markPairs(self, labeled_pairs):
         '''
-        Add a labeled pairs of record to dedupes training set and update the
-        matching model
-
         Argument :
 
         labeled_pairs -- A dictionary with two keys, `match` and `distinct`
                          the values are lists that can contain pairs of records
-
         '''
+        self._checkTrainingPairs(labeled_pairs)
+
+        for label, examples in labeled_pairs.items():
+            self.training_pairs[label].extend(examples)
+
+        if self.active_learner:
+            examples, y = flatten_training(labeled_pairs)
+            self.active_learner.mark(examples, y)
+
+    def _loadSample(self, data_sample):
+
+        self._checkDataSample(data_sample)
+
+        self.data_sample = data_sample
+
+        self.active_learner = self.ActiveLearner(self.data_model,
+                                                 self.data_sample)
+
+    def _loadSampledRecords(self, data_sample):
+        """Override to load blocking data from data_sample."""
+
+    def _checkTrainingPairs(self, labeled_pairs):
         try:
             labeled_pairs.items()
             labeled_pairs[u'match']
@@ -837,21 +802,17 @@ class ActiveMatching(Matching):
 
         if labeled_pairs[u'match']:
             pair = labeled_pairs[u'match'][0]
-            self._checkRecordPairType(pair)
+            self._checkRecordPair(pair)
 
         if labeled_pairs[u'distinct']:
             pair = labeled_pairs[u'distinct'][0]
-            self._checkRecordPairType(pair)
+            self._checkRecordPair(pair)
 
         if not labeled_pairs[u'distinct'] and not labeled_pairs[u'match']:
             warnings.warn("Didn't return any labeled record pairs")
 
-        for label, pairs in labeled_pairs.items():
-            self.training_pairs[label].extend(pairs)
 
-        self._addTrainingData(labeled_pairs)
-
-    def _checkRecordPairType(self, record_pair):
+    def _checkRecordPair(self, record_pair):
         try:
             record_pair[0]
         except:
@@ -877,41 +838,10 @@ class ActiveMatching(Matching):
             raise ValueError("data_sample must be a sequence")
 
         if len(data_sample):
-            self._checkRecordPairType(data_sample[0])
-
+            self._checkRecordPair(data_sample[0])
         else:
             warnings.warn("You submitted an empty data_sample")
-
-    def _addTrainingData(self, labeled_pairs):
-        """
-        Appends training data to the training data collection.
-        """
-
-        for label, examples in labeled_pairs.items():
-            n_examples = len(examples)
-            labels = [label] * n_examples
-
-            new_data = numpy.empty(n_examples,
-                                   dtype=self.training_data.dtype)
-
-            new_data['label'] = labels
-            new_data['distances'] = self.data_model.distances(examples)
-
-            self.training_data = numpy.append(self.training_data,
-                                              new_data)
-
-    def _loadSample(self, data_sample):
-
-        self._checkDataSample(data_sample)
-
-        self.data_sample = data_sample
-
-        self.activeLearner = training.ActiveLearning(self.data_sample,
-                                                     self.data_model,
-                                                     self.num_cores)
-
-    def _loadSampledRecords(self, data_sample):
-        """Override to load blocking data from data_sample."""
+        
 
 
 
@@ -1215,3 +1145,17 @@ class Sample(dict):
                                           in random.sample(viewkeys(d),
                                                            sample_size)})
         self.original_length = len(d)
+
+def flatten_training(training_pairs):
+    examples = []
+    y = []
+    for label, pairs in training_pairs.items():
+        for pair in pairs:
+            if label == 'match':
+                y.append(1)
+                examples.append(pair)
+            elif label == 'distinct':
+                y.append(0)
+                examples.append(pair)
+
+    return examples, numpy.array(y)

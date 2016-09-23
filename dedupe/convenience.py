@@ -36,7 +36,7 @@ def consoleLabel(deduper): # pragma: no cover
 
         uncertain_pairs = deduper.uncertainPairs()
 
-        labels = {'distinct' : [], 'match' : []}
+        examples = {'distinct' : [], 'match' : []}
 
         for record_pair in uncertain_pairs:
             label = ''
@@ -59,10 +59,10 @@ def consoleLabel(deduper): # pragma: no cover
                     valid_response = True
 
             if label == 'y' :
-                labels['match'].append(record_pair)
+                examples['match'].append(record_pair)
                 labeled = True
             elif label == 'n' :
-                labels['distinct'].append(record_pair)
+                examples['distinct'].append(record_pair)
                 labeled = True
             elif label == 'f':
                 print('Finished labeling', file=sys.stderr)
@@ -72,7 +72,7 @@ def consoleLabel(deduper): # pragma: no cover
                 raise
 
         if labeled :
-            deduper.markPairs(labels)
+            deduper.markPairs(examples)
         
 
 def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma: nocover
