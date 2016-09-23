@@ -681,11 +681,8 @@ class ActiveMatching(Matching):
         '''
 
         logger.info('reading training from file')
-
         training_pairs = json.load(training_file,
                                    cls=serializer.dedupe_decoder)
-        print(training_pairs)
-
         self.markPairs(training_pairs)
 
     def train(self, ppc=None, uncovered_dupes=None, maximum_comparisons=1000000, recall=0.95, index_predicates=True):  # pragma: no cover
@@ -768,21 +765,10 @@ class ActiveMatching(Matching):
 
     def markPairs(self, labeled_pairs):
         '''
-        Add a labeled pairs of record to dedupes training set and update the
-        matching model
-
         Argument :
 
-        labeled_pairs -- A sequence of labeled examples. Examples 
-                         sequences like 
-                         (record_pair, label, weight) 
-                         where record pair is a
-                         sequence of two dictionaries, each
-                         representing a record; label is 'match' or
-                         'distinct', and weight indicates the weight
-                         that the classifier learner should place on
-                         this example
-
+        labeled_pairs -- A dictionary with two keys, `match` and `distinct`
+                         the values are lists that can contain pairs of records
         '''
         self._checkTrainingPairs(labeled_pairs)
 
@@ -1052,7 +1038,7 @@ class GazetteerMatching(RecordLinkMatching):
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
         between 0 and 1. The record_ids within each set should refer to the
-        same entity and the confidence score is the estimated prorebability that
+        same entity and the confidence score is the estimated probability that
         the records refer to the same entity.
 
         This method should only used for small to moderately sized datasets
