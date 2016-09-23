@@ -1158,4 +1158,4 @@ def flatten_training(training_pairs):
                 y.append(0)
                 examples.append(pair)
 
-    return examples, y
+    return examples, numpy.array(y)
