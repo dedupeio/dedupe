@@ -36,8 +36,6 @@ class ActiveLearner(rlr.RegularizedLogisticRegression):
 
         probabilities = self.predict_proba(self.distances)
         uncertain_index = numpy.abs(target_uncertainty - probabilities).argmin()
-        print(probabilities)
-        print(target_uncertainty, probabilities[uncertain_index])
 
         self.distances = numpy.delete(self.distances, uncertain_index, axis=0)
 
