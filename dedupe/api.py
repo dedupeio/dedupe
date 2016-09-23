@@ -570,6 +570,7 @@ class StaticMatching(Matching):
 
 class ActiveMatching(Matching):
     classifier = rlr.RegularizedLogisticRegression()
+    ActiveLearner = labeler.VowpalLearner
 
     """
     Class for training dedupe extends Matching.
@@ -646,8 +647,8 @@ class ActiveMatching(Matching):
         if data_sample:
             self._checkDataSample(data_sample)
             self.data_sample = data_sample
-            self.active_learner = labeler.ActiveLearner(self.data_model,
-                                                        self.data_sample)
+            self.active_learner = self.ActiveLearner(self.data_model,
+                                                     self.data_sample)
         else:
             self.data_sample = []
             self.active_learner = None
@@ -798,8 +799,8 @@ class ActiveMatching(Matching):
 
         self.data_sample = data_sample
 
-        self.active_learner = labeler.ActiveLearner(self.data_model,
-                                                    self.data_sample)
+        self.active_learner = self.ActiveLearner(self.data_model,
+                                                 self.data_sample)
 
     def _loadSampledRecords(self, data_sample):
         """Override to load blocking data from data_sample."""
