@@ -1,10 +1,7 @@
 import dedupe
 import unittest
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
 import numpy
+import random
 
 SAMPLE = [({"name": "Bob", "age": "50"}, {"name": "Charlie", "age": "75"}),
           ({"name": "Meredith", "age": "40"}, {"name": "Sue", "age": "10"}), 
@@ -18,27 +15,27 @@ class ActiveLearningTest(unittest.TestCase):
                                                        'type'  : 'String'},
                                                       {'field' : 'age',
                                                        'type'  : 'String'}])
-        self.classifier = mock.Mock()
-        self.classifier.predict_proba = lambda x : numpy.vstack((numpy.arange(0, len(x))/float(len(x)), numpy.arange(len(x), 0, -1)/float(len(x)))).T
-
     def test_AL(self):
+        random.seed(111111111110)
         original_N = len(SAMPLE)
-        active_learner = dedupe.training.ActiveLearning(SAMPLE,
-                                                        self.data_model, 1)
+        active_learner = dedupe.labeler.ActiveLearner(self.data_model, SAMPLE)
         assert len(active_learner) == original_N
-        pair = active_learner.uncertainPairs(self.classifier, 0.5)
-        assert pair == [({"name": "Jimmy", "age": "20"},
-                         {"name": "Jimbo", "age": "21"})]
-        assert len(active_learner) == original_N - 1
-
-        pair = active_learner.uncertainPairs(self.classifier, 1)
+        pair = active_learner.get()
+        print(pair)
         assert pair == [({"name": "Willy", "age": "35"},
                          {"name": "William", "age": "35"})]
+
+        assert len(active_learner) == original_N - 1
+
+        pair = active_learner.get()
+        assert pair == [({"name": "Jimmy", "age": "20"},
+                         {"name": "Jimbo", "age": "21"})]
         assert len(active_learner) == original_N - 2
 
-        pair = active_learner.uncertainPairs(self.classifier, 0)
-        assert pair == [({"name": "Bob", "age": "50"},
-                         {"name": "Charlie", "age": "75"})]
+        pair = active_learner.get()
+        assert pair == [({"name": "Meredith", "age": "40"},
+                         {"name": "Sue", "age": "10"})] 
+
         assert len(active_learner) == original_N - 3
 
 
