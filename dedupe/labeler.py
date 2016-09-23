@@ -16,7 +16,7 @@ class ActiveLearner(rlr.RegularizedLogisticRegression):
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
         self.fit_transform([exact_match, random_pair],
-                           [1, 0])
+                           numpy.array([1, 0]))
 
         
     def transform(self, pairs):
