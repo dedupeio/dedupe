@@ -750,18 +750,6 @@ class ActiveMatching(Matching):
             examples, y = flatten_training(labeled_pairs)
             self.active_learner.mark(examples, y)
 
-    def _loadSample(self, data_sample):
-
-        self._checkDataSample(data_sample)
-
-        self.data_sample = data_sample
-
-        self.active_learner = self.ActiveLearner(self.data_model,
-                                                 self.data_sample)
-
-    def _loadSampledRecords(self, data_sample):
-        """Override to load blocking data from data_sample."""
-
     def _checkTrainingPairs(self, labeled_pairs):
         try:
             labeled_pairs.items()
