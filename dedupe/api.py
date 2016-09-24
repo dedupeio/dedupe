@@ -626,7 +626,7 @@ class ActiveMatching(Matching):
             self.num_cores = num_cores
 
         self.data_sample = []
-        self.activeLearner = None
+        self.active_learner = None
 
         self.training_pairs = OrderedDict({u'distinct': [],
                                            u'match': []})
@@ -857,9 +857,8 @@ class Dedupe(DedupeMatching, ActiveMatching):
                             for k1, k2
                             in blocked_sample_keys | random_sample_keys]
 
-        self.activeLearner = training.ActiveLearning(self.data_sample,
-                                                     self.data_model,
-                                                     self.num_cores)
+        self.active_learner = self.ActiveLearner(self.data_model,
+                                                self.data_sample)
 
     def _blockLearner(self, predicates):
         return training.DedupeBlockLearner(predicates,
@@ -946,9 +945,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
                             for k1, k2
                             in blocked_sample_keys | random_sample_keys]
 
-        self.activeLearner = training.ActiveLearning(self.data_sample,
-                                                     self.data_model,
-                                                     self.num_cores)
+        self.active_learner = self.ActiveLearner(self.data_model,
+                                                self.data_sample)
 
     def _blockLearner(self, predicates):
         return training.RecordLinkBlockLearner(predicates,
