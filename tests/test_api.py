@@ -129,7 +129,7 @@ class DedupeTest(unittest.TestCase):
                        {'age': '50', 'name': 'linda '})]
 
     for pair in correct_result:
-      assert pair in self.deduper.data_sample
+      assert pair in self.deduper.active_learner.candidates
 
 
 
@@ -176,7 +176,7 @@ class LinkTest(unittest.TestCase):
                        {'age': '15', 'name': 'TINA'})]
 
     for pair in correct_result:
-      assert pair in self.linker.data_sample
+      assert pair in self.linker.active_learner.candidates
 
     self.linker.sample(data_dict, data_dict_2, 5, 0)
 
