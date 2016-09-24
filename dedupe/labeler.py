@@ -1,10 +1,34 @@
 from __future__ import division
+from future.utils import with_metaclass
 
 import numpy
 import rlr
 import random
+from abc import ABCMeta, abstractmethod
 
-class ActiveLearner(rlr.RegularizedLogisticRegression):
+class ActiveLearner(with_metaclass(ABCMeta)):
+
+    @abstractmethod
+    def __init__():
+        pass
+
+    @abstractmethod
+    def transform():
+        pass
+
+    @abstractmethod
+    def get():
+        pass
+
+    @abstractmethod
+    def mark():
+        pass
+
+    @abstractmethod
+    def __len__(self):
+        pass
+
+class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def __init__(self, data_model, candidates):
         super(ActiveLearner, self).__init__()
         

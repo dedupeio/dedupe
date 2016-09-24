@@ -570,7 +570,7 @@ class StaticMatching(Matching):
 
 class ActiveMatching(Matching):
     classifier = rlr.RegularizedLogisticRegression()
-    ActiveLearner = labeler.ActiveLearner
+    ActiveLearner = labeler.RLRLearner
 
     """
     Class for training dedupe extends Matching.
