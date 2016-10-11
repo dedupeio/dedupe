@@ -31,11 +31,8 @@ before_install:
   - which pip3
   - which pip
   - alias
-  - if [[ $BREW_PYTHON == 'python3' ]]; then
-    alias pip=`which pip3`;
-    alias python=`python3`;
-    fi
 install:
+- alias
 - pip install --upgrade pip
 - pip install numpy>=1.9.2
 - pip install --upgrade -r requirements.txt
