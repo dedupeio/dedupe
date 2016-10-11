@@ -25,7 +25,7 @@ before_install:
     brew update;
     brew install $BREW_PYTHON;
     fi
-  - if [[ "$BREW_PYTHON" == "homebrew 3" ]]; then
+  - if [[ "$BREW_PYTHON" == "python3" ]]; then
     alias pip=`which pip3`;
     alias python=`python3`;
     fi
