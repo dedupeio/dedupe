@@ -24,6 +24,7 @@ before_install:
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     brew update;
     brew install $BREW_PYTHON;
+    fi
   - if [[ $BREW_PYTHON == 'python3' ]]; then
     python3 -m venv venv;
     source venv/bin/activate;
