@@ -24,15 +24,11 @@ before_install:
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     brew update;
     brew install $BREW_PYTHON;
+  - if [[ $BREW_PYTHON == 'python3' ]]; then
+    python3 -m venv venv;
+    source venv/bin/activate;
     fi
-  - echo $BREW_PYTHON
-  - which pip
-  - alias pip=`which pip3`
-  - which pip3
-  - which pip
-  - alias
 install:
-- alias
 - pip install --upgrade pip
 - pip install numpy>=1.9.2
 - pip install --upgrade -r requirements.txt
