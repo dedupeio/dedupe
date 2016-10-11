@@ -881,13 +881,13 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         data_1 = core.index(data_1)
         if original_length_1 is None:
             original_length_1 = len(data_1)
-        self.sampled_records_1 = Sample(data_1, 500, original_length_1)
+        self.sampled_records_1 = Sample(data_1, 200, original_length_1)
 
         offset = len(data_1)
         data_2 = core.index(data_2, offset)
         if original_length_2 is None:
             original_length_2 = len(data_2)
-        self.sampled_records_2 = Sample(data_2, 500, original_length_2)
+        self.sampled_records_2 = Sample(data_2, 200, original_length_2)
 
         self.active_learner = self.ActiveLearner(self.data_model)
         self.active_learner.sample_product(data_1, data_2,
