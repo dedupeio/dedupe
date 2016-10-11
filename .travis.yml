@@ -26,6 +26,9 @@ before_install:
     brew install $BREW_PYTHON;
     fi
   - echo $BREW_PYTHON
+  - which pip
+  - alias pip=`which pip3`
+  - which pip
   - if [[ $BREW_PYTHON == 'python3' ]]; then
     alias pip=`which pip3`;
     alias python=`python3`;
