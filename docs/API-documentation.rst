@@ -8,23 +8,18 @@ Class for active learning deduplication. Use deduplication when you have
 data that can contain multiple records that can all refer to the same
 entity. 
 
-.. py:class:: Dedupe(variable_definition, [data_sample=None, [num_cores]])
+.. py:class:: Dedupe(variable_definition, [data_sample[, [num_cores]])
 
    Initialize a Dedupe object with a :doc:`field definition <Variable-definition>`
 
    :param dict variable_definition: A variable definition is list of 
 				    dictionaries describing the variables
 				    will be used for training a model.
-   :param data_sample: is an optional argument that we discuss below
    :param int num_cores: the number of cpus to use for parallel
 			 processing, defaults to the number of cpus
 			 available on the machine
 
-   In order to learn how to deduplicate records, dedupe needs a sample
-   of records you are trying to deduplicate. If your data is not too
-   large (fits in memory), you can pass your data to the
-   :py:meth:`~Dedupe.sample` method and dedupe will take a sample for
-   you.
+   :param data_sample: __DEPRECATED__
 
    .. code:: python
 
@@ -38,51 +33,31 @@ entity.
 
       deduper = dedupe.Dedupe(variables)
 
-      deduper.sample(your_data)
-
-   If your data won't fit in memory, you'll have to prepare a sample
-   of the data yourself and pass it to Dedupe.
-
-   ``data_sample`` should be a sequence of tuples, where each tuple
-   contains a pair of records, and each record is a `dict` like
-   object that contains the field names you declared in
-   field\_definitions as keys.
-
-   For example, a data_sample with only one pair of records,
-
+   .. py:method:: sample(data[, [sample_size=15000[, blocked_proportion=0.5[, original_length]]])
+		  
+   In order to learn how to deduplicate your records, dedupe needs a
+   sample of your records to train on. This method takes a mixture of
+   random sample of pairs of records and a selection of pairs of
+   records that are much more likely to be duplicates.
+		  
+   :param dict data: A dictionary-like object indexed by record ID
+		     where the values are dictionaries representing records.
+   :param int sample_size: Number of record tuples to return. Defaults
+			   to 15,000.
+   :param float blocked_proportion: The proportion of record pairs
+                                    to be sampled from similar
+                                    records, as opposed to randomly
+                                    selected pairs. Defaults to
+                                    0.5.
+   :param original_length: If `data` is a subsample of all your data,
+                           `original_length` should be the size of
+                           your complete data. By default,
+                           `original_length` defaults to the length of
+                           `data`.
+				       
    .. code:: python
 
-      data_sample = [({'city': 'san francisco',
-	               'address': '300 de haro st.',
-		       'name': "sally's cafe & bakery",
-		       'cuisine': 'american'},
-	              {'city': 'san francisco',
-	               'address': '1328 18th st.',
-                       'name': 'san francisco bbq',
-                       'cuisine': 'thai'})]
-
-      deduper = dedupe.Dedupe(variables, data_sample)
-      
-   See `MySQL
-   <http://datamade.github.io/dedupe-examples/docs/mysql_example.html#section-11>`__ for
-   an example of how to create a data sample yourself.
-
-   .. py:method:: sample(data[, [sample_size=15000[, blocked_proportion=0.5]])
-
-      If you did not initialize the Dedupe object with a data_sample, you
-      will need to call this method to take a random sample of your data to be
-      used for training.
-
-      :param dict data: A dictionary-like object indexed by record ID
-			where the values are dictionaries representing records.
-      :param int sample_size: Number of record tuples to return. Defaults
-			      to 15,000.
-      :param float blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.5.
-
-      .. code:: python
-
-	 data_sample = deduper.sample(data_d, 150000, .5)
-
+      deduper.sample(data_d, 150000, .5)
 
 
    .. include:: common_learning_methods.rst
@@ -158,40 +133,55 @@ Example
     [({'A1' : {'name' : 'howard'}}, {'B1' : {'name' : 'howie'}})]
 
 
-.. py:class:: RecordLink(variable_definition, [data_sample=None, [num_cores]])
+.. py:class:: RecordLink(variable_definition, [data_sample, [[num_cores]])
 
    Initialize a Dedupe object with a variable definition
 
    :param dict variable_definition: A variable definition is list of 
 				    dictionaries describing the variables
 				    will be used for training a model.
-   :param data_sample: is an optional argument that `we'll discuss fully
-		       below <#wiki-sample-dedupe>`__
    :param int num_cores: the number of cpus to use for parallel
 			 processing, defaults to the number of cpus
 			 available on the machine
-
+   :param data_sample: __DEPRECATED__
 
    We assume that the fields you want to compare across datasets have the
    same field name.
 
-   .. py:method:: sample(data_1, data_2, sample_size=150000, blocked_proportion=0.5)
+   .. py:method:: sample(data_1, data_2, [sample_size=150000[, blocked_proportion=0.5, [original_length_1[, original_length_2]]]])
 
-      Draws a random sample of combinations of records from the first and
-      second datasets, and initializes active learning with this sample
+   In order to learn how to link your records, dedupe needs a
+   sample of your records to train on. This method takes a mixture of
+   random sample of pairs of records and a selection of pairs of
+   records that are much more likely to be duplicates.
 
-      :param dict data_1: A dictionary of records from first dataset,
-			  where the keys are record_ids and the
-			  values are dictionaries with the keys being
-			  field names.
-      :param dict data_2: A dictionary of records from second dataset,
-			  same form as data_1
-      :param int sample_size: The size of the sample to draw. Defaults to 150,000     
-      :param float blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.5.
+   :param dict data_1: A dictionary of records from first dataset,
+		       where the keys are record_ids and the
+		       values are dictionaries with the keys being
+		       field names.
+   :param dict data_2: A dictionary of records from second dataset,
+		       same form as data_1
+   :param int sample_size: The size of the sample to draw. Defaults to 150,000     
+   :param float blocked_proportion: The proportion of record pairs to
+                                    be sampled from similar records,
+                                    as opposed to randomly selected
+                                    pairs. Defaults to 0.5.
+   :param original_length_1: If `data_1` is a subsample of your first dataset,
+                             `original_length_1` should be the size of
+                             the complete first dataset. By default,
+                             `original_length_1` defaults to the length of
+                             `data_1`
+   :param original_length_1: If `data_2` is a subsample of your first dataset,
+                             `original_length_2` should be the size of
+                             the complete first dataset. By default,
+                             `original_length_2` defaults to the length of
+                             `data_2`
+				    
+   
 
-      .. code:: python
-
-	  linker.sample(data_1, data_2, 150000)
+   .. code:: python
+	     
+      linker.sample(data_1, data_2, 150000)
 
    .. include:: common_recordlink_methods.rst
    .. include:: common_learning_methods.rst
@@ -273,7 +263,8 @@ Convenience Functions
 
    .. code:: python
 
-      > dedupe = Dedupe(variables, data_sample)
+      > dedupe = Dedupe(variables)
+      > dedupe.sample(data)
       > dedupe.consoleLabel(dedupe)
 
 .. py:function:: trainingDataLink(data_1, data_2, common_key[, training_size])
@@ -327,73 +318,4 @@ Convenience Functions
                   names as keys and field values as values
 
    .. code:: python
-
-.. py:function:: randomPairs(n_records, sample_size)
-
-   If you have N records there are :math:`\frac{N(N-1)}{2}` unique
-   pairs of records (where each record is different and order doesn't
-   matter). If we indexed the N records from 0 to N-1, we would have
-   :math:`\frac{N(N-1)}{2}` corresponding pairs of indices ::
-   
-      (0, 1)
-      (0, 2)
-      ...
-      (0, N-2)
-      (0, N-1)
-      (1, 2)
-      (1, 3)
-      ...
-      (N-3, N-2)
-      (N-3, N-1)
-      (N-2, N-1)
-
-   randomPairs returns a random sample from the set of unique pairs of
-   indices. The function attempts to draw the sample without
-   replacement, but may draw a sample with replacement. If that
-   happens, you will be warned.
-
-   This can be useful when you need to create a sample of pairs from
-   your data, but you don't want to pass all of your data into
-   :py:meth:`~Dedupe.sample` because, for instance, all your data is
-   too big to fit into memory.
-
-   :param int n_record: the number of records in your record set
-
-   :param int sample_size: the size of sample you desire
-      
-.. py:function:: randomPairsMatch(n_records_a, n_records_b, sample_size)
-
-   If you have two record sets of length N and M, there are :math:`NM`
-   unique pairs of records (where each record is from a different
-   record set and order doesn't matter). If we indexed the N records
-   from 0 to N-1, we would have :math:`NM` corresponding pairs of
-   indices ::
-
-       (0, 0)
-       (0, 1)
-       ...
-       (0, M-1)
-       (1, 0)
-       (1, 1)
-       ...
-       (N-1, 0)
-       (N-1, 1)
-       ...
-       (N-1, M-1)
- 
-   randomPairs returns a random sample from the set of unique pairs of
-   indices. The function attempts to draw the sample without
-   replacement, but may draw a sample with replacement. If that
-   happens, you will be warned.
-
-   This can be useful when you need to create a sample of pairs from
-   your data, but you don't want to pass all of your data into
-   :py:meth:`~Dedupe.sample` because, for instance, all your data is
-   too big to fit into memory.
-
-   :param int n_record_a: the number of records in your first record set
-
-   :param int n_record_b: the number of records in your second record set
-
-   :param int sample_size: the size of sample you desire
 

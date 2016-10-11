@@ -21,7 +21,6 @@ import numpy
 import simplejson as json
 import rlr
 
-import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
@@ -474,7 +473,7 @@ class StaticMatching(Matching):
     """
     Class for initializing a dedupe object from a settings file,
     extends Matching.
-
+ 
     Public methods:
     - __init__
 
@@ -604,22 +603,7 @@ class ActiveMatching(Matching):
                        'Has Missing':True},
                      ]
 
-            data_sample = [
-                           (
-                            (854, {'city': 'san francisco',
-                             'address': '300 de haro st.',
-                             'name': "sally's cafe & bakery",
-                             'cuisine': 'american'}),
-                            (855, {'city': 'san francisco',
-                             'address': '1328 18th st.',
-                             'name': 'san francisco bbq',
-                             'cuisine': 'thai'})
-                             )
-                            ]
-
-
-
-            deduper = dedupe.Dedupe(fields, data_sample)
+            deduper = dedupe.Dedupe(fields)
 
 
         #### Additional detail
@@ -629,33 +613,18 @@ class ActiveMatching(Matching):
 
         For details about variable types, check the documentation.
         <https://dedupe.readthedocs.io>`_
-
-        In the data_sample, each element is a tuple of two
-        records. Each record is, in turn, a tuple of the record's key and
-        a record dictionary.
-
-        In in the record dictionary the keys are the names of the
-        record field and values are the record values.
         """
         self.data_model = datamodel.DataModel(variable_definition)
+
+        if data_sample is not None:
+            raise UserWarning('data_sample is deprecated, use the .sample method')
 
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
             self.num_cores = num_cores
 
-        if data_sample:
-            self._checkDataSample(data_sample)
-            self.data_sample = data_sample
-            self.active_learner = self.ActiveLearner(self.data_model,
-                                                     self.data_sample)
-        else:
-            self.data_sample = []
-            self.active_learner = None
-
-        # Override _loadSampledRecords() to load blocking data from
-        # data_sample.
-        self._loadSampledRecords(data_sample)
+        self.active_learner = None
 
         self.training_pairs = OrderedDict({u'distinct': [],
                                            u'match': []})
@@ -669,7 +638,6 @@ class ActiveMatching(Matching):
         '''
         del self.training_pairs
         del self.active_learner
-        del self.data_sample
 
     def readTraining(self, training_file):
         '''
@@ -779,18 +747,6 @@ class ActiveMatching(Matching):
             examples, y = flatten_training(labeled_pairs)
             self.active_learner.mark(examples, y)
 
-    def _loadSample(self, data_sample):
-
-        self._checkDataSample(data_sample)
-
-        self.data_sample = data_sample
-
-        self.active_learner = self.ActiveLearner(self.data_model,
-                                                 self.data_sample)
-
-    def _loadSampledRecords(self, data_sample):
-        """Override to load blocking data from data_sample."""
-
     def _checkTrainingPairs(self, labeled_pairs):
         try:
             labeled_pairs.items()
@@ -831,20 +787,6 @@ class ActiveMatching(Matching):
         self.data_model.check(record_pair[0])
         self.data_model.check(record_pair[1])
 
-    def _checkDataSample(self, data_sample):
-        try:
-            len(data_sample)
-        except TypeError:
-            raise ValueError("data_sample must be a sequence")
-
-        if len(data_sample):
-            self._checkRecordPair(data_sample[0])
-        else:
-            warnings.warn("You submitted an empty data_sample")
-        
-
-
-
 class StaticDedupe(DedupeMatching, StaticMatching):
     """
     Mixin Class for Static Deduplication
@@ -861,7 +803,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
     canopies = True
 
     def sample(self, data, sample_size=15000,
-               blocked_proportion=0.5):
+               blocked_proportion=0.5, original_length=None):
         '''Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
         and initialize active learning with this sample
@@ -872,40 +814,30 @@ class Dedupe(DedupeMatching, ActiveMatching):
 
         sample_size         -- Size of the sample to draw
         blocked_proportion  -- Proportion of the sample that will be blocked
+        original_length     -- Length of original data, should be set if `data` is 
+                               a sample of full data
         '''
+        self._checkData(data)
+        
         data = core.index(data)
-        self.sampled_records = Sample(data, 900)
 
-        blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
+        if original_length is None:
+            original_length = len(data)
+        self.sampled_records = Sample(data, 900, original_length)
 
-        data = sampling.randomDeque(data)
-        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
-                                                           predicates,
-                                                           data)
-
-        random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = set(core.randomPairs(len(data),
-                                                  random_sample_size))
-        data = dict(data)
-
-        data_sample = [(data[k1], data[k2])
-                       for k1, k2
-                       in blocked_sample_keys | random_sample_keys]
-
-        self._loadSample(data_sample)
+        self.active_learner = self.ActiveLearner(self.data_model)
+        self.active_learner.sample_combo(data, blocked_proportion, sample_size)
 
     def _blockLearner(self, predicates):
         return training.DedupeBlockLearner(predicates,
                                            self.sampled_records)
 
-    def _loadSampledRecords(self, data_sample):
-        if data_sample:
-            recs = itertools.chain.from_iterable(data_sample)
-            data = dict(enumerate(recs))
-            self.sampled_records = Sample(data, 900)
-        else:
-            self.sampled_records = None
+    def _checkData(self, data):
+        if len(data) == 0:
+            raise ValueError(
+                'Dictionary of records is empty.')
+
+        self.data_model.check(next(iter(viewvalues(data))))
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching):
@@ -923,8 +855,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
     """
     canopies = False
 
-    def sample(self, data_1, data_2, sample_size=150000,
-               blocked_proportion=.5):
+    def sample(self, data_1, data_2, sample_size=15000,
+               blocked_proportion=.5, original_length_1=None,
+               original_length_2=None):
         '''
         Draws a random sample of combinations of records from
         the first and second datasets, and initializes active
@@ -940,6 +873,32 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
 
         sample_size -- Size of the sample to draw
         '''
+        self._checkData(data_1, data_2)
+        
+        if len(data_1) > len(data_2):
+            data_1, data_2 = data_2, data_1
+
+        data_1 = core.index(data_1)
+        if original_length_1 is None:
+            original_length_1 = len(data_1)
+        self.sampled_records_1 = Sample(data_1, 200, original_length_1)
+
+        offset = len(data_1)
+        data_2 = core.index(data_2, offset)
+        if original_length_2 is None:
+            original_length_2 = len(data_2)
+        self.sampled_records_2 = Sample(data_2, 200, original_length_2)
+
+        self.active_learner = self.ActiveLearner(self.data_model)
+        self.active_learner.sample_product(data_1, data_2,
+                                           blocked_proportion, sample_size)
+
+    def _blockLearner(self, predicates):
+        return training.RecordLinkBlockLearner(predicates,
+                                               self.sampled_records_1,
+                                               self.sampled_records_2)
+
+    def _checkData(self, data_1, data_2):
         if len(data_1) == 0:
             raise ValueError(
                 'Dictionary of records from first dataset is empty.')
@@ -947,56 +906,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
             raise ValueError(
                 'Dictionary of records from second dataset is empty.')
 
-        if len(data_1) > len(data_2):
-            data_1, data_2 = data_2, data_1
+        self.data_model.check(next(iter(viewvalues(data_1))))
+        self.data_model.check(next(iter(viewvalues(data_2))))
 
-        data_1 = core.index(data_1)
-        self.sampled_records_1 = Sample(data_1, 500)
-
-        offset = len(data_1)
-        data_2 = core.index(data_2, offset)
-        self.sampled_records_2 = Sample(data_2, 500)
-
-        blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
-
-        deque_1 = sampling.randomDeque(data_1)
-        deque_2 = sampling.randomDeque(data_2)
-
-        blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
-                                                         predicates,
-                                                         deque_1,
-                                                         deque_2)
-
-        random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = core.randomPairsMatch(len(deque_1),
-                                                   len(deque_2),
-                                                   random_sample_size)
-
-        random_sample_keys = {(a, b + offset)
-                              for a, b in random_sample_keys}
-
-        data_sample = [(data_1[k1], data_2[k2])
-                       for k1, k2
-                       in blocked_sample_keys | random_sample_keys]
-
-        self._loadSample(data_sample)
-
-    def _blockLearner(self, predicates):
-        return training.RecordLinkBlockLearner(predicates,
-                                               self.sampled_records_1,
-                                               self.sampled_records_2)
-
-    def _loadSampledRecords(self, data_sample):
-        if data_sample:
-            data_1 = dict(enumerate(x for (x, y) in data_sample))
-            offset = len(data_1)
-            data_2 = dict(enumerate((y for (x, y) in data_sample), offset))
-            self.sampled_records_1 = Sample(data_1, 500)
-            self.sampled_records_2 = Sample(data_2, 500)
-        else:
-            self.sampled_records_1 = None
-            self.sampled_records_2 = None
 
 
 class GazetteerMatching(RecordLinkMatching):
@@ -1136,7 +1048,7 @@ class SettingsFileLoadingException(Exception):
 
 class Sample(dict):
 
-    def __init__(self, d, sample_size):
+    def __init__(self, d, sample_size, original_length):
         if len(d) <= sample_size:
             super(Sample, self).__init__(d)
         else:
@@ -1144,7 +1056,7 @@ class Sample(dict):
                                           for k
                                           in random.sample(viewkeys(d),
                                                            sample_size)})
-        self.original_length = len(d)
+        self.original_length = original_length
 
 def flatten_training(training_pairs):
     examples = []

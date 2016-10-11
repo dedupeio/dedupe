@@ -18,10 +18,7 @@ class BlockLearner(object) :
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
-        if len(self.blocker.predicates) <= 40 :
-            compound_length = 3
-        else :
-            compound_length = 2
+        compound_length = 2
 
         self.blocker.indexAll({i : record
                                for i, record

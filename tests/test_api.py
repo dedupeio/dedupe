@@ -59,23 +59,6 @@ class ActiveMatch(unittest.TestCase) :
                               {'name' : 'Bob', 'age' : '27'}))
 
 
-  def test_check_sample(self) :
-    matcher = dedupe.api.ActiveMatching(self.field_definition)
-
-    self.assertRaises(ValueError, 
-                      matcher._checkDataSample, (i for i in range(10)))
-
-    self.assertRaises(ValueError, 
-                      matcher._checkDataSample, ((1, 2),))
-
-
-
-    with warnings.catch_warnings(record=True) as w:
-      warnings.simplefilter("always")
-      matcher._checkDataSample([])
-      assert len(w) == 1
-      assert str(w[-1].message) == "You submitted an empty data_sample"
-
   def test_markPair(self) :
     from collections import OrderedDict
     good_training_pairs = OrderedDict((('distinct',  DATA_SAMPLE[0:3]),
@@ -146,7 +129,7 @@ class DedupeTest(unittest.TestCase):
                        {'age': '50', 'name': 'linda '})]
 
     for pair in correct_result:
-      assert pair in self.deduper.data_sample
+      assert pair in self.deduper.active_learner.candidates
 
 
 
@@ -193,7 +176,7 @@ class LinkTest(unittest.TestCase):
                        {'age': '15', 'name': 'TINA'})]
 
     for pair in correct_result:
-      assert pair in self.linker.data_sample
+      assert pair in self.linker.active_learner.candidates
 
     self.linker.sample(data_dict, data_dict_2, 5, 0)
 

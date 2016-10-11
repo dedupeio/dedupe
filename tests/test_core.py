@@ -88,7 +88,7 @@ class ScoreDuplicates(unittest.TestCase):
                           ('9', {'name': 'Mona', 'age': '9'}, empty_set)),
                         ])
 
-    deduper = dedupe.Dedupe([{'field' : "name", 'type' : 'String'}], ())
+    deduper = dedupe.Dedupe([{'field' : "name", 'type' : 'String'}])
     self.data_model = deduper.data_model
     self.classifier = deduper.classifier 
     self.classifier.weights = [-1.0302742719650269]
@@ -138,8 +138,7 @@ class FieldDistances(unittest.TestCase):
     deduper = dedupe.Dedupe([{'field' : 'type', 
                               'type' : 'Categorical',
 
-                              'categories' : ['a', 'b', 'c']}]
-                             , [])
+                              'categories' : ['a', 'b', 'c']}])
 
     record_pairs = (({'type' : 'a'},
                      {'type' : 'b'}),
@@ -160,8 +159,7 @@ class FieldDistances(unittest.TestCase):
                               'interaction variables' : ['type', 'name']},
                              {'field' : 'name',
                               'variable name' : 'name',
-                              'type' : 'Exact'}]
-                             , [])
+                              'type' : 'Exact'}])
 
     record_pairs = (({'name' : 'steven', 'type' : 'a'},
                      {'name' : 'steven', 'type' : 'b'}),
