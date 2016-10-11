@@ -25,10 +25,10 @@ before_install:
     brew update;
     brew install $BREW_PYTHON;
     fi
-- if [[ "$BREW_PYTHON" == "homebrew 3" ]]; then
-  alias pip=`which pip3`;
-  alias python=`python3`;
-  fi
+  - if [[ "$BREW_PYTHON" == "homebrew 3" ]]; then
+    alias pip=`which pip3`;
+    alias python=`python3`;
+    fi
 install:
 - pip install --upgrade pip
 - pip install numpy>=1.9.2
