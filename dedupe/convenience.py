@@ -116,9 +116,16 @@ def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma
         if keys_1 and keys_2 :
             matched_pairs.update(itertools.product(keys_1, keys_2))
 
-    distinct_pairs = set(itertools.product(data_1.keys(), data_2.keys()))
-    distinct_pairs -= matched_pairs
-    distinct_pairs = random.sample(distinct_pairs, training_size)
+    keys_1 = tuple(data_1.keys())
+    keys_2 = tuple(data_2.keys())
+
+    possible_pairs = len(keys_1) * len(keys_1) - len(matched_pairs)
+
+    # guessing random pairs would be hard if only few are possible
+    while len(distinct_pairs) < min(training_size, possible_pairs / 2):
+        pair = (random.choice(keys_1), random.choice(keys_2))
+        if pair not in matched_pairs:
+            distinct_pairs.add(pair)
 
     matched_records = [(data_1[key_1], data_2[key_2])
                        for key_1, key_2 in matched_pairs]
