@@ -7,7 +7,7 @@ import collections
 import itertools
 import random
 import sys
-from dedupe.core import randomPairs
+from dedupe.core import randomPairs, randomPairsMatch
 from canonicalize.centroid import getCanonicalRep
 
 def unique(seq) :
@@ -116,13 +116,13 @@ def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma
         if keys_1 and keys_2 :
             matched_pairs.update(itertools.product(keys_1, keys_2))
 
-    distinct_pairs = set(itertools.product(data_1.keys(), data_2.keys()))
-    distinct_pairs -= matched_pairs
-    distinct_pairs = random.sample(distinct_pairs, training_size)
+    random_pairs = randomPairsMatch(len(data_1), len(data_2),
+                                    training_size)
+
+    distinct_pairs = (pair for pair in random_pairs if pair not in matched_pairs)
 
     matched_records = [(data_1[key_1], data_2[key_2])
                        for key_1, key_2 in matched_pairs]
-
     distinct_records = [(data_1[key_1], data_2[key_2])
                         for key_1, key_2 in distinct_pairs]
 

@@ -20,96 +20,44 @@ import tempfile
 import os
 import functools
 import operator
+import random
 
 import dedupe.backport as backport
 
 class ChildProcessError(Exception) :
     pass
 
-def randomPairsWithReplacement(n_records, sample_size) :
-    # If the population is very large relative to the sample
-    # size than we'll get very few duplicates by chance
-    warnings.warn("There may be duplicates in the sample")
-
-    try :
-        random_indices = numpy.random.randint(n_records, 
-                                              size=sample_size*2)
-    except (OverflowError, ValueError):
-        max_int = numpy.iinfo('int').max
-        warnings.warn("Asked to sample pairs from %d records, will only sample pairs from first %d records" % (n_records, max_int))
-        random_indices = numpy.random.randint(max_int, 
-                                              size=sample_size*2)
-
-
-        
-    random_indices = random_indices.reshape((-1, 2))
-    random_indices.sort(axis=1)
-
-    return [(p.item(), q.item()) for p, q in random_indices]
-
-
 def randomPairs(n_records, sample_size):
     """
     Return random combinations of indices for a square matrix of size
     n records
     """
+    n = int(n_records * (n_records - 1) / 2)
 
-    if n_records < 2 :
-        raise ValueError("Needs at least two records")
-    n = n_records * (n_records - 1) / 2
-
-    # numpy doesn't always throw an overflow error so we need to 
-    # check to make sure that the largest number we'll use is smaller
-    # than the numpy's maximum unsigned integer
-    if 8 * n > numpy.iinfo('uint').max :
-        return randomPairsWithReplacement(n_records, sample_size)
-
-    if sample_size >= n:
-        if sample_size > n :
-            warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n))
-
-        random_indices = numpy.arange(n)
-    else :
-        random_indices = numpy.random.randint(int(n), size=sample_size)
-
-    random_indices = random_indices.astype('uint')
-
+    if sample_size >= n :
+        random_indices = numpy.arange(n, dtype='f')
+    else:
+        random_indices = numpy.array(random.sample(range(n), sample_size), dtype='f')
+    
     b = 1 - 2 * n_records
 
-    x = numpy.trunc((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2)
-    y = random_indices + x * (b + x + 2) / 2 + 1
+    i = numpy.floor((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2).astype('uint')
+    j = numpy.rint(random_indices + i * (b + i + 2) / 2 + 1).astype('uint')
 
-    stacked = numpy.column_stack((x, y)).astype(int)
-
-    return [(p.item(), q.item()) for p, q in stacked]
+    return zip(i, j)
 
 def randomPairsMatch(n_records_A, n_records_B, sample_size):
     """
     Return random combinations of indices for record list A and B
     """
-    if not n_records_A or not n_records_B :
-        raise ValueError("There must be at least one record in A and in B")
+    n = int(n_records_A * n_records_B)
 
-    if sample_size >= n_records_A * n_records_B :
+    random_pairs = numpy.array(random.sample(range(n), sample_size), dtype='f')
 
-        if sample_size > n_records_A * n_records_B :
-            warnings.warn("Requested sample of size %d, only returning %d possible pairs" % (sample_size, n_records_A * n_records_B))
+    i = numpy.floor(random_pairs/n_records_B).astype('uint')
+    j = (random_pairs - n_records_B * i).astype('uint')
 
-        return cartesian((numpy.arange(n_records_A),
-                          numpy.arange(n_records_B)))
-
-    A_samples = numpy.random.randint(n_records_A, size=sample_size)
-    B_samples = numpy.random.randint(n_records_B, size=sample_size)
-    pairs = zip(A_samples,B_samples)
-    set_pairs = set(pairs)
-
-    while len(set_pairs) < sample_size:
-        set_pairs.update(randomPairsMatch(n_records_A,
-                                          n_records_B,
-                                          (sample_size-len(set_pairs))))
-    else:
-        return set_pairs
-
+    return zip(i, j)
 
 
 class ScoreRecords(object) :
@@ -250,7 +198,6 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     return scored_pairs
 
 
-
 def fillQueue(queue, iterable, stop_signals) :
     iterable = iter(iterable)
     chunk_size = 100000
@@ -325,58 +272,6 @@ def index(data, offset=0) :
                         viewvalues(data)))
         return data
 
-def cartesian(arrays, out=None): # pragma: no cover
-    """Generate a cartesian product of input arrays.
-
-    Parameters
-    ----------
-    arrays : list of array-like
-    1-D arrays to form the cartesian product of.
-    out : ndarray
-    Array to place the cartesian product in.
-    
-    Returns
-    -------
-    out : ndarray
-    2-D array of shape (M, len(arrays)) containing cartesian products
-    formed of input arrays.
-    
-    Examples
-    --------
-    >>> cartesian(([1, 2, 3], [4, 5], [6, 7]))
-    array([[1, 4, 6],
-    [1, 4, 7],
-    [1, 5, 6],
-    [1, 5, 7],
-    [2, 4, 6],
-    [2, 4, 7],
-    [2, 5, 6],
-    [2, 5, 7],
-    [3, 4, 6],
-    [3, 4, 7],
-    [3, 5, 6],
-    [3, 5, 7]])
-    
-    References
-    ----------
-    http://stackoverflow.com/q/1208118
-    
-    """
-    arrays = [numpy.asarray(x).ravel() for x in arrays]
-    dtype = arrays[0].dtype
-
-    n = numpy.prod([x.size for x in arrays])
-    if out is None:
-        out = numpy.empty([n, len(arrays)], dtype=dtype)
-
-    m = n / arrays[0].size
-    out[:, 0] = numpy.repeat(arrays[0], m)
-    if arrays[1:]:
-        cartesian(arrays[1:], out=out[0:m, 1:])
-        for j in range(1, arrays[0].size):
-            out[j * m:(j + 1) * m, 1:] = out[0:m, 1:]
-    return out
-
 def iunzip(iterable, internal_length): # pragma: no cover
     """Iunzip is the same as zip(*iter) but returns iterators, instead of 
     expand the iterator. Mostly used for large sequence"""
@@ -384,3 +279,4 @@ def iunzip(iterable, internal_length): # pragma: no cover
     _tmp, iterable = itertools.tee(iterable, 2)
     iters = itertools.tee(iterable, internal_length)
     return (map(operator.itemgetter(i), it) for i, it in enumerate(iters))
+
