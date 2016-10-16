@@ -116,8 +116,13 @@ def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma
         if keys_1 and keys_2 :
             matched_pairs.update(itertools.product(keys_1, keys_2))
 
-    random_pairs = randomPairsMatch(len(data_1), len(data_2),
-                                    training_size)
+    keys_1 = list(data_1.keys())
+    keys_2 = list(data_2.keys())
+
+    random_pairs = [(keys_1[i], keys_2[j])
+                    for i, j
+                    in randomPairsMatch(len(data_1), len(data_2),
+                                        training_size)]
 
     distinct_pairs = (pair for pair in random_pairs if pair not in matched_pairs)
 
