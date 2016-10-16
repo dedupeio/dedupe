@@ -51,7 +51,7 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     n = int(n_records_A * n_records_B)
 
     if sample_size >= n:
-        random_pairs = numpy.arange(n)
+        random_pairs = numpy.arange(n, dtype='f')
     else:
         random_pairs = numpy.array(random.sample(range(n), sample_size), dtype='f')
 
