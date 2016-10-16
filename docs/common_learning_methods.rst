@@ -28,7 +28,7 @@
 
    .. code:: python
 
-      labeled_example = {'match'    : [], 
+      labeled_examples = {'match'    : [], 
 			 'distinct' : [({'name' : 'Georgie Porgie'}, 
 					{'name' : 'Georgette Porgette'})]
 			 }
