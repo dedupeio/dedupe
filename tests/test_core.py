@@ -3,70 +3,51 @@ import dedupe
 import numpy
 import random
 import warnings
+import sys
 
 
 class RandomPairsTest(unittest.TestCase) :
     def test_random_pair(self) :
-        self.assertRaises(ValueError, dedupe.core.randomPairs, 1, 10)
-        assert dedupe.core.randomPairs(10, 10)
         random.seed(123)
-        numpy.random.seed(123)
-        random_pairs = dedupe.core.randomPairs(10, 5)
-        assert random_pairs == [( 0,  3),
-                                ( 3,  8),
-                                ( 4,  9),
-                                ( 5,  9),
-                                ( 2,  3)]
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            dedupe.core.randomPairs(10, 10**6)
-            assert len(w) == 1
-            assert str(w[-1].message) == "Requested sample of size 1000000, only returning 45 possible pairs"
-
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            sample = dedupe.core.randomPairs(10**40, 10)
-            assert len(w) == 2
-            assert str(w[0].message) == "There may be duplicates in the sample"
-            assert "Asked to sample pairs from" in str(w[1].message)
-            set(sample)
+        
+        if sys.version_info < (3,0):
+            target = [(0, 3), (0, 4), (2, 4), (0, 5), (6, 8)]
+        else:
+            target = [(0, 4), (2, 3), (0, 6), (3, 6), (0, 7)]
+        
+    
+        random_pairs = list(dedupe.core.randomPairs(10, 5))
+        assert random_pairs == target
 
         random.seed(123)
-        numpy.random.seed(123)
-        assert numpy.array_equal(dedupe.core.randomPairs(10**3, 1),
-                                 numpy.array([(292, 413)]))
+        if sys.version_info < (3,0):
+            target = [(26, 533)]
+        else:
+            target = [(27, 859)]
 
+        random_pairs = list(dedupe.core.randomPairs(10**3, 1))
+        assert random_pairs == target
 
 
     def test_random_pair_match(self) :
-        self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 1, 0, 10)
-        self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 0, 0, 10)
-        self.assertRaises(ValueError, dedupe.core.randomPairsMatch, 0, 1, 10)
 
-        assert len(dedupe.core.randomPairsMatch(100, 100, 100)) == 100
-        assert len(dedupe.core.randomPairsMatch(10, 10, 99)) == 99
-
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            pairs = dedupe.core.randomPairsMatch(10, 10, 200)
-            assert str(w[0].message) == "Requested sample of size 200, only returning 100 possible pairs"
-
-        assert len(pairs) == 100
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            pairs = dedupe.core.randomPairsMatch(10, 10, 200)
-            assert str(w[0].message) == "Requested sample of size 200, only returning 100 possible pairs"
-
+        assert len(list(dedupe.core.randomPairsMatch(100, 100, 100))) == 100
+        assert len(list(dedupe.core.randomPairsMatch(10, 10, 99))) == 99
 
         random.seed(123)
-        numpy.random.seed(123)
-        pairs = dedupe.core.randomPairsMatch(10, 10, 10)
-        assert pairs == set([(7, 3), (3, 3), (2, 9), (6, 0), (2, 0), 
-                             (1, 9), (9, 4), (0, 4), (1, 0), (1, 1)])
+        random.seed(123)
+        if sys.version_info < (3,0):
+            target = [(0, 5), (0, 8), (4, 0), (1, 0), (9, 0),
+                      (0, 3), (5, 3), (3, 3), (8, 5), (1, 5)]
+        else:
+            target = [(0, 6), (3, 4), (1, 1), (9, 8), (5, 2),
+                      (1, 3), (0, 4), (4, 8), (6, 8), (7, 1)]
+
+        
+        pairs = list(dedupe.core.randomPairsMatch(10, 10, 10))
+        assert pairs == target
+
+
 
 
 class ScoreDuplicates(unittest.TestCase):
