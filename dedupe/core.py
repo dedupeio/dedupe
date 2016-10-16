@@ -12,15 +12,13 @@ else:
     unicode = str
 
 import itertools
-import warnings
-import numpy
-import collections
 import time
 import tempfile
 import os
-import functools
 import operator
 import random
+
+import numpy
 
 import dedupe.backport as backport
 
@@ -35,14 +33,14 @@ def randomPairs(n_records, sample_size):
     n = int(n_records * (n_records - 1) / 2)
 
     if sample_size >= n :
-        random_indices = numpy.arange(n, dtype='f')
+        random_pairs = numpy.arange(n, dtype='f')
     else:
-        random_indices = numpy.array(random.sample(range(n), sample_size), dtype='f')
+        random_pairs = numpy.array(random.sample(range(n), sample_size), dtype='f')
     
     b = 1 - 2 * n_records
 
-    i = numpy.floor((-b - numpy.sqrt(b ** 2 - 8 * random_indices)) / 2).astype('uint')
-    j = numpy.rint(random_indices + i * (b + i + 2) / 2 + 1).astype('uint')
+    i = numpy.floor((-b - numpy.sqrt(b ** 2 - 8 * random_pairs)) / 2).astype('uint')
+    j = numpy.rint(random_pairs + i * (b + i + 2) / 2 + 1).astype('uint')
 
     return zip(i, j)
 
@@ -58,7 +56,6 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     j = (random_pairs - n_records_B * i).astype('uint')
 
     return zip(i, j)
-
 
 class ScoreRecords(object) :
     def __init__(self, data_model, classifier, threshold) :
