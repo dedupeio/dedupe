@@ -3,22 +3,30 @@ import dedupe
 import numpy
 import random
 import warnings
+import sys
 
 
 class RandomPairsTest(unittest.TestCase) :
     def test_random_pair(self) :
         random.seed(123)
-        numpy.random.seed(123)
+        
+        if sys.version_info < (3,0):
+            target = [(0, 3), (0, 4), (2, 4), (0, 5), (6, 8)]
+        else:
+            target = [(0, 4), (2, 3), (0, 6), (3, 6), (0, 7)]
+        
+    
         random_pairs = list(dedupe.core.randomPairs(10, 5))
-        assert random_pairs == [(0, 4), (2, 3), (0, 6), (3, 6), (0, 7)]
-
-
+        assert random_pairs == target
 
         random.seed(123)
-        numpy.random.seed(123)
-        assert numpy.array_equal(list(dedupe.core.randomPairs(10**3, 1)),
-                                 numpy.array([(27, 859)]))
+        if sys.version_info < (3,0):
+            target = [(26, 533)]
+        else:
+            target = [(27, 859)]
 
+        random_pairs = list(dedupe.core.randomPairs(10**3, 1))
+        assert random_pairs == target
 
 
     def test_random_pair_match(self) :
@@ -27,10 +35,17 @@ class RandomPairsTest(unittest.TestCase) :
         assert len(list(dedupe.core.randomPairsMatch(10, 10, 99))) == 99
 
         random.seed(123)
-        numpy.random.seed(123)
+        random.seed(123)
+        if sys.version_info < (3,0):
+            target = [(0, 5), (0, 8), (4, 0), (1, 0), (9, 0),
+                      (0, 3), (5, 3), (3, 3), (8, 5), (1, 5)]
+        else:
+            target = [(0, 6), (3, 4), (1, 1), (9, 8), (5, 2),
+                      (1, 3), (0, 4), (4, 8), (6, 8), (7, 1)]
+
+        
         pairs = list(dedupe.core.randomPairsMatch(10, 10, 10))
-        assert pairs == [(0, 6), (3, 4), (1, 1), (9, 8), (5, 2),
-                         (1, 3), (0, 4), (4, 8), (6, 8), (7, 1)]
+        assert pairs == target
 
 
 
