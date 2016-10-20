@@ -1,3 +1,9 @@
+# 1.5.0
+- simplified the sample API, this might be a breaking change for some
+- the active learner interface is now more modular to allow for a different learner
+- random sampling of pairs has been improved for linking case and
+  dedupe case, h/t to @MarkusShepherd
+
 ## 1.4.15
 - frozendicts have finally been removed
 - first N char predicates return their entire length if length is less
