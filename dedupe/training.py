@@ -9,6 +9,7 @@ import itertools
 from . import blocking, predicates, core
 import numpy
 import logging
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -49,14 +50,11 @@ class BlockLearner(object) :
         else :
             epsilon -= len(uncoverable_dupes)
 
-        chvatal_set = greedy(dupe_cover.copy(), comparison_count, epsilon)
-
-        dupe_cover = {pred : dupe_cover[pred] for pred in chvatal_set}
-
-        final_predicates = tuple(dominating(dupe_cover))
+        searcher = BranchBound(dupe_cover, comparison_count, epsilon, 50000)
+        final_predicates = searcher.search(dupe_cover)
 
         logger.info('Final predicate set:')
-        for predicate in final_predicates :
+        for predicate in final_predicates:
             logger.info(predicate)
 
         return final_predicates
@@ -226,64 +224,54 @@ class RecordLinkBlockLearner(BlockLearner) :
                          (lengths_B * self.multiplier_2))
 
 
-    
-def greedy(dupe_cover, comparison_count, epsilon):
+class BranchBound(object) :
+    def __init__(self, original_cover, comparison_count, epsilon, max_calls) :
+        self.dupes_to_cover = set.union(*original_cover.values())
+        self.original_cover = original_cover.copy()
+        self.calls = max_calls
+        self.comparisons = comparison_count
+        self.epsilon = epsilon
 
-    # Greedily find the predicates that, at each step, covers the
-    # most duplicates and covers the least distinct pairs, due to
-    # Chvatal, 1979
-    #
-    # We would like to optimize the ratio of the probability of of a
-    # predicate covering a duplicate pair versus the probability of
-    # covering a distinct pair. If we have a uniform prior belief
-    # about those probabilities, we can estimate these probabilities as
-    #
-    # (predicate_covered_dupe_pairs + 1) / (all_dupe_pairs + 2)
-    #
-    # (predicate_covered_distinct_pairs + 1) / (all_distinct_pairs + 2)
-    #
-    # When we are trying to find the best predicate among a set of
-    # predicates, the denominators factor out and our coverage
-    # estimator becomes
-    #
-    # (predicate_covered_dupe_pairs + 1)/ (predicate_covered_distinct_pairs + 1)
+        self.cheapest = tuple(original_cover.keys())
+        self.cheapest_score = float('inf')
 
-    uncovered_dupes = set.union(*dupe_cover.values())
-    final_predicates = set()
-
-    while len(uncovered_dupes) > epsilon and dupe_cover :
-        cost = lambda p : comparison_count[p]/len(dupe_cover[p])
+    def search(self, dupe_cover, partial=()) :
         
-        best_predicate = min(dupe_cover, key = cost)
-        final_predicates.add(best_predicate)
+        if self.calls <= 0 :
+            return self.cheapest
 
-        covered = dupe_cover.pop(best_predicate)        
-        uncovered_dupes = uncovered_dupes - covered
-        remaining_cover(dupe_cover, covered)
+        self.calls -= 1
 
-        logger.debug(best_predicate)
-        logger.debug('uncovered dupes: %(uncovered)d',
-                     {'uncovered' : len(uncovered_dupes)})
+        uncovered_dupes = self.dupes_to_cover.difference(*(self.original_cover[pred] for pred in partial))
 
-    return final_predicates
+        if len(uncovered_dupes) <= self.epsilon :
+            partial_score = self.score(partial)
+            if partial_score < self.cheapest_score :
+                self.cheapest = partial
+                self.cheapest_score = partial_score
 
-def dominating(dupe_cover) :
+        elif dupe_cover and (self.lower_bound(partial, dupe_cover) <= self.cheapest_score):
+            cost = lambda p : self.comparisons[p]/len(dupe_cover[p])
+            best_predicate = min(dupe_cover, key=cost)
+            best_cost = cost(best_predicate)
+            dupe_cover = dupe_cover.copy()
+            covered = dupe_cover.pop(best_predicate)
 
-    uncovered_dupes = set.union(*dupe_cover.values())
-    final_predicates = set()
+            self.search(dupe_cover.copy(),
+                        partial + (best_predicate,))
+            if best_cost :
+                remaining_cover(dupe_cover, covered)
+                self.search(dupe_cover.copy(), partial)
 
-    while uncovered_dupes :
-        score = lambda p : len(dupe_cover[p])
+        return self.cheapest
 
-        best_predicate = max(dupe_cover, key=score)
-        final_predicates.add(best_predicate)
 
-        covered = dupe_cover.pop(best_predicate)
-        uncovered_dupes = uncovered_dupes - covered
+    def score(self, partial) :
+        return sum(self.comparisons[predicate] for predicate in partial)
 
-        remaining_cover(dupe_cover, covered)
-
-    return final_predicates
+    def lower_bound(self, partial, dupe_cover) :
+        assert min(len(v) for v in dupe_cover.values()) != 0
+        return self.score(partial) + min(self.comparisons[p] for p in dupe_cover)
 
 def cover(blocker, pairs, compound_length) :
     cover = coveredPairs(blocker.predicates, pairs)
@@ -327,6 +315,7 @@ def remaining_cover(coverage, covered=set()) :
 
     for predicate in null_covers :
         del coverage[predicate]
+                            
 
 def unique(seq):
     cleaned = []
