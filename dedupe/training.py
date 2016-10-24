@@ -9,7 +9,6 @@ import itertools
 from . import blocking, predicates, core
 import numpy
 import logging
-import copy
 
 logger = logging.getLogger(__name__)
 
@@ -257,11 +256,11 @@ class BranchBound(object) :
             dupe_cover = dupe_cover.copy()
             covered = dupe_cover.pop(best_predicate)
 
-            self.search(dupe_cover.copy(),
+            self.search(dupe_cover,
                         partial + (best_predicate,))
             if best_cost :
                 remaining_cover(dupe_cover, covered)
-                self.search(dupe_cover.copy(), partial)
+                self.search(dupe_cover, partial)
 
         return self.cheapest
 
