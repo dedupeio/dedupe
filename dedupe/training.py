@@ -49,7 +49,7 @@ class BlockLearner(object) :
         else :
             epsilon -= len(uncoverable_dupes)
 
-        searcher = BranchBound(dupe_cover, comparison_count, epsilon, 50000)
+        searcher = BranchBound(dupe_cover, comparison_count, epsilon, 5000)
         final_predicates = searcher.search(dupe_cover)
 
         logger.info('Final predicate set:')
@@ -235,13 +235,13 @@ class BranchBound(object) :
         self.cheapest_score = float('inf')
 
     def search(self, dupe_cover, partial=()) :
-        
         if self.calls <= 0 :
             return self.cheapest
 
         self.calls -= 1
 
-        uncovered_dupes = self.dupes_to_cover.difference(*(self.original_cover[pred] for pred in partial))
+        uncovered_dupes = self.dupes_to_cover.difference(*(self.original_cover[pred]
+                                                           for pred in partial))
 
         if len(uncovered_dupes) <= self.epsilon :
             partial_score = self.score(partial)
@@ -252,30 +252,43 @@ class BranchBound(object) :
         elif dupe_cover and (self.lower_bound(partial, dupe_cover) <= self.cheapest_score):
             cost = lambda p : self.comparisons[p]/len(dupe_cover[p])
             best_predicate = min(dupe_cover, key=cost)
-            best_cost = cost(best_predicate)
-            dupe_cover = dupe_cover.copy()
-            covered = dupe_cover.pop(best_predicate)
 
-            self.search(dupe_cover,
-                        partial + (best_predicate,))
-            if best_cost :
-                remaining_cover(dupe_cover, covered)
-                self.search(dupe_cover, partial)
+            remaining = remaining_cover(dupe_cover, dupe_cover[best_predicate])
+
+            self.search(remaining, partial + (best_predicate,))
+
+            reduced = self.dominates(dupe_cover, best_predicate)
+
+            uncoverable_dupes = uncovered_dupes.difference(*reduced.values())
+            if len(uncoverable_dupes) <= self.epsilon:
+                self.search(reduced, partial)
 
         return self.cheapest
 
-
     def score(self, partial) :
-        return sum(self.comparisons[predicate] for predicate in partial)
+        return sum(self.comparisons[p] for p in partial)
 
     def lower_bound(self, partial, dupe_cover) :
-        assert min(len(v) for v in dupe_cover.values()) != 0
         return self.score(partial) + min(self.comparisons[p] for p in dupe_cover)
+
+    def dominates(self, coverage, predicate):
+        remaining = coverage.copy()
+
+        predicate_cost = self.comparisons[predicate]
+        predicate_coverage = coverage[predicate]
+
+        for pred, cover in viewitems(coverage):
+             if (self.comparisons[pred] >= predicate_cost and
+                 cover <= predicate_coverage):
+                 del remaining[pred]
+
+        return remaining
+
 
 def cover(blocker, pairs, compound_length) :
     cover = coveredPairs(blocker.predicates, pairs)
     cover = compound(cover, compound_length)
-    remaining_cover(cover)
+    cover = remaining_cover(cover)
     return cover
 
 def coveredPairs(predicates, pairs) :
@@ -305,15 +318,15 @@ def compound(cover, compound_length) :
 
     return cover
 
-def remaining_cover(coverage, covered=set()) :
-    null_covers = []
-    for predicate, uncovered in viewitems(coverage) :
-        uncovered -= covered
-        if not uncovered :
-            null_covers.append(predicate)
+def remaining_cover(coverage, covered=set()):
+    remaining = {}
+    for predicate, uncovered in viewitems(coverage):
+        still_uncovered = uncovered - covered
+        if still_uncovered:
+            remaining[predicate] = still_uncovered
 
-    for predicate in null_covers :
-        del coverage[predicate]
+    return remaining
+
                             
 
 def unique(seq):
