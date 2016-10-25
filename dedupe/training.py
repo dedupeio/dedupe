@@ -246,7 +246,6 @@ class BranchBound(object) :
         if len(uncovered_dupes) <= self.epsilon :
             partial_score = self.score(partial)
             if partial_score < self.cheapest_score :
-                print(partial_score, self.cheapest_score)
                 self.cheapest = partial
                 self.cheapest_score = partial_score
 
