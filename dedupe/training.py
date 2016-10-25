@@ -246,6 +246,7 @@ class BranchBound(object) :
         if len(uncovered_dupes) <= self.epsilon :
             partial_score = self.score(partial)
             if partial_score < self.cheapest_score :
+                print(partial_score, self.cheapest_score)
                 self.cheapest = partial
                 self.cheapest_score = partial_score
 
@@ -271,15 +272,15 @@ class BranchBound(object) :
     def lower_bound(self, partial, dupe_cover) :
         return self.score(partial) + min(self.comparisons[p] for p in dupe_cover)
 
-    def dominates(self, coverage, predicate):
+    def dominates(self, coverage, dominator):
         remaining = coverage.copy()
 
-        predicate_cost = self.comparisons[predicate]
-        predicate_coverage = coverage[predicate]
+        dominant_cost = self.comparisons[dominator]
+        dominant_cover = coverage[dominator]
 
         for pred, cover in viewitems(coverage):
-             if (self.comparisons[pred] >= predicate_cost and
-                 cover <= predicate_coverage):
+             if (dominant_cost <= self.comparisons[pred] and
+                 dominant_cover >= cover):
                  del remaining[pred]
 
         return remaining
