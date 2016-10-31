@@ -19,7 +19,8 @@ install_requires=['fastcluster',
                   'haversine>=0.4.1',
                   'BTrees>=4.1.4',
                   'simplejson',
-                  'zope.index']
+                  'zope.index',
+                  'Levenshtein_search']
 
 setup(
     name='dedupe',
@@ -28,6 +29,7 @@ setup(
     author='Forest Gregg',
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
+    dependency_links=['https://github.com/mattandahalfew/Levenshtein_search/zipball/master'],
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     install_requires=install_requires,

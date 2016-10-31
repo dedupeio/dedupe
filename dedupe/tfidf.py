@@ -1,13 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
-from .index import CanopyIndex
+from .canopy_index import CanopyIndex
+from .index import Index
 import collections
 import itertools
 
 logger = logging.getLogger(__name__)
 
-class TfIdfIndex(object) :
+class TfIdfIndex(Index) :
     def __init__(self):
         self._index = CanopyIndex()
  

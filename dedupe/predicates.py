@@ -11,6 +11,7 @@ import sys
 from doublemetaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
 import dedupe.tfidf as tfidf
+import dedupe.levenshtein as levenshtein
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
@@ -106,35 +107,13 @@ class IndexPredicate(Predicate) :
         self.__dict__ = d
         self.index = None
 
-class TfidfIndexPredicate(IndexPredicate) :
-    def initIndex(self) :
-        return tfidf.TfIdfIndex()
-    
-
-class TfidfSearchPredicate(TfidfIndexPredicate):
-    def __call__(self, record) :
-        column = record[self.field]
-        if column :
-            try :
-                centers = self.index.search(self.preprocess(column), 
-                                            self.threshold)
-            except AttributeError :
-                raise AttributeError("Attempting to block with an index "
-                                     "predicate without indexing records")
-
-            l_str = str
-            return [l_str(center) for center in centers]
-
-        else :
-            return ()
-
-class TfidfCanopyPredicate(TfidfIndexPredicate):
+class CanopyPredicate(object):
     def __init__(self, *args, **kwargs) :
-        super(TfidfCanopyPredicate, self).__init__(*args, **kwargs)
+        super(CanopyPredicate, self).__init__(*args, **kwargs)
         self.canopy = {}
 
     def __setstate__(self, *args, **kwargs) :
-        super(TfidfCanopyPredicate, self).__setstate__(*args, **kwargs)
+        super(CanopyPredicate, self).__setstate__(*args, **kwargs)
         self.canopy ={}
 
     def __call__(self, record) :
@@ -172,6 +151,32 @@ class TfidfCanopyPredicate(TfidfIndexPredicate):
         else :
             return [str(block_key)]
 
+class SearchPredicate(object):
+    def __call__(self, record) :
+        column = record[self.field]
+        if column :
+            try :
+                centers = self.index.search(self.preprocess(column), 
+                                            self.threshold)
+            except AttributeError :
+                raise AttributeError("Attempting to block with an index "
+                                     "predicate without indexing records")
+
+            l_str = str
+            return [l_str(center) for center in centers]
+
+        else :
+            return ()
+
+class TfidfPredicate(IndexPredicate) :
+    def initIndex(self) :
+        return tfidf.TfIdfIndex()
+    
+class TfidfCanopyPredicate(CanopyPredicate, TfidfPredicate):
+    pass
+
+class TfidfSearchPredicate(SearchPredicate, TfidfPredicate):
+    pass
 
 class TfidfTextPredicate(object) :
     rx = re.compile(r"(?u)\w+[\w*?]*")
@@ -211,6 +216,19 @@ class TfidfNGramCanopyPredicate(TfidfNGramPredicate,
                                 TfidfCanopyPredicate) :
     type = "TfidfNGramCanopyPredicate"
 
+class LevenshteinPredicate(IndexPredicate) :
+    def initIndex(self) :
+        return levenshtein.LevenshteinIndex()
+
+    def preprocess(self, doc):
+        return doc
+    
+class LevenshteinCanopyPredicate(CanopyPredicate, LevenshteinPredicate):
+    type = "LevenshteinCanopyPredicate"
+
+class LevenshteinSearchPredicate(SearchPredicate, LevenshteinPredicate):
+    type = "LevenshteinSearchPredicate"
+    
 
 class CompoundPredicate(tuple) :
     type = "CompoundPredicate"
