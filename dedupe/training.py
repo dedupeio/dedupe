@@ -314,7 +314,10 @@ def compound(cover, compound_length) :
             if len(a) == 1 :
                 a = a[0]
 
-            cover[CP(compound_predicate)] = cover[a] & cover[b]
+            if a in cover:
+                compound_cover = cover[a] & cover[b]
+                if compound_cover:
+                    cover[CP(compound_predicate)] = compound_cover
 
     return cover
 

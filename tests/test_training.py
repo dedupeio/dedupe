@@ -1,4 +1,5 @@
 import dedupe
+import dedupe.training as training
 import unittest
 
 class TrainingTest(unittest.TestCase):
@@ -34,7 +35,7 @@ class TrainingTest(unittest.TestCase):
         predicates = self.data_model.predicates()
         blocker = dedupe.blocking.Blocker(predicates)
         blocker.indexAll({i : x for i, x in enumerate(self.training_records)})
-        coverage = dedupe.training.coveredPairs(blocker.predicates,
+        coverage = training.coveredPairs(blocker.predicates,
                                                 self.training)
         assert self.simple(coverage.keys()).issuperset(
               set(["SimplePredicate: (tokenFieldPredicate, name)", 
@@ -56,8 +57,35 @@ class TrainingTest(unittest.TestCase):
         target = ([{1: 1, 2: 2}, {3: 3, 4: 4}],
                   [{3: 3, 4: 4}, {1: 1, 2: 2}])
         
-        assert dedupe.training.unique([{1: 1, 2: 2}, {3: 3, 4: 4}, {1: 1, 2: 2}]) in target
+        assert training.unique([{1: 1, 2: 2}, {3: 3, 4: 4}, {1: 1, 2: 2}]) in target
 
+
+    def test_remaining_cover(self):
+        before = {1: {1, 2, 3}, 2: {1, 2}, 3: {3}}
+        after = {1: {1, 2}, 2: {1,2}}
+
+        before_copy = before.copy()
+        assert training.remaining_cover(before) == before
+        assert training.remaining_cover(before_copy, {3}) == after
+        assert before == before_copy
+
+    def test_compound(self):
+        singletons = {1: {1, 2, 3}, 2: {1, 2}, 3: {2}, 4: {5}}
+
+        compounded = training.compound(singletons, 2)
+        result = singletons.copy()
+        result.update({(1, 2): {1, 2},
+                       (1, 3) : {2},
+                       (2, 3) : {2}})
+        assert compounded == result
+
+        compounded = training.compound(singletons, 3)
+        result = singletons.copy()
+        result.update({(1, 2): {1, 2},
+                       (1, 3) : {2},
+                       (2, 3) : {2},
+                       (1, 2, 3) : {2}})
+        assert compounded == result
 
         
 
