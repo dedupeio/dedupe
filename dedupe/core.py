@@ -33,9 +33,9 @@ def randomPairs(n_records, sample_size):
     n = int(n_records * (n_records - 1) / 2)
 
     if sample_size >= n :
-        random_pairs = numpy.arange(n, dtype='f')
+        random_pairs = numpy.arange(n)
     else:
-        random_pairs = numpy.array(random.sample(range(n), sample_size), dtype='f')
+        random_pairs = numpy.array(random.sample(range(n), sample_size))
     
     b = 1 - 2 * n_records
 
@@ -51,12 +51,11 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     n = int(n_records_A * n_records_B)
 
     if sample_size >= n:
-        random_pairs = numpy.arange(n, dtype='f')
+        random_pairs = numpy.arange(n)
     else:
-        random_pairs = numpy.array(random.sample(range(n), sample_size), dtype='f')
+        random_pairs = random.sample(range(n), sample_size)
 
-    i = numpy.floor(random_pairs/n_records_B).astype('uint')
-    j = (random_pairs - n_records_B * i).astype('uint')
+    i, j = numpy.unravel_index(random_pairs, (n_records_A, n_records_B))
 
     return zip(i, j)
 
