@@ -21,11 +21,11 @@ class RandomPairsTest(unittest.TestCase) :
 
         random.seed(123)
         if sys.version_info < (3,0):
-            target = [(26, 533)]
+            target = [(26533, 813088)]
         else:
-            target = [(27, 859)]
+            target = [(158874, 500256)]
 
-        random_pairs = list(dedupe.core.randomPairs(10**3, 1))
+        random_pairs = list(dedupe.core.randomPairs(10**6, 1))
         assert random_pairs == target
 
 
