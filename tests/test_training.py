@@ -87,6 +87,15 @@ class TrainingTest(unittest.TestCase):
                        (1, 2, 3) : {2}})
         assert compounded == result
 
+
+    def test_covered_pairs(self):
+        p1 = lambda x : (1,)
+        
+        cover = training.coveredPairs((p1,), [('a', 'b')]*2)
+
+        assert cover[p1] == {0, 1}
+
+
         
 
 if __name__ == "__main__":

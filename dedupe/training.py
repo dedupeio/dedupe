@@ -285,7 +285,7 @@ class BranchBound(object) :
         return remaining
 
 
-def cover(blocker, pairs, compound_length) :
+def cover(blocker, pairs, compound_length) : # pragma: no cover
     cover = coveredPairs(blocker.predicates, pairs)
     cover = compound(cover, compound_length)
     cover = remaining_cover(cover)
