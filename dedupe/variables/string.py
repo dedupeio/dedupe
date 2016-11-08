@@ -43,7 +43,7 @@ class BaseStringType(FieldType) :
 
         self.predicates += indexPredicates((predicates.LevenshteinCanopyPredicate,
                                             predicates.LevenshteinSearchPredicate),
-                                           (1, 2),
+                                           (1, 2, 3, 4),
                                            self.field)
 
         Variable.__init__(self, definition)
