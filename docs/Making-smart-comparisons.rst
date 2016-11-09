@@ -17,7 +17,7 @@ compared all of them using our magic function it would take six days.
 
 But, one second is a **long** time, let's say we sped it up so that we
 can make 10,000 comparisons per second. Now we can get through our
-thousand-record-long dataset in less than a minute
+thousand-record-long dataset in less than a minute.
 
 Feeling good about our super-fast comparison function, let's take on a
 dataset of 100,000 records. Now there are
@@ -62,10 +62,10 @@ records that are somewhat similar.
 Blocking
 --------
 
-Duplicate records almost always share some*thing* in common. If we
+Duplicate records almost always share *something* in common. If we
 define groups of data that share something and only compare the records
 in that group, or *block*, then we can dramatically reduce the number of
-comparisons we will make. If define these blocks well, then we will make
+comparisons we will make. If we define these blocks well, then we will make
 very few comparisons and still have confidence that will compare records
 that truly are duplicates.
 
@@ -145,8 +145,8 @@ Combining blocking rules
 ------------------------
 
 If it's good to put define blocks of records that share the same 'city'
-field, it might be even better to block record that share BOTH the
-'city' field AND 'zip code' field. Dedupe tries these cross-field
+field, it might be even better to block records that share *both* the
+'city' field *and* the 'zip code' field. Dedupe tries these cross-field
 blocks. These combinations blocks are called disjunctive blocks.
 
 Learning good blocking rules for given data
