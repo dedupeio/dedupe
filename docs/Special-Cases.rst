@@ -13,7 +13,7 @@ One important case we call Record Linkage. Say you have two datasets and
 you want to find the records in each dataset that refer to the same
 thing. If you can assume that each dataset, individually, is unique,
 then this puts a big constraint on how records can match. If this
-uniqueness assumption holds, than A. two records can only refer to the
-same entity if they are from different datasets and B. no other record
+uniqueness assumption holds, then (A) two records can only refer to the
+same entity if they are from different datasets and (B) no other record
 can match either of those two records.
 
