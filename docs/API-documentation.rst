@@ -263,7 +263,7 @@ Convenience Functions
 
    .. code:: python
 
-      > deduper = Dedupe(variables)
+      > deduper = dedupe.Dedupe(variables)
       > deduper.sample(data)
       > dedupe.consoleLabel(deduper)
 
