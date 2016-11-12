@@ -29,7 +29,6 @@ setup(
     author='Forest Gregg',
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
-    dependency_links=['https://github.com/mattandahalfew/Levenshtein_search/zipball/master'],
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
     install_requires=install_requires,
