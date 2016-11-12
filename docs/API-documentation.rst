@@ -263,9 +263,9 @@ Convenience Functions
 
    .. code:: python
 
-      > dedupe = Dedupe(variables)
-      > dedupe.sample(data)
-      > dedupe.consoleLabel(dedupe)
+      > deduper = dedupe.Dedupe(variables)
+      > deduper.sample(data)
+      > dedupe.consoleLabel(deduper)
 
 .. py:function:: trainingDataLink(data_1, data_2, common_key[, training_size])
 
