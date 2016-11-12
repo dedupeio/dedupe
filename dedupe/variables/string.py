@@ -41,6 +41,11 @@ class BaseStringType(FieldType) :
                                            self._index_thresholds,
                                            self.field)
 
+        self.predicates += indexPredicates((predicates.LevenshteinCanopyPredicate,
+                                            predicates.LevenshteinSearchPredicate),
+                                           (1, 2, 3, 4),
+                                           self.field)
+
         Variable.__init__(self, definition)
 
     

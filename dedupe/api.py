@@ -157,7 +157,10 @@ class Matching(object):
                     if hasattr(predicate, "canopy"):
                         canopies[predicate] = predicate.canopy
                     else:
-                        indices[predicate] = predicate.index._index
+                        try:
+                            indices[predicate] = predicate.index._index
+                        except AttributeError:
+                            pass
 
         pickle.dump(canopies, file_obj)
         pickle.dump(indices, file_obj)

@@ -19,7 +19,8 @@ install_requires=['fastcluster',
                   'haversine>=0.4.1',
                   'BTrees>=4.1.4',
                   'simplejson',
-                  'zope.index']
+                  'zope.index',
+                  'Levenshtein_search']
 
 setup(
     name='dedupe',
