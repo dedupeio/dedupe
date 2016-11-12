@@ -1,3 +1,6 @@
+# 1.5.5
+- Levenshtein search based index predicates thanks to @mattandahalfew
+
 # 1.5.0
 - simplified the sample API, this might be a breaking change for some
 - the active learner interface is now more modular to allow for a different learner
