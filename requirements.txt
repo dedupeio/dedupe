@@ -2,3 +2,5 @@ nose
 coverage
 cython
 mock
+
+sudo pip install --upgrade zope.interface 
