@@ -3,7 +3,7 @@
 
 environment:
   password:
-    secure: 9rhlbRitaXxkvhkBsUP8tg==
+    secure: WCflARlYtKV2j4dKfsQQVg==
 
   matrix:
     - python : 27
