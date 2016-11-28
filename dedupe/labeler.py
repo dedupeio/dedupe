@@ -81,7 +81,7 @@ class ActiveLearner(with_metaclass(ABCMeta)):
 
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def __init__(self, data_model):
-        super(RLRLearner, self).__init__()
+        super(RLRLearner, self).__init__(alpha=1)
         
         self.data_model = data_model
         
