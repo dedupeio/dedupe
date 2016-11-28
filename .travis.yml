@@ -1,7 +1,7 @@
 branches:
   only:
   - master
-  - /^v.*$/
+  - "/^v.*$/"
 language: python
 notifications:
   email:
@@ -21,12 +21,8 @@ matrix:
     language: generic
     env: BREW_PYTHON='python3'
 before_install:
-  - if [[ $BREW_PYTHON == 'python3' ]]; then
-    brew update;
-    brew install $BREW_PYTHON;
-    python3 -m venv venv;
-    source venv/bin/activate;
-    fi
+- if [[ $BREW_PYTHON == 'python3' ]]; then brew update; brew install $BREW_PYTHON;
+  python3 -m venv venv; source venv/bin/activate; fi
 install:
 - pip install --upgrade pip
 - pip install wheel
@@ -44,10 +40,12 @@ after_success:
 - echo index-servers = pypi                        >> ~/.pypirc
 - echo [pypi]                                      >> ~/.pypirc
 - echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
-- echo username=fgregg                             >> ~/.pypirc
+- echo username=datamade.wheelbuilder              >> ~/.pypirc
 - echo password=$PYPIPASSWORD                      >> ~/.pypirc
-- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then python setup.py bdist_wheel upload; fi
-- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "linux" ]]; then python setup.py sdist upload; fi
+- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then python setup.py bdist_wheel
+  upload; fi
+- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "linux" ]]; then python setup.py sdist
+  upload; fi
 env:
   global:
-  - secure: CCKpDzr04ii1u2Yx87ean9cnQK4g/AEOeMdgNLJxxbdH8eluPqLX3f2z5GDvyoRhY6IWPJsVUwo7VhPcu8HOaD65gV92b4M4BL4Qf7gdO8SUio6xcHshy01xskJ+i8vyuI2V6BnWwOJG6V6SSvVhn4F9sTjQEDzuLyZUIbVHOFM=
+  - secure: ijl8Uh+YNLDV3w9hrz/B93fRMQaR2QtJfRc33gCnkj2V0rmlQQgzpmTq/RuTLzN+Lc0kEs11UishKYwuNXEGXyeM+EMG9SvOlYjXW5a0PB3ZuenzY7xctVM22pusb3cw520xigQ1zchgaqJa0jGcHENweqXZPDKnhbcYLLl+7Sw=
