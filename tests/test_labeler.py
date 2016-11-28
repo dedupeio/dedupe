@@ -5,8 +5,8 @@ import random
 
 SAMPLE = [({"name": "Bob", "age": "50"}, {"name": "Charlie", "age": "75"}),
           ({"name": "Meredith", "age": "40"}, {"name": "Sue", "age": "10"}), 
-          ({"name": "Jimmy", "age": "20"}, {"name": "Jimbo", "age": "21"}),
-          ({"name": "Willy", "age": "35"}, {"name": "William", "age": "35"})]
+          ({"name": "Willy", "age": "35"}, {"name": "William", "age": "35"}),
+          ({"name": "Jimmy", "age": "20"}, {"name": "Jimbo", "age": "21"})]
 
 
 class ActiveLearningTest(unittest.TestCase):
@@ -16,7 +16,7 @@ class ActiveLearningTest(unittest.TestCase):
                                                       {'field' : 'age',
                                                        'type'  : 'String'}])
     def test_AL(self):
-        random.seed(111111111110)
+        random.seed(1111111111110)
         original_N = len(SAMPLE)
         active_learner = dedupe.labeler.RLRLearner(self.data_model)
         active_learner.candidates = SAMPLE
@@ -31,6 +31,7 @@ class ActiveLearningTest(unittest.TestCase):
         assert len(active_learner) == original_N - 1
 
         pair = active_learner.get()
+        print(pair)
         assert pair == [({"name": "Jimmy", "age": "20"},
                          {"name": "Jimbo", "age": "21"})]
         assert len(active_learner) == original_N - 2
