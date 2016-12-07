@@ -5,7 +5,6 @@ from builtins import input
 
 import collections
 import itertools
-import random
 import sys
 from dedupe.core import randomPairs, randomPairsMatch
 from canonicalize.centroid import getCanonicalRep

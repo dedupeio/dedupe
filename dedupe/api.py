@@ -13,7 +13,6 @@ import pickle
 import multiprocessing
 import random
 import warnings
-import copy
 import os
 from collections import defaultdict, OrderedDict
 
@@ -24,11 +23,9 @@ import rlr
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.serializer as serializer
-import dedupe.predicates as predicates
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.datamodel as datamodel
-import dedupe.backport as backport
 import dedupe.labeler as labeler
 
 logger = logging.getLogger(__name__)
@@ -470,16 +467,15 @@ class RecordLinkMatching(Matching):
                               "Each sequence must be made up of 3-tuple "
                               "like (record_id, record, covered_blocks)")
                 self.data_model.check(target_record)
-            
+
 
 class StaticMatching(Matching):
     """
     Class for initializing a dedupe object from a settings file,
     extends Matching.
- 
+
     Public methods:
     - __init__
-
     """
 
     def __init__(self,
@@ -656,8 +652,9 @@ class ActiveMatching(Matching):
                                    cls=serializer.dedupe_decoder)
         self.markPairs(training_pairs)
 
-    def train(self, ppc=None, uncovered_dupes=None, maximum_comparisons=1000000, recall=0.95, index_predicates=True):  # pragma: no cover
-        """Keyword arguments:
+    def train(self, recall=0.95, index_predicates=True):  # pragma: no cover
+        """
+        Keyword arguments:
 
         maximum_comparisons -- The maximum number of comparisons a
                                blocking rule is allowed to make.
@@ -670,7 +667,7 @@ class ActiveMatching(Matching):
                   dupes that we will never directly compare.
 
                   recall should be a float between 0.0 and 1.0, the default
-                  is 0.975
+                  is 0.95
 
         index_predicates -- Should dedupe consider predicates that
                             rely upon indexing the data. Index predicates can
@@ -678,24 +675,12 @@ class ActiveMatching(Matching):
 
                             Defaults to True.
         """
-        if ppc is not None:
-            warnings.warn('`ppc` is a deprecated argument to train. '
-                          'Use `maximum_comparisons` to set the maximum '
-                          'number records a block is allowed to cover')
-
-        if uncovered_dupes is not None:
-            warnings.warn('`uncovered_dupes` is a deprecated argument '
-                          'to train. Use recall to set the proportion '
-                          'of true pairs that the blocking rules must cover')
-
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)            
 
-        self._trainBlocker(maximum_comparisons,
-                           recall,
-                           index_predicates)
+        self._trainBlocker(recall, index_predicates)
 
-    def _trainBlocker(self, maximum_comparisons, recall, index_predicates):  # pragma: no cover
+    def _trainBlocker(self, recall, index_predicates):  # pragma: no cover
         matches = self.training_pairs['match'][:]
 
         predicate_set = self.data_model.predicates(index_predicates,
@@ -704,7 +689,6 @@ class ActiveMatching(Matching):
         block_learner = self._blockLearner(predicate_set)
 
         self.predicates = block_learner.learn(matches,
-                                              maximum_comparisons,
                                               recall)
 
         self.blocker = blocking.Blocker(self.predicates)

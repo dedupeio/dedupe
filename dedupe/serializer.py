@@ -1,6 +1,4 @@
 import simplejson as json
-import dedupe.core
-import collections
 
 def _from_json(json_object):                                   
     if '__class__' in json_object:                            

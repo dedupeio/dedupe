@@ -1,11 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from future.utils import viewitems, viewvalues
+from future.utils import viewvalues
 
 from collections import defaultdict
-import collections
-import itertools
 import logging
 import time
 
@@ -32,8 +30,6 @@ class Blocker:
         predicates = [(':' + str(i), predicate)
                       for i, predicate
                       in enumerate(self.predicates)]
-
-        
 
         for i, record in enumerate(records) :
             record_id, instance = record

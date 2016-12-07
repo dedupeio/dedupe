@@ -87,7 +87,6 @@ class CustomType(FieldType) :
 
 
 def allSubclasses(cls) :
-    field_classes = {}
     for q in cls.__subclasses__() :
         yield q.type, q
         for p in allSubclasses(q) :

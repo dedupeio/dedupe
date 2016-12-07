@@ -1,6 +1,5 @@
 import pkgutil
 
-from collections import OrderedDict
 import numpy
 import copyreg
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from builtins import range, next, zip, map
-from future.utils import viewvalues, viewitems
+from future.utils import viewvalues
 import sys
 if sys.version < '3':
     text_type = unicode
@@ -19,8 +19,6 @@ import operator
 import random
 
 import numpy
-
-import dedupe.backport as backport
 
 class ChildProcessError(Exception) :
     pass
@@ -155,10 +153,10 @@ def mergeScores(score_queue, result_queue, stop_signals) :
 
 def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     if num_cores < 2 :
-        from multiprocessing.dummy import Process, Pool, Queue
+        from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
     else :
-        from .backport import Process, Pool, SimpleQueue
+        from .backport import Process, SimpleQueue
 
     record_pairs_queue = SimpleQueue()
     score_queue =  SimpleQueue()

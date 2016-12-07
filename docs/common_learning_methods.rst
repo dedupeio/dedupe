@@ -35,15 +35,11 @@
       deduper.markPairs(labeled_examples)
 
 
-.. py:method:: train([ppc=None, [uncovered_dupes=None, [maximum_comparisons=1000000, [recall=0.95, [index_predicates=True]]]]])
+.. py:method:: train([recall=0.95, [index_predicates=True]])
 
    Learn final pairwise classifier and blocking rules. Requires that
    adequate training data has been already been provided.
 
-   :param int maximum_comparisons: The maximum number of comparisons a
-				   blocking rule is allowed to make. 
-				   
-				   Defaults to 1000000
 
    :param float recall: The proportion of true dupe pairs in our
 			training data that that we the learned blocks
@@ -52,7 +48,7 @@
 			directly compare.
 
 			recall should be a float between 0.0 and 1.0,
-			the default is 0.975
+			the default is 0.95
 
    :param bool index_predicates: Should dedupe consider predicates
 				 that rely upon indexing the
@@ -60,10 +56,6 @@
 				 and take susbstantial memory.
 
 				 Defaults to True.
-
-   :param ppc: __DEPRECATED__				 
-   :param uncovered_dupes: __DEPRECATED__ 
-
 
    .. code:: python
 

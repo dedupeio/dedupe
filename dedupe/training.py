@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BlockLearner(object) :
-    def learn(self, matches, max_comparisons, recall) :
+    def learn(self, matches, recall) :
         '''
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
@@ -27,14 +27,6 @@ class BlockLearner(object) :
         dupe_cover = cover(self.blocker, matches, compound_length)
 
         comparison_count = self.comparisons(self.total_cover, compound_length)
-
-        dupe_cover = {pred : pairs
-                      for pred, pairs
-                      in viewitems(dupe_cover)
-                      if comparison_count[pred] < max_comparisons}
-
-        if not dupe_cover : 
-            raise ValueError(NO_PREDICATES_ERROR)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
@@ -246,6 +238,7 @@ class BranchBound(object) :
         if len(uncovered_dupes) <= self.epsilon :
             partial_score = self.score(partial)
             if partial_score < self.cheapest_score :
+                print(partial_score, self.cheapest_score)
                 self.cheapest = partial
                 self.cheapest_score = partial_score
 
@@ -265,7 +258,7 @@ class BranchBound(object) :
 
         return self.cheapest
 
-    def score(self, partial) :
+    def score(self, partial):
         return sum(self.comparisons[p] for p in partial)
 
     def lower_bound(self, partial, dupe_cover) :

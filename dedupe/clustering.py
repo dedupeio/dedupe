@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from future.utils import viewitems, viewvalues
+from future.utils import viewvalues
 
 import itertools
 

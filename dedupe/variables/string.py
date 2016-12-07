@@ -3,7 +3,7 @@ from dedupe import predicates
 
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
-from simplecosine.cosine import CosineTextSimilarity, CosineSetSimilarity
+from simplecosine.cosine import CosineTextSimilarity
 
 crfEd = CRFEditDistance()
 

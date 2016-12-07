@@ -6,7 +6,6 @@ from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.setops import mass_weightedUnion
 
 from BTrees.Length import Length
-import re
 import math
 import numpy
 import logging
