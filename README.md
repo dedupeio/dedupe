@@ -87,8 +87,8 @@ python tests/canonical_matching.py
 
 ## Team
 
-* [Forest Gregg](mailto:fgregg@gmail.com)
-* [Derek Eder](mailto:derek.eder@gmail.com)
+* Forest Gregg, DataMade
+* Derek Eder, DataMade
 
 ## Credits
 
