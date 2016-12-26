@@ -254,23 +254,38 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        blocks = defaultdict(dict)
+        blocks = defaultdict(list)
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
 
+        block_numbers = defaultdict(itertools.count(1).__next__)
+        previous_id = None
+        covering_blocks = []
         for block_key, record_id in self.blocker(viewitems(data_d)):
-            blocks[block_key][record_id] = data_d[record_id]
+            block_id = block_numbers[block_key]
+
+            if record_id == previous_id:
+                covering_blocks.append(block_id)
+            elif covering_blocks:
+                covering_blocks.sort()
+                record = data_d[previous_id]
+                while covering_blocks:
+                    id = covering_blocks.pop()
+                    blocks[id].append((previous_id, record, set(covering_blocks)))
+
+                covering_blocks = [block_id]
+                previous_id = record_id
+            else:
+                covering_blocks = [block_id]
+                previous_id = record_id
 
         seen_blocks = set()
-        blocks = [records for records in viewvalues(blocks)
-                  if len(records) > 1 and
-                  not (frozenset(records.keys()) in seen_blocks or
-                       seen_blocks.add(frozenset(records.keys())))]
-
-        for block in self._redundantFree(blocks):
-            yield block
-
+        for block in viewvalues(blocks):
+            if len(block) > 1:
+                #print(block)
+                yield block
+                
     def _redundantFree(self, blocks):
         """
         Redundant-free Comparisons from Kolb et al, "Dedoop:
