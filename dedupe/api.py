@@ -259,59 +259,22 @@ class DedupeMatching(Matching):
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
 
-        block_numbers = defaultdict(itertools.count(1).__next__)
-        previous_id = None
-        covering_blocks = []
-        for block_key, record_id in self.blocker(viewitems(data_d)):
-            block_id = block_numbers[block_key]
+        block_numbers = core.Enumerator(start=0)
+        block_groups = itertools.groupby(self.blocker(viewitems(data_d)),
+                                         lambda x: x[1])
+        
+        for record_id, block in block_groups:
+            record = data_d[record_id]
+            block_ids = sorted(block_numbers[block_key]
+                               for block_key, _ in block)
+            while block_ids:
+                id = block_ids.pop()
+                blocks[id].append((record_id, record, set(block_ids)))
 
-            if record_id == previous_id:
-                covering_blocks.append(block_id)
-            elif covering_blocks:
-                covering_blocks.sort()
-                record = data_d[previous_id]
-                while covering_blocks:
-                    id = covering_blocks.pop()
-                    blocks[id].append((previous_id, record, set(covering_blocks)))
-
-                covering_blocks = [block_id]
-                previous_id = record_id
-            else:
-                covering_blocks = [block_id]
-                previous_id = record_id
-
-        seen_blocks = set()
         for block in viewvalues(blocks):
             if len(block) > 1:
-                #print(block)
                 yield block
                 
-    def _redundantFree(self, blocks):
-        """
-        Redundant-free Comparisons from Kolb et al, "Dedoop:
-        Efficient Deduplication with Hadoop"
-        http://dbs.uni-leipzig.de/file/Dedoop.pdf
-        """
-        coverage = defaultdict(list)
-
-        for block_id, records in enumerate(blocks):
-
-            for record_id, record in viewitems(records):
-                coverage[record_id].append(block_id)
-
-        for block_id, records in enumerate(blocks):
-            if block_id % 10000 == 0:
-                logger.info("%s blocks" % block_id)
-
-            marked_records = []
-            for record_id, record in viewitems(records):
-                smaller_ids = {covered_id for covered_id
-                               in coverage[record_id]
-                               if covered_id < block_id}
-                marked_records.append((record_id, record, smaller_ids))
-
-            yield marked_records
-
     def _checkBlock(self, block):
         if block:
             try:
@@ -563,15 +526,8 @@ class StaticMatching(Matching):
                 if hasattr(predicate, "index") and predicate.index is None:
                     predicate.index = predicate.initIndex()
                     max_id = max(doc_to_ids[predicate].values())
-                    try:
-                        predicate.index._doc_to_id = defaultdict(
-                            itertools.count(max_id + 1).next,
-                            doc_to_ids[predicate])
-
-                    except AttributeError:  # py 3
-                        predicate.index._doc_to_id = defaultdict(
-                            itertools.count(max_id + 1).__next__,
-                            doc_to_ids[predicate])
+                    predicate.index._doc_to_id = core.Enumerator(max_id + 1,
+                                                                 doc_to_ids[predicate])
 
                     if hasattr(predicate, "canopy"):
                         predicate.canopy = canopies[predicate]

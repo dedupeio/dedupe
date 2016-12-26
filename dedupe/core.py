@@ -17,6 +17,7 @@ import tempfile
 import os
 import operator
 import random
+import collections
 
 import numpy
 
@@ -277,3 +278,8 @@ def iunzip(iterable, internal_length): # pragma: no cover
     iters = itertools.tee(iterable, internal_length)
     return (map(operator.itemgetter(i), it) for i, it in enumerate(iters))
 
+def Enumerator(start=0, initial=()):
+    try : # py 2
+        return collections.defaultdict(itertools.count(start).next, initial)
+    except AttributeError : # py 3
+        return collections.defaultdict(itertools.count(start).__next__, initial)
