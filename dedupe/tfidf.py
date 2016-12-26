@@ -1,23 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
-from .canopy_index import CanopyIndex
-from .index import Index
 import collections
 import itertools
+
+from .canopy_index import CanopyIndex
+from .index import Index
+from .core import Enumerator
 
 logger = logging.getLogger(__name__)
 
 class TfIdfIndex(Index) :
     def __init__(self):
         self._index = CanopyIndex()
- 
-        try : # py 2
-            self._doc_to_id = collections.defaultdict(itertools.count(1).next)
-        except AttributeError : # py 3
-            self._doc_to_id = collections.defaultdict(itertools.count(1).__next__)
-
-        
+        self._doc_to_id = Enumerator(start=1)
         self._parseTerms = self._index.lexicon.parseTerms
 
     def index(self, doc) :

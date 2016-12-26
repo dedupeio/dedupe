@@ -254,49 +254,27 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        blocks = defaultdict(dict)
+        blocks = defaultdict(list)
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
 
-        for block_key, record_id in self.blocker(viewitems(data_d)):
-            blocks[block_key][record_id] = data_d[record_id]
+        block_numbers = core.Enumerator(start=0)
+        block_groups = itertools.groupby(self.blocker(viewitems(data_d)),
+                                         lambda x: x[1])
+        
+        for record_id, block in block_groups:
+            record = data_d[record_id]
+            block_ids = sorted(block_numbers[block_key]
+                               for block_key, _ in block)
+            while block_ids:
+                id = block_ids.pop()
+                blocks[id].append((record_id, record, set(block_ids)))
 
-        seen_blocks = set()
-        blocks = [records for records in viewvalues(blocks)
-                  if len(records) > 1 and
-                  not (frozenset(records.keys()) in seen_blocks or
-                       seen_blocks.add(frozenset(records.keys())))]
-
-        for block in self._redundantFree(blocks):
-            yield block
-
-    def _redundantFree(self, blocks):
-        """
-        Redundant-free Comparisons from Kolb et al, "Dedoop:
-        Efficient Deduplication with Hadoop"
-        http://dbs.uni-leipzig.de/file/Dedoop.pdf
-        """
-        coverage = defaultdict(list)
-
-        for block_id, records in enumerate(blocks):
-
-            for record_id, record in viewitems(records):
-                coverage[record_id].append(block_id)
-
-        for block_id, records in enumerate(blocks):
-            if block_id % 10000 == 0:
-                logger.info("%s blocks" % block_id)
-
-            marked_records = []
-            for record_id, record in viewitems(records):
-                smaller_ids = {covered_id for covered_id
-                               in coverage[record_id]
-                               if covered_id < block_id}
-                marked_records.append((record_id, record, smaller_ids))
-
-            yield marked_records
-
+        for block in viewvalues(blocks):
+            if len(block) > 1:
+                yield block
+                
     def _checkBlock(self, block):
         if block:
             try:
@@ -548,15 +526,8 @@ class StaticMatching(Matching):
                 if hasattr(predicate, "index") and predicate.index is None:
                     predicate.index = predicate.initIndex()
                     max_id = max(doc_to_ids[predicate].values())
-                    try:
-                        predicate.index._doc_to_id = defaultdict(
-                            itertools.count(max_id + 1).next,
-                            doc_to_ids[predicate])
-
-                    except AttributeError:  # py 3
-                        predicate.index._doc_to_id = defaultdict(
-                            itertools.count(max_id + 1).__next__,
-                            doc_to_ids[predicate])
+                    predicate.index._doc_to_id = core.Enumerator(max_id + 1,
+                                                                 doc_to_ids[predicate])
 
                     if hasattr(predicate, "canopy"):
                         predicate.canopy = canopies[predicate]

@@ -1,17 +1,15 @@
 import collections
 import itertools
+
 import Levenshtein_search
+
 from .index import Index
+from .core import Enumerator
 
 class LevenshteinIndex(Index):
     def __init__(self):
         self.index_key = Levenshtein_search.populate_wordset(-1, [])
-
-        try : # py 2
-            self._doc_to_id = collections.defaultdict(itertools.count(1).next)
-        except AttributeError : # py 3
-            self._doc_to_id = collections.defaultdict(itertools.count(1).__next__)
-
+        self._doc_to_id = Enumerator(start=1)
         self.docs = []
 
     def index(self, doc):
