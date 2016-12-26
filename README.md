@@ -29,7 +29,7 @@ Command line tool for de-duplicating and [linking](https://github.com/datamade/c
 
 ## Installation
 
-### Users
+### Using dedupe
 
 If you only want to use dedupe, install it this way:
 
@@ -38,18 +38,32 @@ pip install "numpy>=1.9"
 pip install dedupe
 ```
 
-### Developers
+### Developing dedupe
+
+We recommend using [virtualenv](http://virtualenv.readthedocs.org/en/latest/virtualenv.html) and [virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/install.html) for working in a virtualized development environment. [Read how to set up virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/).
+
+Once you have virtualenvwrapper set up,
 
 ```bash
+mkvirtualenv dedupe
 git clone git://github.com/datamade/dedupe.git
 cd dedupe
 pip install "numpy>=1.9"
 pip install -r requirements.txt
 cython src/*.pyx
 pip install -e .
+```
 
-#If these tests pass, then everything should have been installed correctly!
+If these tests pass, then everything should have been installed correctly!
+
+```bash
 nosetests
+```
+
+Afterwards, whenever you want to work on dedupe,
+
+```bash
+workon dedupe
 ```
 
 ## Testing
@@ -73,8 +87,8 @@ python tests/canonical_matching.py
 
 ## Team
 
-* [Forest Gregg](mailto:fgregg@gmail.com)
-* [Derek Eder](mailto:derek.eder@gmail.com)
+* Forest Gregg, DataMade
+* Derek Eder, DataMade
 
 ## Credits
 
