@@ -32,7 +32,7 @@ install:
 - cython src/*.pyx
 - pip install -e .
 script:
-- coverage run -m nose
+- pytest --cov dedupe
 - python tests/canonical.py -vv
 after_success:
 - coveralls
