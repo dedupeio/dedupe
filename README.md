@@ -57,7 +57,7 @@ pip install -e .
 If these tests pass, then everything should have been installed correctly!
 
 ```bash
-nosetests
+pytest
 ```
 
 Afterwards, whenever you want to work on dedupe,
@@ -69,7 +69,7 @@ workon dedupe
 ## Testing
 Unit tests of core dedupe functions
 ```bash
-nosetests
+pytest
 ```
 
 #### Test using canonical dataset from Bilenko's research

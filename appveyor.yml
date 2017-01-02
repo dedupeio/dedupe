@@ -23,9 +23,7 @@ install:
 build: false
 
 test_script:
-  # Nosetests take care of unit tests
-  # Behave runs the example scripts and tries to verify if it produces the right output
-  - coverage run -m nose
+  - pytest --cov dedupe
   - python tests/canonical.py
 
 on_success:

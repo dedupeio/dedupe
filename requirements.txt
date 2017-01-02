@@ -1,4 +1,4 @@
-nose
-coverage
+pytest
+pytest-cov
 cython
 mock
