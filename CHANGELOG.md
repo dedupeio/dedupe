@@ -1,3 +1,6 @@
+# 1.6.0
+- Simplify .train method
+
 # 1.5.5
 - Levenshtein search based index predicates thanks to @mattandahalfew
 
