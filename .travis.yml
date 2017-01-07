@@ -32,7 +32,7 @@ install:
 - cython src/*.pyx
 - pip install -e .
 script:
-- pytest --cov dedupe
+- pytest tests --cov dedupe
 - python tests/canonical.py -vv
 after_success:
 - coveralls
