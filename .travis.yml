@@ -20,7 +20,7 @@ matrix:
     language: generic
     env: PYTHON='3.5.2'
 before_install: |
-  if [ "$TRAVIS_OS_NAME" == "osx" && $PYTHON ]; then
+  if [[ "$TRAVIS_OS_NAME" == "osx" && $PYTHON ]]; then
     brew update
     # Per the `pyenv homebrew recommendations <https://github.com/yyuu/pyenv/wiki#suggested-build-environment>`_.
     brew install openssl readline
