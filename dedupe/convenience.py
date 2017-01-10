@@ -1,7 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-from builtins import input
+try:
+    input = raw_input
+except NameError:
+    pass
 
 import collections
 import itertools
