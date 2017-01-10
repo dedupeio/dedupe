@@ -38,6 +38,8 @@ pip install "numpy>=1.9"
 pip install dedupe
 ```
 
+Familiarize yourself with [dedupe's API](https://dedupe.readthedocs.io/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/datamade/dedupe-examples).
+
 ### Developing dedupe
 
 We recommend using [virtualenv](http://virtualenv.readthedocs.org/en/latest/virtualenv.html) and [virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/install.html) for working in a virtualized development environment. [Read how to set up virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/).
