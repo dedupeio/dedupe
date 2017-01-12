@@ -532,7 +532,10 @@ class StaticMatching(Matching):
                     if hasattr(predicate, "canopy"):
                         predicate.canopy = canopies[predicate]
                     else:
-                        predicate.index._index = indices[predicate]
+                        try:
+                            predicate.index._index = indices[predicate]
+                        except KeyError:
+                            pass
 
         self.loaded_indices = True
 
