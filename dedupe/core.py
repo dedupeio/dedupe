@@ -159,7 +159,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     else :
         from .backport import Process, SimpleQueue
 
-    first, iterable = peek(records)
+    first, records = peek(records)
     if first is None:
         raise ValueError("No records have been blocked together. "
                          "Is the data you are trying to match like "
