@@ -54,7 +54,7 @@ before_install: |
 install:
 - if [[ $DOCKER_IMAGE ]]; then
       docker pull $DOCKER_IMAGE &&
-      docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /bin/bash;
+      docker run -it `pwd`:/io $DOCKER_IMAGE $PRE_CMD /bin/bash;
   fi
 - pip install --upgrade pip
 - pip install wheel
