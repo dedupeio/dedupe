@@ -342,7 +342,7 @@ def sortedAcronym(field) :
     return (''.join(sorted(each[0] for each in field.split())),)
 
 def doubleMetaphone(field) :
-    return [metaphone for metaphone in doublemetaphone(field) if metaphone]
+    return {metaphone for metaphone in doublemetaphone(field) if metaphone}
 
 def metaphoneToken(field) :
     return {metaphone_token for metaphone_token 
