@@ -15,8 +15,10 @@ for PYBIN in /opt/python/*/bin; do
 done
 
 # Bundle external shared libraries into the wheels
-for whl in wheelhouse/*.whl; do
-    auditwheel repair "$whl" -w /io/wheelhouse/
+for whl in wheelhouse/dedupe*.whl; do
+    if  [[ "${whl}" != *"dedupe-hcluster"* ]]; then
+        auditwheel repair "$whl" -w /io/wheelhouse/
+    fi
 done
 
 # Install packages and test
@@ -30,7 +32,7 @@ done
 # If everything works, upload wheels to PyPi
 travis=$( cat /io/.travis_tag )
 PYBIN34="/opt/python/cp34-cp34mu/bin"
-if [[ $travis ]]; then
-    "${PYBIN34}/pip" install twine
-    "${PYBIN34}/twine" upload --config-file /io/.pypirc /io/wheelhouse/*
-fi
+# if [[ $travis ]]; then
+"${PYBIN34}/pip" install twine
+"${PYBIN34}/twine" upload --config-file /io/.pypirc /io/wheelhouse/dedupe*.whl
+# fi
