@@ -4,12 +4,14 @@ set -e -x
 
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
-    "${PYBIN}/pip" install "numpy>=1.9.2"
-    "${PYBIN}/pip" install -r /io/requirements.txt
-    "${PYBIN}/pip" install coveralls
-    cython /io/src/*.pyx
-    "${PYBIN}/pip" install -e /io/
-    "${PYBIN}/pip" wheel /io/ -w wheelhouse/
+    if [[ "${PYBIN}" == *"cp27"* ]] || [[ "${PYBIN}" == *"cp34"* ]] || [[ "${PYBIN}" == *"cp35"* ]]; then
+        "${PYBIN}/pip" install "numpy>=1.9.2"
+        "${PYBIN}/pip" install -r /io/requirements.txt
+        "${PYBIN}/pip" install coveralls
+        cython /io/src/*.pyx
+        "${PYBIN}/pip" install -e /io/
+        "${PYBIN}/pip" wheel /io/ -w wheelhouse/
+    fi
 done
 
 # Bundle external shared libraries into the wheels
@@ -19,8 +21,10 @@ done
 
 # Install packages and test
 for PYBIN in /opt/python/*/bin/; do
-    "${PYBIN}/pytest" /io/tests --cov dedupe
-    "${PYBIN}/python" /io/tests/canonical.py -vv
+    if [[ "${PYBIN}" == *"cp27"* ]] || [[ "${PYBIN}" == *"cp34"* ]] || [[ "${PYBIN}" == *"cp35"* ]]; then
+        "${PYBIN}/pytest" /io/tests --cov dedupe
+        "${PYBIN}/python" /io/tests/canonical.py -vv
+    fi
 done
 
 # If everything works, upload wheels to PyPi
