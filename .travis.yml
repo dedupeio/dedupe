@@ -53,12 +53,10 @@ before_install: |
   fi
 install:
 - if [[ $DOCKER_IMAGE ]]; then
-      pwd;
       docker pull $DOCKER_IMAGE &&
-      docker run -it $DOCKER_IMAGE $PRE_CMD datamade/dedupe/.install-dependencies.sh;
+      docker run -it -v $DOCKER_IMAGE $PRE_CMD .install-dependencies.sh;
   else
-      pwd;
-      datamade/dedupe/.install-dependencies.sh;
+      source .install-dependencies.sh;
   fi;
 script:
 - pytest tests --cov dedupe
