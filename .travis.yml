@@ -54,7 +54,7 @@ before_install: |
 install:
 - if [[ $DOCKER_IMAGE ]]; then
       docker pull $DOCKER_IMAGE &&
-      docker run -it -v $DOCKER_IMAGE $PRE_CMD /bin/bash -c "source .install-dependencies.sh";
+      docker run -it -v $DOCKER_IMAGE $PRE_CMD bash -c "source .install-dependencies.sh";
   else
       source .install-dependencies.sh;
   fi;
