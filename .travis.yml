@@ -54,7 +54,7 @@ before_install: |
 install:
 - if [[ $DOCKER_IMAGE ]]; then
       docker pull $DOCKER_IMAGE &&
-      docker run -it $DOCKER_IMAGE $PRE_CMD bash -c "source .install-dependencies.sh";
+      docker run -it $DOCKER_IMAGE $PRE_CMD bash -c "pwd; ls -lah; source /home/travis/build/datamade/dedupe/.install-dependencies.sh";
   else
       source .install-dependencies.sh;
   fi;
