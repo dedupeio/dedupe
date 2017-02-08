@@ -8,7 +8,7 @@ for PYBIN in /opt/python/*/bin; do
         "${PYBIN}/pip" install "numpy>=1.9.2"
         "${PYBIN}/pip" install -r /io/requirements.txt
         "${PYBIN}/pip" install coveralls
-        cython /io/src/*.pyx
+        "${PYBIN}/cython" /io/src/*.pyx
         "${PYBIN}/pip" install -e /io/
         "${PYBIN}/pip" wheel /io/ -w wheelhouse/
     fi
