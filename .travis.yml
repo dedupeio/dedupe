@@ -28,7 +28,7 @@ matrix:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
          PRE_CMD=linux32
-    
+
 before_install: |
   if [[ "$TRAVIS_OS_NAME" == "osx" && $PYTHON ]]; then
     brew update
@@ -54,15 +54,10 @@ before_install: |
 install:
 - if [[ $DOCKER_IMAGE ]]; then
       docker pull $DOCKER_IMAGE &&
-      docker run -it $DOCKER_IMAGE $PRE_CMD /bin/bash;
-  fi
-- pip install --upgrade pip
-- pip install wheel
-- pip install numpy>=1.9.2
-- pip install --upgrade -r requirements.txt
-- pip install coveralls
-- cython src/*.pyx
-- pip install -e .
+      docker run -it $DOCKER_IMAGE $PRE_CMD ./.install-dependencies.sh;
+  else
+      docker run -it ./.install-dependencies.sh;
+  fi;
 script:
 - pytest tests --cov dedupe
 - python tests/canonical.py -vv
