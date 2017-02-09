@@ -42,13 +42,16 @@ before_install:
       source venv/bin/activate;
       python --version;
   fi;
-- echo $TRAVIS_TAG                                  > ~/.travis_tag
 - echo [distutils]                                  > ~/.pypirc
 - echo index-servers=pypi                          >> ~/.pypirc
 - echo [pypi]                                      >> ~/.pypirc
 - echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
 - echo username=datamade.wheelbuilder              >> ~/.pypirc
 - echo password=$PYPIPASSWORD                      >> ~/.pypirc
+- if [[ $DOCKER_IMAGE ]]; then
+    echo $TRAVIS_TAG > .travis_tag;
+    cat ~/.pypirc > .pypirc;
+  fi;
 
 install:
 - if [[ $DOCKER_IMAGE ]]; then
