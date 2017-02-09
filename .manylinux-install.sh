@@ -22,20 +22,21 @@ for whl in wheelhouse/dedupe*.whl; do
 done
 
 # Install packages and test
-for PYBIN in /opt/python/*/bin/; do
+for PYBIN in /opt/python/*/bin; do
     if [[ "${PYBIN}" == *"cp27"* ]] || [[ "${PYBIN}" == *"cp34"* ]] || [[ "${PYBIN}" == *"cp35"* ]]; then
         "${PYBIN}/pip" uninstall -y dedupe
         "${PYBIN}/pip" install dedupe --no-index -f /io/wheelhouse
         "${PYBIN}/pytest" /io/tests --cov dedupe
         cd /io/
         "${PYBIN}/python" tests/canonical.py -vv
+        rm canonical_learned_settings
         cd /
     fi
 done
 
 # If everything works, upload wheels to PyPi
 travis=$( cat /io/.travis_tag )
-PYBIN34="/opt/python/cp34-cp34mu/bin"
+PYBIN34="/opt/python/cp34-cp34m/bin"
 # if [[ $travis ]]; then
 "${PYBIN34}/pip" install twine
 "${PYBIN34}/twine" upload --config-file /io/.pypirc /io/wheelhouse/dedupe*.whl
