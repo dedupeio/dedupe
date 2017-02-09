@@ -29,8 +29,7 @@ matrix:
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
          PRE_CMD=linux32
 
-before_install:
-- |
+before_install: |
   if [[ $PYTHON && "$TRAVIS_OS_NAME" == "osx" ]]; then
     brew update;
     brew install openssl readline;
@@ -38,20 +37,21 @@ before_install:
     brew install pyenv-virtualenv;
     pyenv install $PYTHON;
     export PYENV_VERSION=$PYTHON;
-    export PATH=/Users/travis/.pyenv/shims:${PATH};
+    export PATH="/Users/travis/.pyenv/shims:${PATH}";
     pyenv-virtualenv venv;
     source venv/bin/activate;
     python --version;
   fi;
-- echo [distutils]                                  > ~/.pypirc
-- echo index-servers=pypi                          >> ~/.pypirc
-- echo [pypi]                                      >> ~/.pypirc
-- echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
-- echo username=datamade.wheelbuilder              >> ~/.pypirc
-- echo password=$PYPIPASSWORD                      >> ~/.pypirc
-- if [[ $DOCKER_IMAGE ]]; then
-    echo $TRAVIS_TAG > .travis_tag;
-    cat ~/.pypirc > .pypirc;
+  echo [distutils]                                  > ~/.pypirc;
+  echo index-servers=pypi                          >> ~/.pypirc;
+  echo [pypi]                                      >> ~/.pypirc;
+  echo repository=https://pypi.python.org/pypi     >> ~/.pypirc;
+  echo username=datamade.wheelbuilder              >> ~/.pypirc;
+  echo password=$PYPIPASSWORD                      >> ~/.pypirc;
+  touch .travis_tag;
+  if [[ $DOCKER_IMAGE ]]; then
+      echo $TRAVIS_TAG > .travis_tag;
+      cat ~/.pypirc > .pypirc;
   fi;
 
 install:
