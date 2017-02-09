@@ -30,17 +30,18 @@ matrix:
          PRE_CMD=linux32
 
 before_install:
-- if [[ $PYTHON && "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew update;
-      brew install openssl readline;
-      brew outdated pyenv || brew upgrade pyenv;
-      brew install pyenv-virtualenv;
-      pyenv install $PYTHON;
-      export PYENV_VERSION=$PYTHON;
-      export PATH=/Users/travis/.pyenv/shims:${PATH};
-      pyenv-virtualenv venv;
-      source venv/bin/activate;
-      python --version;
+- |
+  if [[ $PYTHON && "$TRAVIS_OS_NAME" == "osx" ]]; then
+    brew update;
+    brew install openssl readline;
+    brew outdated pyenv || brew upgrade pyenv;
+    brew install pyenv-virtualenv;
+    pyenv install $PYTHON;
+    export PYENV_VERSION=$PYTHON;
+    export PATH=/Users/travis/.pyenv/shims:${PATH};
+    pyenv-virtualenv venv;
+    source venv/bin/activate;
+    python --version;
   fi;
 - echo [distutils]                                  > ~/.pypirc
 - echo index-servers=pypi                          >> ~/.pypirc
