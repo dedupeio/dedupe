@@ -24,6 +24,7 @@ done
 # Install packages and test
 for PYBIN in /opt/python/*/bin/; do
     if [[ "${PYBIN}" == *"cp27"* ]] || [[ "${PYBIN}" == *"cp34"* ]] || [[ "${PYBIN}" == *"cp35"* ]]; then
+        "${PYBIN}/pip" uninstall -y dedupe
         "${PYBIN}/pip" install dedupe --no-index -f /io/wheelhouse
         "${PYBIN}/pytest" /io/tests --cov dedupe
         "${PYBIN}/python" /io/tests/canonical.py -vv
