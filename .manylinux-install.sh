@@ -22,16 +22,16 @@ for whl in wheelhouse/dedupe*.whl; do
 done
 
 # Install packages and test
-cd /io/
 for PYBIN in /opt/python/*/bin/; do
     if [[ "${PYBIN}" == *"cp27"* ]] || [[ "${PYBIN}" == *"cp34"* ]] || [[ "${PYBIN}" == *"cp35"* ]]; then
         "${PYBIN}/pip" uninstall -y dedupe
         "${PYBIN}/pip" install dedupe --no-index -f /io/wheelhouse
         "${PYBIN}/pytest" tests --cov dedupe
+        cd /io/
         "${PYBIN}/python" tests/canonical.py -vv
+        cd /
     fi
 done
-cd /
 
 # If everything works, upload wheels to PyPi
 travis=$( cat /io/.travis_tag )
