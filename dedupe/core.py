@@ -32,13 +32,14 @@ def randomPairs(n_records, sample_size):
     n = int(n_records * (n_records - 1) / 2)
 
     if sample_size >= n :
-        random_pairs = numpy.arange(n)
+        random_pairs = numpy.arange(n, dtype='uint')
     else:
-        random_pairs = numpy.array(random.sample(range(n), sample_size))
+        random_pairs = numpy.array(random.sample(range(n), sample_size),
+                                   dtype='uint')
     
     b = 1 - 2 * n_records
 
-    i = numpy.floor((-b - numpy.sqrt(b ** 2 - 8 * random_pairs)) / 2).astype('uint')
+    i = numpy.floor((-b - 2 * numpy.sqrt(2 * (n - random_pairs) + 0.25)) / 2).astype('uint')
     j = numpy.rint(random_pairs + i * (b + i + 2) / 2 + 1).astype('uint')
 
     return zip(i, j)
