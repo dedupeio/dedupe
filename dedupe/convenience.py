@@ -24,55 +24,94 @@ def consoleLabel(deduper): # pragma: no cover
     '''
 
     finished = False
+    has_previous = False
+    use_previous = False
     fields = unique(field.field
                     for field
                     in deduper.data_model.primary_fields)
 
 
-    while not finished :
-        n_match, n_distinct = (len(deduper.training_pairs['match']),
-                               len(deduper.training_pairs['distinct']))
+    buffer_len = 1 # Max number of previous operations
+    examples_buffer = []
+    record_pair_buffer = [] 
 
-        uncertain_pairs = deduper.uncertainPairs()
-
+    while not finished :     
+            
+        if has_previous and use_previous:
+            record_pair = record_pair_buffer[0]
+            record_pair_buffer = record_pair_buffer[1:]
+            examples_buffer = examples_buffer[1:]
+            use_previous = False
+        else:
+            uncertain_pairs = deduper.uncertainPairs()
+            assert len(uncertain_pairs) == 1 
+            record_pair = uncertain_pairs[0]
+       
+        n_match_in_buffer = sum(len(x['match']) for x in examples_buffer)
+        n_distinct_in_buffer = sum(len(x['distinct']) for x in examples_buffer)
+                                                                                        
+        n_match, n_distinct = (len(deduper.training_pairs['match']) + n_match_in_buffer,
+                        len(deduper.training_pairs['distinct']) + n_distinct_in_buffer)
+      
         examples = {'distinct' : [], 'match' : []}
 
-        for record_pair in uncertain_pairs:
-            label = ''
-            labeled = False
+        label = ''
+        labeled = False
 
-            for pair in record_pair:
-                for field in fields:
-                    line = "%s : %s" % (field, pair[field])
-                    print(line, file=sys.stderr)
-                print(file=sys.stderr) 
+        for pair in record_pair:
+            for field in fields:
+                line = "%s : %s" % (field, pair[field])
+                print(line, file=sys.stderr)
+            print(file=sys.stderr) 
 
-            print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
-                  file=sys.stderr)
-            print('Do these records refer to the same thing?', file=sys.stderr)
-            valid_response = False
-            while not valid_response:
+        print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
+                file=sys.stderr)
+        print('Do these records refer to the same thing?', file=sys.stderr)
+        valid_response = False
+        while not valid_response:
+            if has_previous:
+                print('(y)es / (n)o / (u)nsure / (f)inished / (p)revious', file=sys.stderr)
+                label = input()
+                if label in ['y', 'n', 'u', 'f', 'p']:
+                    valid_response = True
+            else:
                 print('(y)es / (n)o / (u)nsure / (f)inished', file=sys.stderr)
                 label = input()
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
+                if label == 'p':
+                    print('(p)revious is not a valid answer (no record in memory)', file=sys.stderr)
 
-            if label == 'y' :
-                examples['match'].append(record_pair)
-                labeled = True
-            elif label == 'n' :
-                examples['distinct'].append(record_pair)
-                labeled = True
-            elif label == 'f':
-                print('Finished labeling', file=sys.stderr)
-                finished = True
-            elif label != 'u':
-                print('Nonvalid response', file=sys.stderr)
-                raise
-
-        if labeled :
-            deduper.markPairs(examples)
+        if label == 'y' :
+            examples['match'].append(record_pair)
+            labeled = True
+        elif label == 'n' :
+            examples['distinct'].append(record_pair)
+            labeled = True
+        elif label == 'f':
+            print('Finished labeling', file=sys.stderr)
+            finished = True
+        elif (label == 'p') and has_previous:
+            use_previous = True
+        elif label != 'u':
+            print('Nonvalid response', file=sys.stderr)
+            raise
         
+        if labeled:
+            examples_buffer = [examples] + examples_buffer
+            record_pair_buffer = [record_pair] + record_pair_buffer
+            assert len(examples_buffer) == len(record_pair_buffer)
+
+            if len(examples_buffer) > buffer_len:
+                examples = examples_buffer.pop()
+                record_pair_buffer.pop()
+                deduper.markPairs(examples)
+
+    has_previous = len(record_pair_buffer) >= 1 
+       
+    for examples in examples_buffer:
+        deduper.markPairs(examples)
+
 
 def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma: nocover
     '''
