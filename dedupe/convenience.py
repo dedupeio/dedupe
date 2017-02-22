@@ -34,7 +34,7 @@ def consoleLabel(deduper): # pragma: no cover
     uncertain_pairs = []
 
     while not finished :       
-        if examples_buffer and use_previous:
+        if use_previous:
             record_pair, _ = examples_buffer.pop(0)
             use_previous = False
         else:
@@ -42,14 +42,11 @@ def consoleLabel(deduper): # pragma: no cover
                 uncertain_pairs = deduper.uncertainPairs()
             record_pair = uncertain_pairs.pop()
                      
-        n_match_in_buffer = sum(label=='match' for _, label in examples_buffer) 
-        n_distinct_in_buffer = sum(label=='distinct' for _, label in examples_buffer)
-                                                                                        
-        n_match, n_distinct = (len(deduper.training_pairs['match']) + n_match_in_buffer,
-                        len(deduper.training_pairs['distinct']) + n_distinct_in_buffer)
+        n_match = (len(deduper.training_pairs['match']) +
+                   sum(label=='match' for _, label in examples_buffer))
+        n_distinct = (len(deduper.training_pairs['distinct']) +
+                      sum(label=='match' for _, label in examples_buffer))
         
-        label = ''
-
         for pair in record_pair:
             for field in fields:
                 line = "%s : %s" % (field, pair[field])
@@ -61,6 +58,7 @@ def consoleLabel(deduper): # pragma: no cover
         print('Do these records refer to the same thing?', file=sys.stderr)
         
         valid_response = False
+        user_input = ''
         while not valid_response:
             if examples_buffer:
                 prompt = '(y)es / (n)o / (u)nsure / (f)inished / (p)revious'
@@ -74,18 +72,18 @@ def consoleLabel(deduper): # pragma: no cover
             if user_input in valid_responses:
                 valid_response = True
 
-            if user_input == 'y' :
-                examples_buffer.insert(0, (record_pair, 'match'))
-            elif user_input == 'n' :
-                examples_buffer.insert(0, (record_pair, 'distinct'))
-            elif user_input == 'u':
-                examples_buffer.insert(0, (record_pair, 'uncertain'))
-            elif user_input == 'f':
-                print('Finished labeling', file=sys.stderr)
-                finished = True
-            elif user_input == 'p':
-                use_previous = True
-                uncertain_pairs.append(record_pair)
+        if user_input == 'y':
+            examples_buffer.insert(0, (record_pair, 'match'))
+        elif user_input == 'n' :
+            examples_buffer.insert(0, (record_pair, 'distinct'))
+        elif user_input == 'u':
+            examples_buffer.insert(0, (record_pair, 'uncertain'))
+        elif user_input == 'f':
+            print('Finished labeling', file=sys.stderr)
+            finished = True
+        elif user_input == 'p':
+            use_previous = True
+            uncertain_pairs.append(record_pair)
         
         if len(examples_buffer) > buffer_len:
             record_pair, label = examples_buffer.pop()
@@ -99,7 +97,7 @@ def consoleLabel(deduper): # pragma: no cover
             examples = {'distinct' : [], 'match' : []}
             examples[label].append(record_pair)
             deduper.markPairs(examples)
-# 
+
 
 def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma: nocover
     '''
