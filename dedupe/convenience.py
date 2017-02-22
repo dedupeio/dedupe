@@ -74,18 +74,18 @@ def consoleLabel(deduper): # pragma: no cover
             if user_input in valid_responses:
                 valid_response = True
 
-                if user_input == 'y' :
-                    examples_buffer.insert(0, (record_pair, 'match'))
-                elif user_input == 'n' :
-                    examples_buffer.insert(0, (record_pair, 'distinct'))
-                elif user_input == 'u':
-                    examples_buffer.insert(0, (record_pair, 'uncertain'))
-                elif user_input == 'f':
-                    print('Finished labeling', file=sys.stderr)
-                    finished = True
-                elif user_input == 'p':
-                    use_previous = True
-                    uncertain_pairs.append(record_pair)
+            if user_input == 'y' :
+                examples_buffer.insert(0, (record_pair, 'match'))
+            elif user_input == 'n' :
+                examples_buffer.insert(0, (record_pair, 'distinct'))
+            elif user_input == 'u':
+                examples_buffer.insert(0, (record_pair, 'uncertain'))
+            elif user_input == 'f':
+                print('Finished labeling', file=sys.stderr)
+                finished = True
+            elif user_input == 'p':
+                use_previous = True
+                uncertain_pairs.append(record_pair)
         
         if len(examples_buffer) > buffer_len:
             record_pair, label = examples_buffer.pop()
