@@ -24,39 +24,33 @@ def consoleLabel(deduper): # pragma: no cover
     '''
 
     finished = False
-    has_previous = False
     use_previous = False
     fields = unique(field.field
                     for field
                     in deduper.data_model.primary_fields)
 
 
-    buffer_len = 1 # Max number of previous operations
-    examples_buffer = []
-    record_pair_buffer = [] 
+    buffer_len = 0 # Max number of previous operations
+    record_label_buffer = []
+    uncertain_pairs = []
 
-    while not finished :     
-            
-        if has_previous and use_previous:
-            record_pair = record_pair_buffer[0]
-            record_pair_buffer = record_pair_buffer[1:]
-            examples_buffer = examples_buffer[1:]
-            use_previous = False
-        else:
+    while not finished :       
+        if len(record_label_buffer) and use_previous:
+            uncertain_pairs.append(record_label_buffer[0][0]) # append previous record_pair
+            record_label_buffer = record_label_buffer[1:] # remove previous pair from buffer
+        use_previous = False
+        
+        if not uncertain_pairs:
             uncertain_pairs = deduper.uncertainPairs()
-            assert len(uncertain_pairs) == 1 
-            record_pair = uncertain_pairs[0]
-       
-        n_match_in_buffer = sum(len(x['match']) for x in examples_buffer)
-        n_distinct_in_buffer = sum(len(x['distinct']) for x in examples_buffer)
+        record_pair = uncertain_pairs[-1]
+                
+        n_match_in_buffer = sum(x[1]=='match' for x in record_label_buffer) 
+        n_distinct_in_buffer = sum(x[1]=='distinct' for x in record_label_buffer)
                                                                                         
         n_match, n_distinct = (len(deduper.training_pairs['match']) + n_match_in_buffer,
                         len(deduper.training_pairs['distinct']) + n_distinct_in_buffer)
       
-        examples = {'distinct' : [], 'match' : []}
-
         label = ''
-        labeled = False
 
         for pair in record_pair:
             for field in fields:
@@ -69,7 +63,7 @@ def consoleLabel(deduper): # pragma: no cover
         print('Do these records refer to the same thing?', file=sys.stderr)
         valid_response = False
         while not valid_response:
-            if has_previous:
+            if len(record_label_buffer):
                 print('(y)es / (n)o / (u)nsure / (f)inished / (p)revious', file=sys.stderr)
                 label = input()
                 if label in ['y', 'n', 'u', 'f', 'p']:
@@ -80,38 +74,34 @@ def consoleLabel(deduper): # pragma: no cover
                 if label in ['y', 'n', 'u', 'f']:
                     valid_response = True
                 if label == 'p':
-                    print('(p)revious is not a valid answer (no record in memory)', file=sys.stderr)
+                    print('No record in memory: cannot use (p)revious', file=sys.stderr)
 
         if label == 'y' :
-            examples['match'].append(record_pair)
-            labeled = True
+            record_label_buffer.insert(0, (record_pair, 'match'))
+            uncertain_pairs.pop() # Remove current pair form uncertain list
         elif label == 'n' :
-            examples['distinct'].append(record_pair)
-            labeled = True
+            record_label_buffer.insert(0, (record_pair, 'distinct'))
+            uncertain_pairs.pop() 
         elif label == 'f':
             print('Finished labeling', file=sys.stderr)
             finished = True
-        elif (label == 'p') and has_previous:
+        elif (label == 'p') and len(record_label_buffer):
             use_previous = True
         elif label != 'u':
             print('Nonvalid response', file=sys.stderr)
             raise
         
-        if labeled:
-            examples_buffer = [examples] + examples_buffer
-            record_pair_buffer = [record_pair] + record_pair_buffer
-            assert len(examples_buffer) == len(record_pair_buffer)
-
-            if len(examples_buffer) > buffer_len:
-                examples = examples_buffer.pop()
-                record_pair_buffer.pop()
-                deduper.markPairs(examples)
-
-    has_previous = len(record_pair_buffer) >= 1 
+        if len(record_label_buffer) > buffer_len:
+            (record_pair, true_label) = record_label_buffer.pop()
+            examples = {'distinct' : [], 'match' : []}
+            examples[true_label].append(record_pair)
+            deduper.markPairs(examples)
        
-    for examples in examples_buffer:
-        deduper.markPairs(examples)
-
+    for (record_pair, true_label) in record_label_buffer:
+        examples = {'distinct' : [], 'match' : []}
+        examples[true_label].append(record_pair)
+    deduper.markPairs(examples)
+# 
 
 def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma: nocover
     '''
@@ -235,6 +225,7 @@ def trainingDataDedupe(data, common_key, training_size=50000) : # pragma: nocove
                       'distinct' : distinct_records} 
 
     return training_pairs
+
 
 
 def canonicalize(record_cluster): # pragma: nocover
