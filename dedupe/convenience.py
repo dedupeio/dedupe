@@ -30,7 +30,7 @@ def consoleLabel(deduper): # pragma: no cover
                     in deduper.data_model.primary_fields)
 
 
-    buffer_len = 0 # Max number of previous operations
+    buffer_len = 1 # Max number of previous operations
     record_label_buffer = []
     uncertain_pairs = []
 
