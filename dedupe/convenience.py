@@ -29,7 +29,6 @@ def consoleLabel(deduper): # pragma: no cover
                     for field
                     in deduper.data_model.primary_fields)
 
-
     buffer_len = 1 # Max number of previous operations
     record_label_buffer = []
     uncertain_pairs = []
@@ -85,21 +84,26 @@ def consoleLabel(deduper): # pragma: no cover
         elif label == 'f':
             print('Finished labeling', file=sys.stderr)
             finished = True
+        elif label == 'u':
+            record_label_buffer.insert(0, (record_pair, 'uncertain'))
+            uncertain_pairs.pop() 
         elif (label == 'p') and len(record_label_buffer):
             use_previous = True
-        elif label != 'u':
+        else:
             print('Nonvalid response', file=sys.stderr)
             raise
         
         if len(record_label_buffer) > buffer_len:
             (record_pair, true_label) = record_label_buffer.pop()
-            examples = {'distinct' : [], 'match' : []}
-            examples[true_label].append(record_pair)
-            deduper.markPairs(examples)
+            if true_label in ['distinct', 'match']:
+                examples = {'distinct' : [], 'match' : []}
+                examples[true_label].append(record_pair)
+                deduper.markPairs(examples)
        
     for (record_pair, true_label) in record_label_buffer:
-        examples = {'distinct' : [], 'match' : []}
-        examples[true_label].append(record_pair)
+        if true_label in ['distinct', 'match']:
+            examples = {'distinct' : [], 'match' : []}
+            examples[true_label].append(record_pair)
     deduper.markPairs(examples)
 # 
 
