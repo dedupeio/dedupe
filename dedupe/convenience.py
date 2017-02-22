@@ -24,55 +24,82 @@ def consoleLabel(deduper): # pragma: no cover
     '''
 
     finished = False
+    use_previous = False
     fields = unique(field.field
                     for field
                     in deduper.data_model.primary_fields)
 
+    buffer_len = 1 # Max number of previous operations
+    examples_buffer = []
+    uncertain_pairs = []
 
-    while not finished :
-        n_match, n_distinct = (len(deduper.training_pairs['match']),
-                               len(deduper.training_pairs['distinct']))
+    while not finished :       
+        if examples_buffer and use_previous:
+            record_pair, _ = examples_buffer.pop(0)
+            use_previous = False
+        else:
+            if not uncertain_pairs:
+                uncertain_pairs = deduper.uncertainPairs()
+            record_pair = uncertain_pairs.pop()
+                     
+        n_match_in_buffer = sum(label=='match' for _, label in examples_buffer) 
+        n_distinct_in_buffer = sum(label=='distinct' for _, label in examples_buffer)
+                                                                                        
+        n_match, n_distinct = (len(deduper.training_pairs['match']) + n_match_in_buffer,
+                        len(deduper.training_pairs['distinct']) + n_distinct_in_buffer)
+        
+        label = ''
 
-        uncertain_pairs = deduper.uncertainPairs()
+        for pair in record_pair:
+            for field in fields:
+                line = "%s : %s" % (field, pair[field])
+                print(line, file=sys.stderr)
+            print(file=sys.stderr) 
 
-        examples = {'distinct' : [], 'match' : []}
+        print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
+                file=sys.stderr)
+        print('Do these records refer to the same thing?', file=sys.stderr)
+        
+        valid_response = False
+        while not valid_response:
+            if examples_buffer:
+                prompt = '(y)es / (n)o / (u)nsure / (f)inished / (p)revious'
+                valid_responses = {'y', 'n', 'u', 'f', 'p'}
+            else: 
+                prompt = '(y)es / (n)o / (u)nsure / (f)inished'
+                valid_responses = {'y', 'n', 'u', 'f'}
 
-        for record_pair in uncertain_pairs:
-            label = ''
-            labeled = False
+            print(prompt, file=sys.stderr)
+            user_input = input()
+            if user_input in valid_responses:
+                valid_response = True
 
-            for pair in record_pair:
-                for field in fields:
-                    line = "%s : %s" % (field, pair[field])
-                    print(line, file=sys.stderr)
-                print(file=sys.stderr) 
-
-            print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
-                  file=sys.stderr)
-            print('Do these records refer to the same thing?', file=sys.stderr)
-            valid_response = False
-            while not valid_response:
-                print('(y)es / (n)o / (u)nsure / (f)inished', file=sys.stderr)
-                label = input()
-                if label in ['y', 'n', 'u', 'f']:
-                    valid_response = True
-
-            if label == 'y' :
-                examples['match'].append(record_pair)
-                labeled = True
-            elif label == 'n' :
-                examples['distinct'].append(record_pair)
-                labeled = True
-            elif label == 'f':
+            if user_input == 'y' :
+                examples_buffer.insert(0, (record_pair, 'match'))
+            elif user_input == 'n' :
+                examples_buffer.insert(0, (record_pair, 'distinct'))
+            elif user_input == 'u':
+                examples_buffer.insert(0, (record_pair, 'uncertain'))
+            elif user_input == 'f':
                 print('Finished labeling', file=sys.stderr)
                 finished = True
-            elif label != 'u':
-                print('Nonvalid response', file=sys.stderr)
-                raise
-
-        if labeled :
-            deduper.markPairs(examples)
+            elif user_input == 'p':
+                use_previous = True
+                uncertain_pairs.append(record_pair)
         
+        if len(examples_buffer) > buffer_len:
+            record_pair, label = examples_buffer.pop()
+            if label in ['distinct', 'match']:
+                examples = {'distinct' : [], 'match' : []}
+                examples[label].append(record_pair)
+                deduper.markPairs(examples)
+
+    for record_pair, label in examples_buffer:
+        if label in ['distinct', 'match']:
+            examples = {'distinct' : [], 'match' : []}
+            examples[label].append(record_pair)
+            deduper.markPairs(examples)
+# 
 
 def trainingDataLink(data_1, data_2, common_key, training_size=50000) : # pragma: nocover
     '''
@@ -196,6 +223,7 @@ def trainingDataDedupe(data, common_key, training_size=50000) : # pragma: nocove
                       'distinct' : distinct_records} 
 
     return training_pairs
+
 
 
 def canonicalize(record_cluster): # pragma: nocover
