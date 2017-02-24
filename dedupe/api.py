@@ -125,7 +125,7 @@ class Matching(object):
         except AttributeError:
             pass
 
-        return clusters
+        return list(clusters)
 
     def writeSettings(self, file_obj, index=False):  # pragma: no cover
         """
