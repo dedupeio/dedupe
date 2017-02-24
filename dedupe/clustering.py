@@ -3,6 +3,7 @@
 from future.utils import viewvalues
 
 import itertools
+from collections import defaultdict
 
 import warnings
 import numpy
@@ -131,8 +132,6 @@ def cluster(dupes, threshold=.5, max_components=30000):
 
     dupe_sub_graphs = connected_components(dupes, max_components)
 
-    clustering = {}
-    cluster_id = 0
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
 
@@ -146,81 +145,57 @@ def cluster(dupes, threshold=.5, max_components=30000):
                                           threshold,
                                           criterion='distance')
 
-            clusters = {}
+            clusters = defaultdict(list)
 
-            for i, partition_id in enumerate(partition):
-                clusters.setdefault(partition_id, []).append(i)
+            for i, cluster_id in enumerate(partition):
+                clusters[cluster_id].append(i)
 
-            for items in viewvalues(clusters) :
-                if len(items) > 1 :
-                    items = tuple(items)
-                    scores = confidences(items, condensed_distances, N)
-                    clustering[cluster_id] = (tuple(i_to_id[i] for i in items),
-                                              scores)
-                    cluster_id += 1
+            for cluster in viewvalues(clusters) :
+                if len(cluster) > 1 :
+                    scores = confidences(cluster, condensed_distances, N)
+                    yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             ids, score = sub_graph[0]
-            clustering[cluster_id] = (tuple(ids), tuple([score]*2))
-            cluster_id += 1
+            yield tuple(ids), tuple([score]*2)
             
 
-    return clustering.values()
-
-def confidences(items, condensed_distances, d) :
-    scores = dict.fromkeys(items, 0)
-    for i, j in itertools.combinations(items, 2) :
+def confidences(cluster, condensed_distances, d) :
+    scores = dict.fromkeys(cluster, 0.0)
+    for i, j in itertools.combinations(cluster, 2) :
         index = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
         dist = condensed_distances[int(index)]
         scores[i] += dist
         scores[j] += dist
-    scores = numpy.array([v for (k, v) in sorted(scores.items())])
-    scores /= len(items) - 1
+    scores = numpy.array([score for _, score in sorted(scores.items())])
+    scores /= len(cluster) - 1
     scores = 1 - scores
     return scores
 
 def greedyMatching(dupes, threshold=0.5):
-    dupes = numpy.array(dupes)
-    covered_vertex_A = set()
-    covered_vertex_B = set()
-    clusters = []
+    A = set()
+    B = set()
 
-    sorted_dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
-    dupes_list = (dupe for dupe in sorted_dupes if dupe[1] >= threshold)
+    dupes = ((pair, score) for pair, score in dupes if score >= threshold)
+    dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
 
-    for vertices, score in dupes_list:
-        a, b = vertices
-        if a not in covered_vertex_A and b not in covered_vertex_B:
-            clusters.append((vertices, score))
-            covered_vertex_A.add(a)
-            covered_vertex_B.add(b)
+    for (a, b), score in dupes:
+        if a not in A and b not in B:
+            A.add(a)
+            B.add(b)
 
-    return clusters
+            yield (a, b), score
+
 
 def gazetteMatching(dupes, threshold=0.5, n_matches=1):
-    dupes = numpy.array(dupes) 
-    clusters = []
+    messy_id = lambda match: match[0][0]
+    score = lambda match: match[1]
+    
+    dupes = ((pair, score) for pair, score in dupes if score >= threshold)
+    dupes = sorted(dupes, key=lambda match: (messy_id(match), -score(match)))
 
-    sorted_dupes = sorted(dupes, key=lambda pair: (pair[0][0], -pair[1]))
-    dupes_list = [dupe for dupe in sorted_dupes if dupe[1] >= threshold]
-
-    if dupes_list :
-        group = dupes_list[0][0][0]
-        matches = []
-        i = 0
-
-        for pair, score in dupes_list:
-            a, b = pair
-            if a == group :
-                if n_matches is None or i < n_matches :
-                    matches.append((pair, score))
-                    i += 1
-            else :
-                clusters.append(tuple(matches))
-                matches = [(pair, score)]
-                i = 1
-                group = a
-
-        clusters.append(tuple(matches))
-
-    return clusters
+    for _, matches in itertools.groupby(dupes, key=messy_id):
+        if n_matches:
+            yield tuple(matches)[:n_matches]
+        else:
+            yield tuple(matches)
