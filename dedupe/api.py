@@ -116,7 +116,7 @@ class Matching(object):
 
         logger.debug("matching done, begin clustering")
 
-        clusters = self._cluster(matches, threshold, *args, **kwargs)
+        clusters = list(self._cluster(matches, threshold, *args, **kwargs))
 
         try:
             match_file = matches.filename
@@ -125,7 +125,7 @@ class Matching(object):
         except AttributeError:
             pass
 
-        return list(clusters)
+        return clusters
 
     def writeSettings(self, file_obj, index=False):  # pragma: no cover
         """
