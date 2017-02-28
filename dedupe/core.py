@@ -26,8 +26,10 @@ class ChildProcessError(Exception) :
 
 def randomPairs(n_records, sample_size):
     """
-    Return random combinations of indices for a square matrix of size
-    n records
+    Return random combinations of indices for a square matrix of size n
+    records. For a discussion of how this works see
+    http://stackoverflow.com/a/14839010/98080
+
     """
     n = int(n_records * (n_records - 1) / 2)
 
