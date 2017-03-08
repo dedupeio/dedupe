@@ -26,6 +26,8 @@ class BlockLearner(object) :
         
         dupe_cover = cover(self.blocker, matches, compound_length)
 
+        self.blocker.resetIndices()
+
         comparison_count = self.comparisons(self.total_cover, compound_length)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
@@ -214,14 +216,15 @@ class RecordLinkBlockLearner(BlockLearner) :
         return numpy.sum((lengths_A * self.multiplier_1) *
                          (lengths_B * self.multiplier_2))
 
-
+    
 class BranchBound(object) :
     def __init__(self, original_cover, comparison_count, epsilon, max_calls) :
-        self.dupes_to_cover = set.union(*original_cover.values())
         self.original_cover = original_cover.copy()
         self.calls = max_calls
         self.comparisons = comparison_count
-        self.epsilon = epsilon
+
+        self.target = (len(set.union(*original_cover.values())) -
+                       epsilon)
 
         self.cheapest = tuple(original_cover.keys())
         self.cheapest_score = float('inf')
@@ -232,16 +235,20 @@ class BranchBound(object) :
 
         self.calls -= 1
 
-        uncovered_dupes = self.dupes_to_cover.difference(*(self.original_cover[pred]
-                                                           for pred in partial))
+        if partial:
+            covered = len(set.union(*(self.original_cover[p]
+                                      for p in partial)))
+        else:
+            covered = 0
 
-        if len(uncovered_dupes) <= self.epsilon :
+        if covered >= self.target :
             partial_score = self.score(partial)
             if partial_score < self.cheapest_score :
                 self.cheapest = partial
                 self.cheapest_score = partial_score
 
-        elif dupe_cover and (self.lower_bound(partial, dupe_cover) <= self.cheapest_score):
+        elif (dupe_cover and
+              self.lower_bound(partial, dupe_cover) < self.cheapest_score):
             cost = lambda p : self.comparisons[p]/len(dupe_cover[p])
             best_predicate = min(dupe_cover, key=cost)
 
@@ -250,9 +257,9 @@ class BranchBound(object) :
             self.search(remaining, partial + (best_predicate,))
 
             reduced = self.dominates(dupe_cover, best_predicate)
-
-            uncoverable_dupes = uncovered_dupes.difference(*reduced.values())
-            if len(uncoverable_dupes) <= self.epsilon:
+            reachable = covered + len(set.union(*reduced.values()))
+            
+            if reachable >= self.target:
                 self.search(reduced, partial)
 
         return self.cheapest
@@ -264,17 +271,15 @@ class BranchBound(object) :
         return self.score(partial) + min(self.comparisons[p] for p in dupe_cover)
 
     def dominates(self, coverage, dominator):
-        remaining = coverage.copy()
-
         dominant_cost = self.comparisons[dominator]
         dominant_cover = coverage[dominator]
 
-        for pred, cover in viewitems(coverage):
+        for pred, cover in viewitems(coverage.copy()):
              if (dominant_cost <= self.comparisons[pred] and
                  dominant_cover >= cover):
-                 del remaining[pred]
+                 del coverage[pred]
 
-        return remaining
+        return coverage
 
 
 def cover(blocker, pairs, compound_length) : # pragma: no cover
@@ -318,7 +323,10 @@ def remaining_cover(coverage, covered=set()):
     for predicate, uncovered in viewitems(coverage):
         still_uncovered = uncovered - covered
         if still_uncovered:
-            remaining[predicate] = still_uncovered
+            if still_uncovered == uncovered:
+                remaining[predicate] = uncovered
+            else:
+                remaining[predicate] = still_uncovered
 
     return remaining
                             
@@ -334,5 +342,3 @@ def unique(seq):
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
-
-NO_PREDICATES_ERROR = "No predicate found! We could not learn a single good predicate. Maybe give Dedupe more training data or increasing the `max_comparisons` argument to the train method"
