@@ -146,10 +146,9 @@ class DedupeBlockLearner(BlockLearner) :
         return cover
 
     def estimate(self, blocks):
-        lengths = numpy.fromiter((len(ids) for ids in blocks), int)
-        return numpy.sum((lengths * self.multiplier) *
-                         (lengths * self.multiplier - 1) /
-                         2)
+        lengths = (numpy.fromiter((len(ids) for ids in blocks), int)
+                   * self.multiplier)
+        return numpy.sum(lengths * (lengths - 1))/2
 
 class RecordLinkCompounder(Compounder) :
     def overlap(self, a_blocks, b) :

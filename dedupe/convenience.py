@@ -45,7 +45,7 @@ def consoleLabel(deduper): # pragma: no cover
         n_match = (len(deduper.training_pairs['match']) +
                    sum(label=='match' for _, label in examples_buffer))
         n_distinct = (len(deduper.training_pairs['distinct']) +
-                      sum(label=='match' for _, label in examples_buffer))
+                      sum(label=='distinct' for _, label in examples_buffer))
         
         for pair in record_pair:
             for field in fields:
