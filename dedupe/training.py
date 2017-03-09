@@ -43,7 +43,7 @@ class BlockLearner(object) :
         else :
             epsilon -= len(uncoverable_dupes)
 
-        searcher = BranchBound(dupe_cover, comparison_count, epsilon, 5000)
+        searcher = BranchBound(dupe_cover, comparison_count, epsilon, 2500)
         final_predicates = searcher.search(dupe_cover)
 
         logger.info('Final predicate set:')
@@ -229,37 +229,38 @@ class BranchBound(object) :
         self.cheapest = tuple(original_cover.keys())
         self.cheapest_score = float('inf')
 
-    def search(self, dupe_cover, partial=()) :
+    def search(self, candidates, partial=()) :
         if self.calls <= 0 :
             return self.cheapest
 
         self.calls -= 1
 
-        if partial:
-            covered = len(set.union(*(self.original_cover[p]
-                                      for p in partial)))
-        else:
-            covered = 0
+        covered = self.covered(partial)
+        score = self.score(partial)
 
-        if covered >= self.target :
-            partial_score = self.score(partial)
-            if partial_score < self.cheapest_score :
+        if covered >= self.target:
+            if score < self.cheapest_score :
                 self.cheapest = partial
-                self.cheapest_score = partial_score
+                self.cheapest_score = score
 
-        elif (dupe_cover and
-              self.lower_bound(partial, dupe_cover) < self.cheapest_score):
-            cost = lambda p : self.comparisons[p]/len(dupe_cover[p])
-            best_predicate = min(dupe_cover, key=cost)
+        else:
+            window = self.cheapest_score - score
 
-            remaining = remaining_cover(dupe_cover, dupe_cover[best_predicate])
+            candidates = {p : cover
+                          for p, cover in viewitems(candidates)
+                          if self.comparisons[p] < window}
 
-            self.search(remaining, partial + (best_predicate,))
+            reachable = self.reachable(candidates) + covered
 
-            reduced = self.dominates(dupe_cover, best_predicate)
-            reachable = covered + len(set.union(*reduced.values()))
-            
-            if reachable >= self.target:
+            if candidates and reachable >= self.target:
+                best = max(candidates, key=lambda p: len(candidates[p]))
+
+                remaining = remaining_cover(candidates,
+                                            candidates[best])
+                self.search(remaining, partial + (best,))
+                del remaining
+
+                reduced = self.dominates(candidates, best)
                 self.search(reduced, partial)
 
         return self.cheapest
@@ -267,8 +268,18 @@ class BranchBound(object) :
     def score(self, partial):
         return sum(self.comparisons[p] for p in partial)
 
-    def lower_bound(self, partial, dupe_cover) :
-        return self.score(partial) + min(self.comparisons[p] for p in dupe_cover)
+    def covered(self, partial):
+        if partial:
+            return len(set.union(*(self.original_cover[p]
+                                   for p in partial)))
+        else:
+            return 0
+
+    def reachable(self, dupe_cover):
+        if dupe_cover:
+            return len(set.union(*dupe_cover.values()))
+        else:
+            return 0
 
     def dominates(self, coverage, dominator):
         dominant_cost = self.comparisons[dominator]
