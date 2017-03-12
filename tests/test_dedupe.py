@@ -92,25 +92,12 @@ class ConnectedComponentsTest(unittest.TestCase) :
                      ((11, 12), .2)],
                     dtype = [('pairs', 'i4', 2), ('score', 'f4', 1)])
     components = dedupe.clustering.connected_components
-    numpy.testing.assert_equal(list(components(G, 30000)), \
-                               [numpy.array([([1, 2], 0.10000000149011612), 
-                                             ([2, 3], 0.20000000298023224)], 
-                                            dtype=[('pairs', 'i4', (2,)), 
-                                                   ('score', '<f4')]), 
-                                numpy.array([([4, 5], 0.20000000298023224), 
-                                             ([4, 6], 0.20000000298023224)], 
-                                            dtype=[('pairs', 'i4', (2,)), 
-                                                   ('score', '<f4')]), 
-                                numpy.array([([12, 13], 0.20000000298023224), 
-                                             ([12, 14], 0.5),
-                                             ([10, 11], 0.20000000298023224), 
-                                             ([11, 12], 0.20000000298023224)],
-                                            dtype=[('pairs', 'i4', (2,)), 
-                                                   ('score', '<f4')]), 
-                                numpy.array([([7, 9], 0.20000000298023224), 
-                                             ([8, 9], 0.20000000298023224)], 
-                                            dtype=[('pairs', 'i4', (2,)), 
-                                                   ('score', '<f4')])])
+    G_components = {frozenset(tuple(edge) for edge, _ in component)
+                    for component in components(G, 30000)}
+    assert G_components == {frozenset(((1, 2), (2,3))),
+                            frozenset(((4, 5), (4, 6))),
+                            frozenset(((12, 13), (12, 14), (10, 11), (11, 12))),
+                            frozenset(((7, 9), (8, 9)))}
 
   
 

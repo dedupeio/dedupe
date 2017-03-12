@@ -140,7 +140,11 @@ class TfIndexUnindex(unittest.TestCase) :
     for block_key, record_id in self.blocker(self.records_1.items()) :
       blocks[block_key].add(record_id)
 
-    assert list(blocks.items()) == [(u'4:0', set([130]))]
+    result = list(blocks.items())
+
+    assert len(result) == 1
+
+    assert result[0][1] == set([130])
 
   def test_unindex(self) :
     self.blocker.index(self.fields_2.values(), "name")
