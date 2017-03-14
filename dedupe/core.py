@@ -131,15 +131,6 @@ def mergeScores(score_queue, result_queue, stop_signals) :
             seen_signals += 1
 
     if len(scored_pairs) :
-        python_type = type(scored_pairs['pairs'][0][0])
-        if python_type is binary_type or python_type is text_type :
-            max_length = len(max(numpy.ravel(scored_pairs['pairs']), key=len))
-            python_type = (unicode, max_length)
-        
-        write_dtype = [('pairs', python_type, 2),
-                       ('score', 'f4', 1)]
-
-        scored_pairs = scored_pairs.astype(write_dtype)
 
         scored_pairs_file, file_path = tempfile.mkstemp()
         

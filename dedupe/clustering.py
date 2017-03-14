@@ -19,7 +19,7 @@ def connected_components(edgelist, max_components) :
     if len(edgelist['pairs']) == 0:
         raise StopIteration()
 
-    it = numpy.nditer(edgelist['pairs'], ['external_loop'])
+    it = numpy.nditer(edgelist['pairs'], ['external_loop', 'refs_ok'])
 
     for i, (a,b) in enumerate(it) :
         root_a = root.get(a)
