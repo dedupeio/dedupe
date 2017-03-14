@@ -191,6 +191,8 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
         scored_pairs = numpy.memmap(scored_pairs_file,
                                     dtype=dtype,
                                     shape=(size,))
+    else:
+        scored_pairs = []
 
     reduce_process.join()
     [process.join() for process in map_processes]
