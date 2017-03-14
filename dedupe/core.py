@@ -115,10 +115,12 @@ class ScoreRecords(object) :
             return scored_pairs
 
 def mergeScores(score_queue, result_queue, stop_signals) :
-    scored_pairs = numpy.empty(0, dtype= [('pairs', 'object', 2), 
-                                          ('score', 'f4', 1)])
+    scored_pairs_file, file_path = tempfile.mkstemp()
+    os.close(scored_pairs_file)
+    fp = []
 
     seen_signals = 0
+    start = 0
     while seen_signals < stop_signals  :
         score_chunk = score_queue.get()
         if isinstance(score_chunk, Exception) :
@@ -126,25 +128,26 @@ def mergeScores(score_queue, result_queue, stop_signals) :
             return
 
         if score_chunk is not None :
-            scored_pairs = numpy.concatenate((scored_pairs, score_chunk))
+            if not len(fp):
+                python_type = type(score_chunk['pairs'][0][0])
+                if python_type is binary_type or python_type is text_type :
+                    python_type = (unicode, 128)
+        
+                dtype = [('pairs', python_type, 2), ('score', 'f4', 1)]
+
+            end = start + len(score_chunk)
+            if end > len(fp):
+                fp = numpy.memmap(file_path, dtype=dtype, shape=(end * 2, ))
+
+            fp[start:end] = score_chunk
+            start = end
         else :
             seen_signals += 1
 
-    if len(scored_pairs) :
-
-        scored_pairs_file, file_path = tempfile.mkstemp()
-        
-        os.close(scored_pairs_file)
-
-        fp = numpy.memmap(file_path, 
-                          dtype=scored_pairs.dtype, 
-                          shape=scored_pairs.shape)
-        fp[:] = scored_pairs[:]
-
-        result_queue.put((file_path, scored_pairs.dtype))
-
-    else :
-        result_queue.put(scored_pairs)
+    if end:
+        result_queue.put((file_path, dtype, end))
+    else:
+        result_queue.put(None)
 
 def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     if num_cores < 2 :
@@ -184,11 +187,10 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
         raise ChildProcessError
 
     if result :
-        scored_pairs_file, dtype = result
+        scored_pairs_file, dtype, size = result
         scored_pairs = numpy.memmap(scored_pairs_file,
-                                    dtype=dtype)
-    else :
-        scored_pairs = result
+                                    dtype=dtype,
+                                    shape=(size,))
 
     reduce_process.join()
     [process.join() for process in map_processes]
@@ -199,6 +201,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
 def fillQueue(queue, iterable, stop_signals) :
     iterable = iter(iterable)
     chunk_size = 100000
+    upper_bound = 10000000
     multiplier = 1.1
 
     # initial values
@@ -227,7 +230,7 @@ def fillQueue(queue, iterable, stop_signals) :
                 if current_rate < last_rate :
                     multiplier = 1/multiplier
 
-                chunk_size = max(chunk_size * multiplier, 1)
+                chunk_size = min(max(chunk_size * multiplier, 1), upper_bound)
 
                 last_rate = current_rate
                 n_records = 0
