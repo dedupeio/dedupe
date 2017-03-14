@@ -131,7 +131,7 @@ def mergeScores(score_queue, result_queue, stop_signals) :
             if not len(fp):
                 python_type = type(score_chunk['pairs'][0][0])
                 if python_type is binary_type or python_type is text_type :
-                    python_type = (unicode, 128)
+                    python_type = (unicode, 256)
         
                 dtype = [('pairs', python_type, 2), ('score', 'f4', 1)]
 
