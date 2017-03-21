@@ -171,7 +171,7 @@ Example
                              the complete first dataset. By default,
                              `original_length_1` defaults to the length of
                              `data_1`
-   :param original_length_1: If `data_2` is a subsample of your first dataset,
+   :param original_length_2: If `data_2` is a subsample of your first dataset,
                              `original_length_2` should be the size of
                              the complete first dataset. By default,
                              `original_length_2` defaults to the length of
