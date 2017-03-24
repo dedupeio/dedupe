@@ -2,7 +2,6 @@ branches:
   only:
   - master
   - "/^v.*$/"
-language: python
 notifications:
   email:
     on_success: change
@@ -36,6 +35,7 @@ matrix:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
     install:
+      - echo `pwd`
       - docker pull $DOCKER_IMAGE && docker run --rm -v `pwd`:/io $DOCKER_IMAGE linux32 /io/.manylinux-install
       - exit
 
@@ -48,6 +48,7 @@ before_install:
   - echo password=$PYPIPASSWORD                      >> ~/.pypirc
   - echo $TRAVIS_TAG > .travis_tag
   - cat ~/.pypirc > .pypirc
+  - echo `pwd`
 
 
 install:
