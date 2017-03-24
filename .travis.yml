@@ -19,7 +19,7 @@ matrix:
   - os: osx
     language: generic
   - os: osx
-    python: 2.7
+    language: generic
     before_install:
       - brew update
       - brew install python3
