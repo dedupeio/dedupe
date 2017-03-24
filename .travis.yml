@@ -19,72 +19,58 @@ matrix:
   - os: osx
     language: generic
   - os: osx
-    language: generic
-    env: PYTHON='3.5.2'
+    before_install:
+      - brew update
+      - brew install python3
+      - virtualenv env -p python3
+      - source env/bin/activate
   - sudo: required
     services:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+    install:
+      - docker pull $DOCKER_IMAGE && docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
+      - exit
   - sudo: required
     services:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
-         PRE_CMD=linux32
+    install:
+      - docker pull $DOCKER_IMAGE && docker run --rm -v `pwd`:/io $DOCKER_IMAGE linux32 /io/.manylinux-install
+      - exit
 
-before_install: |
-  if [[ $PYTHON && "$TRAVIS_OS_NAME" == "osx" ]]; then
-    brew update;
-    brew install openssl readline;
-    brew outdated pyenv || brew upgrade pyenv;
-    brew install pyenv-virtualenv;
-    pyenv install $PYTHON;
-    export PYENV_VERSION=$PYTHON;
-    export PATH="/Users/travis/.pyenv/shims:${PATH}";
-    pyenv-virtualenv venv;
-    source venv/bin/activate;
-    python --version;
-  fi;
-  echo [distutils]                                  > ~/.pypirc;
-  echo index-servers=pypi                          >> ~/.pypirc;
-  echo [pypi]                                      >> ~/.pypirc;
-  echo repository=https://pypi.python.org/pypi     >> ~/.pypirc;
-  echo username=datamade.wheelbuilder              >> ~/.pypirc;
-  echo password=$PYPIPASSWORD                      >> ~/.pypirc;
-  touch .travis_tag;
-  if [[ $DOCKER_IMAGE ]]; then
-      echo $TRAVIS_TAG > .travis_tag;
-      cat ~/.pypirc > .pypirc;
-  fi;
+before_install:
+  - echo [distutils]                                  > ~/.pypirc
+  - echo index-servers=pypi                          >> ~/.pypirc
+  - echo [pypi]                                      >> ~/.pypirc
+  - echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
+  - echo username=datamade.wheelbuilder              >> ~/.pypirc
+  - echo password=$PYPIPASSWORD                      >> ~/.pypirc
+  - echo $TRAVIS_TAG > .travis_tag
+  - cat ~/.pypirc > .pypirc
+
 
 install:
-- if [[ $DOCKER_IMAGE ]]; then
-      docker pull $DOCKER_IMAGE &&
-      docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/.manylinux-install.sh;
-  else
-      pip install --upgrade pip;
-      pip install "numpy>=1.9.2";
-      pip install --upgrade -r requirements.txt;
-      pip install coveralls;
-      cython src/*.pyx;
-      pip install -e .;
-  fi;
+  - pip install --upgrade pip
+  - pip install "numpy>=1.9.2"
+  - pip install --upgrade -r requirements.txt
+  - pip install coveralls
+  - cython src/*.pyx
+  - pip install -e .
 script:
-- if [[ -z $DOCKER_IMAGE ]]; then
-    pytest tests --cov dedupe;
-    python tests/canonical.py -vv;
-  fi;
+  - pytest tests --cov dedupe
+  - python tests/canonical.py -vv
 after_success:
-- pip install wheel twine 
-- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then
-    coveralls;
+  - pip install wheel twine
+  - coveralls
+  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then
     python setup.py bdist_wheel;
-    twine upload dist/*;
-  fi;
-- if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "linux" ]]; then
-    coveralls;
+    fi;
+  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "linux" ]]; then
     python setup.py sdist;
-    twine upload dist/*;
-  fi;
+    fi;
+  - twine upload dist/*;
+
 env:
   global:
   - secure: T3lCe9jJUbYLB0WHgSD+utrmJSvgcXCLi+Lwugsaa2SXIX8UzL7TbwHWB1t10H4sddy0QBBwanqRptv6iZ7gN0EtIE6+BDv6FJcNZJBDp13pUoQqq1Fm3OMbEniLrc/ubV6mZyJLHh6oNJtzSWPk1wrFvByLpYskeZIm4ayw4Mc=
