@@ -2,6 +2,7 @@ branches:
   only:
   - master
   - "/^v.*$/"
+language: python
 notifications:
   email:
     on_success: change
@@ -18,6 +19,7 @@ matrix:
   - os: osx
     language: generic
   - os: osx
+    python: 2.7
     before_install:
       - brew update
       - brew install python3
