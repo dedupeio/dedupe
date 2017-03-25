@@ -1,24 +1,22 @@
 branches:
   only:
-  - master
-  - "/^v.*$/"
-language: python
+    - master
+    - "/^v.*$/"
 notifications:
   email:
     on_success: change
     on_failure: always
   irc: chat.freenode.net#dedupe
+language: python
 matrix:
   include:
-  - os: linux
-    python: 3.6
-  - os: linux
-    python: 3.5
-  - os: linux
-    python: 2.7
+  - python: 3.6
+  - python: 3.5
+  - python: 2.7
   - os: osx
     language: generic
   - os: osx
+    language: generic
     before_install:
       - brew update
       - brew install python3
@@ -29,48 +27,52 @@ matrix:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
     install:
-      - docker pull $DOCKER_IMAGE && docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
-      - exit
+      - docker pull $DOCKER_IMAGE
+    script:
+      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
+    after_success:
+      - if [[ $TRAVIS_TAG ]]; then pip install twine && twine upload -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*; fi
+      - exit 0
   - sudo: required
     services:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
     install:
-      - docker pull $DOCKER_IMAGE && docker run --rm -v `pwd`:/io $DOCKER_IMAGE linux32 /io/.manylinux-install
-      - exit
-
-before_install:
-  - echo [distutils]                                  > ~/.pypirc
-  - echo index-servers=pypi                          >> ~/.pypirc
-  - echo [pypi]                                      >> ~/.pypirc
-  - echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
-  - echo username=datamade.wheelbuilder              >> ~/.pypirc
-  - echo password=$PYPIPASSWORD                      >> ~/.pypirc
-  - echo $TRAVIS_TAG > .travis_tag
-  - cat ~/.pypirc > .pypirc
-
-
+      - docker pull $DOCKER_IMAGE
+    script:
+      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
+    after_success:
+      - if [[ $TRAVIS_TAG ]]; then pip install twine && twine upload -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*; fi
+      - exit 0
 install:
   - pip install --upgrade pip
   - pip install "numpy>=1.9.2"
   - pip install --upgrade -r requirements.txt
-  - pip install coveralls
   - cython src/*.pyx
   - pip install -e .
 script:
   - pytest tests --cov dedupe
   - python tests/canonical.py -vv
 after_success:
-  - pip install wheel twine
+  - pip install coveralls
   - coveralls
-  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then
-    python setup.py bdist_wheel;
-    fi;
-  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "linux" ]]; then
-    python setup.py sdist;
-    fi;
-  - twine upload dist/*;
-
+deploy:
+  - provider: pypi
+    skip_cleanup: true
+    user: datamade.wheelbuilder
+    on:
+      tags: true
+      condition: "$TRAVIS_OS_NAME = osx"
+    distributions: bdist_wheel
+    password: $PYPIPASSWORD
+  - provider: pypi
+    skip_cleanup: true
+    user: datamade.wheelbuilder
+    on:
+      tags: true
+      condition: "$TRAVIS_OS_NAME = linux"
+    distributions: sdist
+    password: $PYPIPASSWORD
 env:
   global:
-  - secure: T3lCe9jJUbYLB0WHgSD+utrmJSvgcXCLi+Lwugsaa2SXIX8UzL7TbwHWB1t10H4sddy0QBBwanqRptv6iZ7gN0EtIE6+BDv6FJcNZJBDp13pUoQqq1Fm3OMbEniLrc/ubV6mZyJLHh6oNJtzSWPk1wrFvByLpYskeZIm4ayw4Mc=
+    - secure: T3lCe9jJUbYLB0WHgSD+utrmJSvgcXCLi+Lwugsaa2SXIX8UzL7TbwHWB1t10H4sddy0QBBwanqRptv6iZ7gN0EtIE6+BDv6FJcNZJBDp13pUoQqq1Fm3OMbEniLrc/ubV6mZyJLHh6oNJtzSWPk1wrFvByLpYskeZIm4ayw4Mc=
