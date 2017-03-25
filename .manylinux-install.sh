@@ -7,7 +7,6 @@ for PYBIN in /opt/python/*/bin; do
     if [[ "${PYBIN}" == *"cp27"* ]] || [[ "${PYBIN}" == *"cp34"* ]] || [[ "${PYBIN}" == *"cp35"* ]]; then
         "${PYBIN}/pip" install "numpy>=1.9.2"
         "${PYBIN}/pip" install -r /io/requirements.txt
-        "${PYBIN}/pip" install coveralls
         "${PYBIN}/cython" /io/src/*.pyx
         "${PYBIN}/pip" install -e /io/
         "${PYBIN}/pip" wheel /io/ -w wheelhouse/
