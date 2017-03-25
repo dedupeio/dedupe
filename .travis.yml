@@ -21,29 +21,28 @@ matrix:
   - os: osx
     language: generic
     before_install:
-      - brew update
-      - brew install python3
-      - virtualenv env -p python3
-      - source env/bin/activate
+    - brew update
+    - brew install python3
+    - virtualenv env -p python3
+    - source env/bin/activate
   - sudo: required
     services:
-      - docker
+    - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
     install:
-      - docker pull $DOCKER_IMAGE
+    - docker pull $DOCKER_IMAGE
     script:
-      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
-      - exit
+    - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
+    - exit
   - sudo: required
     services:
-      - docker
+    - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
     install:
-      - docker pull $DOCKER_IMAGE
+    - docker pull $DOCKER_IMAGE
     script:
-      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
-      - exit
-
+    - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
+    - exit
 before_install:
   - echo [distutils]                                  > ~/.pypirc
   - echo index-servers=pypi                          >> ~/.pypirc
@@ -54,8 +53,6 @@ before_install:
   - echo $TRAVIS_TAG > .travis_tag
   - cat ~/.pypirc > .pypirc
   - echo `pwd`
-
-
 install:
   - pip install --upgrade pip
   - pip install "numpy>=1.9.2"
@@ -66,17 +63,11 @@ install:
 script:
   - pytest tests --cov dedupe
   - python tests/canonical.py -vv
-after_success:
-  - pip install wheel twine
-  - coveralls
-  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then
-    python setup.py bdist_wheel;
-    fi;
-  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "linux" ]]; then
-    python setup.py sdist;
-    fi;
-  - twine upload dist/*;
-
-env:
-  global:
-  - secure: T3lCe9jJUbYLB0WHgSD+utrmJSvgcXCLi+Lwugsaa2SXIX8UzL7TbwHWB1t10H4sddy0QBBwanqRptv6iZ7gN0EtIE6+BDv6FJcNZJBDp13pUoQqq1Fm3OMbEniLrc/ubV6mZyJLHh6oNJtzSWPk1wrFvByLpYskeZIm4ayw4Mc=
+deploy:
+  provider: pypi
+  user: datamade.wheelbuilder
+  on:
+    tags: true
+  distributions: sdist bdist_wheel
+  password:
+    secure: UXALsQ6zXsAPfPxEE87ArOBM86LFSc3VmOgmwe7n3GghgR34aPv7EWeaicft9ZSmZiDwqTFQ24jGDK9otkXdYzoKy7O1W9vjHd2RzwpTe0oQM19rUCiGhlBWNLTl8bQdqLmT0W0arRg81mdfx7s5KhbDBxwUk5Hho6d0zaOi4rU=
