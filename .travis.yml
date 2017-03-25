@@ -34,7 +34,8 @@ matrix:
     script:
       - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
     after_success:
-      - twine upload -u datamade.wheelbuilder -p $PYPIPASWORD wheelhouse/*
+      - pip install twine &&twine upload -u datamade.wheelbuilder -p $PYPIPASWORD wheelhouse/*
+      - exit
   - sudo: required
     services:
       - docker
@@ -45,6 +46,7 @@ matrix:
       - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
     after_success:
       - if [[ $TRAVIS_TAG ]] then twine upload -u datamade.wheelbuilder -p $PYPIPASWORD wheelhouse/*; fi
+      - exit
 install:
   - pip install --upgrade pip
   - pip install "numpy>=1.9.2"
