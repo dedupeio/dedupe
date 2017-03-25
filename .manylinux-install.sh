@@ -27,10 +27,6 @@ for PYBIN in /opt/python/*/bin; do
         "${PYBIN}/pip" uninstall -y dedupe
         "${PYBIN}/pip" install dedupe --no-index -f /io/wheelhouse
         "${PYBIN}/pytest" /io/tests --cov dedupe
-        cd /io/
-        "${PYBIN}/python" tests/canonical.py -vv
-        rm canonical_learned_settings
-        cd /
     fi
 done
 
