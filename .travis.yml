@@ -30,15 +30,18 @@ matrix:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
     install:
-      - docker pull $DOCKER_IMAGE && docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
+      - docker pull $DOCKER_IMAGE
+    script:
+      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
       - exit
   - sudo: required
     services:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
     install:
-      - echo `pwd`
-      - docker pull $DOCKER_IMAGE && docker run --rm -v `pwd`:/io $DOCKER_IMAGE linux32 /io/.manylinux-install
+      - docker pull $DOCKER_IMAGE
+    script:
+      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
       - exit
 
 before_install:
