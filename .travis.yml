@@ -32,7 +32,7 @@ matrix:
     install:
     - docker pull $DOCKER_IMAGE
     script:
-    - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
+    - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
     - exit
   - sudo: required
     services:
@@ -41,7 +41,7 @@ matrix:
     install:
     - docker pull $DOCKER_IMAGE
     script:
-    - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install
+    - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
     - exit
 before_install:
   - echo [distutils]                                  > ~/.pypirc
