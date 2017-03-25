@@ -57,11 +57,22 @@ after_success:
   - pip install coveralls
   - coveralls
 deploy:
-  provider: pypi
-  user: datamade.wheelbuilder
-  on:
-    tags: true
-  distributions: sdist bdist_wheel
-  password: $PYPIPASSWORD
-global:
+  - provider: pypi
+    skip_cleanup: true
+    user: datamade.wheelbuilder
+    on:
+      tags: true
+      condition: "$TRAVIS_OS_NAME = osx"
+    distributions: bdist_wheel
+    password: $PYPIPASSWORD
+  - provider: pypi
+    skip_cleanup: true
+    user: datamade.wheelbuilder
+    on:
+      tags: true
+      condition: "$TRAVIS_OS_NAME = linux"
+    distributions: sdist
+    password: $PYPIPASSWORD
+env:
+  global:
     - secure: T3lCe9jJUbYLB0WHgSD+utrmJSvgcXCLi+Lwugsaa2SXIX8UzL7TbwHWB1t10H4sddy0QBBwanqRptv6iZ7gN0EtIE6+BDv6FJcNZJBDp13pUoQqq1Fm3OMbEniLrc/ubV6mZyJLHh6oNJtzSWPk1wrFvByLpYskeZIm4ayw4Mc=
