@@ -34,10 +34,3 @@ for PYBIN in /opt/python/*/bin; do
     fi
 done
 
-# If everything works, upload wheels to PyPi
-travis=$( cat /io/.travis_tag )
-PYBIN34="/opt/python/cp34-cp34m/bin"
-if [[ $travis ]]; then
-    "${PYBIN34}/pip" install twine;
-    "${PYBIN34}/twine" upload --config-file /io/.pypirc /io/wheelhouse/dedupe*.whl;
-fi
