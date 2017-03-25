@@ -42,17 +42,8 @@ matrix:
     - docker pull $DOCKER_IMAGE
     script:
     - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
+    - ls wheelhouse/
     - exit
-before_install:
-  - echo [distutils]                                  > ~/.pypirc
-  - echo index-servers=pypi                          >> ~/.pypirc
-  - echo [pypi]                                      >> ~/.pypirc
-  - echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
-  - echo username=datamade.wheelbuilder              >> ~/.pypirc
-  - echo password=$PYPIPASSWORD                      >> ~/.pypirc
-  - echo $TRAVIS_TAG > .travis_tag
-  - cat ~/.pypirc > .pypirc
-  - echo `pwd`
 install:
   - pip install --upgrade pip
   - pip install "numpy>=1.9.2"
