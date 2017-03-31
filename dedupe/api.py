@@ -934,7 +934,10 @@ class GazetteerMatching(RecordLinkMatching):
                      record set
         """
         blocked_pairs = self._blockData(messy_data)
-        return self.matchBlocks(blocked_pairs, threshold, n_matches)
+        try:
+            return self.matchBlocks(blocked_pairs, threshold, n_matches)
+        except ValueError:
+            return []
 
     def threshold(self, messy_data, recall_weight=1.5):  # pragma: no cover
         """
