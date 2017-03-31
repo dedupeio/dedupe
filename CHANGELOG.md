@@ -1,3 +1,6 @@
+# 1.6.7
+- Reduce memory footprint of matching
+
 # 1.6.0
 - Simplify .train method
 
