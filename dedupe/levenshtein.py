@@ -25,8 +25,10 @@ class LevenshteinIndex(Index):
 
     def search(self, doc, threshold=0):
         results = Levenshtein_search.lookup(self.index_key, doc, threshold)
-        
-        return [doc for doc, _, _ in results]
+        if results:
+            return [doc for doc, _, _ in results]
+        else:
+            return []
 
     def __del__(self):
         Levenshtein_search.clear_wordset(self.index_key)
