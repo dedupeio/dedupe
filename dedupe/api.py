@@ -15,6 +15,7 @@ import random
 import warnings
 import os
 from collections import defaultdict, OrderedDict
+import shelve
 
 import numpy
 import simplejson as json
@@ -254,7 +255,7 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        blocks = defaultdict(list)
+        blocks = shelve.open('foo', 'n')
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
@@ -262,18 +263,24 @@ class DedupeMatching(Matching):
         block_numbers = core.Enumerator(start=0)
         block_groups = itertools.groupby(self.blocker(viewitems(data_d)),
                                          lambda x: x[1])
+
         
         for record_id, block in block_groups:
             record = data_d[record_id]
             block_ids = sorted(block_numbers[block_key]
                                for block_key, _ in block)
             while block_ids:
-                id = block_ids.pop()
-                blocks[id].append((record_id, record, set(block_ids)))
+                id = str(block_ids.pop())
+                if id in blocks:
+                    blocks[id] += [(record_id, record, set(block_ids))]
+                else:
+                    blocks[id] = [(record_id, record, set(block_ids))]
 
         for block in viewvalues(blocks):
             if len(block) > 1:
                 yield block
+
+        blocks.close()
                 
     def _checkBlock(self, block):
         if block:
