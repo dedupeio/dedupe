@@ -260,7 +260,7 @@ class DedupeMatching(Matching):
         tf = tempfile.NamedTemporaryFile(delete=True)
         file_path = tf.name
         del tf
-        print 'hello'
+        print('hello')
 
         blocks = shelve.open(file_path, 'n',
                              protocol=pickle.HIGHEST_PROTOCOL)
