@@ -274,7 +274,7 @@ class DedupeMatching(Matching):
             record = data_d[record_id]
             block_ids = sorted(block_key for block_key, _ in block)
             while block_ids:
-                id = block_ids.pop()
+                id = str(block_ids.pop()) # py2 compatibility
                 if id in blocks:
                     blocks[id] += [(record_id, record, set(block_ids))]
                 else:
@@ -437,6 +437,7 @@ class RecordLinkMatching(Matching):
             self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items()):
+            block_key = str(block_key) # py2 compatibility
             block = blocked_records.get(block_key, {})
             block[record_id] = data_2[record_id]
             blocked_records[block_key]= block
