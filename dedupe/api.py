@@ -282,10 +282,6 @@ class DedupeMatching(Matching):
         if not self.loaded_indices:
             self.blocker.resetIndices()
 
-        blocks.close()
-        blocks = shelve.open(file_path, 'r',
-                             protocol=pickle.HIGHEST_PROTOCOL)
-
         for block in viewvalues(blocks):
             if len(block) > 1:
                 yield block
