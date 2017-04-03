@@ -24,7 +24,7 @@ build: false
 
 test_script:
   - pytest --cov dedupe
-  - python tests/canonical.py
+  - python tests/canonical.py -vv
 
 on_success:
   # Could run coveralls here but will leave that to travis tests
