@@ -428,7 +428,7 @@ class RecordLinkMatching(Matching):
 
         blocks, file_path = tempfile.mkstemp()
         os.close(blocks)
-        os.remove(blocks)
+        os.remove(file_path)
 
         blocked_records = shelve.open(file_path, 'n',
                                       protocol=pickle.HIGHEST_PROTOCOL)
