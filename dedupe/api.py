@@ -260,9 +260,12 @@ class DedupeMatching(Matching):
         tf = tempfile.NamedTemporaryFile(delete=True)
         file_path = tf.name
         del tf
+        print 'hello'
 
         blocks = shelve.open(file_path, 'n',
                              protocol=pickle.HIGHEST_PROTOCOL)
+
+        print('goodbye')
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
