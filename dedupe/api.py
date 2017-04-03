@@ -918,7 +918,7 @@ class GazetteerMatching(RecordLinkMatching):
 
         for block_key, record_id in self.blocker(data.items()):
             block = self.blocked_records.get(block_key, {})
-            block.update({record_id: data[record_id]}
+            block.update({record_id: data[record_id]})
             self.blocked_records[block_key] = block
 
     def unindex(self, data):  # pragma: no cover
