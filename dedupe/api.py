@@ -258,6 +258,7 @@ class DedupeMatching(Matching):
 
         blocks, file_path = tempfile.mkstemp()
         os.close(blocks)
+        os.remove(blocks)
 
         blocks = shelve.open(file_path, 'n',
                              protocol=pickle.HIGHEST_PROTOCOL)
@@ -425,16 +426,26 @@ class RecordLinkMatching(Matching):
 
     def _blockData(self, data_1, data_2):
 
-        blocked_records = defaultdict(dict)
+        blocks, file_path = tempfile.mkstemp()
+        os.close(blocks)
+        os.remove(blocks)
+
+        blocked_records = shelve.open(file_path, 'n',
+                                      protocol=pickle.HIGHEST_PROTOCOL)
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items()):
-            blocked_records[block_key][record_id] = data_2[record_id]
+            block = blocked_records.get(block_key, {})
+            block[record_id] = data_2[record_id]
+            blocked_records[block_key]= block
 
         for each in self._blockGenerator(data_1, blocked_records):
             yield each
+
+        blocked_records.close()
+        os.remove(file_path)
 
     def _checkBlock(self, block):
         if block:
