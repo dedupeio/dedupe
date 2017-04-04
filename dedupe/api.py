@@ -257,9 +257,7 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        file_path = tempfile.mktemp()
-        blocks = shelve.open(file_path, 'n',
-                             protocol=pickle.HIGHEST_PROTOCOL)
+        blocks, file_path = _temp_shelve()
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
@@ -423,17 +421,7 @@ class RecordLinkMatching(Matching):
 
     def _blockData(self, data_1, data_2):
 
-        fd, file_path = tempfile.mkstemp()
-        os.close(fd)
-
-        try:
-            blocked_records = shelve.open(file_path, 'n',
-                                          protocol=pickle.HIGHEST_PROTOCOL)
-        except Exception as e:
-            if 'db type could not be determined' in str(e):
-                os.remove(file_path)
-                blocked_records = shelve.open(file_path, 'n',
-                                              protocol=pickle.HIGHEST_PROTOCOL)
+        blocked_records, file_path = _temp_shelve()
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
@@ -1085,3 +1073,18 @@ def flatten_training(training_pairs):
                 examples.append(pair)
 
     return examples, numpy.array(y)
+
+def _temp_shelve():
+    fd, file_path = tempfile.mkstemp()
+    os.close(fd)
+
+    try:
+        shelf = shelve.open(file_path, 'n',
+                                      protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        if 'db type could not be determined' in str(e):
+            os.remove(file_path)
+            shelf = shelve.open(file_path, 'n',
+                                protocol=pickle.HIGHEST_PROTOCOL)
+
+    return shelf, file_path
