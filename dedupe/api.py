@@ -257,10 +257,7 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        tf = tempfile.NamedTemporaryFile(delete=True)
-        file_path = tf.name
-        del tf
-
+        file_path = tempfile.mktemp()
         blocks = shelve.open(file_path, 'n',
                              protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -288,11 +285,8 @@ class DedupeMatching(Matching):
             if len(block) > 1:
                 yield block
 
-        print('hello')
         blocks.close()
-        print('goodbye')
         os.remove(file_path)
-        print('foobar')
                 
     def _checkBlock(self, block):
         if block:
@@ -429,10 +423,7 @@ class RecordLinkMatching(Matching):
 
     def _blockData(self, data_1, data_2):
 
-        tf = tempfile.NamedTemporaryFile(delete=True)
-        file_path = tf.name
-        del tf
-
+        file_path = tempfile.mktemp()
         blocked_records = shelve.open(file_path, 'n',
                                       protocol=pickle.HIGHEST_PROTOCOL)
 
