@@ -423,9 +423,17 @@ class RecordLinkMatching(Matching):
 
     def _blockData(self, data_1, data_2):
 
-        file_path = tempfile.mktemp()
-        blocked_records = shelve.open(file_path, 'n',
-                                      protocol=pickle.HIGHEST_PROTOCOL)
+        fd, file_path = tempfile.mkstemp()
+        os.close(fd)
+
+        try:
+            blocked_records = shelve.open(file_path, 'n',
+                                          protocol=pickle.HIGHEST_PROTOCOL)
+        except Exception as e:
+            if 'db type could not be determined' in str(e):
+                os.remove(file_path)
+                blocked_records = shelve.open(file_path, 'n',
+                                              protocol=pickle.HIGHEST_PROTOCOL)
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
