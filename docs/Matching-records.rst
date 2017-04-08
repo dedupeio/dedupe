@@ -34,7 +34,7 @@ would have Hamming distance of 1 because we have to substitute ``r`` for
 ``R`` in order to turn ``roberts`` into ``Roberts``.
 
 There are lots of different string metrics, and we actually use a metric
-called the `Affine Gap Distance <Affine%20Gap%20Distance>`__, which is a
+called the `Affine Gap Distance <https://en.wikipedia.org/wiki/Gap_penalty#Affine>`__, which is a
 variation on the Hamming distance.
 
 Record by record or field by field
