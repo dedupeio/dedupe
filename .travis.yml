@@ -9,7 +9,6 @@ notifications:
   irc: chat.freenode.net#dedupe
 language: python
 matrix:
-  fast_finish: true
   include:
   - python: 3.6
   - python: 3.5
@@ -23,7 +22,6 @@ matrix:
       - brew install python3
       - virtualenv env -p python3
       - source env/bin/activate
-  allow_failures:    
   - services:
       - docker
     env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
