@@ -8,6 +8,7 @@ notifications:
     on_failure: always
   irc: chat.freenode.net#dedupe
 language: python
+sudo: false
 matrix:
   include:
   - python: 3.6
@@ -22,9 +23,7 @@ matrix:
       - brew install python3
       - virtualenv env -p python3
       - source env/bin/activate
-  - services:
-      - docker
-    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+  - env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
     install:
       - docker pull $DOCKER_IMAGE
     script:
@@ -32,9 +31,7 @@ matrix:
     after_success:
       - if [[ $TRAVIS_TAG ]]; then pip install twine && twine upload -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*; fi
       - exit 0
-  - services:
-      - docker
-    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
+  - env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
     install:
       - docker pull $DOCKER_IMAGE
     script:
