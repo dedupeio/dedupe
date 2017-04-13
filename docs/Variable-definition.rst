@@ -126,7 +126,7 @@ hashable sequences like tuples or frozensets.
 
     {'field' : 'Co-authors', 'type': 'Set',
      'corpus' : [('steve edwards'),
-		 ('steve edwards', steve jobs')]}
+		 ('steve edwards', 'steve jobs')]}
      } 
 
 or
@@ -176,7 +176,7 @@ you something about meaningful about the record.
 
 .. code:: python
 
-    {'field' : 'first_name', 'type': 'Exists'}} 
+    {'field' : 'first_name', 'type': 'Exists'} 
 
 
 
@@ -216,7 +216,7 @@ You would create a definition like:
 .. code:: python
 
     {'field' : 'Business Type', 'type': 'Categorical',
-    'categories' : ['taxi', 'lawyer']}}
+    'categories' : ['taxi', 'lawyer']}
 
 Price
 ^^^^^
