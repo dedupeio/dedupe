@@ -185,6 +185,7 @@ class DedupeMatching(Matching):
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
+
     def match(self, data, threshold=0.5):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
         tuples
@@ -214,8 +215,63 @@ class DedupeMatching(Matching):
 
         """
         blocked_pairs = self._blockData(data)
-        return self.matchBlocks(blocked_pairs, threshold)
+        candidate_records = self._blockedPairs(blocked_pairs)
 
+        matches = core.scoreDuplicates(candidate_records,
+                                       self.data_model,
+                                       self.classifier,
+                                       self.num_cores,
+                                       threshold)
+
+        components = clustering.connected_components(matches, 30000)
+
+        cliques = self._densify(components, data)
+
+        clusters = list(self._cluster(cliques, threshold))
+
+        try:
+            match_file = matches.filename
+            del matches
+            os.remove(match_file)
+        except AttributeError:
+            pass
+
+        return clusters
+
+    def _densify(self, components, data):
+        error = 0
+        n = 0
+        for component in components:
+            if False or len(component) > 1:
+                record_ids = numpy.unique(component['pairs'])
+                N = len(record_ids)
+                all_edges = N * (N - 1) / 2
+                if all_edges > len(component):
+                    print(component)
+                    edges = set(map(tuple, component['pairs']))
+                    row = len(component)
+                    clique = numpy.resize(component, all_edges)
+                    record_ids.sort()
+                    dist_mean = component['score'].mean()
+                    dist_mean = 0
+                    for pair in itertools.combinations(record_ids, 2):
+                        if pair not in edges:
+                             i, j = pair
+                             record_pair = [(data[i], data[j])]
+                             dist = self.data_model.distances(record_pair)
+                             clique[row] = (pair, self.classifier.predict_proba(dist)[:,-1])
+                             error += (dist_mean - clique[row]['score'])**2
+                             n += 1
+                             row += 1
+
+                    component = clique
+                    print(component)
+                    
+            yield component
+
+        if error:
+            print("ERROR", numpy.sqrt(error/n))
+            
     def threshold(self, data, recall_weight=1.5):  # pragma: no cover
         """
         Returns the threshold that maximizes the expected F score,

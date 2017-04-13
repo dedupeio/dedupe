@@ -97,7 +97,7 @@ def condensedDistance(dupes):
     '''
 
     candidate_set = numpy.unique(dupes['pairs'])
-    candidate_set = numpy.sort(candidate_set)
+    candidate_set.sort()
 
     i_to_id = dict(enumerate(candidate_set))
 
@@ -117,9 +117,9 @@ def condensedDistance(dupes):
     return i_to_id, condensed_distances, N
 
 
-def cluster(dupes, threshold=.5, max_components=30000):
+def cluster(dupe_components, threshold=.5):
     '''
-    Takes in a list of duplicate pairs and clusters them in to a
+    Takes in an iterator of connected components and cluster into a
     list records that all refer to the same entity based on a given
     threshold
 
@@ -130,9 +130,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
     '''
     threshold = 1 - threshold
 
-    dupe_sub_graphs = connected_components(dupes, max_components)
-
-    for sub_graph in dupe_sub_graphs:
+    for sub_graph in dupe_components:
         if len(sub_graph) > 1:
 
             i_to_id, condensed_distances, N = condensedDistance(sub_graph)
