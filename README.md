@@ -13,10 +13,10 @@ dedupe takes in human training data and comes up with the best rules for your da
 
 ## Important links
 * Documentation: https://dedupe.readthedocs.io/
-* Repository: https://github.com/datamade/dedupe
-* Issues: https://github.com/datamade/dedupe/issues
+* Repository: https://github.com/dedupeio/dedupe
+* Issues: https://github.com/dedupeio/dedupe/issues
 * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
-* Examples: https://github.com/datamade/dedupe-examples
+* Examples: https://github.com/dedupeoi/dedupe-examples
 * IRC channel, [#dedupe on irc.freenode.net](http://webchat.freenode.net/?channels=dedupe)
 
 ## Tools built with dedupe
@@ -25,7 +25,7 @@ dedupe takes in human training data and comes up with the best rules for your da
 A full service web service powered by dedupe for de-duplicating and find matches in your messy data. It provides an easy-to-use interface and provides cluster review and automation, as well as advanced record linkage, continuous matching and API integrations. [See the product page](https://dedupe.io/) and the [launch blog post](https://datamade.us/blog/introducing-dedupeio).
 
 ### [csvdedupe](https://github.com/datamade/csvdedupe)
-Command line tool for de-duplicating and [linking](https://github.com/datamade/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
+Command line tool for de-duplicating and [linking](https://github.com/dedupeio/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
 
 ## Installation
 
@@ -38,7 +38,7 @@ pip install "numpy>=1.9"
 pip install dedupe
 ```
 
-Familiarize yourself with [dedupe's API](https://dedupe.readthedocs.io/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/datamade/dedupe-examples).
+Familiarize yourself with [dedupe's API](https://dedupe.readthedocs.io/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/dedupeio/dedupe-examples).
 
 ### Developing dedupe
 
@@ -48,7 +48,7 @@ Once you have virtualenvwrapper set up,
 
 ```bash
 mkvirtualenv dedupe
-git clone git://github.com/datamade/dedupe.git
+git clone git://github.com/dedupeio/dedupe.git
 cd dedupe
 pip install "numpy>=1.9"
 pip install -r requirements.txt
@@ -99,7 +99,7 @@ Dedupe is based on Mikhail Yuryevich Bilenko's Ph.D. dissertation: [*Learnable S
 ## Errors / Bugs
 
 If something is not behaving intuitively, it is a bug, and should be reported.
-[Report it here](https://github.com/datamade/dedupe/issues)
+[Report it here](https://github.com/dedupeio/dedupe/issues)
 
 
 ## Note on Patches/Pull Requests
@@ -110,11 +110,11 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 ## Copyright
 
-Copyright (c) 2016 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/datamade/dedupe/blob/master/LICENSE).
+Copyright (c) 2016 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/dedupeio/dedupe/blob/master/LICENSE).
 
 Third-party copyright in this distribution is noted where applicable.
 
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 
-Gregg, Forest, and Derek Eder. 2016. Dedupe. https://github.com/datamade/dedupe.
+Gregg, Forest, and Derek Eder. 2016. Dedupe. https://github.com/dedupeio/dedupe.
