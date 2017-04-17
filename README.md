@@ -1,5 +1,5 @@
 # Dedupe Python Library
-[![Linux build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Linux%20build)](https://travis-ci.org/datamade/dedupe)[![Mac OS X build](https://img.shields.io/travis/datamade/dedupe.svg?style=flat-square&label=Mac%20OS%20X%20build)](https://travis-ci.org/datamade/dedupe)[![Windows build](https://img.shields.io/appveyor/ci/fgregg/dedupe/master.svg?style=flat-square&label=Windows%20build)](https://ci.appveyor.com/project/fgregg/dedupe)[![Coverage](https://img.shields.io/coveralls/datamade/dedupe.svg?style=flat-square)](https://coveralls.io/r/datamade/dedupe?branch=master)
+[![Linux build](https://img.shields.io/travis/dedupeio/dedupe.svg?style=flat-square&label=Linux%20build)](https://travis-ci.org/dedupeio/dedupe)[![Mac OS X build](https://img.shields.io/travis/dedupeio/dedupe.svg?style=flat-square&label=Mac%20OS%20X%20build)](https://travis-ci.org/dedupeio/dedupe)[![Windows build](https://img.shields.io/appveyor/ci/fgregg/dedupe/master.svg?style=flat-square&label=Windows%20build)](https://ci.appveyor.com/project/fgregg/dedupe)[![Coverage](https://img.shields.io/coveralls/dedupeio/dedupe.svg?style=flat-square)](https://coveralls.io/r/dedupeio/dedupe?branch=master)
 
 _dedupe is a python library that uses machine learning to perform fuzzy matching, deduplication and entity resolution quickly on structured data._
 
@@ -24,7 +24,7 @@ dedupe takes in human training data and comes up with the best rules for your da
 ### [Dedupe.io](https://dedupe.io/)
 A full service web service powered by dedupe for de-duplicating and find matches in your messy data. It provides an easy-to-use interface and provides cluster review and automation, as well as advanced record linkage, continuous matching and API integrations. [See the product page](https://dedupe.io/) and the [launch blog post](https://datamade.us/blog/introducing-dedupeio).
 
-### [csvdedupe](https://github.com/datamade/csvdedupe)
+### [csvdedupe](https://github.com/dedupeio/csvdedupe)
 Command line tool for de-duplicating and [linking](https://github.com/dedupeio/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
 
 ## Installation
