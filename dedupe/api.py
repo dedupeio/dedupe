@@ -1064,5 +1064,7 @@ def _temp_shelve():
             os.remove(file_path)
             shelf = shelve.open(file_path, 'n',
                                 protocol=pickle.HIGHEST_PROTOCOL)
+        else:
+            raise
 
     return shelf, file_path
