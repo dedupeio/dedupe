@@ -25,7 +25,7 @@ install_requires=['fastcluster',
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='1.6.7',
+    version='1.6.8',
     author='Forest Gregg',
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
@@ -48,7 +48,7 @@ setup(
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Information Analysis'],
     long_description="""
-    *dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data.*
+    dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data. dedupe is the open source engine for `dedupe.io <https://dedupe.io>`_
 
     **dedupe** will help you:
 
@@ -61,10 +61,9 @@ setup(
     Important links:
 
     * Documentation: https://dedupe.readthedocs.io/
-    * Repository: https://github.com/datamade/dedupe
-    * Issues: https://github.com/datamade/dedupe/issues
+    * Repository: https://github.com/dedupeio/dedupe
+    * Issues: https://github.com/dedupeio/dedupe/issues
     * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
-    * IRC channel, `#dedupe on irc.freenode.net <http://webchat.freenode.net/?channels=dedupe>`_
-    * Examples: https://github.com/datamade/dedupe-examples
+    * Examples: https://github.com/dedupeio/dedupe-examples
     """
     )
