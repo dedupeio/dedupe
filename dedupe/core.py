@@ -105,14 +105,15 @@ class ScoreRecords(object) :
             scores = self.classifier.predict_proba(distances)[:,-1]
 
             mask = scores > self.threshold
+            if mask.any():
 
-            scored_pairs = numpy.empty(numpy.count_nonzero(mask),
-                                       dtype=[('pairs', 'object', 2), 
-                                              ('score', 'f4', 1)])
-            scored_pairs['pairs'] = ids[mask]
-            scored_pairs['score'] = scores[mask]
-
-            return scored_pairs
+                scored_pairs = numpy.empty(numpy.count_nonzero(mask),
+                                           dtype=[('pairs', 'object', 2), 
+                                                  ('score', 'f4', 1)])
+                scored_pairs['pairs'] = ids[mask]
+                scored_pairs['score'] = scores[mask]
+                
+                return scored_pairs
 
 def mergeScores(score_queue, result_queue, stop_signals) :
     scored_pairs_file, file_path = tempfile.mkstemp()
