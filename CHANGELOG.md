@@ -1,3 +1,6 @@
+# 1.6.8
+- Use file-backed blocking with dbm, dramatically increases size of data that can be handled without special programming
+
 # 1.6.7
 - Reduce memory footprint of matching
 
