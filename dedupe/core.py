@@ -77,7 +77,7 @@ class ScoreRecords(object) :
 
             try :
                 filtered_pairs = self.fieldDistance(record_pairs)
-                if filtered_pairs is not None :
+                if filtered_pairs is not None and filtered_pairs.size != 0 :
                     score_queue.put(filtered_pairs)
             except Exception as e :
                 score_queue.put(e)
@@ -121,6 +121,7 @@ def mergeScores(score_queue, result_queue, stop_signals) :
 
     seen_signals = 0
     start = 0
+    end = 0
     while seen_signals < stop_signals  :
         score_chunk = score_queue.get()
         if isinstance(score_chunk, Exception) :
