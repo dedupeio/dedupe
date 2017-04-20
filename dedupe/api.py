@@ -17,7 +17,6 @@ import os
 import tempfile
 from collections import defaultdict, OrderedDict
 import shelve
-import time
 
 import numpy
 import simplejson as json
@@ -906,9 +905,9 @@ class GazetteerMatching(RecordLinkMatching):
         self.blocker.indexAll(data)
 
         for block_key, record_id in self.blocker(data.items()):
-            block = self.blocked_records.get(block_key, {})
-            block.update({record_id: data[record_id]})
-            self.blocked_records[block_key] = block
+            if block_key not in self.blocked_records:
+                self.blocked_records[block_key] = {}
+            self.blocked_records[block_key][record_id] = data[record_id]
 
     def unindex(self, data):  # pragma: no cover
 
@@ -920,9 +919,7 @@ class GazetteerMatching(RecordLinkMatching):
 
         for block_key, record_id in self.blocker(viewitems(data)):
             try:
-                block = self.blocked_records[block_key]
-                del block[record_id]
-                self.blocked_records[block_key] = block
+                del self.blocked_records[block_key][record_id]
             except KeyError:
                 pass
 
@@ -989,21 +986,15 @@ class GazetteerMatching(RecordLinkMatching):
         super(GazetteerMatching, self).writeSettings(file_obj, index)
 
         if index:
-            pickle.dump(self.br_file_path, file_obj)
+            pickle.dump(self.blocked_records, file_obj)
 
 
 class Gazetteer(RecordLink, GazetteerMatching):
 
     def __init__(self, *args, **kwargs):  # pragma: no cover
         super(Gazetteer, self).__init__(*args, **kwargs)
-        self.br_file_path = time.strftime("gazette_%Y%m%d%H%M%S.db",
-                                          time.localtime())
-        self.blocked_records = shelve.open(self.br_file_path, 'n',
-                                           protocol=pickle.HIGHEST_PROTOCOL)
+        self.blocked_records = OrderedDict({})
 
-    def __del__(self):
-        self.blocked_records.close()
-        
 
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
 
@@ -1013,22 +1004,9 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
         settings_file = args[0]
 
         try:
-            self.br_file_path = pickle.load(settings_file)
-            try:
-                self.blocked_records = shelve.open(self.br_file_path,
-                                                   'w',
-                                                   protocol=pickle.HIGHEST_PROTOCOL)
-            except TypeError:
-                blocked_records = self.br_file_path
-                self.br_file_path = time.strftime("gazette_%Y%m%d%H%M%S.db",
-                                              time.localtime())
-                self.blocked_records = shelve.open(self.br_file_path, 'n',
-                                               protocol=pickle.HIGHEST_PROTOCOL)
-                for k, v in blocked_records.items():
-                    self.blocked_records[str(k)] = v
+            self.blocked_records = pickle.load(settings_file)
         except EOFError:
-            self.blocked_records = shelve.open(self.br_file_path, 'n',
-                                               protocol=pickle.HIGHEST_PROTOCOL)
+            self.blocked_records = OrderedDict({})
         except (KeyError, AttributeError):
             raise SettingsFileLoadingException(
                 "This settings file is not compatible with "
