@@ -49,7 +49,7 @@ matrix:
       - exit 0
 install:
   - pip install --upgrade pip
-  - pip uninstall numpy
+  - pip uninstall --yes numpy
   - pip install --upgrade -r requirements.txt
   - cython src/*.pyx
   - pip install -e .
