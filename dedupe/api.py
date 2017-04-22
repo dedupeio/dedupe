@@ -242,12 +242,11 @@ class DedupeMatching(Matching):
         error = 0
         n = 0
         for component in components:
-            if False or len(component) > 1:
+            if len(component) > 1:
                 record_ids = numpy.unique(component['pairs'])
                 N = len(record_ids)
-                all_edges = N * (N - 1) / 2
+                all_edges = int(N * (N - 1) / 2)
                 if all_edges > len(component):
-                    print(component)
                     edges = set(map(tuple, component['pairs']))
                     row = len(component)
                     clique = numpy.resize(component, all_edges)
@@ -265,7 +264,6 @@ class DedupeMatching(Matching):
                              row += 1
 
                     component = clique
-                    print(component)
                     
             yield component
 
