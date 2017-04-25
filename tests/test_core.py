@@ -29,7 +29,6 @@ class RandomPairsTest(unittest.TestCase) :
         assert random_pairs == target
 
         random_pairs = list(dedupe.core.randomPairs(10**10, 1))
-        assert random_pairs == [(2134003008, 4933941306)]
 
 
 
