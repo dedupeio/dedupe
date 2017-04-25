@@ -114,7 +114,7 @@ class Matching(object):
                                        self.data_model,
                                        self.classifier,
                                        self.num_cores,
-                                       threshold)
+                                       threshold=0)
 
         logger.debug("matching done, begin clustering")
 
