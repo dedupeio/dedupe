@@ -18,6 +18,7 @@ import os
 import operator
 import random
 import collections
+import warnings
 
 import numpy
 
@@ -36,8 +37,12 @@ def randomPairs(n_records, sample_size):
     if sample_size >= n :
         random_pairs = numpy.arange(n, dtype='uint')
     else:
-        random_pairs = numpy.array(random.sample(range(n), sample_size),
-                                   dtype='uint')
+        try:
+            random_pairs = numpy.array(random.sample(range(n), sample_size),
+                                       dtype='uint')
+        except OverflowError:
+            return randomPairsWithReplacement(n_records, sample_size)
+            
     
     b = 1 - 2 * n_records
 
@@ -60,6 +65,27 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     i, j = numpy.unravel_index(random_pairs, (n_records_A, n_records_B))
 
     return zip(i, j)
+
+def randomPairsWithReplacement(n_records, sample_size) :
+    # If the population is very large relative to the sample
+    # size than we'll get very few duplicates by chance
+    warnings.warn("There may be duplicates in the sample")
+
+    try :
+        random_indices = numpy.random.randint(n_records, 
+                                              size=sample_size*2)
+    except (OverflowError, ValueError):
+        max_int = numpy.iinfo('int').max
+        warnings.warn("Asked to sample pairs from %d records, will only sample pairs from first %d records" % (n_records, max_int))
+        random_indices = numpy.random.randint(max_int, 
+                                              size=sample_size*2)
+
+        
+    random_indices = random_indices.reshape((-1, 2))
+    random_indices.sort(axis=1)
+
+    return [(p.item(), q.item()) for p, q in random_indices]
+
 
 class ScoreRecords(object) :
     def __init__(self, data_model, classifier, threshold) :
