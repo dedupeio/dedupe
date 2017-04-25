@@ -115,7 +115,6 @@ class Matching(object):
                                        self.classifier,
                                        self.num_cores,
                                        threshold=0)
-
         logger.debug("matching done, begin clustering")
 
         clusters = list(self._cluster(matches, threshold, *args, **kwargs))
@@ -266,21 +265,20 @@ class DedupeMatching(Matching):
 
         
         for record_id, block in block_groups:
-            record = data_d[record_id]
             block_ids = sorted(block_key for block_key, _ in block)
             while block_ids:
                 id = str(block_ids.pop()) # py2 compatibility
                 if id in blocks:
-                    blocks[id] += [(record_id, record, set(block_ids))]
+                    blocks[id] |= {record_id}
                 else:
-                    blocks[id] = [(record_id, record, set(block_ids))]
+                    blocks[id] = {record_id}
 
         if not self.loaded_indices:
             self.blocker.resetIndices()
 
-        for block in viewvalues(blocks):
-            if len(block) > 1:
-                yield block
+        for component in connected_components(viewvalues(blocks)):
+            yield tuple((record_id, data_d[record_id], set())
+                        for record_id in component)
 
         blocks.close()
         os.remove(file_path)
@@ -1068,3 +1066,51 @@ def _temp_shelve():
             raise
 
     return shelf, file_path
+
+
+def connected_components(blocks):
+
+    roots = {}
+    components = {}
+
+    for block in blocks:
+        if len(block) < 2:
+            continue
+            
+        block_roots = {roots.get(record_id) for record_id in block
+                       if roots.get(record_id) is not None}
+
+        if not block_roots:
+            root = min(block)
+            components[root] = block
+        elif len(block_roots) == 1:
+            #import pdb
+            #pdb.set_trace()
+            
+            root, = block_roots
+            components[root].update(block)
+        else:
+            #import pdb
+            #pdb.set_trace()
+            
+            root = max(block_roots, key=lambda x: len(components[x]))
+            block_roots.remove(root)
+
+            head = components[root]
+            head.update(block)
+
+            for other_root in block_roots:
+                other_component = components[other_root]
+                head |= other_component
+                print(len(head), len(components[root]))
+                for node in other_component:
+                    roots[node] = root
+
+                del components[other_root]
+
+
+        for record_id in block:
+            roots[record_id] = root
+
+    for component in viewvalues(components):
+        yield component
