@@ -255,7 +255,7 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        blocks, file_path = _temp_shelve()
+        blocks = {}
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
@@ -267,21 +267,21 @@ class DedupeMatching(Matching):
         for record_id, block in block_groups:
             block_ids = sorted(block_key for block_key, _ in block)
             while block_ids:
-                id = str(block_ids.pop()) # py2 compatibility
-                if id in blocks:
-                    blocks[id] |= {record_id}
-                else:
-                    blocks[id] = {record_id}
+                block_ids.pop()
+                cover = blocks.setdefault(id, set())
+                blocks[id].add(record_id)
 
         if not self.loaded_indices:
             self.blocker.resetIndices()
 
-        for component in connected_components(viewvalues(blocks)):
+        components = connected_components(viewvalues(blocks))
+
+        del blocks
+
+        for component in components:
             yield tuple((record_id, data_d[record_id], set())
                         for record_id in component)
 
-        blocks.close()
-        os.remove(file_path)
                 
     def _checkBlock(self, block):
         if block:
@@ -1084,15 +1084,9 @@ def connected_components(blocks):
             root = min(block)
             components[root] = block
         elif len(block_roots) == 1:
-            #import pdb
-            #pdb.set_trace()
-            
             root, = block_roots
             components[root].update(block)
         else:
-            #import pdb
-            #pdb.set_trace()
-            
             root = max(block_roots, key=lambda x: len(components[x]))
             block_roots.remove(root)
 
@@ -1111,6 +1105,8 @@ def connected_components(blocks):
 
         for record_id in block:
             roots[record_id] = root
+
+    del blocks
 
     for component in viewvalues(components):
         yield component
