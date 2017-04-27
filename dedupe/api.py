@@ -118,7 +118,7 @@ class Matching(object):
 
         logger.debug("matching done, begin clustering")
 
-        clusters = list(self._cluster(matches, threshold, *args, **kwargs)) if matches else []
+        clusters = list(self._cluster(matches, threshold, *args, **kwargs)) if matches != [] else []
 
         try:
             match_file = matches.filename
