@@ -50,6 +50,8 @@ class RandomPairsTest(unittest.TestCase) :
         pairs = list(dedupe.core.randomPairsMatch(10, 10, 10))
         assert pairs == target
 
+        pairs = list(dedupe.core.randomPairsMatch(10, 10, 0))
+        assert pairs == []
 
 
 

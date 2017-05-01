@@ -60,7 +60,8 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
     if sample_size >= n:
         random_pairs = numpy.arange(n)
     else:
-        random_pairs = random.sample(range(n), sample_size)
+        random_pairs = numpy.array(random.sample(range(n), sample_size),
+                                   dtype=int)
 
     i, j = numpy.unravel_index(random_pairs, (n_records_A, n_records_B))
 
