@@ -284,7 +284,6 @@ class DedupeMatching(Matching):
 
         blocks.close()
         os.remove(file_path)
-        
                 
     def _checkBlock(self, block):
         if block:
