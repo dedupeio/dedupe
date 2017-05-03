@@ -284,6 +284,7 @@ class DedupeMatching(Matching):
 
         blocks.close()
         os.remove(file_path)
+        
                 
     def _checkBlock(self, block):
         if block:
@@ -408,6 +409,7 @@ class RecordLinkMatching(Matching):
             B = {}
 
             for block_key, _ in block_keys:
+                block_key = str(block_key)
                 if block_key in blocked_records:
                     B.update(blocked_records[block_key])
 
