@@ -1,0 +1,74 @@
+@import url('theme.css');
+
+body {
+  font-size: 16px;
+  font-family: 'Open Sans', 'Arial', sans-serif;
+  color: #777777;
+}
+
+h1, h1 a, h2, h2 a, h3, h3 a {
+  color: #666;
+  font-weight: bold;
+}
+
+/* override some of the built-in fonts */
+h1, h2, h3, h4, h5, h6, legend,
+.rst-content .toctree-wrapper p.caption {
+    font-family: 'Open Sans', 'Arial', sans-serif;
+}
+
+h1 a:hover, h2 a:hover, h3 a:hover {
+  color: #777;
+}
+
+a, a:visited { color: #c11133;}
+a:hover { color: #730a1e;}
+a:active, a:focus { outline: 0;}
+
+.footer {
+  background-color: #f2f3ec;
+  padding: 20px 0;
+  margin-top: 20px;
+  font-size: 0.9em;
+}
+
+/* =============== */
+/* theme overrides */
+/* =============== */
+
+/* Remove sidebar background colors */
+.wy-nav-side, .wy-side-nav-search {
+    background: #fcfcfc;
+}
+
+/* Give the nav a little bit of padding */
+.wy-nav-side {
+    padding-left: 10px;
+}
+
+/* Sidebar text should never be a light color */
+.wy-side-nav-search > a,
+.wy-side-nav-search .wy-dropdown > a,
+.wy-side-nav-search > div.version {
+    color: #777777
+}
+
+/* Hover styles for the menu links */
+.wy-menu > ul > li > a:hover,
+.wy-menu > ul > li > a:focus {
+    background-color: #EFEFEF;
+    color: #c11133;
+    font-weight: bold;
+}
+
+/* Make the search bar less garish */
+.wy-side-nav-search input[type="text"] {
+    border-color: #fcfcfc;  /* hacky override */
+    border-radius: 5px;
+}
+
+/* Right-align the sidebar text */
+.wy-menu-vertical {
+    text-align: right;
+}
+
