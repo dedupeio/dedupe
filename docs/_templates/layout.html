@@ -1,8 +1,32 @@
 {% extends "!layout.html" %}
 
 {% block extrahead %}
- <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700' rel='stylesheet' type='text/css'>
+  <script src="http://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700" rel="stylesheet" type="text/css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"> -->
 {% endblock %}
 
 {% block extrabody %}
+<div class="navbar navbar-default navbar-fixed-top" id="dedupe-nav" role="navigation">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/"><i class='fa fa-share-alt fa-rotate-180'></i> Dedupe.io</a>
+    </div>
+    <div class="navbar-collapse collapse pull-right">
+      <ul class="nav navbar-nav">
+        <li><a href="https://dedupe.io/#demo"><i class='fa fa-fw fa-play-circle'></i> Demo</a></li>
+        <li><a href="https://dedupe.io/#sign-up"><i class='fa fa-fw fa-check-square-o'></i> Sign up</a></li>
+        <li><a href="https://dedupe.io/tutorials/"><i class='fa fa-fw fa-info-circle'></i> Tutorials</a></li>
+        <li><a href="https://app.dedupe.io/login?next=%2F"><i class='fa fa-fw fa-sign-in'></i> Login</a></li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div>
+</div>
 {% endblock %}

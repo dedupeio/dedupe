@@ -1,14 +1,15 @@
 @import url('theme.css');
+@import url('bootstrap.css');
 
 body {
-  font-size: 16px;
-  font-family: 'Open Sans', 'Arial', sans-serif;
-  color: #777777;
+    font-size: 16px;
+    font-family: 'Open Sans', 'Arial', sans-serif;
+    color: #777777;
 }
 
 h1, h1 a, h2, h2 a, h3, h3 a {
-  color: #666;
-  font-weight: bold;
+    color: #666;
+    font-weight: bold;
 }
 
 /* override some of the built-in fonts */
@@ -18,7 +19,7 @@ h1, h2, h3, h4, h5, h6, legend,
 }
 
 h1 a:hover, h2 a:hover, h3 a:hover {
-  color: #777;
+    color: #777;
 }
 
 a, a:visited { color: #c11133;}
@@ -26,10 +27,16 @@ a:hover { color: #730a1e;}
 a:active, a:focus { outline: 0;}
 
 .footer {
-  background-color: #f2f3ec;
-  padding: 20px 0;
-  margin-top: 20px;
-  font-size: 0.9em;
+    background-color: #f2f3ec;
+    padding: 20px 0;
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+
+/* Remove bootstrap navbar stuff */
+.navbar > .container .navbar-brand,
+.navbar > .container-fluid .navbar-brand {
+    margin-left: 0;
 }
 
 /* =============== */
@@ -41,9 +48,45 @@ a:active, a:focus { outline: 0;}
     background: #fcfcfc;
 }
 
+/* Remove dark colors from the background */
+.wy-body-for-nav {
+    background: #fcfcfc;
+    background-image: none;
+}
+
 /* Give the nav a little bit of padding */
 .wy-nav-side {
     padding-left: 10px;
+    top: 52px;
+}
+
+/* Restyle mobile nav */
+.wy-nav-top {
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #e7e7e7;
+}
+
+/* Give the hamburger bootstrap styles */
+.wy-nav-top i {
+    padding: 5px 10px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    background-color: transparent;
+    background-image: none;
+    border: 1px solid #7777;
+    border-radius: 4px;
+    border-color: #ddd;
+    color: #777;
+}
+
+.wy-nav-top i:hover {
+    background-color: #ddd;
+}
+
+.wy-nav-content {
+    margin-top: 52px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Sidebar text should never be a light color */
@@ -71,4 +114,27 @@ a:active, a:focus { outline: 0;}
 .wy-menu-vertical {
     text-align: right;
 }
+
+/* Remove Dedupe nav at small breakpoints */
+@media (max-width: 768px) {
+
+    #dedupe-nav {
+      display: none;
+    }
+
+    .wy-nav-side {
+      top: 0;
+    }
+
+    .wy-nav-content {
+      margin-top: 0;
+    }
+}
+
+@media screen and (min-width: 1400px) {
+    .wy-nav-content-wrap {
+        background: #fcfcfc;
+    }
+}
+
 
