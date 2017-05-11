@@ -1,13 +1,21 @@
 {% extends "!layout.html" %}
 
 {% block extrahead %}
-  <script src="http://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <!-- Grab JQuery, Bootstrap, and fonts -->
+  <script src="_static/js/jquery.min.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700" rel="stylesheet" type="text/css">
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-  <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"> -->
+  <script src="_static/js/bootstrap.min.js"></script>
+  <script>
+    $(function() {
+      /* Tweak some of the hardcoded markup in the RTD theme */
+      $('.wy-nav-top > a, .icon.icon-home').html('dedupe library docs');
+      $('.icon.icon-home').removeClass('icon, icon-home');
+    });
+  </script>
 {% endblock %}
 
 {% block extrabody %}
+<!-- Navbar from the dedupe.io marketing site, lightly edited -->
 <div class="navbar navbar-default navbar-fixed-top" id="dedupe-nav" role="navigation">
   <div class="container-fluid">
     <div class="navbar-header">
@@ -17,7 +25,7 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="/"><i class='fa fa-share-alt fa-rotate-180'></i> Dedupe.io</a>
+      <a class="navbar-brand" href="https://dedupe.io/"><i class='fa fa-share-alt fa-rotate-180'></i> Dedupe.io</a>
     </div>
     <div class="navbar-collapse collapse pull-right">
       <ul class="nav navbar-nav">

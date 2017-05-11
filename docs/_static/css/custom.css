@@ -1,5 +1,10 @@
+/* Bring in RTD theme and Bootstrap CSS */
 @import url('theme.css');
 @import url('bootstrap.css');
+
+/* ========== */
+/* Typography */
+/* ========== */
 
 body {
     font-size: 16px;
@@ -12,7 +17,7 @@ h1, h1 a, h2, h2 a, h3, h3 a {
     font-weight: bold;
 }
 
-/* override some of the built-in fonts */
+/* Override some of the built-in RTD fonts */
 h1, h2, h3, h4, h5, h6, legend,
 .rst-content .toctree-wrapper p.caption {
     font-family: 'Open Sans', 'Arial', sans-serif;
@@ -26,6 +31,10 @@ a, a:visited { color: #c11133;}
 a:hover { color: #730a1e;}
 a:active, a:focus { outline: 0;}
 
+/* ================ */
+/* Navs and footers */
+/* ================ */
+
 .footer {
     background-color: #f2f3ec;
     padding: 20px 0;
@@ -33,15 +42,59 @@ a:active, a:focus { outline: 0;}
     font-size: 0.9em;
 }
 
-/* Remove bootstrap navbar stuff */
+/* Remove Bootstrap navbar stuff */
 .navbar > .container .navbar-brand,
 .navbar > .container-fluid .navbar-brand {
     margin-left: 0;
 }
 
-/* =============== */
-/* theme overrides */
-/* =============== */
+/* Pad headers so that the navbar doesn't headbutt them */
+/* (Thx to Chris Coyer on CSS-Tricks for the elegant sol'n) */
+/* https://css-tricks.com/hash-tag-links-padding/ */
+h1:before, h2:before, h3:before,
+h4:before, h4:before, h6:before { 
+    display: block; 
+    content: " "; 
+    margin-top: -55px; 
+    height: 55px; 
+    opacity: 0;
+}
+
+/* Padding for method/class permalinks, which require more finesse */
+/* (Use fake padding instead of an invisible ::before pseudo-element) */
+.rst-content dl:not(.docutils) dt,
+.rst-content dl:not(.docutils) dl dt,
+.rst-content dl:not(.docutils) dt:first-child {
+    padding-top: 55px;
+    margin-top: -55px;
+    background: none;
+    border-top: none;
+    border-left: none;
+    margin-bottom: 10px;
+}
+
+/* Use ::before pseudo-elements to style the method/class permalinks */
+.rst-content dl:not(.docutils) dt:before,
+.rst-content dl:not(.docutils) dl dt:before {
+    display: block;
+    content: " ";
+    margin-bottom: -23px;
+    height: 28px;
+    background: #e7f2fa;
+    border-top: solid 3px #6ab0de;
+}
+
+/* Methods should be grey */
+.rst-content dl:not(.docutils) dl dt:before {
+    background: #f0f0f0;
+    border-top: none;
+    border-left: solid 3px #ccc;
+    margin-left: -5px;
+}
+
+/* =================== */
+/* RTD theme overrides */
+/* =================== */
 
 /* Remove sidebar background colors */
 .wy-nav-side, .wy-side-nav-search {
@@ -66,7 +119,7 @@ a:active, a:focus { outline: 0;}
     border-bottom: 1px solid #e7e7e7;
 }
 
-/* Give the hamburger bootstrap styles */
+/* Give the hamburger menu styles like Bootstrap */
 .wy-nav-top i {
     padding: 5px 10px;
     margin-top: 8px;
@@ -83,13 +136,15 @@ a:active, a:focus { outline: 0;}
     background-color: #ddd;
 }
 
+/* Pad the content just a lil */
 .wy-nav-content {
     margin-top: 52px;
     margin-left: auto;
     margin-right: auto;
 }
 
-/* Sidebar text should never be a light color */
+/* Sidebar text should always be dark */
+.wy-side-nav-search,
 .wy-side-nav-search > a,
 .wy-side-nav-search .wy-dropdown > a,
 .wy-side-nav-search > div.version {
@@ -104,9 +159,9 @@ a:active, a:focus { outline: 0;}
     font-weight: bold;
 }
 
-/* Make the search bar less garish */
+/*Make the search bar less garish */
 .wy-side-nav-search input[type="text"] {
-    border-color: #fcfcfc;  /* hacky override */
+    border-color: #fcfcfc;  /* hacky override for the gross border */
     border-radius: 5px;
 }
 
@@ -115,7 +170,11 @@ a:active, a:focus { outline: 0;}
     text-align: right;
 }
 
-/* Remove Dedupe nav at small breakpoints */
+/* ============= */
+/* Media queries */
+/* ============= */
+
+/* Remove Dedupe.io navbar at small breakpoints */
 @media (max-width: 768px) {
 
     #dedupe-nav {
@@ -129,12 +188,15 @@ a:active, a:focus { outline: 0;}
     .wy-nav-content {
       margin-top: 0;
     }
+
+    .wy-nav-top a {
+        text-decoration: none;
+    }
 }
 
+/* Get rid of mysterious dark void that appears on big screens */
 @media screen and (min-width: 1400px) {
     .wy-nav-content-wrap {
         background: #fcfcfc;
     }
 }
-
-
