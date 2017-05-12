@@ -602,7 +602,7 @@ class ActiveMatching(Matching):
         describes a variable to use for comparing records.
 
         For details about variable types, check the documentation.
-        <https://dedupe.readthedocs.io>`_
+        <https://dedupe.io/developers/library>`_
         """
         self.data_model = datamodel.DataModel(variable_definition)
 

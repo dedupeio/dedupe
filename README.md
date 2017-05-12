@@ -38,7 +38,7 @@ pip install "numpy>=1.9"
 pip install dedupe
 ```
 
-Familiarize yourself with [dedupe's API](https://dedupe.readthedocs.io/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/dedupeio/dedupe-examples).
+Familiarize yourself with [dedupe's API](https://dedupe.io/developers/library/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/dedupeio/dedupe-examples).
 
 ### Developing dedupe
 
