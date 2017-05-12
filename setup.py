@@ -11,7 +11,7 @@ install_requires=['fastcluster',
                   'affinegap>=1.3',
                   'categorical-distance>=1.9',
                   'future>=0.14',
-                  'rlr>=2.3',
+                  'rlr>=2.4.2',
                   'doublemetaphone',
                   'highered>=0.2.0',
                   'canonicalize',
@@ -25,7 +25,7 @@ install_requires=['fastcluster',
 setup(
     name='dedupe',
     url='https://github.com/datamade/dedupe',
-    version='1.6.12',
+    version='1.6.13',
     author='Forest Gregg',
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
@@ -60,10 +60,10 @@ setup(
 
     Important links:
 
-    * Documentation: https://dedupe.io/developers/library
-    * Repository: https://github.com/dedupeio/dedupe
-    * Issues: https://github.com/dedupeio/dedupe/issues
-    * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
-    * Examples: https://github.com/dedupeio/dedupe-examples
+    * `Documentation <https://dedupe.io/developers/library>`_
+    * `Repository <https://github.com/dedupeio/dedupe>`_
+    * `Issues <https://github.com/dedupeio/dedupe/issues>`_
+    * `Mailing list <https://groups.google.com/forum/#!forum/open-source-deduplication>`_
+    * `Examples <https://github.com/dedupeio/dedupe-examples>`_
     """
     )
