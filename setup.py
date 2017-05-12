@@ -60,7 +60,7 @@ setup(
 
     Important links:
 
-    * Documentation: https://dedupe.readthedocs.io/
+    * Documentation: https://dedupe.io/developers/library
     * Repository: https://github.com/dedupeio/dedupe
     * Issues: https://github.com/dedupeio/dedupe/issues
     * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
