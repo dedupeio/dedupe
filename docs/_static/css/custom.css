@@ -24,7 +24,7 @@ h1 a:hover, h2 a:hover, h3 a:hover {
     color: #777;
 }
 
-a, a:visited { color: #c11133;}
+a, a:visited, .wy-menu-vertical a { color: #c11133;}
 a:hover { color: #730a1e;}
 a:active, a:focus { outline: 0;}
 
