@@ -16,8 +16,7 @@ dedupe takes in human training data and comes up with the best rules for your da
 * Repository: https://github.com/dedupeio/dedupe
 * Issues: https://github.com/dedupeio/dedupe/issues
 * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
-* Examples: https://github.com/dedupeoi/dedupe-examples
-* IRC channel, [#dedupe on irc.freenode.net](http://webchat.freenode.net/?channels=dedupe)
+* Examples: https://github.com/dedupeio/dedupe-examples
 
 ## Tools built with dedupe
 
