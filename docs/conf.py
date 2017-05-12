@@ -56,8 +56,7 @@ copyright = u'2017, Forest Gregg, Derek Eder, and contributors'
 # built documents.
 #
 # The short X.Y version.
-import pkg_resources
-version = pkg_resources.require("dedupe")[0].version
+version = 1.6.13
 
 # The full version, including alpha/beta/rc tags.
 #release = '1.6.7'
