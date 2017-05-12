@@ -49,7 +49,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'dedupe'
-copyright = u'2016, Forest Gregg, Derek Eder, and contributors'
+copyright = u'2017, Forest Gregg, Derek Eder, and contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -103,15 +103,25 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+# The RTD builder uses a special name for the theme
+if on_rtd:
+    html_theme = 'default'
+else:
+    html_theme = 'sphinx_rtd_theme'
+
+# Custom stylesheet
+html_style = 'css/custom.css'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+# html_theme_options = {
+    # 'canonical_url': 'https://dedupe.io/developers/library/'
+# }
 
 # Add any paths that contain custom themes here, relative to this directory.
-#html_theme_path = []
+# html_theme_path = []
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".

@@ -12,7 +12,7 @@ __dedupe__ will help you:
 dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
 
 ## Important links
-* Documentation: https://dedupe.readthedocs.io/
+* Documentation: https://dedupe.io/developers/library
 * Repository: https://github.com/dedupeio/dedupe
 * Issues: https://github.com/dedupeio/dedupe/issues
 * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
@@ -110,11 +110,11 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 ## Copyright
 
-Copyright (c) 2016 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/dedupeio/dedupe/blob/master/LICENSE).
+Copyright (c) 2017 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/dedupeio/dedupe/blob/master/LICENSE).
 
 Third-party copyright in this distribution is noted where applicable.
 
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 
-Gregg, Forest, and Derek Eder. 2016. Dedupe. https://github.com/dedupeio/dedupe.
+Gregg, Forest, and Derek Eder. 2017. Dedupe. https://github.com/dedupeio/dedupe.

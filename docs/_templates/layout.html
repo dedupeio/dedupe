@@ -1,0 +1,40 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+  <!-- Grab JQuery, Bootstrap, and fonts -->
+  <script src="_static/js/jquery.min.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,700" rel="stylesheet" type="text/css">
+  <script src="_static/js/bootstrap.min.js"></script>
+  <script>
+    $(function() {
+      /* Tweak some of the hardcoded markup in the RTD theme */
+      $('.wy-nav-top > a, .icon.icon-home').html('dedupe library docs');
+      $('.icon.icon-home').removeClass('icon, icon-home');
+    });
+  </script>
+{% endblock %}
+
+{% block extrabody %}
+<!-- Navbar from the dedupe.io marketing site, lightly edited -->
+<div class="navbar navbar-default navbar-fixed-top" id="dedupe-nav" role="navigation">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="https://dedupe.io/"><i class='fa fa-share-alt fa-rotate-180'></i> Dedupe.io</a>
+    </div>
+    <div class="navbar-collapse collapse pull-right">
+      <ul class="nav navbar-nav">
+        <li><a href="https://dedupe.io/#demo"><i class='fa fa-fw fa-play-circle'></i> Demo</a></li>
+        <li><a href="https://dedupe.io/#sign-up"><i class='fa fa-fw fa-check-square-o'></i> Sign up</a></li>
+        <li><a href="https://dedupe.io/tutorials/"><i class='fa fa-fw fa-info-circle'></i> Tutorials</a></li>
+        <li><a href="https://app.dedupe.io/login?next=%2F"><i class='fa fa-fw fa-sign-in'></i> Login</a></li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div>
+</div>
+{% endblock %}
