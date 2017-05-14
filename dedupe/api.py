@@ -801,7 +801,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
 
         if original_length is None:
             original_length = len(data)
-        self.sampled_records = Sample(data, 900, original_length)
+        self.sampled_records = Sample(data, 2000, original_length)
 
         self.active_learner = self.ActiveLearner(self.data_model)
         self.active_learner.sample_combo(data, blocked_proportion, sample_size)
@@ -859,13 +859,14 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         data_1 = core.index(data_1)
         if original_length_1 is None:
             original_length_1 = len(data_1)
-        self.sampled_records_1 = Sample(data_1, 200, original_length_1)
+        self.sampled_records_1 = Sample(data_1, 600, original_length_1)
 
         offset = len(data_1)
         data_2 = core.index(data_2, offset)
         if original_length_2 is None:
             original_length_2 = len(data_2)
-        self.sampled_records_2 = Sample(data_2, 200, original_length_2)
+        self.sampled_records_2 = Sample(data_2, 600, original_length_2)
+        print('foo')
 
         self.active_learner = self.ActiveLearner(self.data_model)
         self.active_learner.sample_product(data_1, data_2,
