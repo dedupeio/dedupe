@@ -167,6 +167,21 @@ h4:before, h4:before, h6:before {
     text-align: right;
 }
 
+/* Version box in the lower left-hand corner */
+.rst-versions {
+    background: #ababab;
+    border-top: none;
+}
+
+.rst-versions .rst-current-version {
+    background-color: #7d7d7d;
+    color: #ffffff;
+}
+
+.rst-versions .rst-other-versions {
+    color: #4e4e4e;
+}
+
 /* ============= */
 /* Media queries */
 /* ============= */
