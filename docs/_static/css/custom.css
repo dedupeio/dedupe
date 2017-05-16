@@ -28,6 +28,38 @@ a, a:visited, .wy-menu-vertical a { color: #c11133;}
 a:hover { color: #730a1e;}
 a:active, a:focus { outline: 0;}
 
+.navbar-nav > li > a,
+.navbar-brand {
+    height: 40px;
+}
+
+.navbar {
+    min-height: 40px;
+}
+
+.navbar-fixed-top .navbar-collapse {
+    padding-right: 15px;
+}
+
+.navbar-default .navbar-nav > li > a {
+    padding-top: 11px;
+    height: 40px;
+}
+
+.nav > li {
+    font-size: 0.9em;
+}
+
+.navbar-default .navbar-nav > li > a:hover {
+    color: #d9230f;
+    background-color: transparent;
+}
+
+.navbar-brand {
+    font-size: 17px;
+    padding: 11px 15px;
+}
+
 /* ================ */
 /* Navs and footers */
 /* ================ */
@@ -165,6 +197,21 @@ h4:before, h4:before, h6:before {
 /* Right-align the sidebar text */
 .wy-menu-vertical {
     text-align: right;
+}
+
+/* Version box in the lower left-hand corner */
+.rst-versions {
+    background: #ababab;
+    border-top: none;
+}
+
+.rst-versions .rst-current-version {
+    background-color: #7d7d7d;
+    color: #ffffff;
+}
+
+.rst-versions .rst-other-versions {
+    color: #4e4e4e;
 }
 
 /* ============= */
