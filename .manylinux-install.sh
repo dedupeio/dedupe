@@ -5,7 +5,6 @@ set -e -x
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
     if [[ "${PYBIN}" == *"cp27"* ]] || [[ "${PYBIN}" == *"cp34"* ]] || [[ "${PYBIN}" == *"cp35"* ]] || [[ "${PYBIN}" == *"cp36"* ]]; then
-        "${PYBIN}/pip" install "numpy>=1.9.2"
         "${PYBIN}/pip" install -r /io/requirements.txt
         "${PYBIN}/cython" /io/src/*.pyx
         "${PYBIN}/pip" install -e /io/
