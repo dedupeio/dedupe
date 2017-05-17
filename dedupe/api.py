@@ -1061,6 +1061,7 @@ def _temp_shelve():
 
     try:
         try:
+            import dbm
             from dbm import gnu
         except:
             import platform
