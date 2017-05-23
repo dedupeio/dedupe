@@ -20,7 +20,7 @@ except Exception as e:
 record = {'foo' : 'bar'}
 ids = set(range(1000))
         
-for i in range(10000):
+for i in range(1000000):
     k = str(random.randrange(1000))
     if k in shelf:
         shelf[k] += [(i, record, ids)]
@@ -29,5 +29,5 @@ for i in range(10000):
 
 for block in shelf.values():
     if len(block) > 1:
-        print(block)
+        1 + 1 == 2
 
