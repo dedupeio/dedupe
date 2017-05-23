@@ -26,7 +26,8 @@ for i in range(1000000):
         shelf[k] += [(i, record, ids)]
     else:
         shelf[k] = [(i, record, ids)]
-
+print('shelve done')
+        
 for block in shelf.values():
     if len(block) > 1:
         1 + 1 == 2
