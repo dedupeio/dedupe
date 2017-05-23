@@ -262,13 +262,14 @@ def firstTokenPredicate(field) :
 
 def commonIntegerPredicate(field):
     """return any integers"""
-    return set(integers(field))
+    return {str(int(i)) for i in integers(field)}
 
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
     ints = integers(field)
-    near_ints = set(ints)
+    near_ints = set()
     for char in ints :
+        near_ints.add(char)
         num = int(char)
         near_ints.add(str(num-1))
         near_ints.add(str(num+1))
