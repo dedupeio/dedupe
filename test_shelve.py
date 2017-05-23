@@ -18,10 +18,10 @@ except Exception as e:
 
 
 record = {'foo' : 'bar'}
-ids = set(range(1000))
+ids = set(range(100))
         
 for i in range(1000000):
-    k = str(random.randrange(1000))
+    k = str(random.randrange(10000))
     if k in shelf:
         shelf[k] += [(i, record, ids)]
     else:
