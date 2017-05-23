@@ -1060,15 +1060,8 @@ def _temp_shelve():
     os.close(fd)
 
     try:
-        try:
-            from dbm import gnu
-        except:
-            import platform
-            if platform.system() == 'Darwin':
-                dbm.ndbm = None
-                
         shelf = shelve.open(file_path, 'n',
-                            protocol=pickle.HIGHEST_PROTOCOL)
+                                      protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as e:
         if 'db type could not be determined' in str(e):
             os.remove(file_path)
