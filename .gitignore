@@ -28,3 +28,4 @@ ENV
 dist
 .coverage
 src/*.c
+/.idea/
