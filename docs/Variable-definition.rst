@@ -232,7 +232,8 @@ the value is 0 or negative, then an exception will be raised.
 DateTime
 ^^^^^^^^
 
-DateTime variables are useful for comparing dates and timestamps.
+DateTime variables are useful for comparing dates and timestamps. This variable
+can accept strings or Python datetime objects as inputs.
 
 The DateTime variable definition accepts a few optional arguments that can help 
 improve behavior if you know your field follows an unusual format:
