@@ -190,7 +190,7 @@ but law firms don't. Categorical variables would let you indicate
 whether two records are both taxi companies, both law firms, or one of
 each.
 
-Dedupe would represents these three possibilities using two dummy
+Dedupe would represent these three possibilities using two dummy
 variables:
 
 ::
@@ -228,6 +228,35 @@ the value is 0 or negative, then an exception will be raised.
 .. code:: python
 
     {'field' : 'cost', 'type': 'Price'}
+
+DateTime
+^^^^^^^^
+
+DateTime variables are useful for comparing dates and timestamps.
+
+The DateTime variable definition accepts a few optional arguments that can help 
+improve behavior if you know your field follows an unusual format:
+
+* :code:`fuzzy` - Use fuzzy parsing to automatically extract dates from strings like "It happened on June 2nd, 2017" (default :code:`True`)
+* :code:`dayfirst` - Ambiguous dates should be parsed as dd/mm/yy (default :code:`False`)
+* :code:`yearfirst`-  Ambiguous dates should be parsed as yy/mm/dd (default :code:`False`)
+
+Note that the DateTime variable defaults to mm/dd/yy for ambiguous dates.
+If both :code:`dayfirst` and :code:`yearfirst` are set to :code:`True`, then :code:`dayfirst` will take
+precedence.
+
+Sample DateTime variable definition, using the defaults:
+
+.. code:: python
+
+    {'field' : 'time_of_sale', 'type': 'DateTime',
+    'fuzzy': True, 'dayfirst': False, 'yearfirst': False}
+
+If you're happy with the defaults, you can simply define the :code:`field` and :code:`type`:
+
+.. code:: python
+
+    {'field' : 'time_of_sale', 'type': 'DateTime'}
 
 
 Optional Variables
