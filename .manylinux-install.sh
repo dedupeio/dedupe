@@ -15,7 +15,7 @@ done
 
 # Bundle external shared libraries into the wheels
 for whl in wheelhouse/dedupe*.whl; do
-    if  [[ "${whl}" != *"dedupe_hcluster"* ]]; then
+    if  [[ "${whl}" != *"dedupe_"* ]]; then
         auditwheel repair "$whl" -w /io/wheelhouse/
     fi
 done
