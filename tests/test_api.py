@@ -159,37 +159,6 @@ class LinkTest(unittest.TestCase):
                   [(('1', {'age': 72, 'name': 'Frank'}, set([])), 
                     ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
-  def test_randomSample(self) :
-
-    random.seed(27)
-    numpy.random.seed(43)
-
-    self.linker.sample( data_dict, data_dict_2, 50, 1)
-
-    correct_result = [({'age': '51', 'name': 'Bob B.'}, 
-                       {'age': '51', 'name': 'BOB'}), 
-                      ({'age': '51', 'name': 'Bob B.'}, 
-                       {'age': '51', 'name': 'BOB B.'}), 
-                      ({'age': '51', 'name': 'Bob'}, 
-                       {'age': '51', 'name': 'BOB B.'}), 
-                      ({'age': '15', 'name': 'Tina'}, 
-                       {'age': '15', 'name': 'TINA'})]
-
-    for pair in correct_result:
-      assert pair in self.linker.active_learner.candidates
-
-    self.linker.sample(data_dict, data_dict_2, 5, 0)
-
-    correct_result = [({'age': '51', 'name': 'Bob B.'}, 
-                       {'age': '15', 'name': 'TINA'}), 
-                      ({'age': '51', 'name': 'Bob B.'}, 
-                       {'age': '50', 'name': 'LINDA'}), 
-                      ({'age': '12', 'name': 'Gene'}, 
-                       {'age': '15', 'name': 'TINA'}), 
-                      ({'age': '50', 'name': 'Linda'}, 
-                       {'age': '50', 'name': 'LINDA '}), 
-                      ({'age': '50', 'name': 'linda '}, 
-                       {'age': '51', 'name': 'BOB BELCHER'})]
 
 
 
