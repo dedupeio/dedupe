@@ -104,7 +104,7 @@ class ScoreRecords(object) :
 
             try :
                 filtered_pairs = self.fieldDistance(record_pairs)
-                if filtered_pairs is not None :
+                if filtered_pairs is not None and filtered_pairs.size != 0 :
                     score_queue.put(filtered_pairs)
             except Exception as e :
                 score_queue.put(e)
