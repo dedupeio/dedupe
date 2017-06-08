@@ -866,7 +866,6 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         if original_length_2 is None:
             original_length_2 = len(data_2)
         self.sampled_records_2 = Sample(data_2, 600, original_length_2)
-        print('foo')
 
         self.active_learner = self.ActiveLearner(self.data_model)
         self.active_learner.sample_product(data_1, data_2,
