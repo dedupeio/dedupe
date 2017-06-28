@@ -183,7 +183,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
     else :
-        from .backport import Process, SimpleQueue
+        from .backport import Process, SimpleQueue, Queue
 
     first, records = peek(records)
     if first is None:
@@ -246,7 +246,8 @@ def fillQueue(queue, iterable, stop_signals) :
         if chunk :
             queue.put(chunk)
             del chunk
-      
+            print('chunk size:', int(chunk_size))
+            
             n_records += chunk_size
             i += 1
 
