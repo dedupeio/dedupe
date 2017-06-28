@@ -191,7 +191,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
                          "Is the data you are trying to match like "
                          "the data you trained on?")
 
-    record_pairs_queue = SimpleQueue()
+    record_pairs_queue = Queue(2)
     score_queue =  SimpleQueue()
     result_queue = SimpleQueue()
 
@@ -246,7 +246,6 @@ def fillQueue(queue, iterable, stop_signals) :
         if chunk :
             queue.put(chunk)
             del chunk
-            print('chunk size:', int(chunk_size))
             
             n_records += chunk_size
             i += 1
