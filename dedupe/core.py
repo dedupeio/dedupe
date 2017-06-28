@@ -231,7 +231,8 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
 
 def fillQueue(queue, iterable, stop_signals) :
     iterable = iter(iterable)
-    chunk_size = 100000
+    #chunk_size = 100000
+    chunk_size = 1000
     upper_bound = 7000000 # this number worked, but is unprincipled 
     multiplier = 1.1
 
@@ -242,9 +243,10 @@ def fillQueue(queue, iterable, stop_signals) :
     last_rate = 10000
 
     while True :
-        chunk = list(itertools.islice(iterable, int(chunk_size)))
+        chunk = tuple(itertools.islice(iterable, int(chunk_size)))
         if chunk :
             queue.put(chunk)
+            del chunk
 
             n_records += chunk_size
             i += 1
