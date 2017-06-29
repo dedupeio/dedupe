@@ -22,10 +22,13 @@ def blockedSample(sampler, sample_size, predicates, *args) :
                              predicates,
                              *args)
 
-        filtered_sample = (subsample for subsample 
-                           in new_sample if subsample)
-
-        blocked_sample.update(itertools.chain.from_iterable(filtered_sample))
+        new_predicates = []
+        for pred, subsample in zip(predicates, new_sample):
+            if subsample:
+                blocked_sample.update(subsample)
+            if subsample or subsample is None:
+                new_predicates.append(pred)
+        predicates = new_predicates
 
         growth = len(blocked_sample) - previous_sample_size
         growth_rate = growth/remaining_sample
@@ -38,11 +41,6 @@ def blockedSample(sampler, sample_size, predicates, *args) :
                           "but only able to sample %s"
                           % (sample_size, len(blocked_sample)))
             break
-
-            
-        predicates = [pred for pred, pred_sample 
-                      in zip(predicates, new_sample)
-                      if pred_sample or pred_sample is None]
         
     return blocked_sample
 

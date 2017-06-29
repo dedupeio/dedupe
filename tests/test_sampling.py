@@ -50,6 +50,11 @@ class DedupeSampling(unittest.TestCase) :
         assert len(dedupe.sampling.dedupeBlockedSample(10, 
                                                        [pred],
                                                        deque(data_dict.items()))) == 1
-
+                                                       
+        pred = dedupe.predicates.SimplePredicate(dedupe.predicates.nearIntegersPredicate, 
+                                                 'age')
+        assert len(dedupe.sampling.dedupeBlockedSample(6, 
+                                                       [pred],
+                                                       deque(data_dict.items()))) == 6
 
 
