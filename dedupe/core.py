@@ -180,10 +180,11 @@ def mergeScores(score_queue, result_queue, stop_signals) :
 
 def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     if num_cores < 2 :
-        from multiprocessing.dummy import Process, Queue
-        SimpleQueue = Queue
+        from multiprocessing.dummy import Process
     else :
-        from .backport import Process, SimpleQueue, Queue
+        from .backport import Process
+
+    from .backport import SimpleQueue, Queue
 
     first, records = peek(records)
     if first is None:

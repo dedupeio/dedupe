@@ -26,16 +26,15 @@ elif platform.system() == 'Windows' :
     warnings.warn("Dedupe does not currently support multiprocessing on Windows")
     MULTIPROCESSING = False
 
+from multiprocessing import Queue
+if sys.version < '3':
+    from multiprocessing.queues import SimpleQueue
+else :
+    from multiprocessing import SimpleQueue
+
 if MULTIPROCESSING :        
-    from multiprocessing import Process, Pool, Queue
-    if sys.version < '3':
-        from multiprocessing.queues import SimpleQueue
-    else :
-        from multiprocessing import SimpleQueue
+    from multiprocessing import Process, Pool
 else :
     if not hasattr(threading.current_thread(), "_children"): 
         threading.current_thread()._children = weakref.WeakKeyDictionary()
-    from multiprocessing.dummy import Process, Pool, Queue
-    SimpleQueue = Queue
-
-
+    from multiprocessing.dummy import Process, Pool
