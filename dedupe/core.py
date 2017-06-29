@@ -183,7 +183,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
     else :
-        from .backport import Process, SimpleQueue
+        from .backport import Process, SimpleQueue, Queue
 
     first, records = peek(records)
     if first is None:
@@ -191,7 +191,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
                          "Is the data you are trying to match like "
                          "the data you trained on?")
 
-    record_pairs_queue = SimpleQueue()
+    record_pairs_queue = Queue(2)
     score_queue =  SimpleQueue()
     result_queue = SimpleQueue()
 
@@ -242,10 +242,11 @@ def fillQueue(queue, iterable, stop_signals) :
     last_rate = 10000
 
     while True :
-        chunk = list(itertools.islice(iterable, int(chunk_size)))
+        chunk = tuple(itertools.islice(iterable, int(chunk_size)))
         if chunk :
             queue.put(chunk)
-
+            del chunk
+            
             n_records += chunk_size
             i += 1
 
