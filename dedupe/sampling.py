@@ -18,9 +18,9 @@ def blockedSample(sampler, sample_size, predicates, *args) :
     while remaining_sample and predicates :
         random.shuffle(predicates)
 
-        new_sample = sampler(remaining_sample, 
-                             predicates,
-                             *args)
+        new_sample = list(sampler(remaining_sample,
+                                  predicates,
+                                  *args))
 
         filtered_sample = (subsample for subsample 
                            in new_sample if subsample)
@@ -39,7 +39,6 @@ def blockedSample(sampler, sample_size, predicates, *args) :
                           % (sample_size, len(blocked_sample)))
             break
 
-            
         predicates = [pred for pred, pred_sample 
                       in zip(predicates, new_sample)
                       if pred_sample or pred_sample is None]
