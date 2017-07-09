@@ -28,6 +28,7 @@ else :
     def strip_punc(s) :
         return s.translate(PUNCTABLE)
 
+
 class Predicate(object) :
     def __iter__(self) :
         yield self
@@ -45,6 +46,7 @@ class Predicate(object) :
     def __eq__(self, other) :
         return repr(self) == repr(other)
 
+
 class SimplePredicate(Predicate) :
     type = "SimplePredicate"
 
@@ -53,7 +55,7 @@ class SimplePredicate(Predicate) :
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record) :
+    def __call__(self, record, **kwargs) :
         column = record[self.field]
         if column :
             return self.func(column)
@@ -61,7 +63,7 @@ class SimplePredicate(Predicate) :
             return ()
 
 class StringPredicate(SimplePredicate) :
-    def __call__(self, record) :
+    def __call__(self, record, **kwargs) :
         column = record[self.field]
         if column :
             return self.func(strip_punc(column))
@@ -84,7 +86,7 @@ class ExistsPredicate(Predicate) :
             return ('0',)
 
 
-    def __call__(self, record) :
+    def __call__(self, record, **kwargs) :
         column = record[self.field]
         return self.func(column)
 
@@ -116,7 +118,7 @@ class CanopyPredicate(object):
         super(CanopyPredicate, self).__setstate__(*args, **kwargs)
         self.canopy ={}
 
-    def __call__(self, record) :
+    def __call__(self, record, **kwargs) :
         block_key = None
         column = record[self.field]
 
@@ -152,19 +154,20 @@ class CanopyPredicate(object):
             return [str(block_key)]
 
 class SearchPredicate(object):
-    def __call__(self, record) :
+    def __call__(self, record, target=False, **kwargs):
         column = record[self.field]
-        if column :
-            try :
-                centers = self.index.search(self.preprocess(column), 
-                                            self.threshold)
-            except AttributeError :
+        if column:
+            doc = self.preprocess(column)
+            try:
+                if target:
+                    centers = [self.index._doc_to_id[doc]]
+                else:
+                    centers = self.index.search(doc, self.threshold)
+            except AttributeError:
                 raise AttributeError("Attempting to block with an index "
                                      "predicate without indexing records")
-
             l_str = str
             return [l_str(center) for center in centers]
-
         else :
             return ()
 
@@ -237,8 +240,8 @@ class CompoundPredicate(tuple) :
     def __name__(self) :
         return u'(%s)' % u', '.join(str(pred) for pred in self)
 
-    def __call__(self, record) :
-        predicate_keys = [predicate(record)
+    def __call__(self, record, **kwargs) :
+        predicate_keys = [predicate(record, **kwargs)
                           for predicate in self]
         return [u':'.join(block_key)
                 for block_key

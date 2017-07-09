@@ -26,7 +26,7 @@ class LevenshteinIndex(Index):
     def search(self, doc, threshold=0):
         results = Levenshtein_search.lookup(self.index_key, doc, threshold)
         if results:
-            return [doc for doc, _, _ in results]
+            return [self._doc_to_id[doc] for doc, _, _ in results]
         else:
             return []
 

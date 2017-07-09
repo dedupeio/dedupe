@@ -196,7 +196,7 @@ class RecordLinkBlockLearner(BlockLearner) :
         for predicate in blocker.predicates :
             cover[predicate] = {}
             for id, record in viewitems(records_2) :
-                blocks = predicate(record)
+                blocks = predicate(record, target=True)
                 for block in blocks :
                     cover[predicate].setdefault(block, (set(), set()))[1].add(id)
 

@@ -426,11 +426,11 @@ class RecordLinkMatching(Matching):
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
 
-        for block_key, record_id in self.blocker(data_2.items()):
+        for block_key, record_id in self.blocker(data_2.items(), target=True):
             block_key = str(block_key) # py2 compatibility
             block = blocked_records.get(block_key, {})
             block[record_id] = data_2[record_id]
-            blocked_records[block_key]= block
+            blocked_records[block_key] = block
 
         for each in self._blockGenerator(data_1, blocked_records):
             yield each
@@ -853,9 +853,6 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         '''
         self._checkData(data_1, data_2)
         
-        if len(data_1) > len(data_2):
-            data_1, data_2 = data_2, data_1
-
         data_1 = core.index(data_1)
         if original_length_1 is None:
             original_length_1 = len(data_1)

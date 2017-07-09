@@ -24,7 +24,7 @@ class Blocker:
                 if hasattr(predicate, 'index') :
                     self.index_fields[predicate.field][predicate.type].append(predicate)
 
-    def __call__(self, records):
+    def __call__(self, records, target=False):
 
         start_time = time.clock()
         predicates = [(':' + str(i), predicate)
@@ -35,7 +35,7 @@ class Blocker:
             record_id, instance = record
 
             for pred_id, predicate in predicates :
-                block_keys = predicate(instance)
+                block_keys = predicate(instance, target=target)
                 for block_key in block_keys :
                     yield block_key + pred_id, record_id
             

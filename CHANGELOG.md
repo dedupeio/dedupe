@@ -1,3 +1,7 @@
+# 1.7.0
+- Added `target` argument to blocker and predicates for changing the behavior
+  of the predicates for the target and source dataset if we are linking.
+
 # 1.6.8
 - Use file-backed blocking with dbm, dramatically increases size of data that can be handled without special programming
 
