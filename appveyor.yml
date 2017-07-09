@@ -35,7 +35,6 @@ deploy_script:
   - echo index-servers =                             >> %USERPROFILE%\\.pypirc
   - echo     pypi                                    >> %USERPROFILE%\\.pypirc
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
-  - echo repository=https://upload.pypi.io/legacy/   >> %USERPROFILE%\\.pypirc
   - echo username=datamade.wheelbuilder              >> %USERPROFILE%\\.pypirc
   - echo password=%password%                         >> %USERPROFILE%\\.pypirc
   - set HOME=%USERPROFILE%
