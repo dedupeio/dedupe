@@ -75,7 +75,78 @@ def connected_components(edgelist, max_components) :
                yield sub_graph
         else :
             yield sub_graph
-     
+
+
+def connected_components(edgelist, max_components):
+    visited = numpy.zeros(len(edgelist), dtype=bool)
+
+    el = edgelist['pairs']
+    it = numpy.nditer(el, ['external_loop'])
+
+    for i, (a,b) in enumerate(it) :
+        if not visited[i]:
+            component = [i]
+            queue = [i]
+            visited[i] = True
+            while queue:
+                e = queue.pop()
+                j, k = el[e]
+                for edge_index in (el[:, 0] == j).nonzero()[0]:
+                    if not visited[edge_index]:
+                        visited[edge_index] = True
+                        component.append(edge_index)
+                        queue.append(edge_index)
+                for edge_index in (el[:, 1] == j).nonzero()[0]:
+                    if not visited[edge_index]:
+                        visited[edge_index] = True
+                        component.append(edge_index)
+                        queue.append(edge_index)
+                for edge_index in (el[:, 0] == k).nonzero()[0]:
+                    if not visited[edge_index]:
+                        visited[edge_index] = True
+                        component.append(edge_index)
+                        queue.append(edge_index)
+                for edge_index in (el[:, 1] == k).nonzero()[0]:
+                    if not visited[edge_index]:
+                        visited[edge_index] = True
+                        component.append(edge_index)
+                        queue.append(edge_index)
+                        
+                    
+        yield edgelist[component]
+                    
+    print(visited)
+    # for (int i = 0; i < |V|; i++)
+    #     visited[i] = false; // Mark all nodes as unvisited.
+
+    # int compNum = 0; // For counting connected components.
+    # for (int v = 0; v < |V|; v++) {
+    #     // If v is not yet visited, it's the start of a newly
+    #     // discovered connected component containing v.
+    #     if ( ! visited[v]) { // Process the component that contains v.
+    #         compNum++;
+    #         cout << "Component" << compNum << ":  ";
+    #         IntQueue q; // For implementing a breadth-first traversal.
+    #         q.enqueue(v); // Start the traversal from vertex v.
+    #         visited[v] = true;
+    #         while ( ! q.isEmpty() ) {
+    #             int w = q.dequeue(); // w is a node in this component.
+    #             cout << w << " ";
+    #             for each edge from w to some vertex k {  // ***
+    #                 if ( ! visited[k] ) {
+    #                     // We've found another node in this component.
+    #                     visited[k] = true;
+    #                     q.enque(k);
+    #                 }
+    #              }
+    #         }
+    #         cout << endl << endl;
+    #     }
+    # }
+
+    # if (compNum == 1)
+    #     cout << "The graph is connected.";
+    # else cout << "There are " << compNum << " connected components.
 
 def condensedDistance(dupes):
     '''
