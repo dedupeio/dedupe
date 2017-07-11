@@ -173,13 +173,16 @@ def mergeScores(score_queue, result_queue, stop_signals) :
                 if python_type is binary_type or python_type is text_type :
                     python_type = (unicode, 256)
         
-                dtype = [('pairs', python_type, 2), ('score', 'f4', 1)]
+                dtype = numpy.dtype([('pairs', python_type, 2),
+                                     ('score', 'f4', 1)])
 
             end = start + len(score_chunk)
             if end > len(fp):
-                fp = numpy.memmap(file_path, dtype=dtype, shape=(end * 2, ))
+                offset = start
+                fp = numpy.memmap(file_path, dtype=dtype, shape=(end * 2, ),
+                                  offset=offset * dtype.itemsize)
 
-            fp[start:end] = score_chunk
+            fp[(start - offset):(end - offset)] = score_chunk
             start = end
             del score_chunk
         else :
@@ -243,7 +246,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
 
 def fillQueue(queue, iterable, stop_signals) :
     iterable = iter(iterable)
-    chunk_size = 100000
+    chunk_size = 100
     upper_bound = 7000000 # this number worked, but is unprincipled 
     multiplier = 1.1
 
