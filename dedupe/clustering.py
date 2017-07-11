@@ -10,56 +10,26 @@ import numpy
 import fastcluster
 import hcluster
 
-def connected_components(edgelist, max_components) :
+def connected_components(edgelist, max_components):
+    unvisited = numpy.ones(len(edgelist), dtype=bool)
 
-    root = {}
-    component = {}
-    indices = {}
+    el = edgelist['pairs']
+    it = numpy.nditer(el, ['external_loop'])
 
-    if len(edgelist['pairs']) == 0:
-        raise StopIteration()
+    while unvisited.any():
+        i = unvisited.nonzero()[0][0]
+        component = [i]
+        queue = numpy.array([i])
+        unvisited[i] = False
+        while queue.size:
+            queue = numpy.logical_and(numpy.isin(el, el[queue]).any(axis=1),
+                                      unvisited).nonzero()[0]
+            
+            unvisited[queue] = False
+            component.extend(queue)
 
-    it = numpy.nditer(edgelist['pairs'], ['external_loop'])
-
-    for i, (a,b) in enumerate(it) :
-        root_a = root.get(a)
-        root_b = root.get(b)
-
-        if root_a is None and root_b is None :
-            component[a] = {a, b}
-            indices[a] = [i]
-            root[a] = root[b] = a
-        elif root_a is None or root_b is None :
-            if root_a is None :
-                a, b = b, a
-                root_a, root_b = root_b, root_a
-            component[root_a].add(b)
-            indices[root_a].append(i)
-            root[b] = root_a
-        elif root_a != root_b :
-            component_a = component[root_a]
-            component_b = component[root_b]
-            if len(component_a) < len(component_b) :
-                root_a, root_b = root_b, root_a
-                component_a, component_b = component_b, component_a
-
-            component_a |= component_b
-            indices[root_a].extend(indices[root_b])
-            indices[root_a].append(i)
-
-            for node in component_b :
-                root[node] = root_a
-
-            del component[root_b]
-            del indices[root_b]
-        else : 
-            indices[root_a].append(i)
-
-    for root in component :
-        n_components = len(component[root])
-        sub_graph = edgelist[indices[root]]
-        
-        if n_components > max_components :
+        sub_graph = edgelist[component]
+        if len(component) > max_components:
             min_score = numpy.min(sub_graph['score'])
             min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
@@ -69,53 +39,13 @@ def connected_components(edgelist, max_components) :
                           'filtering is %s' % (n_components, 
                                                max_components,
                                                threshold)) 
-            filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
+            filtered_sub_graph = e[sub_graph['score'] > threshold]	
             for sub_graph in connected_components(filtered_sub_graph, 
                                                   max_components) :
                yield sub_graph
-        else :
+        else:
             yield sub_graph
-
-
-def connected_components(edgelist, max_components):
-    visited = numpy.zeros(len(edgelist), dtype=bool)
-
-    el = edgelist['pairs']
-    it = numpy.nditer(el, ['external_loop'])
-
-    for i, (a,b) in enumerate(it) :
-        if not visited[i]:
-            component = [i]
-            queue = [i]
-            visited[i] = True
-            while queue:
-                e = queue.pop()
-                j, k = el[e]
-                for edge_index in (el[:, 0] == j).nonzero()[0]:
-                    if not visited[edge_index]:
-                        visited[edge_index] = True
-                        component.append(edge_index)
-                        queue.append(edge_index)
-                for edge_index in (el[:, 1] == j).nonzero()[0]:
-                    if not visited[edge_index]:
-                        visited[edge_index] = True
-                        component.append(edge_index)
-                        queue.append(edge_index)
-                for edge_index in (el[:, 0] == k).nonzero()[0]:
-                    if not visited[edge_index]:
-                        visited[edge_index] = True
-                        component.append(edge_index)
-                        queue.append(edge_index)
-                for edge_index in (el[:, 1] == k).nonzero()[0]:
-                    if not visited[edge_index]:
-                        visited[edge_index] = True
-                        component.append(edge_index)
-                        queue.append(edge_index)
-                        
                     
-        yield edgelist[component]
-                    
-    print(visited)
     # for (int i = 0; i < |V|; i++)
     #     visited[i] = false; // Mark all nodes as unvisited.
 
