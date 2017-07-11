@@ -39,7 +39,7 @@ def connected_components(edgelist, max_vertices):
         if n_vertices > max_vertices:
             min_score = numpy.min(sub_graph['score'])
             min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
-            threshold = 1 / (1 + numpy.exp(-min_score_logit - 1)
+            threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
             warnings.warn('A component contained %s elements. '
                           'Components larger than %s are '
                           're-filtered. The threshold for this '
