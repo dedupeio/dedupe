@@ -4,6 +4,8 @@ from future.utils import viewvalues
 
 import itertools
 from collections import defaultdict
+import os
+import tempfile
 
 import warnings
 import numpy
@@ -11,10 +13,13 @@ import fastcluster
 import hcluster
 
 def connected_components(edgelist, max_components):
-    unvisited = numpy.ones(len(edgelist), dtype=bool)
+    scored_pairs_file, file_path = tempfile.mkstemp()
+    os.close(scored_pairs_file)
+
+    unvisited = numpy.memmap(file_path, dtype=bool, shape=(len(edgelist), ))
+    unvisited.fill(True)
 
     el = edgelist['pairs']
-    it = numpy.nditer(el, ['external_loop'])
 
     while unvisited.any():
         i = unvisited.nonzero()[0][0]
@@ -29,7 +34,9 @@ def connected_components(edgelist, max_components):
             component.extend(queue)
 
         sub_graph = edgelist[component]
-        if len(component) > max_components:
+        n_components = len(sub_graph)
+
+        if n_components > max_components:
             min_score = numpy.min(sub_graph['score'])
             min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
@@ -39,44 +46,15 @@ def connected_components(edgelist, max_components):
                           'filtering is %s' % (n_components, 
                                                max_components,
                                                threshold)) 
-            filtered_sub_graph = e[sub_graph['score'] > threshold]	
+            filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
             for sub_graph in connected_components(filtered_sub_graph, 
                                                   max_components) :
                yield sub_graph
         else:
             yield sub_graph
-                    
-    # for (int i = 0; i < |V|; i++)
-    #     visited[i] = false; // Mark all nodes as unvisited.
 
-    # int compNum = 0; // For counting connected components.
-    # for (int v = 0; v < |V|; v++) {
-    #     // If v is not yet visited, it's the start of a newly
-    #     // discovered connected component containing v.
-    #     if ( ! visited[v]) { // Process the component that contains v.
-    #         compNum++;
-    #         cout << "Component" << compNum << ":  ";
-    #         IntQueue q; // For implementing a breadth-first traversal.
-    #         q.enqueue(v); // Start the traversal from vertex v.
-    #         visited[v] = true;
-    #         while ( ! q.isEmpty() ) {
-    #             int w = q.dequeue(); // w is a node in this component.
-    #             cout << w << " ";
-    #             for each edge from w to some vertex k {  // ***
-    #                 if ( ! visited[k] ) {
-    #                     // We've found another node in this component.
-    #                     visited[k] = true;
-    #                     q.enque(k);
-    #                 }
-    #              }
-    #         }
-    #         cout << endl << endl;
-    #     }
-    # }
-
-    # if (compNum == 1)
-    #     cout << "The graph is connected.";
-    # else cout << "There are " << compNum << " connected components.
+    del unvisited
+    os.remove(file_path)
 
 def condensedDistance(dupes):
     '''
