@@ -170,6 +170,7 @@ def mergeScores(score_queue, result_queue, stop_signals) :
 
             fp[start:end] = score_chunk
             start = end
+            del score_chunk
         else :
             seen_signals += 1
 
