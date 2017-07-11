@@ -12,7 +12,7 @@ import numpy
 import fastcluster
 import hcluster
 
-def connected_components(edgelist, max_components):
+def connected_components(edgelist, max_vertices):
     scored_pairs_file, file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
 
@@ -34,12 +34,12 @@ def connected_components(edgelist, max_components):
             component.extend(queue)
 
         sub_graph = edgelist[component]
-        n_components = len(sub_graph)
+        n_vertices = numpy.unique(sub_graph['pairs']).size
 
-        if n_components > max_components:
+        if n_vertices > max_vertices:
             min_score = numpy.min(sub_graph['score'])
-            min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
-            threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
+            min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
+            threshold = 1 / (1 + numpy.exp(-min_score_logit - 1)
             warnings.warn('A component contained %s elements. '
                           'Components larger than %s are '
                           're-filtered. The threshold for this '
@@ -48,7 +48,7 @@ def connected_components(edgelist, max_components):
                                                threshold)) 
             filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
             for sub_graph in connected_components(filtered_sub_graph, 
-                                                  max_components) :
+                                                  max_vertices) :
                yield sub_graph
         else:
             yield sub_graph
