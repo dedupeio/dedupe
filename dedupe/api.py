@@ -14,9 +14,7 @@ import multiprocessing
 import random
 import warnings
 import os
-import tempfile
 from collections import defaultdict, OrderedDict
-import shelve
 
 import numpy
 import simplejson as json
@@ -256,7 +254,7 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        blocks, file_path = _temp_shelve()
+        blocks = core.TempShelve('blocks')
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
@@ -269,7 +267,7 @@ class DedupeMatching(Matching):
             record = data_d[record_id]
             block_ids = sorted(block_key for block_key, _ in block)
             while block_ids:
-                id = str(block_ids.pop()) # py2 compatibility
+                id = block_ids.pop()
                 if id in blocks:
                     blocks[id] += [(record_id, record, set(block_ids))]
                 else:
@@ -283,7 +281,6 @@ class DedupeMatching(Matching):
                 yield block
 
         blocks.close()
-        os.remove(file_path)
                 
     def _checkBlock(self, block):
         if block:
@@ -421,13 +418,12 @@ class RecordLinkMatching(Matching):
 
     def _blockData(self, data_1, data_2):
 
-        blocked_records, file_path = _temp_shelve()
+        blocked_records = core.TempShelve('blocked_records')
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items(), target=True):
-            block_key = str(block_key) # py2 compatibility
             block = blocked_records.get(block_key, {})
             block[record_id] = data_2[record_id]
             blocked_records[block_key] = block
@@ -436,7 +432,6 @@ class RecordLinkMatching(Matching):
             yield each
 
         blocked_records.close()
-        os.remove(file_path)
 
     def _checkBlock(self, block):
         if block:
@@ -1051,19 +1046,3 @@ def flatten_training(training_pairs):
 
     return examples, numpy.array(y)
 
-def _temp_shelve():
-    fd, file_path = tempfile.mkstemp()
-    os.close(fd)
-
-    try:
-        shelf = shelve.open(file_path, 'n',
-                                      protocol=pickle.HIGHEST_PROTOCOL)
-    except Exception as e:
-        if 'db type could not be determined' in str(e):
-            os.remove(file_path)
-            shelf = shelve.open(file_path, 'n',
-                                protocol=pickle.HIGHEST_PROTOCOL)
-        else:
-            raise
-
-    return shelf, file_path
