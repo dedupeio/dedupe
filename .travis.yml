@@ -11,11 +11,6 @@ language: python
 sudo: false
 matrix:
   include:
-  - python: 3.6
-  - python: 3.5
-  - python: 2.7
-  - os: osx
-    language: generic
   - os: osx
     language: generic
     before_install:
@@ -23,58 +18,5 @@ matrix:
       - brew install python3
       - virtualenv env -p python3
       - source env/bin/activate
-  - services:
-      - docker
-    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
-    before_install:
-      - if ! [[ $TRAVIS_TAG ]]; then exit 0; fi
-    install:
-      - docker pull $DOCKER_IMAGE
-    script:
-      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
-    after_success:
-      - pip install twine && twine upload -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
-      - exit 0
-  - services:
-      - docker
-    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
-    before_install:
-      - if ! [[ $TRAVIS_TAG ]]; then exit 0; fi
-    install:
-      - docker pull $DOCKER_IMAGE
-    script:
-      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
-    after_success:
-      - pip install twine && twine upload -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
-      - exit 0
-install:
-  - pip install --upgrade pip
-  - pip install --upgrade -r requirements.txt
-  - cython src/*.pyx
-  - pip install -e .
 script:
-  - pytest tests --cov dedupe
-  - python tests/canonical.py -vv
-after_success:
-  - pip install coveralls
-  - coveralls
-deploy:
-  - provider: pypi
-    skip_cleanup: true
-    user: datamade.wheelbuilder
-    on:
-      tags: true
-      condition: "$TRAVIS_OS_NAME = osx"
-    distributions: bdist_wheel
-    password: $PYPIPASSWORD
-  - provider: pypi
-    skip_cleanup: true
-    user: datamade.wheelbuilder
-    on:
-      tags: true
-      condition: "$TRAVIS_OS_NAME = linux"
-    distributions: sdist
-    password: $PYPIPASSWORD
-env:
-  global:
-    - secure: T3lCe9jJUbYLB0WHgSD+utrmJSvgcXCLi+Lwugsaa2SXIX8UzL7TbwHWB1t10H4sddy0QBBwanqRptv6iZ7gN0EtIE6+BDv6FJcNZJBDp13pUoQqq1Fm3OMbEniLrc/ubV6mZyJLHh6oNJtzSWPk1wrFvByLpYskeZIm4ayw4Mc=
+  - python test_shelve.py

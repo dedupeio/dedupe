@@ -257,6 +257,7 @@ class DedupeMatching(Matching):
     def _blockData(self, data_d):
 
         blocks, file_path = _temp_shelve()
+        blocks_d = {}
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
@@ -272,8 +273,15 @@ class DedupeMatching(Matching):
                 id = str(block_ids.pop()) # py2 compatibility
                 if id in blocks:
                     blocks[id] += [(record_id, record, set(block_ids))]
+                    blocks_d[id] += [(record_id, record, set(block_ids))]
                 else:
                     blocks[id] = [(record_id, record, set(block_ids))]
+                    blocks_d[id] = [(record_id, record, set(block_ids))]
+
+        import pickle
+        with open("blocks_d.pickle", 'wb') as f:
+            pickle.dump(blocks_d, f)
+
 
         if not self.loaded_indices:
             self.blocker.resetIndices()
