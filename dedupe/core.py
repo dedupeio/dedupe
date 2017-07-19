@@ -6,10 +6,12 @@ import sys
 if sys.version < '3':
     text_type = unicode
     binary_type = str
+    shelve_key = lambda x: x.encode()
 else:
     text_type = str
     binary_type = bytes
     unicode = str
+    shelve_key = lambda x: x
 
 import itertools
 import time
@@ -19,6 +21,15 @@ import operator
 import random
 import collections
 import warnings
+import shutil
+import shelve
+import pickle
+
+
+try:
+    import collections.abc as collections_abc
+except ImportError:
+    import collections as collections_abc
 
 import numpy
 
@@ -319,3 +330,37 @@ def Enumerator(start=0, initial=()):
         return collections.defaultdict(itertools.count(start).next, initial)
     except AttributeError : # py 3
         return collections.defaultdict(itertools.count(start).__next__, initial)
+
+
+class TempShelve(collections_abc.MutableMapping):
+    def __init__(self, filename):
+        self.path = tempfile.mkdtemp()
+        self.shelve = shelve.open(self.path + filename, 'n',
+                                  protocol=pickle.HIGHEST_PROTOCOL)
+
+    def close(self):
+        self.shelve.close()
+        shutil.rmtree(self.path)
+
+    def __getitem__(self, key):
+        key = shelve_key(key)
+        return self.shelve[key]
+
+    def __setitem__(self, key, value):
+        self.shelve[shelve_key(key)] = value
+
+    def __delitem__(self, key):
+        del self.shelve[shelve_key(key)]
+
+    def __iter__(self):
+        return iter(self.shelve)
+
+    def __len__(self):
+        return len(self.shelve)
+
+    def __contains__(self, key):
+        return shelve_key(key) in self.shelve
+
+    def values(self):
+        return viewvalues(self.shelve)
+
