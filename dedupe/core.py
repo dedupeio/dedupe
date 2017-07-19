@@ -341,14 +341,14 @@ class TempShelve(collections_abc.MutableMapping):
         shutil.rmtree(self.path)
 
     def __getitem__(self, key):
-        key = str(key)
+        key = key.encode()
         return self.shelve[key]
 
     def __setitem__(self, key, value):
-        self.shelve[str(key)] = value
+        self.shelve[key.encode()] = value
 
     def __delitem__(self, key):
-        del self.shelve[str(key)]
+        del self.shelve[key.encode()]
 
     def __iter__(self):
         return iter(self.shelve)
@@ -357,7 +357,7 @@ class TempShelve(collections_abc.MutableMapping):
         return len(self.shelve)
 
     def __contains__(self, key):
-        return str(key) in self.shelve
+        return key.encode() in self.shelve
 
     def values(self):
         return viewvalues(self.shelve)
