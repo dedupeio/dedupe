@@ -6,10 +6,12 @@ import sys
 if sys.version < '3':
     text_type = unicode
     binary_type = str
+    shelve_key = lambda x: x.encode()
 else:
     text_type = str
     binary_type = bytes
     unicode = str
+    shelve_key = lambda x: x
 
 import itertools
 import time
@@ -341,14 +343,14 @@ class TempShelve(collections_abc.MutableMapping):
         shutil.rmtree(self.path)
 
     def __getitem__(self, key):
-        key = key.encode()
+        key = shelve_key(key)
         return self.shelve[key]
 
     def __setitem__(self, key, value):
-        self.shelve[key.encode()] = value
+        self.shelve[shelve_key(key)] = value
 
     def __delitem__(self, key):
-        del self.shelve[key.encode()]
+        del self.shelve[shelve_key(key)]
 
     def __iter__(self):
         return iter(self.shelve)
@@ -357,7 +359,7 @@ class TempShelve(collections_abc.MutableMapping):
         return len(self.shelve)
 
     def __contains__(self, key):
-        return key.encode() in self.shelve
+        return shelve_key(key) in self.shelve
 
     def values(self):
         return viewvalues(self.shelve)
