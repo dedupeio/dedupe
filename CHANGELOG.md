@@ -1,3 +1,9 @@
+# 1.7.2
+- Significantly reduced memory footprint during scoreDuplicates
+
+# 1.7.1
+- TempShelve class that addresses various bugs related to cleaning up tempoary shelves
+
 # 1.7.0
 - Added `target` argument to blocker and predicates for changing the behavior
   of the predicates for the target and source dataset if we are linking.
