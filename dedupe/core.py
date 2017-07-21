@@ -144,49 +144,53 @@ class ScoreRecords(object) :
 
             mask = scores > self.threshold
             if mask.any():
+                id_type = sniff_id_type(ids)
+                dtype = numpy.dtype([('pairs', id_type, 2), 
+                                     ('score', 'f4', 1)])
 
-                scored_pairs = numpy.empty(numpy.count_nonzero(mask),
-                                           dtype=[('pairs', 'object', 2), 
-                                                  ('score', 'f4', 1)])
+                temp_file, file_path = tempfile.mkstemp()
+                os.close(temp_file)
+
+                scored_pairs = numpy.memmap(file_path,
+                                            shape=numpy.count_nonzero(mask),
+                                            dtype=dtype)
                 scored_pairs['pairs'] = ids[mask]
                 scored_pairs['score'] = scores[mask]
-                
-                return scored_pairs
+
+                return file_path, dtype
 
 def mergeScores(score_queue, result_queue, stop_signals) :
     scored_pairs_file, file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
-    fp = []
 
     seen_signals = 0
-    start = 0
     end = 0
+
     while seen_signals < stop_signals  :
+
         score_chunk = score_queue.get()
+
         if isinstance(score_chunk, Exception) :
             result_queue.put(score_chunk)
-            return
-
-        if score_chunk is not None :
-            if not len(fp):
-                python_type = type(score_chunk['pairs'][0][0])
-                if python_type is binary_type or python_type is text_type :
-                    python_type = (unicode, 256)
-        
-                dtype = numpy.dtype([('pairs', python_type, 2),
-                                     ('score', 'f4', 1)])
-
-            end = start + len(score_chunk)
-            if end > len(fp):
-                offset = start
-                fp = numpy.memmap(file_path, dtype=dtype, shape=(end * 2, ),
-                                  offset=offset * dtype.itemsize)
-
-            fp[(start - offset):(end - offset)] = score_chunk
-            start = end
-            del score_chunk
-        else :
+            raise
+        elif score_chunk is None:
             seen_signals += 1
+        else:
+            score_file, dtype = score_chunk
+            score_chunk = numpy.memmap(score_file, mode='r', dtype=dtype)
+
+            chunk_size = len(score_chunk)
+
+            fp = numpy.memmap(file_path, dtype=dtype,
+                              offset=(end * dtype.itemsize),
+                              shape=(chunk_size, ))
+
+            fp[:chunk_size] = score_chunk
+
+            end += chunk_size
+
+            del score_chunk
+            os.remove(score_file)
 
     if end:
         result_queue.put((file_path, dtype, end))
@@ -367,3 +371,10 @@ class TempShelve(collections_abc.MutableMapping):
     def values(self):
         return viewvalues(self.shelve)
 
+
+def sniff_id_type(ids):
+    python_type = type(ids[0][0])
+    if python_type is binary_type or python_type is text_type :
+        python_type = (unicode, 256)
+
+    return python_type
