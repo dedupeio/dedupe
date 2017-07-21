@@ -137,7 +137,6 @@ class ScoreRecords(object) :
                 records.append((record_1, record_2))
 
         if records :
-            ids = numpy.array(ids)
             
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:,-1]
@@ -145,6 +144,8 @@ class ScoreRecords(object) :
             mask = scores > self.threshold
             if mask.any():
                 id_type = sniff_id_type(ids)
+                ids = numpy.array(ids, dtype=id_type)
+
                 dtype = numpy.dtype([('pairs', id_type, 2), 
                                      ('score', 'f4', 1)])
 
@@ -154,6 +155,7 @@ class ScoreRecords(object) :
                 scored_pairs = numpy.memmap(file_path,
                                             shape=numpy.count_nonzero(mask),
                                             dtype=dtype)
+
                 scored_pairs['pairs'] = ids[mask]
                 scored_pairs['score'] = scores[mask]
 
