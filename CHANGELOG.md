@@ -1,3 +1,6 @@
+# 1.7.2
+- Significant reduction of memory when scoring duplicates
+
 # 1.7.0
 - Added `target` argument to blocker and predicates for changing the behavior
   of the predicates for the target and source dataset if we are linking.
