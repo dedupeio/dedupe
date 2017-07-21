@@ -1,5 +1,8 @@
-# 1.7.2
+# 1.7.3
 - Significantly reduced memory footprint during scoreDuplicates
+
+# 1.7.2
+- Improper release
 
 # 1.7.1
 - TempShelve class that addresses various bugs related to cleaning up tempoary shelves
