@@ -7,7 +7,7 @@ import collections
 import itertools
 import sys
 from dedupe.core import randomPairs, randomPairsMatch
-from canonicalize.centroid import getCanonicalRep
+from dedupe.canonical import getCanonicalRep
 
 def unique(seq) :
     seen = set()
