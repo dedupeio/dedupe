@@ -272,9 +272,9 @@ def nearIntegersPredicate(field):
     ints = integers(field)
     near_ints = set()
     for char in ints :
-        near_ints.add(char)
         num = int(char)
         near_ints.add(str(num-1))
+        near_ints.add(str(num))
         near_ints.add(str(num+1))
         
     return near_ints
