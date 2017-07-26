@@ -4,62 +4,39 @@ from future.utils import viewvalues
 
 import itertools
 from collections import defaultdict
+import os
+import tempfile
 
 import warnings
 import numpy
 import fastcluster
 import hcluster
 
-def connected_components(edgelist, max_components) :
+def connected_components(edgelist, max_components):
+    scored_pairs_file, file_path = tempfile.mkstemp()
+    os.close(scored_pairs_file)
 
-    root = {}
-    component = {}
-    indices = {}
+    unvisited = numpy.memmap(file_path, dtype=bool, shape=(len(edgelist), ))
+    unvisited.fill(True)
 
-    if len(edgelist['pairs']) == 0:
-        raise StopIteration()
+    el = edgelist['pairs']
 
-    it = numpy.nditer(edgelist['pairs'], ['external_loop'])
+    while unvisited.any():
+        i = unvisited.nonzero()[0][0]
+        component = [i]
+        queue = numpy.array([i])
+        unvisited[i] = False
+        while queue.size:
+            queue = numpy.logical_and(numpy.isin(el, el[queue]).any(axis=1),
+                                      unvisited).nonzero()[0]
+            
+            unvisited[queue] = False
+            component.extend(queue)
 
-    for i, (a,b) in enumerate(it) :
-        root_a = root.get(a)
-        root_b = root.get(b)
+        sub_graph = edgelist[component]
+        n_components = len(sub_graph)
 
-        if root_a is None and root_b is None :
-            component[a] = {a, b}
-            indices[a] = [i]
-            root[a] = root[b] = a
-        elif root_a is None or root_b is None :
-            if root_a is None :
-                a, b = b, a
-                root_a, root_b = root_b, root_a
-            component[root_a].add(b)
-            indices[root_a].append(i)
-            root[b] = root_a
-        elif root_a != root_b :
-            component_a = component[root_a]
-            component_b = component[root_b]
-            if len(component_a) < len(component_b) :
-                root_a, root_b = root_b, root_a
-                component_a, component_b = component_b, component_a
-
-            component_a |= component_b
-            indices[root_a].extend(indices[root_b])
-            indices[root_a].append(i)
-
-            for node in component_b :
-                root[node] = root_a
-
-            del component[root_b]
-            del indices[root_b]
-        else : 
-            indices[root_a].append(i)
-
-    for root in component :
-        n_components = len(component[root])
-        sub_graph = edgelist[indices[root]]
-        
-        if n_components > max_components :
+        if n_components > max_components:
             min_score = numpy.min(sub_graph['score'])
             min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
@@ -73,9 +50,11 @@ def connected_components(edgelist, max_components) :
             for sub_graph in connected_components(filtered_sub_graph, 
                                                   max_components) :
                yield sub_graph
-        else :
+        else:
             yield sub_graph
-     
+
+    del unvisited
+    os.remove(file_path)
 
 def condensedDistance(dupes):
     '''
