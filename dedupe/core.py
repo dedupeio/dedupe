@@ -239,6 +239,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     if result :
         scored_pairs_file, dtype, size = result
         scored_pairs = numpy.memmap(scored_pairs_file,
+                                    mode='r',
                                     dtype=dtype,
                                     shape=(size,))
     else:

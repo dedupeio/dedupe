@@ -12,52 +12,16 @@ import hcluster
 
 def connected_components(edgelist, max_components) :
 
-    root = {}
-    component = {}
-    indices = {}
-
-    if len(edgelist['pairs']) == 0:
+    if len(edgelist) == 0:
         raise StopIteration()
 
-    it = numpy.nditer(edgelist['pairs'], ['external_loop'])
+    components = union_find(edgelist['pairs'])
 
-    for i, (a,b) in enumerate(it) :
-        root_a = root.get(a)
-        root_b = root.get(b)
+    roots = numpy.unique(components)
 
-        if root_a is None and root_b is None :
-            component[a] = {a, b}
-            indices[a] = [i]
-            root[a] = root[b] = a
-        elif root_a is None or root_b is None :
-            if root_a is None :
-                a, b = b, a
-                root_a, root_b = root_b, root_a
-            component[root_a].add(b)
-            indices[root_a].append(i)
-            root[b] = root_a
-        elif root_a != root_b :
-            component_a = component[root_a]
-            component_b = component[root_b]
-            if len(component_a) < len(component_b) :
-                root_a, root_b = root_b, root_a
-                component_a, component_b = component_b, component_a
-
-            component_a |= component_b
-            indices[root_a].extend(indices[root_b])
-            indices[root_a].append(i)
-
-            for node in component_b :
-                root[node] = root_a
-
-            del component[root_b]
-            del indices[root_b]
-        else : 
-            indices[root_a].append(i)
-
-    for root in component :
-        n_components = len(component[root])
-        sub_graph = edgelist[indices[root]]
+    for root in roots:
+        sub_graph = edgelist[components == root]
+        n_components = len(numpy.unique(sub_graph['pairs']))
         
         if n_components > max_components :
             min_score = numpy.min(sub_graph['score'])
@@ -72,10 +36,50 @@ def connected_components(edgelist, max_components) :
             filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
             for sub_graph in connected_components(filtered_sub_graph, 
                                                   max_components) :
-               yield sub_graph
+                yield sub_graph
         else :
             yield sub_graph
-     
+
+
+def union_find(edgelist):
+
+    root = {}
+    components = numpy.empty(len(edgelist), dtype=edgelist.dtype)
+    components.fill(-1)
+
+    it = numpy.nditer(edgelist, ['external_loop'])
+
+    for i, (a, b) in enumerate(it):
+        root_a = root.get(a)
+        root_b = root.get(b)
+
+        if root_a is None and root_b is None:
+            components[i] = a
+            root[a] = root[b] = a
+        elif root_a is None or root_b is None:
+            if root_a is None:
+                b = a
+                root_a = root_b
+            components[i] = root_a
+            root[b] = root_a
+        elif root_a != root_b:
+            component_a = numpy.unique(edgelist[components == root_a])
+            component_b = numpy.unique(edgelist[components == root_b])
+            if len(component_a) < len(component_b):
+                root_a, root_b = root_b, root_a
+                component_b = component_a
+
+            components[components == root_b] = root_a
+            components[i] = root_a
+
+            for node in component_b:
+                root[node] = root_a
+
+        else:
+            components[i] = root_a
+
+    return components
+
 
 def condensedDistance(dupes):
     '''
