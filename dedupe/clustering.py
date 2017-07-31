@@ -4,6 +4,7 @@ from future.utils import viewvalues
 
 import itertools
 from collections import defaultdict
+import array
 
 import warnings
 import numpy
@@ -17,10 +18,8 @@ def connected_components(edgelist, max_components) :
 
     components = union_find(edgelist['pairs'])
 
-    roots = numpy.unique(components)
-
-    for root in roots:
-        sub_graph = edgelist[components == root]
+    for component in components:
+        sub_graph = edgelist[component]
         n_components = len(numpy.unique(sub_graph['pairs']))
         
         if n_components > max_components :
@@ -44,8 +43,7 @@ def connected_components(edgelist, max_components) :
 def union_find(edgelist):
 
     root = {}
-    components = numpy.empty(len(edgelist), dtype=edgelist.dtype)
-    components.fill(-1)
+    components = {}
 
     it = numpy.nditer(edgelist, ['external_loop'])
 
@@ -54,31 +52,36 @@ def union_find(edgelist):
         root_b = root.get(b)
 
         if root_a is None and root_b is None:
-            components[i] = a
+            # assuming that it will be a while before we are handling
+            # edgelists of much more than 4 billion elements we will
+            # use an the 'I' type
+            components[a] = array.array('I', [i])
             root[a] = root[b] = a
         elif root_a is None or root_b is None:
             if root_a is None:
                 b = a
                 root_a = root_b
-            components[i] = root_a
+            components[root_a].append(i)
             root[b] = root_a
         elif root_a != root_b:
-            component_a = numpy.unique(edgelist[components == root_a])
-            component_b = numpy.unique(edgelist[components == root_b])
+            component_a = numpy.unique(edgelist[components[root_a]])
+            component_b = numpy.unique(edgelist[components[root_b]])
             if len(component_a) < len(component_b):
                 root_a, root_b = root_b, root_a
                 component_b = component_a
 
-            components[components == root_b] = root_a
-            components[i] = root_a
+            components[root_a].extend(components[root_b])
+            components[root_a].append(i)
 
             for node in component_b:
                 root[node] = root_a
 
-        else:
-            components[i] = root_a
+            del components[root_b]
 
-    return components
+        else:
+            components[root_a].append(i)
+
+    return components.values()
 
 
 def condensedDistance(dupes):
