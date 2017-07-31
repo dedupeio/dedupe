@@ -1,3 +1,6 @@
+# 1.7.5
+- Significantly reduced memory footprint during connected_components
+
 # 1.7.3
 - Significantly reduced memory footprint during scoreDuplicates
 
