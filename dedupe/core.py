@@ -289,7 +289,7 @@ def fillQueue(queue, iterable, stop_signals) :
                 last_rate = current_rate
                 n_records = 0
                 t0 = time.clock()
-                
+                chunk.clear()
 
         else :
             # put poison pills in queue to tell scorers that they are
