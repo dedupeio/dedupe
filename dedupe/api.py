@@ -68,6 +68,7 @@ class Matching(object):
                                            self.classifier,
                                            self.num_cores)['score']
 
+        probability = probability.copy()
         probability.sort()
         probability = probability[::-1]
 
