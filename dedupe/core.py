@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import range, next, zip, map
+from builtins import range, next, zip, map, int
 from future.utils import viewvalues
 import sys
 if sys.version < '3':
@@ -216,7 +216,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     score_queue =  SimpleQueue()
     result_queue = SimpleQueue()
 
-    n_map_processes = max(num_cores-1, 1)
+    n_map_processes = max(num_cores, 1)
     score_records = ScoreRecords(data_model, classifier, threshold) 
     map_processes = [Process(target=score_records,
                              args=(record_pairs_queue,
@@ -253,7 +253,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
 
 def fillQueue(queue, iterable, stop_signals) :
     iterable = iter(iterable)
-    chunk_size = 100000
+    chunk_size = 10000
     upper_bound = 7000000 # this number worked, but is unprincipled 
     multiplier = 1.1
 
@@ -376,8 +376,12 @@ class TempShelve(collections_abc.MutableMapping):
 
 
 def sniff_id_type(ids):
-    python_type = type(ids[0][0])
+    example = ids[0][0]
+    python_type = type(example)
     if python_type is binary_type or python_type is text_type :
         python_type = (unicode, 256)
+    else:
+        int(example) # make sure we can cast to int
+        return int
 
     return python_type
