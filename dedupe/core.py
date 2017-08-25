@@ -1,17 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import range, next, zip, map, int
+from builtins import range, next, zip, map
 from future.utils import viewvalues
 import sys
 if sys.version < '3':
     text_type = unicode
     binary_type = str
     shelve_key = lambda x: x.encode()
+    int_type = long
 else:
     text_type = str
     binary_type = bytes
     unicode = str
     shelve_key = lambda x: x
+    int_type = int
 
 import itertools
 import time
@@ -381,7 +383,7 @@ def sniff_id_type(ids):
     if python_type is binary_type or python_type is text_type :
         python_type = (unicode, 256)
     else:
-        int(example) # make sure we can cast to int
-        return int
+        int_type(example) # make sure we can cast to int
+        python_type = int_type
 
     return python_type
