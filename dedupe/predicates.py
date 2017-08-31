@@ -193,7 +193,7 @@ class TfidfSetPredicate(object) :
 
 class TfidfNGramPredicate(object) :
     def preprocess(self, doc) :
-        return tuple(ngrams(doc.replace(' ', ''), 2))
+        return tuple(sorted(ngrams(doc.replace(' ', ''), 2)))
 
 class TfidfTextSearchPredicate(TfidfTextPredicate, 
                                TfidfSearchPredicate) :
