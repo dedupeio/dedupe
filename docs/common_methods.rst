@@ -145,8 +145,25 @@
                      record_dict). Can often be created by
                      `data_dict.items()`.
    :param bool target: Indicates whether the data should be treated as
-		       the target data. When doing linking you'll want
-		       to treat one of your two data source as a "target"
+		       the target data. This effects the behavior of
+		       search predicates. If `target` is set to
+		       `True`, an search predicate will return the
+		       value itself. If `target` is set to `False` the
+		       search predicate will return all possible
+		       values within the specified search distance.
+
+		       Let's say we have a
+		       `LevenshteinSearchPredicate` with an associated
+		       distance of `1` on a `"name"` field; and we
+		       have a record like `{"name": "thomas"}`. If the
+		       `target` is set to `True` then the predicate
+		       will return `"thomas"`.  If `target` is set to
+		       `False`, then the blocker could return
+		       `"thomas"`, `"tomas"`, and `"thoms"`. By using
+		       the `target` argument on one of your datasets,
+		       you will dramatically reduce the total number
+		       of comparisons without a loss of accuracy.
+		       
 
    .. code:: python
 
