@@ -25,28 +25,16 @@ base_predicates = (predicates.wholeFieldPredicate,
 
 class BaseStringType(FieldType) :
     type = None
+    _Predicate = predicates.StringPredicate
+
 
     def __init__(self, definition) :
-        self.field = definition['field']
-
-        if 'variable name' in definition :
-            self.name = definition['variable name'] 
-        else :
-            self.name = "(%s: %s)" % (self.field, self.type)
-
-        self.predicates = [predicates.StringPredicate(pred, self.field) 
-                           for pred in self._predicate_functions]
-
-        self.predicates += indexPredicates(self._index_predicates,
-                                           self._index_thresholds,
-                                           self.field)
+        super(BaseStringType, self).__init__(definition)
 
         self.predicates += indexPredicates((predicates.LevenshteinCanopyPredicate,
                                             predicates.LevenshteinSearchPredicate),
                                            (1, 2, 3, 4),
                                            self.field)
-
-        Variable.__init__(self, definition)
 
     
 

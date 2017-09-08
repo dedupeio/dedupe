@@ -45,6 +45,7 @@ class MissingDataType(Variable) :
 class FieldType(Variable) :
     _index_thresholds = []
     _index_predicates = []
+    _Predicate = predicates.SimplePredicate
 
     def __init__(self, definition) :
         self.field = definition['field']
@@ -54,7 +55,7 @@ class FieldType(Variable) :
         else :
             self.name = "(%s: %s)" % (self.field, self.type)
 
-        self.predicates = [predicates.SimplePredicate(pred, self.field) 
+        self.predicates = [self._Predicate(pred, self.field)
                            for pred in self._predicate_functions]
 
         self.predicates += indexPredicates(self._index_predicates,
@@ -78,9 +79,7 @@ class CustomType(FieldType) :
                            "a 'comparator' function in the field "
                            "definition. ")
 
-        if 'variable name' in definition :
-            self.name = definition['variable name'] 
-        else :
+        if 'variable name' not in definition :
             self.name = "(%s: %s, %s)" % (self.field, 
                                           self.type, 
                                           self.comparator.__name__)
