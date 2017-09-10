@@ -1,4 +1,4 @@
-from .base import FieldType, Variable, indexPredicates
+from .base import FieldType, indexPredicates
 from dedupe import predicates
 
 from affinegap import normalizedAffineGapDistance as affineGap
