@@ -46,6 +46,9 @@ class Predicate(object) :
     def __eq__(self, other) :
         return repr(self) == repr(other)
 
+    def __len__(self):
+        return 1
+
 
 class SimplePredicate(Predicate) :
     type = "SimplePredicate"
@@ -246,7 +249,6 @@ class CompoundPredicate(tuple) :
         return [u':'.join(block_key)
                 for block_key
                 in itertools.product(*predicate_keys)]
- 
 
 def wholeFieldPredicate(field):
     """return the whole field"""

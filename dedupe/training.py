@@ -23,12 +23,13 @@ class BlockLearner(object) :
         self.blocker.indexAll({i : record
                                for i, record
                                in enumerate(self.unroll(matches))})
-        
-        dupe_cover = cover(self.blocker, matches, compound_length)
+
+        dupe_cover = cover(self.blocker, matches,
+                           self.total_cover, compound_length)
 
         self.blocker.resetIndices()
 
-        comparison_count = self.comparisons(self.total_cover, compound_length)
+        comparison_count = self.comparisons(dupe_cover, compound_length)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
@@ -52,8 +53,28 @@ class BlockLearner(object) :
 
         return final_predicates
 
-    def comparisons(self, cover, compound_length) :
+    def comparisons(self, match_cover, compound_length) :
         CP = predicates.CompoundPredicate
+
+        compounder = self.Compounder(self.total_cover)
+        comparison_count = {}
+
+        for pred in sorted(match_cover, key=lambda x: len(match_cover[x])):
+            if len(pred) > 1:
+                comparison_count[pred] = self.estimate(compounder(pred))
+            else:
+                comparison_count[pred] = self.estimate(viewvalues(self.total_cover[pred]))
+
+        return comparison_count    
+
+class Compounder(object) :
+    def __init__(self, cover):
+        self.cover = cover
+        self.block_index = self._block_index(self.cover)
+        self._cached_predicate = None
+        self._cached_blocks = None
+
+    def _block_index(self, cover):
 
         block_index = {}
         for predicate, blocks in viewitems(cover):
@@ -62,38 +83,15 @@ class BlockLearner(object) :
                 for record_id in self._blocks(blocks) :
                     block_index[predicate].setdefault(record_id,
                                                       set()).add(block_id)
+        return block_index
 
-        compounder = self.Compounder(cover, block_index)
-        comparison_count = {}
-        simple_predicates = sorted(cover, key=str)
-
-        for i in range(2, compound_length+1) :
-            for combo in itertools.combinations(simple_predicates, i) :
-                comparison_count[CP(combo)] = self.estimate(compounder(combo))
-        for pred in simple_predicates :
-            comparison_count[pred] = self.estimate(viewvalues(cover[pred]))
-
-        return comparison_count    
-
-class Compounder(object) :
-    def __init__(self, cover, block_index) :
-        self.cover = cover
-        self.block_index = block_index
-        self._cached_predicate = None
-        self._cached_blocks = None
         
     def __call__(self, compound_predicate) :
-        a, b = compound_predicate[:-1], compound_predicate[-1]
-
-        if len(a) > 1 :
-            if a == self._cached_predicate :
-                a_blocks = self._cached_blocks
-            else :
-                a_blocks = self._cached_blocks = list(self(a))
-                self._cached_predicate = a
-        else :
-            a_blocks = viewvalues(self.cover[a[0]])
-
+        # Right now this can only handle two-predicates, if
+        # we find a breakthrough that allows for three predicates
+        # we'll need to revisit
+        a, b = compound_predicate
+        a_blocks = viewvalues(self.cover[a])
         return self.overlap(a_blocks, b)
 
 class DedupeCompounder(Compounder) :
@@ -111,6 +109,11 @@ class DedupeCompounder(Compounder) :
                         yield x_ids & cover_b[y]
                 seen_y |= b_blocks
 
+                
+    @staticmethod
+    def _blocks(blocks) : # pragma: no cover
+        return blocks
+
 
 class DedupeBlockLearner(BlockLearner) :
     Compounder = DedupeCompounder
@@ -127,10 +130,6 @@ class DedupeBlockLearner(BlockLearner) :
     @staticmethod
     def unroll(matches) : # pragma: no cover
         return unique((record for pair in matches for record in pair))
-
-    @staticmethod
-    def _blocks(blocks) : # pragma: no cover
-        return blocks
 
     @staticmethod
     def coveredRecords(blocker, records) :
@@ -164,6 +163,10 @@ class RecordLinkCompounder(Compounder) :
                     if y not in seen_y :
                         yield first & cover_b[y][0], second & cover_b[y][1]
                     seen_y |= b_blocks
+
+    @staticmethod
+    def _blocks(blocks) : # pragma: no cover
+        return blocks[0]
     
 class RecordLinkBlockLearner(BlockLearner) :
     Compounder = RecordLinkCompounder
@@ -185,10 +188,6 @@ class RecordLinkBlockLearner(BlockLearner) :
     def unroll(matches) : # pragma: no cover
         return unique((record_2 for _, record_2 in matches))
 
-    @staticmethod
-    def _blocks(blocks) : # pragma: no cover
-        return blocks[0]
- 
     @staticmethod
     def coveredRecords(blocker, records_1, records_2) :
         cover = {}
@@ -241,6 +240,8 @@ class BranchBound(object) :
             if score < self.cheapest_score :
                 self.cheapest = partial
                 self.cheapest_score = score
+                print(self.calls, self.cheapest_score)
+
 
         else:
             window = self.cheapest_score - score
@@ -292,10 +293,12 @@ class BranchBound(object) :
         return coverage
 
 
-def cover(blocker, pairs, compound_length) : # pragma: no cover
+def cover(blocker, pairs, total_cover, compound_length): # pragma: no cover
     cover = coveredPairs(blocker.predicates, pairs)
+    cover = dominators(cover, total_cover)
     cover = compound(cover, compound_length)
     cover = remaining_cover(cover)
+    
     return cover
 
 def coveredPairs(predicates, pairs) :
@@ -339,7 +342,6 @@ def remaining_cover(coverage, covered=set()):
                 remaining[predicate] = still_uncovered
 
     return remaining
-                            
 
 def unique(seq):
     """Return the unique elements of a collection even if those elements are
@@ -349,6 +351,24 @@ def unique(seq):
         if each not in cleaned:
             cleaned.append(each)
     return cleaned
+
+def dominators(match_cover, total_cover):
+    for a, b in itertools.combinations(list(match_cover), 2):
+        if a not in match_cover or b not in match_cover:
+            continue
+        cover_a, cover_b = match_cover[a], match_cover[b]
+        if len(cover_b) > len(cover_a):
+            a, b = b, a
+            cover_a, cover_b = cover_b, cover_a
+        if cover_a >= cover_b:
+            a_is_subset = all(any(a_block <= b_block
+                                  for b_block
+                                  in total_cover[b].values())
+                              for a_block in total_cover[a].values())
+            if a_is_subset:
+                del match_cover[b]
+
+    return match_cover
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
