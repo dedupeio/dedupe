@@ -54,75 +54,34 @@ class BlockLearner(object) :
         return final_predicates
 
     def comparisons(self, match_cover, compound_length) :
-        CP = predicates.CompoundPredicate
-
-        compounder = self.Compounder(self.total_cover)
+        compounder = Compounder(self.total_cover)
         comparison_count = {}
 
         for pred in sorted(match_cover, key=lambda x: len(match_cover[x])):
             if len(pred) > 1:
                 comparison_count[pred] = self.estimate(compounder(pred))
             else:
-                comparison_count[pred] = self.estimate(viewvalues(self.total_cover[pred]))
+                comparison_count[pred] = self.estimate(self.total_cover[pred])
 
         return comparison_count    
 
 class Compounder(object) :
     def __init__(self, cover):
         self.cover = cover
-        self.block_index = self._block_index(self.cover)
-        self._cached_predicate = None
-        self._cached_blocks = None
 
-    def _block_index(self, cover):
-
-        block_index = {}
-        for predicate, blocks in viewitems(cover):
-            block_index[predicate] = {}
-            for block_id, blocks in viewitems(blocks) :
-                for record_id in self._blocks(blocks) :
-                    block_index[predicate].setdefault(record_id,
-                                                      set()).add(block_id)
-        return block_index
-
-        
     def __call__(self, compound_predicate) :
-        # Right now this can only handle two-predicates, if
-        # we find a breakthrough that allows for three predicates
-        # we'll need to revisit
-        a, b = compound_predicate
-        a_blocks = viewvalues(self.cover[a])
-        return self.overlap(a_blocks, b)
-
-class DedupeCompounder(Compounder) :
-    def overlap(self, a_blocks, b) :
-        b_index = self.block_index[b]
-        b_index_get = b_index.get
-        cover_b = self.cover[b]
-        null_set = set()
-        for x_ids in a_blocks :
-            seen_y = set()
-            for record_id in x_ids :
-                b_blocks = b_index_get(record_id, null_set)
-                for y in b_blocks :
-                    if y not in seen_y :
-                        yield x_ids & cover_b[y]
-                seen_y |= b_blocks
-
-                
-    @staticmethod
-    def _blocks(blocks) : # pragma: no cover
-        return blocks
-
+        return set.intersection(*(self.cover[pred]
+                                  for pred in compound_predicate))
 
 class DedupeBlockLearner(BlockLearner) :
-    Compounder = DedupeCompounder
     
     def __init__(self, predicates, sampled_records) :
+        self.pair_id = core.Enumerator()
+
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(sampled_records)
 
-        self.total_cover = self.coveredRecords(blocker, sampled_records)
+        self.total_cover = self.coveredPairs(blocker, sampled_records)
         self.multiplier = sampled_records.original_length/len(sampled_records)
 
         self.blocker = blocking.Blocker(predicates)
@@ -131,8 +90,7 @@ class DedupeBlockLearner(BlockLearner) :
     def unroll(matches) : # pragma: no cover
         return unique((record for pair in matches for record in pair))
 
-    @staticmethod
-    def coveredRecords(blocker, records) :
+    def coveredPairs(self, blocker, records) :
         cover = {}
 
         for predicate in blocker.predicates :
@@ -142,36 +100,23 @@ class DedupeBlockLearner(BlockLearner) :
                 for block in blocks :
                     cover[predicate].setdefault(block, set()).add(id)
 
+        for predicate, blocks in cover.items():
+            pairs = set()
+            for block in blocks.values():
+                for pair in itertools.combinations(sorted(block), 2):
+                    pairs.add(self.pair_id[pair])
+            cover[predicate] = pairs
+
         return cover
 
     def estimate(self, blocks):
-        lengths = (numpy.fromiter((len(ids) for ids in blocks), int)
-                   * self.multiplier)
-        return numpy.sum(lengths * (lengths - 1))/2
+        return len(blocks) * self.multiplier * self.multiplier
 
-class RecordLinkCompounder(Compounder) :
-    def overlap(self, a_blocks, b) :
-        b_index = self.block_index[b]
-        b_index_get = b_index.get
-        cover_b = self.cover[b]
-        null_set = set()
-        for first, second in a_blocks:
-            seen_y = set()
-            for record_id in first:
-                b_blocks = b_index_get(record_id, null_set)
-                for y in b_blocks:
-                    if y not in seen_y :
-                        yield first & cover_b[y][0], second & cover_b[y][1]
-                    seen_y |= b_blocks
-
-    @staticmethod
-    def _blocks(blocks) : # pragma: no cover
-        return blocks[0]
-    
 class RecordLinkBlockLearner(BlockLearner) :
-    Compounder = RecordLinkCompounder
     
     def __init__(self, predicates, sampled_records_1, sampled_records_2) :
+        self.pair_id = core.Enumerator()
+        
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(sampled_records_2)
 
@@ -188,8 +133,7 @@ class RecordLinkBlockLearner(BlockLearner) :
     def unroll(matches) : # pragma: no cover
         return unique((record_2 for _, record_2 in matches))
 
-    @staticmethod
-    def coveredRecords(blocker, records_1, records_2) :
+    def coveredPairs(self, blocker, records_1, records_2) :
         cover = {}
 
         for predicate in blocker.predicates :
@@ -205,14 +149,17 @@ class RecordLinkBlockLearner(BlockLearner) :
                 for block in blocks & current_blocks :
                     cover[predicate][block][0].add(id)
 
+        for predicate, blocks in cover.items():
+            pairs = set()
+            for A, B in blocks.values():
+                for pair in itertools.product(A, B):
+                    pairs.add(self.pair_id[pair])
+            cover[predicate] = pairs
+
         return cover
 
     def estimate(self, blocks):
-        A, B = core.iunzip(blocks, 2)
-        lengths_A = numpy.fromiter((len(ids) for ids in A), float)
-        lengths_B = numpy.fromiter((len(ids) for ids in B), float)
-        return numpy.sum((lengths_A * self.multiplier_1) *
-                         (lengths_B * self.multiplier_2))
+        return len(blocks) * self.multiplier_1 * self.multiplier_2
 
     
 class BranchBound(object) :
@@ -360,13 +307,8 @@ def dominators(match_cover, total_cover):
         if len(cover_b) > len(cover_a):
             a, b = b, a
             cover_a, cover_b = cover_b, cover_a
-        if cover_a >= cover_b:
-            a_is_subset = all(any(a_block <= b_block
-                                  for b_block
-                                  in total_cover[b].values())
-                              for a_block in total_cover[a].values())
-            if a_is_subset:
-                del match_cover[b]
+        if cover_a >= cover_b and total_cover[a] <= total_cover[b]:
+            del match_cover[b]
 
     return match_cover
 
