@@ -33,6 +33,8 @@ class BlockLearner(object) :
 
         comparison_count = self.comparisons(dupe_cover, compound_length)
 
+        dupe_cover = dominators(dupe_cover, comparison_count, comparison=True)
+
         coverable_dupes = set.union(*viewvalues(dupe_cover))
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
@@ -316,8 +318,11 @@ def unique(seq):
             cleaned.append(each)
     return cleaned
 
-def dominators(match_cover, total_cover):
-    sort_key = lambda x: (len(match_cover[x]), -len(total_cover[x]))
+def dominators(match_cover, total_cover, comparison=False):
+    if comparison:
+        sort_key = lambda x: (-total_cover[x], len(match_cover[x]))
+    else:
+        sort_key = lambda x: (len(match_cover[x]), -len(total_cover[x]))
 
     ordered_predicates = sorted(match_cover, key = sort_key)
     dominants = {}
