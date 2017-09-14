@@ -6,9 +6,11 @@ from __future__ import division
 from future.utils import viewitems, viewvalues
 
 import itertools
-from . import blocking, predicates, core
-import numpy
 import logging
+
+import numpy
+
+from . import blocking, predicates, core
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,10 @@ class BlockLearner(object) :
         else :
             epsilon -= len(uncoverable_dupes)
 
-        searcher = BranchBound(dupe_cover, comparison_count, epsilon, 2500)
+        for pred in dupe_cover:
+            pred.count = comparison_count[pred]
+
+        searcher = BranchBound(len(coverable_dupes) - epsilon, 2500)
         final_predicates = searcher.search(dupe_cover)
 
         logger.info('Final predicate set:')
@@ -57,7 +62,7 @@ class BlockLearner(object) :
         compounder = Compounder(self.total_cover)
         comparison_count = {}
 
-        for pred in sorted(match_cover, key=lambda x: len(match_cover[x])):
+        for pred in sorted(match_cover, key=str):
             if len(pred) > 1:
                 comparison_count[pred] = self.estimate(compounder(pred))
             else:
@@ -65,13 +70,28 @@ class BlockLearner(object) :
 
         return comparison_count    
 
+
 class Compounder(object) :
-    def __init__(self, cover):
+    def __init__(self, cover) :
         self.cover = cover
+        self._cached_predicate = None
+        self._cached_cover = None
 
     def __call__(self, compound_predicate) :
-        return set.intersection(*(self.cover[pred]
-                                  for pred in compound_predicate))
+        a, b = compound_predicate[:-1], compound_predicate[-1]
+
+        if len(a) > 1 :
+            if a == self._cached_predicate:
+                a_cover = self._cached_cover
+            else :
+                a_cover = self._cached_cover = self(a)
+                self._cached_predicate = a
+        else :
+            a, = a
+            a_cover = self.cover[a]
+
+        return a_cover & self.cover[b]
+
 
 class DedupeBlockLearner(BlockLearner) :
     
@@ -101,10 +121,9 @@ class DedupeBlockLearner(BlockLearner) :
                     cover[predicate].setdefault(block, set()).add(id)
 
         for predicate, blocks in cover.items():
-            pairs = set()
-            for block in blocks.values():
-                for pair in itertools.combinations(sorted(block), 2):
-                    pairs.add(self.pair_id[pair])
+            pairs = {self.pair_id[pair]
+                     for block in blocks.values()
+                     for pair in itertools.combinations(sorted(block), 2)}
             cover[predicate] = pairs
 
         return cover
@@ -120,9 +139,9 @@ class RecordLinkBlockLearner(BlockLearner) :
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(sampled_records_2)
 
-        self.total_cover = self.coveredRecords(blocker,
-                                               sampled_records_1,
-                                               sampled_records_2)
+        self.total_cover = self.coveredPairs(blocker,
+                                             sampled_records_1,
+                                             sampled_records_2)
 
         self.multiplier_1 = sampled_records_1.original_length/len(sampled_records_1)
         self.multiplier_2 = sampled_records_2.original_length/len(sampled_records_2)
@@ -163,20 +182,19 @@ class RecordLinkBlockLearner(BlockLearner) :
 
     
 class BranchBound(object) :
-    def __init__(self, original_cover, comparison_count, epsilon, max_calls) :
-        self.original_cover = original_cover.copy()
+    def __init__(self, target, max_calls) :
         self.calls = max_calls
-        self.comparisons = comparison_count
-
-        self.target = (len(set.union(*original_cover.values())) -
-                       epsilon)
-
-        self.cheapest = tuple(original_cover.keys())
+        self.target = target
         self.cheapest_score = float('inf')
+        self.original_cover = None
 
     def search(self, candidates, partial=()) :
         if self.calls <= 0 :
             return self.cheapest
+
+        if self.original_cover is None:
+            self.original_cover = candidates.copy()
+            self.cheapest = candidates
 
         self.calls -= 1
 
@@ -187,20 +205,19 @@ class BranchBound(object) :
             if score < self.cheapest_score :
                 self.cheapest = partial
                 self.cheapest_score = score
-                print(self.calls, self.cheapest_score)
-
 
         else:
             window = self.cheapest_score - score
 
-            candidates = {p : cover
-                          for p, cover in viewitems(candidates)
-                          if self.comparisons[p] < window}
+            candidates = {p: cover
+                          for p, cover in candidates.items()
+                          if p.count < window}
 
             reachable = self.reachable(candidates) + covered
 
             if candidates and reachable >= self.target:
-                best = max(candidates, key=lambda p: len(candidates[p]))
+                score = lambda p: (len(candidates[p]), -p.count)
+                best = max(candidates, key=score)
 
                 remaining = remaining_cover(candidates,
                                             candidates[best])
@@ -209,11 +226,12 @@ class BranchBound(object) :
 
                 reduced = self.dominates(candidates, best)
                 self.search(reduced, partial)
+                del reduced
 
         return self.cheapest
 
     def score(self, partial):
-        return sum(self.comparisons[p] for p in partial)
+        return sum(p.count for p in partial)
 
     def covered(self, partial):
         if partial:
@@ -229,11 +247,10 @@ class BranchBound(object) :
             return 0
 
     def dominates(self, coverage, dominator):
-        dominant_cost = self.comparisons[dominator]
         dominant_cover = coverage[dominator]
 
-        for pred, cover in viewitems(coverage.copy()):
-             if (dominant_cost <= self.comparisons[pred] and
+        for pred, cover in list(viewitems(coverage)):
+             if (dominator.count <= pred.count and
                  dominant_cover >= cover):
                  del coverage[pred]
 
@@ -300,17 +317,22 @@ def unique(seq):
     return cleaned
 
 def dominators(match_cover, total_cover):
-    for a, b in itertools.combinations(list(match_cover), 2):
-        if a not in match_cover or b not in match_cover:
-            continue
-        cover_a, cover_b = match_cover[a], match_cover[b]
-        if len(cover_b) > len(cover_a):
-            a, b = b, a
-            cover_a, cover_b = cover_b, cover_a
-        if cover_a >= cover_b and total_cover[a] <= total_cover[b]:
-            del match_cover[b]
+    sort_key = lambda x: (len(match_cover[x]), -len(total_cover[x]))
 
-    return match_cover
+    ordered_predicates = sorted(match_cover, key = sort_key)
+    dominants = {}
+
+    while ordered_predicates:
+        candidate = ordered_predicates.pop(0)
+        match = match_cover.pop(candidate)
+        total = total_cover[candidate]
+
+        if not any((match <= match_cover[pred] and
+                    total >= total_cover[pred])
+                   for pred in ordered_predicates):
+            dominants[candidate] = match
+
+    return dominants
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
