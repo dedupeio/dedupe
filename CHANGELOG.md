@@ -1,3 +1,6 @@
+# 1.7.8
+- Speed up blocking, on our way to 3-predicates
+
 # 1.7.5
 - Significantly reduced memory footprint during connected_components
 
