@@ -318,24 +318,36 @@ def unique(seq):
     return cleaned
 
 def dominators(match_cover, total_cover, comparison=False):
+    from settrie import SetTrieMultiMap
+    from sortedcontainers import SortedSet
+    
     if comparison:
-        sort_key = lambda x: (-total_cover[x], len(match_cover[x]))
+        sort_key = lambda x: (-len(match_cover[x]), total_cover[x])
     else:
-        sort_key = lambda x: (len(match_cover[x]), -len(total_cover[x]))
+        sort_key = lambda x: (-len(match_cover[x]), len(total_cover[x]))
 
-    ordered_predicates = sorted(match_cover, key=sort_key)
+    ordered_predicates = SortedSet((sort_key(pred), pred)
+                                   for pred in match_cover)
+
+    index = SetTrieMultiMap((v, (sort_key(k), k))
+                            for k,v in match_cover.items())
+    
     dominants = {}
 
-    for i, candidate in enumerate(ordered_predicates, 1):
-        match = match_cover[candidate]
-        total = total_cover[candidate]
+    
+    while ordered_predicates:
+        _, dominant = ordered_predicates.pop(0)
+        dominants[dominant] = match = match_cover[dominant]
+        total = total_cover[dominant]
 
-        if not any((match_cover[pred] >= match and
-                    total_cover[pred] <= total)
-                   for pred in ordered_predicates[i:]):
-            dominants[candidate] = match
+        subs = index.itersubsets(match, mode='values')
+
+        for key, pred in subs:
+            if total <= total_cover[pred]:
+                ordered_predicates -= {(key, pred)}
 
     return dominants
+
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
