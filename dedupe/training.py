@@ -297,15 +297,14 @@ def compound(cover, compound_length) :
 
     return cover
 
-def remaining_cover(coverage, covered=set()):
+def remaining_cover(coverage, covered=None):
+    if covered is None:
+        covered = set()
     remaining = {}
     for predicate, uncovered in viewitems(coverage):
         still_uncovered = uncovered - covered
         if still_uncovered:
-            if still_uncovered == uncovered:
-                remaining[predicate] = uncovered
-            else:
-                remaining[predicate] = still_uncovered
+            remaining[predicate] = still_uncovered
 
     return remaining
 
@@ -324,17 +323,16 @@ def dominators(match_cover, total_cover, comparison=False):
     else:
         sort_key = lambda x: (len(match_cover[x]), -len(total_cover[x]))
 
-    ordered_predicates = sorted(match_cover, key = sort_key)
+    ordered_predicates = sorted(match_cover, key=sort_key)
     dominants = {}
 
-    while ordered_predicates:
-        candidate = ordered_predicates.pop(0)
-        match = match_cover.pop(candidate)
+    for i, candidate in enumerate(ordered_predicates, 1):
+        match = match_cover[candidate]
         total = total_cover[candidate]
 
-        if not any((match <= match_cover[pred] and
-                    total >= total_cover[pred])
-                   for pred in ordered_predicates):
+        if not any((match_cover[pred] >= match and
+                    total_cover[pred] <= total)
+                   for pred in ordered_predicates[i:]):
             dominants[candidate] = match
 
     return dominants
