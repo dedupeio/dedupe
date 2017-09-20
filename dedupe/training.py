@@ -340,7 +340,7 @@ def dominators(match_cover, total_cover, comparison=False):
         dominants[dominant] = match = match_cover[dominant]
         total = total_cover[dominant]
 
-        subs = index.itersubsets(match, mode='values')
+        subs = index.subsets(match, mode='values')
 
         for key, pred in subs:
             if total <= total_cover[pred]:
