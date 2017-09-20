@@ -21,6 +21,7 @@ install_requires=['fastcluster',
                   'BTrees>=4.1.4',
                   'simplejson',
                   'zope.index',
+                  'settrie',
                   'Levenshtein_search']
 
 setup(
@@ -32,6 +33,7 @@ setup(
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
+    dependency_links = ['https://github.com/datamade/datamade-pysettrie/zipball/master#egg=settrie-0'],
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 4 - Beta',
