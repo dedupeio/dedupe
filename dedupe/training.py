@@ -348,6 +348,39 @@ def dominators(match_cover, total_cover, comparison=False):
 
     return dominants
 
+import datrie
+
+class IntSetTrie(object):
+    def __init__(self, data):
+        self._trie = datrie.Trie("0123456789-")
+        for k, v in data:
+            self[k] = v
+
+    def __setitem__(self, key, value):
+        self._trie[self._encode(key)] = value
+
+    def __getitem__(self, key):
+        return self._trie[self._encode(key)]
+
+    def _encode(self, aset):
+        return '-'.join(str(each) for each in sorted(aset))
+
+    def _decode(self, astr):
+        return {int(each) for each in astr.split('-')}
+
+    def supersets(self, aset):
+        state = datrie.State(self._trie)
+        state.walk('')
+        it = datrie.Iterator(state)
+        element = ''
+        while it.next():
+            print(it.data())
+            print(dir(it))
+            node = it.key()
+            print(self._decode(node))
+
+            
+        
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"

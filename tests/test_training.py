@@ -95,7 +95,14 @@ class TrainingTest(unittest.TestCase):
 
         assert cover[p1] == {0, 1}
 
+    def test_intsetrie(self):
+        data = [({2, 3, 4, 5}, 'foo'),
+                ({23, 500}, 'bar'),
+                ({234, 500}, 'bar')]
+        trie = training.IntSetTrie(data)
 
+        trie.supersets({1, 2, 3, 4, 5, 6})
+        raise
         
 
 if __name__ == "__main__":
