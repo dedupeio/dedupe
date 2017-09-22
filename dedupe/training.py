@@ -20,7 +20,7 @@ class BlockLearner(object) :
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
-        compound_length = 2
+        compound_length = 3
 
         self.blocker.indexAll({i : record
                                for i, record
@@ -271,10 +271,12 @@ def coveredPairs(predicates, pairs) :
     cover = {}
         
     for predicate in predicates :
-        cover[predicate] = {i for i, (record_1, record_2)
-                            in enumerate(pairs)
-                            if (set(predicate(record_1)) &
-                                set(predicate(record_2)))}
+        match = {i for i, (record_1, record_2)
+                 in enumerate(pairs)
+                 if (set(predicate(record_1)) &
+                     set(predicate(record_2)))}
+        if match:
+            cover[predicate] = match
 
     return cover
 
@@ -317,35 +319,44 @@ def unique(seq):
             cleaned.append(each)
     return cleaned
 
+@profile
 def dominators(match_cover, total_cover, comparison=False):
-    from settrie import SetTrieMultiMap
     from sortedcontainers import SortedSet
+    from collections import defaultdict
     
     if comparison:
-        sort_key = lambda x: (-len(match_cover[x]), total_cover[x])
+        sort_key = lambda x: (total_cover[x], -len(match_cover[x]), )
     else:
         sort_key = lambda x: (-len(match_cover[x]), len(total_cover[x]))
 
     ordered_predicates = SortedSet((sort_key(pred), pred)
                                    for pred in match_cover)
 
-    index = SetTrieMultiMap((v, (sort_key(k), k))
-                            for k,v in match_cover.items())
-    
+    index = defaultdict(lambda : defaultdict(list))
+    for pred, match in match_cover.items():
+        total = total_cover[pred]
+        index[len(match)][min(match)].append((match, pred))
+
     dominants = {}
 
+    foo_count = defaultdict(int)
     
     while ordered_predicates:
         _, dominant = ordered_predicates.pop(0)
         dominants[dominant] = match = match_cover[dominant]
+        match_len = len(match)
         total = total_cover[dominant]
 
-        subs = index.subsets(match, mode='values')
-
-        for key, pred in subs:
-            if total <= total_cover[pred]:
-                ordered_predicates -= {(key, pred)}
-
+        for c_len in index:
+            if match_len >= c_len:
+                feasible = index[c_len]
+                for element in match:
+                    candidates = feasible.get(element, [])
+                    for c_match, c_pred in candidates.copy():
+                        if (match >= c_match and total <= total_cover[c_pred]):
+                            ordered_predicates -= {(sort_key(c_pred), c_pred)}
+                            candidates.remove((c_match, c_pred))
+        
     return dominants
 
 import datrie
