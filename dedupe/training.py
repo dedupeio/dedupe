@@ -319,7 +319,6 @@ def unique(seq):
             cleaned.append(each)
     return cleaned
 
-@profile
 def dominators(match_cover, total_cover, comparison=False):
     from sortedcontainers import SortedSet
     from collections import defaultdict
@@ -334,7 +333,6 @@ def dominators(match_cover, total_cover, comparison=False):
 
     index = defaultdict(lambda : defaultdict(list))
     for pred, match in match_cover.items():
-        total = total_cover[pred]
         index[len(match)][min(match)].append((match, pred))
 
     dominants = {}
