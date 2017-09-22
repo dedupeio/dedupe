@@ -702,7 +702,7 @@ class ActiveMatching(Matching):
 
         '''
 
-        return self.active_learner.get()
+        return self.active_learner.pop()
 
     def markPairs(self, labeled_pairs):
         '''

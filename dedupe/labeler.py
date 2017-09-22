@@ -17,7 +17,7 @@ class ActiveLearner(with_metaclass(ABCMeta)):
         pass
 
     @abstractmethod
-    def get():
+    def pop():
         pass
 
     @abstractmethod
@@ -97,7 +97,10 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def fit_transform(self, pairs, y):
         self.fit(self.transform(pairs), y)
 
-    def get(self):
+    def pop(self):
+        if not len(self.distances):
+            raise IndexError("No more unlabeled examples to label")
+
         target_uncertainty = self._bias()
 
         probabilities = self.predict_proba(self.distances)
