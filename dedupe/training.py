@@ -33,7 +33,7 @@ class BlockLearner(object) :
 
         comparison_count = self.comparisons(dupe_cover, compound_length)
 
-        dupe_cover = dominators(dupe_cover, comparison_count, comparison=True)
+        dupe_cover = dominators_f(dupe_cover, comparison_count, comparison=True)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
@@ -332,13 +332,13 @@ def dominators(match_cover, total_cover, comparison=False):
                                    for pred in match_cover)
 
     index = defaultdict(lambda : defaultdict(list))
-    for pred, match in match_cover.items():
+    for i, (pred, match) in enumerate(match_cover.items()):
         index[len(match)][min(match)].append((match, pred))
 
     dominants = {}
 
-    foo_count = defaultdict(int)
-    
+    print(len(ordered_predicates))
+
     while ordered_predicates:
         _, dominant = ordered_predicates.pop(0)
         dominants[dominant] = match = match_cover[dominant]
@@ -354,8 +354,57 @@ def dominators(match_cover, total_cover, comparison=False):
                         if (match >= c_match and total <= total_cover[c_pred]):
                             ordered_predicates -= {(sort_key(c_pred), c_pred)}
                             candidates.remove((c_match, c_pred))
+
         
     return dominants
+
+#@profile
+def dominators_f(match_cover, total_cover, comparison=False):
+    from sortedcontainers import SortedSet
+    from collections import defaultdict
+    
+    if comparison:
+        sort_key = lambda x: (total_cover[x], -len(match_cover[x]), )
+    else:
+        sort_key = lambda x: (-len(match_cover[x]), len(total_cover[x]))
+
+    filtered_matches = {}
+    for pred, matches in match_cover.items():
+        frozen = frozenset(matches)
+        c_total = total_cover[pred]
+        e_total, _ = filtered_matches.get(frozen, (float('inf'), pred))
+        if c_total < e_total:
+            filtered_matches[frozen] = (c_total, pred)
+                                          
+    match_cover = {pred: match_cover[pred] for _, pred in filtered_matches.values()}
+
+    ordered_predicates = SortedSet((sort_key(pred), pred)
+                                   for pred in match_cover)
+
+    index = defaultdict(list)
+    for i, (pred, match) in enumerate(match_cover.items()):
+        index[min(match)].append((match, pred))
+
+    dominants = {}
+
+    print(len(ordered_predicates))
+
+    while ordered_predicates:
+        _, dominant = ordered_predicates.pop(0)
+        dominants[dominant] = match = match_cover[dominant]
+        match_len = len(match)
+        total = total_cover[dominant]
+
+        for element in match:
+            candidates = index.get(element, [])
+            for c_match, c_pred in candidates.copy():
+                if (match >= c_match):
+                    ordered_predicates -= {(sort_key(c_pred), c_pred)}
+                    candidates.remove((c_match, c_pred))
+
+        
+    return dominants
+
 
 import datrie
 
