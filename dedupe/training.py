@@ -378,32 +378,88 @@ def dominators_f(match_cover, total_cover, comparison=False):
                                           
     match_cover = {pred: match_cover[pred] for _, pred in filtered_matches.values()}
 
-    ordered_predicates = SortedSet((sort_key(pred), pred)
-                                   for pred in match_cover)
-
-    index = defaultdict(list)
-    for i, (pred, match) in enumerate(match_cover.items()):
-        index[min(match)].append((match, pred))
-
     dominants = {}
+    foo = {}
 
+    ordered_predicates = sorted(match_cover, key=len, reverse=True)
     print(len(ordered_predicates))
 
-    while ordered_predicates:
-        _, dominant = ordered_predicates.pop(0)
-        dominants[dominant] = match = match_cover[dominant]
-        match_len = len(match)
-        total = total_cover[dominant]
+    
+    dominants = {}
+    for i, candidate in enumerate(ordered_predicates, 1):
+        match = match_cover[candidate]
+        total = total_cover[candidate]
 
-        for element in match:
-            candidates = index.get(element, [])
-            for c_match, c_pred in candidates.copy():
-                if (match >= c_match):
-                    ordered_predicates -= {(sort_key(c_pred), c_pred)}
-                    candidates.remove((c_match, c_pred))
+        if not any((match_cover[pred] >= match and
+                    total_cover[pred] <= total)
+                   for pred in ordered_predicates[i:]):
+            dominants[candidate] = match
 
+    print(len(dominants))
+    dominants = {}
+
+
+
+    f = 0
+    for pred in ordered_predicates:
+        match = match_cover[pred]
+        n_compare = total_cover[pred]
+        cands = dominants
+        stack = True
+        level = 0
+        while stack:
+            for cand in cands:
+                if match < cand:
+                    if n_compare < cands[cand]['compare']:
+                        cands = cands[cand]['children']
+                        level += 1
+                    else:
+                        f += 1
+                        stack = False
+
+            else:
+                cands[frozenset(match)] = {'compare': n_compare,
+                                           'pred': pred,
+                                           'children': {}}
         
-    return dominants
+                foo[pred] = match
+                stack = False
+
+    print(f)
+    print(len(foo))
+
+    return foo
+                    
+
+    # ordered_predicates = SortedSet((sort_key(pred), pred)
+    #                                for pred in match_cover)
+
+    # index = defaultdict(list)
+    # for i, (pred, match) in enumerate(match_cover.items()):
+    #     index[min(match)].append((match, pred))
+
+    # dominants = {}
+
+    # print(len(ordered_predicates))
+
+    # while ordered_predicates:
+    #     _, dominant = ordered_predicates.pop(0)
+    #     dominants[dominant] = match = match_cover[dominant]
+    #     match_len = len(match)
+    #     total = total_cover[dominant]
+
+    #     for element in match:
+    #         candidates = index.get(element, [])
+    #         sentinel = False
+    #         for c_match, c_pred in candidates.copy():
+    #             if match >= c_match:
+    #                 ordered_predicates -= {(sort_key(c_pred), c_pred)}
+    #                 candidates.remove((c_match, c_pred))
+
+    # print(len(dominants))
+        
+    # return dominants
+
 
 
 import datrie
@@ -438,7 +494,10 @@ class IntSetTrie(object):
             print(self._decode(node))
 
             
-        
 
 
+
+
+
+            
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
