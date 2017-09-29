@@ -1,9 +1,13 @@
 import dedupe
 import unittest
+import itertools
 import random
 import numpy
 import warnings
 from collections import OrderedDict
+
+icfi = lambda x : list(itertools.chain.from_iterable(x))
+
 
 DATA_SAMPLE = (({'age': '27', 'name': 'Kyle'}, 
                 {'age': '50', 'name': 'Bob'}),
@@ -92,15 +96,16 @@ class DedupeTest(unittest.TestCase):
     self.deduper = dedupe.Dedupe(field_definition)
 
   def test_blockPairs(self) :
+    icfi = lambda x : list(itertools.chain.from_iterable(x))
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({1:2},))
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({'name':'Frank', 'age':21},))
     self.assertRaises(ValueError, self.deduper._blockedPairs, ({'1' : {'name' : 'Frank',
                                                                       'height' : 72}},))
-    assert [] == list(self.deduper._blockedPairs(([('1', 
+    assert [] == icfi(self.deduper._blockedPairs(([('1', 
                                                     {'name' : 'Frank',
                                                      'age' : 72}, 
                                                     set([]))],)))
-    assert list(self.deduper._blockedPairs(([('1', 
+    assert icfi(self.deduper._blockedPairs(([('1', 
                                               {'name' : 'Frank',
                                                'age' : 72},
                                               set([])),
@@ -147,12 +152,12 @@ class LinkTest(unittest.TestCase):
     self.assertRaises(ValueError, self.linker._blockedPairs, ({'name':'Frank', 'age':21},))
     self.assertRaises(ValueError, self.linker._blockedPairs, ({'1' : {'name' : 'Frank',
                                                                       'height' : 72}},))
-    assert [] == list(self.linker._blockedPairs((([('1', 
+    assert [] == icfi(self.linker._blockedPairs((([('1', 
                                                     {'name' : 'Frank',
                                                      'age' : 72}, 
                                                     set([]))],
                                                   []),)))
-    assert list(self.linker._blockedPairs((([('1', {'name' : 'Frank',
+    assert icfi(self.linker._blockedPairs((([('1', {'name' : 'Frank',
                                                     'age' : 72}, set([]))],
                                             [('2', {'name' : 'Bob',
                                                     'age' : 27}, set([]))]),))) == \

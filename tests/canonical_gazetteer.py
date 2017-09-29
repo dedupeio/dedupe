@@ -84,7 +84,7 @@ print('number of known duplicate pairs', len(duplicates_s))
 
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f :
-        gazetteer = dedupe.StaticGazetteer(f)
+        gazetteer = dedupe.StaticGazetteer(f, generator=True)
 else:
     fields = [{'field': 'name', 'type': 'String'},
               {'field': 'address', 'type': 'String'},
@@ -92,7 +92,7 @@ else:
               {'field': 'city','type' : 'String'}
               ]
 
-    gazetteer = dedupe.Gazetteer(fields)
+    gazetteer = dedupe.Gazetteer(fields, generator=True)
     gazetteer.sample(data_1, data_2, 10000) 
     gazetteer.markPairs(training_pairs)
     gazetteer.train()

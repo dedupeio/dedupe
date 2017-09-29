@@ -42,8 +42,12 @@ class Matching(object):
     - `matchBlocks`
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        generator = kwargs.pop('generator', False)
+        if generator:
+            self.generator = True
+        else:
+            self.generator = False
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma: nocover
         """
@@ -118,7 +122,8 @@ class Matching(object):
 
         logger.debug("matching done, begin clustering")
 
-        clusters = list(self._cluster(matches, threshold, *args, **kwargs))
+        for cluster in self._cluster(matches, threshold, *args, **kwargs):
+            yield
 
         try:
             match_file = matches.filename
@@ -126,8 +131,6 @@ class Matching(object):
             os.remove(match_file)
         except AttributeError:
             pass
-
-        return clusters
 
     def writeSettings(self, file_obj, index=False):  # pragma: no cover
         """
@@ -214,7 +217,11 @@ class DedupeMatching(Matching):
 
         """
         blocked_pairs = self._blockData(data)
-        return self.matchBlocks(blocked_pairs, threshold)
+        clusters = self.matchBlocks(blocked_pairs, threshold) 
+        if self.generator:
+            return clusters
+        else:
+            return list(clusters)
 
     def threshold(self, data, recall_weight=1.5):  # pragma: no cover
         """
@@ -471,7 +478,7 @@ class StaticMatching(Matching):
 
     def __init__(self,
                  settings_file,
-                 num_cores=None):  # pragma: no cover
+                 num_cores=None, **kwargs):  # pragma: no cover
         """
         Initialize from a settings file
         #### Example usage
@@ -490,6 +497,8 @@ class StaticMatching(Matching):
         learned from ActiveMatching. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
+        super(StaticMatching, self).__init__(**kwargs)
+        
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
@@ -574,7 +583,7 @@ class ActiveMatching(Matching):
     def __init__(self,
                  variable_definition,
                  data_sample=None,
-                 num_cores=None):
+                 num_cores=None, **kwargs):
         """
         Initialize from a data model and data sample.
 
@@ -600,6 +609,8 @@ class ActiveMatching(Matching):
         For details about variable types, check the documentation.
         <https://dedupe.io/developers/library>`_
         """
+        super(ActiveMatching, self).__init__(**kwargs)
+        
         self.data_model = datamodel.DataModel(variable_definition)
 
         if data_sample is not None:
@@ -975,10 +986,17 @@ class GazetteerMatching(RecordLinkMatching):
                      record set
         """
         blocked_pairs = self._blockData(messy_data)
+
+        clusters = self.matchBlocks(blocked_pairs, threshold, n_matches)
         try:
-            return self.matchBlocks(blocked_pairs, threshold, n_matches)
+            core.peek(clusters)
         except ValueError:
             return []
+
+        if self.generator:
+            return clusters
+        else:
+            return list(clusters)
 
     def threshold(self, messy_data, recall_weight=1.5):  # pragma: no cover
         """
