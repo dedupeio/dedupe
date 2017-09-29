@@ -194,10 +194,10 @@ def greedyMatching(dupes, threshold=0.5):
             yield (a, b), score
 
 
-def gazetteMatching(scored_blocks, threshold=0.5, n_matches=1):
+def gazetteMatching(scored_blocks, n_matches=1):
 
     for block in scored_blocks:
-        matches = sorted(block, key=lambda x: x[1])
+        matches = sorted(block, key=lambda x: -x[1])
 
         if n_matches:
             yield tuple(matches)[:n_matches]

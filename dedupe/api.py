@@ -946,7 +946,7 @@ class GazetteerMatching(RecordLinkMatching):
 
         logger.debug("matching done, begin clustering")
 
-        return self._cluster(matches, threshold, *args, **kwargs)
+        return self._cluster(matches, *args, **kwargs)
 
     def match(self, messy_data, threshold=0.5, n_matches=1):  # pragma: no cover
         """Identifies pairs of records that refer to the same entity, returns
