@@ -219,7 +219,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     result_queue = SimpleQueue()
 
     n_map_processes = max(num_cores, 1)
-    score_records = ScoreDupes(data_model, classifier, threshold) 
+    score_records = ScoreDupes(data_model, classifier, threshold)
     map_processes = [Process(target=score_records,
                              args=(record_pairs_queue,
                                    score_queue))
@@ -307,24 +307,22 @@ class ScoreGazette(object) :
     def __call__(self, block):
         ids = []
         records = []
-        
+
         for record_pair in block:
             ((id_1, record_1, _), 
              (id_2, record_2, _)) = record_pair
 
-                
             ids.append((id_1, id_2))
             records.append((record_1, record_2))
 
-        
         distances = self.data_model.distances(records)
         scores = self.classifier.predict_proba(distances)[:,-1]
-        
+
         mask = scores > self.threshold
         id_type = sniff_id_type(ids)
         ids = numpy.array(ids, dtype=id_type)
-            
-        dtype = numpy.dtype([('pairs', id_type, 2), 
+
+        dtype = numpy.dtype([('pairs', id_type, 2),
                                  ('score', 'f4', 1)])
 
         scored_pairs = numpy.empty(shape=numpy.count_nonzero(mask),
@@ -334,7 +332,7 @@ class ScoreGazette(object) :
         scored_pairs['score'] = scores[mask]
 
         return scored_pairs
-        
+
 
 def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0) :
     if num_cores < 2 :
@@ -355,7 +353,7 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0) :
     score_records = ScoreGazette(data_model, classifier, threshold)
     for scored_pairs in pool.imap_unordered(score_records, records):
         yield scored_pairs
-        
+
 
 def peek(records) :
     try :
