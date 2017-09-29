@@ -123,7 +123,7 @@ class Matching(object):
         logger.debug("matching done, begin clustering")
 
         for cluster in self._cluster(matches, threshold, *args, **kwargs):
-            yield
+            yield cluster
 
         try:
             match_file = matches.filename
