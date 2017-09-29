@@ -101,7 +101,7 @@ def randomPairsWithReplacement(n_records, sample_size) :
     return [(p.item(), q.item()) for p, q in random_indices]
 
 
-class ScoreRecords(object) :
+class ScoreDupes(object) :
     def __init__(self, data_model, classifier, threshold) :
         self.data_model = data_model
         self.classifier = classifier
@@ -219,7 +219,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     result_queue = SimpleQueue()
 
     n_map_processes = max(num_cores, 1)
-    score_records = ScoreRecords(data_model, classifier, threshold) 
+    score_records = ScoreDupes(data_model, classifier, threshold) 
     map_processes = [Process(target=score_records,
                              args=(record_pairs_queue,
                                    score_queue))
@@ -251,7 +251,6 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     [process.join() for process in map_processes]
 
     return scored_pairs
-
 
 def fillQueue(queue, iterable, stop_signals) :
     iterable = iter(iterable)
@@ -298,6 +297,65 @@ def fillQueue(queue, iterable, stop_signals) :
             # done
             [queue.put(None) for _ in range(stop_signals)]
             break
+
+class ScoreGazette(object) :
+    def __init__(self, data_model, classifier, threshold) :
+        self.data_model = data_model
+        self.classifier = classifier
+        self.threshold = threshold
+
+    def __call__(self, block):
+        ids = []
+        records = []
+        
+        for record_pair in block:
+            ((id_1, record_1, _), 
+             (id_2, record_2, _)) = record_pair
+
+                
+            ids.append((id_1, id_2))
+            records.append((record_1, record_2))
+
+        
+        distances = self.data_model.distances(records)
+        scores = self.classifier.predict_proba(distances)[:,-1]
+        
+        mask = scores > self.threshold
+        id_type = sniff_id_type(ids)
+        ids = numpy.array(ids, dtype=id_type)
+            
+        dtype = numpy.dtype([('pairs', id_type, 2), 
+                                 ('score', 'f4', 1)])
+
+        scored_pairs = numpy.empty(shape=numpy.count_nonzero(mask),
+                                   dtype=dtype)
+
+        scored_pairs['pairs'] = ids[mask]
+        scored_pairs['score'] = scores[mask]
+
+        return scored_pairs
+        
+
+def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0) :
+    if num_cores < 2 :
+        from multiprocessing.dummy import Pool
+    else :
+        from .backport import Pool
+
+    first, records = peek(records)
+    if first is None:
+        raise ValueError("No records have been blocked together. "
+                         "Is the data you are trying to match like "
+                         "the data you trained on?")
+
+    n_map_processes = max(num_cores, 1)
+
+    pool = Pool(processes=n_map_processes)
+
+    score_records = ScoreGazette(data_model, classifier, threshold)
+    for scored_pairs in pool.imap_unordered(score_records, records):
+        yield scored_pairs
+        
 
 def peek(records) :
     try :

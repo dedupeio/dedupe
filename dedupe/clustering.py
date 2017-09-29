@@ -194,14 +194,11 @@ def greedyMatching(dupes, threshold=0.5):
             yield (a, b), score
 
 
-def gazetteMatching(dupes, threshold=0.5, n_matches=1):
-    messy_id = lambda match: match[0][0]
-    score = lambda match: match[1]
-    
-    dupes = ((pair, score) for pair, score in dupes if score >= threshold)
-    dupes = sorted(dupes, key=lambda match: (messy_id(match), -score(match)))
+def gazetteMatching(scored_blocks, threshold=0.5, n_matches=1):
 
-    for _, matches in itertools.groupby(dupes, key=messy_id):
+    for block in scored_blocks:
+        matches = sorted(block, key=lambda x: x[1])
+
         if n_matches:
             yield tuple(matches)[:n_matches]
         else:

@@ -62,8 +62,9 @@ class Matching(object):
                          to 2.
 
         """
+        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
 
-        probability = core.scoreDuplicates(self._blockedPairs(blocks),
+        probability = core.scoreDuplicates(candidate_records,
                                            self.data_model,
                                            self.classifier,
                                            self.num_cores)['score']
@@ -107,7 +108,7 @@ class Matching(object):
                       raising it will increase precision
 
         """
-        candidate_records = self._blockedPairs(blocks)
+        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
 
         matches = core.scoreDuplicates(candidate_records,
                                        self.data_model,
@@ -251,7 +252,7 @@ class DedupeMatching(Matching):
 
         pairs = (combinations(sorted(block), 2) for block in blocks)
 
-        return itertools.chain.from_iterable(pairs)
+        return pairs
 
     def _blockData(self, data_d):
 
@@ -391,7 +392,7 @@ class RecordLinkMatching(Matching):
 
         pairs = (product(base, target) for base, target in blocks)
 
-        return itertools.chain.from_iterable(pairs)
+        return pairs
 
     def _blockGenerator(self, messy_data, blocked_records):
         block_groups = itertools.groupby(self.blocker(viewitems(messy_data)),
@@ -915,6 +916,37 @@ class GazetteerMatching(RecordLinkMatching):
                 del self.blocked_records[block_key][record_id]
             except KeyError:
                 pass
+
+    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
+        """
+        Partitions blocked data and returns a list of clusters, where
+        each cluster is a tuple of record ids
+
+        Keyword arguments:
+
+        blocks -- Sequence of tuples of records, where each tuple is a
+                  set of records covered by a blocking predicate
+
+        threshold -- Number between 0 and 1 (default is .5). We will
+                      only consider as duplicates record pairs as
+                      duplicates if their estimated duplicate
+                      likelihood is greater than the threshold.
+
+                      Lowering the number will increase recall,
+                      raising it will increase precision
+
+        """
+        candidate_records = self._blockedPairs(blocks)
+
+        matches = core.scoreGazette(candidate_records,
+                                    self.data_model,
+                                    self.classifier,
+                                    self.num_cores,
+                                    threshold=threshold)
+
+        logger.debug("matching done, begin clustering")
+
+        return self._cluster(matches, threshold, *args, **kwargs)
 
     def match(self, messy_data, threshold=0.5, n_matches=1):  # pragma: no cover
         """Identifies pairs of records that refer to the same entity, returns
