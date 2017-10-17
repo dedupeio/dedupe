@@ -183,8 +183,9 @@ def greedyMatching(dupes, threshold=0.5):
     A = set()
     B = set()
 
-    dupes = ((pair, score) for pair, score in dupes if score >= threshold)
-    dupes = sorted(dupes, key=lambda score: score[1], reverse=True)
+    dupes = dupes[dupes['score'] >= threshold]
+    dupes.sort(order='score')
+    dupes = dupes[::-1]
 
     for (a, b), score in dupes:
         if a not in A and b not in B:
@@ -197,9 +198,10 @@ def greedyMatching(dupes, threshold=0.5):
 def gazetteMatching(scored_blocks, n_matches=1):
 
     for block in scored_blocks:
-        matches = sorted(block, key=lambda x: -x[1])
+        block.sort(order='score')
+        block = block[::-1]
 
         if n_matches:
-            yield tuple(matches)[:n_matches]
+            yield block[:n_matches]
         else:
-            yield tuple(matches)
+            yield block

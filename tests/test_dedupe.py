@@ -199,43 +199,44 @@ class ClusteringTest(unittest.TestCase):
 
   def test_greedy_matching(self):
     greedyMatch = dedupe.clustering.greedyMatching
-    assert list(greedyMatch(self.bipartite_dupes, 
+
+    bipartite_dupes = numpy.array(list(self.bipartite_dupes),
+                                  dtype=[('ids', int, 2),
+                                         ('score', float, 1)])
+                                  
+    assert list(greedyMatch(bipartite_dupes, 
                             threshold=0.5)) == [((4, 6), 0.96), 
                                                 ((2, 7), 0.72), 
                                                 ((3, 8), 0.65)]
-    assert list(greedyMatch(self.bipartite_dupes, 
+    assert list(greedyMatch(bipartite_dupes, 
                             threshold=0)) == [((4, 6), 0.96), 
                                               ((2, 7), 0.72), 
                                               ((3, 8), 0.65), 
                                               ((1, 5), 0.1)]
-    assert list(greedyMatch(self.bipartite_dupes, 
+    assert list(greedyMatch(bipartite_dupes, 
                             threshold=0.8)) == [((4, 6), 0.96)]
-    assert list(greedyMatch(self.bipartite_dupes, 
+    assert list(greedyMatch(bipartite_dupes, 
                             threshold=1)) == []
 
   def test_gazette_matching(self):
+    
     gazetteMatch = dedupe.clustering.gazetteMatching
     blocked_dupes = itertools.groupby(self.bipartite_dupes,
                                       key = lambda x : x[0][0])
 
-    blocked_dupes = [list(block) for _, block in blocked_dupes]
+    to_numpy = lambda x: numpy.array(x, dtype=[('ids', int, 2),
+                                               ('score', float, 1)])
 
-    assert set(gazetteMatch(blocked_dupes, 
-                            n_matches=2)) == set([(((1, 6), 0.72), 
-                                                   ((1, 8), 0.6)), 
-                                                  (((2, 7), 0.72),
-                                                   ((2, 8), 0.3)), 
-                                                  (((3, 6), 0.72), 
-                                                   ((3, 8), 0.65)), 
-                                                  (((4, 6), 0.96), 
-                                                   ((4, 5), 0.63)),
-                                                  (((5, 8), 0.24),)])
+    blocked_dupes = [to_numpy(list(block)) for _, block in blocked_dupes]
 
-    assert set(gazetteMatch(blocked_dupes)) == set([(((4, 6), 0.96),), 
-                                                           (((1, 6), 0.72),), 
-                                                           (((2, 7), 0.72),), 
-                                                           (((3, 6), 0.72),), 
-                                                           (((5, 8), 0.24),)])
+    target = [(((1, 6), 0.72), ((1, 8), 0.6)), 
+              (((2, 7), 0.72), ((2, 8), 0.3)), 
+              (((3, 6), 0.72), ((3, 8), 0.65)), 
+              (((4, 6), 0.96), ((4, 5), 0.63)),
+              (((5, 8), 0.24),)]
+
+    assert [tuple((tuple(pair), score) for pair, score in each.tolist())
+            for each in gazetteMatch(blocked_dupes, n_matches=2)] == target
 
 
 

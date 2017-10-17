@@ -497,7 +497,7 @@ class StaticMatching(Matching):
         learned from ActiveMatching. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        super(StaticMatching, self).__init__(**kwargs)
+        Matching.__init__(self, **kwargs)
 
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
@@ -609,7 +609,7 @@ class ActiveMatching(Matching):
         For details about variable types, check the documentation.
         <https://dedupe.io/developers/library>`_
         """
-        super(ActiveMatching, self).__init__(**kwargs)
+        Matching.__init__(self, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
 

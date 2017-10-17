@@ -336,9 +336,12 @@ class ScoreGazette(object) :
 
 def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0) :
     if num_cores < 2 :
-        from multiprocessing.dummy import Pool
+        imap = map
     else :
         from .backport import Pool
+        n_map_processes = max(num_cores, 1)
+        pool = Pool(processes=n_map_processes)
+        imap = lambda x, y: pool.imap_unordered(x, y, 1)
 
     first, records = peek(records)
     if first is None:
@@ -346,12 +349,9 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0) :
                          "Is the data you are trying to match like "
                          "the data you trained on?")
 
-    n_map_processes = max(num_cores, 1)
-
-    pool = Pool(processes=n_map_processes)
-
     score_records = ScoreGazette(data_model, classifier, threshold)
-    for scored_pairs in pool.imap_unordered(score_records, records):
+
+    for scored_pairs in imap(score_records, records):
         yield scored_pairs
 
 
