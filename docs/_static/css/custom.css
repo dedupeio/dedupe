@@ -87,6 +87,7 @@ h4:before, h4:before, h6:before {
     margin-top: -55px; 
     height: 55px; 
     opacity: 0;
+    pointer-events: none;
 }
 
 /* Padding for method/class permalinks, which require more finesse */
