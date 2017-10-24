@@ -84,7 +84,7 @@ print('number of known duplicate pairs', len(duplicates_s))
 
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f :
-        gazetteer = dedupe.StaticGazetteer(f, generator=True)
+        gazetteer = dedupe.StaticGazetteer(f)
 else:
     fields = [{'field': 'name', 'type': 'String'},
               {'field': 'address', 'type': 'String'},
@@ -92,7 +92,7 @@ else:
               {'field': 'city','type' : 'String'}
               ]
 
-    gazetteer = dedupe.Gazetteer(fields, generator=True)
+    gazetteer = dedupe.Gazetteer(fields)
     gazetteer.sample(data_1, data_2, 10000) 
     gazetteer.markPairs(training_pairs)
     gazetteer.train()
@@ -108,7 +108,7 @@ alpha = gazetteer.threshold(data_1)
 
 # print candidates
 print('clustering...')
-clustered_dupes = gazetteer.match(data_1, threshold=alpha, n_matches=1)
+clustered_dupes = gazetteer.match(data_1, threshold=alpha, n_matches=1, generator=True)
 
 print('Evaluate Clustering')
 confirm_dupes = set(frozenset(pair)
