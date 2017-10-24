@@ -108,7 +108,7 @@ alpha = gazetteer.threshold(data_1)
 
 # print candidates
 print('clustering...')
-clustered_dupes = gazetteer.match(data_1, threshold=alpha, n_matches=1)
+clustered_dupes = gazetteer.match(data_1, threshold=alpha, n_matches=1, generator=True)
 
 print('Evaluate Clustering')
 confirm_dupes = set(frozenset(pair)

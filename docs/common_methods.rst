@@ -39,7 +39,7 @@
 
 .. py:method::  matchBlocks(blocks, [threshold=.5])
 
-   Partitions blocked data and returns a list of clusters, where each
+   Partitions blocked data and generates a sequence of clusters, where each
    cluster is a tuple of record ids
 
    .. code:: python
