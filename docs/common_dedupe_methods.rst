@@ -18,7 +18,7 @@
       > print threshold
       0.21
 
-.. py:method:: match(data[, threshold = 0.5])
+.. py:method:: match(data[, threshold = 0.5[, generator=False]]])
 
    Identifies records that all refer to the same entity, returns
    tuples containing a sequence of record ids and corresponding
@@ -40,6 +40,8 @@
 
 			    Lowering the number will increase recall,
 			    raising it will increase precision
+   :param bool generator: when `True`, match will generate a sequence
+                          of clusters, instead of a list. Defaults to `False`
 
    .. code:: python
 

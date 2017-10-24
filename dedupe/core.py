@@ -26,6 +26,7 @@ import warnings
 import shutil
 import shelve
 import pickle
+import functools
 
 
 try:
@@ -341,13 +342,11 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0) :
         from .backport import Pool
         n_map_processes = max(num_cores, 1)
         pool = Pool(processes=n_map_processes)
-        imap = lambda x, y: pool.imap_unordered(x, y, 1)
+        imap = functools.partial(pool.imap_unordered, chunksize=1)
 
     first, records = peek(records)
     if first is None:
-        raise ValueError("No records have been blocked together. "
-                         "Is the data you are trying to match like "
-                         "the data you trained on?")
+        raise ValueError("No records to match")
 
     score_records = ScoreGazette(data_model, classifier, threshold)
 

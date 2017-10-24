@@ -41,13 +41,13 @@ class Matching(object):
     - `thresholdBlocks`
     - `matchBlocks`
     """
-
-    def __init__(self, *args, **kwargs):
-        generator = kwargs.pop('generator', False)
-        if generator:
-            self.generator = True
+    def __init__(self, num_cores):
+        if num_cores is None:
+            self.num_cores = multiprocessing.cpu_count()
         else:
-            self.generator = False
+            self.num_cores = num_cores
+
+        self.loaded_indices = False
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma: nocover
         """
@@ -95,8 +95,8 @@ class Matching(object):
 
     def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
         """
-        Partitions blocked data and returns a list of clusters, where
-        each cluster is a tuple of record ids
+        Partitions blocked data and generates a sequence of clusters,
+        where each cluster is a tuple of record ids
 
         Keyword arguments:
 
@@ -188,7 +188,7 @@ class DedupeMatching(Matching):
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
-    def match(self, data, threshold=0.5):  # pragma: no cover
+    def match(self, data, threshold=0.5, generator=False):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
         tuples
 
@@ -218,7 +218,7 @@ class DedupeMatching(Matching):
         """
         blocked_pairs = self._blockData(data)
         clusters = self.matchBlocks(blocked_pairs, threshold) 
-        if self.generator:
+        if generator:
             return clusters
         else:
             return list(clusters)
@@ -330,7 +330,7 @@ class RecordLinkMatching(Matching):
         self._cluster = clustering.greedyMatching
         self._linkage_type = "RecordLink"
 
-    def match(self, data_1, data_2, threshold=0.5):  # pragma: no cover
+    def match(self, data_1, data_2, threshold=0.5, generator=False):  # pragma: no cover
         """
         Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
@@ -358,7 +358,16 @@ class RecordLinkMatching(Matching):
         """
 
         blocked_pairs = self._blockData(data_1, data_2)
-        return self.matchBlocks(blocked_pairs, threshold)
+        clusters = self.matchBlocks(blocked_pairs, threshold, n_matches)
+        try:
+            core.peek(clusters)
+        except ValueError:
+            return []
+
+        if generator:
+            return clusters
+        else:
+            return list(clusters)
 
     def threshold(self, data_1, data_2, recall_weight=1.5):  # pragma: no cover
         """
@@ -497,12 +506,7 @@ class StaticMatching(Matching):
         learned from ActiveMatching. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        Matching.__init__(self, **kwargs)
-
-        if num_cores is None:
-            self.num_cores = multiprocessing.cpu_count()
-        else:
-            self.num_cores = num_cores
+        Matching.__init__(self, num_cores, **kwargs)
 
         try:
             self.data_model = pickle.load(settings_file)
@@ -517,8 +521,6 @@ class StaticMatching(Matching):
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
-
-        self.loaded_indices = False
 
         try:
             self._loadIndices(settings_file)
@@ -609,17 +611,12 @@ class ActiveMatching(Matching):
         For details about variable types, check the documentation.
         <https://dedupe.io/developers/library>`_
         """
-        Matching.__init__(self, **kwargs)
+        Matching.__init__(self, num_cores, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
 
         if data_sample is not None:
             raise UserWarning('data_sample is deprecated, use the .sample method')
-
-        if num_cores is None:
-            self.num_cores = multiprocessing.cpu_count()
-        else:
-            self.num_cores = num_cores
 
         self.active_learner = None
 
@@ -627,7 +624,6 @@ class ActiveMatching(Matching):
                                            u'match': []})
 
         self.blocker = None
-        self.loaded_indices = False
 
     def cleanupTraining(self):  # pragma: no cover
         '''
@@ -930,7 +926,7 @@ class GazetteerMatching(RecordLinkMatching):
 
     def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
         """
-        Partitions blocked data and returns a list of clusters, where
+        Partitions blocked data and generates a sequence of clusters, where
         each cluster is a tuple of record ids
 
         Keyword arguments:
@@ -959,7 +955,7 @@ class GazetteerMatching(RecordLinkMatching):
 
         return self._cluster(matches, *args, **kwargs)
 
-    def match(self, messy_data, threshold=0.5, n_matches=1):  # pragma: no cover
+    def match(self, messy_data, threshold=0.5, n_matches=1, generator=False):  # pragma: no cover
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
         between 0 and 1. The record_ids within each set should refer to the
@@ -993,7 +989,7 @@ class GazetteerMatching(RecordLinkMatching):
         except ValueError:
             return []
 
-        if self.generator:
+        if generator:
             return clusters
         else:
             return list(clusters)
