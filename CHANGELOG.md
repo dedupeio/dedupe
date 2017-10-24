@@ -1,3 +1,7 @@
+# 1.8.0
+- matchBlocks is not a generator; match is now optionally a generator. If the
+  generator option is turned of for the Gazette match is lazy
+
 # 1.7.8
 - Speed up blocking, on our way to 3-predicates
 
