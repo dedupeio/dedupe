@@ -358,10 +358,10 @@ class RecordLinkMatching(Matching):
         """
 
         blocked_pairs = self._blockData(data_1, data_2)
-        clusters = self.matchBlocks(blocked_pairs, threshold, n_matches)
+        clusters = self.matchBlocks(blocked_pairs, threshold)
         try:
             core.peek(clusters)
-        except ValueError:
+        except core.BlockingError:
             return []
 
         if generator:
@@ -986,7 +986,7 @@ class GazetteerMatching(RecordLinkMatching):
         clusters = self.matchBlocks(blocked_pairs, threshold, n_matches)
         try:
             core.peek(clusters)
-        except ValueError:
+        except core.BlockingError:
             return []
 
         if generator:

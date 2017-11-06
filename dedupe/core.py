@@ -39,6 +39,9 @@ import numpy
 class ChildProcessError(Exception) :
     pass
 
+class BlockingError(Exception):
+    pass
+
 def randomPairs(n_records, sample_size):
     """
     Return random combinations of indices for a square matrix of size n
@@ -211,9 +214,9 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
 
     first, records = peek(records)
     if first is None:
-        raise ValueError("No records have been blocked together. "
-                         "Is the data you are trying to match like "
-                         "the data you trained on?")
+        raise BlockingError("No records have been blocked together. "
+                            "Is the data you are trying to match like "
+                            "the data you trained on?")
 
     record_pairs_queue = Queue(2)
     score_queue =  SimpleQueue()
@@ -242,7 +245,6 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0) :
     if result :
         scored_pairs_file, dtype, size = result
         scored_pairs = numpy.memmap(scored_pairs_file,
-                                    mode='r',
                                     dtype=dtype,
                                     shape=(size,))
     else:
