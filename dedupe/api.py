@@ -901,7 +901,7 @@ class GazetteerMatching(RecordLinkMatching):
 
         self.blocker.indexAll(data)
 
-        for block_key, record_id in self.blocker(data.items()):
+        for block_key, record_id in self.blocker(data.items(), target=True):
             if block_key not in self.blocked_records:
                 self.blocked_records[block_key] = {}
             self.blocked_records[block_key][record_id] = data[record_id]
