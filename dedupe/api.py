@@ -268,7 +268,7 @@ class DedupeMatching(Matching):
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
-        
+
         block_groups = itertools.groupby(self.blocker(viewitems(data_d)),
                                          lambda x: x[1])
         
