@@ -263,33 +263,39 @@ class DedupeMatching(Matching):
 
     def _blockData(self, data_d):
 
-        blocks = core.TempShelve('blocks')
+        blocks = {}
+        coverage = {}
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
-
+        
         block_groups = itertools.groupby(self.blocker(viewitems(data_d)),
                                          lambda x: x[1])
-
         
         for record_id, block in block_groups:
-            record = data_d[record_id]
-            block_ids = sorted(block_key for block_key, _ in block)
-            while block_ids:
-                id = block_ids.pop()
-                if id in blocks:
-                    blocks[id] += [(record_id, record, set(block_ids))]
+            block_keys = [block_key for block_key, _ in block]
+            coverage[record_id] = block_keys
+            for block_key in block_keys:
+                if block_key in blocks:
+                    blocks[block_key].append(record_id)
                 else:
-                    blocks[id] = [(record_id, record, set(block_ids))]
+                    blocks[block_key] = [record_id]
 
         if not self.loaded_indices:
             self.blocker.resetIndices()
 
-        for block in viewvalues(blocks):
-            if len(block) > 1:
-                yield block
+        blocks = {block_key: record_ids for block_key, record_ids
+                  in blocks.items() if len(record_ids) > 1}
 
-        blocks.close()
+        for block_key, block in blocks.items():
+            processed_block = []
+            for record_id in block:
+                smaller_blocks = {key for key in coverage[record_id]
+                                  if key in blocks and key < block_key}
+                processed_block.append((record_id, data_d[record_id], smaller_blocks))
+
+            yield processed_block
+
                 
     def _checkBlock(self, block):
         if block:
