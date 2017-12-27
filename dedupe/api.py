@@ -437,20 +437,17 @@ class RecordLinkMatching(Matching):
 
     def _blockData(self, data_1, data_2):
 
-        blocked_records = core.TempShelve('blocked_records')
+        blocked_records = {}
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items(), target=True):
-            block = blocked_records.get(block_key, {})
+            block = blocked_records.setdefault(block_key, {})
             block[record_id] = data_2[record_id]
-            blocked_records[block_key] = block
 
         for each in self._blockGenerator(data_1, blocked_records):
             yield each
-
-        blocked_records.close()
 
     def _checkBlock(self, block):
         if block:
