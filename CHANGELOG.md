@@ -1,3 +1,6 @@
+# 1.8.2
+- removed shelve-backed persistence in blocking data in favor of an improved in-memory implementation
+
 # 1.8.0
 - matchBlocks is not a generator; match is now optionally a generator. If the
   generator option is turned of for the Gazette match is lazy
