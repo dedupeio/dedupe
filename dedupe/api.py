@@ -273,7 +273,7 @@ class DedupeMatching(Matching):
                                          lambda x: x[1])
         
         for record_id, block in block_groups:
-            block_keys = [block_key for block_key, _ in block]
+            block_keys = {block_key for block_key, _ in block}
             coverage[record_id] = block_keys
             for block_key in block_keys:
                 if block_key in blocks:
@@ -290,8 +290,8 @@ class DedupeMatching(Matching):
         for block_key, block in blocks.items():
             processed_block = []
             for record_id in block:
-                smaller_blocks = {key for key in coverage[record_id]
-                                  if key in blocks and key < block_key}
+                smaller_blocks = {key for key in coverage[record_id] & viewkeys(blocks)
+                                  if key < block_key}
                 processed_block.append((record_id, data_d[record_id], smaller_blocks))
 
             yield processed_block
