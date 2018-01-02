@@ -801,14 +801,8 @@ class Dedupe(DedupeMatching, ActiveMatching):
         '''
         self._checkData(data)
         
-        data = core.index(data)
-
-        if original_length is None:
-            original_length = len(data)
-        self.sampled_records = Sample(data, 2000, original_length)
-
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_combo(data, blocked_proportion, sample_size)
+        self.active_learner.sample(data, blocked_proportion, sample_size, original_length)
 
     def _blockLearner(self, predicates):
         return training.DedupeBlockLearner(predicates,
@@ -1061,18 +1055,6 @@ class EmptyTrainingException(Exception):
 class SettingsFileLoadingException(Exception):
     pass
 
-
-class Sample(dict):
-
-    def __init__(self, d, sample_size, original_length):
-        if len(d) <= sample_size:
-            super(Sample, self).__init__(d)
-        else:
-            super(Sample, self).__init__({k: d[k]
-                                          for k
-                                          in random.sample(viewkeys(d),
-                                                           sample_size)})
-        self.original_length = original_length
 
 def flatten_training(training_pairs):
     examples = []

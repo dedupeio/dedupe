@@ -42,11 +42,9 @@ class ActiveLearner(with_metaclass(ABCMeta)):
                                                   random_sample_size))
         data = dict(data)
 
-        self.candidates = [(data[k1], data[k2])
-                           for k1, k2
-                           in blocked_sample_keys | random_sample_keys]
-
-        self.distances = self.transform(self.candidates)
+        return = [(data[k1], data[k2])
+                  for k1, k2
+                  in blocked_sample_keys | random_sample_keys]
         
 
     def sample_product(self, data_1, data_2, blocked_proportion, sample_size):
@@ -71,11 +69,9 @@ class ActiveLearner(with_metaclass(ABCMeta)):
         random_sample_keys = {(a, b + offset)
                               for a, b in random_sample_keys}
 
-        self.candidates = [(data_1[k1], data_2[k2])
-                           for k1, k2
-                           in blocked_sample_keys | random_sample_keys]
-
-        self.distances = self.transform(self.candidates)
+        return [(data_1[k1], data_2[k2])
+                for k1, k2
+                in blocked_sample_keys | random_sample_keys]
 
             
 
@@ -98,12 +94,12 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         self.fit(self.transform(pairs), y)
 
     def pop(self):
-        if not len(self.distances):
+        if not len(self.candidates):
             raise IndexError("No more unlabeled examples to label")
 
         target_uncertainty = self._bias()
 
-        probabilities = self.predict_proba(self.distances)
+        probabilities = self.candidate_scores()
         uncertain_index = numpy.abs(target_uncertainty - probabilities).argmin()
 
         self.distances = numpy.delete(self.distances, uncertain_index, axis=0)
@@ -111,6 +107,11 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         uncertain_pair = self.candidates.pop(uncertain_index)
 
         return [uncertain_pair]
+
+    def remove(self, candidate):
+        index = self.candidates.index(candidate)
+        self.distances = numpy.delete(self.distances, index, axis=0)
+        self.candidates.pop(index)
 
     def mark(self, pairs, y):
 
@@ -138,20 +139,119 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         return weighted_bias
 
+    def candidate_scores():
+        return self.predict_proba(self.distances)
+
     def __len__(self):
         return len(self.candidates)
 
-    def _init_rlr(self):
+    def _init(self, candidates):
+        # we should rethink this and have it happen in the __init__ method
+        self.candidates = candidates
+        self.distances = self.transform(candidates)
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
         self.fit_transform([exact_match, random_pair],
                            [1, 0])
         
     def sample_combo(self, *args):
-        super(RLRLearner, self).sample_combo(*args)
-        self._init_rlr()
+        candidates = super(RLRLearner, self).sample_combo(*args)
+        self._init(candidates)
 
     def sample_product(self, *args):
-        super(RLRLearner, self).sample_product(*args)
-        self._init_rlr()
+        candidates = super(RLRLearner, self).sample_product(*args)
+        self._init(candidates)
+
+class DisagreementLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
+    learners = (RLRLearner, BlockLearner)
+    
+    def __init__(self, data_model):
+        super(DisagreementLearner, self).__init__()
+        self.learners = [learner() for learner in self.learners)
         
+    def pop(self):
+        if not len(self.candidates):
+            raise IndexError("No more unlabeled examples to label")
+
+        probs = []
+        for learner in self.learners:
+            probabilities = learner.candidate_scores()
+            probs.append(probabilities)
+
+        disagreement = deviation(probs)
+
+        uncertain_index = numpy.abs(disagreement).argmin()
+
+        uncertain_pair = self.candidates.pop(uncertain_index)
+
+        for learner in self.learners:
+            learner.remove(uncertain_pair)
+
+        return [uncertain_pair]
+
+    def mark(self, pairs, y):
+
+        self.y = numpy.concatenate([self.y, y])
+        self.pairs.extend(pairs)
+
+        for learner in self.learners:
+            learner.fit_transform(self.pairs, self.y)
+
+    def __len__(self):
+        return len(self.candidates)
+
+    def sample(self, data, blocked_proportion, sample_size, original_length=None):
+       # get the sample for canidates and pass it to all the learners
+
+        self.candidates = self.sample_combo(data, blocked_proportion, sample_size)
+
+        if original_length is None:
+            original_length = len(data)
+        sampled_records = Sample(data, 2000, original_length)
+
+        for learner in self.learners:
+            learner._init(self.candidates, sampled_records)
+
+class DedupeBlockLearner(object):
+    def __init__(self, predicates, data):
+        self.predicates = predicates
+
+    def fit_transform(self, pairs, y):
+        dupes = [pairs for label, pair in zip(self.y, self.pairs)]
+        self.current_predicates = self.block_learner.learn(dupes, y)
+        
+    def candidate_scores(self):
+        labels = []
+        for record_1, record_2 in self.candidates:
+            for predicate in self.current_predicates:
+                keys = predicate(record_1)
+                if keys:
+                    if set(predicate(record_2)) & set(keys):
+                        labels.append(1)
+                        break
+            else:
+                labels.append(0)
+
+        return numpy.array(labels)
+
+    def _init(self, predicates, sampled_records) :
+
+
+
+class Sample(dict):
+
+    def __init__(self, d, sample_size, original_length):
+        if len(d) <= sample_size:
+            super(Sample, self).__init__(d)
+        else:
+            super(Sample, self).__init__({k: d[k]
+                                          for k
+                                          in random.sample(viewkeys(d),
+                                                           sample_size)})
+        self.original_length = original_length
+
+
+    
+        data = core.index(data)
+
+
