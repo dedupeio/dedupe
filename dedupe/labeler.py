@@ -9,6 +9,8 @@ import rlr
 
 import dedupe.sampling as sampling
 import dedupe.core as core
+import dedupe.training as training
+import dedupe.blocking as blocking
 
 class ActiveLearner(with_metaclass(ABCMeta)):
 
@@ -42,9 +44,9 @@ class ActiveLearner(with_metaclass(ABCMeta)):
                                                   random_sample_size))
         data = dict(data)
 
-        return = [(data[k1], data[k2])
-                  for k1, k2
-                  in blocked_sample_keys | random_sample_keys]
+        return [(data[k1], data[k2])
+                for k1, k2
+                in blocked_sample_keys | random_sample_keys]
         
 
     def sample_product(self, data_1, data_2, blocked_proportion, sample_size):
@@ -139,15 +141,15 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         return weighted_bias
 
-    def candidate_scores():
+    def candidate_scores(self):
         return self.predict_proba(self.distances)
 
     def __len__(self):
         return len(self.candidates)
 
-    def _init(self, candidates):
+    def _init(self, candidates, *args):
         # we should rethink this and have it happen in the __init__ method
-        self.candidates = candidates
+        self.candidates = candidates.copy()
         self.distances = self.transform(candidates)
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
@@ -162,12 +164,54 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         candidates = super(RLRLearner, self).sample_product(*args)
         self._init(candidates)
 
-class DisagreementLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
-    learners = (RLRLearner, BlockLearner)
+
+class DedupeBlockLearner(object):
+    def __init__(self, data_model):
+        self.blocker = blocking.Blocker(data_model.predicates(index_predicates=False))
+        self.old_predicates = None
+
+    def fit_transform(self, pairs, y):
+        dupes = [pair for label, pair in zip(y, pairs) if label]
+        self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
+        print(self.current_predicates)
+        print(self.current_predicates == self.old_predicates)
+        self.old_predicates = self.current_predicates
+        
+    def candidate_scores(self):
+        labels = []
+        for record_1, record_2 in self.candidates:
+            for predicate in self.current_predicates:
+                keys = predicate(record_1)
+                if keys:
+                    if set(predicate(record_2)) & set(keys):
+                        labels.append(1)
+                        break
+            else:
+                labels.append(0)
+
+        return numpy.array(labels).reshape(-1, 1)
+
+    def _init(self, candidates, sampled_records):
+        self.blocker.indexAll(sampled_records)
+        self.block_learner = training.DedupeBlockLearner(self.blocker.predicates, sampled_records)
+        self.candidates = candidates.copy()
+
+    def remove(self, candidate):
+        index = self.candidates.index(candidate)
+        self.candidates.pop(index)
+    
+        
+
+class DisagreementLearner(ActiveLearner):
+    learners = (RLRLearner, DedupeBlockLearner)
     
     def __init__(self, data_model):
-        super(DisagreementLearner, self).__init__()
-        self.learners = [learner() for learner in self.learners)
+        self.data_model = data_model
+        self.learners = [learner(data_model) for learner in self.learners]
+        self.y = numpy.array([])
+        self.pairs = []
+    
+
         
     def pop(self):
         if not len(self.candidates):
@@ -178,9 +222,11 @@ class DisagreementLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
             probabilities = learner.candidate_scores()
             probs.append(probabilities)
 
-        disagreement = deviation(probs)
+        disagreement =  numpy.std(numpy.concatenate(probs, axis=1), axis=1)
 
-        uncertain_index = numpy.abs(disagreement).argmin()
+        uncertain_index = disagreement.argmax()
+
+        print(probs[0][uncertain_index], probs[1][uncertain_index])
 
         uncertain_pair = self.candidates.pop(uncertain_index)
 
@@ -202,40 +248,22 @@ class DisagreementLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
     def sample(self, data, blocked_proportion, sample_size, original_length=None):
        # get the sample for canidates and pass it to all the learners
+        
+        data = core.index(data)
+
 
         self.candidates = self.sample_combo(data, blocked_proportion, sample_size)
 
         if original_length is None:
             original_length = len(data)
+
         sampled_records = Sample(data, 2000, original_length)
 
         for learner in self.learners:
             learner._init(self.candidates, sampled_records)
 
-class DedupeBlockLearner(object):
-    def __init__(self, predicates, data):
-        self.predicates = predicates
-
-    def fit_transform(self, pairs, y):
-        dupes = [pairs for label, pair in zip(self.y, self.pairs)]
-        self.current_predicates = self.block_learner.learn(dupes, y)
-        
-    def candidate_scores(self):
-        labels = []
-        for record_1, record_2 in self.candidates:
-            for predicate in self.current_predicates:
-                keys = predicate(record_1)
-                if keys:
-                    if set(predicate(record_2)) & set(keys):
-                        labels.append(1)
-                        break
-            else:
-                labels.append(0)
-
-        return numpy.array(labels)
-
-    def _init(self, predicates, sampled_records) :
-
+    def transform(self):
+        pass
 
 
 class Sample(dict):
@@ -246,12 +274,8 @@ class Sample(dict):
         else:
             super(Sample, self).__init__({k: d[k]
                                           for k
-                                          in random.sample(viewkeys(d),
+                                          in random.sample(d.keys(),
                                                            sample_size)})
         self.original_length = original_length
-
-
-    
-        data = core.index(data)
 
 
