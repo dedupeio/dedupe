@@ -69,7 +69,7 @@ class StringPredicate(SimplePredicate) :
     def __call__(self, record, **kwargs) :
         column = record[self.field]
         if column :
-            return self.func(strip_punc(column))
+            return self.func(" ".join(strip_punc(column).split()))
         else :
             return ()
 
@@ -185,10 +185,9 @@ class TfidfSearchPredicate(SearchPredicate, TfidfPredicate):
     pass
 
 class TfidfTextPredicate(object) :
-    rx = re.compile(r"(?u)\w+[\w*?]*")
 
     def preprocess(self, doc) :
-        return tuple(self.rx.findall(doc))
+        return tuple(words(doc))
 
 class TfidfSetPredicate(object) :
     def preprocess(self, doc) :
@@ -196,7 +195,7 @@ class TfidfSetPredicate(object) :
 
 class TfidfNGramPredicate(object) :
     def preprocess(self, doc) :
-        return tuple(sorted(ngrams(doc.replace(' ', ''), 2)))
+        return tuple(sorted(ngrams(" ".join(strip_punc(doc).split()), 2)))
 
 class TfidfTextSearchPredicate(TfidfTextPredicate, 
                                TfidfSearchPredicate) :
@@ -227,7 +226,7 @@ class LevenshteinPredicate(IndexPredicate) :
         return levenshtein.LevenshteinIndex()
 
     def preprocess(self, doc):
-        return doc
+        return " ".join(strip_punc(doc).split())
     
 class LevenshteinCanopyPredicate(CanopyPredicate, LevenshteinPredicate):
     type = "LevenshteinCanopyPredicate"

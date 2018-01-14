@@ -1,3 +1,5 @@
+from math import sqrt
+
 from .base import FieldType
 from dedupe import predicates
 from haversine import haversine
@@ -9,5 +11,4 @@ class LatLongType(FieldType) :
 
     @staticmethod
     def comparator(x, y) :
-        return haversine(x, y)
-
+        return sqrt(haversine(x, y))

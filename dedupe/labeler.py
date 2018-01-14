@@ -167,19 +167,21 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
 class DedupeBlockLearner(object):
     def __init__(self, data_model):
-        self.blocker = blocking.Blocker(data_model.predicates(index_predicates=False))
+        self.data_model = data_model
+        self.current_predicates = ()
         self.old_predicates = None
 
     def fit_transform(self, pairs, y):
         dupes = [pair for label, pair in zip(y, pairs) if label]
         self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
-        print(self.current_predicates)
         print(self.current_predicates == self.old_predicates)
+        print(self.current_predicates)
         self.old_predicates = self.current_predicates
         
     def candidate_scores(self):
         labels = []
         for record_1, record_2 in self.candidates:
+            
             for predicate in self.current_predicates:
                 keys = predicate(record_1)
                 if keys:
@@ -191,9 +193,9 @@ class DedupeBlockLearner(object):
 
         return numpy.array(labels).reshape(-1, 1)
 
-    def _init(self, candidates, sampled_records):
-        self.blocker.indexAll(sampled_records)
-        self.block_learner = training.DedupeBlockLearner(self.blocker.predicates, sampled_records)
+    def _init(self, candidates, sampled_records, data):
+        self.block_learner = training.DedupeBlockLearner(self.data_model.predicates(), sampled_records, data)
+
         self.candidates = candidates.copy()
 
     def remove(self, candidate):
@@ -222,9 +224,10 @@ class DisagreementLearner(ActiveLearner):
             probabilities = learner.candidate_scores()
             probs.append(probabilities)
 
-        disagreement =  numpy.std(numpy.concatenate(probs, axis=1), axis=1)
+        disagreement =  numpy.std(numpy.concatenate(probs, axis=1) > 0.5, axis=1)
 
-        uncertain_index = disagreement.argmax()
+        uncertain_index = numpy.random.choice(disagreement.nonzero()[0], 1)[0]
+        #uncertain_index = disagreement.argmax()
 
         print(probs[0][uncertain_index], probs[1][uncertain_index])
 
@@ -260,7 +263,9 @@ class DisagreementLearner(ActiveLearner):
         sampled_records = Sample(data, 2000, original_length)
 
         for learner in self.learners:
-            learner._init(self.candidates, sampled_records)
+            learner._init(self.candidates, sampled_records, data)
+
+        return sampled_records
 
     def transform(self):
         pass
@@ -278,4 +283,13 @@ class Sample(dict):
                                                            sample_size)})
         self.original_length = original_length
 
+
+def unique(seq):
+    """Return the unique elements of a collection even if those elements are
+       unhashable and unsortable, like dicts and sets"""
+    cleaned = []
+    for each in seq:
+        if each not in cleaned:
+            cleaned.append(each)
+    return cleaned
 

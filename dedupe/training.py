@@ -22,15 +22,8 @@ class BlockLearner(object) :
         '''
         compound_length = 2
 
-        self.blocker.indexAll({i : record
-                               for i, record
-                               in enumerate(self.unroll(matches))})
-
         dupe_cover = cover(self.blocker, matches,
                            self.total_cover, compound_length)
-
-        self.blocker.resetIndices()
-
         comparison_count = self.comparisons(dupe_cover, compound_length)
 
         dupe_cover = dominators(dupe_cover, comparison_count, comparison=True)
@@ -70,7 +63,13 @@ class BlockLearner(object) :
             else:
                 comparison_count[pred] = self.estimate(self.total_cover[pred])
 
-        return comparison_count    
+        return comparison_count
+
+    def index(self, candidates):
+        self.blocker.indexAll({i : record
+                               for i, record
+                               in enumerate(self.unroll(candidates))})
+
 
 
 class Compounder(object) :
@@ -97,15 +96,15 @@ class Compounder(object) :
 
 class DedupeBlockLearner(BlockLearner) :
     
-    def __init__(self, predicates, sampled_records) :
+    def __init__(self, predicates, sampled_records, data) :
         self.pair_id = core.Enumerator()
 
         blocker = blocking.Blocker(predicates)
-        blocker.indexAll(sampled_records)
+        blocker.indexAll(data)
 
         self.total_cover = self.coveredPairs(blocker, sampled_records)
         self.multiplier = sampled_records.original_length/len(sampled_records)
-
+        
         self.blocker = blocking.Blocker(predicates)
 
     @staticmethod
