@@ -1,0 +1,19 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+
+pytest = "*"
+pytest-cov = "*"
+cython = "*"
+mock = "*"
+numpy = ">=1.9"
+"e1839a8" = {path = ".", editable = true}
+
+
+[dev-packages]
+
