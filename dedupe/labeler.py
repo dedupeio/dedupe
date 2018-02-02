@@ -165,11 +165,13 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         self._init(candidates)
 
 
-class DedupeBlockLearner(object):
+class BlockLearner(object):
     def __init__(self, data_model):
+        self.block_learner = None
         self.data_model = data_model
         self.current_predicates = ()
         self.old_predicates = None
+        
 
     def fit_transform(self, pairs, y):
         dupes = [pair for label, pair in zip(y, pairs) if label]
@@ -193,8 +195,9 @@ class DedupeBlockLearner(object):
 
         return numpy.array(labels).reshape(-1, 1)
 
-    def _init(self, candidates, sampled_records, data):
-        self.block_learner = training.DedupeBlockLearner(self.data_model.predicates(), sampled_records, data)
+    def _init(self, block_learner, candidates, *args):
+        self.block_learner = block_learner(self.data_model.predicates(),
+                                           *args)
 
         self.candidates = candidates.copy()
 
@@ -205,11 +208,14 @@ class DedupeBlockLearner(object):
         
 
 class DisagreementLearner(ActiveLearner):
-    learners = (RLRLearner, DedupeBlockLearner)
     
     def __init__(self, data_model):
         self.data_model = data_model
-        self.learners = [learner(data_model) for learner in self.learners]
+
+        self.classifier = RLRLearner(data_model)
+        self.blocker = BlockLearner(data_model)
+
+        self.learners = (self.classifier, self.blocker)
         self.y = numpy.array([])
         self.pairs = []
     
@@ -224,12 +230,14 @@ class DisagreementLearner(ActiveLearner):
             probabilities = learner.candidate_scores()
             probs.append(probabilities)
 
-        disagreement =  numpy.std(numpy.concatenate(probs, axis=1) > 0.5, axis=1)
+        probs = numpy.concatenate(probs, axis=1)
+
+        # where do the classifers disagree?
+        disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
 
         uncertain_index = numpy.random.choice(disagreement.nonzero()[0], 1)[0]
-        #uncertain_index = disagreement.argmax()
 
-        print(probs[0][uncertain_index], probs[1][uncertain_index])
+        print(probs[uncertain_index])
 
         uncertain_pair = self.candidates.pop(uncertain_index)
 
@@ -249,23 +257,49 @@ class DisagreementLearner(ActiveLearner):
     def __len__(self):
         return len(self.candidates)
 
-    def sample(self, data, blocked_proportion, sample_size, original_length=None):
-       # get the sample for canidates and pass it to all the learners
-        
+    def sample_combo(self, data, blocked_proportion, sample_size, original_length=None):
+
         data = core.index(data)
 
+        self.candidates = super(DisagreementLearner, self).sample_combo(data,
+                                                                        blocked_proportion,
+                                                                        sample_size)
 
-        self.candidates = self.sample_combo(data, blocked_proportion, sample_size)
-
+        self.classifier._init(self.candidates)
+        
         if original_length is None:
             original_length = len(data)
 
         sampled_records = Sample(data, 2000, original_length)
 
-        for learner in self.learners:
-            learner._init(self.candidates, sampled_records, data)
+        self.blocker._init(training.DedupeBlockLearner,
+                           self.candidates, sampled_records, data)
 
         return sampled_records
+
+    def sample_product(self, data_1, data_2, blocked_proportion,
+                       sample_size, original_length_1=None, original_length_2=None):
+
+        data_1 = core.index(data_1)
+
+        offset = len(data_1)
+        data_2 = core.index(data_2, offset)
+
+        self.candidates = super(DisagreementLearner, self).sample_product(data_1,
+                                                                          data_2,
+                                                                          blocked_proportion,
+                                                                          sample_size)
+
+        self.classifier._init(self.candidates)
+        
+        sampled_records_1 = Sample(data_1, 600, original_length_1)
+        sampled_records_2 = Sample(data_2, 600, original_length_2)
+
+        self.blocker._init(training.RecordLinkBlockLearner,
+                           self.candidates, sampled_records_1,
+                           sampled_records_2, data_2)
+
+        return sampled_records_1, sampled_records_2
 
     def transform(self):
         pass
@@ -281,7 +315,10 @@ class Sample(dict):
                                           for k
                                           in random.sample(d.keys(),
                                                            sample_size)})
-        self.original_length = original_length
+        if original_length is None:
+            self.original_length = len(d)
+        else:
+            self.original_length = original_length
 
 
 def unique(seq):

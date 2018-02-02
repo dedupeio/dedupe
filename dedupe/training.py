@@ -65,12 +65,6 @@ class BlockLearner(object) :
 
         return comparison_count
 
-    def index(self, candidates):
-        self.blocker.indexAll({i : record
-                               for i, record
-                               in enumerate(self.unroll(candidates))})
-
-
 
 class Compounder(object) :
     def __init__(self, cover) :
@@ -134,11 +128,11 @@ class DedupeBlockLearner(BlockLearner) :
 
 class RecordLinkBlockLearner(BlockLearner) :
     
-    def __init__(self, predicates, sampled_records_1, sampled_records_2) :
+    def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2) :
         self.pair_id = core.Enumerator()
         
         blocker = blocking.Blocker(predicates)
-        blocker.indexAll(sampled_records_2)
+        blocker.indexAll(data_2)
 
         self.total_cover = self.coveredPairs(blocker,
                                              sampled_records_1,

@@ -673,22 +673,9 @@ class ActiveMatching(Matching):
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)            
 
-        self.predicates = self.active_learner.learners[1].current_predicates
+        self.predicates = self.active_learner.blocker.current_predicates
         self.blocker = blocking.Blocker(self.predicates)
         self.blocker.resetIndices()
-
-    # def _trainBlocker(self, recall, index_predicates):  # pragma: no cover
-    #     matches = self.training_pairs['match'][:]
-
-    #     predicate_set = self.data_model.predicates(index_predicates,
-    #                                                self.canopies)
-
-    #     block_learner = self._blockLearner(predicate_set)
-
-    #     self.predicates = block_learner.learn(matches,
-    #                                           recall)
-
-    #     self.blocker = blocking.Blocker(self.predicates)
 
     def writeTraining(self, file_obj):  # pragma: no cover
         """
@@ -804,7 +791,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
         self._checkData(data)
         
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.sampled_records = self.active_learner.sample(data, blocked_proportion, sample_size, original_length)
+        self.sampled_records = self.active_learner.sample_combo(data, blocked_proportion, sample_size, original_length)
 
 
     def _blockLearner(self, predicates):
@@ -854,20 +841,13 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         '''
         self._checkData(data_1, data_2)
         
-        data_1 = core.index(data_1)
-        if original_length_1 is None:
-            original_length_1 = len(data_1)
-        self.sampled_records_1 = Sample(data_1, 600, original_length_1)
-
-        offset = len(data_1)
-        data_2 = core.index(data_2, offset)
-        if original_length_2 is None:
-            original_length_2 = len(data_2)
-        self.sampled_records_2 = Sample(data_2, 600, original_length_2)
-
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_product(data_1, data_2,
-                                           blocked_proportion, sample_size)
+        self.sampled_records = self.active_learner.sample_product(data_1, data_2,
+                                                                  blocked_proportion,
+                                                                  sample_size,
+                                                                  original_length_1,
+                                                                  original_length_2)
+
 
     def _blockLearner(self, predicates):
         return training.RecordLinkBlockLearner(predicates,
