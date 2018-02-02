@@ -187,7 +187,7 @@ class BlockLearner(object):
             for predicate in self.current_predicates:
                 keys = predicate(record_1)
                 if keys:
-                    if set(predicate(record_2)) & set(keys):
+                    if set(predicate(record_2, target=True)) & set(keys):
                         labels.append(1)
                         break
             else:
@@ -205,6 +205,17 @@ class BlockLearner(object):
         index = self.candidates.index(candidate)
         self.candidates.pop(index)
     
+    def _init_combo(self, candidates, *args):
+        self.block_learner = training.DedupeBlockLearner(self.data_model.predicates(),
+                                                         *args)
+
+        self.candidates = candidates.copy()
+
+    def _init_product(self, candidates, *args):
+        self.block_learner = training.RecordLinkBlockLearner(self.data_model.predicates(canopies=False),
+                                                             *args)
+
+        self.candidates = candidates.copy()
         
 
 class DisagreementLearner(ActiveLearner):
@@ -267,13 +278,9 @@ class DisagreementLearner(ActiveLearner):
 
         self.classifier._init(self.candidates)
         
-        if original_length is None:
-            original_length = len(data)
-
         sampled_records = Sample(data, 2000, original_length)
 
-        self.blocker._init(training.DedupeBlockLearner,
-                           self.candidates, sampled_records, data)
+        self.blocker._init_combo(self.candidates, sampled_records, data)
 
         return sampled_records
 
@@ -295,9 +302,10 @@ class DisagreementLearner(ActiveLearner):
         sampled_records_1 = Sample(data_1, 600, original_length_1)
         sampled_records_2 = Sample(data_2, 600, original_length_2)
 
-        self.blocker._init(training.RecordLinkBlockLearner,
-                           self.candidates, sampled_records_1,
-                           sampled_records_2, data_2)
+        self.blocker._init_product(self.candidates,
+                                   sampled_records_1,
+                                   sampled_records_2,
+                                   data_2)
 
         return sampled_records_1, sampled_records_2
 

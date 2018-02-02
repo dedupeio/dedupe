@@ -267,7 +267,7 @@ def coveredPairs(predicates, pairs) :
         cover[predicate] = {i for i, (record_1, record_2)
                             in enumerate(pairs)
                             if (set(predicate(record_1)) &
-                                set(predicate(record_2)))}
+                                set(predicate(record_2, target=True)))}
 
     return cover
 

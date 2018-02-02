@@ -3,6 +3,7 @@
 import logging
 import collections
 import itertools
+import functools
 
 from .canopy_index import CanopyIndex
 from .index import Index
@@ -28,6 +29,7 @@ class TfIdfIndex(Index) :
     def initSearch(self) :
         self._index.initSearch()
 
+    @functools.lru_cache(maxsize=None, typed=False)
     def search(self, doc, threshold=0) :
         query_list = self._parseTerms(doc)
  
