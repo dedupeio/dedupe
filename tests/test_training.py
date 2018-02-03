@@ -89,7 +89,7 @@ class TrainingTest(unittest.TestCase):
 
 
     def test_covered_pairs(self):
-        p1 = lambda x : (1,)
+        p1 = lambda x, target=None : (1,)
         
         cover = training.coveredPairs((p1,), [('a', 'b')]*2)
 

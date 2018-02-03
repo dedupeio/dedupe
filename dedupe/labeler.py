@@ -171,30 +171,40 @@ class BlockLearner(object):
         self.data_model = data_model
         self.current_predicates = ()
         self.old_predicates = None
+
+        self._cached_labels = None
+        self._old_dupes = None
         
 
     def fit_transform(self, pairs, y):
         dupes = [pair for label, pair in zip(y, pairs) if label]
-        self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
-        print(self.current_predicates == self.old_predicates)
-        print(self.current_predicates)
-        self.old_predicates = self.current_predicates
+        if dupes != self._old_dupes:
+            self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
+            self._cached_labels = None
+            self._old_dupes = dupes
+            
+            print(self.current_predicates == self.old_predicates)
+            print(self.current_predicates)
+            self.old_predicates = self.current_predicates
         
     def candidate_scores(self):
-        labels = []
-        for record_1, record_2 in self.candidates:
-            
-            for predicate in self.current_predicates:
-                keys = predicate(record_1)
-                if keys:
-                    if set(predicate(record_2, target=True)) & set(keys):
-                        labels.append(1)
-                        break
-            else:
-                labels.append(0)
+        if self._cached_labels is None:
+            labels = []
+            for record_1, record_2 in self.candidates:
+                
+                for predicate in self.current_predicates:
+                    keys = predicate(record_1)
+                    if keys:
+                        if set(predicate(record_2, target=True)) & set(keys):
+                            labels.append(1)
+                            break
+                else:
+                    labels.append(0)
+    
+            self._cached_labels = numpy.array(labels).reshape(-1, 1)
 
-        return numpy.array(labels).reshape(-1, 1)
-
+        return self._cached_labels
+    
     def _init(self, block_learner, candidates, *args):
         self.block_learner = block_learner(self.data_model.predicates(),
                                            *args)
@@ -204,7 +214,12 @@ class BlockLearner(object):
     def remove(self, candidate):
         index = self.candidates.index(candidate)
         self.candidates.pop(index)
-    
+        print(len(self.candidates))
+        if self._cached_labels is not None:
+            print(len(self._cached_labels))
+            self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
+            print(len(self._cached_labels))
+            
     def _init_combo(self, candidates, *args):
         self.block_learner = training.DedupeBlockLearner(self.data_model.predicates(),
                                                          *args)

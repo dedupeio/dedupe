@@ -119,7 +119,7 @@ class CanopyPredicate(object):
 
     def __setstate__(self, *args, **kwargs) :
         super(CanopyPredicate, self).__setstate__(*args, **kwargs)
-        self.canopy ={}
+        self.canopy = {}
 
     def __call__(self, record, **kwargs) :
         block_key = None
@@ -157,20 +157,33 @@ class CanopyPredicate(object):
             return [str(block_key)]
 
 class SearchPredicate(object):
+    def __init__(self, *args, **kwargs) :
+        super(SearchPredicate, self).__init__(*args, **kwargs)
+        self._cache = {}
+
+    def __setstate__(self, *args, **kwargs) :
+        super(SearchPredicate, self).__setstate__(*args, **kwargs)
+        self._cache = {}
+    
     def __call__(self, record, target=False, **kwargs):
         column = record[self.field]
         if column:
-            doc = self.preprocess(column)
-            try:
-                if target:
-                    centers = [self.index._doc_to_id[doc]]
-                else:
-                    centers = self.index.search(doc, self.threshold)
-            except AttributeError:
-                raise AttributeError("Attempting to block with an index "
-                                     "predicate without indexing records")
-            l_str = str
-            return [l_str(center) for center in centers]
+            if column in self._cache:
+                return self._cache[column]
+            else:
+                doc = self.preprocess(column)
+
+                try:
+                    if target:
+                        centers = [self.index._doc_to_id[doc]]
+                    else:
+                        centers = self.index.search(doc, self.threshold)
+                except AttributeError:
+                    raise AttributeError("Attempting to block with an index "
+                                         "predicate without indexing records")
+                result = [str(center) for center in centers]
+                self._cache[column] = result
+                return result
         else :
             return ()
 

@@ -20,9 +20,7 @@ class ActiveLearningTest(unittest.TestCase):
         random.seed(1111111111110)
         original_N = len(SAMPLE)
         active_learner = dedupe.labeler.RLRLearner(self.data_model)
-        active_learner.candidates = SAMPLE
-        active_learner.distances = active_learner.transform(SAMPLE)
-        active_learner._init_rlr()
+        active_learner._init(SAMPLE)
         assert len(active_learner) == original_N
         pair = active_learner.pop()
         print(pair)
