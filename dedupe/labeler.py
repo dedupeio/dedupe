@@ -223,7 +223,7 @@ class BlockLearner(object):
         self.block_learner = training.RecordLinkBlockLearner(self.data_model.predicates(canopies=False),
                                                              *args)
 
-        self.candidates = candidates.copy[:]
+        self.candidates = candidates[:]
 
         
 

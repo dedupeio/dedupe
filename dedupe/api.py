@@ -963,6 +963,8 @@ class GazetteerMatching(RecordLinkMatching):
 
         clusters = self.matchBlocks(blocked_pairs, threshold, n_matches)
 
+        clusters = (cluster for cluster in clusters if len(cluster))
+
         if generator:
             return clusters
         else:
