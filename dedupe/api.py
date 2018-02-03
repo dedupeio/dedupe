@@ -673,7 +673,7 @@ class ActiveMatching(Matching):
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)            
 
-        self.predicates = self.active_learner.blocker.current_predicates
+        self.predicates = self.active_learner.learn_predicates(recall)
         self.blocker = blocking.Blocker(self.predicates)
         self.blocker.resetIndices()
 

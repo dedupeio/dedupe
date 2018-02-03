@@ -170,12 +170,10 @@ class BlockLearner(object):
         self.block_learner = None
         self.data_model = data_model
         self.current_predicates = ()
-        self.old_predicates = None
 
         self._cached_labels = None
         self._old_dupes = None
         
-
     def fit_transform(self, pairs, y):
         dupes = [pair for label, pair in zip(y, pairs) if label]
         if dupes != self._old_dupes:
@@ -183,8 +181,6 @@ class BlockLearner(object):
             self._cached_labels = None
             self._old_dupes = dupes
             
-            print(self.current_predicates == self.old_predicates)
-            print(self.current_predicates)
             self.old_predicates = self.current_predicates
         
     def candidate_scores(self):
@@ -214,11 +210,8 @@ class BlockLearner(object):
     def remove(self, candidate):
         index = self.candidates.index(candidate)
         self.candidates.pop(index)
-        print(len(self.candidates))
         if self._cached_labels is not None:
-            print(len(self._cached_labels))
             self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
-            print(len(self._cached_labels))
             
     def _init_combo(self, candidates, *args):
         self.block_learner = training.DedupeBlockLearner(self.data_model.predicates(),
@@ -231,6 +224,7 @@ class BlockLearner(object):
                                                              *args)
 
         self.candidates = candidates.copy()
+
         
 
 class DisagreementLearner(ActiveLearner):
@@ -244,8 +238,6 @@ class DisagreementLearner(ActiveLearner):
         self.learners = (self.classifier, self.blocker)
         self.y = numpy.array([])
         self.pairs = []
-    
-
         
     def pop(self):
         if not len(self.candidates):
@@ -327,6 +319,10 @@ class DisagreementLearner(ActiveLearner):
     def transform(self):
         pass
 
+
+    def learn_predicates(self, recall):
+        dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
+        return self.blocker.block_learner.learn(dupes, recall=recall)
 
 class Sample(dict):
 
