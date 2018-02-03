@@ -149,7 +149,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
     def _init(self, candidates, *args):
         # we should rethink this and have it happen in the __init__ method
-        self.candidates = candidates.copy()
+        self.candidates = candidates[:]
         self.distances = self.transform(candidates)
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
@@ -205,7 +205,7 @@ class BlockLearner(object):
         self.block_learner = block_learner(self.data_model.predicates(),
                                            *args)
 
-        self.candidates = candidates.copy()
+        self.candidates = candidates[:]
 
     def remove(self, candidate):
         index = self.candidates.index(candidate)
@@ -217,13 +217,13 @@ class BlockLearner(object):
         self.block_learner = training.DedupeBlockLearner(self.data_model.predicates(),
                                                          *args)
 
-        self.candidates = candidates.copy()
+        self.candidates = candidates[:]
 
     def _init_product(self, candidates, *args):
         self.block_learner = training.RecordLinkBlockLearner(self.data_model.predicates(canopies=False),
                                                              *args)
 
-        self.candidates = candidates.copy()
+        self.candidates = candidates.copy[:]
 
         
 
