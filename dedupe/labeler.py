@@ -172,11 +172,15 @@ class BlockLearner(object):
         self.current_predicates = ()
 
         self._cached_labels = None
-        self._old_dupes = None
+        self._old_dupes = []
         
     def fit_transform(self, pairs, y):
         dupes = [pair for label, pair in zip(y, pairs) if label]
-        if dupes != self._old_dupes:
+
+        new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
+        new_uncovered = (not all(self._cover(new_dupes)))
+
+        if new_uncovered:
             self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
             self._cached_labels = None
             self._old_dupes = dupes
@@ -185,21 +189,25 @@ class BlockLearner(object):
         
     def candidate_scores(self):
         if self._cached_labels is None:
-            labels = []
-            for record_1, record_2 in self.candidates:
-                
-                for predicate in self.current_predicates:
-                    keys = predicate(record_1)
-                    if keys:
-                        if set(predicate(record_2, target=True)) & set(keys):
-                            labels.append(1)
-                            break
-                else:
-                    labels.append(0)
-    
+            labels = self._cover(self.candidates)
             self._cached_labels = numpy.array(labels).reshape(-1, 1)
 
         return self._cached_labels
+
+    def _cover(self, candidates):
+        labels = []
+        for record_1, record_2 in candidates:
+
+            for predicate in self.current_predicates:
+                keys = predicate(record_1)
+                if keys:
+                    if set(predicate(record_2, target=True)) & set(keys):
+                        labels.append(1)
+                        break
+            else:
+                labels.append(0)
+
+        return labels
     
     def _init(self, block_learner, candidates, *args):
         self.block_learner = block_learner(self.data_model.predicates(),
@@ -253,7 +261,10 @@ class DisagreementLearner(ActiveLearner):
         # where do the classifers disagree?
         disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
 
-        uncertain_index = numpy.random.choice(disagreement.nonzero()[0], 1)[0]
+        if disagreement.any():
+            uncertain_index = numpy.random.choice(disagreement.nonzero()[0], 1)[0]
+        else:
+            uncertain_index = numpy.std(probs, axis=1).argmax()
 
         print(probs[uncertain_index])
 
