@@ -69,7 +69,7 @@ class Blocker:
             index.initSearch()
 
             for predicate in self.index_fields[field][index_type] :
-                logger.info("Canopy: %s", str(predicate))
+                logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
     def unindex(self, data, field) :
@@ -86,7 +86,7 @@ class Blocker:
             index._index.initSearch()
 
             for predicate in self.index_fields[field][index_type] :
-                logger.info("Canopy: %s", str(predicate))
+                logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
     def indexAll(self, data_d) :

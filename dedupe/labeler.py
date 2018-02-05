@@ -3,6 +3,7 @@ from future.utils import with_metaclass
 
 import random
 from abc import ABCMeta, abstractmethod
+import logging
 
 import numpy
 import rlr
@@ -11,6 +12,8 @@ import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.blocking as blocking
+
+logger = logging.getLogger(__name__)
 
 class ActiveLearner(with_metaclass(ABCMeta)):
 
@@ -178,7 +181,7 @@ class BlockLearner(object):
         dupes = [pair for label, pair in zip(y, pairs) if label]
 
         new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
-        new_uncovered = (not all(self._cover(new_dupes)))
+        new_uncovered = (not all(self.predict(new_dupes)))
 
         if new_uncovered:
             self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
@@ -189,12 +192,12 @@ class BlockLearner(object):
         
     def candidate_scores(self):
         if self._cached_labels is None:
-            labels = self._cover(self.candidates)
+            labels = self.predict(self.candidates)
             self._cached_labels = numpy.array(labels).reshape(-1, 1)
 
         return self._cached_labels
 
-    def _cover(self, candidates):
+    def predict(self, candidates):
         labels = []
         for record_1, record_2 in candidates:
 
@@ -266,7 +269,9 @@ class DisagreementLearner(ActiveLearner):
         else:
             uncertain_index = numpy.std(probs, axis=1).argmax()
 
-        print(probs[uncertain_index])
+        logger.debug("Classifier: %.2f, Covered: %s",
+                     probs[uncertain_index][0],
+                     bool(probs[uncertain_index][1]))
 
         uncertain_pair = self.candidates.pop(uncertain_index)
 
@@ -331,9 +336,26 @@ class DisagreementLearner(ActiveLearner):
         pass
 
 
-    def learn_predicates(self, recall):
+    def learn_predicates(self, recall, index_predicates):
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
-        return self.blocker.block_learner.learn(dupes, recall=recall)
+
+        if not index_predicates:
+            old_preds = self.blocker.block_learner.blocker.predicates.copy()
+
+            no_index_predicates = [pred for pred in old_preds
+                                   if not hasattr(pred, 'index')]
+            self.blocker.block_learner.blocker.predicates = no_index_predicates
+
+            learned_preds = self.blocker.block_learner.learn(dupes, recall=recall)
+
+            self.blocker.block_learner.blocker.predicates = old_preds
+
+        else:
+            learned_preds = self.blocker.block_learner.learn(dupes, recall=recall)
+
+
+        return learned_preds
+        
 
 class Sample(dict):
 
