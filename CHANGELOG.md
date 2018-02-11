@@ -1,3 +1,6 @@
+# 1.9.0
+- Implemented a disagreement based active labeler to improve blocking recall
+
 # 1.8.2
 - removed shelve-backed persistence in blocking data in favor of an improved in-memory implementation
 

@@ -26,7 +26,7 @@ install_requires=['fastcluster',
 setup(
     name='dedupe',
     url='https://github.com/dedupeio/dedupe',
-    version='1.8.2',
+    version='1.9.0',
     author='Forest Gregg',
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
