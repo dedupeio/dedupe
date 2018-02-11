@@ -567,7 +567,7 @@ class StaticMatching(Matching):
 
 class ActiveMatching(Matching):
     classifier = rlr.RegularizedLogisticRegression()
-    ActiveLearner = labeler.RLRLearner
+    ActiveLearner = labeler.DisagreementLearner
 
     """
     Class for training dedupe extends Matching.
@@ -673,20 +673,9 @@ class ActiveMatching(Matching):
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)            
 
-        self._trainBlocker(recall, index_predicates)
-
-    def _trainBlocker(self, recall, index_predicates):  # pragma: no cover
-        matches = self.training_pairs['match'][:]
-
-        predicate_set = self.data_model.predicates(index_predicates,
-                                                   self.canopies)
-
-        block_learner = self._blockLearner(predicate_set)
-
-        self.predicates = block_learner.learn(matches,
-                                              recall)
-
+        self.predicates = self.active_learner.learn_predicates(recall, index_predicates)
         self.blocker = blocking.Blocker(self.predicates)
+        self.blocker.resetIndices()
 
     def writeTraining(self, file_obj):  # pragma: no cover
         """
@@ -801,14 +790,9 @@ class Dedupe(DedupeMatching, ActiveMatching):
         '''
         self._checkData(data)
         
-        data = core.index(data)
-
-        if original_length is None:
-            original_length = len(data)
-        self.sampled_records = Sample(data, 2000, original_length)
-
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_combo(data, blocked_proportion, sample_size)
+        self.sampled_records = self.active_learner.sample_combo(data, blocked_proportion, sample_size, original_length)
+
 
     def _blockLearner(self, predicates):
         return training.DedupeBlockLearner(predicates,
@@ -857,20 +841,13 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         '''
         self._checkData(data_1, data_2)
         
-        data_1 = core.index(data_1)
-        if original_length_1 is None:
-            original_length_1 = len(data_1)
-        self.sampled_records_1 = Sample(data_1, 600, original_length_1)
-
-        offset = len(data_1)
-        data_2 = core.index(data_2, offset)
-        if original_length_2 is None:
-            original_length_2 = len(data_2)
-        self.sampled_records_2 = Sample(data_2, 600, original_length_2)
-
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_product(data_1, data_2,
-                                           blocked_proportion, sample_size)
+        self.sampled_records = self.active_learner.sample_product(data_1, data_2,
+                                                                  blocked_proportion,
+                                                                  sample_size,
+                                                                  original_length_1,
+                                                                  original_length_2)
+
 
     def _blockLearner(self, predicates):
         return training.RecordLinkBlockLearner(predicates,
@@ -986,6 +963,8 @@ class GazetteerMatching(RecordLinkMatching):
 
         clusters = self.matchBlocks(blocked_pairs, threshold, n_matches)
 
+        clusters = (cluster for cluster in clusters if len(cluster))
+
         if generator:
             return clusters
         else:
@@ -1061,18 +1040,6 @@ class EmptyTrainingException(Exception):
 class SettingsFileLoadingException(Exception):
     pass
 
-
-class Sample(dict):
-
-    def __init__(self, d, sample_size, original_length):
-        if len(d) <= sample_size:
-            super(Sample, self).__init__(d)
-        else:
-            super(Sample, self).__init__({k: d[k]
-                                          for k
-                                          in random.sample(viewkeys(d),
-                                                           sample_size)})
-        self.original_length = original_length
 
 def flatten_training(training_pairs):
     examples = []

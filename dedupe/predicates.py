@@ -17,6 +17,7 @@ words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
+alpha_numeric = re.compile(r"(?=.*\d)[a-zA-Z\d]+").findall
 
 if sys.version < '3':
     PUNCTUATION = string.punctuation
@@ -69,7 +70,7 @@ class StringPredicate(SimplePredicate) :
     def __call__(self, record, **kwargs) :
         column = record[self.field]
         if column :
-            return self.func(strip_punc(column))
+            return self.func(" ".join(strip_punc(column).split()))
         else :
             return ()
 
@@ -119,7 +120,7 @@ class CanopyPredicate(object):
 
     def __setstate__(self, *args, **kwargs) :
         super(CanopyPredicate, self).__setstate__(*args, **kwargs)
-        self.canopy ={}
+        self.canopy = {}
 
     def __call__(self, record, **kwargs) :
         block_key = None
@@ -157,20 +158,33 @@ class CanopyPredicate(object):
             return [str(block_key)]
 
 class SearchPredicate(object):
+    def __init__(self, *args, **kwargs) :
+        super(SearchPredicate, self).__init__(*args, **kwargs)
+        self._cache = {}
+
+    def __setstate__(self, *args, **kwargs) :
+        super(SearchPredicate, self).__setstate__(*args, **kwargs)
+        self._cache = {}
+    
     def __call__(self, record, target=False, **kwargs):
         column = record[self.field]
         if column:
-            doc = self.preprocess(column)
-            try:
-                if target:
-                    centers = [self.index._doc_to_id[doc]]
-                else:
-                    centers = self.index.search(doc, self.threshold)
-            except AttributeError:
-                raise AttributeError("Attempting to block with an index "
-                                     "predicate without indexing records")
-            l_str = str
-            return [l_str(center) for center in centers]
+            if column in self._cache:
+                return self._cache[column]
+            else:
+                doc = self.preprocess(column)
+
+                try:
+                    if target:
+                        centers = [self.index._doc_to_id[doc]]
+                    else:
+                        centers = self.index.search(doc, self.threshold)
+                except AttributeError:
+                    raise AttributeError("Attempting to block with an index "
+                                         "predicate without indexing records")
+                result = [str(center) for center in centers]
+                self._cache[column] = result
+                return result
         else :
             return ()
 
@@ -185,10 +199,9 @@ class TfidfSearchPredicate(SearchPredicate, TfidfPredicate):
     pass
 
 class TfidfTextPredicate(object) :
-    rx = re.compile(r"(?u)\w+[\w*?]*")
 
     def preprocess(self, doc) :
-        return tuple(self.rx.findall(doc))
+        return tuple(words(doc))
 
 class TfidfSetPredicate(object) :
     def preprocess(self, doc) :
@@ -196,7 +209,7 @@ class TfidfSetPredicate(object) :
 
 class TfidfNGramPredicate(object) :
     def preprocess(self, doc) :
-        return tuple(sorted(ngrams(doc.replace(' ', ''), 2)))
+        return tuple(sorted(ngrams(" ".join(strip_punc(doc).split()), 2)))
 
 class TfidfTextSearchPredicate(TfidfTextPredicate, 
                                TfidfSearchPredicate) :
@@ -227,7 +240,7 @@ class LevenshteinPredicate(IndexPredicate) :
         return levenshtein.LevenshteinIndex()
 
     def preprocess(self, doc):
-        return doc
+        return " ".join(strip_punc(doc).split())
     
 class LevenshteinCanopyPredicate(CanopyPredicate, LevenshteinPredicate):
     type = "LevenshteinCanopyPredicate"
@@ -269,6 +282,9 @@ def commonIntegerPredicate(field):
     """return any integers"""
     return {str(int(i)) for i in integers(field)}
 
+def alphaNumericPredicate(field):
+    return set(alpha_numeric(field))
+                           
 def nearIntegersPredicate(field):
     """return any integers N, N+1, and N-1"""
     ints = integers(field)
