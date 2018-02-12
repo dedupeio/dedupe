@@ -22,15 +22,8 @@ class BlockLearner(object) :
         '''
         compound_length = 3
 
-        self.blocker.indexAll({i : record
-                               for i, record
-                               in enumerate(self.unroll(matches))})
-
         dupe_cover = cover(self.blocker, matches,
                            self.total_cover, compound_length)
-
-        self.blocker.resetIndices()
-
         comparison_count = self.comparisons(dupe_cover, compound_length)
 
         dupe_cover = dominators_f(dupe_cover, comparison_count, comparison=True)
@@ -70,7 +63,7 @@ class BlockLearner(object) :
             else:
                 comparison_count[pred] = self.estimate(self.total_cover[pred])
 
-        return comparison_count    
+        return comparison_count
 
 
 class Compounder(object) :
@@ -97,15 +90,15 @@ class Compounder(object) :
 
 class DedupeBlockLearner(BlockLearner) :
     
-    def __init__(self, predicates, sampled_records) :
+    def __init__(self, predicates, sampled_records, data) :
         self.pair_id = core.Enumerator()
 
         blocker = blocking.Blocker(predicates)
-        blocker.indexAll(sampled_records)
+        blocker.indexAll(data)
 
         self.total_cover = self.coveredPairs(blocker, sampled_records)
         self.multiplier = sampled_records.original_length/len(sampled_records)
-
+        
         self.blocker = blocking.Blocker(predicates)
 
     @staticmethod
@@ -135,11 +128,11 @@ class DedupeBlockLearner(BlockLearner) :
 
 class RecordLinkBlockLearner(BlockLearner) :
     
-    def __init__(self, predicates, sampled_records_1, sampled_records_2) :
+    def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2) :
         self.pair_id = core.Enumerator()
         
         blocker = blocking.Blocker(predicates)
-        blocker.indexAll(sampled_records_2)
+        blocker.indexAll(data_2)
 
         self.total_cover = self.coveredPairs(blocker,
                                              sampled_records_1,
@@ -274,7 +267,7 @@ def coveredPairs(predicates, pairs) :
         match = {i for i, (record_1, record_2)
                  in enumerate(pairs)
                  if (set(predicate(record_1)) &
-                     set(predicate(record_2)))}
+                     set(predicate(record_2, target=True)))}
         if match:
             cover[predicate] = match
 
@@ -355,6 +348,8 @@ def dominators(match_cover, total_cover, comparison=False):
                             ordered_predicates -= {(sort_key(c_pred), c_pred)}
                             candidates.remove((c_match, c_pred))
 
+    print(len(dominants))
+
         
     return dominants
 
@@ -382,7 +377,7 @@ def dominators_f(match_cover, total_cover, comparison=False):
     foo = {}
 
     ordered_predicates = sorted(match_cover, key=len, reverse=True)
-    print(len(ordered_predicates))
+    print('starting_with', len(ordered_predicates))
 
     
     dominants = {}
@@ -395,7 +390,7 @@ def dominators_f(match_cover, total_cover, comparison=False):
                    for pred in ordered_predicates[i:]):
             dominants[candidate] = match
 
-    print(len(dominants))
+    print('remaining', len(dominants))
     dominants = {}
 
 
@@ -488,11 +483,11 @@ class IntSetTrie(object):
         it = datrie.Iterator(state)
         element = ''
         while it.next():
-            print(it.data())
-            print(dir(it))
-            node = it.key()
-            print(self._decode(node))
-
+            node = self._decode(it.key())
+            if aset.issuperset(node):
+                yield node
+                print(node)
+            
             
 
 

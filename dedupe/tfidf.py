@@ -3,6 +3,7 @@
 import logging
 import collections
 import itertools
+import functools
 
 from .canopy_index import CanopyIndex
 from .index import Index

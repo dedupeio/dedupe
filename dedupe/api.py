@@ -41,9 +41,13 @@ class Matching(object):
     - `thresholdBlocks`
     - `matchBlocks`
     """
+    def __init__(self, num_cores):
+        if num_cores is None:
+            self.num_cores = multiprocessing.cpu_count()
+        else:
+            self.num_cores = num_cores
 
-    def __init__(self):
-        pass
+        self.loaded_indices = False
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma: nocover
         """
@@ -62,8 +66,9 @@ class Matching(object):
                          to 2.
 
         """
+        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
 
-        probability = core.scoreDuplicates(self._blockedPairs(blocks),
+        probability = core.scoreDuplicates(candidate_records,
                                            self.data_model,
                                            self.classifier,
                                            self.num_cores)['score']
@@ -90,8 +95,8 @@ class Matching(object):
 
     def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
         """
-        Partitions blocked data and returns a list of clusters, where
-        each cluster is a tuple of record ids
+        Partitions blocked data and generates a sequence of clusters,
+        where each cluster is a tuple of record ids
 
         Keyword arguments:
 
@@ -107,7 +112,7 @@ class Matching(object):
                       raising it will increase precision
 
         """
-        candidate_records = self._blockedPairs(blocks)
+        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
 
         matches = core.scoreDuplicates(candidate_records,
                                        self.data_model,
@@ -117,7 +122,8 @@ class Matching(object):
 
         logger.debug("matching done, begin clustering")
 
-        clusters = list(self._cluster(matches, threshold, *args, **kwargs))
+        for cluster in self._cluster(matches, threshold, *args, **kwargs):
+            yield cluster
 
         try:
             match_file = matches.filename
@@ -125,8 +131,6 @@ class Matching(object):
             os.remove(match_file)
         except AttributeError:
             pass
-
-        return clusters
 
     def writeSettings(self, file_obj, index=False):  # pragma: no cover
         """
@@ -184,7 +188,7 @@ class DedupeMatching(Matching):
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
-    def match(self, data, threshold=0.5):  # pragma: no cover
+    def match(self, data, threshold=0.5, generator=False):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
         tuples
 
@@ -213,7 +217,11 @@ class DedupeMatching(Matching):
 
         """
         blocked_pairs = self._blockData(data)
-        return self.matchBlocks(blocked_pairs, threshold)
+        clusters = self.matchBlocks(blocked_pairs, threshold) 
+        if generator:
+            return clusters
+        else:
+            return list(clusters)
 
     def threshold(self, data, recall_weight=1.5):  # pragma: no cover
         """
@@ -251,37 +259,45 @@ class DedupeMatching(Matching):
 
         pairs = (combinations(sorted(block), 2) for block in blocks)
 
-        return itertools.chain.from_iterable(pairs)
+        return pairs
 
     def _blockData(self, data_d):
 
-        blocks = core.TempShelve('blocks')
+        blocks = {}
+        coverage = {}
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
 
         block_groups = itertools.groupby(self.blocker(viewitems(data_d)),
                                          lambda x: x[1])
-
         
         for record_id, block in block_groups:
-            record = data_d[record_id]
-            block_ids = sorted(block_key for block_key, _ in block)
-            while block_ids:
-                id = block_ids.pop()
-                if id in blocks:
-                    blocks[id] += [(record_id, record, set(block_ids))]
+            block_keys = [block_key for block_key, _ in block]
+            coverage[record_id] = block_keys
+            for block_key in block_keys:
+                if block_key in blocks:
+                    blocks[block_key].append(record_id)
                 else:
-                    blocks[id] = [(record_id, record, set(block_ids))]
+                    blocks[block_key] = [record_id]
 
         if not self.loaded_indices:
             self.blocker.resetIndices()
 
-        for block in viewvalues(blocks):
-            if len(block) > 1:
-                yield block
+        blocks = {block_key: record_ids for block_key, record_ids
+                  in blocks.items() if len(record_ids) > 1}
 
-        blocks.close()
+        coverage = {record_id: [k for k in cover if k in blocks]
+                    for record_id, cover in coverage.items()}
+
+        for block_key, block in blocks.items():
+            processed_block = []
+            for record_id in block:
+                smaller_blocks = {k for k in coverage[record_id] if k < block_key}
+                processed_block.append((record_id, data_d[record_id], smaller_blocks))
+
+            yield processed_block
+
                 
     def _checkBlock(self, block):
         if block:
@@ -322,7 +338,7 @@ class RecordLinkMatching(Matching):
         self._cluster = clustering.greedyMatching
         self._linkage_type = "RecordLink"
 
-    def match(self, data_1, data_2, threshold=0.5):  # pragma: no cover
+    def match(self, data_1, data_2, threshold=0.5, generator=False):  # pragma: no cover
         """
         Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
@@ -350,7 +366,12 @@ class RecordLinkMatching(Matching):
         """
 
         blocked_pairs = self._blockData(data_1, data_2)
-        return self.matchBlocks(blocked_pairs, threshold)
+        clusters = self.matchBlocks(blocked_pairs, threshold)
+
+        if generator:
+            return clusters
+        else:
+            return list(clusters)
 
     def threshold(self, data_1, data_2, recall_weight=1.5):  # pragma: no cover
         """
@@ -391,7 +412,7 @@ class RecordLinkMatching(Matching):
 
         pairs = (product(base, target) for base, target in blocks)
 
-        return itertools.chain.from_iterable(pairs)
+        return pairs
 
     def _blockGenerator(self, messy_data, blocked_records):
         block_groups = itertools.groupby(self.blocker(viewitems(messy_data)),
@@ -418,20 +439,17 @@ class RecordLinkMatching(Matching):
 
     def _blockData(self, data_1, data_2):
 
-        blocked_records = core.TempShelve('blocked_records')
+        blocked_records = {}
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
 
         for block_key, record_id in self.blocker(data_2.items(), target=True):
-            block = blocked_records.get(block_key, {})
+            block = blocked_records.setdefault(block_key, {})
             block[record_id] = data_2[record_id]
-            blocked_records[block_key] = block
 
         for each in self._blockGenerator(data_1, blocked_records):
             yield each
-
-        blocked_records.close()
 
     def _checkBlock(self, block):
         if block:
@@ -470,7 +488,7 @@ class StaticMatching(Matching):
 
     def __init__(self,
                  settings_file,
-                 num_cores=None):  # pragma: no cover
+                 num_cores=None, **kwargs):  # pragma: no cover
         """
         Initialize from a settings file
         #### Example usage
@@ -489,10 +507,7 @@ class StaticMatching(Matching):
         learned from ActiveMatching. If you need details for this
         file see the method [`writeSettings`][[api.py#writesettings]].
         """
-        if num_cores is None:
-            self.num_cores = multiprocessing.cpu_count()
-        else:
-            self.num_cores = num_cores
+        Matching.__init__(self, num_cores, **kwargs)
 
         try:
             self.data_model = pickle.load(settings_file)
@@ -507,8 +522,6 @@ class StaticMatching(Matching):
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
-
-        self.loaded_indices = False
 
         try:
             self._loadIndices(settings_file)
@@ -554,7 +567,7 @@ class StaticMatching(Matching):
 
 class ActiveMatching(Matching):
     classifier = rlr.RegularizedLogisticRegression()
-    ActiveLearner = labeler.RLRLearner
+    ActiveLearner = labeler.DisagreementLearner
 
     """
     Class for training dedupe extends Matching.
@@ -573,7 +586,7 @@ class ActiveMatching(Matching):
     def __init__(self,
                  variable_definition,
                  data_sample=None,
-                 num_cores=None):
+                 num_cores=None, **kwargs):
         """
         Initialize from a data model and data sample.
 
@@ -599,15 +612,12 @@ class ActiveMatching(Matching):
         For details about variable types, check the documentation.
         <https://dedupe.io/developers/library>`_
         """
+        Matching.__init__(self, num_cores, **kwargs)
+
         self.data_model = datamodel.DataModel(variable_definition)
 
         if data_sample is not None:
             raise UserWarning('data_sample is deprecated, use the .sample method')
-
-        if num_cores is None:
-            self.num_cores = multiprocessing.cpu_count()
-        else:
-            self.num_cores = num_cores
 
         self.active_learner = None
 
@@ -615,7 +625,6 @@ class ActiveMatching(Matching):
                                            u'match': []})
 
         self.blocker = None
-        self.loaded_indices = False
 
     def cleanupTraining(self):  # pragma: no cover
         '''
@@ -664,20 +673,9 @@ class ActiveMatching(Matching):
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)            
 
-        self._trainBlocker(recall, index_predicates)
-
-    def _trainBlocker(self, recall, index_predicates):  # pragma: no cover
-        matches = self.training_pairs['match'][:]
-
-        predicate_set = self.data_model.predicates(index_predicates,
-                                                   self.canopies)
-
-        block_learner = self._blockLearner(predicate_set)
-
-        self.predicates = block_learner.learn(matches,
-                                              recall)
-
+        self.predicates = self.active_learner.learn_predicates(recall, index_predicates)
         self.blocker = blocking.Blocker(self.predicates)
+        self.blocker.resetIndices()
 
     def writeTraining(self, file_obj):  # pragma: no cover
         """
@@ -702,7 +700,7 @@ class ActiveMatching(Matching):
 
         '''
 
-        return self.active_learner.get()
+        return self.active_learner.pop()
 
     def markPairs(self, labeled_pairs):
         '''
@@ -792,14 +790,9 @@ class Dedupe(DedupeMatching, ActiveMatching):
         '''
         self._checkData(data)
         
-        data = core.index(data)
-
-        if original_length is None:
-            original_length = len(data)
-        self.sampled_records = Sample(data, 2000, original_length)
-
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_combo(data, blocked_proportion, sample_size)
+        self.sampled_records = self.active_learner.sample_combo(data, blocked_proportion, sample_size, original_length)
+
 
     def _blockLearner(self, predicates):
         return training.DedupeBlockLearner(predicates,
@@ -848,20 +841,13 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         '''
         self._checkData(data_1, data_2)
         
-        data_1 = core.index(data_1)
-        if original_length_1 is None:
-            original_length_1 = len(data_1)
-        self.sampled_records_1 = Sample(data_1, 600, original_length_1)
-
-        offset = len(data_1)
-        data_2 = core.index(data_2, offset)
-        if original_length_2 is None:
-            original_length_2 = len(data_2)
-        self.sampled_records_2 = Sample(data_2, 600, original_length_2)
-
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_product(data_1, data_2,
-                                           blocked_proportion, sample_size)
+        self.sampled_records = self.active_learner.sample_product(data_1, data_2,
+                                                                  blocked_proportion,
+                                                                  sample_size,
+                                                                  original_length_1,
+                                                                  original_length_2)
+
 
     def _blockLearner(self, predicates):
         return training.RecordLinkBlockLearner(predicates,
@@ -897,7 +883,7 @@ class GazetteerMatching(RecordLinkMatching):
 
         self.blocker.indexAll(data)
 
-        for block_key, record_id in self.blocker(data.items()):
+        for block_key, record_id in self.blocker(data.items(), target=True):
             if block_key not in self.blocked_records:
                 self.blocked_records[block_key] = {}
             self.blocked_records[block_key][record_id] = data[record_id]
@@ -916,7 +902,38 @@ class GazetteerMatching(RecordLinkMatching):
             except KeyError:
                 pass
 
-    def match(self, messy_data, threshold=0.5, n_matches=1):  # pragma: no cover
+    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
+        """
+        Partitions blocked data and generates a sequence of clusters, where
+        each cluster is a tuple of record ids
+
+        Keyword arguments:
+
+        blocks -- Sequence of tuples of records, where each tuple is a
+                  set of records covered by a blocking predicate
+
+        threshold -- Number between 0 and 1 (default is .5). We will
+                      only consider as duplicates record pairs as
+                      duplicates if their estimated duplicate
+                      likelihood is greater than the threshold.
+
+                      Lowering the number will increase recall,
+                      raising it will increase precision
+
+        """
+        candidate_records = self._blockedPairs(blocks)
+
+        matches = core.scoreGazette(candidate_records,
+                                    self.data_model,
+                                    self.classifier,
+                                    self.num_cores,
+                                    threshold=threshold)
+
+        logger.debug("matching done, begin clustering")
+
+        return self._cluster(matches, *args, **kwargs)
+
+    def match(self, messy_data, threshold=0.5, n_matches=1, generator=False):  # pragma: no cover
         """Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
         between 0 and 1. The record_ids within each set should refer to the
@@ -943,10 +960,15 @@ class GazetteerMatching(RecordLinkMatching):
                      record set
         """
         blocked_pairs = self._blockData(messy_data)
-        try:
-            return self.matchBlocks(blocked_pairs, threshold, n_matches)
-        except ValueError:
-            return []
+
+        clusters = self.matchBlocks(blocked_pairs, threshold, n_matches)
+
+        clusters = (cluster for cluster in clusters if len(cluster))
+
+        if generator:
+            return clusters
+        else:
+            return list(clusters)
 
     def threshold(self, messy_data, recall_weight=1.5):  # pragma: no cover
         """
@@ -1018,18 +1040,6 @@ class EmptyTrainingException(Exception):
 class SettingsFileLoadingException(Exception):
     pass
 
-
-class Sample(dict):
-
-    def __init__(self, d, sample_size, original_length):
-        if len(d) <= sample_size:
-            super(Sample, self).__init__(d)
-        else:
-            super(Sample, self).__init__({k: d[k]
-                                          for k
-                                          in random.sample(viewkeys(d),
-                                                           sample_size)})
-        self.original_length = original_length
 
 def flatten_training(training_pairs):
     examples = []

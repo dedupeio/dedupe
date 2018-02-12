@@ -89,7 +89,7 @@ class TrainingTest(unittest.TestCase):
 
 
     def test_covered_pairs(self):
-        p1 = lambda x : (1,)
+        p1 = lambda x, target=None : (1,)
         
         cover = training.coveredPairs((p1,), [('a', 'b')]*2)
 
@@ -97,11 +97,12 @@ class TrainingTest(unittest.TestCase):
 
     def test_intsetrie(self):
         data = [({2, 3, 4, 5}, 'foo'),
+                ({2, 3, 4, 5, 6}, 'baz'),
                 ({23, 500}, 'bar'),
                 ({234, 500}, 'bar')]
         trie = training.IntSetTrie(data)
 
-        trie.supersets({1, 2, 3, 4, 5, 6})
+        list(trie.supersets({1, 2, 3, 4, 5, 6}))
         raise
         
 

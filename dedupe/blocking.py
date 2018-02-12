@@ -52,6 +52,8 @@ class Blocker:
                     predicate.index = None
                     if hasattr(predicate, 'canopy') :
                         predicate.canopy = {}
+                    if hasattr(predicate, '_cache') :
+                        predicate._cache = {}
 
     def index(self, data, field): 
         '''Creates TF/IDF index of a given set of data'''
@@ -67,7 +69,7 @@ class Blocker:
             index.initSearch()
 
             for predicate in self.index_fields[field][index_type] :
-                logger.info("Canopy: %s", str(predicate))
+                logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
     def unindex(self, data, field) :
@@ -84,7 +86,7 @@ class Blocker:
             index._index.initSearch()
 
             for predicate in self.index_fields[field][index_type] :
-                logger.info("Canopy: %s", str(predicate))
+                logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
     def indexAll(self, data_d) :

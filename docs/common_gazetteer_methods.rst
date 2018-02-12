@@ -19,7 +19,7 @@
 		     field_names
 
 
-.. py:method:: match(messy_data, threshold=0.5, n_matches=1)
+.. py:method:: match(messy_data, [threshold=0.5[, n_matches=1[, generator=False]]])
 
    Identifies pairs of records that could refer to the same entity,
    returns tuples containing tuples of possible matches, with a
@@ -49,6 +49,9 @@
 			 matches above the threshold will be
 			 returned. Defaults to 1
 
+   :param bool generator: when `True`, match will generate a sequence of
+			  possible matches, instead of a list. Defaults
+			  to `False` This makes `match` a lazy method.
 
    .. code:: python
        > matches = gazetteer.match(messy_data, canonical_data, threshold=0.5, n_matches=2)

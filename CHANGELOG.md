@@ -1,3 +1,13 @@
+# 1.9.0
+- Implemented a disagreement based active labeler to improve blocking recall
+
+# 1.8.2
+- removed shelve-backed persistence in blocking data in favor of an improved in-memory implementation
+
+# 1.8.0
+- matchBlocks is not a generator; match is now optionally a generator. If the
+  generator option is turned of for the Gazette match is lazy
+
 # 1.7.8
 - Speed up blocking, on our way to 3-predicates
 

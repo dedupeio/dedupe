@@ -111,17 +111,20 @@ But the whole point of Dedupe is to save people's time, and that
 includes making good use of your labeling time so we use an approach
 called Active Learning.
 
-Basically, Dedupe keeps track of bunch of unlabeled pairs and its
-currently learned weights. At any time, there will be record Dedupe will
-believe have a near a 50/50 chance of being a duplicate or distinct.
-Dedupe will learn more from seeing the label of this most uncertain of
-pairs then getting a label for any other record.
+Basically, Dedupe keeps track of bunch unlabeled pairs and whether
 
-Dedupe picks this most uncertain pair of records about and asks the user
-to decide. Once it gets this label, it relearns the weights. With these
-new weights, there will now be a different record pair that Dedupe is
-most uncertain about, and that's the next one the user will be asked to
-label.
+1. the current learning blocking rules would cover the pairs
+2. the current learned classifier would predict that the pairs are
+   duplicates or are distinct
+
+We maintain a set of the pairs where there is disagreement: that is
+pairs which classifier believes are duplicates but which are not
+covered by the current blocking rules, and the pairs which the
+classifier believes are distinct but which are blocked together.
+
+Dedupe picks, at random from this disagreement set, a pair of records
+and asks the user to decide. Once it gets this label, it relearns the
+weights and blocking rules. We then recalculate the disagreement set.
 
 Other field distances
 ~~~~~~~~~~~~~~~~~~~~~

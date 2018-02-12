@@ -20,7 +20,7 @@
        > print threshold
        0.21
 
-.. py:method:: match(data_1, data_2, threshold)
+.. py:method:: match(data_1, data_2[, threshold=0.5[, generator=False]])
 
    Identifies pairs of records that refer to the same entity, returns tuples
    containing a set of record ids and a confidence score as a float between 0
@@ -46,7 +46,8 @@
 			   Lowering the number will increase
 			   recall, raising it will increase
 			   precision
-
+   :param bool generator: when `True`, match will generate a sequence
+                          of clusters, instead of a list. Defaults to `False`
 
 .. py:method::  matchBlocks(blocks, [threshold=.5])
 
