@@ -123,6 +123,7 @@ class DedupeBlockLearner(BlockLearner) :
 
         return cover
 
+
     def estimate(self, blocks):
         return len(blocks) * self.multiplier * self.multiplier
 
@@ -264,10 +265,12 @@ def coveredPairs(predicates, pairs) :
     cover = {}
         
     for predicate in predicates :
-        cover[predicate] = {i for i, (record_1, record_2)
-                            in enumerate(pairs)
-                            if (set(predicate(record_1)) &
-                                set(predicate(record_2, target=True)))}
+        coverage = {i for i, (record_1, record_2)
+                    in enumerate(pairs)
+                    if (set(predicate(record_1)) &
+                        set(predicate(record_2, target=True)))}
+        if coverage:
+            cover[predicate] = coverage
 
     return cover
 
