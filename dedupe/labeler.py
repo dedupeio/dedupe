@@ -106,7 +106,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         probabilities = self.candidate_scores()
 
         distance_to_target = numpy.abs(target_uncertainty - probabilities)
-        uncertain_index = distance_to_target.argmin(distance_to_target)
+        uncertain_index = distance_to_target.argmin()
 
         self.distances = numpy.delete(self.distances, uncertain_index, axis=0)
 
