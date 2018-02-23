@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import range, next, zip, map
+from builtins import range, next, zip, map, super
 from future.utils import viewvalues
 import sys
 

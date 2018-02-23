@@ -6,6 +6,7 @@ Dedupe class
 """
 from __future__ import print_function, division
 from future.utils import viewitems, viewvalues
+from buitins import super
 
 import itertools
 import logging
@@ -184,7 +185,7 @@ class DedupeMatching(Matching):
     """
 
     def __init__(self, *args, **kwargs):
-        super(DedupeMatching, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._cluster = clustering.cluster
         self._linkage_type = "Dedupe"
 
@@ -333,7 +334,7 @@ class RecordLinkMatching(Matching):
     """
 
     def __init__(self, *args, **kwargs):
-        super(RecordLinkMatching, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._cluster = clustering.greedyMatching
         self._linkage_type = "RecordLink"
@@ -866,7 +867,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
 class GazetteerMatching(RecordLinkMatching):
 
     def __init__(self, *args, **kwargs):
-        super(GazetteerMatching, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self._cluster = clustering.gazetteMatching
         self._linkage_type = "GazetteerMatching"
@@ -994,7 +995,7 @@ class GazetteerMatching(RecordLinkMatching):
         Keyword arguments:
         file_obj -- file object to write settings data into
         """
-        super(GazetteerMatching, self).writeSettings(file_obj, index)
+        super().writeSettings(file_obj, index)
 
         if index:
             pickle.dump(self.blocked_records, file_obj)
@@ -1003,14 +1004,14 @@ class GazetteerMatching(RecordLinkMatching):
 class Gazetteer(RecordLink, GazetteerMatching):
 
     def __init__(self, *args, **kwargs):  # pragma: no cover
-        super(Gazetteer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.blocked_records = OrderedDict({})
 
 
 class StaticGazetteer(StaticRecordLink, GazetteerMatching):
 
     def __init__(self, *args, **kwargs):
-        super(StaticGazetteer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         settings_file = args[0]
 
