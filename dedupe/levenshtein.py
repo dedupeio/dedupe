@@ -1,6 +1,3 @@
-import collections
-import itertools
-
 import Levenshtein_search
 
 from .index import Index
