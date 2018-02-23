@@ -303,7 +303,7 @@ class DedupeMatching(Matching):
         if block:
             try:
                 id, record, smaller_ids = block[0]
-            except:
+            except ValueError:
                 raise ValueError(
                     "Each item in a block must be a sequence of "
                     "record_id, record, and smaller ids and the "
@@ -311,7 +311,7 @@ class DedupeMatching(Matching):
             try:
                 record.items()
                 smaller_ids.isdisjoint([])
-            except:
+            except AttributeError:
                 raise ValueError("The record must be a dictionary and "
                                  "smaller_ids must be a set")
 
@@ -455,14 +455,14 @@ class RecordLinkMatching(Matching):
         if block:
             try:
                 base, target = block
-            except:
+            except ValueError:
                 raise ValueError("Each block must be a made up of two "
                                  "sequences, (base_sequence, target_sequence)")
 
             if base:
                 try:
                     base_id, base_record, base_smaller_ids = base[0]
-                except:
+                except ValueError:
                     raise ValueError(
                         "Each sequence must be made up of 3-tuple "
                         "like (record_id, record, covered_blocks)")
@@ -470,7 +470,7 @@ class RecordLinkMatching(Matching):
             if target:
                 try:
                     target_id, target_record, target_smaller_ids = target[0]
-                except:
+                except ValueError:
                     raise ValueError(
                         "Each sequence must be made up of 3-tuple "
                         "like (record_id, record, covered_blocks)")
@@ -518,7 +518,7 @@ class StaticMatching(Matching):
                 "This settings file is not compatible with "
                 "the current version of dedupe. This can happen "
                 "if you have recently upgraded dedupe.")
-        except:
+        except:  # noqa: E722
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
@@ -532,7 +532,7 @@ class StaticMatching(Matching):
                 "This settings file is not compatible with "
                 "the current version of dedupe. This can happen "
                 "if you have recently upgraded dedupe.")
-        except:
+        except:  # noqa: E722
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
@@ -725,7 +725,7 @@ class ActiveMatching(Matching):
             labeled_pairs.items()
             labeled_pairs[u'match']
             labeled_pairs[u'distinct']
-        except:
+        except (AttributeError, KeyError):
             raise ValueError('labeled_pairs must be a dictionary with keys '
                              '"distinct" and "match"')
 
@@ -742,17 +742,13 @@ class ActiveMatching(Matching):
 
     def _checkRecordPair(self, record_pair):
         try:
-            record_pair[0]
-        except:
-            raise ValueError("The elements of data_sample must be pairs "
-                             "of record_pairs (ordered sequences of length 2)")
-
-        if len(record_pair) != 2:
+            a, b = record_pair
+        except ValueError:
             raise ValueError("The elements of data_sample must be pairs "
                              "of record_pairs")
         try:
             record_pair[0].keys() and record_pair[1].keys()
-        except:
+        except AttributeError:
             raise ValueError("A pair of record_pairs must be made up of two "
                              "dictionaries ")
 
@@ -1027,7 +1023,7 @@ class StaticGazetteer(StaticRecordLink, GazetteerMatching):
                 "This settings file is not compatible with "
                 "the current version of dedupe. This can happen "
                 "if you have recently upgraded dedupe.")
-        except:
+        except:  # noqa: E722
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
