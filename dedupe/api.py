@@ -6,7 +6,7 @@ Dedupe class
 """
 from __future__ import print_function, division
 from future.utils import viewitems, viewvalues
-from buitins import super
+from builtins import super
 
 import itertools
 import logging
