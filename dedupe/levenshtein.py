@@ -6,6 +6,7 @@ import Levenshtein_search
 from .index import Index
 from .core import Enumerator
 
+
 class LevenshteinIndex(Index):
     def __init__(self):
         self.index_key = Levenshtein_search.populate_wordset(-1, [])
@@ -32,10 +33,3 @@ class LevenshteinIndex(Index):
 
     def __del__(self):
         Levenshtein_search.clear_wordset(self.index_key)
-    
-        
-
-        
-
-        
-        
