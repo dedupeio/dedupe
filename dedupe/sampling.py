@@ -6,8 +6,11 @@ from collections import deque
 import random
 import functools
 import itertools
-import warnings
+import logging
 from collections import defaultdict
+
+logger = logging.getLogger(__name__)
+
 
 def blockedSample(sampler, sample_size, predicates, *args) :
     
@@ -34,7 +37,7 @@ def blockedSample(sampler, sample_size, predicates, *args) :
         previous_sample_size = len(blocked_sample)
 
         if growth_rate < 0.001 :
-            warnings.warn("%s blocked samples were requested, "
+            logging.debug("%s blocked samples were requested, "
                           "but only able to sample %s"
                           % (sample_size, len(blocked_sample)))
             break

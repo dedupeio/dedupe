@@ -3,9 +3,12 @@ import weakref
 import threading
 import warnings
 import platform
+import logging
 import sys
 
 from future.utils import viewitems
+
+logger = logging.getLogger(__name__)
 
 MULTIPROCESSING = True
 # Deal with Mac OS X issuse
@@ -23,7 +26,7 @@ elif "mkl_core" in config_info:
                   "Multiprocessing will be disabled. https://github.com/joblib/joblib/issues/138")
     MULTIPROCESSING = False
 elif platform.system() == 'Windows' :
-    warnings.warn("Dedupe does not currently support multiprocessing on Windows")
+    logger.warning("Dedupe does not currently support multiprocessing on Windows")
     MULTIPROCESSING = False
 
 if MULTIPROCESSING :        

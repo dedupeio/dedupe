@@ -5,11 +5,14 @@ from future.utils import viewvalues
 import itertools
 from collections import defaultdict
 import array
-
 import warnings
+import logging
+
 import numpy
 import fastcluster
 import hcluster
+
+logger = logging.getLogger(__name__)
 
 def connected_components(edgelist, max_components) :
 
@@ -26,12 +29,12 @@ def connected_components(edgelist, max_components) :
             min_score = numpy.min(sub_graph['score'])
             min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
-            warnings.warn('A component contained %s elements. '
-                          'Components larger than %s are '
-                          're-filtered. The threshold for this '
-                          'filtering is %s' % (n_components, 
-                                               max_components,
-                                               threshold)) 
+            logger.warning('A component contained %s elements. '
+                           'Components larger than %s are '
+                           're-filtered. The threshold for this '
+                           'filtering is %s' % (n_components, 
+                                                max_components,
+                                                threshold)) 
             filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
             for sub_graph in connected_components(filtered_sub_graph, 
                                                   max_components) :
