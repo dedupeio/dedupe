@@ -303,7 +303,7 @@ class DedupeMatching(Matching):
         if block:
             try:
                 id, record, smaller_ids = block[0]
-            except ValueError:
+            except (ValueError, KeyError):
                 raise ValueError(
                     "Each item in a block must be a sequence of "
                     "record_id, record, and smaller ids and the "
