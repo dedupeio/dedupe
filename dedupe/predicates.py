@@ -297,6 +297,12 @@ def nearIntegersPredicate(field):
         
     return near_ints
 
+def hundredIntegerPredicate(field):
+    return {str(int(i))[:-2] + '00' for i in integers(field)}
+
+def hundredIntegersOddPredicate(field):
+    return {str(int(i))[:-2] + '0' + str(int(i) % 2) for i in integers(field)}
+
 def firstIntegerPredicate(field) :
     first_token = start_integer(field)
     if first_token :
@@ -434,4 +440,4 @@ def roundTo1(field) : # thanks http://stackoverflow.com/questions/3410976/how-to
     order = int(math.floor(math.log10(abs_num)))
     rounded = round(abs_num, -order)
     return (str(int(math.copysign(rounded, field))),)
-        
+
