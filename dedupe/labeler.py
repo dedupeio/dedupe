@@ -130,7 +130,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         positive = numpy.sum(self.y == 1)
         n_examples = len(self.y)
 
-        bias = 1 - (positive/n_examples if positive else 0)
+        bias = 1 - (positive / n_examples if positive else 0)
 
         # When we have just a few examples we are okay with getting
         # examples where the model strongly believes the example is

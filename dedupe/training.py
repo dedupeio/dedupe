@@ -96,7 +96,7 @@ class DedupeBlockLearner(BlockLearner):
         blocker.indexAll(data)
 
         self.total_cover = self.coveredPairs(blocker, sampled_records)
-        self.multiplier = sampled_records.original_length/len(sampled_records)
+        self.multiplier = sampled_records.original_length / len(sampled_records)
 
         self.blocker = blocking.Blocker(predicates)
 
@@ -214,7 +214,10 @@ class BranchBound(object):
             reachable = self.reachable(candidates) + covered
 
             if candidates and reachable >= self.target:
-                def score(p): return (len(candidates[p]), -p.count)
+
+                def score(p):
+                    return (len(candidates[p]), -p.count)
+
                 best = max(candidates, key=score)
 
                 remaining = remaining_cover(candidates,
@@ -282,7 +285,7 @@ def compound(cover, compound_length):
     simple_predicates = sorted(cover, key=str)
     CP = predicates.CompoundPredicate
 
-    for i in range(2, compound_length+1):
+    for i in range(2, compound_length + 1):
         compound_predicates = itertools.combinations(simple_predicates, i)
 
         for compound_predicate in compound_predicates:
@@ -322,9 +325,11 @@ def unique(seq):
 
 def dominators(match_cover, total_cover, comparison=False):
     if comparison:
-        def sort_key(x): return (-total_cover[x], len(match_cover[x]))
+        def sort_key(x):
+            return (-total_cover[x], len(match_cover[x]))
     else:
-        def sort_key(x): return (len(match_cover[x]), -len(total_cover[x]))
+        def sort_key(x):
+            return (len(match_cover[x]), -len(total_cover[x]))
 
     ordered_predicates = sorted(match_cover, key=sort_key)
     dominants = {}
@@ -341,4 +346,4 @@ def dominators(match_cover, total_cover, comparison=False):
     return dominants
 
 
-OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"
+OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501

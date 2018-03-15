@@ -27,8 +27,8 @@ def connected_components(edgelist, max_components):
 
         if n_components > max_components:
             min_score = numpy.min(sub_graph['score'])
-            min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
-            threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
+            min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
+            threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
             logger.warning('A component contained %s elements. '
                            'Components larger than %s are '
                            're-filtered. The threshold for this '
@@ -167,13 +167,13 @@ def cluster(dupes, threshold=.5, max_components=30000):
 
         else:
             ids, score = sub_graph[0]
-            yield tuple(ids), tuple([score]*2)
+            yield tuple(ids), tuple([score] * 2)
 
 
 def confidences(cluster, condensed_distances, d):
     scores = dict.fromkeys(cluster, 0.0)
     for i, j in itertools.combinations(cluster, 2):
-        index = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
+        index = d * (d - 1) / 2 - (d - i) * (d - i - 1) / 2 + j - i - 1
         dist = condensed_distances[int(index)]
         scores[i] += dist
         scores[j] += dist

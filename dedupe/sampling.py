@@ -31,7 +31,7 @@ def blockedSample(sampler, sample_size, predicates, *args):
         blocked_sample.update(itertools.chain.from_iterable(filtered_sample))
 
         growth = len(blocked_sample) - previous_sample_size
-        growth_rate = growth/remaining_sample
+        growth_rate = growth / remaining_sample
 
         remaining_sample = sample_size - len(blocked_sample)
         previous_sample_size = len(blocked_sample)
@@ -183,7 +183,7 @@ def linkSamplePredicate(subsample_size, predicate, items1, items2):
 
 
 def evenSplits(total_size, num_splits):
-    avg = total_size/num_splits
+    avg = total_size / num_splits
     split = 0
     for _ in range(num_splits):
         split += avg - int(split)

@@ -315,9 +315,9 @@ def nearIntegersPredicate(field):
     near_ints = set()
     for char in ints:
         num = int(char)
-        near_ints.add(str(num-1))
+        near_ints.add(str(num - 1))
         near_ints.add(str(num))
-        near_ints.add(str(num+1))
+        near_ints.add(str(num + 1))
 
     return near_ints
 
@@ -342,7 +342,7 @@ def ngramsTokens(field, n):
     grams = set()
     n_tokens = len(field)
     for i in range(n_tokens):
-        for j in range(i+n, min(n_tokens, i+n)+1):
+        for j in range(i + n, min(n_tokens, i + n) + 1):
             grams.add(' '.join(str(tok) for tok in field[i:j]))
     return grams
 

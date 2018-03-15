@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from future.utils import viewitems
-from builtins import range
 
 from itertools import combinations, groupby
 import csv
@@ -20,12 +19,13 @@ optp.add_option('-v', '--verbose', dest='verbose', action='count',
                 )
 (opts, args) = optp.parse_args()
 log_level = logging.WARNING
-if opts.verbose is not None : 
+if opts.verbose is not None:
     if opts.verbose == 1:
         log_level = logging.INFO
     elif opts.verbose >= 2:
         log_level = logging.DEBUG
 logging.getLogger().setLevel(log_level)
+
 
 def canonicalImport(filename):
     preProcess = exampleIO.preProcess
@@ -35,7 +35,7 @@ def canonicalImport(filename):
     with open(filename) as f:
         reader = csv.DictReader(f)
         for (i, row) in enumerate(reader):
-            clean_row = {k : preProcess(v) for (k, v) in
+            clean_row = {k: preProcess(v) for (k, v) in
                          viewitems(row)}
             data_d[i] = clean_row
 
@@ -45,7 +45,6 @@ def canonicalImport(filename):
 def evaluateDuplicates(found_dupes, true_dupes):
     true_positives = found_dupes.intersection(true_dupes)
     false_positives = found_dupes.difference(true_dupes)
-    uncovered_dupes = true_dupes.difference(found_dupes)
 
     print('found duplicate')
     print(len(found_dupes))
@@ -62,8 +61,8 @@ raw_data = 'tests/datasets/restaurant-nophone-training.csv'
 
 data_d, header = canonicalImport(raw_data)
 
-training_pairs = dedupe.trainingDataDedupe(data_d, 
-                                           'unique_id', 
+training_pairs = dedupe.trainingDataDedupe(data_d,
+                                           'unique_id',
                                            5000)
 
 duplicates = set()
@@ -82,20 +81,20 @@ print('number of known duplicate pairs', len(duplicates))
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
         deduper = dedupe.StaticDedupe(f, 1)
-        
+
 else:
-    fields = [{'field' : 'name', 'type': 'String'},
-              {'field' : 'name', 'type': 'Exact'},
-              {'field' : 'address', 'type': 'String'},
-              {'field' : 'cuisine', 'type': 'ShortString', 
-               'has missing' : True},
-              {'field' : 'city', 'type' : 'ShortString'}
+    fields = [{'field': 'name', 'type': 'String'},
+              {'field': 'name', 'type': 'Exact'},
+              {'field': 'address', 'type': 'String'},
+              {'field': 'cuisine', 'type': 'ShortString',
+               'has missing': True},
+              {'field': 'city', 'type': 'ShortString'}
               ]
 
     deduper = dedupe.Dedupe(fields, num_cores=5)
     deduper.sample(data_d, 10000)
     deduper.markPairs(training_pairs)
-    deduper.train()
+    deduper.train(index_predicates=False)
     with open(settings_file, 'wb') as f:
         deduper.writeSettings(f)
 
@@ -105,7 +104,6 @@ alpha = deduper.threshold(data_d, 1)
 # print candidates
 print('clustering...')
 clustered_dupes = deduper.match(data_d, threshold=alpha)
-
 
 
 print('Evaluate Clustering')

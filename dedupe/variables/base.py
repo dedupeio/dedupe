@@ -21,7 +21,7 @@ class Variable(object):
             try:
                 exists_pred = predicates.ExistsPredicate(definition['field'])
                 self.predicates.append(exists_pred)
-            except AttributeError:
+            except KeyError:
                 pass
         else:
             self.has_missing = False

@@ -42,13 +42,13 @@ class BaseStringType(FieldType):
 class ShortStringType(BaseStringType):
     type = "ShortString"
 
-    _predicate_functions = (base_predicates
-                            + (predicates.commonFourGram,
-                               predicates.commonSixGram,
-                               predicates.tokenFieldPredicate,
-                               predicates.suffixArray,
-                               predicates.doubleMetaphone,
-                               predicates.metaphoneToken))
+    _predicate_functions = (base_predicates +
+                            (predicates.commonFourGram,
+                             predicates.commonSixGram,
+                             predicates.tokenFieldPredicate,
+                             predicates.suffixArray,
+                             predicates.doubleMetaphone,
+                             predicates.metaphoneToken))
 
     _index_predicates = (predicates.TfidfNGramCanopyPredicate,
                          predicates.TfidfNGramSearchPredicate)

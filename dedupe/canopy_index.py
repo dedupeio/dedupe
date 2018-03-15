@@ -34,7 +34,7 @@ class CanopyIndex(TextIndex):  # pragma: no cover
                 continue
             if isinstance(docs, dict):
                 docs = bucket(docs)
-            idf = numpy.log1p(N/len(docs))
+            idf = numpy.log1p(N / len(docs))
             self.index._wordinfo[wid] = docs
             term = self.lexicon._words[wid]
             self._wids_dict[term] = (wid, idf)
