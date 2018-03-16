@@ -12,28 +12,29 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class CanopyIndex(TextIndex) : # pragma: no cover
-    def __init__(self) : 
+
+class CanopyIndex(TextIndex):  # pragma: no cover
+    def __init__(self):
         lexicon = CanopyLexicon()
         self.index = CosineIndex(lexicon)
         self.lexicon = lexicon
 
-    def initSearch(self) :
+    def initSearch(self):
         N = len(self.index._docweight)
         threshold = int(max(1000, N * 0.05))
 
         self._wids_dict = {}
 
         bucket = self.index.family.IF.Bucket
-        for wid, docs in self.index._wordinfo.items() :
-            if len(docs) > threshold :
+        for wid, docs in self.index._wordinfo.items():
+            if len(docs) > threshold:
                 word = self.lexicon._words[wid]
                 logger.info('Removing stop word {}'.format(word))
                 del self.index._wordinfo[wid]
                 continue
-            if isinstance(docs, dict) :
+            if isinstance(docs, dict):
                 docs = bucket(docs)
-            idf = numpy.log1p(N/len(docs))
+            idf = numpy.log1p(N / len(docs))
             self.index._wordinfo[wid] = docs
             term = self.lexicon._words[wid]
             self._wids_dict[term] = (wid, idf)
@@ -46,9 +47,9 @@ class CanopyIndex(TextIndex) : # pragma: no cover
         L = []
         qw = 0
 
-        for term in query_list :
+        for term in query_list:
             wid, weight = _wids_dict.get(term, (None, None))
-            if wid is None :
+            if wid is None:
                 continue
             docs = _wordinfo[wid]
             L.append((docs, weight))
@@ -62,10 +63,10 @@ class CanopyIndex(TextIndex) : # pragma: no cover
         return results
 
 
-class CanopyLexicon(Lexicon) : # pragma: no cover
-    def sourceToWordIds(self, last): 
+class CanopyLexicon(Lexicon):  # pragma: no cover
+    def sourceToWordIds(self, last):
         if last is None:
-            last = [] 
+            last = []
         if not isinstance(self.wordCount, Length):
             self.wordCount = Length(self.wordCount())
         self.wordCount._p_deactivate()

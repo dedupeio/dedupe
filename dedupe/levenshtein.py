@@ -1,10 +1,8 @@
-import collections
-import itertools
-
 import Levenshtein_search
 
 from .index import Index
 from .core import Enumerator
+
 
 class LevenshteinIndex(Index):
     def __init__(self):
@@ -24,18 +22,11 @@ class LevenshteinIndex(Index):
         pass
 
     def search(self, doc, threshold=0):
-        results = Levenshtein_search.lookup(self.index_key, doc, threshold)
-        if results:
-            return [self._doc_to_id[doc] for doc, _, _ in results]
+        matching_docs = Levenshtein_search.lookup(self.index_key, doc, threshold)
+        if matching_docs:
+            return [self._doc_to_id[match] for match, _, _ in matching_docs]
         else:
             return []
 
     def __del__(self):
         Levenshtein_search.clear_wordset(self.index_key)
-    
-        
-
-        
-
-        
-        

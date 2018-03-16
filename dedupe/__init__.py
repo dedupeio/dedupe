@@ -3,4 +3,4 @@
 from pkgutil import extend_path
 __path__ = extend_path(__path__, __name__)
 
-from dedupe._init import *
+from dedupe._init import *  # noqa

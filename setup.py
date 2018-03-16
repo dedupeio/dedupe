@@ -3,25 +3,25 @@
 
 try:
     from setuptools import setup, Extension
-except ImportError :
+except ImportError:
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
-install_requires=['fastcluster',
-                  'dedupe-hcluster',
-                  'affinegap>=1.3',
-                  'categorical-distance>=1.9',
-                  'dedupe-variable-datetime',
-                  'future>=0.14',
-                  'rlr>=2.4.3',
-                  'numpy>=1.13',
-                  'doublemetaphone',
-                  'highered>=0.2.0',
-                  'simplecosine>=1.2',
-                  'haversine>=0.4.1',
-                  'BTrees>=4.1.4',
-                  'simplejson',
-                  'zope.index',
-                  'Levenshtein_search']
+install_requires = ['fastcluster',
+                    'dedupe-hcluster',
+                    'affinegap>=1.3',
+                    'categorical-distance>=1.9',
+                    'dedupe-variable-datetime',
+                    'future>=0.14',
+                    'rlr>=2.4.3',
+                    'numpy>=1.13',
+                    'doublemetaphone',
+                    'highered>=0.2.0',
+                    'simplecosine>=1.2',
+                    'haversine>=0.4.1',
+                    'BTrees>=4.1.4',
+                    'simplejson',
+                    'zope.index',
+                    'Levenshtein_search']
 
 setup(
     name='dedupe',
@@ -66,5 +66,5 @@ setup(
     * `Issues <https://github.com/dedupeio/dedupe/issues>`_
     * `Mailing list <https://groups.google.com/forum/#!forum/open-source-deduplication>`_
     * `Examples <https://github.com/dedupeio/dedupe-examples>`_
-    """
-    )
+    """  # noqa: E501
+)

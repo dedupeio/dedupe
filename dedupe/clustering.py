@@ -5,7 +5,6 @@ from future.utils import viewvalues
 import itertools
 from collections import defaultdict
 import array
-import warnings
 import logging
 
 import numpy
@@ -14,7 +13,8 @@ import hcluster
 
 logger = logging.getLogger(__name__)
 
-def connected_components(edgelist, max_components) :
+
+def connected_components(edgelist, max_components):
 
     if len(edgelist) == 0:
         raise StopIteration()
@@ -24,22 +24,22 @@ def connected_components(edgelist, max_components) :
     for component in components:
         sub_graph = edgelist[component]
         n_components = len(numpy.unique(sub_graph['pairs']))
-        
-        if n_components > max_components :
+
+        if n_components > max_components:
             min_score = numpy.min(sub_graph['score'])
-            min_score_logit = numpy.log(min_score) - numpy.log(1-min_score)
-            threshold = 1 / (1 + numpy.exp(-min_score_logit-1))
+            min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
+            threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
             logger.warning('A component contained %s elements. '
                            'Components larger than %s are '
                            're-filtered. The threshold for this '
-                           'filtering is %s' % (n_components, 
+                           'filtering is %s' % (n_components,
                                                 max_components,
-                                                threshold)) 
-            filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]	
-            for sub_graph in connected_components(filtered_sub_graph, 
-                                                  max_components) :
+                                                threshold))
+            filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]
+            for sub_graph in connected_components(filtered_sub_graph,
+                                                  max_components):
                 yield sub_graph
-        else :
+        else:
             yield sub_graph
 
 
@@ -93,16 +93,16 @@ def condensedDistance(dupes):
     distance matrix" required by the hierarchical clustering
     algorithms. Also return a dictionary that maps the distance matrix
     to the record_ids.
-   
+
     The formula for an index of the condensed matrix is
 
     index = {N choose 2}-{N-row choose 2} + (col-row-1)
           = N*(N-1)/2 - (N-row)*(N-row-1)/2 + col - row - 1
-            ^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^   
+            ^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^
           matrix_length       row_step
-    
+
     where (row,col) is index of an uncondensed square N X N distance matrix.
-    
+
     See http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
     '''
 
@@ -134,7 +134,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
     threshold
 
     Keyword arguments:
-    threshold -- number betweent 0 and 1 (default is .5). lowering the 
+    threshold -- number betweent 0 and 1 (default is .5). lowering the
                  number will increase precision, raising it will increase
                  recall
     '''
@@ -148,10 +148,10 @@ def cluster(dupes, threshold=.5, max_components=30000):
             i_to_id, condensed_distances, N = condensedDistance(sub_graph)
 
             linkage = fastcluster.linkage(condensed_distances,
-                                          method='centroid', 
+                                          method='centroid',
                                           preserve_input=True)
 
-            partition = hcluster.fcluster(linkage, 
+            partition = hcluster.fcluster(linkage,
                                           threshold,
                                           criterion='distance')
 
@@ -160,20 +160,20 @@ def cluster(dupes, threshold=.5, max_components=30000):
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
-            for cluster in viewvalues(clusters) :
-                if len(cluster) > 1 :
+            for cluster in viewvalues(clusters):
+                if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             ids, score = sub_graph[0]
-            yield tuple(ids), tuple([score]*2)
-            
+            yield tuple(ids), tuple([score] * 2)
 
-def confidences(cluster, condensed_distances, d) :
+
+def confidences(cluster, condensed_distances, d):
     scores = dict.fromkeys(cluster, 0.0)
-    for i, j in itertools.combinations(cluster, 2) :
-        index = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
+    for i, j in itertools.combinations(cluster, 2):
+        index = d * (d - 1) / 2 - (d - i) * (d - i - 1) / 2 + j - i - 1
         dist = condensed_distances[int(index)]
         scores[i] += dist
         scores[j] += dist
@@ -181,6 +181,7 @@ def confidences(cluster, condensed_distances, d) :
     scores /= len(cluster) - 1
     scores = 1 - scores
     return scores
+
 
 def greedyMatching(dupes, threshold=0.5):
     A = set()

@@ -26,12 +26,11 @@ base_predicates = (predicates.wholeFieldPredicate,
                    predicates.sortedAcronym)
 
 
-class BaseStringType(FieldType) :
+class BaseStringType(FieldType):
     type = None
     _Predicate = predicates.StringPredicate
 
-
-    def __init__(self, definition) :
+    def __init__(self, definition):
         super(BaseStringType, self).__init__(definition)
 
         self.predicates += indexPredicates((predicates.LevenshteinCanopyPredicate,
@@ -39,55 +38,53 @@ class BaseStringType(FieldType) :
                                            (1, 2, 3, 4),
                                            self.field)
 
-    
 
-
-class ShortStringType(BaseStringType) :
+class ShortStringType(BaseStringType):
     type = "ShortString"
 
-    _predicate_functions = (base_predicates 
-                            + (predicates.commonFourGram,
-                               predicates.commonSixGram,
-                               predicates.tokenFieldPredicate,
-                               predicates.suffixArray,
-                               predicates.doubleMetaphone,
-                               predicates.metaphoneToken))
+    _predicate_functions = (base_predicates +
+                            (predicates.commonFourGram,
+                             predicates.commonSixGram,
+                             predicates.tokenFieldPredicate,
+                             predicates.suffixArray,
+                             predicates.doubleMetaphone,
+                             predicates.metaphoneToken))
 
-    _index_predicates = (predicates.TfidfNGramCanopyPredicate, 
+    _index_predicates = (predicates.TfidfNGramCanopyPredicate,
                          predicates.TfidfNGramSearchPredicate)
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-
-    def __init__(self, definition) :
+    def __init__(self, definition):
         super(ShortStringType, self).__init__(definition)
 
-        if definition.get('crf', False) == True :
+        if definition.get('crf', False) is True:
             self.comparator = crfEd
-        else :
+        else:
             self.comparator = affineGap
 
-class StringType(ShortStringType) :
+
+class StringType(ShortStringType):
     type = "String"
 
-    _index_predicates = (predicates.TfidfNGramCanopyPredicate, 
+    _index_predicates = (predicates.TfidfNGramCanopyPredicate,
                          predicates.TfidfNGramSearchPredicate,
-                         predicates.TfidfTextCanopyPredicate, 
+                         predicates.TfidfTextCanopyPredicate,
                          predicates.TfidfTextSearchPredicate)
 
 
-class TextType(BaseStringType) :
+class TextType(BaseStringType):
     type = "Text"
 
-    _predicate_functions = base_predicates 
+    _predicate_functions = base_predicates
 
-    _index_predicates = (predicates.TfidfTextCanopyPredicate, 
+    _index_predicates = (predicates.TfidfTextCanopyPredicate,
                          predicates.TfidfTextSearchPredicate)
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, definition) :
+    def __init__(self, definition):
         super(TextType, self).__init__(definition)
 
-        if 'corpus' not in definition :
+        if 'corpus' not in definition:
             definition['corpus'] = []
 
         self.comparator = CosineTextSimilarity(definition['corpus'])

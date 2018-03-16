@@ -1,4 +1,5 @@
 pytest
 pytest-cov
+https://github.com/datamade/pytest-flake8/zipball/master
 cython
 mock

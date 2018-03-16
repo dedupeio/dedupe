@@ -2,7 +2,8 @@ from .base import FieldType
 from dedupe import predicates
 from simplecosine.cosine import CosineSetSimilarity
 
-class SetType(FieldType) :
+
+class SetType(FieldType):
     type = "Set"
 
     _predicate_functions = (predicates.wholeSetPredicate,
@@ -12,17 +13,15 @@ class SetType(FieldType) :
                             predicates.commonThreeElementsPredicate,
                             predicates.magnitudeOfCardinality,
                             predicates.firstSetElementPredicate)
-    
+
     _index_predicates = (predicates.TfidfSetSearchPredicate,
                          predicates.TfidfSetCanopyPredicate)
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, definition) :
+    def __init__(self, definition):
         super(SetType, self).__init__(definition)
 
-        if 'corpus' not in definition :
-            definition['corpus'] = [] 
+        if 'corpus' not in definition:
+            definition['corpus'] = []
 
         self.comparator = CosineSetSimilarity(definition['corpus'])
-
-
