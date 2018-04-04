@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 from builtins import range, next, zip, map
 from future.utils import viewvalues
-import sys
 
+import sys
 import itertools
 import time
 import tempfile
@@ -350,6 +350,9 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
         raise ValueError("No records to match")
 
     score_records = ScoreGazette(data_model, classifier, threshold)
+
+    if sys.version < '3':
+        records = (list(y) for y in records)
 
     for scored_pairs in imap(score_records, records):
         yield scored_pairs
