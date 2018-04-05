@@ -61,7 +61,7 @@ setup(
 
     Important links:
 
-    * `Documentation <https://dedupe.io/developers/library>`_
+    * `Documentation <https://docs.dedupe.io/>`_
     * `Repository <https://github.com/dedupeio/dedupe>`_
     * `Issues <https://github.com/dedupeio/dedupe/issues>`_
     * `Mailing list <https://groups.google.com/forum/#!forum/open-source-deduplication>`_
