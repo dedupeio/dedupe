@@ -12,7 +12,7 @@ __dedupe__ will help you:
 dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
 
 ## Important links
-* Documentation: https://dedupe.io/developers/library
+* Documentation: https://docs.dedupe.io/
 * Repository: https://github.com/dedupeio/dedupe
 * Issues: https://github.com/dedupeio/dedupe/issues
 * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
@@ -37,7 +37,7 @@ pip install "numpy>=1.9"
 pip install dedupe
 ```
 
-Familiarize yourself with [dedupe's API](https://dedupe.io/developers/library/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/dedupeio/dedupe-examples).
+Familiarize yourself with [dedupe's API](https://docs.dedupe.io/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/dedupeio/dedupe-examples).
 
 ### Developing dedupe
 

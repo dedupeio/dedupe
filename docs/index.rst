@@ -20,7 +20,7 @@ dedupe takes in human training data and comes up with the best rules for your da
 Important links
 ===============
 
-* Documentation: https://dedupe.io/developers/library
+* Documentation: https://docs.dedupe.io/
 * Repository: https://github.com/dedupeio/dedupe
 * Issues: https://github.com/dedupeio/dedupe/issues
 * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication

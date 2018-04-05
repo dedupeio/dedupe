@@ -611,7 +611,7 @@ class ActiveMatching(Matching):
         describes a variable to use for comparing records.
 
         For details about variable types, check the documentation.
-        <https://dedupe.io/developers/library>`_
+        <https://docs.dedupe.io/>`_
         """
         Matching.__init__(self, num_cores, **kwargs)
 
