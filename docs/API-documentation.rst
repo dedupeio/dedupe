@@ -1,5 +1,5 @@
 =================
-API Documentation
+Library Documentation
 =================
 
 :class:`Dedupe` Objects
