@@ -42,7 +42,11 @@ def consoleLabel(deduper):  # pragma: no cover
         else:
             if not uncertain_pairs:
                 uncertain_pairs = deduper.uncertainPairs()
-            record_pair = uncertain_pairs.pop()
+
+            try:
+                record_pair = uncertain_pairs.pop()
+            except IndexError:
+                break
 
         n_match = (len(deduper.training_pairs['match']) +
                    sum(label == 'match' for _, label in examples_buffer))
