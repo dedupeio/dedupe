@@ -83,7 +83,7 @@ def randomPairsMatch(n_records_A, n_records_B, sample_size):
 def randomPairsWithReplacement(n_records, sample_size):
     # If the population is very large relative to the sample
     # size than we'll get very few duplicates by chance
-    warnings.warn("There may be duplicates in the sample")
+    warnings.warn("The same record pair may appear more than once in the sample")
 
     try:
         random_indices = numpy.random.randint(n_records,
