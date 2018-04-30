@@ -246,6 +246,8 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
                                     dtype=dtype,
                                     shape=(size,))
     else:
+        dtype = numpy.dtype([('pairs', object, 2),
+                             ('score', 'f4', 1)])
         scored_pairs = numpy.array([], dtype=dtype)
 
     reduce_process.join()

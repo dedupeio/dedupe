@@ -58,13 +58,10 @@ setup(
     * take a database of campaign contributions and **figure out which ones were made by the same person**, even if the names were entered slightly differently for each record
 
     dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
-
-    Important links:
-
-    * `Documentation <https://docs.dedupe.io/>`_
-    * `Repository <https://github.com/dedupeio/dedupe>`_
-    * `Issues <https://github.com/dedupeio/dedupe/issues>`_
-    * `Mailing list <https://groups.google.com/forum/#!forum/open-source-deduplication>`_
-    * `Examples <https://github.com/dedupeio/dedupe-examples>`_
-    """  # noqa: E501
+    """,  # noqa: E501
+    project_urls={
+        "Issues": "https://github.com/dedupeio/dedupe/issues",
+        "Documentation": "https://docs.dedupe.io/en/latest/",
+        "Examples": "https://github.com/dedupeio/dedupe-examples"
+    }
 )
