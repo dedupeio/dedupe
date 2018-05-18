@@ -339,25 +339,43 @@ class ScoreGazette(object):
 
 
 def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
-    if num_cores < 2:
-        imap = map
-    else:
-        from .backport import Pool
-        n_map_processes = max(num_cores, 1)
-        pool = Pool(processes=n_map_processes)
-        imap = functools.partial(pool.imap_unordered, chunksize=1)
 
     first, records = peek(records)
     if first is None:
         raise ValueError("No records to match")
 
-    score_records = ScoreGazette(data_model, classifier, threshold)
-
     if sys.version < '3':
         records = (list(y) for y in records)
 
+    imap, pool = appropriate_imap(num_cores)
+
+    score_records = ScoreGazette(data_model, classifier, threshold)
+
     for scored_pairs in imap(score_records, records):
         yield scored_pairs
+
+    # The underlying processes in the pool should terminate when the
+    # pool is garbage collected, but sometimes it takes a while
+    # before GC, so do it explicitly here
+    pool.close()
+
+
+def appropriate_imap(num_cores):
+    if num_cores < 2:
+        imap = map
+
+        # in order to make it simpler to cleanup a pool of processes
+        # always return something that we can close
+        class MockPool(object):
+            def close(self):
+                pass
+        pool = MockPool()
+    else:
+        from .backport import Pool
+        pool = Pool(processes=num_cores)
+        imap = functools.partial(pool.imap_unordered, chunksize=1)
+
+    return imap, pool
 
 
 def peek(records):
