@@ -347,12 +347,16 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
 
     first, records = peek(records)
     if first is None:
+        if pool:
+            pool.terminate()
         raise ValueError("No records to match")
 
     score_records = ScoreGazette(data_model, classifier, threshold)
 
     for scored_pairs in imap(score_records, records):
         yield scored_pairs
+    if pool:
+        pool.terminate()
 
 
 def peek(records):
