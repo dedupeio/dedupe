@@ -9,6 +9,8 @@ Dedupe |release|
 
 *dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data.*
 
+If you're looking for the documentation for the Dedupe.io API, you can find that here: https://apidocs.dedupe.io/
+
 **dedupe** will help you: 
 
 * **remove duplicate entries** from a spreadsheet of names and addresses
