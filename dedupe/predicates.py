@@ -33,11 +33,13 @@ else:
 
 
 class Predicate(object):
+    required_matches = 1
+    
     def __iter__(self):
         yield self
 
     def __repr__(self):
-        return "%s: %s" % (self.type, self.__name__)
+        return "%s: %s, %s" % (self.type, self.__name__, self.required_matches)
 
     def __hash__(self):
         try:
@@ -56,10 +58,12 @@ class Predicate(object):
 class SimplePredicate(Predicate):
     type = "SimplePredicate"
 
-    def __init__(self, func, field):
+    def __init__(self, func, field, required_matches=1):
         self.func = func
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
+        self.required_matches = required_matches
+
 
     def __call__(self, record, **kwargs):
         column = record[self.field]
@@ -76,7 +80,6 @@ class StringPredicate(SimplePredicate):
             return self.func(" ".join(strip_punc(column).split()))
         else:
             return ()
-
 
 class ExistsPredicate(Predicate):
     type = "ExistsPredicate"
@@ -270,6 +273,10 @@ class LevenshteinSearchPredicate(SearchPredicate, LevenshteinPredicate):
 class CompoundPredicate(tuple):
     type = "CompoundPredicate"
 
+    def __init__(self, *args):
+        super(CompoundPredicate, self).__init__()
+        self.required_matches = prod(pred.required_matches for pred in self)
+
     @property
     def __name__(self):
         return u'(%s)' % u', '.join(str(pred) for pred in self)
@@ -345,7 +352,6 @@ def ngramsTokens(field, n):
         for j in range(i + n, min(n_tokens, i + n) + 1):
             grams.add(' '.join(str(tok) for tok in field[i:j]))
     return grams
-
 
 def commonTwoTokens(field):
     return ngramsTokens(field.split(), 2)
@@ -491,3 +497,9 @@ def roundTo1(field):  # thanks http://stackoverflow.com/questions/3410976/how-to
     order = int(math.floor(math.log10(abs_num)))
     rounded = round(abs_num, -order)
     return (str(int(math.copysign(rounded, field))),)
+
+def prod(iterable):
+    result = 1
+    for each in iterable:
+        result *= each
+    return result

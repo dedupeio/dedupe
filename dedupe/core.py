@@ -129,12 +129,15 @@ class ScoreDupes(object):
         ids = []
         records = []
 
-        for record_pair in record_pairs:
+        for block_key, record_pair in record_pairs:
+            pred_id, _, required_matches = block_key
+            
             ((id_1, record_1, smaller_ids_1),
              (id_2, record_2, smaller_ids_2)) = record_pair
 
-            if smaller_ids_1.isdisjoint(smaller_ids_2):
+            coverage = smaller_ids_1 & smaller_ids_2
 
+            if should_compare(coverage, pred_id, required_matches):
                 ids.append((id_1, id_2))
                 records.append((record_1, record_2))
 
@@ -163,6 +166,48 @@ class ScoreDupes(object):
 
                 return file_path, dtype
 
+def should_compare(smaller_coverage, current_pred_id, required_matches):
+    '''Decide if a current block is the time to fully compare a record pair'''
+
+    # if a predicate needs N matches, then for this block we need
+    # to see that this record pair has already appeared in (N - 1)
+    # previous blocks of this predicate type
+    required_smaller = required_matches - 1
+
+    if len(smaller_coverage) < required_smaller:
+        return False
+
+    if len(smaller_coverage) == 0 and required_smaller == 0:
+        return True
+
+    def keyfunc(block_key):
+        pred_id, _, pred_required_matches = block_key
+        return pred_required_matches, pred_id
+
+    # Group coverage blocks into blocks created by the same predicate
+    grouped_coverage = itertools.groupby(sorted(smaller_coverage,
+                                                key=keyfunc),
+                                         key=keyfunc)
+
+    for (pred_required_match, pred_id), grouped_cover in grouped_coverage:
+        n_covered = len(list(grouped_cover))
+
+        # If a record has been matched N or more times by a predicate
+        # type that requires N matches, we've aleady compared it so
+        # we don't want to compare it again.
+        if pred_id != current_pred_id:
+            if n_covered >= pred_required_match:
+                return False
+
+        # for the current predicate, decide if this block is the time
+        # to match
+        elif n_covered == required_smaller:
+            return True
+
+    # if the loop is able to complete, then we didn't decide that now
+    # is the time to match
+    else:
+        return False
 
 def mergeScores(score_queue, result_queue, stop_signals):
     scored_pairs_file, file_path = tempfile.mkstemp()

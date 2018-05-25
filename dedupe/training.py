@@ -112,6 +112,8 @@ class DedupeBlockLearner(BlockLearner):
 
             for id, record in viewitems(records):
                 blocks = predicate(record)
+                if predicate.required_matches > 1:
+                    blocks = sorted(blocks)[(predicate.required_matches - 1):]
                 for block in blocks:
                     pred_cover[block].add(id)
                     covered_records[id] += 1
@@ -405,10 +407,11 @@ def coveredPairs(predicates, pairs):
     cover = {}
 
     for predicate in predicates:
+        
         coverage = {i for i, (record_1, record_2)
                     in enumerate(pairs)
-                    if (set(predicate(record_1)) &
-                        set(predicate(record_2, target=True)))}
+                    if len(set(predicate(record_1)) &
+                           set(predicate(record_2, target=True))) >= predicate.required_matches}
         if coverage:
             cover[predicate] = coverage
 

@@ -257,8 +257,10 @@ class DedupeMatching(Matching):
         self._checkBlock(block)
 
         combinations = itertools.combinations
+        product = itertools.product
 
-        pairs = (combinations(sorted(block), 2) for block in blocks)
+        pairs = (product((block_key,), combinations(sorted(block), 2))
+                 for block_key, block in blocks)
 
         return pairs
 
@@ -298,10 +300,11 @@ class DedupeMatching(Matching):
                                   if k < block_key}
                 processed_block.append((record_id, data_d[record_id], smaller_blocks))
 
-            yield processed_block
+            yield block_key, processed_block
 
     def _checkBlock(self, block):
         if block:
+            block_key, block = block
             try:
                 id, record, smaller_ids = block[0]
             except (ValueError, KeyError):
