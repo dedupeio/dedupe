@@ -273,11 +273,17 @@ class RecordLinkBlockLearner(BlockLearner):
                 for block in blocks:
                     cover[predicate][block][1].add(id)
 
+            cover_count = collections.defaultdict(int)
             current_blocks = set(cover[predicate])
             for id, record in viewitems(records_1):
                 blocks = set(predicate(record))
                 for block in blocks & current_blocks:
                     cover[predicate][block][0].add(id)
+                    cover_count[block] += 1
+
+            cover[predicate] = {block : cover[predicate][block]
+                                for block, count in cover_count.items()
+                                if count >= predicate.required_matches}
 
         for predicate, blocks in cover.items():
             pairs = {pair

@@ -17,7 +17,7 @@ words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
-alpha_numeric = re.compile(r"(?=.*\d)[a-zA-Z\d]+").findall
+alpha_numeric = re.compile(r"(?=\w*\d)[\w]+").findall
 
 if sys.version < '3':
     PUNCTUATION = string.punctuation

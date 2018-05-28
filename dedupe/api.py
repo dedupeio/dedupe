@@ -342,6 +342,89 @@ class RecordLinkMatching(Matching):
         self._cluster = clustering.greedyMatching
         self._linkage_type = "RecordLink"
 
+    def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma: nocover
+        """
+        Returns the threshold that maximizes the expected F score, a
+        weighted average of precision and recall for a sample of
+        blocked data.
+
+        Arguments:
+
+        blocks -- Sequence of tuples of records, where each tuple is a
+                  set of records covered by a blocking predicate
+
+        recall_weight -- Sets the tradeoff between precision and
+                         recall. I.e. if you care twice as much about
+                         recall as you do precision, set recall_weight
+                         to 2.
+
+        """
+        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
+
+        probability = core.scoreRecordLink(candidate_records,
+                                           self.data_model,
+                                           self.classifier,
+                                           self.num_cores)['score']
+
+        probability = probability.copy()
+        probability.sort()
+        probability = probability[::-1]
+
+        expected_dupes = numpy.cumsum(probability)
+
+        recall = expected_dupes / expected_dupes[-1]
+        precision = expected_dupes / numpy.arange(1, len(expected_dupes) + 1)
+
+        score = recall * precision / (recall + recall_weight ** 2 * precision)
+
+        i = numpy.argmax(score)
+
+        logger.info('Maximum expected recall and precision')
+        logger.info('recall: %2.3f', recall[i])
+        logger.info('precision: %2.3f', precision[i])
+        logger.info('With threshold: %2.3f', probability[i])
+
+        return probability[i]
+
+    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
+        """
+        Partitions blocked data and generates a sequence of clusters,
+        where each cluster is a tuple of record ids
+
+        Keyword arguments:
+
+        blocks -- Sequence of tuples of records, where each tuple is a
+                  set of records covered by a blocking predicate
+
+        threshold -- Number between 0 and 1 (default is .5). We will
+                      only consider as duplicates record pairs as
+                      duplicates if their estimated duplicate
+                      likelihood is greater than the threshold.
+
+                      Lowering the number will increase recall,
+                      raising it will increase precision
+
+        """
+        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
+
+        matches = core.scoreRecordLink(candidate_records,
+                                       self.data_model,
+                                       self.classifier,
+                                       self.num_cores,
+                                       threshold=0)
+
+        logger.debug("matching done, begin clustering")
+
+        for cluster in self._cluster(matches, threshold, *args, **kwargs):
+            yield cluster
+
+        try:
+            match_file = matches.filename
+            del matches
+            os.remove(match_file)
+        except AttributeError:
+            pass
+        
     def match(self, data_1, data_2, threshold=0.5, generator=False):  # pragma: no cover
         """
         Identifies pairs of records that refer to the same entity, returns
@@ -422,21 +505,37 @@ class RecordLinkMatching(Matching):
         block_groups = itertools.groupby(self.blocker(viewitems(messy_data)),
                                          lambda x: x[1])
 
+        keyfunc = core.keyfunc
+
         for i, (record_id, block_keys) in enumerate(block_groups):
             if i % 100 == 0:
                 logger.info("%s records" % i)
 
-            A = [(record_id, messy_data[record_id], set())]
+            A = [(record_id, messy_data[record_id])]
+            B = []
 
-            B = {}
+            candidates = {}
+            from collections import defaultdict
+            coverage = defaultdict(set)
 
             for block_key, _ in block_keys:
                 if block_key in blocked_records:
-                    B.update(blocked_records[block_key])
+                    block = blocked_records[block_key]
+                    candidates.update(block)
+                    for rec_id in block:
+                        coverage[rec_id].add(block_key)
+                    
+                
+            for rec_id, cover in coverage.items():
+                grouped_coverage = itertools.groupby(sorted(cover,
+                                                            key=keyfunc),
+                                                     key=keyfunc)
 
-            B = [(rec_id, record, set())
-                 for rec_id, record
-                 in B.items()]
+                for (pred_required_match, _), grouped_cover in grouped_coverage:
+                    if len(tuple(grouped_cover)) >= pred_required_match:
+                        
+                        B.append((rec_id, candidates[rec_id]))
+                        break
 
             if B:
                 yield (A, B)
@@ -455,6 +554,8 @@ class RecordLinkMatching(Matching):
         for each in self._blockGenerator(data_1, blocked_records):
             yield each
 
+            
+
     def _checkBlock(self, block):
         if block:
             try:
@@ -465,19 +566,19 @@ class RecordLinkMatching(Matching):
 
             if base:
                 try:
-                    base_id, base_record, base_smaller_ids = base[0]
+                    base_id, base_record = base[0]
                 except ValueError:
                     raise ValueError(
-                        "Each sequence must be made up of 3-tuple "
-                        "like (record_id, record, covered_blocks)")
+                        "Each sequence must be made up of 2-tuple "
+                        "like (record_id, record)")
                 self.data_model.check(base_record)
             if target:
                 try:
-                    target_id, target_record, target_smaller_ids = target[0]
+                    target_id, target_record = target[0]
                 except ValueError:
                     raise ValueError(
-                        "Each sequence must be made up of 3-tuple "
-                        "like (record_id, record, covered_blocks)")
+                        "Each sequence must be made up of 2-tuple "
+                        "like (record_id, record)")
                 self.data_model.check(target_record)
 
 

@@ -49,6 +49,8 @@ class MissingDataType(Variable):
 class FieldType(Variable):
     _index_thresholds = []
     _index_predicates = []
+    _overlap_predicates = []
+    _overlap_thresholds = []
     _Predicate = predicates.SimplePredicate
 
     def __init__(self, definition):
@@ -62,11 +64,35 @@ class FieldType(Variable):
         self.predicates = [self._Predicate(pred, self.field)
                            for pred in self._predicate_functions]
 
-        self.predicates += indexPredicates(self._index_predicates,
-                                           self._index_thresholds,
-                                           self.field)
+        self.predicates += self.indexPredicates(self._index_predicates,
+                                                self._index_thresholds,
+                                                self.field)
+
+        self.predicates += self.overlapPredicates(self._overlap_predicates,
+                                                  self._overlap_thresholds,
+                                                  self.field)
+
 
         super(FieldType, self).__init__(definition)
+
+    def indexPredicates(self, predicates, thresholds, field):
+        index_predicates = []
+        for predicate in predicates:
+            for threshold in thresholds:
+                index_predicates.append(predicate(threshold, field))
+
+        return index_predicates
+
+    def overlapPredicates(self, predicates, thresholds, field):
+        overlap_predicates = []
+        for n_matches in thresholds:
+            for predicate in predicates:
+                overlap_predicates.append(self._Predicate(predicate,
+                                                          self.field,
+                                                          n_matches))
+
+        return overlap_predicates
+        
 
 
 class CustomType(FieldType):
@@ -94,12 +120,3 @@ def allSubclasses(cls):
         yield q.type, q
         for p in allSubclasses(q):
             yield p
-
-
-def indexPredicates(predicates, thresholds, field):
-    index_predicates = []
-    for predicate in predicates:
-        for threshold in thresholds:
-            index_predicates.append(predicate(threshold, field))
-
-    return index_predicates

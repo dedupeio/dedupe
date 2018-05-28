@@ -137,7 +137,7 @@ class ScoreDupes(object):
 
             coverage = smaller_ids_1 & smaller_ids_2
 
-            if should_compare(coverage, pred_id, required_matches):
+            if self.should_compare(coverage, pred_id, required_matches):
                 ids.append((id_1, id_2))
                 records.append((record_1, record_2))
 
@@ -164,51 +164,86 @@ class ScoreDupes(object):
                 scored_pairs['pairs'] = ids[mask]
                 scored_pairs['score'] = scores[mask]
 
-                return file_path, dtype
+                return file_path, dtype            
 
-def should_compare(smaller_coverage, current_pred_id, required_matches):
-    '''Decide if a current block is the time to fully compare a record pair'''
-
-    # if a predicate needs N matches, then for this block we need
-    # to see that this record pair has already appeared in (N - 1)
-    # previous blocks of this predicate type
-    required_smaller = required_matches - 1
-
-    if len(smaller_coverage) < required_smaller:
-        return False
-
-    if len(smaller_coverage) == 0 and required_smaller == 0:
-        return True
-
-    def keyfunc(block_key):
-        pred_id, _, pred_required_matches = block_key
-        return pred_required_matches, pred_id
-
-    # Group coverage blocks into blocks created by the same predicate
-    grouped_coverage = itertools.groupby(sorted(smaller_coverage,
-                                                key=keyfunc),
-                                         key=keyfunc)
-
-    for (pred_required_match, pred_id), grouped_cover in grouped_coverage:
-        n_covered = len(list(grouped_cover))
-
-        # If a record has been matched N or more times by a predicate
-        # type that requires N matches, we've aleady compared it so
-        # we don't want to compare it again.
-        if pred_id != current_pred_id:
-            if n_covered >= pred_required_match:
-                return False
-
-        # for the current predicate, decide if this block is the time
-        # to match
-        elif n_covered == required_smaller:
+    def should_compare(self, smaller_coverage, current_pred_id, required_matches):
+        '''Decide if a current block is the time to fully compare a record pair'''
+    
+        # if a predicate needs N matches, then for this block we need
+        # to see that this record pair has already appeared in (N - 1)
+        # previous blocks of this predicate type
+        required_smaller = required_matches - 1
+    
+        if len(smaller_coverage) < required_smaller:
+            return False
+    
+        if len(smaller_coverage) == 0 and required_smaller == 0:
             return True
+    
+    
+        # Group coverage by those created by the same predicate
+        grouped_coverage = itertools.groupby(sorted(smaller_coverage,
+                                                    key=keyfunc),
+                                             key=keyfunc)
+    
+        for (pred_required_match, pred_id), grouped_cover in grouped_coverage:
+            n_covered = len(list(grouped_cover))
+    
+            # If a record has been matched N or more times by a different
+            # predicate type that requires N matches, we've aleady
+            # compared it so we don't want to compare it again.
+            if pred_id != current_pred_id:
+                if n_covered >= pred_required_match:
+                    return False
+    
+            # for the current predicate, decide if this block is the time
+            # to match
+            elif n_covered == required_smaller:
+                return True
+    
+        # if the loop is able to complete, then we didn't decide that now
+        # is the time to match
+        else:
+            return False
 
-    # if the loop is able to complete, then we didn't decide that now
-    # is the time to match
-    else:
-        return False
+class ScoreRecordLink(ScoreDupes):
+    def fieldDistance(self, record_pairs):
+        ids = []
+        records = []
 
+        for record_pair in record_pairs:
+            
+            (id_1, record_1), (id_2, record_2) = record_pair
+
+            ids.append((id_1, id_2))
+            records.append((record_1, record_2))
+
+        if records:
+
+            distances = self.data_model.distances(records)
+            scores = self.classifier.predict_proba(distances)[:, -1]
+
+            mask = scores > self.threshold
+            if mask.any():
+                id_type = sniff_id_type(ids)
+                ids = numpy.array(ids, dtype=id_type)
+
+                dtype = numpy.dtype([('pairs', id_type, 2),
+                                     ('score', 'f4', 1)])
+
+                temp_file, file_path = tempfile.mkstemp()
+                os.close(temp_file)
+
+                scored_pairs = numpy.memmap(file_path,
+                                            shape=numpy.count_nonzero(mask),
+                                            dtype=dtype)
+
+                scored_pairs['pairs'] = ids[mask]
+                scored_pairs['score'] = scores[mask]
+
+                return file_path, dtype            
+    
+    
 def mergeScores(score_queue, result_queue, stop_signals):
     scored_pairs_file, file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
@@ -300,6 +335,58 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
 
     return scored_pairs
 
+def scoreRecordLink(records, data_model, classifier, num_cores=1, threshold=0):
+    if num_cores < 2:
+        from multiprocessing.dummy import Process, Queue
+        SimpleQueue = Queue
+    else:
+        from .backport import Process, SimpleQueue, Queue
+
+    first, records = peek(records)
+    if first is None:
+        raise BlockingError("No records have been blocked together. "
+                            "Is the data you are trying to match like "
+                            "the data you trained on?")
+
+    record_pairs_queue = Queue(2)
+    score_queue = SimpleQueue()
+    result_queue = SimpleQueue()
+
+    n_map_processes = max(num_cores, 1)
+    score_records = ScoreRecordLink(data_model, classifier, threshold)
+    map_processes = [Process(target=score_records,
+                             args=(record_pairs_queue,
+                                   score_queue))
+                     for _ in range(n_map_processes)]
+    [process.start() for process in map_processes]
+
+    reduce_process = Process(target=mergeScores,
+                             args=(score_queue,
+                                   result_queue,
+                                   n_map_processes))
+    reduce_process.start()
+
+    fillQueue(record_pairs_queue, records, n_map_processes)
+
+    result = result_queue.get()
+    if isinstance(result, Exception):
+        raise ChildProcessError
+
+    if result:
+        scored_pairs_file, dtype, size = result
+        scored_pairs = numpy.memmap(scored_pairs_file,
+                                    dtype=dtype,
+                                    shape=(size,))
+    else:
+        dtype = numpy.dtype([('pairs', object, 2),
+                             ('score', 'f4', 1)])
+        scored_pairs = numpy.array([], dtype=dtype)
+
+    reduce_process.join()
+    [process.join() for process in map_processes]
+
+    return scored_pairs
+
 
 def fillQueue(queue, iterable, stop_signals):
     iterable = iter(iterable)
@@ -358,8 +445,8 @@ class ScoreGazette(object):
         records = []
 
         for record_pair in block:
-            ((id_1, record_1, _),
-             (id_2, record_2, _)) = record_pair
+            ((id_1, record_1),
+             (id_2, record_2)) = record_pair
 
             ids.append((id_1, id_2))
             records.append((record_1, record_2))
@@ -479,3 +566,7 @@ def sniff_id_type(ids):
         python_type = int_type
 
     return python_type
+
+def keyfunc(block_key):
+    pred_id, _, pred_required_matches = block_key
+    return pred_required_matches, pred_id
