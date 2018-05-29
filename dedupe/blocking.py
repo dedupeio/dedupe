@@ -15,7 +15,7 @@ class Blocker:
 
     def __init__(self, predicates):
 
-        self.predicates = predicates
+        self.predicates = sorted(predicates, key=lambda x: x.required_matches)
 
         self.index_fields = defaultdict(lambda: defaultdict(list))
 

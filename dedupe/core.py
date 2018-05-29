@@ -172,34 +172,38 @@ class ScoreDupes(object):
         # if a predicate needs N matches, then for this block we need
         # to see that this record pair has already appeared in (N - 1)
         # previous blocks of this predicate type
-        required_smaller = required_matches - 1
-    
-        if len(smaller_coverage) < required_smaller:
+        #
+        # if the number of smaller blocks isn't at least N - 1, then
+        # this can't be the right time to compare and we can bail
+        # out early
+        if len(smaller_coverage) < (required_matches - 1):
             return False
-    
-        if len(smaller_coverage) == 0 and required_smaller == 0:
+
+        if len(smaller_coverage) == 0 and required_matches == 1:
             return True
-    
-    
+
         # Group coverage by those created by the same predicate
         grouped_coverage = itertools.groupby(sorted(smaller_coverage,
                                                     key=keyfunc),
                                              key=keyfunc)
     
         for (pred_required_match, pred_id), grouped_cover in grouped_coverage:
-            n_covered = len(list(grouped_cover))
+            n_covered = len(tuple(grouped_cover))
     
             # If a record has been matched N or more times by a different
             # predicate type that requires N matches, we've aleady
-            # compared it so we don't want to compare it again.
+            # compared it so we don't want to compare it again and can
+            # bail out early
             if pred_id != current_pred_id:
                 if n_covered >= pred_required_match:
                     return False
     
             # for the current predicate, decide if this block is the time
             # to match
-            elif n_covered == required_smaller:
+            elif n_covered == (required_matches - 1):
                 return True
+            else:
+                return False
     
         # if the loop is able to complete, then we didn't decide that now
         # is the time to match
