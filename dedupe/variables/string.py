@@ -36,8 +36,7 @@ class ShortStringType(BaseStringType):
     type = "ShortString"
 
     _predicate_functions = (base_predicates +
-                            (predicates.suffixArray,
-                             predicates.doubleMetaphone))
+                            (predicates.doubleMetaphone,))
 
     _index_predicates = (predicates.TfidfNGramCanopyPredicate,
                          predicates.TfidfNGramSearchPredicate)
@@ -51,6 +50,7 @@ class ShortStringType(BaseStringType):
                            predicates.nearIntegersPredicate,
                            predicates.alphaNumericPredicate,
                            predicates.commonIntegerPredicate,
+                           predicates.suffixArray,
                            predicates.metaphoneToken)
     _overlap_thresholds = (1, 2, 3, 4)
 

@@ -205,7 +205,8 @@ class BlockLearner(object):
             for predicate in self.current_predicates:
                 keys = predicate(record_1)
                 if keys:
-                    if set(predicate(record_2, target=True)) & set(keys):
+                    if len(set(predicate(record_2, target=True))
+                           & set(keys)) >= predicate.required_matches:
                         labels.append(1)
                         break
             else:

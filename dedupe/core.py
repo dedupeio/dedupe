@@ -205,10 +205,13 @@ class ScoreDupes(object):
             else:
                 return False
     
-        # if the loop is able to complete, then we didn't decide that now
-        # is the time to match
         else:
-            return False
+            # if the loop exits that means that there were no
+            # smaller predicates of the current predicate type
+            if required_matches == 1:
+                return True
+            else:
+                return False
 
 class ScoreRecordLink(ScoreDupes):
     def fieldDistance(self, record_pairs):
