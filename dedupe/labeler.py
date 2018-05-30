@@ -182,8 +182,9 @@ class BlockLearner(object):
         dupes = [pair for label, pair in zip(y, pairs) if label]
 
         new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
+        new_uncovered = (not all(self.predict(new_dupes)))
 
-        if new_dupes:
+        if new_uncovered:
             self.current_predicates = self.block_learner.learn(dupes,
                                                                recall=1.0)
             self._cached_labels = None
