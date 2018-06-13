@@ -7,6 +7,8 @@ from future.utils import viewitems, viewvalues
 
 import itertools
 import logging
+import collections
+import functools
 
 from . import blocking, predicates, core
 
@@ -108,22 +110,23 @@ class DedupeBlockLearner(BlockLearner):
         cover = {}
 
         for predicate in blocker.predicates:
-            cover[predicate] = {}
+            pred_cover = {}
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
-                    cover[predicate].setdefault(block, set()).add(id)
+                    pred_cover.setdefault(block, set()).add(id)
 
-        for predicate, blocks in cover.items():
-            pairs = {self.pair_id[pair]
-                     for block in blocks.values()
-                     for pair in itertools.combinations(sorted(block), 2)}
-            cover[predicate] = pairs
+            pairs = (pair
+                     for block in pred_cover.values()
+                     for pair in itertools.combinations(sorted(block), 2))
+
+            cover[predicate] = Counter(pairs)
 
         return cover
 
     def estimate(self, blocks):
-        return len(blocks) * self.multiplier * self.multiplier
+        #print(len(blocks), sum(blocks.values()))
+        return sum(blocks.values()) * self.multiplier * self.multiplier
 
 
 class RecordLinkBlockLearner(BlockLearner):
@@ -344,6 +347,27 @@ def dominators(match_cover, total_cover, comparison=False):
             dominants[candidate] = match
 
     return dominants
+
+
+@functools.total_ordering
+class Counter(collections.Counter):
+
+    def __le__(self, other):
+        return self.keys() <= other.keys()
+
+    def __lt__(self, other):
+        return self.keys() < other.keys()
+
+    def __eq__(self, other):
+        return self == other
+
+    def __and__(self, other):
+        result = Counter({key: min(self[key], other[key])
+                          for key in
+                          self.keys() & other.keys()})
+        return result
+
+        
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501
