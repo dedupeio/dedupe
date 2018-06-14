@@ -55,21 +55,23 @@ class BlockLearner(object):
         return final_predicates
 
     def comparisons(self, match_cover, compound_length):
-        compounder = Compounder(self.total_cover)
+        compounder = Compounder(self.total_cover, self.record_cover)
         comparison_count = {}
 
         for pred in sorted(match_cover, key=str):
             if len(pred) > 1:
-                comparison_count[pred] = self.estimate(compounder(pred))
+                comparison_count[pred] = self.estimate(*compounder(pred))
             else:
-                comparison_count[pred] = self.estimate(self.total_cover[pred])
+                comparison_count[pred] = self.estimate(self.total_cover[pred],
+                                                       self.record_cover[pred])
 
         return comparison_count
 
 
 class Compounder(object):
-    def __init__(self, cover):
+    def __init__(self, cover, record_cover):
         self.cover = cover
+        self.record_cover = record_cover
         self._cached_predicate = None
         self._cached_cover = None
 
@@ -86,7 +88,7 @@ class Compounder(object):
             a, = a
             a_cover = self.cover[a]
 
-        return a_cover & self.cover[b]
+        return a_cover & self.cover[b], self.record_cover[a] & self.record_cover[b]
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -97,8 +99,11 @@ class DedupeBlockLearner(BlockLearner):
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(data)
 
-        self.total_cover = self.coveredPairs(blocker, sampled_records)
+        self.total_cover, self.record_cover = self.coveredPairs(blocker, sampled_records)
         self.multiplier = sampled_records.original_length / len(sampled_records)
+
+        self.original_length = sampled_records.original_length
+        self.sample_size = len(sampled_records)
 
         self.blocker = blocking.Blocker(predicates)
 
@@ -108,25 +113,90 @@ class DedupeBlockLearner(BlockLearner):
 
     def coveredPairs(self, blocker, records):
         cover = {}
+        record_cover = {}
 
         for predicate in blocker.predicates:
             pred_cover = {}
+            covered_records = collections.defaultdict(int)
+
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
                     pred_cover.setdefault(block, set()).add(id)
+                    covered_records[id] += 1
 
             pairs = (pair
                      for block in pred_cover.values()
                      for pair in itertools.combinations(sorted(block), 2))
 
             cover[predicate] = Counter(pairs)
+            record_cover[predicate] = Counter(covered_records)
 
-        return cover
+        return cover, record_cover
 
-    def estimate(self, blocks):
-        #print(len(blocks), sum(blocks.values()))
-        return sum(blocks.values()) * self.multiplier * self.multiplier
+    def estimate(self, blocks, records):
+        # We want to estimate the number of comparisons that a
+        # predicate will generate on the full data.
+        #
+        # To start, we can estimate the number of records, k, that are
+        # covered by a particular block key in the full data.
+        #
+        # Let x the number of records in a sample that have the same
+        # block key. Because the sample is drawn witout replacement, x
+        # is a random variable drawn from a hypergeometric distribution.
+        #
+        # Let M be the size of full data, and n be the size of the sample
+        #
+        # The Maximum likelihood estimator of k is
+        #
+        # k = math.floor((M + 1)* x/n)
+        #
+        # we will relax this a bit and have
+        # k = (M + 1)/n * x
+        #
+        # We can then estimate the number of comparisons, c, that this block
+        # key will generate on the full data.
+        #
+        # c = k(k-1)/2
+        # c = 0.5 * ((M + 1)/n * x) * ((M + 1)/n * (x - 1))
+        #
+        # let r = (M + 1)/n
+        #
+        # c = 0.5 * r * x * (r * (x -1))
+        #   = 0.5 * (r * r * x * x  - r * x)
+        #
+        # Every blocking predicate will generate multiple block
+        # keys. Let x_i be the number of records covered by the ith
+        # block key produced by a blocking predicate, and c_i be the
+        # associated number of estimated comparisons
+        #
+        # We estimate the total number of record comparisons, C, generated
+        # by a blocking predicate as
+        #
+        # C = sum(c_i)
+        #   = 0.5 * (r * r * sum(x_i * x_i for x_i in X) -
+        #            r * sum(x_i for x_i in X))
+        #
+        # Now, unfortunately, it's difficult to efficiently x_i for
+        # compound blocks.
+        #
+        # Perhaps suprisingly, it's much easier to
+        # calculate the number of comparisons that a predicate
+        # generates on a sample. This is
+        #
+        # D = sum(x_i * (x_i - 1)/2 for x_i in X)
+        #   = 0.5 (sum(x_i * x_i for x_i in X) - sum(x_i for x_i in X))
+        #
+        # It turns out that
+        #
+        # C = r * r * 2 * D  + 0.5 * (r * r - r) * sum(x_i for x_i in X))
+
+        r = (self.original_length + 1)/self.sample_size
+
+        abundance = (r * r * sum(blocks.values()) +
+                     0.5 * (r * r - r) * sum(records.values()))
+
+        return abundance
 
 
 class RecordLinkBlockLearner(BlockLearner):
@@ -352,6 +422,18 @@ def dominators(match_cover, total_cover, comparison=False):
 @functools.total_ordering
 class Counter(collections.Counter):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if kwargs.get('cache', True):
+            self.ones = set()
+            self.multiples = {}
+            for k, v in self.items():
+                if v == 1:
+                    self.ones.add(k)
+                else:
+                    self.multiples[k] = v
+            self._key_set = set(self.multiples.keys())
+
     def __le__(self, other):
         return self.keys() <= other.keys()
 
@@ -362,10 +444,19 @@ class Counter(collections.Counter):
         return self == other
 
     def __and__(self, other):
-        result = Counter({key: min(self[key], other[key])
-                          for key in
-                          self.keys() & other.keys()})
-        return result
+
+        common = dict.fromkeys(self.ones, 1)
+
+        both_multiple = ((k, self.multiples[k] * other.multiples[k])
+                         for k in self._key_set & other._key_set)
+        other_ones = ((k, self[k]) for k in self._key_set & other.ones)
+        self_ones = ((k, other[k]) for k in self.ones & other._key_set)
+
+        common.update(itertools.chain(both_multiple,
+                                      other_ones,
+                                      self_ones))
+
+        return common
 
         
 
