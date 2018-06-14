@@ -134,7 +134,7 @@ class DedupeBlockLearner(BlockLearner):
 
         return cover, record_cover
 
-    def estimate(self, blocks, records):
+    def estimate(self, comparisons, records):
         # We want to estimate the number of comparisons that a
         # predicate will generate on the full data.
         #
@@ -193,7 +193,7 @@ class DedupeBlockLearner(BlockLearner):
 
         r = (self.original_length + 1)/self.sample_size
 
-        abundance = (r * r * sum(blocks.values()) +
+        abundance = (r * r * sum(comparisons.values()) +
                      0.5 * (r * r - r) * sum(records.values()))
 
         return abundance
