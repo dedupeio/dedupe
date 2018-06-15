@@ -115,7 +115,7 @@ def condensedDistance(dupes):
     row = ids[:, 0]
     col = ids[:, 1]
 
-    N = len(numpy.union1d(row, col))
+    N = len(candidate_set)
     matrix_length = N * (N - 1) / 2
 
     row_step = (N - row) * (N - row - 1) / 2
