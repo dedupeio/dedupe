@@ -422,18 +422,6 @@ def dominators(match_cover, total_cover, comparison=False):
 @functools.total_ordering
 class Counter(collections.Counter):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if kwargs.get('cache', True):
-            self.ones = set()
-            self.multiples = {}
-            for k, v in self.items():
-                if v == 1:
-                    self.ones.add(k)
-                else:
-                    self.multiples[k] = v
-            self._key_set = set(self.multiples.keys())
-
     def __le__(self, other):
         return self.keys() <= other.keys()
 
@@ -445,18 +433,14 @@ class Counter(collections.Counter):
 
     def __and__(self, other):
 
-        common = dict.fromkeys(self.ones, 1)
+        if len(self) <= len(other):
+            smaller, larger = self, other
+        else:
+            smaller, larger = other, self
 
-        both_multiple = ((k, self.multiples[k] * other.multiples[k])
-                         for k in self._key_set & other._key_set)
-        other_ones = ((k, self[k]) for k in self._key_set & other.ones)
-        self_ones = ((k, other[k]) for k in self.ones & other._key_set)
+        common = {k: v * larger[k] for k, v in smaller.items() if k in larger}
 
-        common.update(itertools.chain(both_multiple,
-                                      other_ones,
-                                      self_ones))
-
-        return common
+        return Counter(common)
 
         
 
