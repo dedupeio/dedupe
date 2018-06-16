@@ -10,7 +10,7 @@ import logging
 import collections
 import functools
 
-from . import blocking, predicates, core
+from . import blocking, predicates, core, counter
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class Compounder(object):
             a, = a
             a_cover = self.cover[a]
 
-        return a_cover & self.cover[b], self.record_cover[a] & self.record_cover[b]
+        return a_cover * self.cover[b], self.record_cover[a] * self.record_cover[b]
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -117,13 +117,16 @@ class DedupeBlockLearner(BlockLearner):
 
         for predicate in blocker.predicates:
             pred_cover = {}
-            covered_records = collections.defaultdict(int)
+            covered_records = {}
 
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
                     pred_cover.setdefault(block, set()).add(id)
-                    covered_records[id] += 1
+                    if id in covered_records:
+                        covered_records[id] += 1
+                    else:
+                        covered_records[id] = 0
 
             pairs = (pair
                      for block in pred_cover.values()
@@ -193,8 +196,8 @@ class DedupeBlockLearner(BlockLearner):
 
         r = (self.original_length + 1)/self.sample_size
 
-        abundance = (r * r * sum(comparisons.values()) +
-                     0.5 * (r * r - r) * sum(records.values()))
+        abundance = (r * r * comparisons.total +
+                     0.5 * (r * r - r) * records.total)
 
         return abundance
 
@@ -325,7 +328,7 @@ class BranchBound(object):
 
         for pred, cover in list(viewitems(coverage)):
             if (dominator.count <= pred.count and
-                    dominant_cover >= cover):
+                dominant_cover >= cover):
                 del coverage[pred]
 
         return coverage
@@ -418,31 +421,44 @@ def dominators(match_cover, total_cover, comparison=False):
 
     return dominants
 
+class Counter(object):
+    def __init__(self, iterable):
+        if isinstance(iterable, collections.abc.Mapping):
+            self._d = iterable
+        else:
+            self._d = {}
+            collections._count_elements(self._d, iterable)
 
-@functools.total_ordering
-class Counter(collections.Counter):
+        self.total = sum(self._d.values())
 
     def __le__(self, other):
-        return self.keys() <= other.keys()
-
-    def __lt__(self, other):
-        return self.keys() < other.keys()
+        return (self._d.keys() <= other._d.keys()
+                and self.total <= other.total)
 
     def __eq__(self, other):
-        return self == other
+        return self._d == other._d
 
-    def __and__(self, other):
+    def __len__(self):
+        return len(self._d)
+
+    def values(self):
+        return self._d.values()
+
+    def __mul__(self, other):
 
         if len(self) <= len(other):
-            smaller, larger = self, other
+            smaller, larger = self._d, other._d
         else:
-            smaller, larger = other, self
+            smaller, larger = other._d, self._d
 
-        common = {k: v * larger[k] for k, v in smaller.items() if k in larger}
+        # it's meaningfully faster to check in the key dictview
+        # of 'larger' than in the dict directly
+        larger_keys = larger.keys()
+
+        common = {k: v * larger[k] for k, v in smaller.items()
+                  if k in larger_keys}
 
         return Counter(common)
-
-        
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501
