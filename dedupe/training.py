@@ -74,6 +74,7 @@ class Compounder(object):
         self.record_cover = record_cover
         self._cached_predicate = None
         self._cached_cover = None
+        self._cached_record_cover = None
 
     def __call__(self, compound_predicate):
         a, b = compound_predicate[:-1], compound_predicate[-1]
@@ -81,14 +82,17 @@ class Compounder(object):
         if len(a) > 1:
             if a == self._cached_predicate:
                 a_cover = self._cached_cover
+                a_record_cover = self._cached_record_cover
             else:
-                a_cover = self._cached_cover = self(a)
+                a_cover, a_record_cover = self(a)
                 self._cached_predicate = a
+                self._cached_cover = a_cover
+                self._cached_record_cover = a_record_cover
         else:
             a, = a
             a_cover = self.cover[a]
 
-        return a_cover * self.cover[b], self.record_cover[a] * self.record_cover[b]
+        return a_cover * self.cover[b], a_record_cover * self.record_cover[b]
 
 
 class DedupeBlockLearner(BlockLearner):
