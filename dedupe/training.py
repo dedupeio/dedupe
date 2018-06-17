@@ -107,13 +107,13 @@ class DedupeBlockLearner(BlockLearner):
         record_cover = {}
 
         for predicate in blocker.predicates:
-            pred_cover = {}
+            pred_cover = collections.defaultdict(set)
             covered_records = collections.defaultdict(int)
 
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
-                    pred_cover.setdefault(block, set()).add(id)
+                    pred_cover[block].add(id)
                     covered_records[id] += 1
 
             pairs = (pair
