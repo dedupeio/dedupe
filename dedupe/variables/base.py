@@ -87,9 +87,9 @@ class FieldType(Variable):
         overlap_predicates = []
         for n_matches in thresholds:
             for predicate in predicates:
-                overlap_predicates.append(self._Predicate(predicate,
-                                                          self.field,
-                                                          n_matches))
+                overlap_predicates.append(self._OverlapPredicate(predicate,
+                                                                 self.field,
+                                                                 n_matches))
 
         return overlap_predicates
         
