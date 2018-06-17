@@ -180,7 +180,7 @@ class DedupeBlockLearner(BlockLearner):
         #
         # It turns out that
         #
-        # C = r * r * 2 * D  + 0.5 * (r * r - r) * sum(x_i for x_i in X))
+        # C = r * r * D  + 0.5 * (r * r - r) * sum(x_i for x_i in X))
 
         r = self.r
 
