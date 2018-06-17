@@ -3,10 +3,16 @@
 
 # provides functions for selecting a sample of training data
 from __future__ import division
-from future.utils import viewitems, viewvalues
+from future.utils import viewitems, viewvalues, viewkeys
 
 import itertools
 import logging
+import collections
+
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 from . import blocking, predicates, core
 
@@ -52,18 +58,6 @@ class BlockLearner(object):
 
         return final_predicates
 
-    def comparisons(self, match_cover, compound_length):
-        compounder = Compounder(self.total_cover)
-        comparison_count = {}
-
-        for pred in sorted(match_cover, key=str):
-            if len(pred) > 1:
-                comparison_count[pred] = self.estimate(compounder(pred))
-            else:
-                comparison_count[pred] = self.estimate(self.total_cover[pred])
-
-        return comparison_count
-
 
 class Compounder(object):
     def __init__(self, cover):
@@ -84,7 +78,7 @@ class Compounder(object):
             a, = a
             a_cover = self.cover[a]
 
-        return a_cover & self.cover[b]
+        return a_cover * self.cover[b]
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -95,10 +89,14 @@ class DedupeBlockLearner(BlockLearner):
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(data)
 
-        self.total_cover = self.coveredPairs(blocker, sampled_records)
-        self.multiplier = sampled_records.original_length / len(sampled_records)
+        result = self.coveredPairs(blocker, sampled_records)
+        self.total_cover, self.record_cover = result
+
+        self.r = (sampled_records.original_length + 1) / len(sampled_records)
 
         self.blocker = blocking.Blocker(predicates)
+
+        self._cached_estimates = {}
 
     @staticmethod
     def unroll(matches):  # pragma: no cover
@@ -106,24 +104,136 @@ class DedupeBlockLearner(BlockLearner):
 
     def coveredPairs(self, blocker, records):
         cover = {}
+        record_cover = {}
 
         for predicate in blocker.predicates:
-            cover[predicate] = {}
+            pred_cover = collections.defaultdict(set)
+            covered_records = collections.defaultdict(int)
+
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
-                    cover[predicate].setdefault(block, set()).add(id)
+                    pred_cover[block].add(id)
+                    covered_records[id] += 1
 
-        for predicate, blocks in cover.items():
-            pairs = {self.pair_id[pair]
-                     for block in blocks.values()
-                     for pair in itertools.combinations(sorted(block), 2)}
-            cover[predicate] = pairs
+            pairs = (pair
+                     for block in pred_cover.values()
+                     for pair in itertools.combinations(sorted(block), 2))
 
-        return cover
+            cover[predicate] = Counter(pairs)
+            record_cover[predicate] = Counter(covered_records)
 
-    def estimate(self, blocks):
-        return len(blocks) * self.multiplier * self.multiplier
+        return cover, record_cover
+
+    def estimate(self, comparisons, records):
+        # We want to estimate the number of comparisons that a
+        # predicate will generate on the full data.
+        #
+        # To start, we can estimate the number of records, k, that are
+        # covered by a particular block key in the full data.
+        #
+        # Let x the number of records in a sample that have the same
+        # block key. Because the sample is drawn witout replacement, x
+        # is a random variable drawn from a hypergeometric distribution.
+        #
+        # Let M be the size of full data, and n be the size of the sample
+        #
+        # The Maximum likelihood estimator of k is
+        #
+        # k = math.floor((M + 1)* x/n)
+        #
+        # we will relax this a bit and have
+        # k = (M + 1)/n * x
+        #
+        # We can then estimate the number of comparisons, c, that this block
+        # key will generate on the full data.
+        #
+        # c = k(k-1)/2
+        # c = 0.5 * ((M + 1)/n * x) * ((M + 1)/n * (x - 1))
+        #
+        # let r = (M + 1)/n
+        #
+        # c = 0.5 * r * x * (r * (x -1))
+        #   = 0.5 * (r * r * x * x  - r * x)
+        #
+        # Every blocking predicate will generate multiple block
+        # keys. Let x_i be the number of records covered by the ith
+        # block key produced by a blocking predicate, and c_i be the
+        # associated number of estimated comparisons
+        #
+        # We estimate the total number of record comparisons, C, generated
+        # by a blocking predicate as
+        #
+        # C = sum(c_i)
+        #   = 0.5 * (r * r * sum(x_i * x_i for x_i in X) -
+        #            r * sum(x_i for x_i in X))
+        #
+        # Now, unfortunately, it's difficult to efficiently x_i for
+        # compound blocks.
+        #
+        # Perhaps suprisingly, it's much easier to
+        # calculate the number of comparisons that a predicate
+        # generates on a sample. This is
+        #
+        # D = sum(x_i * (x_i - 1)/2 for x_i in X)
+        #   = 0.5 (sum(x_i * x_i for x_i in X) - sum(x_i for x_i in X))
+        #
+        # It turns out that
+        #
+        # C = r * r * 2 * D  + 0.5 * (r * r - r) * sum(x_i for x_i in X))
+
+        r = self.r
+
+        all_comparisons = (r * r * comparisons.total +
+                           0.5 * (r * r - r) * records.total)
+
+        # This estimator has a couple of problems.
+        #
+        # First, it asssumes that we have observered every block_key
+        # in the sample that we will observe in the full data. This
+        # does not seem like a terrible problem because block_keys
+        # that do not appear in the sample will be fairly rare, so are
+        # likely not to contribute very much to the total number of
+        # comparisons. However, by neglecting this our estimate is
+        # clearly biased to be less than the true value. I'm not sure
+        # how to fix this right now, but it seems like would be a
+        # reasonably small extension
+        #
+        # However, this estimate is for every single comparisons. While
+        # it is true that if we block together records 1 and 2 together
+        # N times we have to pay the overhead of that blocking and
+        # and there is some cost to each one of those N comparisons,
+        # we are using a redundant-free scheme so we only make one
+        # truly expensive computation for every record pair.
+        #
+        # So, how can we estimate how many expensive comparison a
+        # predicate will lead to? In other words, how many unique record
+        # pairs will be covered by a predicate?
+        #
+        # I really don't know, right now. So we'll stick with a number
+        # we can defend.
+
+        return all_comparisons
+
+    def comparisons(self, match_cover, compound_length):
+        cover_compounder = Compounder(self.total_cover)
+        record_compounder = Compounder(self.record_cover)
+        comparison_count = {}
+
+        for pred in sorted(match_cover, key=str):
+            if pred in self._cached_estimates:
+                estimated_comparisons = self._cached_estimates[pred]
+            elif len(pred) > 1:
+                estimated_comparisons = self.estimate(cover_compounder(pred),
+                                                      record_compounder(pred))
+            else:
+                estimated_comparisons = self.estimate(self.total_cover[pred],
+                                                      self.record_cover[pred])
+
+            comparison_count[pred] = estimated_comparisons
+            self._cached_estimates[pred] = estimated_comparisons
+
+        return comparison_count
 
 
 class RecordLinkBlockLearner(BlockLearner):
@@ -138,12 +248,14 @@ class RecordLinkBlockLearner(BlockLearner):
                                              sampled_records_1,
                                              sampled_records_2)
 
-        self.multiplier_1 = (sampled_records_1.original_length /
-                             len(sampled_records_1))
-        self.multiplier_2 = (sampled_records_2.original_length /
-                             len(sampled_records_2))
+        self.r_a = ((sampled_records_1.original_length + 1) /
+                    len(sampled_records_1))
+        self.r_b = ((sampled_records_2.original_length + 1) /
+                    len(sampled_records_2))
 
         self.blocker = blocking.Blocker(predicates)
+
+        self._cached_estimates = {}
 
     @staticmethod
     def unroll(matches):  # pragma: no cover
@@ -153,12 +265,11 @@ class RecordLinkBlockLearner(BlockLearner):
         cover = {}
 
         for predicate in blocker.predicates:
-            cover[predicate] = {}
+            cover[predicate] = collections.defaultdict(lambda: (set(), set()))
             for id, record in viewitems(records_2):
                 blocks = predicate(record, target=True)
                 for block in blocks:
-                    cover[predicate].setdefault(
-                        block, (set(), set()))[1].add(id)
+                    cover[predicate][block][1].add(id)
 
             current_blocks = set(cover[predicate])
             for id, record in viewitems(records_1):
@@ -167,16 +278,65 @@ class RecordLinkBlockLearner(BlockLearner):
                     cover[predicate][block][0].add(id)
 
         for predicate, blocks in cover.items():
-            pairs = set()
-            for A, B in blocks.values():
-                for pair in itertools.product(A, B):
-                    pairs.add(self.pair_id[pair])
-            cover[predicate] = pairs
+            pairs = (pair
+                     for A, B in blocks.values()
+                     for pair in itertools.product(A, B))
+            cover[predicate] = Counter(pairs)
 
         return cover
 
     def estimate(self, blocks):
-        return len(blocks) * self.multiplier_1 * self.multiplier_2
+        # We want to estimate how many comparisons will be made
+        # when we compare the two full data sets
+        #
+        # Let x be the number of or records from a sample from dataset
+        # A covered by a particular predicate block ye. Let y be the the
+        # number of records from dataset B covered by the same
+        # predicate block key.
+        #
+        # Let m_A be the size of full dataset A, and n_A be the size
+        # of the sample from A. Similarly let, m_B be the size of the full
+        # dataset B and n_B be the size of the sample from B
+        #
+        # We can estimate the number of total records, k, that this
+        # predicate will cover in dataset A as
+        #
+        # k = (m_A + 1)/n_a * x
+        #
+        # We can then estimate the total number of comparisons when we
+        # compare both datasets as
+        #
+        # c = ((m_A + 1)/n_a * x) (m_b + 1)/n_b * y
+        #
+        # Let r_a = ((m_A + 1)/n_a and r_b = (m_b + 1)/n_b
+        #
+        # c = r_a * r_b * x * y
+        #
+        # To estimate the total number of comparisons produced by
+        # all block we use the following formula
+        #
+        # C = r_a * r_b * sum(x[i] * y[i] for i in block_keys)
+        #
+        # For discussion of problems with this estimator see
+        # the comments in the DedupeBlockLearner.estimate method
+        return blocks.total * self.r_a * self.r_b
+
+    def comparisons(self, match_cover, compound_length):
+        compounder = Compounder(self.total_cover)
+        comparison_count = {}
+
+        for pred in sorted(match_cover, key=str):
+            if pred in self._cached_estimates:
+                estimated_cached_estimates = self._cached_estimates[pred]
+            elif len(pred) > 1:
+                estimated_cached_estimates = self.estimate(compounder(pred))
+            else:
+                estimated_cached_estimates = self.estimate(self.total_cover[pred])
+
+            comparison_count[pred] = estimated_cached_estimates
+            self._cached_estimates[pred] = estimated_cached_estimates
+
+        return comparison_count
 
 
 class BranchBound(object):
@@ -344,6 +504,48 @@ def dominators(match_cover, total_cover, comparison=False):
             dominants[candidate] = match
 
     return dominants
+
+
+class Counter(object):
+    def __init__(self, iterable):
+        if isinstance(iterable, Mapping):
+            self._d = iterable
+        else:
+            d = collections.defaultdict(int)
+            for elem in iterable:
+                d[elem] += 1
+            self._d = d
+
+        self.total = sum(self.values())
+
+    def __le__(self, other):
+        return (self._d.keys() <= other._d.keys() and
+                self.total <= other.total)
+
+    def __eq__(self, other):
+        return self._d == other._d
+
+    def __len__(self):
+        return len(self._d)
+
+    def values(self):
+        return viewvalues(self._d)
+
+    def __mul__(self, other):
+
+        if len(self) <= len(other):
+            smaller, larger = self._d, other._d
+        else:
+            smaller, larger = other._d, self._d
+
+        # it's meaningfully faster to check in the key dictview
+        # of 'larger' than in the dict directly
+        larger_keys = viewkeys(larger)
+
+        common = {k: v * larger[k] for k, v in viewitems(smaller)
+                  if k in larger_keys}
+
+        return Counter(common)
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501
