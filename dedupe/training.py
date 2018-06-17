@@ -248,9 +248,9 @@ class RecordLinkBlockLearner(BlockLearner):
                                              sampled_records_1,
                                              sampled_records_2)
 
-        self.r_a = ((sampled_records_1.original_length + 1) /
+        self.r_a = ((sampled_records_1.original_length) /
                     len(sampled_records_1))
-        self.r_b = ((sampled_records_2.original_length + 1) /
+        self.r_b = ((sampled_records_2.original_length) /
                     len(sampled_records_2))
 
         self.blocker = blocking.Blocker(predicates)
@@ -278,47 +278,21 @@ class RecordLinkBlockLearner(BlockLearner):
                     cover[predicate][block][0].add(id)
 
         for predicate, blocks in cover.items():
-            pairs = (pair
+            pairs = {pair
                      for A, B in blocks.values()
-                     for pair in itertools.product(A, B))
+                     for pair in itertools.product(A, B)}
             cover[predicate] = Counter(pairs)
 
         return cover
 
     def estimate(self, blocks):
-        # We want to estimate how many comparisons will be made
-        # when we compare the two full data sets
+        # For record pairs we only compare unique comparisons.
         #
-        # Let x be the number of or records from a sample from dataset
-        # A covered by a particular predicate block ye. Let y be the the
-        # number of records from dataset B covered by the same
-        # predicate block key.
+        # I have no real idea of how to estimate the total number
+        # of unique comparisons. Maybe the way to think about this
+        # as the intersection of random multisets?
         #
-        # Let m_A be the size of full dataset A, and n_A be the size
-        # of the sample from A. Similarly let, m_B be the size of the full
-        # dataset B and n_B be the size of the sample from B
-        #
-        # We can estimate the number of total records, k, that this
-        # predicate will cover in dataset A as
-        #
-        # k = (m_A + 1)/n_a * x
-        #
-        # We can then estimate the total number of comparisons when we
-        # compare both datasets as
-        #
-        # c = ((m_A + 1)/n_a * x) (m_b + 1)/n_b * y
-        #
-        # Let r_a = ((m_A + 1)/n_a and r_b = (m_b + 1)/n_b
-        #
-        # c = r_a * r_b * x * y
-        #
-        # To estimate the total number of comparisons produced by
-        # all block we use the following formula
-        #
-        # C = r_a * r_b * sum(x[i] * y[i] for i in block_keys)
-        #
-        # For discussion of problems with this estimator see
-        # the comments in the DedupeBlockLearner.estimate method
+        # In any case, here's the estimator I'm using now.
         return blocks.total * self.r_a * self.r_b
 
     def comparisons(self, match_cover, compound_length):
