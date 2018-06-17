@@ -67,9 +67,8 @@ class Compounder(object):
             if a == self._cached_predicate:
                 a_cover = self._cached_cover
             else:
-                a_cover, a_record_cover = self(a)
+                a_cover = self._cached_cover = self(a)
                 self._cached_predicate = a
-                self._cached_cover = a_cover
         else:
             a, = a
             a_cover = self.cover[a]
@@ -246,7 +245,7 @@ class RecordLinkBlockLearner(BlockLearner):
 
         self.r_a = ((sampled_records_1.original_length + 1) /
                     len(sampled_records_1))
-        self.r_a = ((sampled_records_2.original_length + 1) /
+        self.r_b = ((sampled_records_2.original_length + 1) /
                     len(sampled_records_2))
 
         self.blocker = blocking.Blocker(predicates)
