@@ -168,12 +168,12 @@ class DedupeBlockLearner(BlockLearner):
         #   = 0.5 * (r * r * sum(x_i * x_i for x_i in X) -
         #            r * sum(x_i for x_i in X))
         #
-        # Now, unfortunately, it's difficult to efficiently x_i for
-        # compound blocks.
+        # Now, unfortunately, it's difficult to efficiently calculate
+        # x_i * x_i for compound blocks.
         #
-        # Perhaps suprisingly, it's much easier to
-        # calculate the number of comparisons that a predicate
-        # generates on a sample. This is
+        # Perhaps suprisingly, it's much easier to calculate the
+        # number of comparisons that a predicate generates on a
+        # sample. This is
         #
         # D = sum(x_i * (x_i - 1)/2 for x_i in X)
         #   = 0.5 (sum(x_i * x_i for x_i in X) - sum(x_i for x_i in X))
