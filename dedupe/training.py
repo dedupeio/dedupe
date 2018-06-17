@@ -109,11 +109,12 @@ class DedupeBlockLearner(BlockLearner):
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
             covered_records = collections.defaultdict(int)
+            start_block = predicate.required_matches - 1
 
             for id, record in viewitems(records):
                 blocks = predicate(record)
-                if predicate.required_matches > 1:
-                    blocks = sorted(blocks)[(predicate.required_matches - 1):]
+                if start_block:
+                    blocks = sorted(blocks)[start_block:]
                 for block in blocks:
                     pred_cover[block].add(id)
                     covered_records[id] += 1
@@ -267,28 +268,27 @@ class RecordLinkBlockLearner(BlockLearner):
         cover = {}
 
         for predicate in blocker.predicates:
-            cover[predicate] = collections.defaultdict(lambda: (set(), set()))
+            pred_cover = collections.defaultdict(lambda: (set(), set()))
+            start_block = predicate.required_matches - 1
+
             for id, record in viewitems(records_2):
                 blocks = predicate(record, target=True)
+                if start_block:
+                    blocks = sorted(blocks)[start_block:]
                 for block in blocks:
-                    cover[predicate][block][1].add(id)
+                    pred_cover[block][1].add(id)
 
-            cover_count = collections.defaultdict(int)
-            current_blocks = set(cover[predicate])
+            current_blocks = set(pred_cover)
             for id, record in viewitems(records_1):
-                blocks = set(predicate(record))
-                for block in blocks & current_blocks:
-                    cover[predicate][block][0].add(id)
-                    cover_count[block] += 1
+                blocks = predicate(record)
+                if start_block:
+                    blocks = sorted(blocks)[start_block:]
+                for block in set(blocks) & current_blocks:
+                    pred_cover[block][0].add(id)
 
-            cover[predicate] = {block : cover[predicate][block]
-                                for block, count in cover_count.items()
-                                if count >= predicate.required_matches}
-
-        for predicate, blocks in cover.items():
-            pairs = {pair
-                     for A, B in blocks.values()
-                     for pair in itertools.product(A, B)}
+            pairs = (pair
+                     for A, B in pred_cover.values()
+                     for pair in itertools.product(A, B))
             cover[predicate] = Counter(pairs)
 
         return cover
