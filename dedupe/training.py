@@ -269,26 +269,26 @@ class RecordLinkBlockLearner(BlockLearner):
 
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(lambda: (set(), set()))
-            start_block = predicate.required_matches - 1
 
             for id, record in viewitems(records_2):
                 blocks = predicate(record, target=True)
-                if start_block:
-                    blocks = sorted(blocks)[start_block:]
                 for block in blocks:
                     pred_cover[block][1].add(id)
 
             current_blocks = set(pred_cover)
             for id, record in viewitems(records_1):
                 blocks = predicate(record)
-                if start_block:
-                    blocks = sorted(blocks)[start_block:]
                 for block in set(blocks) & current_blocks:
                     pred_cover[block][0].add(id)
 
-            pairs = (pair
-                     for A, B in pred_cover.values()
-                     for pair in itertools.product(A, B))
+            pairs = collections.defaultdict(int)
+            for A, B in viewvalues(pred_cover):
+                for pair in itertools.product(A, B):
+                    pairs[pair] += 1
+
+            pairs = {k: 1 for k, v in pairs.items()
+                     if v >= predicate.required_matches}
+
             cover[predicate] = Counter(pairs)
 
         return cover
