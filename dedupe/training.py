@@ -99,11 +99,10 @@ class DedupeBlockLearner(BlockLearner):
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(data)
 
-        self.total_cover, self.record_cover = self.coveredPairs(blocker, sampled_records)
-        self.multiplier = sampled_records.original_length / len(sampled_records)
+        result = self.coveredPairs(blocker, sampled_records)
+        self.total_cover, self.record_cover = result
 
-        self.original_length = sampled_records.original_length
-        self.sample_size = len(sampled_records)
+        self.r = (sampled_records.original_length + 1)/len(sampled_records)
 
         self.blocker = blocking.Blocker(predicates)
 
@@ -117,16 +116,13 @@ class DedupeBlockLearner(BlockLearner):
 
         for predicate in blocker.predicates:
             pred_cover = {}
-            covered_records = {}
+            covered_records = collections.defaultdict(int)
 
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
                     pred_cover.setdefault(block, set()).add(id)
-                    if id in covered_records:
-                        covered_records[id] += 1
-                    else:
-                        covered_records[id] = 0
+                    covered_records[id] += 1
 
             pairs = (pair
                      for block in pred_cover.values()
@@ -194,12 +190,26 @@ class DedupeBlockLearner(BlockLearner):
         #
         # C = r * r * 2 * D  + 0.5 * (r * r - r) * sum(x_i for x_i in X))
 
-        r = (self.original_length + 1)/self.sample_size
+        r = self.r
 
-        abundance = (r * r * comparisons.total +
-                     0.5 * (r * r - r) * records.total)
+        all_comparisons = (r * r * comparisons.total +
+                           0.5 * (r * r - r) * records.total)
 
-        return abundance
+        # However, this estimate is for every single comparisons. While
+        # it is true that if we block together records 1 and 2 together
+        # N times we have to pay the overhead of that blocking and
+        # and there is some cost to each one of those N comparisons,
+        # we are using a redundant-free scheme so we only make one
+        # truly expensive computation for every record pair.
+        #
+        # So, how can we estimate how many expensive comparison a
+        # predicate will lead to? In other words, how many unique record
+        # pairs will be covered by a predicate?
+        #
+        # I really don't know, right now. So we'll stick with a number
+        # we can defend.
+
+        return all_comparisons
 
 
 class RecordLinkBlockLearner(BlockLearner):
@@ -429,7 +439,7 @@ class Counter(object):
             self._d = {}
             collections._count_elements(self._d, iterable)
 
-        self.total = sum(self._d.values())
+        self.total = sum(self.values())
 
     def __le__(self, other):
         return (self._d.keys() <= other._d.keys()
