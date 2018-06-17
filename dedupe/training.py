@@ -92,6 +92,8 @@ class DedupeBlockLearner(BlockLearner):
 
         self.blocker = blocking.Blocker(predicates)
 
+        self._cached_estimates = {}
+
     @staticmethod
     def unroll(matches):  # pragma: no cover
         return unique((record for pair in matches for record in pair))
@@ -181,6 +183,18 @@ class DedupeBlockLearner(BlockLearner):
         all_comparisons = (r * r * comparisons.total +
                            0.5 * (r * r - r) * records.total)
 
+        # This estimator has a couple of problems.
+        #
+        # First, it asssumes that we have observered every block_key
+        # in the sample that we will observe in the full data. This
+        # does not seem like a terrible problem because block_keys
+        # that do not appear in the sample will be fairly rare, so are
+        # likely not to contribute very much to the total number of
+        # comparisons. However, by neglecting this our estimate is
+        # clearly biased to be less than the true value. I'm not sure
+        # how to fix this right now, but it seems like would be a
+        # reasonably small extension
+        #
         # However, this estimate is for every single comparisons. While
         # it is true that if we block together records 1 and 2 together
         # N times we have to pay the overhead of that blocking and
@@ -203,12 +217,17 @@ class DedupeBlockLearner(BlockLearner):
         comparison_count = {}
 
         for pred in sorted(match_cover, key=str):
-            if len(pred) > 1:
-                comparison_count[pred] = self.estimate(cover_compounder(pred),
-                                                       record_compounder(pred))
+            if pred in self._cached_estimates:
+                estimated_comparisons = self._cached_estimates[pred]
+            elif len(pred) > 1:
+                estimated_comparisons = self.estimate(cover_compounder(pred),
+                                                      record_compounder(pred))
             else:
-                comparison_count[pred] = self.estimate(self.total_cover[pred],
-                                                       self.record_cover[pred])
+                estimated_comparisons = self.estimate(self.total_cover[pred],
+                                                      self.record_cover[pred])
+
+            comparison_count[pred] = estimated_comparisons
+            self._cached_estimates[pred] = estimated_comparisons
 
         return comparison_count
 
@@ -225,12 +244,14 @@ class RecordLinkBlockLearner(BlockLearner):
                                              sampled_records_1,
                                              sampled_records_2)
 
-        self.r_1 = ((sampled_records_1.original_length + 1) /
+        self.r_a = ((sampled_records_1.original_length + 1) /
                     len(sampled_records_1))
-        self.r_2 = ((sampled_records_2.original_length + 1) /
+        self.r_a = ((sampled_records_2.original_length + 1) /
                     len(sampled_records_2))
 
         self.blocker = blocking.Blocker(predicates)
+
+        self._cached_estimates = {}
 
     @staticmethod
     def unroll(matches):  # pragma: no cover
@@ -261,17 +282,55 @@ class RecordLinkBlockLearner(BlockLearner):
         return cover
 
     def estimate(self, blocks):
-        return blocks.total * self.r_1 * self.r_2
+        # We want to estimate how many comparisons will be made
+        # when we compare the two full data sets
+        #
+        # Let x be the number of or records from a sample from dataset
+        # A covered by a particular predicate block ye. Let y be the the
+        # number of records from dataset B covered by the same
+        # predicate block key.
+        #
+        # Let m_A be the size of full dataset A, and n_A be the size
+        # of the sample from A. Similarly let, m_B be the size of the full
+        # dataset B and n_B be the size of the sample from B
+        #
+        # We can estimate the number of total records, k, that this
+        # predicate will cover in dataset A as
+        #
+        # k = (m_A + 1)/n_a * x
+        #
+        # We can then estimate the total number of comparisons when we
+        # compare both datasets as
+        #
+        # c = ((m_A + 1)/n_a * x) (m_b + 1)/n_b * y
+        #
+        # Let r_a = ((m_A + 1)/n_a and r_b = (m_b + 1)/n_b
+        #
+        # c = r_a * r_b * x * y
+        #
+        # To estimate the total number of comparisons produced by
+        # all block we use the following formula
+        #
+        # C = r_a * r_b * sum(x[i] * y[i] for i in block_keys)
+        #
+        # For discussion of problems with this estimator see
+        # the comments in the DedupeBlockLearner.estimate method
+        return blocks.total * self.r_a * self.r_b
 
     def comparisons(self, match_cover, compound_length):
         compounder = Compounder(self.total_cover)
         comparison_count = {}
 
         for pred in sorted(match_cover, key=str):
-            if len(pred) > 1:
-                comparison_count[pred] = self.estimate(compounder(pred))
+            if pred in self._cached_estimates:
+                estimated_cached_estimates = self._cached_estimates[pred]
+            elif len(pred) > 1:
+                estimated_cached_estimates = self.estimate(compounder(pred))
             else:
-                comparison_count[pred] = self.estimate(self.total_cover[pred])
+                estimated_cached_estimates = self.estimate(self.total_cover[pred])
+
+            comparison_count[pred] = estimated_cached_estimates
+            self._cached_estimates[pred] = estimated_cached_estimates
 
         return comparison_count
 
