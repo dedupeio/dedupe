@@ -506,26 +506,15 @@ def dominators(match_cover, total_cover, comparison=False):
     return dominants
 
 
-def _count_elements(mapping, iterable):
-    'Tally elements from the iterable.'
-    mapping_get = mapping.get
-    for elem in iterable:
-        mapping[elem] = mapping_get(elem, 0) + 1
-
-
-try:  # Load C helper function if available
-    from collections import _count_elements  # noqa: 509 
-except ImportError:
-    pass
-
-
 class Counter(object):
     def __init__(self, iterable):
         if isinstance(iterable, Mapping):
             self._d = iterable
         else:
-            self._d = {}
-            _count_elements(self._d, iterable)
+            d = collections.defaultdict(int)
+            for elem in iterable:
+                d[elem] += 1
+            self._d = d
 
         self.total = sum(self.values())
 
