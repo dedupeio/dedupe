@@ -57,10 +57,15 @@ class BlockLearner(object):
         comparison_count = {}
 
         for pred in sorted(match_cover, key=str):
-            if len(pred) > 1:
-                comparison_count[pred] = self.estimate(compounder(pred))
+            if pred in self._cached_estimates:
+                estimated_cached_estimates = self._cached_estimates[pred]
+            elif len(pred) > 1:
+                estimated_cached_estimates = self.estimate(compounder(pred))
             else:
-                comparison_count[pred] = self.estimate(self.total_cover[pred])
+                estimated_cached_estimates = self.estimate(self.total_cover[pred])
+
+            comparison_count[pred] = estimated_cached_estimates
+            self._cached_estimates[pred] = estimated_cached_estimates
 
         return comparison_count
 
@@ -99,6 +104,8 @@ class DedupeBlockLearner(BlockLearner):
         self.multiplier = sampled_records.original_length / len(sampled_records)
 
         self.blocker = blocking.Blocker(predicates)
+
+        self._cached_estimates = {}
 
     @staticmethod
     def unroll(matches):  # pragma: no cover
@@ -144,6 +151,8 @@ class RecordLinkBlockLearner(BlockLearner):
                              len(sampled_records_2))
 
         self.blocker = blocking.Blocker(predicates)
+
+        self._cached_estimates = {}
 
     @staticmethod
     def unroll(matches):  # pragma: no cover
