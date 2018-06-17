@@ -8,7 +8,6 @@ from future.utils import viewitems, viewvalues
 import itertools
 import logging
 import collections
-import functools
 
 from . import blocking, predicates, core, counter
 
