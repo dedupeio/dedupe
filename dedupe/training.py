@@ -9,7 +9,7 @@ import itertools
 import logging
 import collections
 
-from . import blocking, predicates, core, counter
+from . import blocking, predicates, core
 
 logger = logging.getLogger(__name__)
 
