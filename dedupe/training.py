@@ -53,27 +53,12 @@ class BlockLearner(object):
 
         return final_predicates
 
-    def comparisons(self, match_cover, compound_length):
-        compounder = Compounder(self.total_cover, self.record_cover)
-        comparison_count = {}
-
-        for pred in sorted(match_cover, key=str):
-            if len(pred) > 1:
-                comparison_count[pred] = self.estimate(*compounder(pred))
-            else:
-                comparison_count[pred] = self.estimate(self.total_cover[pred],
-                                                       self.record_cover[pred])
-
-        return comparison_count
-
 
 class Compounder(object):
-    def __init__(self, cover, record_cover):
+    def __init__(self, cover):
         self.cover = cover
-        self.record_cover = record_cover
         self._cached_predicate = None
         self._cached_cover = None
-        self._cached_record_cover = None
 
     def __call__(self, compound_predicate):
         a, b = compound_predicate[:-1], compound_predicate[-1]
@@ -81,17 +66,15 @@ class Compounder(object):
         if len(a) > 1:
             if a == self._cached_predicate:
                 a_cover = self._cached_cover
-                a_record_cover = self._cached_record_cover
             else:
                 a_cover, a_record_cover = self(a)
                 self._cached_predicate = a
                 self._cached_cover = a_cover
-                self._cached_record_cover = a_record_cover
         else:
             a, = a
             a_cover = self.cover[a]
 
-        return a_cover * self.cover[b], a_record_cover * self.record_cover[b]
+        return a_cover * self.cover[b]
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -105,7 +88,7 @@ class DedupeBlockLearner(BlockLearner):
         result = self.coveredPairs(blocker, sampled_records)
         self.total_cover, self.record_cover = result
 
-        self.r = (sampled_records.original_length + 1)/len(sampled_records)
+        self.r = (sampled_records.original_length + 1) / len(sampled_records)
 
         self.blocker = blocking.Blocker(predicates)
 
@@ -214,6 +197,21 @@ class DedupeBlockLearner(BlockLearner):
 
         return all_comparisons
 
+    def comparisons(self, match_cover, compound_length):
+        cover_compounder = Compounder(self.total_cover)
+        record_compounder = Compounder(self.record_cover)
+        comparison_count = {}
+
+        for pred in sorted(match_cover, key=str):
+            if len(pred) > 1:
+                comparison_count[pred] = self.estimate(cover_compounder(pred),
+                                                       record_compounder(pred))
+            else:
+                comparison_count[pred] = self.estimate(self.total_cover[pred],
+                                                       self.record_cover[pred])
+
+        return comparison_count
+
 
 class RecordLinkBlockLearner(BlockLearner):
 
@@ -227,10 +225,10 @@ class RecordLinkBlockLearner(BlockLearner):
                                              sampled_records_1,
                                              sampled_records_2)
 
-        self.multiplier_1 = (sampled_records_1.original_length /
-                             len(sampled_records_1))
-        self.multiplier_2 = (sampled_records_2.original_length /
-                             len(sampled_records_2))
+        self.r_1 = ((sampled_records_1.original_length + 1) /
+                    len(sampled_records_1))
+        self.r_2 = ((sampled_records_2.original_length + 1) /
+                    len(sampled_records_2))
 
         self.blocker = blocking.Blocker(predicates)
 
@@ -242,12 +240,11 @@ class RecordLinkBlockLearner(BlockLearner):
         cover = {}
 
         for predicate in blocker.predicates:
-            cover[predicate] = {}
+            cover[predicate] = collections.defaultdict(lambda: (set(), set()))
             for id, record in viewitems(records_2):
                 blocks = predicate(record, target=True)
                 for block in blocks:
-                    cover[predicate].setdefault(
-                        block, (set(), set()))[1].add(id)
+                    cover[predicate][block][1].add(id)
 
             current_blocks = set(cover[predicate])
             for id, record in viewitems(records_1):
@@ -256,16 +253,27 @@ class RecordLinkBlockLearner(BlockLearner):
                     cover[predicate][block][0].add(id)
 
         for predicate, blocks in cover.items():
-            pairs = set()
-            for A, B in blocks.values():
-                for pair in itertools.product(A, B):
-                    pairs.add(self.pair_id[pair])
-            cover[predicate] = pairs
+            pairs = (pair
+                     for A, B in blocks.values()
+                     for pair in itertools.product(A, B))
+            cover[predicate] = Counter(pairs)
 
         return cover
 
     def estimate(self, blocks):
-        return len(blocks) * self.multiplier_1 * self.multiplier_2
+        return blocks.total * self.r_1 * self.r_2
+
+    def comparisons(self, match_cover, compound_length):
+        compounder = Compounder(self.total_cover)
+        comparison_count = {}
+
+        for pred in sorted(match_cover, key=str):
+            if len(pred) > 1:
+                comparison_count[pred] = self.estimate(compounder(pred))
+            else:
+                comparison_count[pred] = self.estimate(self.total_cover[pred])
+
+        return comparison_count
 
 
 class BranchBound(object):
@@ -341,7 +349,7 @@ class BranchBound(object):
 
         for pred, cover in list(viewitems(coverage)):
             if (dominator.count <= pred.count and
-                dominant_cover >= cover):
+                    dominant_cover >= cover):
                 del coverage[pred]
 
         return coverage
@@ -434,6 +442,7 @@ def dominators(match_cover, total_cover, comparison=False):
 
     return dominants
 
+
 class Counter(object):
     def __init__(self, iterable):
         if isinstance(iterable, collections.abc.Mapping):
@@ -445,8 +454,8 @@ class Counter(object):
         self.total = sum(self.values())
 
     def __le__(self, other):
-        return (self._d.keys() <= other._d.keys()
-                and self.total <= other.total)
+        return (self._d.keys() <= other._d.keys() and
+                self.total <= other.total)
 
     def __eq__(self, other):
         return self._d == other._d
