@@ -508,10 +508,9 @@ def dominators(match_cover, total_cover, comparison=False):
 
 def _count_elements(mapping, iterable):
     'Tally elements from the iterable.'
-    mapping = collections.defaultdict(int)
+    mapping_get = mapping.get
     for elem in iterable:
-        mapping[elem] += 1
-    return mapping
+        mapping[elem] = mapping_get(elem, 0) + 1
 
 
 try:  # Load C helper function if available
