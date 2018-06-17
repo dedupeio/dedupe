@@ -3,11 +3,16 @@
 
 # provides functions for selecting a sample of training data
 from __future__ import division
-from future.utils import viewitems, viewvalues
+from future.utils import viewitems, viewvalues, viewkeys
 
 import itertools
 import logging
 import collections
+
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 from . import blocking, predicates, core
 
@@ -503,7 +508,7 @@ def dominators(match_cover, total_cover, comparison=False):
 
 class Counter(object):
     def __init__(self, iterable):
-        if isinstance(iterable, collections.abc.Mapping):
+        if isinstance(iterable, Mapping):
             self._d = iterable
         else:
             self._d = {}
@@ -522,7 +527,7 @@ class Counter(object):
         return len(self._d)
 
     def values(self):
-        return self._d.values()
+        return viewvalues(self._d)
 
     def __mul__(self, other):
 
@@ -533,9 +538,9 @@ class Counter(object):
 
         # it's meaningfully faster to check in the key dictview
         # of 'larger' than in the dict directly
-        larger_keys = larger.keys()
+        larger_keys = viewkeys(larger)
 
-        common = {k: v * larger[k] for k, v in smaller.items()
+        common = {k: v * larger[k] for k, v in viewitems(smaller)
                   if k in larger_keys}
 
         return Counter(common)
