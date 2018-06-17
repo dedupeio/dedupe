@@ -16,12 +16,23 @@ base_predicates = (predicates.wholeFieldPredicate,
                    predicates.fingerprint,
                    predicates.oneGramFingerprint,
                    predicates.twoGramFingerprint,
-                   predicates.sortedAcronym)
+                   predicates.sortedAcronym,
+                   predicates.tokenFieldPredicate,
+                   predicates.commonFourGram,
+                   predicates.commonSixGram,
+                   predicates.hundredIntegerPredicate,
+                   predicates.hundredIntegersOddPredicate,
+                   predicates.nearIntegersPredicate,
+                   predicates.alphaNumericPredicate,
+                   predicates.commonIntegerPredicate,
+                   predicates.suffixArray,
+                   predicates.metaphoneToken)
 
 
 class BaseStringType(FieldType):
     type = None
     _Predicate = predicates.StringPredicate
+    _OverlapPredicate = predicates.MinHashStringPredicate
 
     def __init__(self, definition):
         super(BaseStringType, self).__init__(definition)
@@ -52,7 +63,7 @@ class ShortStringType(BaseStringType):
                            predicates.commonIntegerPredicate,
                            predicates.suffixArray,
                            predicates.metaphoneToken)
-    _overlap_thresholds = (1, 2, 3, 4)
+    _overlap_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(self, definition):
         super(ShortStringType, self).__init__(definition)

@@ -16,7 +16,9 @@ class SetType(FieldType):
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     _overlap_predicates = (predicates.commonSetElementPredicate,)
-    _overlap_thresholds = (1, 2, 3, 4)
+    _overlap_thresholds = (0.2, 0.4, 0.6, 0.8)
+    _OverlapPredicate = predicates.MinHashSetPredicate
+
 
     def __init__(self, definition):
         super(SetType, self).__init__(definition)
