@@ -285,15 +285,15 @@ class RecordLinkBlockLearner(BlockLearner):
 
         return cover
 
-    def estimate(self, blocks):
+    def estimate(self, comparisons):
         # For record pairs we only compare unique comparisons.
         #
         # I have no real idea of how to estimate the total number
         # of unique comparisons. Maybe the way to think about this
         # as the intersection of random multisets?
         #
-        # In any case, here's the estimator I'm using now.
-        return blocks.total * self.r_a * self.r_b
+        # In any case, here's the estimator we are using now.
+        return len(comparisons) * self.r_a * self.r_b
 
     def comparisons(self, match_cover, compound_length):
         compounder = Compounder(self.total_cover)
