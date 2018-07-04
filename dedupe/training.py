@@ -492,7 +492,6 @@ class Counter(object):
             self._d = d
 
         self.total = sum(self.values())
-        self._len = None
 
     def __le__(self, other):
         return (self._d.keys() <= other._d.keys() and
@@ -502,10 +501,7 @@ class Counter(object):
         return self._d == other._d
 
     def __len__(self):
-        if self._len:
-            return self._len
-        else:
-            return len(self._d)
+        return len(self._d)
 
     def values(self):
         return viewvalues(self._d)
@@ -520,8 +516,10 @@ class Counter(object):
         # it's meaningfully faster to check in the key dictview
         # of 'larger' than in the dict directly
         larger_keys = viewkeys(larger)
-        
-        common = {k: v * larger[k] for k, v in viewitems(smaller) if k in larger_keys}
+
+        common = {k: v * larger[k]
+                  for k, v in viewitems(smaller)
+                  if k in larger_keys}
 
         return Counter(common)
 
