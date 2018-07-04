@@ -491,7 +491,7 @@ class Counter(object):
                 d[elem] += 1
             self._d = d
 
-        self.total = sum(self.values())
+        self.total = sum(self._d.values())
 
     def __le__(self, other):
         return (self._d.keys() <= other._d.keys() and
@@ -502,9 +502,6 @@ class Counter(object):
 
     def __len__(self):
         return len(self._d)
-
-    def values(self):
-        return viewvalues(self._d)
 
     def __mul__(self, other):
 
