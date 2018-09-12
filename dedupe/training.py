@@ -84,7 +84,6 @@ class Compounder(object):
 class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records, data):
-        self.pair_id = core.Enumerator()
 
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(data)
@@ -106,6 +105,8 @@ class DedupeBlockLearner(BlockLearner):
         cover = {}
         record_cover = {}
 
+        pair_enumerator = core.Enumerator()
+
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
             covered_records = collections.defaultdict(int)
@@ -116,7 +117,7 @@ class DedupeBlockLearner(BlockLearner):
                     pred_cover[block].add(id)
                     covered_records[id] += 1
 
-            pairs = (pair
+            pairs = (pair_enumerator[pair]
                      for block in pred_cover.values()
                      for pair in itertools.combinations(sorted(block), 2))
 
@@ -239,8 +240,6 @@ class DedupeBlockLearner(BlockLearner):
 class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2):
-        self.pair_id = core.Enumerator()
-
         blocker = blocking.Blocker(predicates)
         blocker.indexAll(data_2)
 
@@ -264,6 +263,8 @@ class RecordLinkBlockLearner(BlockLearner):
     def coveredPairs(self, blocker, records_1, records_2):
         cover = {}
 
+        pair_enumerator = core.Enumerator()
+
         for predicate in blocker.predicates:
             cover[predicate] = collections.defaultdict(lambda: (set(), set()))
             for id, record in viewitems(records_2):
@@ -278,7 +279,7 @@ class RecordLinkBlockLearner(BlockLearner):
                     cover[predicate][block][0].add(id)
 
         for predicate, blocks in cover.items():
-            pairs = {pair
+            pairs = {pair_enumerator[pair]
                      for A, B in blocks.values()
                      for pair in itertools.product(A, B)}
             cover[predicate] = Counter(pairs)
@@ -490,7 +491,7 @@ class Counter(object):
                 d[elem] += 1
             self._d = d
 
-        self.total = sum(self.values())
+        self.total = sum(self._d.values())
 
     def __le__(self, other):
         return (self._d.keys() <= other._d.keys() and
@@ -501,9 +502,6 @@ class Counter(object):
 
     def __len__(self):
         return len(self._d)
-
-    def values(self):
-        return viewvalues(self._d)
 
     def __mul__(self, other):
 
@@ -516,7 +514,8 @@ class Counter(object):
         # of 'larger' than in the dict directly
         larger_keys = viewkeys(larger)
 
-        common = {k: v * larger[k] for k, v in viewitems(smaller)
+        common = {k: v * larger[k]
+                  for k, v in viewitems(smaller)
                   if k in larger_keys}
 
         return Counter(common)
