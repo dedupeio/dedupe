@@ -358,6 +358,7 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
     # pool is garbage collected, but sometimes it takes a while
     # before GC, so do it explicitly here
     pool.close()
+    pool.join()
 
 
 def appropriate_imap(num_cores):
