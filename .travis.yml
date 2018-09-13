@@ -39,7 +39,7 @@ matrix:
     script:
       - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
     after_success:
-      - pip install twine && twine upload -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
+      - pip install twine && twine upload --skip-existing -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
       - exit 0
   - services:
       - docker
@@ -51,7 +51,7 @@ matrix:
     script:
       - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
     after_success:
-      - pip install twine && twine upload -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
+      - pip install twine && twine upload --skip-existing -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
       - exit 0
 before_install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then git clone https://github.com/MacPython/terryfy; fi
@@ -63,7 +63,7 @@ install:
   - cython src/*.pyx
   - pip install -e .
 script:
-  - pytest tests --cov dedupe
+  - pytest tests dedupe --cov dedupe
   - python tests/canonical.py -vv
 after_success:
   - pip install coveralls

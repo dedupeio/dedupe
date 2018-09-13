@@ -22,7 +22,7 @@ install:
 build: false
 
 test_script:
-  - pytest --cov dedupe
+  - pytest tests dedupe --cov dedupe
   - python tests/canonical.py -vv
 
 on_success:
@@ -39,6 +39,6 @@ deploy_script:
   - echo password=%password%                         >> %USERPROFILE%\\.pypirc
   - set HOME=%USERPROFILE%
   - pip install wheel twine
-  - ps: if($env:APPVEYOR_REPO_TAG -eq $TRUE) { python -W ignore setup.py -v bdist_wheel; twine upload dist/* }
+  - ps: if($env:APPVEYOR_REPO_TAG -eq $TRUE) { python -W ignore setup.py -v bdist_wheel; twine upload --skip-existing dist/* }
 
 deploy : on

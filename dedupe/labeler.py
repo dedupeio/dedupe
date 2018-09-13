@@ -239,6 +239,7 @@ class BlockLearner(object):
         self.block_learner = training.RecordLinkBlockLearner(preds, *args)
         self.candidates = candidates[:]
 
+
 class DisagreementLearner(ActiveLearner):
 
     def __init__(self, data_model):

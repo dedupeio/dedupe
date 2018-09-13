@@ -89,7 +89,6 @@ def union_find(edgelist):
         else:
             components[root_a].append(i)
 
-
     return components.values()
 
 
