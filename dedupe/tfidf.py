@@ -16,8 +16,9 @@ class TfIdfIndex(Index):
         self._parseTerms = self._index.lexicon.parseTerms
 
     def index(self, doc):
-        i = self._doc_to_id[doc]
-        self._index.index_doc(i, doc)
+        if doc not in self._doc_to_id:
+            i = self._doc_to_id[doc]
+            self._index.index_doc(i, doc)
 
     def unindex(self, doc):
         i = self._doc_to_id.pop(doc)

@@ -11,8 +11,9 @@ class LevenshteinIndex(Index):
         self.docs = []
 
     def index(self, doc):
-        self._doc_to_id[doc]
-        Levenshtein_search.add_string(self.index_key, doc)
+        if doc not in self._doc_to_id:
+            self._doc_to_id[doc]
+            Levenshtein_search.add_string(self.index_key, doc)
 
     def unindex(self, doc):
         del self._doc_to_id[doc]

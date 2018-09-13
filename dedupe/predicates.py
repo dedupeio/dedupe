@@ -105,11 +105,9 @@ class IndexPredicate(Predicate):
         self.index = None
 
     def __getstate__(self):
-        result = self.__dict__.copy()
-
-        return {'__name__': result['__name__'],
-                'field': result['field'],
-                'threshold': result['threshold']}
+        odict = self.__dict__.copy()
+        del odict['index']
+        return odict
 
     def __setstate__(self, d):
         self.__dict__ = d
@@ -120,6 +118,11 @@ class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.canopy = {}
+
+    def __getstate__(self):
+        odict = super().__getstate__()
+        del odict['canopy']
+        return odict
 
     def __setstate__(self, *args, **kwargs):
         super().__setstate__(*args, **kwargs)
@@ -164,6 +167,11 @@ class SearchPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cache = {}
+
+    def __getstate__(self):
+        odict = super().__getstate__()
+        del odict['_cache']
+        return odict
 
     def __setstate__(self, *args, **kwargs):
         super().__setstate__(*args, **kwargs)

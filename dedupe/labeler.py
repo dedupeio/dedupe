@@ -237,9 +237,7 @@ class BlockLearner(object):
     def _init_product(self, candidates, *args):
         preds = self.data_model.predicates(canopies=False)
         self.block_learner = training.RecordLinkBlockLearner(preds, *args)
-
         self.candidates = candidates[:]
-
 
 class DisagreementLearner(ActiveLearner):
 
@@ -306,9 +304,12 @@ class DisagreementLearner(ActiveLearner):
 
         self.classifier._init(self.candidates)
 
-        sampled_records = Sample(data, 2000, original_length)
+        index_data = Sample(data, 50000, original_length)
+        sampled_records = Sample(index_data, 2000, original_length)
 
-        self.blocker._init_combo(self.candidates, sampled_records, data)
+        self.blocker._init_combo(self.candidates,
+                                 sampled_records,
+                                 index_data)
 
         return sampled_records
 
@@ -329,12 +330,14 @@ class DisagreementLearner(ActiveLearner):
         self.classifier._init(self.candidates)
 
         sampled_records_1 = Sample(data_1, 600, original_length_1)
-        sampled_records_2 = Sample(data_2, 600, original_length_2)
+
+        index_data = Sample(data_2, 50000, original_length_2)
+        sampled_records_2 = Sample(index_data, 600, original_length_2)
 
         self.blocker._init_product(self.candidates,
                                    sampled_records_1,
                                    sampled_records_2,
-                                   data_2)
+                                   index_data)
 
         return sampled_records_1, sampled_records_2
 

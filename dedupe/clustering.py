@@ -47,6 +47,7 @@ def union_find(edgelist):
 
     root = {}
     components = {}
+    component_size = {}
 
     it = numpy.nditer(edgelist, ['external_loop'])
 
@@ -59,30 +60,35 @@ def union_find(edgelist):
             # edgelists of much more than 4 billion elements we will
             # use an the 'I' type
             components[a] = array.array('I', [i])
+            component_size[a] = 2
             root[a] = root[b] = a
         elif root_a is None or root_b is None:
             if root_a is None:
                 b = a
                 root_a = root_b
             components[root_a].append(i)
+            component_size[root_a] += 1
             root[b] = root_a
         elif root_a != root_b:
-            component_a = numpy.unique(edgelist[components[root_a]])
-            component_b = numpy.unique(edgelist[components[root_b]])
-            if len(component_a) < len(component_b):
+            if component_size[root_a] < component_size[root_b]:
                 root_a, root_b = root_b, root_a
-                component_b = component_a
 
             components[root_a].extend(components[root_b])
             components[root_a].append(i)
 
+            component_b = numpy.unique(edgelist[components[root_b]])
+
             for node in component_b:
                 root[node] = root_a
 
+            component_size[root_a] += len(component_b)
+
             del components[root_b]
+            del component_size[root_b]
 
         else:
             components[root_a].append(i)
+
 
     return components.values()
 
@@ -107,7 +113,6 @@ def condensedDistance(dupes):
     '''
 
     candidate_set = numpy.unique(dupes['pairs'])
-    candidate_set = numpy.sort(candidate_set)
 
     i_to_id = dict(enumerate(candidate_set))
 
@@ -139,7 +144,6 @@ def cluster(dupes, threshold=.5, max_components=30000):
                  recall
     '''
     threshold = 1 - threshold
-
     dupe_sub_graphs = connected_components(dupes, max_components)
 
     for sub_graph in dupe_sub_graphs:
