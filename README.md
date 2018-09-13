@@ -21,7 +21,12 @@ dedupe takes in human training data and comes up with the best rules for your da
 ## Tools built with dedupe
 
 ### [Dedupe.io](https://dedupe.io/)
-A full service web service powered by dedupe for de-duplicating and find matches in your messy data. It provides an easy-to-use interface and provides cluster review and automation, as well as advanced record linkage, continuous matching and API integrations. [See the product page](https://dedupe.io/) and the [launch blog post](https://datamade.us/blog/introducing-dedupeio).
+A cloud service powered by the dedupe library for de-duplicating and finding matches in your data. It provides a step-by-step wizard for uploading your data, setting up a model, training, clustering and reviewing the results.
+
+[Dedupe.io](https://dedupe.io/) also supports record linkage across data sources and continuous matching and training through an [API](https://apidocs.dedupe.io/en/latest/).
+
+For more, see the [Dedupe.io product site](https://dedupe.io/), [tutorials on how to use it](https://dedupe.io/tutorial/intro-to-dedupe-io.html), and [differences between it and the dedupe library](https://dedupe.io/documentation/should-i-use-dedupeio-or-the-dedupe-python-library.html).
+
 
 ### [csvdedupe](https://github.com/dedupeio/csvdedupe)
 Command line tool for de-duplicating and [linking](https://github.com/dedupeio/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
