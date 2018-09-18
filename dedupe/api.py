@@ -30,6 +30,9 @@ import dedupe.labeler as labeler
 
 logger = logging.getLogger(__name__)
 
+import statsd
+def metrics():
+    return statsd.StatsClient()
 
 class Matching(object):
     """
@@ -217,8 +220,12 @@ class DedupeMatching(Matching):
                       raising it will increase precision
 
         """
-        blocked_pairs = self._blockData(data)
-        clusters = self.matchBlocks(blocked_pairs, threshold)
+        with metrics().timer('dedupe.blockData-match'):
+            blocked_pairs = self._blockData(data)
+
+        with metrics().timer('dedupe.matchBlocks'):
+            clusters = self.matchBlocks(blocked_pairs, threshold)
+
         if generator:
             return clusters
         else:
@@ -241,8 +248,11 @@ class DedupeMatching(Matching):
                          to 2.
         """
 
-        blocked_pairs = self._blockData(data)
-        return self.thresholdBlocks(blocked_pairs, recall_weight)
+        with metrics().timer('dedupe.blockData-threshold'):
+            blocked_pairs = self._blockData(data)
+
+        with metrics().timer('dedupe.thresholdBlocks'):
+            return self.thresholdBlocks(blocked_pairs, recall_weight)
 
     def _blockedPairs(self, blocks):
         """
