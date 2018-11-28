@@ -8,6 +8,7 @@ from future.utils import viewitems, viewvalues, viewkeys
 import itertools
 import logging
 import collections
+import functools
 
 try:
     from collections.abc import Mapping
@@ -143,7 +144,8 @@ class DedupeBlockLearner(BlockLearner):
         return cover
 
     def estimate(self, comparisons):
-        # Result due to Stefano Allesina and Jacopo Grilli
+        # Result due to Stefano Allesina and Jacopo Grilli,
+        # details forthcoming
         #
         # This estimates the total number of comparisons a blocking
         # rule will produce.
@@ -221,7 +223,7 @@ class RecordLinkBlockLearner(BlockLearner):
         # as the intersection of random multisets?
         #
         # In any case, here's the estimator we are using now.
-        return comparisons.total * self.r
+        return self.r * comparisons.total
 
 
 
@@ -261,23 +263,27 @@ class BranchBound(object):
 
             if candidates and reachable >= self.target:
 
-                def score(p):
-                    return (len(candidates[p]), -p.count)
+                order_by = functools.partial(self.order_by, candidates)
 
-                best = max(candidates, key=score)
+                best = max(candidates, key=order_by)
 
-                remaining = remaining_cover(candidates,
-                                            candidates[best])
+                remaining = self.uncovered_by(candidates,
+                                              candidates[best])
                 self.search(remaining, partial + (best,))
                 del remaining
 
-                reduced = self.dominates(candidates, best)
+                reduced = self.remove_dominated(candidates, best)
                 self.search(reduced, partial)
                 del reduced
 
         return self.cheapest
 
-    def score(self, partial):
+    @staticmethod
+    def order_by(candidates, p):
+        return (len(candidates[p]), -p.count)
+
+    @staticmethod
+    def score(partial):
         return sum(p.count for p in partial)
 
     def covered(self, partial):
@@ -287,13 +293,15 @@ class BranchBound(object):
         else:
             return 0
 
-    def reachable(self, dupe_cover):
+    @staticmethod
+    def reachable(dupe_cover):
         if dupe_cover:
             return len(set.union(*dupe_cover.values()))
         else:
             return 0
 
-    def dominates(self, coverage, dominator):
+    @staticmethod
+    def remove_dominated(coverage, dominator):
         dominant_cover = coverage[dominator]
 
         for pred, cover in list(viewitems(coverage)):
@@ -303,12 +311,22 @@ class BranchBound(object):
 
         return coverage
 
+    @staticmethod
+    def uncovered_by(coverage, covered):
+        remaining = {}
+        for predicate, uncovered in viewitems(coverage):
+            still_uncovered = uncovered - covered
+            if still_uncovered:
+                remaining[predicate] = still_uncovered
+
+        return remaining
+
 
 def cover(blocker, pairs, total_cover, compound_length):  # pragma: no cover
     cover = coveredPairs(blocker.predicates, pairs)
     cover = dominators(cover, total_cover)
     cover = compound(cover, compound_length)
-    cover = remaining_cover(cover)
+    cover = {pred: coverage for pred, coverage in cover.items() if coverage}
 
     return cover
 
@@ -345,18 +363,6 @@ def compound(cover, compound_length):
                     cover[CP(compound_predicate)] = compound_cover
 
     return cover
-
-
-def remaining_cover(coverage, covered=None):
-    if covered is None:
-        covered = set()
-    remaining = {}
-    for predicate, uncovered in viewitems(coverage):
-        still_uncovered = uncovered - covered
-        if still_uncovered:
-            remaining[predicate] = still_uncovered
-
-    return remaining
 
 
 def unique(seq):
