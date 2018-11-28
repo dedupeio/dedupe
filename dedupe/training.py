@@ -28,11 +28,13 @@ class BlockLearner(object):
         '''
         compound_length = 2
 
-        dupe_cover = cover(self.blocker, matches,
-                           self.total_cover, compound_length)
+        dupe_cover = Cover(self.blocker.predicates, matches)
+        dupe_cover.dominators(cost=self.total_cover)
+        dupe_cover.compound(compound_length)
+
         comparison_count = self.comparisons(dupe_cover, compound_length)
 
-        dupe_cover = dominators(dupe_cover, comparison_count, comparison=True)
+        dupe_cover.dominators(cost=comparison_count, comparison=True)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
@@ -60,7 +62,7 @@ class BlockLearner(object):
         return final_predicates
 
     def comparisons(self, match_cover, compound_length):
-        compounder = Compounder(self.total_cover)
+        compounder = self.Compounder(self.total_cover)
         comparison_count = {}
 
         for pred in sorted(match_cover, key=str):
@@ -76,27 +78,26 @@ class BlockLearner(object):
 
         return comparison_count
 
+    class Compounder(object):
+        def __init__(self, cover):
+            self.cover = cover
+            self._cached_predicate = None
+            self._cached_cover = None
 
-class Compounder(object):
-    def __init__(self, cover):
-        self.cover = cover
-        self._cached_predicate = None
-        self._cached_cover = None
+        def __call__(self, compound_predicate):
+            a, b = compound_predicate[:-1], compound_predicate[-1]
 
-    def __call__(self, compound_predicate):
-        a, b = compound_predicate[:-1], compound_predicate[-1]
-
-        if len(a) > 1:
-            if a == self._cached_predicate:
-                a_cover = self._cached_cover
+            if len(a) > 1:
+                if a == self._cached_predicate:
+                    a_cover = self._cached_cover
+                else:
+                    a_cover = self._cached_cover = self(a)
+                    self._cached_predicate = a
             else:
-                a_cover = self._cached_cover = self(a)
-                self._cached_predicate = a
-        else:
-            a, = a
-            a_cover = self.cover[a]
+                a, = a
+                a_cover = self.cover[a]
 
-        return a_cover * self.cover[b]
+            return a_cover * self.cover[b]
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -122,7 +123,8 @@ class DedupeBlockLearner(BlockLearner):
     def unroll(matches):  # pragma: no cover
         return unique((record for pair in matches for record in pair))
 
-    def coveredPairs(self, blocker, records):
+    @staticmethod
+    def coveredPairs(blocker, records):
         cover = {}
 
         pair_enumerator = core.Enumerator()
@@ -320,49 +322,6 @@ class BranchBound(object):
         return remaining
 
 
-def cover(blocker, pairs, total_cover, compound_length):  # pragma: no cover
-    cover = coveredPairs(blocker.predicates, pairs)
-    cover = dominators(cover, total_cover)
-    cover = compound(cover, compound_length)
-    cover = {pred: coverage for pred, coverage in cover.items() if coverage}
-
-    return cover
-
-
-def coveredPairs(predicates, pairs):
-    cover = {}
-
-    for predicate in predicates:
-        coverage = {i for i, (record_1, record_2)
-                    in enumerate(pairs)
-                    if (set(predicate(record_1)) &
-                        set(predicate(record_2, target=True)))}
-        if coverage:
-            cover[predicate] = coverage
-
-    return cover
-
-
-def compound(cover, compound_length):
-    simple_predicates = sorted(cover, key=str)
-    CP = predicates.CompoundPredicate
-
-    for i in range(2, compound_length + 1):
-        compound_predicates = itertools.combinations(simple_predicates, i)
-
-        for compound_predicate in compound_predicates:
-            a, b = compound_predicate[:-1], compound_predicate[-1]
-            if len(a) == 1:
-                a = a[0]
-
-            if a in cover:
-                compound_cover = cover[a] & cover[b]
-                if compound_cover:
-                    cover[CP(compound_predicate)] = compound_cover
-
-    return cover
-
-
 def unique(seq):
     """Return the unique elements of a collection even if those elements are
        unhashable and unsortable, like dicts and sets"""
@@ -371,29 +330,6 @@ def unique(seq):
         if each not in cleaned:
             cleaned.append(each)
     return cleaned
-
-
-def dominators(match_cover, total_cover, comparison=False):
-    if comparison:
-        def sort_key(x):
-            return (-total_cover[x], len(match_cover[x]))
-    else:
-        def sort_key(x):
-            return (len(match_cover[x]), -len(total_cover[x]))
-
-    ordered_predicates = sorted(match_cover, key=sort_key)
-    dominants = {}
-
-    for i, candidate in enumerate(ordered_predicates, 1):
-        match = match_cover[candidate]
-        total = total_cover[candidate]
-
-        if not any((match_cover[pred] >= match and
-                    total_cover[pred] <= total)
-                   for pred in ordered_predicates[i:]):
-            dominants[candidate] = match
-
-    return dominants
 
 
 class Counter(object):
@@ -434,6 +370,93 @@ class Counter(object):
                   if k in larger_keys}
 
         return Counter(common)
+
+
+class Cover(object):
+    def __init__(self, *args):
+        if len(args) == 1:
+            self._d, = args
+        else:
+            self._d = {}
+            predicates, pairs = args
+            self._cover(predicates, pairs)
+
+    def _cover(self, predicates, pairs):
+        for predicate in predicates:
+            coverage = {i for i, (record_1, record_2)
+                        in enumerate(pairs)
+                        if (set(predicate(record_1)) &
+                            set(predicate(record_2, target=True)))}
+            if coverage:
+                self._d[predicate] = coverage
+
+    def compound(self, compound_length):
+        simple_predicates = sorted(self._d, key=str)
+        CP = predicates.CompoundPredicate
+
+        for i in range(2, compound_length + 1):
+            compound_predicates = itertools.combinations(simple_predicates, i)
+
+            for compound_predicate in compound_predicates:
+                a, b = compound_predicate[:-1], compound_predicate[-1]
+                if len(a) == 1:
+                    a = a[0]
+
+                if a in self._d:
+                    compound_cover = self._d[a] & self._d[b]
+                    if compound_cover:
+                        self._d[CP(compound_predicate)] = compound_cover
+
+    def dominators(self, cost, comparison=False):
+        if comparison:
+            def sort_key(x):
+                return (-cost[x], len(self._d[x]))
+        else:
+            def sort_key(x):
+                return (len(self._d[x]), -len(cost[x]))
+
+        ordered_predicates = sorted(self._d, key=sort_key)
+        dominants = {}
+
+        for i, candidate in enumerate(ordered_predicates):
+            candidate_match = self._d[candidate]
+            candidate_cost = cost[candidate]
+
+            for pred in ordered_predicates[(i + 1):]:
+                other_match = self._d[pred]
+                other_cost = cost[pred]
+                better_or_equal = (other_match >= candidate_match and
+                                   other_cost <= candidate_cost)
+                if better_or_equal:
+                    break
+            else:
+                dominants[candidate] = candidate_match
+
+        self._d = dominants
+
+    def __iter__(self):
+        return iter(self._d)
+
+    def keys(self):
+        return self._d.keys()
+
+    def values(self):
+        return self._d.values()
+
+    def items(self):
+        return self._d.items()
+
+    def __getitem__(self, k):
+        return self._d[k]
+
+    def copy(self):
+        return Cover(self._d.copy())
+
+    def update(self, *args, **kwargs):
+        self._d.update(*args, **kwargs)
+
+    def __eq__(self, other):
+        return self._d == other._d
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501
