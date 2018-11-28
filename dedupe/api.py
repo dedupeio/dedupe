@@ -21,7 +21,6 @@ import simplejson as json
 import rlr
 
 import dedupe.core as core
-import dedupe.training as training
 import dedupe.serializer as serializer
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
