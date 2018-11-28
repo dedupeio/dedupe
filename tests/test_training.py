@@ -60,13 +60,13 @@ class TrainingTest(unittest.TestCase):
         assert training.unique(
             [{1: 1, 2: 2}, {3: 3, 4: 4}, {1: 1, 2: 2}]) in target
 
-    def test_remaining_cover(self):
+    def test_uncovered_by(self):
         before = {1: {1, 2, 3}, 2: {1, 2}, 3: {3}}
         after = {1: {1, 2}, 2: {1, 2}}
 
         before_copy = before.copy()
-        assert training.remaining_cover(before) == before
-        assert training.remaining_cover(before_copy, {3}) == after
+        assert training.BranchBound.uncovered_by(before, set()) == before
+        assert training.BranchBound.uncovered_by(before, {3}) == after
         assert before == before_copy
 
     def test_compound(self):

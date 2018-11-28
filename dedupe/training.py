@@ -163,7 +163,6 @@ class DedupeBlockLearner(BlockLearner):
         return self.r * comparisons.total
 
 
-
 class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2):
@@ -224,7 +223,6 @@ class RecordLinkBlockLearner(BlockLearner):
         #
         # In any case, here's the estimator we are using now.
         return self.r * comparisons.total
-
 
 
 class BranchBound(object):
