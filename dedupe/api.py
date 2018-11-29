@@ -21,7 +21,6 @@ import simplejson as json
 import rlr
 
 import dedupe.core as core
-import dedupe.training as training
 import dedupe.serializer as serializer
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
@@ -790,12 +789,8 @@ class Dedupe(DedupeMatching, ActiveMatching):
         self._checkData(data)
 
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.sampled_records = self.active_learner.sample_combo(
-            data, blocked_proportion, sample_size, original_length)
-
-    def _blockLearner(self, predicates):
-        return training.DedupeBlockLearner(predicates,
-                                           self.sampled_records)
+        self.active_learner.sample_combo(data, blocked_proportion,
+                                         sample_size, original_length)
 
     def _checkData(self, data):
         if len(data) == 0:
@@ -841,16 +836,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         self._checkData(data_1, data_2)
 
         self.active_learner = self.ActiveLearner(self.data_model)
-        self.sampled_records = self.active_learner.sample_product(data_1, data_2,
-                                                                  blocked_proportion,
-                                                                  sample_size,
-                                                                  original_length_1,
-                                                                  original_length_2)
-
-    def _blockLearner(self, predicates):
-        return training.RecordLinkBlockLearner(predicates,
-                                               self.sampled_records_1,
-                                               self.sampled_records_2)
+        self.active_learner.sample_product(data_1, data_2,
+                                           blocked_proportion,
+                                           sample_size,
+                                           original_length_1,
+                                           original_length_2)
 
     def _checkData(self, data_1, data_2):
         if len(data_1) == 0:
