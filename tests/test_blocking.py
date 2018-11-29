@@ -34,27 +34,6 @@ class BlockingTest(unittest.TestCase):
         self.simple = lambda x: set([str(k) for k in x
                                      if "CompoundPredicate" not in str(k)])
 
-    def test_dedupe_coverage(self):
-        predicates = self.data_model.predicates()
-        blocker = dedupe.blocking.Blocker(predicates)
-        blocker.indexAll({i: x for i, x in enumerate(self.training_records)})
-        coverage = dedupe.training.coveredPairs(blocker.predicates,
-                                                self.training)
-        assert self.simple(coverage.keys()).issuperset(
-            set(["SimplePredicate: (tokenFieldPredicate, name)",
-                 "SimplePredicate: (commonSixGram, name)",
-                 "TfidfTextCanopyPredicate: (0.4, name)",
-                 "SimplePredicate: (sortedAcronym, name)",
-                 "SimplePredicate: (sameThreeCharStartPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.2, name)",
-                 "SimplePredicate: (sameFiveCharStartPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.6, name)",
-                 "SimplePredicate: (wholeFieldPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.8, name)",
-                 "SimplePredicate: (commonFourGram, name)",
-                 "SimplePredicate: (firstTokenPredicate, name)",
-                 "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
-
 
 class TfidfTest(unittest.TestCase):
     def setUp(self):

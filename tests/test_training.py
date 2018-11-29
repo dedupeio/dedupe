@@ -36,8 +36,8 @@ class TrainingTest(unittest.TestCase):
         predicates = self.data_model.predicates()
         blocker = dedupe.blocking.Blocker(predicates)
         blocker.indexAll({i: x for i, x in enumerate(self.training_records)})
-        coverage = training.coveredPairs(blocker.predicates,
-                                         self.training)
+        coverage = training.Cover(blocker.predicates,
+                                  self.training)
         assert self.simple(coverage.keys()).issuperset(
             set(["SimplePredicate: (tokenFieldPredicate, name)",
                  "SimplePredicate: (commonSixGram, name)",
@@ -60,37 +60,42 @@ class TrainingTest(unittest.TestCase):
         assert training.unique(
             [{1: 1, 2: 2}, {3: 3, 4: 4}, {1: 1, 2: 2}]) in target
 
-    def test_remaining_cover(self):
+    def test_uncovered_by(self):
         before = {1: {1, 2, 3}, 2: {1, 2}, 3: {3}}
         after = {1: {1, 2}, 2: {1, 2}}
 
         before_copy = before.copy()
-        assert training.remaining_cover(before) == before
-        assert training.remaining_cover(before_copy, {3}) == after
+
+        assert training.BranchBound.uncovered_by(before, set()) == before
+        assert training.BranchBound.uncovered_by(before, {3}) == after
         assert before == before_copy
 
     def test_compound(self):
-        singletons = {1: {1, 2, 3}, 2: {1, 2}, 3: {2}, 4: {5}}
+        start = training.Cover({1: {1, 2, 3}, 2: {1, 2}, 3: {2}, 4: {5}})
+        before = start.copy()
+        after = before.copy()
+        after.update({(1, 2): {1, 2},
+                      (1, 3): {2},
+                      (2, 3): {2}})
 
-        compounded = training.compound(singletons, 2)
-        result = singletons.copy()
-        result.update({(1, 2): {1, 2},
-                       (1, 3): {2},
-                       (2, 3): {2}})
-        assert compounded == result
+        before.compound(2)
+        assert before == after
 
-        compounded = training.compound(singletons, 3)
-        result = singletons.copy()
-        result.update({(1, 2): {1, 2},
-                       (1, 3): {2},
-                       (2, 3): {2},
-                       (1, 2, 3): {2}})
-        assert compounded == result
+        before = start.copy()
+        after = start.copy()
+        after.update({(1, 2): {1, 2},
+                      (1, 3): {2},
+                      (2, 3): {2},
+                      (1, 2, 3): {2}})
+
+        before.compound(3)
+
+        assert before == after
 
     def test_covered_pairs(self):
         p1 = lambda x, target=None: (1,)  # noqa: E 731
 
-        cover = training.coveredPairs((p1,), [('a', 'b')] * 2)
+        cover = training.Cover((p1,), [('a', 'b')] * 2)
 
         assert cover[p1] == {0, 1}
 

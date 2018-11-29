@@ -373,10 +373,9 @@ class Sample(dict):
         if len(d) <= sample_size:
             super().__init__(d)
         else:
-            super().__init__({k: d[k]
-                              for k
-                              in random.sample(d.keys(),
-                                               sample_size)})
+            _keys = tuple(d.keys())
+            sample = (random.choice(_keys) for _ in range(sample_size))
+            super().__init__({k: d[k] for k in sample})
         if original_length is None:
             self.original_length = len(d)
         else:
