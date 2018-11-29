@@ -1,6 +1,9 @@
 # Continuous integration procedure for AppVeyor
 # Based on https://raw.githubusercontent.com/choderalab/itctools/master/appveyor.yml
 
+cache:
+  - .pytest_cache
+
 environment:
   password:
     secure: WCflARlYtKV2j4dKfsQQVg==
@@ -10,6 +13,12 @@ environment:
     - python : 27-x64
     - python : 34
     - python : 34-x64
+    - python : 35
+    - python : 35-x64
+    - python : 36
+    - python : 36-x64
+    - python : 37
+    - python : 37-x64
 
 install:
   - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
