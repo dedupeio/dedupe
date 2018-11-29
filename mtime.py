@@ -56,7 +56,7 @@ mtime = 0
 gitobj = subprocess.Popen(shlex.split('git whatchanged --pretty=%at'),
                           stdout=subprocess.PIPE)
 for line in gitobj.stdout:
-    line = line.strip()
+    line = line.decode().strip()
 
     # Blank line between Date and list of files
     if not line: continue
@@ -71,7 +71,7 @@ for line in gitobj.stdout:
 
     # Date line
     else:
-        mtime = long(line)
+        mtime = int(line)
 
     # All files done?
     if not filelist:
