@@ -1,3 +1,6 @@
+# 1.9.4
+- Cleaned up block learning
+
 # 1.9.3
 - Improved performance of connected components algorithm with very large components
 - Fixed pickling unpickling bug of Index predicate classes
