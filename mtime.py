@@ -23,53 +23,37 @@
 # Example: to only update only the README and files in ./doc:
 # git-restore-mtime-bare README doc
 
-import subprocess, shlex
-import sys, os.path
 
-if os.utime in getattr(os, 'supports_follow_symlinks', []):
-    def lutime(path, times):
-        os.utime(path, times, follow_symlinks=False)
-else:
-    def lutime(path, times):
-        if not os.path.islink(path):
-            os.utime(path, times)
+import subprocess
+import shlex
+import sys
+import os.path
 
-# List files matching user pathspec, relative to current directory
 filelist = set()
 for path in (sys.argv[1:] or [os.path.curdir]):
-
-    # file or symlink (to file, to dir or broken - git handles the same way)
     if os.path.isfile(path) or os.path.islink(path):
         filelist.add(os.path.relpath(path))
-
-    # dir
     elif os.path.isdir(path):
         for root, subdirs, files in os.walk(path):
             if '.git' in subdirs:
                 subdirs.remove('.git')
-
             for file in files:
                 filelist.add(os.path.relpath(os.path.join(root, file)))
 
-# Process the log until all files are 'touched'
 mtime = 0
 gitobj = subprocess.Popen(shlex.split('git whatchanged --pretty=%at'),
                           stdout=subprocess.PIPE)
 for line in gitobj.stdout:
-    line = line.decode().strip()
+    line = line.decode()
+    line = line.strip()
+    if not line:
+        continue
 
-    # Blank line between Date and list of files
-    if not line: continue
-
-    # File line
     if line.startswith(':'):
-        file = os.path.normpath(line.split('\t')[-1])
+        file = line.split('\t')[-1]
         if file in filelist:
             filelist.remove(file)
-            #print mtime, file
-            lutime(file, (mtime, mtime))
-
-    # Date line
+            os.utime(file, (mtime, mtime))
     else:
         mtime = int(line)
 
