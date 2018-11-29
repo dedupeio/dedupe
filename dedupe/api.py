@@ -186,7 +186,6 @@ class DedupeMatching(Matching):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cluster = clustering.cluster
-        self._linkage_type = "Dedupe"
 
     def match(self, data, threshold=0.5, generator=False):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
@@ -336,7 +335,6 @@ class RecordLinkMatching(Matching):
         super().__init__(*args, **kwargs)
 
         self._cluster = clustering.greedyMatching
-        self._linkage_type = "RecordLink"
 
     def match(self, data_1, data_2, threshold=0.5, generator=False):  # pragma: no cover
         """
@@ -860,7 +858,6 @@ class GazetteerMatching(RecordLinkMatching):
         super().__init__(*args, **kwargs)
 
         self._cluster = clustering.gazetteMatching
-        self._linkage_type = "GazetteerMatching"
 
     def _blockData(self, messy_data):
         for each in self._blockGenerator(messy_data, self.blocked_records):

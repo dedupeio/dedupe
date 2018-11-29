@@ -8,7 +8,6 @@ import itertools
 import time
 import tempfile
 import os
-import operator
 import random
 import collections
 import warnings
@@ -407,15 +406,6 @@ def index(data, offset=0):
         data = dict(zip(itertools.count(offset),
                         viewvalues(data)))
         return data
-
-
-def iunzip(iterable, internal_length):  # pragma: no cover
-    """iunzip is the same as zip(*iter) but returns iterators, instead of
-    expand the iterator. Mostly used for large sequence"""
-
-    _tmp, iterable = itertools.tee(iterable, 2)
-    iters = itertools.tee(iterable, internal_length)
-    return (map(operator.itemgetter(i), it) for i, it in enumerate(iters))
 
 
 def Enumerator(start=0, initial=()):

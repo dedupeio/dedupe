@@ -2,6 +2,8 @@ branches:
   only:
     - master
     - "/^v.*$/"
+git:
+  depth: false
 notifications:
   email:
     on_success: change

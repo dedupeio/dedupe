@@ -190,8 +190,6 @@ class BlockLearner(object):
             self._cached_labels = None
             self._old_dupes = dupes
 
-            self.old_predicates = self.current_predicates
-
     def candidate_scores(self):
         if self._cached_labels is None:
             labels = self.predict(self.candidates)

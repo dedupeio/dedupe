@@ -120,10 +120,6 @@ class DedupeBlockLearner(BlockLearner):
         self._cached_estimates = {}
 
     @staticmethod
-    def unroll(matches):  # pragma: no cover
-        return unique((record for pair in matches for record in pair))
-
-    @staticmethod
     def coveredPairs(blocker, records):
         cover = {}
 
@@ -185,10 +181,6 @@ class RecordLinkBlockLearner(BlockLearner):
         self.blocker = blocking.Blocker(predicates)
 
         self._cached_estimates = {}
-
-    @staticmethod
-    def unroll(matches):  # pragma: no cover
-        return unique((record_2 for _, record_2 in matches))
 
     def coveredPairs(self, blocker, records_1, records_2):
         cover = {}

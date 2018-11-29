@@ -8,7 +8,6 @@ class LevenshteinIndex(Index):
     def __init__(self):
         self.index_key = Levenshtein_search.populate_wordset(-1, [])
         self._doc_to_id = Enumerator(start=1)
-        self.docs = []
 
     def index(self, doc):
         if doc not in self._doc_to_id:
