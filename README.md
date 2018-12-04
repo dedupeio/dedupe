@@ -6,7 +6,7 @@ _dedupe is a python library that uses machine learning to perform fuzzy matching
 __dedupe__ will help you: 
 
 * __remove duplicate entries__ from a spreadsheet of names and addresses
-* __link a list__ with customer information to another with order history, even without unique customer id's
+* __link a list__ with customer information to another with order history, even without unique customer IDs
 * take a database of campaign contributions and __figure out which ones were made by the same person__, even if the names were entered slightly differently for each record
 
 dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
@@ -121,4 +121,4 @@ Third-party copyright in this distribution is noted where applicable.
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 
-Gregg, Forest, and Derek Eder. 2018. Dedupe. https://github.com/dedupeio/dedupe.
+Forest Gregg and Derek Eder. 2018. Dedupe. https://github.com/dedupeio/dedupe.
