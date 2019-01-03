@@ -10,6 +10,10 @@ import time
 logger = logging.getLogger(__name__)
 
 
+def index_list():
+    return defaultdict(list)
+
+
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
 
@@ -17,7 +21,7 @@ class Blocker:
 
         self.predicates = predicates
 
-        self.index_fields = defaultdict(lambda: defaultdict(list))
+        self.index_fields = defaultdict(index_list)
 
         for full_predicate in predicates:
             for predicate in full_predicate:
