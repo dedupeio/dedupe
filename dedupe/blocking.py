@@ -59,6 +59,7 @@ class Blocker:
                         predicate.canopy = {}
                     if hasattr(predicate, '_cache'):
                         predicate._cache = {}
+                    predicate.frozen = False
 
     def index(self, data, field):
         '''Creates TF/IDF index of a given set of data'''

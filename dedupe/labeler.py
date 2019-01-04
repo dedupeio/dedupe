@@ -229,13 +229,28 @@ class BlockLearner(object):
     def _init_combo(self, candidates, *args):
         preds = self.data_model.predicates()
         self.block_learner = training.DedupeBlockLearner(preds, *args)
-
         self.candidates = candidates[:]
+
+        self._freeze_index_predicates(self.candidates)
 
     def _init_product(self, candidates, *args):
         preds = self.data_model.predicates(canopies=False)
         self.block_learner = training.RecordLinkBlockLearner(preds, *args)
         self.candidates = candidates[:]
+
+        self._freeze_index_predicates(self.candidates)
+
+    def _freeze_index_predicates(self, candidates):
+        preds = self.block_learner.blocker.predicates
+
+        index_predicates = [pred for pred in preds if hasattr(pred, 'index')]
+
+        for pred in index_predicates:
+            for pair in candidates:
+                for record in pair:
+                    pred(record)
+
+            pred.freeze()
 
 
 class DisagreementLearner(ActiveLearner):

@@ -7,6 +7,7 @@ import math
 import itertools
 import string
 import sys
+import copy
 
 from doublemetaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
@@ -106,27 +107,47 @@ class IndexPredicate(Predicate):
 
     def __getstate__(self):
         odict = self.__dict__.copy()
-        del odict['index']
+        if self.frozen:
+            odict['index']._index = None
+        else:
+            del odict['index']
         return odict
 
     def __setstate__(self, d):
         self.__dict__ = d
-        self.index = None
+
+        if not hasattr(self, 'frozen'):
+            self.frozen = False
+        if not self.frozen:
+            self.index = None
+
+    def freeze(self):
+
+        if not self.frozen:
+            self.index = copy.copy(self.index)
+            self.index._index = None
+            self.frozen = True
 
 
 class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.canopy = {}
+        self.frozen = False
 
     def __getstate__(self):
         odict = super().__getstate__()
-        del odict['canopy']
+        if not self.frozen:
+            del odict['canopy']
         return odict
 
     def __setstate__(self, *args, **kwargs):
         super().__setstate__(*args, **kwargs)
-        self.canopy = {}
+
+        if not hasattr(self, 'frozen'):
+            self.frozen = False
+        if not self.frozen:
+            self.canopy = {}
 
     def __call__(self, record, **kwargs):
         block_key = None
@@ -167,15 +188,21 @@ class SearchPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cache = {}
+        self.frozen = False
 
     def __getstate__(self):
         odict = super().__getstate__()
-        del odict['_cache']
+        if not self.frozen:
+            del odict['_cache']
         return odict
 
     def __setstate__(self, *args, **kwargs):
         super().__setstate__(*args, **kwargs)
-        self._cache = {}
+
+        if not hasattr(self, 'frozen'):
+            self.frozen = False
+        if not self.frozen:
+            self._cache = {}
 
     def __call__(self, record, target=False, **kwargs):
         column = record[self.field]
