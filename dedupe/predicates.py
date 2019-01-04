@@ -104,6 +104,7 @@ class IndexPredicate(Predicate):
         self.field = field
         self.threshold = threshold
         self.index = None
+        self.frozen = False
 
     def __getstate__(self):
         odict = self.__dict__.copy()
@@ -133,7 +134,6 @@ class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.canopy = {}
-        self.frozen = False
 
     def __getstate__(self):
         odict = super().__getstate__()
@@ -144,8 +144,6 @@ class CanopyPredicate(object):
     def __setstate__(self, *args, **kwargs):
         super().__setstate__(*args, **kwargs)
 
-        if not hasattr(self, 'frozen'):
-            self.frozen = False
         if not self.frozen:
             self.canopy = {}
 
@@ -188,10 +186,10 @@ class SearchPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cache = {}
-        self.frozen = False
 
     def __getstate__(self):
         odict = super().__getstate__()
+
         if not self.frozen:
             del odict['_cache']
         return odict
@@ -199,8 +197,6 @@ class SearchPredicate(object):
     def __setstate__(self, *args, **kwargs):
         super().__setstate__(*args, **kwargs)
 
-        if not hasattr(self, 'frozen'):
-            self.frozen = False
         if not self.frozen:
             self._cache = {}
 
