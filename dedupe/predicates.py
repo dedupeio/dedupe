@@ -127,6 +127,7 @@ class IndexPredicate(Predicate):
         if not self.frozen:
             self.index = copy.copy(self.index)
             self.index._index = None
+            self.index._doc_to_id = dict(self.index._doc_to_id)
             self.frozen = True
 
 

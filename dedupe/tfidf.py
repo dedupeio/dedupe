@@ -13,6 +13,7 @@ class TfIdfIndex(Index):
     def __init__(self):
         self._index = CanopyIndex()
         self._doc_to_id = Enumerator(start=1)
+        self._parseTerms = self._index.lexicon.parseTerms
 
     def index(self, doc):
         if doc not in self._doc_to_id:
@@ -28,7 +29,7 @@ class TfIdfIndex(Index):
         self._index.initSearch()
 
     def search(self, doc, threshold=0):
-        query_list = self._index.lexicon.parseTerms(doc)
+        query_list = self._parseTerms(doc)
 
         if query_list:
             results = [center for score, center
