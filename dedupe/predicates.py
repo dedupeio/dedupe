@@ -197,13 +197,11 @@ class SearchPredicate(object):
         self._cache = {}
 
     def freeze(self):
-
         if not self.frozen:
             self.index = None
             self.frozen = True
 
     def reset(self):
-
         self.index = None
         self.frozen = False
         self._cache = {}
