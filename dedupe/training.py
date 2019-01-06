@@ -104,18 +104,16 @@ class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records, data):
 
-        blocker = blocking.Blocker(predicates)
-        blocker.indexAll(data)
+        self.blocker = blocking.Blocker(predicates)
+        self.blocker.indexAll(data)
 
-        result = self.coveredPairs(blocker, sampled_records)
+        result = self.coveredPairs(self.blocker, sampled_records)
         self.total_cover = result
 
         N = sampled_records.original_length
         N_s = len(sampled_records)
 
         self.r = (N * (N - 1)) / (N_s * (N_s - 1))
-
-        self.blocker = blocking.Blocker(predicates)
 
         self._cached_estimates = {}
 
@@ -164,10 +162,10 @@ class DedupeBlockLearner(BlockLearner):
 class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2):
-        blocker = blocking.Blocker(predicates)
-        blocker.indexAll(data_2)
+        self.blocker = blocking.Blocker(predicates)
+        self.blocker.indexAll(data_2)
 
-        self.total_cover = self.coveredPairs(blocker,
+        self.total_cover = self.coveredPairs(self.blocker,
                                              sampled_records_1,
                                              sampled_records_2)
 
@@ -177,8 +175,6 @@ class RecordLinkBlockLearner(BlockLearner):
                len(sampled_records_2))
 
         self.r = r_a * r_b
-
-        self.blocker = blocking.Blocker(predicates)
 
         self._cached_estimates = {}
 
