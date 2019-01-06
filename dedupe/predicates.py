@@ -7,7 +7,6 @@ import math
 import itertools
 import string
 import sys
-import copy
 
 from doublemetaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
@@ -108,45 +107,54 @@ class IndexPredicate(Predicate):
 
     def __getstate__(self):
         odict = self.__dict__.copy()
-        if self.frozen:
-            odict['index']._index = None
-        else:
-            del odict['index']
+        odict['index'] = None
         return odict
 
     def __setstate__(self, d):
-        self.__dict__ = d
+        self.__dict__.update(d)
 
+        # backwards compatibility
         if not hasattr(self, 'frozen'):
             self.frozen = False
-        if not self.frozen:
+
+        if not hasattr(self, 'index'):
             self.index = None
-
-    def freeze(self):
-
-        if not self.frozen:
-            self.index = copy.copy(self.index)
-            self.index._index = None
-            self.index._doc_to_id = dict(self.index._doc_to_id)
-            self.frozen = True
 
 
 class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.canopy = {}
+        self.doc_to_id = self._doc_to_id_index
 
-    def __getstate__(self):
-        odict = super().__getstate__()
+    def _doc_to_id_index(self, doc):
+        return self.index._doc_to_id[doc]
+
+    def _doc_to_id_local(self, doc):
+        return self._doc_to_id[doc]
+
+    def __setstate__(self, d):
+        super().__setstate__(d)
+
+        # backwards compatibility
+        if not hasattr(self, 'doc_to_id'):
+            if self.frozen:
+                self.doc_to_id = self._doc_to_id_local
+            else:
+                self.doc_to_id = self._doc_to_id_index
+
+    def freeze(self):
         if not self.frozen:
-            del odict['canopy']
-        return odict
+            self._doc_to_id = dict(self.index._doc_to_id)
+            self.doc_to_id = self._doc_to_id_local
+            self.index = None
+            self.frozen = True
 
-    def __setstate__(self, *args, **kwargs):
-        super().__setstate__(*args, **kwargs)
-
-        if not self.frozen:
-            self.canopy = {}
+    def reset(self):
+        self.index = None
+        self.doc_to_id = self._doc_to_id_index
+        self.canopy = {}
+        self.frozen = False
 
     def __call__(self, record, **kwargs):
         block_key = None
@@ -157,7 +165,7 @@ class CanopyPredicate(object):
             doc = self.preprocess(column)
 
             try:
-                doc_id = self.index._doc_to_id[doc]
+                doc_id = self.doc_to_id(doc)
             except AttributeError:
                 raise AttributeError("Attempting to block with an index "
                                      "predicate without indexing records")
@@ -188,18 +196,17 @@ class SearchPredicate(object):
         super().__init__(*args, **kwargs)
         self._cache = {}
 
-    def __getstate__(self):
-        odict = super().__getstate__()
+    def freeze(self):
 
         if not self.frozen:
-            del odict['_cache']
-        return odict
+            self.index = None
+            self.frozen = True
 
-    def __setstate__(self, *args, **kwargs):
-        super().__setstate__(*args, **kwargs)
+    def reset(self):
 
-        if not self.frozen:
-            self._cache = {}
+        self.index = None
+        self.frozen = False
+        self._cache = {}
 
     def __call__(self, record, target=False, **kwargs):
         column = record[self.field]
@@ -226,6 +233,7 @@ class SearchPredicate(object):
 
 class TfidfPredicate(IndexPredicate):
     def initIndex(self):
+        self.reset()
         return tfidf.TfIdfIndex()
 
 
@@ -285,6 +293,7 @@ class TfidfNGramCanopyPredicate(TfidfNGramPredicate,
 
 class LevenshteinPredicate(IndexPredicate):
     def initIndex(self):
+        self.reset()
         return levenshtein.LevenshteinIndex()
 
     def preprocess(self, doc):
