@@ -22,12 +22,14 @@ class Blocker:
         self.predicates = predicates
 
         self.index_fields = defaultdict(index_list)
+        self.index_predicates = []
 
         for full_predicate in predicates:
             for predicate in full_predicate:
                 if hasattr(predicate, 'index'):
                     self.index_fields[predicate.field][predicate.type].append(
                         predicate)
+                    self.index_predicates.append(predicate)
 
     def __call__(self, records, target=False):
 
@@ -51,10 +53,8 @@ class Blocker:
 
     def resetIndices(self):
         # clear canopies to reduce memory usage
-        for index_type in self.index_fields.values():
-            for predicates in index_type.values():
-                for predicate in predicates:
-                    predicate.reset()
+        for predicate in self.index_predicates:
+            predicate.reset()
 
     def index(self, data, field):
         '''Creates TF/IDF index of a given set of data'''

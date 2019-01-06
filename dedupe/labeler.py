@@ -250,9 +250,7 @@ class BlockLearner(object):
             unique_fields = {record[field] for record in records}
             blocker.index(unique_fields, field)
 
-        index_predicates = [pred for pred in blocker.predicates if hasattr(pred, 'index')]
-
-        for pred in index_predicates:
+        for pred in blocker.index_predicates:
             for record in records:
                 pred(record)
 
