@@ -98,6 +98,10 @@ else:
     with open(settings_file, 'wb') as f:
         deduper.writeSettings(f)
 
+    import pickle
+    with open('active_learner.pickle', 'wb') as f:
+        pickle.dump(deduper.active_learner, f)
+
 
 alpha = deduper.threshold(data_d, 1)
 

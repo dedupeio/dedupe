@@ -103,7 +103,6 @@ class IndexPredicate(Predicate):
         self.field = field
         self.threshold = threshold
         self.index = None
-        self.frozen = False
 
     def __getstate__(self):
         odict = self.__dict__.copy()
@@ -114,9 +113,6 @@ class IndexPredicate(Predicate):
         self.__dict__.update(d)
 
         # backwards compatibility
-        if not hasattr(self, 'frozen'):
-            self.frozen = False
-
         if not hasattr(self, 'index'):
             self.index = None
 
@@ -125,47 +121,30 @@ class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.canopy = {}
-        self.doc_to_id = self._doc_to_id_index
+        self._cache = {}
 
-    def _doc_to_id_index(self, doc):
-        return self.index._doc_to_id[doc]
-
-    def _doc_to_id_local(self, doc):
-        return self._doc_to_id[doc]
-
-    def __setstate__(self, d):
-        super().__setstate__(d)
-
-        # backwards compatibility
-        if not hasattr(self, 'doc_to_id'):
-            if self.frozen:
-                self.doc_to_id = self._doc_to_id_local
-            else:
-                self.doc_to_id = self._doc_to_id_index
-
-    def freeze(self):
-        if not self.frozen:
-            self._doc_to_id = dict(self.index._doc_to_id)
-            self.doc_to_id = self._doc_to_id_local
-            self.index = None
-            self.frozen = True
+    def freeze(self, records):
+        self._cache = {record[self.field]: self(record) for record in records}
+        self.canopy = {}
+        self.index = None
 
     def reset(self):
-        self.index = None
-        self.doc_to_id = self._doc_to_id_index
+        self._cache = {}
         self.canopy = {}
-        self.frozen = False
+        self.index = None
 
     def __call__(self, record, **kwargs):
         block_key = None
         column = record[self.field]
 
         if column:
+            if column in self._cache:
+                return self._cache[column]
 
             doc = self.preprocess(column)
 
             try:
-                doc_id = self.doc_to_id(doc)
+                doc_id = self.index._doc_to_id[doc]
             except AttributeError:
                 raise AttributeError("Attempting to block with an index "
                                      "predicate without indexing records")
@@ -196,15 +175,13 @@ class SearchPredicate(object):
         super().__init__(*args, **kwargs)
         self._cache = {}
 
-    def freeze(self):
-        if not self.frozen:
-            self.index = None
-            self.frozen = True
+    def freeze(self, records):
+        self._cache = {record[self.field]: self(record) for record in records}
+        self.index = None
 
     def reset(self):
-        self.index = None
-        self.frozen = False
         self._cache = {}
+        self.index = None
 
     def __call__(self, record, target=False, **kwargs):
         column = record[self.field]

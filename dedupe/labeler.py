@@ -153,7 +153,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
     def _init(self, candidates, *args):
         # we should rethink this and have it happen in the __init__ method
-        self.candidates = candidates[:]
+        self.candidates = candidates
         self.distances = self.transform(candidates)
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
@@ -212,11 +212,11 @@ class BlockLearner(object):
 
         return labels
 
-    def _init(self, block_learner, candidates, *args):
-        self.block_learner = block_learner(self.data_model.predicates(),
-                                           *args)
+    # def _init(self, block_learner, candidates, *args):
+    #     self.block_learner = block_learner(self.data_model.predicates(),
+    #                                        *args)
 
-        self.candidates = candidates[:]
+    #     self.candidates = candidates
 
     def remove(self, candidate):
         index = self.candidates.index(candidate)
@@ -229,14 +229,14 @@ class BlockLearner(object):
     def _init_combo(self, candidates, *args):
         preds = self.data_model.predicates()
         self.block_learner = training.DedupeBlockLearner(preds, *args)
-        self.candidates = candidates[:]
+        self.candidates = candidates
 
         self._freeze_index_predicates(self.candidates)
 
     def _init_product(self, candidates, *args):
         preds = self.data_model.predicates(canopies=False)
         self.block_learner = training.RecordLinkBlockLearner(preds, *args)
-        self.candidates = candidates[:]
+        self.candidates = candidates
 
         self._freeze_index_predicates(self.candidates)
 
@@ -251,10 +251,7 @@ class BlockLearner(object):
             blocker.index(unique_fields, field)
 
         for pred in blocker.index_predicates:
-            for record in records:
-                pred(record)
-
-            pred.freeze()
+            pred.freeze(records)
 
 
 class DisagreementLearner(ActiveLearner):
