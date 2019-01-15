@@ -32,17 +32,23 @@ class RandomPairsTest(unittest.TestCase):
 
     def test_random_pair_match(self):
 
-        assert len(list(dedupe.core.randomPairsMatch(100, 100, 100))) == 100
-        assert len(list(dedupe.core.randomPairsMatch(10, 10, 99))) == 99
+        # test 3: sample size is greater than product of A and B
+        # test 4: check for OverflowError
+        tests = ((100, 100, 100, 100), (10, 10, 99, 99),
+                 (5, 5, 100, 25), (100000, 20000, 15000, 15000))
+        for (n_A, n_B, n_sample, expected_length) in tests:
+            ret = dedupe.core.randomPairsMatch(n_A, n_B, n_sample)
+            list_ret = list(ret)
+            assert len(list_ret) == expected_length
+            for (ret_a, ret_b) in list_ret:
+                assert ret_a < n_A
+                assert ret_a >= 0
+                assert ret_b < n_B
+                assert ret_b >= 0
 
-        random.seed(123)
-        random.seed(123)
-        if sys.version_info < (3, 0):
-            target = [(0, 5), (0, 8), (4, 0), (1, 0), (9, 0),
-                      (0, 3), (5, 3), (3, 3), (8, 5), (1, 5)]
-        else:
-            target = [(0, 6), (3, 4), (1, 1), (9, 8), (5, 2),
-                      (1, 3), (0, 4), (4, 8), (6, 8), (7, 1)]
+        numpy.random.seed(123)
+        target = [(6, 7), (9, 3), (9, 9), (1, 8), (8, 4),
+                  (5, 8), (8, 7), (9, 8), (9, 7), (4, 8)]
 
         pairs = list(dedupe.core.randomPairsMatch(10, 10, 10))
         assert pairs == target
