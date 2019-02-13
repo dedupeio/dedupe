@@ -5,8 +5,12 @@
 
 body {
     font-size: 16px;
-    font-family: 'Open Sans', 'Arial', sans-serif;
-    color: #777777;
+    font-family: 'Montserrat', 'Arial', sans-serif;
+    color: #555;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Roboto', 'Arial', sans-serif;
 }
 
 h1, h1 a, h2, h2 a, h3, h3 a {
@@ -17,20 +21,25 @@ h1, h1 a, h2, h2 a, h3, h3 a {
 /* Override some of the built-in RTD fonts */
 h1, h2, h3, h4, h5, h6, legend,
 .rst-content .toctree-wrapper p.caption {
-    font-family: 'Open Sans', 'Arial', sans-serif;
+    font-family: 'Montserrat', 'Arial', sans-serif;
 }
 
 h1 a:hover, h2 a:hover, h3 a:hover {
-    color: #777;
+    color: #333;
 }
 
-a, a:visited, .wy-menu-vertical a { color: #c11133;}
-a:hover { color: #730a1e;}
+a, a:visited, .wy-menu-vertical a { color: #F26F80;}
+a:hover { color: #F26F80;}
 a:active, a:focus { outline: 0;}
 
 .navbar-nav > li > a,
 .navbar-brand {
     height: 40px;
+}
+
+.navbar-nav > li > a {
+    padding-top: 10.5px;
+    line-height: 20.57px;
 }
 
 .navbar {
@@ -42,16 +51,21 @@ a:active, a:focus { outline: 0;}
 }
 
 .navbar-default .navbar-nav > li > a {
-    padding-top: 11px;
-    height: 40px;
+    color: #555;
+}
+
+.navbar-logo {
+  height: 15px;
+  margin: 13px;
 }
 
 .nav > li {
     font-size: 0.9em;
+    margin-right: 1.1px;
 }
 
 .navbar-default .navbar-nav > li > a:hover {
-    color: #d9230f;
+    color: #F26F80;
     background-color: transparent;
 }
 
@@ -65,10 +79,14 @@ a:active, a:focus { outline: 0;}
 /* ================ */
 
 .footer {
-    background-color: #f2f3ec;
+    background-color: #CAD8E7;
     padding: 20px 0;
     margin-top: 20px;
     font-size: 0.9em;
+}
+
+.footer a {
+  color: #29446F;
 }
 
 /* Remove Bootstrap navbar stuff */
@@ -185,7 +203,7 @@ h4:before, h4:before, h6:before {
 .wy-menu > ul > li > a:hover,
 .wy-menu > ul > li > a:focus {
     background-color: #EFEFEF;
-    color: #c11133;
+    color: #F26F80;
     font-weight: bold;
 }
 
