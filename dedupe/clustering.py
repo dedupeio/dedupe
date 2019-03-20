@@ -170,7 +170,8 @@ def cluster(dupes, threshold=.5, max_components=30000):
 
         else:
             ids, score = sub_graph[0]
-            yield tuple(ids), tuple([score] * 2)
+            if score > threshold:
+                yield tuple(ids), tuple([score] * 2)
 
 
 def confidences(cluster, condensed_distances, d):
