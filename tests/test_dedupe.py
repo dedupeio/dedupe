@@ -145,6 +145,9 @@ class ClusteringTest(unittest.TestCase):
                                 ((5, 8), .24))
 
     def clusterEquals(self, x, y):
+        if x == y == []:
+            return True
+
         for cluster_a, cluster_b in zip(x, y):
             if cluster_a[0] != cluster_b[0]:
                 return False
@@ -157,9 +160,7 @@ class ClusteringTest(unittest.TestCase):
     def test_hierarchical(self):
         hierarchical = dedupe.clustering.cluster
         assert self.clusterEquals(list(hierarchical(self.dupes, 1)),
-                                  [((10, 11),
-                                    (0.89999,
-                                     0.89999))])
+                                  [])
 
         assert self.clusterEquals(hierarchical(self.dupes, 0.5),
                                   [((1, 2, 3),

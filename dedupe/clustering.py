@@ -142,7 +142,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
                  number will increase precision, raising it will increase
                  recall
     '''
-    threshold = 1 - threshold
+    distance_threshold = 1 - threshold
     dupe_sub_graphs = connected_components(dupes, max_components)
 
     for sub_graph in dupe_sub_graphs:
@@ -155,7 +155,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
                                           preserve_input=True)
 
             partition = hcluster.fcluster(linkage,
-                                          threshold,
+                                          distance_threshold,
                                           criterion='distance')
 
             clusters = defaultdict(list)
