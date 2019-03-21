@@ -145,8 +145,10 @@ class ClusteringTest(unittest.TestCase):
                                 ((5, 8), .24))
 
     def clusterEquals(self, x, y):
-        if x == y == []:
+        if [] == x == y:
             return True
+        if len(x) != len(y):
+            return False
 
         for cluster_a, cluster_b in zip(x, y):
             if cluster_a[0] != cluster_b[0]:
@@ -162,7 +164,7 @@ class ClusteringTest(unittest.TestCase):
         assert self.clusterEquals(list(hierarchical(self.dupes, 1)),
                                   [])
 
-        assert self.clusterEquals(hierarchical(self.dupes, 0.5),
+        assert self.clusterEquals(list(hierarchical(self.dupes, 0.5)),
                                   [((1, 2, 3),
                                     (0.79,
                                      0.860,
@@ -175,7 +177,7 @@ class ClusteringTest(unittest.TestCase):
                                      0.899))])
 
         print(hierarchical(self.dupes, 0.0))
-        assert self.clusterEquals(hierarchical(self.dupes, 0),
+        assert self.clusterEquals(list(hierarchical(self.dupes, 0)),
                                   [((1, 2, 3, 4, 5),
                                     (0.595,
                                      0.660,
