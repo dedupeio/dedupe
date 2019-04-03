@@ -169,20 +169,29 @@ def cluster(dupes, threshold=.5, max_components=30000):
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
-            ids, score = sub_graph[0]
+            (ids, score), = sub_graph
             if score > threshold:
-                yield tuple(ids), tuple([score] * 2)
+                yield tuple(ids), (score,) * 2
 
 
 def confidences(cluster, condensed_distances, d):
+    '''
+    We calculate a per record score that is similar to a standard
+    deviation.  The main reason is that these record scores can be
+    used to calculate the standard deviation of an entire cluster,
+    which is a reasonable metric for clusters.
+    '''
+
     scores = dict.fromkeys(cluster, 0.0)
+    squared_distances = condensed_distances ** 2
     for i, j in itertools.combinations(cluster, 2):
         index = d * (d - 1) / 2 - (d - i) * (d - i - 1) / 2 + j - i - 1
-        dist = condensed_distances[int(index)]
-        scores[i] += dist
-        scores[j] += dist
+        squared_dist = squared_distances[int(index)]
+        scores[i] += squared_dist
+        scores[j] += squared_dist
     scores = numpy.array([score for _, score in sorted(scores.items())])
     scores /= len(cluster) - 1
+    scores = numpy.sqrt(scores)
     scores = 1 - scores
     return scores
 
