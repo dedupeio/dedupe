@@ -114,10 +114,8 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         return [uncertain_pair]
 
-    def remove(self, candidate):
-        index = self.candidates.index(candidate)
+    def _remove(self, index):
         self.distances = numpy.delete(self.distances, index, axis=0)
-        self.candidates.pop(index)
 
     def mark(self, pairs, y):
 
@@ -212,9 +210,7 @@ class BlockLearner(object):
 
         return labels
 
-    def remove(self, candidate):
-        index = self.candidates.index(candidate)
-        self.candidates.pop(index)
+    def _remove(self, index):
         if self._cached_labels is not None:
             self._cached_labels = numpy.delete(self._cached_labels,
                                                index,
@@ -287,7 +283,7 @@ class DisagreementLearner(ActiveLearner):
         uncertain_pair = self.candidates.pop(uncertain_index)
 
         for learner in self.learners:
-            learner.remove(uncertain_pair)
+            learner._remove(uncertain_index)
 
         return [uncertain_pair]
 
