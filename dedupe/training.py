@@ -26,15 +26,10 @@ class BlockLearner(object):
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
-        compound_length = 2
+        comparison_count = self.comparison_count
 
-        dupe_cover = Cover(self.blocker.predicates, matches)
-        dupe_cover.dominators(cost=self.total_cover)
-        dupe_cover.compound(compound_length)
-
-        comparison_count = self.comparisons(dupe_cover, compound_length)
-
-        dupe_cover.dominators(cost=comparison_count, comparison=True)
+        dupe_cover = Cover(comparison_count.keys(), matches)
+        dupe_cover.dominators(cost=comparison_count)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
@@ -61,20 +56,17 @@ class BlockLearner(object):
 
         return final_predicates
 
-    def comparisons(self, match_cover, compound_length):
-        compounder = self.Compounder(self.total_cover)
+    def comparisons(self, total_cover, compound_length):
+        compounder = self.Compounder(total_cover)
         comparison_count = {}
 
-        for pred in sorted(match_cover, key=str):
-            if pred in self._cached_estimates:
-                estimate = self._cached_estimates[pred]
-            elif len(pred) > 1:
+        for pred in sorted(total_cover, key=str):
+            if len(pred) > 1:
                 estimate = self.estimate(compounder(pred))
             else:
-                estimate = self.estimate(self.total_cover[pred])
+                estimate = self.estimate(total_cover[pred])
 
             comparison_count[pred] = estimate
-            self._cached_estimates[pred] = estimate
 
         return comparison_count
 
@@ -103,33 +95,43 @@ class BlockLearner(object):
 class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records, data):
-
-        self.blocker = blocking.Blocker(predicates)
-        self.blocker.indexAll(data)
-
-        result = self.coveredPairs(self.blocker, sampled_records)
-        self.total_cover = result
+        compound_length = 2 
 
         N = sampled_records.original_length
         N_s = len(sampled_records)
 
         self.r = (N * (N - 1)) / (N_s * (N_s - 1))
 
-        self._cached_estimates = {}
+        self.blocker = blocking.Blocker(predicates)
+        self.blocker.indexAll(data)
+        
+        result = self.coveredPairs(self.blocker, sampled_records)
+        self.comparison_count = self.comparisons(result, compound_length)
 
     @staticmethod
     def coveredPairs(blocker, records):
         cover = {}
 
         pair_enumerator = core.Enumerator()
+        n_records = len(records)
 
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
 
+            ids = set()
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
                     pred_cover[block].add(id)
+                    ids.add(id)
+
+            if not pred_cover:
+                continue
+
+            max_cover = max(len(v) for v in pred_cover.values())
+            if max_cover >= (n_records * 0.90):
+                print(predicate, max_cover)
+                continue
 
             pairs = (pair_enumerator[pair]
                      for block in pred_cover.values()
@@ -359,6 +361,15 @@ class Counter(object):
 
         return Counter(common)
 
+    def __getstate__(self):
+        odict = {'total': self.total,
+                 '_d': self._d}
+        return odict
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+
+
 
 class Cover(object):
     def __init__(self, *args):
@@ -395,13 +406,9 @@ class Cover(object):
                     if compound_cover:
                         self._d[CP(compound_predicate)] = compound_cover
 
-    def dominators(self, cost, comparison=False):
-        if comparison:
-            def sort_key(x):
-                return (-cost[x], len(self._d[x]))
-        else:
-            def sort_key(x):
-                return (len(self._d[x]), -len(cost[x]))
+    def dominators(self, cost):
+        def sort_key(x):
+            return (-cost[x], len(self._d[x]))
 
         ordered_predicates = sorted(self._d, key=sort_key)
         dominants = {}
