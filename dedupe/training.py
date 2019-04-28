@@ -119,19 +119,16 @@ class DedupeBlockLearner(BlockLearner):
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
 
-            ids = set()
             for id, record in viewitems(records):
                 blocks = predicate(record)
                 for block in blocks:
                     pred_cover[block].add(id)
-                    ids.add(id)
 
             if not pred_cover:
                 continue
 
             max_cover = max(len(v) for v in pred_cover.values())
             if max_cover >= (n_records * 0.90):
-                print(predicate, max_cover)
                 continue
 
             pairs = (pair_enumerator[pair]

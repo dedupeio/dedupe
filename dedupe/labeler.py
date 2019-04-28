@@ -212,12 +212,6 @@ class BlockLearner(object):
 
         return labels
 
-    # def _init(self, block_learner, candidates, *args):
-    #     self.block_learner = block_learner(self.data_model.predicates(),
-    #                                        *args)
-
-    #     self.candidates = candidates
-
     def remove(self, candidate):
         index = self.candidates.index(candidate)
         self.candidates.pop(index)
