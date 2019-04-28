@@ -95,7 +95,8 @@ class BlockLearner(object):
 class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records, data):
-        compound_length = 2 
+
+        compound_length = 2
 
         N = sampled_records.original_length
         N_s = len(sampled_records)
@@ -104,7 +105,7 @@ class DedupeBlockLearner(BlockLearner):
 
         self.blocker = blocking.Blocker(predicates)
         self.blocker.indexAll(data)
-        
+
         result = self.coveredPairs(self.blocker, sampled_records)
         self.comparison_count = self.comparisons(result, compound_length)
 
@@ -164,12 +165,8 @@ class DedupeBlockLearner(BlockLearner):
 class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2):
-        self.blocker = blocking.Blocker(predicates)
-        self.blocker.indexAll(data_2)
 
-        self.total_cover = self.coveredPairs(self.blocker,
-                                             sampled_records_1,
-                                             sampled_records_2)
+        compound_length = 2
 
         r_a = ((sampled_records_1.original_length) /
                len(sampled_records_1))
@@ -178,7 +175,14 @@ class RecordLinkBlockLearner(BlockLearner):
 
         self.r = r_a * r_b
 
-        self._cached_estimates = {}
+        self.blocker = blocking.Blocker(predicates)
+        self.blocker.indexAll(data_2)
+
+        results = self.coveredPairs(self.blocker,
+                                    sampled_records_1,
+                                    sampled_records_2)
+
+        self.comparison_count = self.comparisons(results, compound_length)
 
     def coveredPairs(self, blocker, records_1, records_2):
         cover = {}
@@ -360,15 +364,6 @@ class Counter(object):
                   if k in larger_keys}
 
         return Counter(common)
-
-    def __getstate__(self):
-        odict = {'total': self.total,
-                 '_d': self._d}
-        return odict
-
-    def __setstate__(self, d):
-        self.__dict__.update(d)
-
 
 
 class Cover(object):
