@@ -716,7 +716,7 @@ class ActiveMatching(Matching):
 
         if self.active_learner:
             examples, y = flatten_training(labeled_pairs)
-            self.active_learner = pickle.loads(pickle.dumps(self.active_learner))
+
             self.active_learner.mark(examples, y)
 
     def _checkTrainingPairs(self, labeled_pairs):
