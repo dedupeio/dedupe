@@ -28,7 +28,10 @@ class BlockLearner(object):
         '''
         comparison_count = self.comparison_count
 
-        dupe_cover = Cover(comparison_count.keys(), matches)
+        dupe_cover = Cover(self.blocker.predicates, matches)
+        dupe_cover.compound(2)
+        dupe_cover.intersection_update(comparison_count)
+
         dupe_cover.dominators(cost=comparison_count)
 
         coverable_dupes = set.union(*viewvalues(dupe_cover))
@@ -56,15 +59,27 @@ class BlockLearner(object):
 
         return final_predicates
 
-    def comparisons(self, total_cover, compound_length):
-        compounder = self.Compounder(total_cover)
+    def compound(self, simple_predicates, compound_length):
+        simple_predicates = sorted(simple_predicates, key=str)
+
+        yield from simple_predicates
+
+        CP = predicates.CompoundPredicate
+
+        for i in range(2, compound_length + 1):
+            compound_predicates = itertools.combinations(simple_predicates, i)
+            for compound_predicate in compound_predicates:
+                yield CP(compound_predicate)
+
+    def comparisons(self, predicates, simple_cover):
+        compounder = self.Compounder(simple_cover)
         comparison_count = {}
 
-        for pred in sorted(total_cover, key=str):
+        for pred in predicates:
             if len(pred) > 1:
                 estimate = self.estimate(compounder(pred))
             else:
-                estimate = self.estimate(total_cover[pred])
+                estimate = self.estimate(simple_cover[pred])
 
             comparison_count[pred] = estimate
 
@@ -106,8 +121,10 @@ class DedupeBlockLearner(BlockLearner):
         self.blocker = blocking.Blocker(predicates)
         self.blocker.indexAll(data)
 
-        result = self.coveredPairs(self.blocker, sampled_records)
-        self.comparison_count = self.comparisons(result, compound_length)
+        simple_cover = self.coveredPairs(self.blocker, sampled_records)
+        compound_predicates = self.compound(simple_cover, compound_length)
+        self.comparison_count = self.comparisons(compound_predicates,
+                                                 simple_cover)
 
     @staticmethod
     def coveredPairs(blocker, records):
@@ -372,6 +389,9 @@ class Cover(object):
             predicates, pairs = args
             self._cover(predicates, pairs)
 
+    def __repr__(self):
+        return 'Cover:' + str(self._d.keys())
+
     def _cover(self, predicates, pairs):
         for predicate in predicates:
             coverage = {i for i, (record_1, record_2)
@@ -444,6 +464,9 @@ class Cover(object):
 
     def __eq__(self, other):
         return self._d == other._d
+
+    def intersection_update(self, other):
+        self._d = {k: self._d[k] for k in set(self._d) & set(other)}
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501

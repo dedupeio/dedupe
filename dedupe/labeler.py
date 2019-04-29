@@ -221,7 +221,7 @@ class BlockLearner(object):
         self.block_learner = training.DedupeBlockLearner(preds, *args)
         self.candidates = candidates
 
-        self._freeze_index_predicates(self.candidates)
+        self._index_predicates(self.candidates)
 
     def _init_product(self, candidates, *args):
         preds = self.data_model.predicates(canopies=False)
@@ -230,7 +230,7 @@ class BlockLearner(object):
 
         self._freeze_index_predicates(self.candidates)
 
-    def _freeze_index_predicates(self, candidates):
+    def _index_predicates(self, candidates):
 
         blocker = self.block_learner.blocker
 
