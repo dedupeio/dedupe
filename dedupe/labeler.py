@@ -86,15 +86,15 @@ class RecordLinkSampler(object):
 
 
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
-    def __init__(self, data_model, *args, candidates=None):
+    def __init__(self, data_model, *args, **kwargs):
         super().__init__(alpha=1)
 
         self.data_model = data_model
 
-        if not candidates:
+        if 'candidates' not in kwargs:
             self.candidates = super().sample(*args)
         else:
-            self.candidates = candidates
+            self.candidates = kwargs.pop('candidates')
 
         self.distances = self.transform(self.candidates)
 
