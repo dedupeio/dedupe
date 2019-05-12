@@ -183,6 +183,8 @@ class DedupeMatching(Matching):
     - `threshold`
     """
 
+    ActiveLearner = labeler.DedupeDisagreementLearner
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cluster = clustering.cluster
@@ -330,6 +332,8 @@ class RecordLinkMatching(Matching):
     - `match`
     - `threshold`
     """
+
+    ActiveLearner = labeler.RecordLinkDisagreementLearner
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -565,7 +569,7 @@ class StaticMatching(Matching):
 
 class ActiveMatching(Matching):
     classifier = rlr.RegularizedLogisticRegression()
-    ActiveLearner = labeler.DisagreementLearner
+    ActiveLearner = None
 
     """
     Class for training dedupe extends Matching.
@@ -716,7 +720,6 @@ class ActiveMatching(Matching):
 
         if self.active_learner:
             examples, y = flatten_training(labeled_pairs)
-
             self.active_learner.mark(examples, y)
 
     def _checkTrainingPairs(self, labeled_pairs):
@@ -787,9 +790,11 @@ class Dedupe(DedupeMatching, ActiveMatching):
         '''
         self._checkData(data)
 
-        self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_combo(data, blocked_proportion,
-                                         sample_size, original_length)
+        self.active_learner = self.ActiveLearner(self.data_model,
+                                                 data,
+                                                 blocked_proportion,
+                                                 sample_size,
+                                                 original_length)
 
     def _checkData(self, data):
         if len(data) == 0:
@@ -834,12 +839,13 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         '''
         self._checkData(data_1, data_2)
 
-        self.active_learner = self.ActiveLearner(self.data_model)
-        self.active_learner.sample_product(data_1, data_2,
-                                           blocked_proportion,
-                                           sample_size,
-                                           original_length_1,
-                                           original_length_2)
+        self.active_learner = self.ActiveLearner(self.data_model,
+                                                 data_1,
+                                                 data_2,
+                                                 blocked_proportion,
+                                                 sample_size,
+                                                 original_length_1,
+                                                 original_length_2)
 
     def _checkData(self, data_1, data_2):
         if len(data_1) == 0:

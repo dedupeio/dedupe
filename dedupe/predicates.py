@@ -175,8 +175,11 @@ class SearchPredicate(object):
         super().__init__(*args, **kwargs)
         self._cache = {}
 
-    def freeze(self, records):
-        self._cache = {record[self.field]: self(record) for record in records}
+    def freeze(self, records_1, records_2):
+        self._cache = {(record[self.field], False): self(record, False)
+                       for record in records_1}
+        self._cache.update({(record[self.field], True): self(record, True)
+                            for record in records_2})
         self.index = None
 
     def reset(self):
@@ -186,8 +189,8 @@ class SearchPredicate(object):
     def __call__(self, record, target=False, **kwargs):
         column = record[self.field]
         if column:
-            if column in self._cache:
-                return self._cache[column]
+            if (column, target) in self._cache:
+                return self._cache[(column, target)]
             else:
                 doc = self.preprocess(column)
 
@@ -197,10 +200,12 @@ class SearchPredicate(object):
                     else:
                         centers = self.index.search(doc, self.threshold)
                 except AttributeError:
+                    print(record, column, target)
+                    print(sorted(self._cache.items()))
                     raise AttributeError("Attempting to block with an index "
                                          "predicate without indexing records")
                 result = [str(center) for center in centers]
-                self._cache[column] = result
+                self._cache[(column, target)] = result
                 return result
         else:
             return ()
