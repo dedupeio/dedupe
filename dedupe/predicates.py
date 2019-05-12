@@ -106,33 +106,40 @@ class IndexPredicate(Predicate):
 
     def __getstate__(self):
         odict = self.__dict__.copy()
-        del odict['index']
+        odict['index'] = None
         return odict
 
     def __setstate__(self, d):
-        self.__dict__ = d
-        self.index = None
+        self.__dict__.update(d)
+
+        # backwards compatibility
+        if not hasattr(self, 'index'):
+            self.index = None
 
 
 class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.canopy = {}
+        self._cache = {}
 
-    def __getstate__(self):
-        odict = super().__getstate__()
-        del odict['canopy']
-        return odict
-
-    def __setstate__(self, *args, **kwargs):
-        super().__setstate__(*args, **kwargs)
+    def freeze(self, records):
+        self._cache = {record[self.field]: self(record) for record in records}
         self.canopy = {}
+        self.index = None
+
+    def reset(self):
+        self._cache = {}
+        self.canopy = {}
+        self.index = None
 
     def __call__(self, record, **kwargs):
         block_key = None
         column = record[self.field]
 
         if column:
+            if column in self._cache:
+                return self._cache[column]
 
             doc = self.preprocess(column)
 
@@ -168,20 +175,22 @@ class SearchPredicate(object):
         super().__init__(*args, **kwargs)
         self._cache = {}
 
-    def __getstate__(self):
-        odict = super().__getstate__()
-        del odict['_cache']
-        return odict
+    def freeze(self, records_1, records_2):
+        self._cache = {(record[self.field], False): self(record, False)
+                       for record in records_1}
+        self._cache.update({(record[self.field], True): self(record, True)
+                            for record in records_2})
+        self.index = None
 
-    def __setstate__(self, *args, **kwargs):
-        super().__setstate__(*args, **kwargs)
+    def reset(self):
         self._cache = {}
+        self.index = None
 
     def __call__(self, record, target=False, **kwargs):
         column = record[self.field]
         if column:
-            if column in self._cache:
-                return self._cache[column]
+            if (column, target) in self._cache:
+                return self._cache[(column, target)]
             else:
                 doc = self.preprocess(column)
 
@@ -191,10 +200,12 @@ class SearchPredicate(object):
                     else:
                         centers = self.index.search(doc, self.threshold)
                 except AttributeError:
+                    print(record, column, target)
+                    print(sorted(self._cache.items()))
                     raise AttributeError("Attempting to block with an index "
                                          "predicate without indexing records")
                 result = [str(center) for center in centers]
-                self._cache[column] = result
+                self._cache[(column, target)] = result
                 return result
         else:
             return ()
@@ -202,6 +213,7 @@ class SearchPredicate(object):
 
 class TfidfPredicate(IndexPredicate):
     def initIndex(self):
+        self.reset()
         return tfidf.TfIdfIndex()
 
 
@@ -261,6 +273,7 @@ class TfidfNGramCanopyPredicate(TfidfNGramPredicate,
 
 class LevenshteinPredicate(IndexPredicate):
     def initIndex(self):
+        self.reset()
         return levenshtein.LevenshteinIndex()
 
     def preprocess(self, doc):

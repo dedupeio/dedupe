@@ -8,8 +8,6 @@ environment:
   matrix:
     - python : 27
     - python : 27-x64
-    - python : 34
-    - python : 34-x64
     - python : 35
     - python : 36
     - python : 36-x64

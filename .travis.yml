@@ -22,9 +22,6 @@ matrix:
     env: TERRYFY_PYTHON='macpython 2.7'
   - os: osx
     language: generic
-    env: TERRYFY_PYTHON='macpython 3.4'
-  - os: osx
-    language: generic
     env: TERRYFY_PYTHON='macpython 3.5'
   - os: osx
     language: generic
