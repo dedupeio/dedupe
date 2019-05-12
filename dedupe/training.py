@@ -62,7 +62,8 @@ class BlockLearner(object):
     def compound(self, simple_predicates, compound_length):
         simple_predicates = sorted(simple_predicates, key=str)
 
-        yield from simple_predicates
+        for pred in simple_predicates:
+            yield pred
 
         CP = predicates.CompoundPredicate
 
@@ -145,7 +146,7 @@ class DedupeBlockLearner(BlockLearner):
                 continue
 
             max_cover = max(len(v) for v in pred_cover.values())
-            if max_cover >= (n_records * 0.90):
+            if max_cover == n_records:
                 continue
 
             pairs = (pair_enumerator[pair]
@@ -192,11 +193,13 @@ class RecordLinkBlockLearner(BlockLearner):
         self.blocker = blocking.Blocker(predicates)
         self.blocker.indexAll(data_2)
 
-        results = self.coveredPairs(self.blocker,
-                                    sampled_records_1,
-                                    sampled_records_2)
+        simple_cover = self.coveredPairs(self.blocker,
+                                         sampled_records_1,
+                                         sampled_records_2)
+        compound_predicates = self.compound(simple_cover, compound_length)
 
-        self.comparison_count = self.comparisons(results, compound_length)
+        self.comparison_count = self.comparisons(compound_predicates,
+                                                 simple_cover)
 
     def coveredPairs(self, blocker, records_1, records_2):
         cover = {}
