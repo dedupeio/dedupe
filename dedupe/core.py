@@ -365,9 +365,12 @@ def appropriate_imap(num_cores):
         imap = map
 
         # in order to make it simpler to cleanup a pool of processes
-        # always return something that we can close
+        # always return something that we can close and join
         class MockPool(object):
             def close(self):
+                pass
+
+            def join(self):
                 pass
         pool = MockPool()
     else:
