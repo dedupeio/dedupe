@@ -94,11 +94,9 @@ else:
     deduper = dedupe.Dedupe(fields, num_cores=5)
     deduper.sample(data_d, 10000)
     deduper.markPairs(training_pairs)
-
     deduper.train(index_predicates=False)
     with open(settings_file, 'wb') as f:
         deduper.writeSettings(f)
-        
 
 
 alpha = deduper.threshold(data_d, 1)
