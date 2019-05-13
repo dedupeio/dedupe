@@ -200,8 +200,6 @@ class SearchPredicate(object):
                     else:
                         centers = self.index.search(doc, self.threshold)
                 except AttributeError:
-                    print(record, column, target)
-                    print(sorted(self._cache.items()))
                     raise AttributeError("Attempting to block with an index "
                                          "predicate without indexing records")
                 result = [str(center) for center in centers]
