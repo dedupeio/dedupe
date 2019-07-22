@@ -46,7 +46,6 @@ Contents
 
    API-documentation
    Variable-definition
-   OSX-Install-Notes
    How-it-works
    Bibliography
 
@@ -70,8 +69,9 @@ Installation
 Mac OS X Install Notes
 ----------------------
 
-With default configurations, dedupe cannot do parallel processing on Mac OS X.
-:doc:`Read about instructions on how to enable this <OSX-Install-Notes>`.
+Previously, installing Dedupe on Mac OS X required :doc:`following special instructions <OSX-Install-Notes>` in order to enable parallel processing in numpy, a library used by Dedupe.
+
+Current numpy wheels built for Mac OS X use OpenBLAS so no special installation steps are needed.
 
 Using dedupe
 ============

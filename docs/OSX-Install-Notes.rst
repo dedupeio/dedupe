@@ -2,6 +2,15 @@
 Mac OS X Install Notes
 ======================
 
+UPDATE
+~~~~~~
+
+Current Mac OS X numpy wheels now use OpenBLAS so these instructions are no longer neccessary to install Dedupe on Mac OS X.
+
+These notes are for reference only.
+
+Background
+~~~~~~~~~~
 
 Apple’s implementation of `BLAS <http://en.wikipedia.org/wiki/BLAS>`__
 does not support using `BLAS calls on both sides of a fork
