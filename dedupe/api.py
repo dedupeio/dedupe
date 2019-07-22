@@ -653,7 +653,11 @@ class ActiveMatching(Matching):
             self.markPairs(training_pairs)
         except AttributeError as e:
             if "Attempting to block with an index predicate without indexing records" in str(e):
-                raise UserWarning('Training data has records not known to the active learner. Read training in before initializing the active learner with the sample method, or use the prepare_training method.')
+                raise UserWarning('Training data has records not known '
+                                  'to the active learner. Read training '
+                                  'in before initializing the active '
+                                  'learner with the sample method, or '
+                                  'use the prepare_training method.')
             else:
                 raise
 
@@ -847,10 +851,9 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
     """
     canopies = False
 
-
     def prepare_training(self, data_1, data_2, training_file=None, **kwargs):
         self.readTraining(training_file)
-        self.sample(data, **kwargs)
+        self.sample(data_1, data_2, **kwargs)
 
     def sample(self, data_1, data_2, sample_size=15000,
                blocked_proportion=.5, original_length_1=None,
@@ -875,29 +878,17 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionaries
         examples, y = flatten_training(self.training_pairs)
+        example_records = core.unique(record
+                                      for record, _ in examples)
 
-        seens = ([], [])
-        max_keys = max(data_1), max(data_2)
-        datas = (data_1, data_2)
+        max_key = max(data_2)
+        for i, record in enumerate(example_records):
+            try:
+                k = max_key + i
+            except TypeError:
+                k = max_key + str(i)
 
-        for i, pair in enumerate(examples):
-            for j, record in enumerate(pair):
-                seen = seens[j]
-                max_key = max_keys[j]
-                data = datas[j]
-
-                if record in seen:
-                    continue
-                else:
-                    seen.append(record)
-
-                try:
-                    k = max_key + i
-                except TypeError:
-                    k = max_key + str(i)
-
-                data[k] = record
-
+            data_2[k] = record
 
         self.active_learner = self.ActiveLearner(self.data_model,
                                                  data_1,
@@ -906,6 +897,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
                                                  sample_size,
                                                  original_length_1,
                                                  original_length_2)
+
+        self.active_learner.mark(examples, y)
 
     def _checkData(self, data_1, data_2):
         if len(data_1) == 0:

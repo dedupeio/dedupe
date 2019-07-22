@@ -444,4 +444,3 @@ class Sample(dict):
             self.original_length = len(d)
         else:
             self.original_length = original_length
-

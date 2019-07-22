@@ -150,5 +150,15 @@ class FieldDistances(unittest.TestCase):
                                                              [1, 0, 1, 1, 0]]), 3)
 
 
+class Unique(unittest.TestCase):
+
+    def test_unique(self):
+        target = ([{1: 1, 2: 2}, {3: 3, 4: 4}],
+                  [{3: 3, 4: 4}, {1: 1, 2: 2}])
+
+        assert dedupe.core.unique(
+            [{1: 1, 2: 2}, {3: 3, 4: 4}, {1: 1, 2: 2}]) in target
+
+
 if __name__ == "__main__":
     unittest.main()
