@@ -7,10 +7,12 @@ notifications:
     on_success: change
     on_failure: always
   irc: chat.freenode.net#dedupe
+dist: xenial
 language: python
 sudo: false
 matrix:
   include:
+  - python: 3.7
   - python: 3.6
   - python: 3.5
   - python: 2.7
