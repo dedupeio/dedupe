@@ -6,14 +6,8 @@ from builtins import input
 import collections
 import itertools
 import sys
-from dedupe.core import randomPairs, randomPairsMatch
+from dedupe.core import randomPairs, randomPairsMatch, unique
 from dedupe.canonical import getCanonicalRep
-
-
-def unique(seq):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
 
 
 def consoleLabel(deduper):  # pragma: no cover

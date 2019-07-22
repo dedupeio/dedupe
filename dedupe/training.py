@@ -333,16 +333,6 @@ class BranchBound(object):
         return remaining
 
 
-def unique(seq):
-    """Return the unique elements of a collection even if those elements are
-       unhashable and unsortable, like dicts and sets"""
-    cleaned = []
-    for each in seq:
-        if each not in cleaned:
-            cleaned.append(each)
-    return cleaned
-
-
 class Counter(object):
     def __init__(self, iterable):
         if isinstance(iterable, Mapping):

@@ -247,7 +247,7 @@ class DedupeBlockLearner(BlockLearner):
 
         blocker = self.block_learner.blocker
 
-        records = unique((record for pair in candidates for record in pair))
+        records = core.unique((record for pair in candidates for record in pair))
 
         for field in blocker.index_fields:
             unique_fields = {record[field] for record in records}
@@ -287,8 +287,8 @@ class RecordLinkBlockLearner(BlockLearner):
         blocker = self.block_learner.blocker
 
         A, B = zip(*candidates)
-        A = unique(A)
-        B = unique(B)
+        A = core.unique(A)
+        B = core.unique(B)
 
         for field in blocker.index_fields:
             unique_fields = {record[field] for record in B}
@@ -445,12 +445,3 @@ class Sample(dict):
         else:
             self.original_length = original_length
 
-
-def unique(seq):
-    """Return the unique elements of a collection even if those elements are
-       unhashable and unsortable, like dicts and sets"""
-    cleaned = []
-    for each in seq:
-        if each not in cleaned:
-            cleaned.append(each)
-    return cleaned

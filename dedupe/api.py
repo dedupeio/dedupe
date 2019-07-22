@@ -648,7 +648,14 @@ class ActiveMatching(Matching):
         logger.info('reading training from file')
         training_pairs = json.load(training_file,
                                    cls=serializer.dedupe_decoder)
-        self.markPairs(training_pairs)
+
+        try:
+            self.markPairs(training_pairs)
+        except AttributeError as e:
+            if "Attempting to block with an index predicate without indexing records" in str(e):
+                raise UserWarning('Training data has records not known to the active learner. Read training in before initializing the active learner with the sample method, or use the prepare_training method.')
+            else:
+                raise
 
     def train(self, recall=0.95, index_predicates=True):  # pragma: no cover
         """
@@ -773,6 +780,10 @@ class Dedupe(DedupeMatching, ActiveMatching):
     """
     canopies = True
 
+    def prepare_training(self, data, training_file=None, **kwargs):
+        self.readTraining(training_file)
+        self.sample(data, **kwargs)
+
     def sample(self, data, sample_size=15000,
                blocked_proportion=0.5, original_length=None):
         '''Draw a sample of record pairs from the dataset
@@ -790,11 +801,28 @@ class Dedupe(DedupeMatching, ActiveMatching):
         '''
         self._checkData(data)
 
+        # We need the active learner to know about all our
+        # existing training data, so add them to data dictionary
+        examples, y = flatten_training(self.training_pairs)
+        example_records = core.unique(record
+                                      for pair in examples
+                                      for record in pair)
+        max_key = max(data)
+        for i, record in enumerate(example_records):
+            try:
+                k = max_key + i
+            except TypeError:
+                k = max_key + str(i)
+
+            data[k] = record
+
         self.active_learner = self.ActiveLearner(self.data_model,
                                                  data,
                                                  blocked_proportion,
                                                  sample_size,
                                                  original_length)
+
+        self.active_learner.mark(examples, y)
 
     def _checkData(self, data):
         if len(data) == 0:
@@ -819,6 +847,11 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
     """
     canopies = False
 
+
+    def prepare_training(self, data_1, data_2, training_file=None, **kwargs):
+        self.readTraining(training_file)
+        self.sample(data, **kwargs)
+
     def sample(self, data_1, data_2, sample_size=15000,
                blocked_proportion=.5, original_length_1=None,
                original_length_2=None):
@@ -838,6 +871,33 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         sample_size -- Size of the sample to draw
         '''
         self._checkData(data_1, data_2)
+
+        # We need the active learner to know about all our
+        # existing training data, so add them to data dictionaries
+        examples, y = flatten_training(self.training_pairs)
+
+        seens = ([], [])
+        max_keys = max(data_1), max(data_2)
+        datas = (data_1, data_2)
+
+        for i, pair in enumerate(examples):
+            for j, record in enumerate(pair):
+                seen = seens[j]
+                max_key = max_keys[j]
+                data = datas[j]
+
+                if record in seen:
+                    continue
+                else:
+                    seen.append(record)
+
+                try:
+                    k = max_key + i
+                except TypeError:
+                    k = max_key + str(i)
+
+                data[k] = record
+
 
         self.active_learner = self.ActiveLearner(self.data_model,
                                                  data_1,
