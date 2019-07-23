@@ -1,4 +1,4 @@
-pytest
+pytest<5
 pytest-cov
 https://github.com/datamade/pytest-flake8/zipball/master
 cython
