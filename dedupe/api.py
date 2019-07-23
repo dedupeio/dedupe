@@ -680,7 +680,7 @@ class ActiveMatching(Matching):
 
         index_predicates -- Should dedupe consider predicates that
                             rely upon indexing the data. Index predicates can
-                            be slower and take susbstantial memory.
+                            be slower and take substantial memory.
 
                             Defaults to True.
         """
