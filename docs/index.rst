@@ -66,13 +66,6 @@ Installation
    pip install "numpy>=1.9"
    pip install dedupe
 
-Mac OS X Install Notes
-----------------------
-
-Previously, installing Dedupe on Mac OS X required :doc:`following special instructions <OSX-Install-Notes>` in order to enable parallel processing in numpy, a library used by Dedupe.
-
-Current numpy wheels built for Mac OS X use OpenBLAS so no special installation steps are needed.
-
 Using dedupe
 ============
 
