@@ -230,7 +230,11 @@ class BlockLearner(object):
 
 class DedupeBlockLearner(BlockLearner):
 
-    def __init__(self, data_model, candidates, data, original_length):
+    def __init__(self, data_model,
+                 candidates,
+                 data,
+                 original_length,
+                 index_include):
         super().__init__(data_model, candidates)
 
         index_data = Sample(data, 50000, original_length)
@@ -241,7 +245,11 @@ class DedupeBlockLearner(BlockLearner):
                                                          sampled_records,
                                                          index_data)
 
-        self._index_predicates(self.candidates)
+        examples_to_index = candidates
+        if index_include:
+            candidates += index_include
+
+        self._index_predicates(examples_to_index)
 
     def _index_predicates(self, candidates):
 
@@ -265,7 +273,8 @@ class RecordLinkBlockLearner(BlockLearner):
                  data_1,
                  data_2,
                  original_length_1,
-                 original_length_2):
+                 original_length_2,
+                 index_include):
 
         super().__init__(data_model, candidates)
 
@@ -280,7 +289,11 @@ class RecordLinkBlockLearner(BlockLearner):
                                                              sampled_records_2,
                                                              index_data)
 
-        self._index_predicates(self.candidates)
+        examples_to_index = candidates
+        if index_include:
+            candidates += index_include
+
+        self._index_predicates(examples_to_index)
 
     def _index_predicates(self, candidates):
 
@@ -382,7 +395,8 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                  data,
                  blocked_proportion,
                  sample_size,
-                 original_length):
+                 original_length,
+                 index_include):
 
         self.data_model = data_model
 
@@ -393,7 +407,8 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
         self.blocker = DedupeBlockLearner(data_model,
                                           self.candidates,
                                           data,
-                                          original_length)
+                                          original_length,
+                                          index_include)
 
         self._common_init()
 
@@ -407,7 +422,8 @@ class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
                  blocked_proportion,
                  sample_size,
                  original_length_1,
-                 original_length_2):
+                 original_length_2,
+                 index_include):
 
         self.data_model = data_model
 
@@ -426,7 +442,8 @@ class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
                                               data_1,
                                               data_2,
                                               original_length_1,
-                                              original_length_2)
+                                              original_length_2,
+                                              index_include)
 
         self._common_init()
 

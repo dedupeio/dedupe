@@ -805,26 +805,19 @@ class Dedupe(DedupeMatching, ActiveMatching):
         '''
         self._checkData(data)
 
+        if not original_length:
+            original_length = len(data)
+
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionary
         examples, y = flatten_training(self.training_pairs)
-        example_records = core.unique(record
-                                      for pair in examples
-                                      for record in pair)
-        max_key = max(data)
-        for i, record in enumerate(example_records):
-            try:
-                k = max_key + i
-            except TypeError:
-                k = max_key + str(i)
-
-            data[k] = record
 
         self.active_learner = self.ActiveLearner(self.data_model,
                                                  data,
                                                  blocked_proportion,
                                                  sample_size,
-                                                 original_length)
+                                                 original_length,
+                                                 index_include=examples)
 
         self.active_learner.mark(examples, y)
 
@@ -878,17 +871,6 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionaries
         examples, y = flatten_training(self.training_pairs)
-        example_records = core.unique(record
-                                      for record, _ in examples)
-
-        max_key = max(data_2)
-        for i, record in enumerate(example_records):
-            try:
-                k = max_key + i
-            except TypeError:
-                k = max_key + str(i)
-
-            data_2[k] = record
 
         self.active_learner = self.ActiveLearner(self.data_model,
                                                  data_1,
@@ -896,7 +878,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
                                                  blocked_proportion,
                                                  sample_size,
                                                  original_length_1,
-                                                 original_length_2)
+                                                 original_length_2,
+                                                 index_include=examples)
 
         self.active_learner.mark(examples, y)
 
