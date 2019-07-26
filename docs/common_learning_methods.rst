@@ -73,17 +73,6 @@
       with open('./my_training.json', 'w') as f:
           deduper.writeTraining(f)
 
-.. py:method:: readTraining(training_file)
-
-   Read training from previously saved training data file object
-
-   :param file training_file: File object containing training data
-
-   .. code:: python
-
-      with open('./my_training.json') as f:
-          deduper.readTraining(f)
-
 .. py:method:: cleanupTraining()
 
    Delete data we used for training.

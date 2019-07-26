@@ -784,9 +784,29 @@ class Dedupe(DedupeMatching, ActiveMatching):
     """
     canopies = True
 
-    def prepare_training(self, data, training_file=None, **kwargs):
+    def prepare_training(self,
+                         data,
+                         training_file=None,
+                         sample_size=15000,
+                         blocked_proportion=0.5,
+                         original_length=None):
+        '''
+        Sets up the learner.
+        Arguments:
+
+        Arguments: data -- Dictionary of records, where the keys are
+                           record_ids and the values are dictionaries
+                           with the keys being field names
+        training_file -- file object containing training data
+        sample_size         -- Size of the sample to draw
+        blocked_proportion  -- Proportion of the sample that will be blocked
+        original_length     -- Length of original data, should be set if
+                               `data` is a sample of full data
+
+        '''
+
         self.readTraining(training_file)
-        self.sample(data, **kwargs)
+        self.sample(data, sample_size, blocked_proportion, original_length)
 
     def sample(self, data, sample_size=15000,
                blocked_proportion=0.5, original_length=None):
@@ -797,11 +817,12 @@ class Dedupe(DedupeMatching, ActiveMatching):
         Arguments: data -- Dictionary of records, where the keys are
         record_ids and the values are dictionaries with the keys being
         field names
-
         sample_size         -- Size of the sample to draw
         blocked_proportion  -- Proportion of the sample that will be blocked
         original_length     -- Length of original data, should be set if `data` is
                                a sample of full data
+
+
         '''
         self._checkData(data)
 
@@ -844,12 +865,40 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
     """
     canopies = False
 
-    def prepare_training(self, data_1, data_2, training_file=None, **kwargs):
-        self.readTraining(training_file)
-        self.sample(data_1, data_2, **kwargs)
+    def prepare_training(self,
+                         data_1,
+                         data_2,
+                         training_file=None,
+                         sample_size=15000,
+                         blocked_proportion=0.5,
+                         original_length_1=None,
+                         original_length_2=None):
+        '''
+        Sets up the learner.
+        Arguments:
 
-    def sample(self, data_1, data_2, sample_size=15000,
-               blocked_proportion=.5, original_length_1=None,
+        data_1      -- Dictionary of records from first dataset, where the
+                       keys are record_ids and the values are dictionaries
+                       with the keys being field names
+        data_2      -- Dictionary of records from second dataset, same
+                       form as data_1
+        training_file -- file object containing training data
+        '''
+
+        self.readTraining(training_file)
+        self.sample(data_1,
+                    data_2,
+                    sample_size,
+                    blocked_proportion,
+                    original_length_1,
+                    original_length_2)
+
+    def sample(self,
+               data_1,
+               data_2,
+               sample_size=15000,
+               blocked_proportion=0.5,
+               original_length_1=None,
                original_length_2=None):
         '''
         Draws a random sample of combinations of records from
