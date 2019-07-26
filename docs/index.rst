@@ -46,7 +46,6 @@ Contents
 
    API-documentation
    Variable-definition
-   OSX-Install-Notes
    How-it-works
    Bibliography
 
@@ -66,12 +65,6 @@ Installation
 
    pip install "numpy>=1.9"
    pip install dedupe
-
-Mac OS X Install Notes
-----------------------
-
-With default configurations, dedupe cannot do parallel processing on Mac OS X.
-:doc:`Read about instructions on how to enable this <OSX-Install-Notes>`.
 
 Using dedupe
 ============
