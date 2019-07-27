@@ -805,7 +805,8 @@ class Dedupe(DedupeMatching, ActiveMatching):
 
         '''
 
-        self.readTraining(training_file)
+        if training_file:
+            self.readTraining(training_file)
         self.sample(data, sample_size, blocked_proportion, original_length)
 
     def sample(self, data, sample_size=15000,
@@ -885,7 +886,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         training_file -- file object containing training data
         '''
 
-        self.readTraining(training_file)
+        if training_file:
+            self.readTraining(training_file)
         self.sample(data_1,
                     data_2,
                     sample_size,
