@@ -90,7 +90,7 @@ else:
               ]
 
     deduper = dedupe.RecordLink(fields)
-    deduper.sample(data_1, data_2, 10000)
+    deduper.prepare_training(data_1, data_2, sample_size=10000)
     deduper.markPairs(training_pairs)
     deduper.train()
 

@@ -33,15 +33,16 @@ entity.
 
       deduper = dedupe.Dedupe(variables)
 
-   .. py:method:: sample(data[, [sample_size=15000[, blocked_proportion=0.5[, original_length]]])
-		  
-   In order to learn how to deduplicate your records, dedupe needs a
-   sample of your records to train on. This method takes a mixture of
-   random sample of pairs of records and a selection of pairs of
-   records that are much more likely to be duplicates.
+   .. py:method:: prepare_training(data[, [training_file=None, [sample_size=15000[, blocked_proportion=0.5[, original_length]]]])
+
+   Initialize dedupe's learner with your data and, optionally,
+   existing training data. 
 		  
    :param dict data: A dictionary-like object indexed by record ID
 		     where the values are dictionaries representing records.
+
+   :param file training_file: File object containing training data.
+			      Defaults to None
    :param int sample_size: Number of record tuples to return. Defaults
 			   to 15,000.
    :param float blocked_proportion: The proportion of record pairs
@@ -57,7 +58,10 @@ entity.
 				       
    .. code:: python
 
-      deduper.sample(data_d, 150000, .5)
+      deduper.prepare_training(data_d, 150000, .5)
+
+      with open(training_file, 'rb') as f:
+          deduper.prepare_training(data_d, training_file=f)
 
 
    .. include:: common_learning_methods.rst
@@ -148,19 +152,20 @@ Example
    We assume that the fields you want to compare across datasets have the
    same field name.
 
-   .. py:method:: sample(data_1, data_2, [sample_size=150000[, blocked_proportion=0.5, [original_length_1[, original_length_2]]]])
-
-   In order to learn how to link your records, dedupe needs a
-   sample of your records to train on. This method takes a mixture of
-   random sample of pairs of records and a selection of pairs of
-   records that are much more likely to be duplicates.
-
+   .. py:method:: prepare_training(data_1, data_2, [training_file=None, [sample_size=150000[, blocked_proportion=0.5, [original_length_1[, original_length_2]]]]])
+		  
+   Initialize dedupe's learner with your data and, optionally,
+   existing training data. 
+		  
    :param dict data_1: A dictionary of records from first dataset,
 		       where the keys are record_ids and the
 		       values are dictionaries with the keys being
 		       field names.
    :param dict data_2: A dictionary of records from second dataset,
 		       same form as data_1
+   :param file training_file: File object containing training data.
+			      Defaults to None
+		       
    :param int sample_size: The size of the sample to draw. Defaults to 150,000     
    :param float blocked_proportion: The proportion of record pairs to
                                     be sampled from similar records,
@@ -181,7 +186,11 @@ Example
 
    .. code:: python
 	     
-      linker.sample(data_1, data_2, 150000)
+      linker.prepare_training(data_1, data_2, 150000)
+
+      with open(training_file, 'rb') as f:
+          linker.prepare_training(data_1, data_2, training_file=f)
+
 
    .. include:: common_recordlink_methods.rst
    .. include:: common_learning_methods.rst
@@ -264,7 +273,7 @@ Convenience Functions
    .. code:: python
 
       > deduper = dedupe.Dedupe(variables)
-      > deduper.sample(data)
+      > deduper.prepare_training(data)
       > dedupe.consoleLabel(deduper)
 
 .. py:function:: trainingDataLink(data_1, data_2, common_key[, training_size])

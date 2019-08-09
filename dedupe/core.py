@@ -428,3 +428,13 @@ def sniff_id_type(ids):
         python_type = int_type
 
     return python_type
+
+
+def unique(seq):
+    """Return the unique elements of a collection even if those elements are
+       unhashable and unsortable, like dicts and sets"""
+    cleaned = []
+    for each in seq:
+        if each not in cleaned:
+            cleaned.append(each)
+    return cleaned

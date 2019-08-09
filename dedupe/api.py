@@ -648,7 +648,18 @@ class ActiveMatching(Matching):
         logger.info('reading training from file')
         training_pairs = json.load(training_file,
                                    cls=serializer.dedupe_decoder)
-        self.markPairs(training_pairs)
+
+        try:
+            self.markPairs(training_pairs)
+        except AttributeError as e:
+            if "Attempting to block with an index predicate without indexing records" in str(e):
+                raise UserWarning('Training data has records not known '
+                                  'to the active learner. Read training '
+                                  'in before initializing the active '
+                                  'learner with the sample method, or '
+                                  'use the prepare_training method.')
+            else:
+                raise
 
     def train(self, recall=0.95, index_predicates=True):  # pragma: no cover
         """
@@ -669,7 +680,7 @@ class ActiveMatching(Matching):
 
         index_predicates -- Should dedupe consider predicates that
                             rely upon indexing the data. Index predicates can
-                            be slower and take susbstantial memory.
+                            be slower and take substantial memory.
 
                             Defaults to True.
         """
@@ -773,6 +784,31 @@ class Dedupe(DedupeMatching, ActiveMatching):
     """
     canopies = True
 
+    def prepare_training(self,
+                         data,
+                         training_file=None,
+                         sample_size=15000,
+                         blocked_proportion=0.5,
+                         original_length=None):
+        '''
+        Sets up the learner.
+        Arguments:
+
+        Arguments: data -- Dictionary of records, where the keys are
+                           record_ids and the values are dictionaries
+                           with the keys being field names
+        training_file -- file object containing training data
+        sample_size         -- Size of the sample to draw
+        blocked_proportion  -- Proportion of the sample that will be blocked
+        original_length     -- Length of original data, should be set if
+                               `data` is a sample of full data
+
+        '''
+
+        if training_file:
+            self.readTraining(training_file)
+        self.sample(data, sample_size, blocked_proportion, original_length)
+
     def sample(self, data, sample_size=15000,
                blocked_proportion=0.5, original_length=None):
         '''Draw a sample of record pairs from the dataset
@@ -782,19 +818,30 @@ class Dedupe(DedupeMatching, ActiveMatching):
         Arguments: data -- Dictionary of records, where the keys are
         record_ids and the values are dictionaries with the keys being
         field names
-
         sample_size         -- Size of the sample to draw
         blocked_proportion  -- Proportion of the sample that will be blocked
         original_length     -- Length of original data, should be set if `data` is
                                a sample of full data
+
+
         '''
         self._checkData(data)
+
+        if not original_length:
+            original_length = len(data)
+
+        # We need the active learner to know about all our
+        # existing training data, so add them to data dictionary
+        examples, y = flatten_training(self.training_pairs)
 
         self.active_learner = self.ActiveLearner(self.data_model,
                                                  data,
                                                  blocked_proportion,
                                                  sample_size,
-                                                 original_length)
+                                                 original_length,
+                                                 index_include=examples)
+
+        self.active_learner.mark(examples, y)
 
     def _checkData(self, data):
         if len(data) == 0:
@@ -819,8 +866,41 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
     """
     canopies = False
 
-    def sample(self, data_1, data_2, sample_size=15000,
-               blocked_proportion=.5, original_length_1=None,
+    def prepare_training(self,
+                         data_1,
+                         data_2,
+                         training_file=None,
+                         sample_size=15000,
+                         blocked_proportion=0.5,
+                         original_length_1=None,
+                         original_length_2=None):
+        '''
+        Sets up the learner.
+        Arguments:
+
+        data_1      -- Dictionary of records from first dataset, where the
+                       keys are record_ids and the values are dictionaries
+                       with the keys being field names
+        data_2      -- Dictionary of records from second dataset, same
+                       form as data_1
+        training_file -- file object containing training data
+        '''
+
+        if training_file:
+            self.readTraining(training_file)
+        self.sample(data_1,
+                    data_2,
+                    sample_size,
+                    blocked_proportion,
+                    original_length_1,
+                    original_length_2)
+
+    def sample(self,
+               data_1,
+               data_2,
+               sample_size=15000,
+               blocked_proportion=0.5,
+               original_length_1=None,
                original_length_2=None):
         '''
         Draws a random sample of combinations of records from
@@ -839,13 +919,20 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         '''
         self._checkData(data_1, data_2)
 
+        # We need the active learner to know about all our
+        # existing training data, so add them to data dictionaries
+        examples, y = flatten_training(self.training_pairs)
+
         self.active_learner = self.ActiveLearner(self.data_model,
                                                  data_1,
                                                  data_2,
                                                  blocked_proportion,
                                                  sample_size,
                                                  original_length_1,
-                                                 original_length_2)
+                                                 original_length_2,
+                                                 index_include=examples)
+
+        self.active_learner.mark(examples, y)
 
     def _checkData(self, data_1, data_2):
         if len(data_1) == 0:
