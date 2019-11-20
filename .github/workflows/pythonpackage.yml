@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         python-version: [2.7, 3.5, 3.6, 3.7]
-        os: [ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v1
@@ -21,7 +21,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        cython src/cpredicates.pyx
+        cython src/cpredicates.pyx || echo 'ok'
         pip install .
     - name: Lint with flake8
       run: |
