@@ -21,7 +21,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        cython src/cpredicates.pyx || echo 'ok'
+        cython src/cpredicates.pyx
         pip install .
     - name: Lint with flake8
       run: |
