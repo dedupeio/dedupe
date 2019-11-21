@@ -14,4 +14,6 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        pip install -e .
+        pip install -r requirements.txt
+        cython src/cpredicates.pyx
+        pip install .
