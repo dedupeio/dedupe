@@ -69,8 +69,9 @@ class BlockLearner(object):
 
         for i in range(2, compound_length + 1):
             compound_predicates = itertools.combinations(simple_predicates, i)
-            for compound_predicate in compound_predicates:
-                yield CP(compound_predicate)
+            for pred_a, pred_b in compound_predicates:
+                if pred_a.compounds_with(pred_b) and pred_b.compounds_with(pred_a):
+                    yield CP((pred_a, pred_b))
 
     def comparisons(self, predicates, simple_cover):
         compounder = self.Compounder(simple_cover)
