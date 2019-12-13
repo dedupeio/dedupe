@@ -1,7 +1,3 @@
-from __future__ import division
-from builtins import range, zip
-from future.utils import viewitems
-
 from collections import deque
 import random
 import functools
@@ -208,7 +204,7 @@ def sort_pair(a, b):
 
 
 def randomDeque(data):
-    data_q = deque(random.sample(viewitems(data), len(data)))
+    data_q = deque(random.sample(data.items(), len(data)))
 
     return data_q
 

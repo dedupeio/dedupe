@@ -1,12 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import str, super
 
 import re
 import math
 import itertools
 import string
-import sys
 
 from doublemetaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
@@ -19,17 +17,11 @@ start_word = re.compile(r"^([\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
 alpha_numeric = re.compile(r"(?=.*\d)[a-zA-Z\d]+").findall
 
-if sys.version < '3':
-    PUNCTUATION = string.punctuation
+PUNCTABLE = str.maketrans("", "", string.punctuation)
 
-    def strip_punc(s):
-        s = s.encode('utf-8').translate(None, PUNCTUATION)
-        return s.decode('utf-8')
-else:
-    PUNCTABLE = str.maketrans("", "", string.punctuation)
 
-    def strip_punc(s):
-        return s.translate(PUNCTABLE)
+def strip_punc(s):
+    return s.translate(PUNCTABLE)
 
 
 class Predicate(object):

@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from future.utils import viewvalues
-
 from collections import defaultdict
 import logging
 import time
@@ -94,7 +92,7 @@ class Blocker:
         for field in self.index_fields:
             unique_fields = {record[field]
                              for record
-                             in viewvalues(data_d)
+                             in data_d.values()
                              if record[field]}
             self.index(unique_fields, field)
 

@@ -1,9 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import range, next, zip, map
-from future.utils import viewvalues
 
-import sys
 import itertools
 import time
 import tempfile
@@ -14,16 +11,6 @@ import warnings
 import functools
 
 import numpy
-
-if sys.version < '3':
-    text_type = unicode  # noqa: F821
-    binary_type = str
-    int_type = long  # noqa: F821
-else:
-    text_type = str
-    binary_type = bytes
-    unicode = str
-    int_type = int
 
 
 class ChildProcessError(Exception):
@@ -343,9 +330,6 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
     if first is None:
         raise ValueError("No records to match")
 
-    if sys.version < '3':
-        records = (list(y) for y in records)
-
     imap, pool = appropriate_imap(num_cores)
 
     score_records = ScoreGazette(data_model, classifier, threshold)
@@ -407,25 +391,22 @@ def index(data, offset=0):
         return data
     else:
         data = dict(zip(itertools.count(offset),
-                        viewvalues(data)))
+                        data.values()))
         return data
 
 
 def Enumerator(start=0, initial=()):
-    try:  # py 2
-        return collections.defaultdict(itertools.count(start).next, initial)
-    except AttributeError:  # py 3
-        return collections.defaultdict(itertools.count(start).__next__, initial)
+    return collections.defaultdict(itertools.count(start).__next__, initial)
 
 
 def sniff_id_type(ids):
     example = ids[0][0]
     python_type = type(example)
-    if python_type is binary_type or python_type is text_type:
-        python_type = (unicode, 256)
+    if python_type is bytes or python_type is str:
+        python_type = (str, 256)
     else:
-        int_type(example)  # make sure we can cast to int
-        python_type = int_type
+        int(example)  # make sure we can cast to int
+        python_type = int
 
     return python_type
 

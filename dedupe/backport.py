@@ -4,16 +4,13 @@ import threading
 import warnings
 import platform
 import logging
-import sys
-
-from future.utils import viewitems
 
 logger = logging.getLogger(__name__)
 
 MULTIPROCESSING = True
 # Deal with Mac OS X issuse
 config_info = str([value for key, value in
-                   viewitems(numpy.__config__.__dict__)
+                   numpy.__config__.__dict__.items()
                    if key.endswith("_info")]).lower()
 
 if "accelerate" in config_info or "veclib" in config_info:
@@ -32,10 +29,7 @@ elif platform.system() == 'Windows':
 
 if MULTIPROCESSING:
     from multiprocessing import Process, Pool, Queue
-    if sys.version < '3':
-        from multiprocessing.queues import SimpleQueue
-    else:
-        from multiprocessing import SimpleQueue
+    from multiprocessing import SimpleQueue
 else:
     if not hasattr(threading.current_thread(), "_children"):
         threading.current_thread()._children = weakref.WeakKeyDictionary()
