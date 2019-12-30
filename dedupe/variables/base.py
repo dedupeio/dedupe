@@ -1,3 +1,5 @@
+from typing import List, Callable, Sequence
+
 from dedupe import predicates
 
 
@@ -47,8 +49,8 @@ class MissingDataType(Variable):
 
 
 class FieldType(Variable):
-    _index_thresholds = []
-    _index_predicates = []
+    _index_thresholds: Sequence[float] = []
+    _index_predicates: Sequence[predicates.IndexPredicate] = []
     _Predicate = predicates.SimplePredicate
 
     def __init__(self, definition):
@@ -71,7 +73,7 @@ class FieldType(Variable):
 
 class CustomType(FieldType):
     type = "Custom"
-    _predicate_functions = []
+    _predicate_functions: List[Callable] = []
 
     def __init__(self, definition):
         super(CustomType, self).__init__(definition)

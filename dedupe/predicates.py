@@ -327,7 +327,7 @@ def wholeFieldPredicate(field):
     return (str(field), )
 
 
-wholeFieldPredicate.compounds_with_same_field = False
+wholeFieldPredicate.compounds_with_same_field = False  #type: ignore
 
 
 def tokenFieldPredicate(field):
@@ -466,7 +466,7 @@ def wholeSetPredicate(field_set):
     return (str(field_set),)
 
 
-wholeSetPredicate.compounds_with_same_field = False
+wholeSetPredicate.compounds_with_same_field = False  #type: ignore
 
 
 def commonSetElementPredicate(field_set):

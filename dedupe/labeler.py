@@ -15,15 +15,15 @@ logger = logging.getLogger(__name__)
 class ActiveLearner(ABC):
 
     @abstractmethod
-    def transform():
+    def transform(self):
         pass
 
     @abstractmethod
-    def pop():
+    def pop(self):
         pass
 
     @abstractmethod
-    def mark():
+    def mark(self):
         pass
 
     @abstractmethod
@@ -234,9 +234,9 @@ class DedupeBlockLearner(BlockLearner):
                  index_include):
         super().__init__(data_model, candidates)
 
-        index_data = Sample(data, 50000, original_length)
+        index_data = Sample(data, 10000, original_length)
         sampled_records = Sample(index_data, 2000, original_length)
-        preds = self.data_model.predicates()
+        preds = self.data_model.predicates(index_predicates=False)
 
         self.block_learner = training.DedupeBlockLearner(preds,
                                                          sampled_records,
@@ -252,6 +252,8 @@ class DedupeBlockLearner(BlockLearner):
 
         blocker = self.block_learner.blocker
 
+        import pdb
+        pdb.set_trace()
         records = core.unique((record for pair in candidates for record in pair))
 
         for field in blocker.index_fields:
@@ -397,9 +399,9 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                  index_include):
 
         self.data_model = data_model
-
+        
         data = core.index(data)
-
+ 
         self.candidates = super().sample(data, blocked_proportion, sample_size)
 
         random_pair = random.choice(self.candidates)
