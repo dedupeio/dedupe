@@ -1,4 +1,4 @@
-from typing import List, Callable, Sequence
+from typing import List, Callable, Sequence, Type, Any, Tuple, Iterable
 
 from dedupe import predicates
 
@@ -50,7 +50,8 @@ class MissingDataType(Variable):
 
 class FieldType(Variable):
     _index_thresholds: Sequence[float] = []
-    _index_predicates: Sequence[predicates.IndexPredicate] = []
+    _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
+    _predicate_functions: Sequence[Callable[[Any], Iterable[str]]] = ()
     _Predicate = predicates.SimplePredicate
 
     def __init__(self, definition):
@@ -73,7 +74,6 @@ class FieldType(Variable):
 
 class CustomType(FieldType):
     type = "Custom"
-    _predicate_functions: List[Callable] = []
 
     def __init__(self, definition):
         super(CustomType, self).__init__(definition)

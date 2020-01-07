@@ -5,6 +5,7 @@ import re
 import math
 import itertools
 import string
+import abc
 
 from doublemetaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
@@ -19,12 +20,14 @@ alpha_numeric = re.compile(r"(?=.*\d)[a-zA-Z\d]+").findall
 
 PUNCTABLE = str.maketrans("", "", string.punctuation)
 
+from typing import Sequence, Callable, Any, Tuple, Set, Iterable
+from dedupe._typing import RecordDict
 
 def strip_punc(s):
     return s.translate(PUNCTABLE)
 
 
-class Predicate(object):
+class Predicate(abc.ABC):
     def __iter__(self):
         yield self
 
@@ -44,16 +47,20 @@ class Predicate(object):
     def __len__(self):
         return 1
 
+    @abc.abstractmethod
+    def __call__(self, record, **kwargs):
+        pass
+
 
 class SimplePredicate(Predicate):
     type = "SimplePredicate"
 
-    def __init__(self, func, field):
+    def __init__(self, func: Callable[[Any], Sequence[str]], field: str):
         self.func = func
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record, **kwargs):
+    def __call__(self, record: RecordDict, **kwargs) -> Iterable[str]:
         column = record[self.field]
         if column:
             return self.func(column)
@@ -66,7 +73,7 @@ class SimplePredicate(Predicate):
 
 
 class StringPredicate(SimplePredicate):
-    def __call__(self, record, **kwargs):
+    def __call__(self, record: RecordDict, **kwargs):
         column = record[self.field]
         if column:
             return self.func(" ".join(strip_punc(column).split()))
@@ -322,7 +329,7 @@ class CompoundPredicate(tuple):
                 in itertools.product(*predicate_keys)]
 
 
-def wholeFieldPredicate(field):
+def wholeFieldPredicate(field: Any) -> Tuple[str]:
     """return the whole field"""
     return (str(field), )
 
@@ -335,7 +342,7 @@ def tokenFieldPredicate(field):
     return set(words(field))
 
 
-def firstTokenPredicate(field):
+def firstTokenPredicate(field: str) -> Sequence[str]:
     first_token = start_word(field)
     if first_token:
         return first_token.groups()
@@ -343,16 +350,16 @@ def firstTokenPredicate(field):
         return ()
 
 
-def commonIntegerPredicate(field):
+def commonIntegerPredicate(field: str) -> Set[str]:
     """return any integers"""
     return {str(int(i)) for i in integers(field)}
 
 
-def alphaNumericPredicate(field):
+def alphaNumericPredicate(field: str) -> Set[str]:
     return set(alpha_numeric(field))
 
 
-def nearIntegersPredicate(field):
+def nearIntegersPredicate(field: str) -> Set[str]: 
     """return any integers N, N+1, and N-1"""
     ints = integers(field)
     near_ints = set()
@@ -365,15 +372,15 @@ def nearIntegersPredicate(field):
     return near_ints
 
 
-def hundredIntegerPredicate(field):
+def hundredIntegerPredicate(field: str) -> Set[str]:
     return {str(int(i))[:-2] + '00' for i in integers(field)}
 
 
-def hundredIntegersOddPredicate(field):
+def hundredIntegersOddPredicate(field: str) -> Set[str]:
     return {str(int(i))[:-2] + '0' + str(int(i) % 2) for i in integers(field)}
 
 
-def firstIntegerPredicate(field):
+def firstIntegerPredicate(field: str) -> Sequence[str]:
     first_token = start_integer(field)
     if first_token:
         return first_token.groups()
@@ -381,32 +388,32 @@ def firstIntegerPredicate(field):
         return ()
 
 
-def ngramsTokens(field, n):
+def ngramsTokens(field: Sequence[str], n: int) -> Set[str]:
     grams = set()
     n_tokens = len(field)
     for i in range(n_tokens):
         for j in range(i + n, min(n_tokens, i + n) + 1):
-            grams.add(' '.join(str(tok) for tok in field[i:j]))
+            grams.add(' '.join(field[i:j]))
     return grams
 
 
-def commonTwoTokens(field):
+def commonTwoTokens(field: str) -> Set[str]:
     return ngramsTokens(field.split(), 2)
 
 
-def commonThreeTokens(field):
+def commonThreeTokens(field: str) -> Set[str]:
     return ngramsTokens(field.split(), 3)
 
 
-def fingerprint(field):
+def fingerprint(field: str) -> Tuple[str]:
     return (u''.join(sorted(field.split())).strip(),)
 
 
-def oneGramFingerprint(field):
+def oneGramFingerprint(field: str) -> Tuple[str]:
     return (u''.join(sorted(set(ngrams(field.replace(' ', ''), 1)))).strip(),)
 
 
-def twoGramFingerprint(field):
+def twoGramFingerprint(field: str) -> Tuple[str, ...]:
     if len(field) > 1:
         return (u''.join(sorted(gram.strip() for gram
                                 in set(ngrams(field.replace(' ', ''), 2)))),)
@@ -414,27 +421,27 @@ def twoGramFingerprint(field):
         return ()
 
 
-def commonFourGram(field):
+def commonFourGram(field: str) -> Set[str]:
     """return 4-grams"""
     return set(ngrams(field.replace(' ', ''), 4))
 
 
-def commonSixGram(field):
+def commonSixGram(field: str) -> Set[str]:
     """return 6-grams"""
     return set(ngrams(field.replace(' ', ''), 6))
 
 
-def sameThreeCharStartPredicate(field):
+def sameThreeCharStartPredicate(field: str) -> Tuple[str]:
     """return first three characters"""
     return initials(field.replace(' ', ''), 3)
 
 
-def sameFiveCharStartPredicate(field):
+def sameFiveCharStartPredicate(field: str) -> Tuple[str]:
     """return first five characters"""
     return initials(field.replace(' ', ''), 5)
 
 
-def sameSevenCharStartPredicate(field):
+def sameSevenCharStartPredicate(field: str) -> Tuple[str]:
     """return first seven characters"""
     return initials(field.replace(' ', ''), 7)
 
@@ -447,7 +454,7 @@ def suffixArray(field):
             yield field[i:]
 
 
-def sortedAcronym(field):
+def sortedAcronym(field: str) -> Tuple[str]:
     return (''.join(sorted(each[0] for each in field.split())),)
 
 

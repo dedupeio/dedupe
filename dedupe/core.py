@@ -10,11 +10,22 @@ import collections
 import warnings
 import functools
 
-from typing import Iterator, Tuple, Mapping, Sequence, Union, Optional, Any, Set, Type, Iterable
+from typing import (Iterator,
+                    Tuple,
+                    Mapping,
+                    Sequence,
+                    Union,
+                    Generator,
+                    Optional,
+                    Any,
+                    Type,
+                    Iterable)
+from dedupe._typing import (RecordPairs, RecordID, Blocks)
 
 import numpy
 import multiprocessing
 import multiprocessing.dummy
+
 
 class ChildProcessError(Exception):
     pass
@@ -24,13 +35,9 @@ class BlockingError(Exception):
     pass
 
 
-IndicesIterator = Iterator[Tuple[int, int]]
-RecordID = Union[int, str]
-Record = Tuple[RecordID, Mapping[str, Any], Set[RecordID]]
-RecordPair = Tuple[Record, Record]
-RecordPairs = Iterator[RecordPair]
 _Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
 _SimpleQueue = Union[multiprocessing.dummy.Queue, multiprocessing.SimpleQueue]
+IndicesIterator = Iterator[Tuple[int, int]]
 
 
 def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
@@ -131,7 +138,7 @@ class ScoreDupes(object):
 
     def fieldDistance(self, record_pairs: RecordPairs) -> Optional[Tuple]:
 
-        ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
+        record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
 
         if records:
 
@@ -140,8 +147,8 @@ class ScoreDupes(object):
 
             mask = scores > self.threshold
             if mask.any():
-                id_type = sniff_id_type(ids)
-                ids = numpy.array(ids, dtype=id_type)
+                id_type = sniff_id_type(record_ids)
+                ids = numpy.array(record_ids, dtype=id_type)
 
                 dtype = numpy.dtype([('pairs', id_type, 2),
                                      ('score', 'f4')])
@@ -205,15 +212,15 @@ def mergeScores(score_queue: _SimpleQueue,
 def scoreDuplicates(record_pairs: RecordPairs,
                     data_model,
                     classifier,
-                    num_cores: int=1,
-                    threshold: float=0):
+                    num_cores: int = 1,
+                    threshold: float = 0.):
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
     else:
         from .backport import Process, SimpleQueue, Queue  # type: ignore
 
-    first, records = peek(record_pairs)
+    first, record_pairs = peek(record_pairs)
     if first is None:
         raise BlockingError("No records have been blocked together. "
                             "Is the data you are trying to match like "
@@ -321,14 +328,14 @@ class ScoreGazette(object):
 
     def __call__(self, block: RecordPairs) -> numpy.ndarray:
 
-        ids, records = zip(*(zip(*each) for each in block))
+        record_ids, records = zip(*(zip(*each) for each in block))
 
         distances = self.data_model.distances(records)
         scores = self.classifier.predict_proba(distances)[:, -1]
 
         mask = scores > self.threshold
-        id_type = sniff_id_type(ids)
-        ids = numpy.array(ids, dtype=id_type)
+        id_type = sniff_id_type(record_ids)
+        ids = numpy.array(record_ids, dtype=id_type)
 
         dtype = numpy.dtype([('pairs', id_type, 2),
                              ('score', 'f4')])
@@ -342,11 +349,11 @@ class ScoreGazette(object):
         return scored_pairs
 
 
-def scoreGazette(record_pairs: RecordPairs,
+def scoreGazette(record_pairs: Blocks,
                  data_model,
                  classifier,
-                 num_cores: int=1,
-                 threshold: float=0.):
+                 num_cores: int = 1,
+                 threshold: float = 0.) -> Generator[numpy.ndarray, None, None]:
 
     first, record_pairs = peek(record_pairs)
     if first is None:
@@ -382,7 +389,7 @@ def appropriate_imap(num_cores):
     else:
         from .backport import Pool
         pool = Pool(processes=num_cores)
-        imap = functools.partial(pool.imap_unordered, chunksize=1)
+        imap = functools.partial(pool.imap_unordered, chunksize=100)
 
     return imap, pool
 
@@ -403,11 +410,12 @@ def peek(seq: Iterator) -> Tuple[Optional[Any], Iterator]:
 
     return first, itertools.chain([first], seq)
 
+
 def isIndexed(data: Mapping, offset: int) -> bool:
     return all(i in data for i in range(offset, offset + len(data)))
 
 
-def index(data: Mapping[Any, Any], offset: int=0) -> Mapping[int, Any]:
+def index(data: Mapping[Any, Any], offset: int = 0) -> Mapping[int, Any]:
     if isIndexed(data, offset):
         return data
     else:
@@ -416,7 +424,7 @@ def index(data: Mapping[Any, Any], offset: int=0) -> Mapping[int, Any]:
         return data
 
 
-def Enumerator(start: int=0, initial: tuple=()) -> collections.defaultdict:
+def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
     return collections.defaultdict(itertools.count(start).__next__, initial)
 
 
@@ -427,7 +435,7 @@ def sniff_id_type(ids: Sequence[Tuple[RecordID, RecordID]]) -> Union[Type[int], 
         dtype: Union[Type[int], Tuple[Type[str], int]] = (str, 256)
     else:
         int(example)  # make sure we can cast to int
-        dtype: Union[Type[int], Tuple[Type[str], int]] = int # type: ignore
+        dtype: Union[Type[int], Tuple[Type[str], int]] = int  # type: ignore
 
     return dtype
 

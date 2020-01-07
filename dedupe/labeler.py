@@ -252,8 +252,6 @@ class DedupeBlockLearner(BlockLearner):
 
         blocker = self.block_learner.blocker
 
-        import pdb
-        pdb.set_trace()
         records = core.unique((record for pair in candidates for record in pair))
 
         for field in blocker.index_fields:

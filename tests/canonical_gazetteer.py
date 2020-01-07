@@ -100,19 +100,31 @@ if not gazetteer.blocked_records:
 with open(settings_file, 'wb') as f:
     gazetteer.writeSettings(f, index=True)
 
-alpha = gazetteer.threshold(data_1)
+alpha = gazetteer.threshold(data_1, data_2)
 
 
 # print candidates
 print('clustering...')
-clustered_dupes = gazetteer.match(
+results = gazetteer.search(
     data_1, threshold=alpha, n_matches=1, generator=True)
 
-print('Evaluate Clustering')
-confirm_dupes = set(frozenset(pair)
-                    for matches in clustered_dupes
-                    for pair, score in matches)
+# for a, result in results:
+#     for b, score in result:
+#         print(b, score)
 
-evaluateDuplicates(confirm_dupes, duplicates_s)
+print('Evaluate Clustering')
+confirm_dupes_a = set(frozenset([a, b])
+                      for a, result in results
+                      for b, score in result)
+
+evaluateDuplicates(confirm_dupes_a, duplicates_s)
+
+clustered_dupes = gazetteer.match(data_1, data_2, threshold=alpha, n_matches=1)
+
+confirm_dupes_b = set(frozenset(pair)
+                      for matches in clustered_dupes
+                      for pair, score in matches)
+
+evaluateDuplicates(confirm_dupes_b, duplicates_s)
 
 print('ran in ', time.time() - t0, 'seconds')

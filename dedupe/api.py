@@ -12,7 +12,6 @@ import multiprocessing
 import warnings
 import os
 from collections import OrderedDict
-import abc
 
 import numpy
 import json
@@ -24,24 +23,34 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
+import dedupe.predicates
+
+from typing import (Mapping,
+                    Optional,
+                    Dict,
+                    List,
+                    Tuple,
+                    Union,
+                    Generator,
+                    Iterable,
+                    Set,
+                    Any,
+                    BinaryIO,
+                    Callable,
+                    TextIO)
+from dedupe._typing import (Data,
+                            Clusters,
+                            RecordPairs,
+                            RecordID,
+                            Record,
+                            Blocks,
+                            RecordDict,
+                            TrainingExample,
+                            LookupResults,
+                            SearchResults,
+                            TrainingData)
 
 logger = logging.getLogger(__name__)
-
-from typing import Iterator, Tuple, Mapping, Sequence, Union, Optional, Any, Set, Type, Iterable, Generator, cast, Dict, List, BinaryIO, TextIO, overload
-IndicesIterator = Iterator[Tuple[int, int]]
-RecordID = Union[int, str]
-Record = Tuple[RecordID, Mapping[str, Any]]
-RecordPair = Tuple[Record, Record]
-RecordPairs = Iterator[RecordPair]
-_Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
-_SimpleQueue = Union[multiprocessing.dummy.Queue, multiprocessing.SimpleQueue]
-Cluster = Tuple[RecordID]
-Clusters = Iterable[Cluster]
-Data = Mapping[RecordID, Mapping[str, Any]]
-Block = Tuple[Sequence[Record], Sequence[Record]]
-Blocks = Iterator[Block]
-TrainingExample = Tuple[Mapping[str, Any], Mapping[str, Any]]
-TrainingData = Mapping[str, List[TrainingExample]]
 
 
 class Matching(object):
@@ -55,15 +64,22 @@ class Matching(object):
     - `matchBlocks`
     """
 
-    def __init__(self, num_cores: Optional[int], **kwargs):
+    def __init__(self, num_cores: Optional[int], **kwargs) -> None:
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
             self.num_cores = num_cores
 
         self.loaded_indices = False
+        self.blocker: blocking.Blocker
+        self.data_model: datamodel.DataModel
+        self.classifier: Any
+        self.predicates: Iterable[dedupe.predicates.Predicate]
+        self._cluster: Callable
 
-    def threshold_pairs(self, pairs, recall_weight: float=1.5) -> float:  # pragma: nocover
+    def threshold_pairs(self,
+                        pairs: RecordPairs,
+                        recall_weight: float = 1.5) -> float:  # pragma: nocover
         """
         Returns the threshold that maximizes the expected F score, a
         weighted average of precision and recall for a sample of
@@ -105,7 +121,9 @@ class Matching(object):
 
         return probability[i]
 
-    def score(self, pairs, *args, **kwargs):
+    def score(self,
+              pairs,
+              threshold: float = 0.0) -> numpy.ndarray:
         """
         Partitions blocked data and generates a sequence of clusters,
         where each cluster is a tuple of record ids
@@ -129,17 +147,13 @@ class Matching(object):
                                        self.data_model,
                                        self.classifier,
                                        self.num_cores,
-                                       threshold=0)
+                                       threshold=threshold)
 
         return matches
 
-    def cluster(self, matches, threshold, *args, **kwargs):
-
-        logger.debug("matching done, begin clustering")
-
-        yield from self._cluster(matches, threshold, *args, **kwargs)
-
-    def writeSettings(self, file_obj: BinaryIO, index: bool=False) -> None:  # pragma: no cover
+    def writeSettings(self,
+                      file_obj: BinaryIO,
+                      index: bool = False) -> None:  # pragma: no cover
         """
         Write a settings file containing the
         data model and predicates to a file object
@@ -190,13 +204,14 @@ class DedupeMatching(Matching):
     - `threshold`
     """
 
-    ActiveLearner = labeler.DedupeDisagreementLearner
-
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._cluster = clustering.cluster
 
-    def match(self, data: Data, threshold: float=0.5, generator: bool=False) -> Clusters:  # pragma: no cover
+    def match(self,
+              data: Data,
+              threshold: float = 0.5,
+              generator: bool = False) -> Clusters:  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
         tuples
 
@@ -242,7 +257,9 @@ class DedupeMatching(Matching):
             except AttributeError:
                 pass
 
-    def threshold(self, data: Data, recall_weight: float=1.5) -> float:  # pragma: no cover
+    def threshold(self,
+                  data: Data,
+                  recall_weight: float = 1.5) -> float:  # pragma: no cover
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -258,7 +275,7 @@ class DedupeMatching(Matching):
                          recall as you do precision, set recall_weight
                          to 2.
         """
-        
+
         pairs = self.pairs(data)
         return self.threshold_pairs(pairs, recall_weight)
 
@@ -296,6 +313,17 @@ class DedupeMatching(Matching):
         if not self.loaded_indices:
             self.blocker.resetIndices()
 
+    def cluster(self,
+                matches: numpy.ndarray,
+                threshold: float,
+                *args,
+                **kwargs) -> Clusters:
+
+        logger.debug("matching done, begin clustering")
+
+        yield from self._cluster(matches, threshold, *args, **kwargs)
+
+
 class RecordLinkMatching(Matching):
     """
     Class for Record Linkage, extends Matching.
@@ -310,14 +338,17 @@ class RecordLinkMatching(Matching):
     - `threshold`
     """
 
-    ActiveLearner = labeler.RecordLinkDisagreementLearner
-
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self._cluster = clustering.greedyMatching
 
-    def match(self, data_1: Data, data_2: Data, threshold: float=0.5, generator: bool=False) -> Clusters:  # pragma: no cover
+    def match(self,
+              data_1: Data,
+              data_2: Data,
+              threshold: float = 0.5,
+              generator: bool = False,
+              **kwargs) -> SearchResults:  # pragma: no cover
         """
         Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
@@ -344,8 +375,8 @@ class RecordLinkMatching(Matching):
                      will increase precision
         """
         pairs = self.pairs(data_1, data_2)
-        pair_scores = self.score(pairs)
-        clusters = self.cluster(pair_scores, threshold)
+        pair_scores = self.score(pairs, threshold)
+        clusters = self.cluster(pair_scores, **kwargs)
 
         try:
             if generator:
@@ -361,7 +392,10 @@ class RecordLinkMatching(Matching):
             except AttributeError:
                 pass
 
-    def threshold(self, data_1: Data, data_2: Data, recall_weight: float=1.5) -> float:  # pragma: no cover
+    def threshold(self,
+                  data_1: Data,
+                  data_2: Data,
+                  recall_weight: float = 1.5) -> float:  # pragma: no cover
         """
         Returns the threshold that maximizes the expected F score,
         a weighted average of precision and recall for a sample of
@@ -380,16 +414,15 @@ class RecordLinkMatching(Matching):
                          recall as you do precision, set recall_weight
                          to 2.
         """
-
-        blocks = self._blockData(data_1, data_2)
-        return self.thresholdBlocks(blocks, recall_weight)
+        pairs = self.pairs(data_1, data_2)
+        return self.threshold_pairs(pairs, recall_weight)
 
     def pairs(self, data_1: Data, data_2: Data) -> RecordPairs:
 
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
 
-        blocked_records: Dict[str, List] = {}
+        blocked_records: Dict[str, List[RecordID]] = {}
 
         for block_key, record_id in self.blocker(data_2.items(), target=True):
             blocked_records.setdefault(block_key, []).append(record_id)
@@ -417,18 +450,24 @@ class RecordLinkMatching(Matching):
             if B:
                 yield from product(A, B)
 
-class GazetteerMatching(Matching):
+    def cluster(self,
+                matches: numpy.ndarray,
+                **kwargs) -> SearchResults:
+
+        logger.debug("matching done, begin clustering")
+
+        yield from self._cluster(matches, **kwargs)
+
+
+class GazetteerMatching(RecordLinkMatching):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self._cluster = clustering.gazetteMatching
+        self._cluster = clustering.pair_gazette_matching
+        self.blocked_records: Dict[str, Dict[RecordID, RecordDict]] = {}
 
-    def _blockData(self, messy_data: Data) -> Blocks:
-        for each in self._blockGenerator(messy_data, self.blocked_records):
-            yield each
-
-    def index(self, data: Data):  # pragma: no cover
+    def index(self, data: Data) -> None:  # pragma: no cover
 
         self.blocker.indexAll(data)
 
@@ -437,7 +476,7 @@ class GazetteerMatching(Matching):
                 self.blocked_records[block_key] = {}
             self.blocked_records[block_key][record_id] = data[record_id]
 
-    def unindex(self, data: Data):  # pragma: no cover
+    def unindex(self, data: Data) -> None:  # pragma: no cover
 
         for field in self.blocker.index_fields:
             self.blocker.unindex((record[field]
@@ -451,39 +490,53 @@ class GazetteerMatching(Matching):
             except KeyError:
                 pass
 
-    def matchBlocks(self, blocks: Blocks, threshold: float=.5, *args, **kwargs) -> Clusters:
-        """
-        Partitions blocked data and generates a sequence of clusters, where
-        each cluster is a tuple of record ids
+    def blocks(self, data_1: Data) -> Blocks:
 
-        Keyword arguments:
+        block_groups = itertools.groupby(self.blocker(data_1.items()),
+                                         lambda x: x[1])
 
-        blocks -- Sequence of tuples of records, where each tuple is a
-                  set of records covered by a blocking predicate
+        product = itertools.product
 
-        threshold -- Number between 0 and 1 (default is .5). We will
-                      only consider as duplicates record pairs as
-                      duplicates if their estimated duplicate
-                      likelihood is greater than the threshold.
+        for i, (a_record_id, block_keys) in enumerate(block_groups):
+            if i % 100 == 0:
+                logger.info("%s records" % i)
 
-                      Lowering the number will increase recall,
-                      raising it will increase precision
+            A: List[Record] = [(a_record_id, data_1[a_record_id])]
 
-        """
-        candidate_records = self._blockedPairs(blocks)
+            B: Dict[RecordID, RecordDict] = {}
+            for block_key, _ in block_keys:
+                if block_key in self.blocked_records:
+                    B.update(self.blocked_records[block_key])
 
-        matches = core.scoreGazette(candidate_records,
+            if B:
+                yield product(A, B.items())
+
+    def score_blocks(self,
+                     blocks: Blocks,
+                     threshold: float,
+                     **kwargs) -> Generator[numpy.ndarray, None, None]:
+
+        matches = core.scoreGazette(blocks,
                                     self.data_model,
                                     self.classifier,
                                     self.num_cores,
                                     threshold=threshold)
 
-        logger.debug("matching done, begin clustering")
+        return matches
 
-        return self._cluster(matches, *args, **kwargs)
+    def cluster_blocks(self,
+                       score_blocks: Iterable[numpy.ndarray],
+                       n_matches: int = 1) -> SearchResults:
 
-    def match(self, messy_data, threshold=0.5, n_matches=1, generator=False):  # pragma: no cover
-        """Identifies pairs of records that refer to the same entity, returns
+        yield from clustering.gazetteMatching(score_blocks, n_matches)
+
+    def search(self,
+               messy_data: Data,
+               threshold: float = 0.5,
+               n_matches: int = 1,
+               generator: bool = False) -> LookupResults:  # pragma: no cover
+        """
+        Identifies pairs of records that refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a float
         between 0 and 1. The record_ids within each set should refer to the
         same entity and the confidence score is the estimated probability that
@@ -508,38 +561,20 @@ class GazetteerMatching(Matching):
                      record set to match against each record in the messy
                      record set
         """
-        blocks = self._blockData(messy_data)
+        blocks = self.blocks(messy_data)
+        pair_scores = self.score_blocks(blocks, threshold=threshold)
+        search_results = self.cluster_blocks(pair_scores, n_matches)
 
-        clusters = self.matchBlocks(blocks, threshold, n_matches)
-
-        clusters = (cluster for cluster in clusters if len(cluster))
+        results = self._format_search_results(messy_data, search_results)
 
         if generator:
-            return clusters
+            return results
         else:
-            return list(clusters)
+            return list(results)
 
-    def threshold(self, messy_data, recall_weight=1.5):  # pragma: no cover
-        """
-        Returns the threshold that maximizes the expected F score,
-        a weighted average of precision and recall for a sample of
-        data.
-
-        Arguments:
-        messy_data -- Dictionary of records from messy dataset, where the
-                      keys are record_ids and the values are dictionaries with
-                      the keys being field names
-
-        recall_weight -- Sets the tradeoff between precision and
-                         recall. I.e. if you care twice as much about
-                         recall as you do precision, set recall_weight
-                         to 2.
-        """
-
-        blocks = self._blockData(messy_data)
-        return self.thresholdBlocks(blocks, recall_weight)
-
-    def writeSettings(self, file_obj, index=False):  # pragma: no cover
+    def writeSettings(self,
+                      file_obj: BinaryIO,
+                      index: bool = False) -> None:  # pragma: no cover
         """
         Write a settings file containing the
         data model and predicates to a file object
@@ -551,6 +586,22 @@ class GazetteerMatching(Matching):
 
         if index:
             pickle.dump(self.blocked_records, file_obj)
+
+    def _format_search_results(self,
+                               search_d: Data,
+                               results: SearchResults) -> LookupResults:
+
+        seen: Set[RecordID] = set()
+
+        for result in results:
+            a = None
+            prepared_result = []
+            for (a, b), score in result:  # type: ignore
+                prepared_result.append((b, score))
+            yield a, tuple(prepared_result)
+
+        for k in (search_d.keys() - seen):
+            yield k, ()
 
 
 class StaticMatching(Matching):
@@ -564,7 +615,8 @@ class StaticMatching(Matching):
 
     def __init__(self,
                  settings_file: BinaryIO,
-                 num_cores: int=None, **kwargs) -> None:  # pragma: no cover
+                 num_cores: int = None,
+                 **kwargs) -> None:  # pragma: no cover
         """
         Initialize from a settings file
         #### Example usage
@@ -642,8 +694,6 @@ class StaticMatching(Matching):
 
 
 class ActiveMatching(Matching):
-    classifier = rlr.RegularizedLogisticRegression()
-
     """
     Class for training dedupe extends Matching.
 
@@ -657,10 +707,12 @@ class ActiveMatching(Matching):
     - markPairs
     - cleanupTraining
     """
+    classifier = rlr.RegularizedLogisticRegression()
 
     def __init__(self,
                  variable_definition: Mapping,
-                 num_cores: int=None, **kwargs) -> None:
+                 num_cores: int = None,
+                 **kwargs) -> None:
         """
         Initialize from a data model and data sample.
 
@@ -693,7 +745,8 @@ class ActiveMatching(Matching):
         self.training_pairs: TrainingData
         self.training_pairs = OrderedDict({u'distinct': [],
                                            u'match': []})
-
+        self.active_learner: Union[labeler.DedupeDisagreementLearner,
+                                   labeler.RecordLinkDisagreementLearner]
 
     def cleanupTraining(self) -> None:  # pragma: no cover
         '''
@@ -727,7 +780,9 @@ class ActiveMatching(Matching):
             else:
                 raise
 
-    def train(self, recall: float=0.95, index_predicates: bool=True) -> None:  # pragma: no cover
+    def train(self,
+              recall: float = 0.95,
+              index_predicates: bool = True) -> None:  # pragma: no cover
         """
         Keyword arguments:
 
@@ -771,7 +826,7 @@ class ActiveMatching(Matching):
                   default=serializer._to_json,
                   ensure_ascii=True)
 
-    def uncertainPairs(self) -> Tuple[Mapping[str, Any], Mapping[str, Any]]:
+    def uncertainPairs(self) -> TrainingExample:
         '''
         Provides a list of the pairs of records that dedupe is most
         curious to learn if they are matches or distinct.
@@ -848,13 +903,14 @@ class Dedupe(DedupeMatching, ActiveMatching):
     - sample
     """
     canopies = True
+    ActiveLearner = labeler.DedupeDisagreementLearner
 
     def prepare_training(self,
                          data: Data,
-                         training_file: TextIO=None,
-                         sample_size: int=1500,
-                         blocked_proportion: float=0.9,
-                         original_length: int=None) -> None:
+                         training_file: TextIO = None,
+                         sample_size: int = 1500,
+                         blocked_proportion: float = 0.9,
+                         original_length: int = None) -> None:
         '''
         Sets up the learner.
         Arguments:
@@ -874,8 +930,11 @@ class Dedupe(DedupeMatching, ActiveMatching):
             self.readTraining(training_file)
         self.sample(data, sample_size, blocked_proportion, original_length)
 
-    def sample(self, data: Data, sample_size: int=15000,
-               blocked_proportion: float=0.5, original_length: int=None) -> None:
+    def sample(self,
+               data: Data,
+               sample_size: int = 15000,
+               blocked_proportion: float = 0.5,
+               original_length: int = None) -> None:
         '''Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
         and initialize active learning with this sample
@@ -908,7 +967,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
 
         self.active_learner.mark(examples, y)
 
-    def _checkData(self, data: Data):
+    def _checkData(self, data: Data) -> None:
         if len(data) == 0:
             raise ValueError(
                 'Dictionary of records is empty.')
@@ -922,7 +981,7 @@ class StaticRecordLink(RecordLinkMatching, StaticMatching):
     """
 
 
-class Link(object):
+class Link(ActiveMatching):
     """
     Mixin Class for Active Learning Record Linkage
 
@@ -932,15 +991,16 @@ class Link(object):
     """
 
     canopies = False
+    ActiveLearner = labeler.RecordLinkDisagreementLearner
 
     def prepare_training(self,
                          data_1: Data,
                          data_2: Data,
-                         training_file: Optional[TextIO]=None,
-                         sample_size: int=15000,
-                         blocked_proportion: float=0.5,
-                         original_length_1: Optional[int]=None,
-                         original_length_2: Optional[int]=None) -> None:
+                         training_file: Optional[TextIO] = None,
+                         sample_size: int = 15000,
+                         blocked_proportion: float = 0.5,
+                         original_length_1: Optional[int] = None,
+                         original_length_2: Optional[int] = None) -> None:
         '''
         Sets up the learner.
         Arguments:
@@ -965,10 +1025,10 @@ class Link(object):
     def sample(self,
                data_1: Data,
                data_2: Data,
-               sample_size: int=15000,
-               blocked_proportion: float=0.5,
-               original_length_1: int=None,
-               original_length_2: int=None) -> None:
+               sample_size: int = 15000,
+               blocked_proportion: float = 0.5,
+               original_length_1: int = None,
+               original_length_2: int = None) -> None:
         '''
         Draws a random sample of combinations of records from
         the first and second datasets, and initializes active
@@ -1012,7 +1072,7 @@ class Link(object):
         self.data_model.check(next(iter(data_1.values())))
         self.data_model.check(next(iter(data_2.values())))
 
-    
+
 class RecordLink(Link, RecordLinkMatching, ActiveMatching):
     """
     Active Matching for Record Link
@@ -1023,7 +1083,7 @@ class Gazetteer(GazetteerMatching, Link, ActiveMatching):
 
     def __init__(self, *args, **kwargs) -> None:  # pragma: no cover
         super().__init__(*args, **kwargs)
-        self.blocked_records: Mapping = OrderedDict({})
+        self.blocked_records = OrderedDict({})
 
 
 class StaticGazetteer(GazetteerMatching, StaticMatching):
@@ -1056,7 +1116,7 @@ class SettingsFileLoadingException(Exception):
     pass
 
 
-def flatten_training(training_pairs: TrainingData):
+def flatten_training(training_pairs: TrainingData) -> Tuple[List[TrainingExample], numpy.ndarray]:
     examples = []
     y = []
     for label, pairs in training_pairs.items():

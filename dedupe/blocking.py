@@ -5,6 +5,11 @@ from collections import defaultdict
 import logging
 import time
 
+from typing import Generator, Tuple, Iterable, Dict, List
+from dedupe._typing import Record, RecordID, Data
+
+import dedupe.predicates
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,11 +20,15 @@ def index_list():
 class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
 
-    def __init__(self, predicates):
+    def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
 
         self.predicates = predicates
 
+        self.index_fields: Dict[str,
+                                Dict[str,
+                                     List[dedupe.predicates.IndexPredicate]]]
         self.index_fields = defaultdict(index_list)
+
         self.index_predicates = []
 
         for full_predicate in predicates:
@@ -29,7 +38,9 @@ class Blocker:
                         predicate)
                     self.index_predicates.append(predicate)
 
-    def __call__(self, records, target=False):
+    def __call__(self,
+                 records: Iterable[Record],
+                 target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
 
         start_time = time.clock()
         predicates = [(':' + str(i), predicate)
@@ -54,7 +65,7 @@ class Blocker:
         for predicate in self.index_predicates:
             predicate.reset()
 
-    def index(self, data, field):
+    def index(self, data: Iterable, field: str):
         '''Creates TF/IDF index of a given set of data'''
         indices = extractIndices(self.index_fields[field])
 
@@ -71,7 +82,7 @@ class Blocker:
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
-    def unindex(self, data, field):
+    def unindex(self, data: Iterable, field: str):
         '''Remove index of a given set of data'''
         indices = extractIndices(self.index_fields[field])
 
@@ -88,7 +99,7 @@ class Blocker:
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
-    def indexAll(self, data_d):
+    def indexAll(self, data_d: Data):
         for field in self.index_fields:
             unique_fields = {record[field]
                              for record
