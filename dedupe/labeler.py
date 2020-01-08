@@ -1,9 +1,5 @@
-from __future__ import division
-from future.utils import with_metaclass
-from builtins import super
-
 import random
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 import logging
 
 import numpy
@@ -16,7 +12,7 @@ import dedupe.training as training
 logger = logging.getLogger(__name__)
 
 
-class ActiveLearner(with_metaclass(ABCMeta)):
+class ActiveLearner(ABC):
 
     @abstractmethod
     def transform():
@@ -107,6 +103,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         return self.data_model.distances(pairs)
 
     def fit(self, X, y):
+
         self.y = numpy.array(y)
         self.X = X
 
@@ -245,9 +242,9 @@ class DedupeBlockLearner(BlockLearner):
                                                          sampled_records,
                                                          index_data)
 
-        examples_to_index = candidates
+        examples_to_index = candidates.copy()
         if index_include:
-            candidates += index_include
+            examples_to_index += index_include
 
         self._index_predicates(examples_to_index)
 
@@ -289,9 +286,9 @@ class RecordLinkBlockLearner(BlockLearner):
                                                              sampled_records_2,
                                                              index_data)
 
-        examples_to_index = candidates
+        examples_to_index = candidates.copy()
         if index_include:
-            candidates += index_include
+            examples_to_index += index_include
 
         self._index_predicates(examples_to_index)
 
@@ -337,7 +334,8 @@ class DisagreementLearner(ActiveLearner):
 
         if disagreement.any():
             conflicts = disagreement.nonzero()[0]
-            uncertain_index = numpy.random.choice(conflicts, 1)[0]
+            target = numpy.random.uniform(size=1)
+            uncertain_index = conflicts[numpy.argmax(probs[conflicts][:, 0] - target)]
         else:
             uncertain_index = numpy.std(probs, axis=1).argmax()
 
@@ -404,6 +402,12 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
 
         self.candidates = super().sample(data, blocked_proportion, sample_size)
 
+        random_pair = random.choice(self.candidates)
+        exact_match = (random_pair[0], random_pair[0])
+
+        index_include = index_include.copy()
+        index_include.append(exact_match)
+
         self.blocker = DedupeBlockLearner(data_model,
                                           self.candidates,
                                           data,
@@ -411,6 +415,9 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                                           index_include)
 
         self._common_init()
+
+        self.mark([exact_match] * 4 + [random_pair],
+                  [1] * 4 + [0])
 
 
 class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
@@ -437,6 +444,12 @@ class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
                                          blocked_proportion,
                                          sample_size)
 
+        random_pair = random.choice(self.candidates)
+        exact_match = (random_pair[0], random_pair[0])
+
+        index_include = index_include.copy()
+        index_include.append(exact_match)
+
         self.blocker = RecordLinkBlockLearner(data_model,
                                               self.candidates,
                                               data_1,
@@ -446,6 +459,9 @@ class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
                                               index_include)
 
         self._common_init()
+
+        self.mark([exact_match] * 4 + [random_pair],
+                  [1] * 4 + [0])
 
 
 class Sample(dict):

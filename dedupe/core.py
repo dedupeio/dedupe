@@ -1,9 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import range, next, zip, map
-from future.utils import viewvalues
 
-import sys
 import itertools
 import time
 import tempfile
@@ -14,16 +11,6 @@ import warnings
 import functools
 
 import numpy
-
-if sys.version < '3':
-    text_type = unicode  # noqa: F821
-    binary_type = str
-    int_type = long  # noqa: F821
-else:
-    text_type = str
-    binary_type = bytes
-    unicode = str
-    int_type = int
 
 
 class ChildProcessError(Exception):
@@ -148,7 +135,7 @@ class ScoreDupes(object):
                 ids = numpy.array(ids, dtype=id_type)
 
                 dtype = numpy.dtype([('pairs', id_type, 2),
-                                     ('score', 'f4', 1)])
+                                     ('score', 'f4')])
 
                 temp_file, file_path = tempfile.mkstemp()
                 os.close(temp_file)
@@ -264,7 +251,7 @@ def fillQueue(queue, iterable, stop_signals):
     # initial values
     i = 0
     n_records = 0
-    t0 = time.clock()
+    t0 = time.perf_counter()
     last_rate = 10000
 
     while True:
@@ -277,7 +264,7 @@ def fillQueue(queue, iterable, stop_signals):
             i += 1
 
             if i % 10:
-                time_delta = max(time.clock() - t0, 0.0001)
+                time_delta = max(time.perf_counter() - t0, 0.0001)
 
                 current_rate = n_records / time_delta
 
@@ -292,7 +279,7 @@ def fillQueue(queue, iterable, stop_signals):
 
                 last_rate = current_rate
                 n_records = 0
-                t0 = time.clock()
+                t0 = time.perf_counter()
 
         else:
             # put poison pills in queue to tell scorers that they are
@@ -326,7 +313,7 @@ class ScoreGazette(object):
         ids = numpy.array(ids, dtype=id_type)
 
         dtype = numpy.dtype([('pairs', id_type, 2),
-                             ('score', 'f4', 1)])
+                             ('score', 'f4')])
 
         scored_pairs = numpy.empty(shape=numpy.count_nonzero(mask),
                                    dtype=dtype)
@@ -342,9 +329,6 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
     first, records = peek(records)
     if first is None:
         raise ValueError("No records to match")
-
-    if sys.version < '3':
-        records = (list(y) for y in records)
 
     imap, pool = appropriate_imap(num_cores)
 
@@ -407,25 +391,22 @@ def index(data, offset=0):
         return data
     else:
         data = dict(zip(itertools.count(offset),
-                        viewvalues(data)))
+                        data.values()))
         return data
 
 
 def Enumerator(start=0, initial=()):
-    try:  # py 2
-        return collections.defaultdict(itertools.count(start).next, initial)
-    except AttributeError:  # py 3
-        return collections.defaultdict(itertools.count(start).__next__, initial)
+    return collections.defaultdict(itertools.count(start).__next__, initial)
 
 
 def sniff_id_type(ids):
     example = ids[0][0]
     python_type = type(example)
-    if python_type is binary_type or python_type is text_type:
-        python_type = (unicode, 256)
+    if python_type is bytes or python_type is str:
+        python_type = (str, 256)
     else:
-        int_type(example)  # make sure we can cast to int
-        python_type = int_type
+        int(example)  # make sure we can cast to int
+        python_type = int
 
     return python_type
 

@@ -1,12 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from builtins import str, super
 
 import re
 import math
 import itertools
 import string
-import sys
 
 from doublemetaphone import doublemetaphone
 from dedupe.cpredicates import ngrams, initials
@@ -19,17 +17,11 @@ start_word = re.compile(r"^([\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
 alpha_numeric = re.compile(r"(?=.*\d)[a-zA-Z\d]+").findall
 
-if sys.version < '3':
-    PUNCTUATION = string.punctuation
+PUNCTABLE = str.maketrans("", "", string.punctuation)
 
-    def strip_punc(s):
-        s = s.encode('utf-8').translate(None, PUNCTUATION)
-        return s.decode('utf-8')
-else:
-    PUNCTABLE = str.maketrans("", "", string.punctuation)
 
-    def strip_punc(s):
-        return s.translate(PUNCTABLE)
+def strip_punc(s):
+    return s.translate(PUNCTABLE)
 
 
 class Predicate(object):
@@ -68,6 +60,10 @@ class SimplePredicate(Predicate):
         else:
             return ()
 
+    def compounds_with(self, other):
+
+        return True
+
 
 class StringPredicate(SimplePredicate):
     def __call__(self, record, **kwargs):
@@ -77,6 +73,14 @@ class StringPredicate(SimplePredicate):
         else:
             return ()
 
+    def compounds_with(self, other):
+
+        if other.field == self.field:
+            if not getattr(self.func, 'compounds_with_same_field', True):
+                return False
+
+        return True
+
 
 class ExistsPredicate(Predicate):
     type = "ExistsPredicate"
@@ -84,6 +88,7 @@ class ExistsPredicate(Predicate):
     def __init__(self, field):
         self.__name__ = "(Exists, %s)" % (field,)
         self.field = field
+        self.compounds_with_same_field = False
 
     @staticmethod
     def func(column):
@@ -96,6 +101,13 @@ class ExistsPredicate(Predicate):
         column = record[self.field]
         return self.func(column)
 
+    def compounds_with(self, other):
+
+        if self.field == other.field:
+            return False
+
+        return True
+
 
 class IndexPredicate(Predicate):
     def __init__(self, threshold, field):
@@ -103,6 +115,7 @@ class IndexPredicate(Predicate):
         self.field = field
         self.threshold = threshold
         self.index = None
+        self.compounds_with_same_field = False
 
     def __getstate__(self):
         odict = self.__dict__.copy()
@@ -115,6 +128,14 @@ class IndexPredicate(Predicate):
         # backwards compatibility
         if not hasattr(self, 'index'):
             self.index = None
+
+    def compounds_with(self, other):
+
+        if other.field == self.field:
+            if type(other) == type(self):
+                return False
+
+        return True
 
 
 class CanopyPredicate(object):
@@ -306,6 +327,9 @@ def wholeFieldPredicate(field):
     return (str(field), )
 
 
+wholeFieldPredicate.compounds_with_same_field = False
+
+
 def tokenFieldPredicate(field):
     """returns the tokens"""
     return set(words(field))
@@ -438,21 +462,11 @@ def metaphoneToken(field):
             if metaphone_token}
 
 
-def existsPredicate(field):
-    try:
-        if any(field):
-            return (u'1',)
-        else:
-            return (u'0',)
-    except TypeError:
-        if field:
-            return (u'1',)
-        else:
-            return (u'0',)
-
-
 def wholeSetPredicate(field_set):
     return (str(field_set),)
+
+
+wholeSetPredicate.compounds_with_same_field = False
 
 
 def commonSetElementPredicate(field_set):
