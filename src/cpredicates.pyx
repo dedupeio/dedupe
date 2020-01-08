@@ -1,4 +1,4 @@
-# cython: c_string_type=unicode, c_string_encoding=utf8, infertypes=True
+# cython: c_string_type=unicode, c_string_encoding=utf8, infertypes=True, language_level=3
 
 cpdef list ngrams(basestring field, int n):
     """ngrams returns all unique, contiguous sequences of n characters
