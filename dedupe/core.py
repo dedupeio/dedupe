@@ -251,7 +251,7 @@ def fillQueue(queue, iterable, stop_signals):
     # initial values
     i = 0
     n_records = 0
-    t0 = time.clock()
+    t0 = time.perf_counter()
     last_rate = 10000
 
     while True:
@@ -264,7 +264,7 @@ def fillQueue(queue, iterable, stop_signals):
             i += 1
 
             if i % 10:
-                time_delta = max(time.clock() - t0, 0.0001)
+                time_delta = max(time.perf_counter() - t0, 0.0001)
 
                 current_rate = n_records / time_delta
 
@@ -279,7 +279,7 @@ def fillQueue(queue, iterable, stop_signals):
 
                 last_rate = current_rate
                 n_records = 0
-                t0 = time.clock()
+                t0 = time.perf_counter()
 
         else:
             # put poison pills in queue to tell scorers that they are

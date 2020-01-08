@@ -21,7 +21,7 @@ class ParsingTest(unittest.TestCase):
         assert self.index.search(()) == []
 
     def test_wildcards(self):
-        self.index.index(('f\o',))
+        self.index.index((r'f\o',))
         self.index.index(('f*',))
         self.index._index.initSearch()
         assert len(self.index.search(('f*',))) == 1

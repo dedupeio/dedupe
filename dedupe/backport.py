@@ -1,6 +1,4 @@
 import numpy
-import weakref
-import threading
 import warnings
 import platform
 import logging
@@ -31,7 +29,5 @@ if MULTIPROCESSING:
     from multiprocessing import Process, Pool, Queue
     from multiprocessing import SimpleQueue
 else:
-    if not hasattr(threading.current_thread(), "_children"):
-        threading.current_thread()._children = weakref.WeakKeyDictionary()
     from multiprocessing.dummy import Process, Pool, Queue  # noqa: F401
     SimpleQueue = Queue
