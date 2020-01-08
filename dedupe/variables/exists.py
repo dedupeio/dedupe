@@ -4,6 +4,7 @@ from .categorical_type import CategoricalType
 
 from typing import List, Callable
 
+
 class ExistsType(CategoricalType):
     type = "Exists"
     _predicate_functions: List[Callable] = []
@@ -31,4 +32,4 @@ class ExistsType(CategoricalType):
 
     # This flag tells fieldDistances in dedupe.core to pass
     # missing values (None) into the comparator
-    comparator.missing = True # type: ignore
+    comparator.missing = True  # type: ignore

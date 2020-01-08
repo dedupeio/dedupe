@@ -1,6 +1,4 @@
 import numpy
-import weakref
-import threading
 import warnings
 import platform
 import logging
@@ -32,4 +30,4 @@ if MULTIPROCESSING:
     from multiprocessing import SimpleQueue
 else:
     from multiprocessing.dummy import Process, Pool, Queue  # type: ignore # noqa: F401
-    SimpleQueue = Queue # type: ignore
+    SimpleQueue = Queue  # type: ignore

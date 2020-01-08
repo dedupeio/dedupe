@@ -200,19 +200,10 @@ class ClusteringTest(unittest.TestCase):
                                       dtype=[('ids', int, 2),
                                              ('score', float, 1)])
 
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0.5)) == [((4, 6), 0.96),
-                                                    ((2, 7), 0.72),
-                                                    ((3, 8), 0.65)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0)) == [((4, 6), 0.96),
-                                                  ((2, 7), 0.72),
-                                                  ((3, 8), 0.65),
-                                                  ((1, 5), 0.1)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0.8)) == [((4, 6), 0.96)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=1)) == []
+        assert list(greedyMatch(bipartite_dupes)) == [((4, 6), 0.96),
+                                                      ((2, 7), 0.72),
+                                                      ((3, 8), 0.65),
+                                                      ((1, 5), 0.1)]
 
     def test_gazette_matching(self):
 

@@ -12,13 +12,11 @@ import hcluster
 
 from typing import (Iterable,
                     Dict,
-                    List,
                     ValuesView,
                     cast,
                     Generator,
                     Sequence,
-                    Tuple,
-                    Set)
+                    Tuple)
 from dedupe._typing import Clusters, RecordID, SearchResults
 
 logger = logging.getLogger(__name__)

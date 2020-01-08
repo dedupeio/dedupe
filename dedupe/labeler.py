@@ -397,9 +397,9 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                  index_include):
 
         self.data_model = data_model
-        
+
         data = core.index(data)
- 
+
         self.candidates = super().sample(data, blocked_proportion, sample_size)
 
         random_pair = random.choice(self.candidates)

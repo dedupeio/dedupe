@@ -93,27 +93,6 @@ class DedupeTest(unittest.TestCase):
 
         self.deduper = dedupe.Dedupe(field_definition)
 
-    def test_blockPairs(self):
-        self.assertRaises(ValueError, self.deduper._blockedPairs, ({1: 2},))
-        self.assertRaises(ValueError, self.deduper._blockedPairs,
-                          ({'name': 'Frank', 'age': 21},))
-        self.assertRaises(ValueError, self.deduper._blockedPairs, ({'1': {'name': 'Frank',
-                                                                          'height': 72}},))
-        assert [] == icfi(self.deduper._blockedPairs(([('1',
-                                                        {'name': 'Frank',
-                                                         'age': 72},
-                                                        set([]))],)))
-        assert icfi(self.deduper._blockedPairs(([('1',
-                                                  {'name': 'Frank',
-                                                   'age': 72},
-                                                  set([])),
-                                                 ('2',
-                                                  {'name': 'Bob',
-                                                   'age': 27},
-                                                  set([]))],))) == \
-            [(('1', {'age': 72, 'name': 'Frank'}, set([])),
-              ('2', {'age': 27, 'name': 'Bob'}, set([])))]
-
     def test_randomSample(self):
 
         random.seed(6)
@@ -133,34 +112,6 @@ class DedupeTest(unittest.TestCase):
 
         for pair in correct_result:
             assert pair in self.deduper.active_learner.candidates
-
-
-class LinkTest(unittest.TestCase):
-    def setUp(self):
-        random.seed(123)
-        numpy.random.seed(456)
-
-        field_definition = [{'field': 'name', 'type': 'String'},
-                            {'field': 'age', 'type': 'String'}]
-        self.linker = dedupe.RecordLink(field_definition)
-
-    def test_blockPairs(self):
-        self.assertRaises(ValueError, self.linker._blockedPairs, ({1: 2},))
-        self.assertRaises(ValueError, self.linker._blockedPairs,
-                          ({'name': 'Frank', 'age': 21},))
-        self.assertRaises(ValueError, self.linker._blockedPairs, ({'1': {'name': 'Frank',
-                                                                         'height': 72}},))
-        assert [] == icfi(self.linker._blockedPairs((([('1',
-                                                        {'name': 'Frank',
-                                                         'age': 72},
-                                                        set([]))],
-                                                      []),)))
-        assert icfi(self.linker._blockedPairs((([('1', {'name': 'Frank',
-                                                        'age': 72}, set([]))],
-                                                [('2', {'name': 'Bob',
-                                                        'age': 27}, set([]))]),))) == \
-            [(('1', {'age': 72, 'name': 'Frank'}, set([])),
-              ('2', {'age': 27, 'name': 'Bob'}, set([])))]
 
 
 if __name__ == "__main__":

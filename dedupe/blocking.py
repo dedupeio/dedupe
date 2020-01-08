@@ -5,7 +5,7 @@ from collections import defaultdict
 import logging
 import time
 
-from typing import Generator, Tuple, Iterable, Dict, List
+from typing import Generator, Tuple, Iterable
 from dedupe._typing import Record, RecordID, Data
 
 import dedupe.predicates

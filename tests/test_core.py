@@ -54,20 +54,19 @@ class RandomPairsTest(unittest.TestCase):
 class ScoreDuplicates(unittest.TestCase):
     def setUp(self):
         random.seed(123)
-        empty_set = set([])
 
         long_string = 'asa;sasdfjasdio;fio;asdnfasdvnvao;asduifvnavjasdfasdfasfasasdfasdfasdfasdfasdfsdfasgnuavpidcvaspdivnaspdivninasduinguipghauipsdfnvaspfighapsdifnasdifnasdpighuignpaguinpgiasidfjasdfjsdofgiongag'  # noqa: E501
 
-        self.records = iter([((long_string, {'name': 'Margret', 'age': '32'}, empty_set),
-                              ('2', {'name': 'Marga', 'age': '33'}, empty_set)),
-                             (('2', {'name': 'Marga', 'age': '33'}, empty_set),
-                              ('3', {'name': 'Maria', 'age': '19'}, empty_set)),
-                             (('4', {'name': 'Maria', 'age': '19'}, empty_set),
-                              ('5', {'name': 'Monica', 'age': '39'}, empty_set)),
-                             (('6', {'name': 'Monica', 'age': '39'}, empty_set),
-                              ('7', {'name': 'Mira', 'age': '47'}, empty_set)),
-                             (('8', {'name': 'Mira', 'age': '47'}, empty_set),
-                              ('9', {'name': 'Mona', 'age': '9'}, empty_set)),
+        self.records = iter([((long_string, {'name': 'Margret', 'age': '32'}),
+                              ('2', {'name': 'Marga', 'age': '33'})),
+                             (('2', {'name': 'Marga', 'age': '33'}),
+                              ('3', {'name': 'Maria', 'age': '19'})),
+                             (('4', {'name': 'Maria', 'age': '19'}),
+                              ('5', {'name': 'Monica', 'age': '39'})),
+                             (('6', {'name': 'Monica', 'age': '39'}),
+                              ('7', {'name': 'Mira', 'age': '47'})),
+                             (('8', {'name': 'Mira', 'age': '47'}),
+                              ('9', {'name': 'Mona', 'age': '9'})),
                              ])
 
         deduper = dedupe.Dedupe([{'field': "name", 'type': 'String'}])

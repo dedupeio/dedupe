@@ -1,4 +1,4 @@
-from typing import List, Callable, Sequence, Type, Any, Tuple, Iterable
+from typing import Callable, Sequence, Type, Any, Iterable
 
 from dedupe import predicates
 

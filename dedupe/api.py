@@ -12,7 +12,7 @@ import multiprocessing
 import warnings
 import os
 from collections import OrderedDict
-
+ 
 import numpy
 import json
 import rlr
@@ -71,7 +71,7 @@ class Matching(object):
             self.num_cores = num_cores
 
         self.loaded_indices = False
-        self.blocker: blocking.Blocker
+        self.blocker: Optional[blocking.Blocker] = None
         self.data_model: datamodel.DataModel
         self.classifier: Any
         self.predicates: Iterable[dedupe.predicates.Predicate]
@@ -281,6 +281,7 @@ class DedupeMatching(Matching):
 
     def pairs(self, data_d: Data) -> RecordPairs:
 
+        assert self.blocker
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
 
@@ -419,6 +420,8 @@ class RecordLinkMatching(Matching):
 
     def pairs(self, data_1: Data, data_2: Data) -> RecordPairs:
 
+        assert self.blocker
+
         if not self.loaded_indices:
             self.blocker.indexAll(data_2)
 
@@ -469,6 +472,8 @@ class GazetteerMatching(RecordLinkMatching):
 
     def index(self, data: Data) -> None:  # pragma: no cover
 
+        assert self.blocker
+
         self.blocker.indexAll(data)
 
         for block_key, record_id in self.blocker(data.items(), target=True):
@@ -477,6 +482,8 @@ class GazetteerMatching(RecordLinkMatching):
             self.blocked_records[block_key][record_id] = data[record_id]
 
     def unindex(self, data: Data) -> None:  # pragma: no cover
+
+        assert self.blocker
 
         for field in self.blocker.index_fields:
             self.blocker.unindex((record[field]
@@ -491,6 +498,8 @@ class GazetteerMatching(RecordLinkMatching):
                 pass
 
     def blocks(self, data_1: Data) -> Blocks:
+
+        assert self.blocker
 
         block_groups = itertools.groupby(self.blocker(data_1.items()),
                                          lambda x: x[1])
@@ -745,8 +754,9 @@ class ActiveMatching(Matching):
         self.training_pairs: TrainingData
         self.training_pairs = OrderedDict({u'distinct': [],
                                            u'match': []})
-        self.active_learner: Union[labeler.DedupeDisagreementLearner,
-                                   labeler.RecordLinkDisagreementLearner]
+        self.active_learner: Optional[Union[labeler.DedupeDisagreementLearner,
+                                            labeler.RecordLinkDisagreementLearner]]
+        self.active_learner = None
 
     def cleanupTraining(self) -> None:  # pragma: no cover
         '''
@@ -805,6 +815,8 @@ class ActiveMatching(Matching):
 
                             Defaults to True.
         """
+        assert self.active_learner, "Please initialize with the sample method"
+
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)
 
@@ -834,7 +846,7 @@ class ActiveMatching(Matching):
         Useful for user labeling.
 
         '''
-
+        assert self.active_learner, "Please initialize with the sample method"
         return self.active_learner.pop()
 
     def markPairs(self, labeled_pairs: TrainingData) -> None:

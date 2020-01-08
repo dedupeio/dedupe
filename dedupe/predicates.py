@@ -12,6 +12,9 @@ from dedupe.cpredicates import ngrams, initials
 import dedupe.tfidf as tfidf
 import dedupe.levenshtein as levenshtein
 
+from typing import Sequence, Callable, Any, Tuple, Set, Iterable
+from dedupe._typing import RecordDict
+
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
@@ -20,8 +23,6 @@ alpha_numeric = re.compile(r"(?=.*\d)[a-zA-Z\d]+").findall
 
 PUNCTABLE = str.maketrans("", "", string.punctuation)
 
-from typing import Sequence, Callable, Any, Tuple, Set, Iterable
-from dedupe._typing import RecordDict
 
 def strip_punc(s):
     return s.translate(PUNCTABLE)
@@ -334,7 +335,7 @@ def wholeFieldPredicate(field: Any) -> Tuple[str]:
     return (str(field), )
 
 
-wholeFieldPredicate.compounds_with_same_field = False  #type: ignore
+wholeFieldPredicate.compounds_with_same_field = False  # type: ignore
 
 
 def tokenFieldPredicate(field):
@@ -359,7 +360,7 @@ def alphaNumericPredicate(field: str) -> Set[str]:
     return set(alpha_numeric(field))
 
 
-def nearIntegersPredicate(field: str) -> Set[str]: 
+def nearIntegersPredicate(field: str) -> Set[str]:
     """return any integers N, N+1, and N-1"""
     ints = integers(field)
     near_ints = set()
@@ -388,12 +389,12 @@ def firstIntegerPredicate(field: str) -> Sequence[str]:
         return ()
 
 
-def ngramsTokens(field: Sequence[str], n: int) -> Set[str]:
+def ngramsTokens(field: Sequence[Any], n: int) -> Set[str]:
     grams = set()
     n_tokens = len(field)
     for i in range(n_tokens):
         for j in range(i + n, min(n_tokens, i + n) + 1):
-            grams.add(' '.join(field[i:j]))
+            grams.add(' '.join(str(tok) for tok in field[i:j]))
     return grams
 
 
@@ -473,7 +474,7 @@ def wholeSetPredicate(field_set):
     return (str(field_set),)
 
 
-wholeSetPredicate.compounds_with_same_field = False  #type: ignore
+wholeSetPredicate.compounds_with_same_field = False  # type: ignore
 
 
 def commonSetElementPredicate(field_set):

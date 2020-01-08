@@ -1,12 +1,10 @@
 import numpy
 
-from typing import (Iterator, 
-                    Tuple, 
-                    Mapping, 
-                    Sequence, 
-                    Union, 
+from typing import (Iterator,
+                    Tuple,
+                    Mapping,
+                    Union,
                     Iterable,
-                    Generator,
                     List,
                     Any)
 
