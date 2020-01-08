@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from future.utils import viewvalues
 
 import itertools
 from collections import defaultdict
@@ -163,7 +162,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
-            for cluster in viewvalues(clusters):
+            for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
                     yield tuple(i_to_id[i] for i in cluster), scores

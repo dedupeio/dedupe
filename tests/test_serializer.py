@@ -4,7 +4,7 @@ from __future__ import print_function
 import dedupe
 import unittest
 import codecs
-import simplejson as json
+import json
 
 import sys
 
@@ -21,17 +21,16 @@ class SerializerTest(unittest.TestCase):
             from io import StringIO
             encoded_file = StringIO()
 
-        training_pairs = {u"distinct": [({u'bar': frozenset([u'barë']),
-                                          'baz': (1, 2),
+        training_pairs = {u"distinct": [[{u'bar': frozenset([u'barë']),
+                                          'baz': [1, 2],
                                           'bang': [1, 2],
                                           u'foo': u'baz'},
-                                         {u'foo': u'baz'})],
+                                         {u'foo': u'baz'}]],
                           u"match": []}
 
         json.dump(training_pairs,
                   encoded_file,
                   default=dedupe.serializer._to_json,
-                  tuple_as_array=False,
                   ensure_ascii=True)
 
         encoded_file.seek(0)
@@ -44,9 +43,6 @@ class SerializerTest(unittest.TestCase):
 
         assert isinstance(loaded_training_pairs["distinct"][0][0]["bar"],
                           frozenset)
-
-        assert isinstance(loaded_training_pairs['distinct'][0][0]['baz'],
-                          tuple)
 
         deduper = dedupe.Dedupe([{'field': 'foo', 'type': 'String'}])
         deduper.classifier.cv = False

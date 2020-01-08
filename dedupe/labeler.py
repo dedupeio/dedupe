@@ -1,9 +1,5 @@
-from __future__ import division
-from future.utils import with_metaclass
-from builtins import super
-
 import random
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 import logging
 
 import numpy
@@ -16,7 +12,7 @@ import dedupe.training as training
 logger = logging.getLogger(__name__)
 
 
-class ActiveLearner(with_metaclass(ABCMeta)):
+class ActiveLearner(ABC):
 
     @abstractmethod
     def transform():

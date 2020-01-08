@@ -2,18 +2,13 @@
 # -*- coding: utf-8 -*-
 
 # provides functions for selecting a sample of training data
-from __future__ import division
-from future.utils import viewitems, viewvalues, viewkeys
 
 import itertools
 import logging
 import collections
 import functools
 
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Mapping
+from collections.abc import Mapping
 
 from . import blocking, predicates, core
 
@@ -34,7 +29,7 @@ class BlockLearner(object):
 
         dupe_cover.dominators(cost=comparison_count)
 
-        coverable_dupes = set.union(*viewvalues(dupe_cover))
+        coverable_dupes = set.union(*dupe_cover.values())
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
 
@@ -138,7 +133,7 @@ class DedupeBlockLearner(BlockLearner):
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
 
-            for id, record in viewitems(records):
+            for id, record in records.items():
                 blocks = predicate(record)
                 for block in blocks:
                     pred_cover[block].add(id)
@@ -209,13 +204,13 @@ class RecordLinkBlockLearner(BlockLearner):
 
         for predicate in blocker.predicates:
             cover[predicate] = collections.defaultdict(lambda: (set(), set()))
-            for id, record in viewitems(records_2):
+            for id, record in records_2.items():
                 blocks = predicate(record, target=True)
                 for block in blocks:
                     cover[predicate][block][1].add(id)
 
             current_blocks = set(cover[predicate])
-            for id, record in viewitems(records_1):
+            for id, record in records_1.items():
                 blocks = set(predicate(record))
                 for block in blocks & current_blocks:
                     cover[predicate][block][0].add(id)
@@ -316,7 +311,7 @@ class BranchBound(object):
     def remove_dominated(coverage, dominator):
         dominant_cover = coverage[dominator]
 
-        for pred, cover in list(viewitems(coverage)):
+        for pred, cover in coverage.copy().items():
             if (dominator.count <= pred.count and
                     dominant_cover >= cover):
                 del coverage[pred]
@@ -326,7 +321,7 @@ class BranchBound(object):
     @staticmethod
     def uncovered_by(coverage, covered):
         remaining = {}
-        for predicate, uncovered in viewitems(coverage):
+        for predicate, uncovered in coverage.items():
             still_uncovered = uncovered - covered
             if still_uncovered:
                 remaining[predicate] = still_uncovered
@@ -365,10 +360,10 @@ class Counter(object):
 
         # it's meaningfully faster to check in the key dictview
         # of 'larger' than in the dict directly
-        larger_keys = viewkeys(larger)
+        larger_keys = larger.keys()
 
         common = {k: v * larger[k]
-                  for k, v in viewitems(smaller)
+                  for k, v in smaller.items()
                   if k in larger_keys}
 
         return Counter(common)

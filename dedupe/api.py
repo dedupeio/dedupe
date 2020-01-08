@@ -4,9 +4,6 @@
 dedupe provides the main user interface for the library the
 Dedupe class
 """
-from __future__ import print_function, division
-from future.utils import viewitems, viewvalues
-from builtins import super
 
 import itertools
 import logging
@@ -17,7 +14,7 @@ import os
 from collections import OrderedDict
 
 import numpy
-import simplejson as json
+import json
 import rlr
 
 import dedupe.core as core
@@ -270,7 +267,7 @@ class DedupeMatching(Matching):
         if not self.loaded_indices:
             self.blocker.indexAll(data_d)
 
-        block_groups = itertools.groupby(self.blocker(viewitems(data_d)),
+        block_groups = itertools.groupby(self.blocker(data_d.items()),
                                          lambda x: x[1])
 
         for record_id, block in block_groups:
@@ -417,7 +414,7 @@ class RecordLinkMatching(Matching):
         return pairs
 
     def _blockGenerator(self, messy_data, blocked_records):
-        block_groups = itertools.groupby(self.blocker(viewitems(messy_data)),
+        block_groups = itertools.groupby(self.blocker(messy_data.items()),
                                          lambda x: x[1])
 
         for i, (record_id, block_keys) in enumerate(block_groups):
@@ -703,7 +700,6 @@ class ActiveMatching(Matching):
         json.dump(self.training_pairs,
                   file_obj,
                   default=serializer._to_json,
-                  tuple_as_array=False,
                   ensure_ascii=True)
 
     def uncertainPairs(self):
@@ -848,7 +844,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
             raise ValueError(
                 'Dictionary of records is empty.')
 
-        self.data_model.check(next(iter(viewvalues(data))))
+        self.data_model.check(next(iter(data.values())))
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching):
@@ -942,8 +938,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
             raise ValueError(
                 'Dictionary of records from second dataset is empty.')
 
-        self.data_model.check(next(iter(viewvalues(data_1))))
-        self.data_model.check(next(iter(viewvalues(data_2))))
+        self.data_model.check(next(iter(data_1.values())))
+        self.data_model.check(next(iter(data_2.values())))
 
 
 class GazetteerMatching(RecordLinkMatching):
@@ -971,10 +967,10 @@ class GazetteerMatching(RecordLinkMatching):
         for field in self.blocker.index_fields:
             self.blocker.unindex((record[field]
                                   for record
-                                  in viewvalues(data)),
+                                  in data.values()),
                                  field)
 
-        for block_key, record_id in self.blocker(viewitems(data)):
+        for block_key, record_id in self.blocker(data.items()):
             try:
                 del self.blocked_records[block_key][record_id]
             except KeyError:
