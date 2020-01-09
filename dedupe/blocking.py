@@ -42,7 +42,7 @@ class Blocker:
                  records: Iterable[Record],
                  target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
 
-        start_time = time.clock()
+        start_time = time.perf_counter()
         predicates = [(':' + str(i), predicate)
                       for i, predicate
                       in enumerate(self.predicates)]
@@ -58,7 +58,7 @@ class Blocker:
             if i and i % 10000 == 0:
                 logger.info('%(iteration)d, %(elapsed)f2 seconds',
                             {'iteration': i,
-                             'elapsed': time.clock() - start_time})
+                             'elapsed': time.perf_counter() - start_time})
 
     def resetIndices(self):
         # clear canopies to reduce memory usage
