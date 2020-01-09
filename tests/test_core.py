@@ -75,7 +75,7 @@ class ScoreDuplicates(unittest.TestCase):
         self.classifier.weights = [-1.0302742719650269]
         self.classifier.bias = 4.76
 
-        score_dtype = [('pairs', '<U192', 2), ('score', 'f4', 1)]
+        score_dtype = [('pairs', '<U192', 2), ('score', 'f4')]
 
         self.desired_scored_pairs = numpy.array([((long_string, '2'), 0.96),
                                                  (['2', '3'], 0.96),
