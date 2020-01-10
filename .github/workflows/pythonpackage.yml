@@ -45,9 +45,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
   deploy:
-    needs: test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v1
       - name: Build manylinux Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.1
         with:
