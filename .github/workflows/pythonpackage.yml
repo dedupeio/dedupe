@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v1
