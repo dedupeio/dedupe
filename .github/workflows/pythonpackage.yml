@@ -25,11 +25,11 @@ jobs:
         pip install .
     - name: Test with pytest
       run: |
-        pytest tests dedupe --cov dedupe
+        pytest tests dedupe --cov dedupe --cov-report xml
         python tests/canonical.py -vv
 
     - name: Coveralls
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: .coverage
+        path-to-lcov: coverage.xml
