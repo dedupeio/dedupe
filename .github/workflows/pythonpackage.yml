@@ -36,7 +36,7 @@ jobs:
   complete_coveralls:
     needs: test
     runs-on: ubuntu-latest
-    - steps:
+    steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
         with:
@@ -45,7 +45,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-lastest
-    - steps:
+    steps:
       - name: Build manylinux Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.1
         with:
