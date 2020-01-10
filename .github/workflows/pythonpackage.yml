@@ -42,7 +42,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         pip install twine wheel
-        pip wheel . -w dist
+        pip wheel -w dist --no-deps .
         twine upload dist/*
       continue-on-error: true
   complete_coveralls:
@@ -78,6 +78,6 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         pip install twine
-        twine upload wheelhouse/*-manylinux1_x86_64.whl
+        twine upload --skip-existing wheelhouse/*-manylinux1_x86_64.whl
         twine upload dist/*
       continue-on-error: true
