@@ -46,7 +46,7 @@ jobs:
           parallel-finished: true
   deploy:
     needs: test
-    runs-on: ubuntu-lastest
+    runs-on: ubuntu-latest
     steps:
       - name: Build manylinux Python wheels
         uses: RalfG/python-wheels-manylinux-build@v0.1
