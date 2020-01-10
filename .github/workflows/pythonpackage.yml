@@ -27,12 +27,3 @@ jobs:
       run: |
         pytest tests dedupe --cov dedupe
         python tests/canonical.py -vv
-    - name: prepare lcov.info
-      run: |
-        pip install coveralls
-        coveralls --output lcov.info
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: lcov.info
