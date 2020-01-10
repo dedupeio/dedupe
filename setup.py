@@ -32,7 +32,7 @@ setup(
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
-    ext_modules= cythonize([Extension('dedupe.cpredicates', ['src/cpredicates.pyx'])]),
+    ext_modules= cythonize([Extension('dedupe.cpredicates', ['dedupe/cpredicates.pyx'])]),
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 4 - Beta',
