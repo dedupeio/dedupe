@@ -35,20 +35,40 @@ jobs:
       run: |
         pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
         coveralls
+    - name: Build and publish
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && runner.os != 'Linux'
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        pip install twine
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
+      continue-on-error: true
   complete_coveralls:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
-  deploy:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
+  manylinux:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     runs-on: ubuntu-latest
+    needs: test
     steps:
-      - uses: actions/checkout@v1
-      - name: Build manylinux Python wheels
-        uses: RalfG/python-wheels-manylinux-build@v0.1
-        with:
-          python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
+    - uses: actions/checkout@v1
+    - name: Build manylinux Python wheels
+      uses: RalfG/python-wheels-manylinux-build@v0.1
+      with:
+        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
+    - name: Publish wheels to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        pip install twine
+        twine upload wheelhouse/*-manylinux1_x86_64.whl
+      continue-on-error: true
