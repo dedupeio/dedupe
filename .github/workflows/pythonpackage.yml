@@ -24,12 +24,22 @@ jobs:
         cython src/cpredicates.pyx
         pip install .
     - name: Test with pytest
-      run: |
+      run: |        
         pytest tests dedupe --cov dedupe
         python tests/canonical.py -vv
-    - name: Submit to coveralls
+    - name: Coveralls
       env:
+        COVERALLS_PARALLEL: true
         COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        pip install coveralls
+        pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
         coveralls
+  complete_coverals:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
