@@ -41,6 +41,7 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
+        pip install twine wheel
         pip wheel . -w dist
         twine upload dist/*
       continue-on-error: true
@@ -53,16 +54,23 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
-  manylinux:
+  manylinux_sdist:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     runs-on: ubuntu-latest
-    needs: test
     steps:
     - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
     - name: Build manylinux Python wheels
       uses: RalfG/python-wheels-manylinux-build@v0.1
       with:
         python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
+    - name: Build sdist
+      run: |
+        pip install cython
+        python setup.py sdist
     - name: Publish wheels to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
@@ -70,25 +78,5 @@ jobs:
       run: |
         pip install twine
         twine upload wheelhouse/*-manylinux1_x86_64.whl
-      continue-on-error: true
-  source-distribution:
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up build environment
-      run: |
-        pip install cython
-    - name: Publish wheels to PyPI
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python setup.py sdist
         twine upload dist/*
       continue-on-error: true
