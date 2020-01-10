@@ -27,3 +27,9 @@ jobs:
       run: |
         pytest tests dedupe --cov dedupe
         python tests/canonical.py -vv
+    - name: Submit to coveralls
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        pip install coveralls
+        coveralls
