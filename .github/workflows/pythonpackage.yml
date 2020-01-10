@@ -5,11 +5,10 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     strategy:
       matrix:
         python-version: [3.7]
-        os: [windows-latest]
 
     steps:
     - uses: actions/checkout@v1
