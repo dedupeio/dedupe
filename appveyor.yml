@@ -1,0 +1,46 @@
+# Continuous integration procedure for AppVeyor
+# Based on https://raw.githubusercontent.com/choderalab/itctools/master/appveyor.yml
+
+environment:
+  password:
+    secure: WCflARlYtKV2j4dKfsQQVg==
+
+  matrix:
+    - python : 35
+    - python : 36
+    - python : 36-x64
+    - python : 37
+    - python : 37-x64
+    - python : 38
+    - python : 38-x64      
+
+install:
+  - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
+  - echo "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 > "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64/vcvars64.bat"
+  - python -m pip install --upgrade pip
+  - pip install -e .
+
+build: false
+
+test_script:
+  - pip install -r requirements.txt
+  - pytest tests dedupe --cov dedupe
+  - python tests/canonical.py -vv
+
+on_success:
+  # Could run coveralls here but will leave that to travis tests
+  - echo Build succesful!
+  - coverage report
+
+deploy_script:
+  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
+  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+  - echo username=datamade.wheelbuilder              >> %USERPROFILE%\\.pypirc
+  - echo password=%password%                         >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - pip install wheel twine
+  - ps: if($env:APPVEYOR_REPO_TAG -eq $TRUE) { python -W ignore setup.py -v bdist_wheel; twine upload --skip-existing dist/* }
+
+deploy : on
