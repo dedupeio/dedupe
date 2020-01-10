@@ -1,95 +1,27 @@
 branches:
   only:
-    - master
     - "/^v.*$/"
 notifications:
   email:
     on_success: change
     on_failure: always
   irc: chat.freenode.net#dedupe
-dist: xenial
 language: python
 sudo: false
+services: docker
 matrix:
   include:
-  - python: 3.8    
-  - python: 3.7
-  - python: 3.6
-  - python: 3.5
-  # It's important to use 'macpython' builds to get the least
-  # restrictive wheel tag. It's also important to avoid
-  # 'homebrew 3' because it floats instead of being a specific version.
-  - os: osx
-    language: generic
-    env: TERRYFY_PYTHON='macpython 3.5'
-  - os: osx
-    language: generic
-    env: TERRYFY_PYTHON='macpython 3.6.1'
-  - os: osx
-    language: generic
-    env: TERRYFY_PYTHON='macpython 3.7.0'
-  - services:
-      - docker
-    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
-    before_install:
-      - if ! [[ $TRAVIS_TAG ]]; then exit 0; fi
-    install:
-      - docker pull $DOCKER_IMAGE
-    script:
-      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
-    after_success:
-      - pip install twine && twine upload --skip-existing -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
-      - exit 0
-  - services:
-      - docker
-    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
-    before_install:
-      - if ! [[ $TRAVIS_TAG ]]; then exit 0; fi
-    install:
-      - docker pull $DOCKER_IMAGE
-    script:
-      - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
-    after_success:
-      - pip install twine && twine upload --skip-existing -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
-      - exit 0
+    - env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+    - env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
 before_install:
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then git clone https://github.com/MacPython/terryfy; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source terryfy/travis_tools.sh; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then get_python_environment $TERRYFY_PYTHON venv; fi
-    - python mtime.py
+  - if ! [[ $TRAVIS_TAG ]]; then exit 0; fi
 install:
-  - pip install --upgrade pip
-  - pip uninstall -y numpy
-  - pip install --upgrade -r requirements.txt
-  - cython src/*.pyx
-  - pip install -e .
+  - docker pull $DOCKER_IMAGE
 script:
-  - pytest tests dedupe --cov dedupe
-  - python tests/canonical.py -vv
+  - docker run --rm -v `pwd`:/io $DOCKER_IMAGE /io/.manylinux-install.sh
 after_success:
-  - pip install coveralls
-  - coveralls
-deploy:
-  - provider: pypi
-    skip_cleanup: true
-    user: datamade.wheelbuilder
-    on:
-      tags: true
-      condition: "$TRAVIS_OS_NAME = osx"
-    distributions: bdist_wheel
-    password: $PYPIPASSWORD
-  - provider: pypi
-    skip_cleanup: true
-    user: datamade.wheelbuilder
-    on:
-      tags: true
-      condition: "$TRAVIS_OS_NAME = linux"
-    distributions: sdist
-    password: $PYPIPASSWORD
+  - pip install twine && twine upload --skip-existing -u datamade.wheelbuilder -p $PYPIPASSWORD wheelhouse/*
+  - exit 0
 env:
   global:
     - secure: T3lCe9jJUbYLB0WHgSD+utrmJSvgcXCLi+Lwugsaa2SXIX8UzL7TbwHWB1t10H4sddy0QBBwanqRptv6iZ7gN0EtIE6+BDv6FJcNZJBDp13pUoQqq1Fm3OMbEniLrc/ubV6mZyJLHh6oNJtzSWPk1wrFvByLpYskeZIm4ayw4Mc=
-cache:
-  directories:
-    - "$HOME/.cache/"
-    - .pytest_cache
