@@ -22,7 +22,7 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
         cython src/cpredicates.pyx
-        pip install .
+        pip install -e .
     - name: Test with pytest
       run: |        
         pytest tests dedupe --cov dedupe
