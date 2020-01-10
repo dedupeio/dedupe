@@ -1,6 +1,6 @@
 # Dedupe Python Library
 
-![](https://github.com/dedupeio/dedupe/workflows/tests/badge.svg)
+[![Tests Passing](https://github.com/dedupeio/dedupe/workflows/tests/badge.svg)](https://github.com/dedupeio/dedupe/actions?query=workflow%3Atests)
 
 _dedupe is a python library that uses machine learning to perform fuzzy matching, deduplication and entity resolution quickly on structured data._
 
