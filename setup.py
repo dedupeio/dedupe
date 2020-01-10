@@ -6,6 +6,8 @@ try:
 except ImportError:
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
+from Cython.Build import cythonize
+
 install_requires = ['fastcluster',
                     'dedupe-hcluster',
                     'affinegap>=1.3',
@@ -21,6 +23,7 @@ install_requires = ['fastcluster',
                     'zope.index',
                     'Levenshtein_search']
 
+
 setup(
     name='dedupe',
     url='https://github.com/dedupeio/dedupe',
@@ -29,7 +32,7 @@ setup(
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
-    ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
+    ext_modules= cythonize([Extension('dedupe.cpredicates', ['dedupe/cpredicates.pyx'])]),
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 4 - Beta',

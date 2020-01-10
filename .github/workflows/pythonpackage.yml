@@ -3,13 +3,13 @@ name: tests
 on: [push]
 
 jobs:
-  build:
+  test:
 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.7]
-        os: [windows-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v1
@@ -19,16 +19,65 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        cython src/predicates.pyx
-        pip install . -v
-    - name: Lint with flake8
-      run: |
-        pip install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        pip install --upgrade pip
+        pip install -e .
     - name: Test with pytest
+      run: |        
+        pip install -r requirements.txt
+        pytest tests dedupe --cov dedupe
+    - name: Integration tests
       run: |
-        pytest
+        python tests/canonical.py -vv
+    - name: Coveralls
+      env:
+        COVERALLS_PARALLEL: true
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
+        coveralls
+    - name: Build and publish
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && runner.os != 'Linux'
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        pip install twine wheel
+        pip wheel -w dist --no-deps .
+        twine upload dist/*
+      continue-on-error: true
+  complete_coveralls:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
+  manylinux_sdist:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: Build manylinux Python wheels
+      uses: datamade/python-wheels-manylinux-build@248b22d
+      with:
+        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
+    - name: Build sdist
+      run: |
+        pip install cython
+        python setup.py sdist
+    - name: Publish wheels to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        pip install twine
+        twine upload --skip-existing wheelhouse/*-manylinux1_x86_64.whl
+        twine upload dist/*
+      continue-on-error: true
