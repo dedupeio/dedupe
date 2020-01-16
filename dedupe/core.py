@@ -389,7 +389,7 @@ def appropriate_imap(num_cores):
     else:
         from .backport import Pool
         pool = Pool(processes=num_cores)
-        imap = functools.partial(pool.imap_unordered, chunksize=100)
+        imap = functools.partial(pool.imap_unordered, chunksize=1000)
 
     return imap, pool
 
