@@ -1,8 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from future.utils import viewitems
-
 from itertools import combinations, groupby
 import csv
 import exampleIO
@@ -36,7 +33,7 @@ def canonicalImport(filename):
         reader = csv.DictReader(f)
         for (i, row) in enumerate(reader):
             clean_row = {k: preProcess(v) for (k, v) in
-                         viewitems(row)}
+                         row.items()}
             data_d[i] = clean_row
 
     return data_d, reader.fieldnames
@@ -93,10 +90,10 @@ else:
 
     deduper = dedupe.Dedupe(fields, num_cores=5)
     deduper.prepare_training(data_d, sample_size=10000)
-    deduper.markPairs(training_pairs)
+    deduper.mark_pairs(training_pairs)
     deduper.train(index_predicates=False)
     with open(settings_file, 'wb') as f:
-        deduper.writeSettings(f)
+        deduper.write_settings(f)
 
 
 alpha = deduper.threshold(data_d, 1)

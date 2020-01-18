@@ -63,7 +63,6 @@ Installation
 
 .. code-block:: bash
 
-   pip install "numpy>=1.9"
    pip install dedupe
 
 Using dedupe

@@ -71,13 +71,13 @@ class ActiveMatch(unittest.TestCase):
 
         matcher = dedupe.api.ActiveMatching(self.field_definition)
 
-        self.assertRaises(ValueError, matcher.markPairs, bad_training_pairs)
+        self.assertRaises(ValueError, matcher.mark_pairs, bad_training_pairs)
 
-        matcher.markPairs(good_training_pairs)
+        matcher.mark_pairs(good_training_pairs)
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            matcher.markPairs({'match': [], 'distinct': []})
+            matcher.mark_pairs({'match': [], 'distinct': []})
             assert len(w) == 1
             assert str(
                 w[-1].message) == "Didn't return any labeled record pairs"
@@ -97,7 +97,7 @@ class DedupeTest(unittest.TestCase):
 
         random.seed(6)
         numpy.random.seed(6)
-        self.deduper.sample(data_dict, 30, 1)
+        self.deduper._sample(data_dict, 30, 1)
 
         correct_result = [({'age': '50', 'name': 'Linda'},
                            {'age': '51', 'name': 'bob belcher'}),
