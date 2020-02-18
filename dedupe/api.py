@@ -169,7 +169,7 @@ class DedupeMatching(IntegralMatching):
 
         """
         pairs = self.pairs(data)
-        pair_scores = self.score(pairs)
+        pair_scores = self.score(list(pairs))
         clusters = self.cluster(pair_scores, threshold)
 
         clusters = list(self._add_singletons(data, clusters))
@@ -229,28 +229,31 @@ class DedupeMatching(IntegralMatching):
         # Blocking and pair generation are typically the first memory
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
-            with sqlite3.connect(temp_dir + '/blocks.db') as con:
+            con = sqlite3.connect(temp_dir + '/blocks.db')
 
-                con.execute('''CREATE TABLE blocking_map
-                               (block_key text, record_id {id_type})
-                            '''.format(id_type=id_type))
+            con.execute('''CREATE TABLE blocking_map
+                           (block_key text, record_id {id_type})
+                        '''.format(id_type=id_type))
 
-                con.executemany("INSERT INTO blocking_map values (?, ?)",
-                                self.blocker(data.items()))
+            con.executemany("INSERT INTO blocking_map values (?, ?)",
+                            self.blocker(data.items()))
 
-                self.blocker.resetIndices()
+            self.blocker.resetIndices()
 
-                con.execute('''CREATE INDEX block_key_idx
-                               ON blocking_map (block_key)''')
-                pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
-                                       FROM blocking_map a
-                                       INNER JOIN blocking_map b
-                                       USING (block_key)
-                                       WHERE a.record_id < b.record_id''')
+            con.execute('''CREATE INDEX block_key_idx
+                           ON blocking_map (block_key)''')
+            pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+                                   FROM blocking_map a
+                                   INNER JOIN blocking_map b
+                                   USING (block_key)
+                                   WHERE a.record_id < b.record_id''')
 
-                for a_record_id, b_record_id in pairs:
-                    yield ((a_record_id, data[a_record_id]),
-                           (b_record_id, data[b_record_id]))
+            for a_record_id, b_record_id in pairs:
+                yield ((a_record_id, data[a_record_id]),
+                       (b_record_id, data[b_record_id]))
+
+            pairs.close()
+            con.close()
 
     def cluster(self,
                 matches: numpy.ndarray,
@@ -347,38 +350,41 @@ class RecordLinkMatching(IntegralMatching):
         # Blocking and pair generation are typically the first memory
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
-            with sqlite3.connect(temp_dir + '/blocks.db') as con:
+            con = sqlite3.connect(temp_dir + '/blocks.db')
 
-                con.executescript('''CREATE TABLE blocking_map_a
-                                     (block_key text, record_id {id_type_a});
+            con.executescript('''CREATE TABLE blocking_map_a
+                                 (block_key text, record_id {id_type_a});
 
-                                     CREATE TABLE blocking_map_b
-                                     (block_key text, record_id {id_type_b});
-                                  '''.format(id_type_a=id_type_a,
-                                             id_type_b=id_type_b))
+                                 CREATE TABLE blocking_map_b
+                                 (block_key text, record_id {id_type_b});
+                              '''.format(id_type_a=id_type_a,
+                                         id_type_b=id_type_b))
 
-                con.executemany("INSERT INTO blocking_map_a values (?, ?)",
-                                self.blocker(data_1.items()))
+            con.executemany("INSERT INTO blocking_map_a values (?, ?)",
+                            self.blocker(data_1.items()))
 
-                con.executemany("INSERT INTO blocking_map_b values (?, ?)",
-                                self.blocker(data_2.items(), target=True))
+            con.executemany("INSERT INTO blocking_map_b values (?, ?)",
+                            self.blocker(data_2.items(), target=True))
 
-                self.blocker.resetIndices()
+            self.blocker.resetIndices()
 
-                con.executescript('''CREATE INDEX block_key_a_idx
-                                     ON blocking_map_a (block_key);
+            con.executescript('''CREATE INDEX block_key_a_idx
+                                 ON blocking_map_a (block_key);
 
-                                     CREATE INDEX block_key_b_idx
-                                     ON blocking_map_b (block_key);''')
+                                 CREATE INDEX block_key_b_idx
+                                 ON blocking_map_b (block_key);''')
 
-                pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
-                                       FROM blocking_map_a a
-                                       INNER JOIN blocking_map_b b
-                                       USING (block_key)''')
+            pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+                                   FROM blocking_map_a a
+                                   INNER JOIN blocking_map_b b
+                                   USING (block_key)''')
 
-                for a_record_id, b_record_id in pairs:
-                    yield ((a_record_id, data_1[a_record_id]),
-                           (b_record_id, data_2[b_record_id]))
+            for a_record_id, b_record_id in pairs:
+                yield ((a_record_id, data_1[a_record_id]),
+                       (b_record_id, data_2[b_record_id]))
+
+            pairs.close()
+            con.close()
 
     def join(self,
              data_1: Data,
@@ -507,16 +513,14 @@ class GazetteerMatching(Matching):
 
         super().__init__(num_cores, **kwargs)
 
-        temp_file, self.temp_file_path = tempfile.mkstemp()
-        os.close(temp_file)
+        self.temp_dir = tempfile.TemporaryDirectory()
 
-        self.con = sqlite3.connect(self.temp_file_path,
-                                   check_same_thread=False)
+        self.db = self.temp_dir.name + '/blocks.db'
+
         self.indexed_data: Dict[RecordID, RecordDict] = {}
 
     def _close(self):
-        self.con.close()
-        os.remove(self.temp_file_path)
+        self.temp_dir.cleanup()
 
     def __del__(self):
         self._close()
@@ -539,21 +543,24 @@ class GazetteerMatching(Matching):
         self.blocker.indexAll(data)
 
         id_type = core.sqlite_id_type(data)
-        self.con.execute('''CREATE TABLE IF NOT EXISTS indexed_records
-                            (block_key text,
-                             record_id {id_type},
-                             UNIQUE(block_key, record_id))
-                         '''.format(id_type=id_type))
 
-        self.con.executemany("REPLACE INTO indexed_records VALUES (?, ?)",
-                             self.blocker(data.items(), target=True))
+        con = sqlite3.connect(self.db)
+        con.execute('''CREATE TABLE IF NOT EXISTS indexed_records
+                       (block_key text,
+                        record_id {id_type},
+                        UNIQUE(block_key, record_id))
+                    '''.format(id_type=id_type))
 
-        self.con.execute('''CREATE INDEX IF NOT EXISTS
-                            indexed_records_block_key_idx
-                            ON indexed_records
-                            (block_key)''')
+        con.executemany("REPLACE INTO indexed_records VALUES (?, ?)",
+                        self.blocker(data.items(), target=True))
 
-        self.con.commit()
+        con.execute('''CREATE INDEX IF NOT EXISTS
+                       indexed_records_block_key_idx
+                       ON indexed_records
+                       (block_key)''')
+
+        con.commit()
+        con.close()
 
         self.indexed_data.update(data)
 
@@ -576,11 +583,13 @@ class GazetteerMatching(Matching):
                                   in data.values()},
                                  field)
 
-        self.con.executemany('''DELETE FROM indexed_records
-                                WHERE record_id = ?''',
-                             ((k, ) for k in data.keys()))
+        con = sqlite3.connect(self.db)
+        con.executemany('''DELETE FROM indexed_records
+                           WHERE record_id = ?''',
+                        ((k, ) for k in data.keys()))
 
-        self.con.commit()
+        con.commit()
+        con.close()
 
         for k in data:
             del self.indexed_data[k]
@@ -591,19 +600,21 @@ class GazetteerMatching(Matching):
 
         id_type = core.sqlite_id_type(data_1)
 
-        self.con.execute('BEGIN')
+        con = sqlite3.connect(self.db, check_same_thread=False)
 
-        self.con.execute('''CREATE TEMPORARY TABLE blocking_map
-                            (block_key text, record_id {id_type})
-                         '''.format(id_type=id_type))
-        self.con.executemany("INSERT INTO blocking_map VALUES (?, ?)",
-                             self.blocker(data_1.items()))
+        con.execute('BEGIN')
 
-        pairs = self.con.execute('''SELECT DISTINCT a.record_id, b.record_id
-                                    FROM blocking_map a
-                                    INNER JOIN indexed_records b
-                                    USING (block_key)
-                                    ORDER BY a.record_id''')
+        con.execute('''CREATE TEMPORARY TABLE blocking_map
+                       (block_key text, record_id {id_type})
+                    '''.format(id_type=id_type))
+        con.executemany("INSERT INTO blocking_map VALUES (?, ?)",
+                        self.blocker(data_1.items()))
+
+        pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+                               FROM blocking_map a
+                               INNER JOIN indexed_records b
+                               USING (block_key)
+                               ORDER BY a.record_id''')
 
         pair_blocks = itertools.groupby(pairs,
                                         lambda x: x[0])
@@ -615,7 +626,9 @@ class GazetteerMatching(Matching):
                    for a_record_id, b_record_id
                    in pair_block]
 
-        self.con.execute("ROLLBACK")
+        pairs.close()
+        con.execute("ROLLBACK")
+        con.close()
 
     def score(self,
               blocks: Blocks,

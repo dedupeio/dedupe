@@ -1,6 +1,5 @@
 import numpy
 import warnings
-import platform
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,10 +18,6 @@ if "accelerate" in config_info or "veclib" in config_info:
 elif "mkl_core" in config_info:
     warnings.warn("Numpy linked against MKL. "
                   "Multiprocessing will be disabled. https://github.com/joblib/joblib/issues/138")
-    MULTIPROCESSING = False
-elif platform.system() == 'Windows':
-    logger.warning(
-        "Dedupe does not currently support multiprocessing on Windows")
     MULTIPROCESSING = False
 
 if MULTIPROCESSING:
