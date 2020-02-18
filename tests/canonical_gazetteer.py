@@ -90,23 +90,20 @@ else:
               ]
 
     gazetteer = dedupe.Gazetteer(fields)
-    gazetteer.sample(data_1, data_2, 10000)
-    gazetteer.markPairs(training_pairs)
+    gazetteer.prepare_training(data_1, data_2, sample_size=10000)
+    gazetteer.mark_pairs(training_pairs)
     gazetteer.train()
+    
+    with open(settings_file, 'wb') as f:
+        gazetteer.write_settings(f)
 
-if not gazetteer.blocked_records:
-    gazetteer.index(data_2)
 
-with open(settings_file, 'wb') as f:
-    gazetteer.writeSettings(f, index=True)
-
-alpha = gazetteer.threshold(data_1, data_2)
-
+gazetteer.index(data_2)
 
 # print candidates
 print('clustering...')
 results = gazetteer.search(
-    data_1, threshold=alpha, n_matches=1, generator=True)
+    data_1, n_matches=1, generator=True)
 
 # for a, result in results:
 #     for b, score in result:
@@ -119,12 +116,3 @@ confirm_dupes_a = set(frozenset([a, b])
 
 evaluateDuplicates(confirm_dupes_a, duplicates_s)
 
-clustered_dupes = gazetteer.match(data_1, data_2, threshold=alpha, n_matches=1)
-
-confirm_dupes_b = set(frozenset(pair)
-                      for matches in clustered_dupes
-                      for pair, score in matches)
-
-evaluateDuplicates(confirm_dupes_b, duplicates_s)
-
-print('ran in ', time.time() - t0, 'seconds')

@@ -33,7 +33,7 @@ def consoleLabel(deduper):  # pragma: no cover
             use_previous = False
         else:
             if not uncertain_pairs:
-                uncertain_pairs = deduper.uncertainPairs()
+                uncertain_pairs = deduper.uncertain_pairs()
 
             try:
                 record_pair = uncertain_pairs.pop()
@@ -88,13 +88,13 @@ def consoleLabel(deduper):  # pragma: no cover
             if label in ['distinct', 'match']:
                 examples = {'distinct': [], 'match': []}
                 examples[label].append(record_pair)
-                deduper.markPairs(examples)
+                deduper.mark_pairs(examples)
 
     for record_pair, label in examples_buffer:
         if label in ['distinct', 'match']:
             examples = {'distinct': [], 'match': []}
             examples[label].append(record_pair)
-            deduper.markPairs(examples)
+            deduper.mark_pairs(examples)
 
 
 def trainingDataLink(data_1, data_2, common_key, training_size=50000):  # pragma: nocover

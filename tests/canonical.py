@@ -77,7 +77,7 @@ print('number of known duplicate pairs', len(duplicates))
 
 if os.path.exists(settings_file):
     with open(settings_file, 'rb') as f:
-        deduper = dedupe.StaticDedupe(f, 1)
+        deduper = dedupe.StaticDedupe(f)
 
 else:
     fields = [{'field': 'name', 'type': 'String'},
@@ -88,7 +88,7 @@ else:
               {'field': 'city', 'type': 'ShortString'}
               ]
 
-    deduper = dedupe.Dedupe(fields, num_cores=5)
+    deduper = dedupe.Dedupe(fields, num_cores=0)
     deduper.prepare_training(data_d, sample_size=10000)
     deduper.mark_pairs(training_pairs)
     deduper.train(index_predicates=False)
@@ -96,11 +96,9 @@ else:
         deduper.write_settings(f)
 
 
-alpha = deduper.threshold(data_d, 1)
-
 # print candidates
 print('clustering...')
-clustered_dupes = deduper.match(data_d, threshold=alpha)
+clustered_dupes = deduper.partition(data_d, threshold=0.5)
 
 
 print('Evaluate Clustering')

@@ -21,7 +21,8 @@ install_requires = ['fastcluster',
                     'haversine>=0.4.1',
                     'BTrees>=4.1.4',
                     'zope.index',
-                    'Levenshtein_search']
+                    'Levenshtein_search',
+                    'typing_extensions']
 
 
 setup(
@@ -32,7 +33,7 @@ setup(
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
-    ext_modules= cythonize([Extension('dedupe.cpredicates', ['dedupe/cpredicates.pyx'])]),
+    ext_modules=cythonize([Extension('dedupe.cpredicates', ['dedupe/cpredicates.pyx'])]),
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 4 - Beta',

@@ -5,8 +5,6 @@ Library Documentation
 :class:`Dedupe` Objects
 -----------------------
 .. autoclass:: dedupe.Dedupe
-    :members:
-    :inherited-members:
 
     .. code:: python
      
@@ -19,25 +17,44 @@ Library Documentation
         
         matcher = dedupe.Dedupe(variables)
 
+    .. automethod:: prepare_training
+    .. automethod:: uncertain_pairs
+    .. automethod:: mark_pairs
+    .. automethod:: train
+    .. automethod:: write_training
+    .. automethod:: write_settings
+    .. automethod:: cleanup_training
+
+    Matching methods
+    
+    .. automethod:: match
+
+    Lower level methods
+    
+    .. automethod:: pairs
+    .. automethod:: score
+    .. automethod:: cluster
+
 
 
 :class:`StaticDedupe` Objects
 -----------------------------
 .. autoclass:: dedupe.StaticDedupe
-    :members:
-    :inherited-members:
 
     .. code:: python
     
-        with open('my_settings_file', 'rb') as f:
+        with open('learned_settings', 'rb') as f:
             matcher = StaticDedupe(f)
-       
+
+    .. automethod:: match
+    .. automethod:: pairs
+    .. automethod:: score
+    .. automethod:: cluster
+    
 
 :class:`RecordLink` Objects
 ---------------------------
 .. autoclass:: dedupe.RecordLink
-    :members:
-    :inherited-members:
 
     .. code:: python
      
@@ -50,22 +67,78 @@ Library Documentation
         
         deduper = dedupe.RecordLink(variables)
 
+    .. automethod:: prepare_training
+    .. automethod:: uncertain_pairs
+    .. automethod:: mark_pairs
+    .. automethod:: train
+    .. automethod:: write_training
+    .. automethod:: write_settings
+    .. automethod:: cleanup_training
+    .. automethod:: match
+    .. automethod:: pairs
+    .. automethod:: score
+    .. automethod:: one_to_one
+    .. automethod:: many_to_one		    
+
 
 :class:`StaticRecordLink` Objects
 ---------------------------------
 .. autoclass:: dedupe.StaticRecordLink
-    :members:
-    :inherited-members:
+
+    .. code:: python
+    
+        with open('learned_settings', 'rb') as f:
+            matcher = StaticRecordLink(f)
+
+    .. automethod:: match
+    .. automethod:: pairs
+    .. automethod:: score
+    .. automethod:: one_to_one
+    .. automethod:: many_to_one    		    
+       
 
 :class:`Gazetteer` Objects
 --------------------------
 .. autoclass:: dedupe.Gazetteer
-    :members:
-    :inherited-members:
+
+    .. code:: python
+     
+        # initialize from a defined set of fields
+        variables = [{'field' : 'Site name', 'type': 'String'},
+                     {'field' : 'Address', 'type': 'String'},
+                     {'field' : 'Zip', 'type': 'String', 'has missing':True},
+                     {'field' : 'Phone', 'type': 'String', 'has missing':True}
+                     ]
+        
+        matcher = dedupe.Gazetteer(variables)
+
+    .. automethod:: prepare_training
+    .. automethod:: uncertain_pairs
+    .. automethod:: mark_pairs
+    .. automethod:: train
+    .. automethod:: write_training
+    .. automethod:: write_settings
+    .. automethod:: cleanup_training
+    .. automethod:: index
+    .. automethod:: unindex
+    .. automethod:: search
+    .. automethod:: blocks
+    .. automethod:: score
+    .. automethod:: many_to_n
+       
 
 :class:`StaticGazetteer` Objects
 --------------------------------
 .. autoclass:: dedupe.StaticGazetteer
-    :members:
-    :inherited-members:
 
+    .. code:: python
+    
+        with open('learned_settings', 'rb') as f:
+            matcher = StaticGazetteer(f)
+
+    .. automethod:: index
+    .. automethod:: unindex
+    .. automethod:: search
+    .. automethod:: blocks
+    .. automethod:: score
+    .. automethod:: many_to_n

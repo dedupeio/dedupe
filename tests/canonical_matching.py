@@ -91,18 +91,16 @@ else:
 
     deduper = dedupe.RecordLink(fields)
     deduper.prepare_training(data_1, data_2, sample_size=10000)
-    deduper.markPairs(training_pairs)
+    deduper.mark_pairs(training_pairs)
     deduper.train()
 
-alpha = deduper.threshold(data_1, data_2)
-
-with open(settings_file, 'wb') as f:
-    deduper.writeSettings(f, index=True)
+    with open(settings_file, 'wb') as f:
+        deduper.write_settings(f)
 
 
 # print candidates
 print('clustering...')
-clustered_dupes = deduper.match(data_1, data_2, threshold=alpha)
+clustered_dupes = deduper.join(data_1, data_2, threshold=0.5)
 
 print('Evaluate Clustering')
 confirm_dupes = set(frozenset(pair)
@@ -111,3 +109,17 @@ confirm_dupes = set(frozenset(pair)
 evaluateDuplicates(confirm_dupes, duplicates_s)
 
 print('ran in ', time.time() - t0, 'seconds')
+
+# print candidates
+print('clustering...')
+clustered_dupes = deduper.join(data_1, data_2, threshold=0.5, constraint='many-to-one')
+
+print('Evaluate Clustering')
+confirm_dupes = set(frozenset(pair)
+                    for pair, score in clustered_dupes)
+
+
+evaluateDuplicates(confirm_dupes, duplicates_s)
+
+print('ran in ', time.time() - t0, 'seconds')
+

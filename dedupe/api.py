@@ -11,7 +11,8 @@ import pickle
 import multiprocessing
 import warnings
 import os
-from collections import OrderedDict
+import sqlite3
+import tempfile
 
 import numpy
 import json
@@ -30,15 +31,15 @@ from typing import (Mapping,
                     Dict,
                     List,
                     Tuple,
+                    Set,
                     Union,
                     Generator,
                     Iterable,
                     Sequence,
-                    Set,
-                    Any,
                     BinaryIO,
-                    Callable,
+                    cast,
                     TextIO)
+from typing_extensions import Literal
 from dedupe._typing import (Data,
                             Clusters,
                             RecordPairs,
@@ -48,8 +49,10 @@ from dedupe._typing import (Data,
                             RecordDict,
                             TrainingExample,
                             LookupResults,
-                            SearchResults,
-                            TrainingData)
+                            Links,
+                            TrainingData,
+                            Classifier,
+                            JoinConstraint)
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +64,6 @@ class Matching(object):
     Public methods:
 
     - `__init__`
-    - `thresholdBlocks`
     - `matchBlocks`
     """
 
@@ -71,53 +73,17 @@ class Matching(object):
         else:
             self.num_cores = num_cores
 
-        self.loaded_indices = False
         self.blocker: Optional[blocking.Blocker] = None
         self.data_model: datamodel.DataModel
-        self.classifier: Any
-        self.predicates: Iterable[dedupe.predicates.Predicate]
-        self._cluster: Callable
+        self.classifier: Classifier
+        self.predicates: Sequence[dedupe.predicates.Predicate]
 
-    def threshold_pairs(self,
-                        pairs: RecordPairs,
-                        recall_weight: float = 1.5) -> float:  # pragma: nocover
-        """
-        Returns the threshold that maximizes the expected `F score
-        <https://en.wikipedia.org/wiki/F1_score>`_, a weighted average
-        of precision and recall for a sample of record pairs.
 
-        Args:
-            pairs: Sequence of pairs of records to compare
-            recall_weight: Sets the tradeoff between precision and
-                           recall. I.e. if you care twice as much about
-                           recall as you do precision, set recall_weight
-                           to 2.
-
-        """
-        probability = core.scoreDuplicates(pairs,
-                                           self.data_model,
-                                           self.classifier,
-                                           self.num_cores)['score']
-
-        probability = probability.copy()
-        probability.sort()
-        probability = probability[::-1]
-
-        expected_dupes = numpy.cumsum(probability)
-
-        recall = expected_dupes / expected_dupes[-1]
-        precision = expected_dupes / numpy.arange(1, len(expected_dupes) + 1)
-
-        score = recall * precision / (recall + recall_weight ** 2 * precision)
-
-        i = numpy.argmax(score)
-
-        logger.info('Maximum expected recall and precision')
-        logger.info('recall: %2.3f', recall[i])
-        logger.info('precision: %2.3f', precision[i])
-        logger.info('With threshold: %2.3f', probability[i])
-
-        return probability[i]
+class IntegralMatching(Matching):
+    """
+    This class is for linking class where we need to score all possible
+    pairs besides deciding on any matches
+    """
 
     def score(self,
               pairs: RecordPairs,
@@ -148,7 +114,7 @@ class Matching(object):
         return matches
 
 
-class DedupeMatching(Matching):
+class DedupeMatching(IntegralMatching):
     """
     Class for Deduplication, extends Matching.
 
@@ -164,12 +130,10 @@ class DedupeMatching(Matching):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._cluster = clustering.cluster
 
-    def match(self,
-              data: Data,
-              threshold: float = 0.5,
-              generator: bool = False) -> Clusters:  # pragma: no cover
+    def partition(self,
+                  data: Data,
+                  threshold: float = 0.5) -> Clusters:  # pragma: no cover
         """
         Identifies records that all refer to the same entity, returns
         tuples containing a sequence of record ids and corresponding
@@ -180,153 +144,228 @@ class DedupeMatching(Matching):
 
         This method should only used for small to moderately sized
         datasets for larger data, you need may need to generate your
-        own pairs of records and feed them to the :func:`~score`.
+        own pairs of records and feed them to :func:`~score`.
 
         Args:
             data: Dictionary of records, where the keys are record_ids
                   and the values are dictionaries with the keys being
                   field names
 
-            threshold: Number between 0 and 1 (default is .5). We will
-                       consider records as potential duplicates if the
-                       predicted probability of being a duplicate is
-                       above the threshold.
+            threshold: Number between 0 and 1 (Default is 0.5).  We
+                       will only consider put together records into
+                       clusters if the `cophenetic similarity
+                       <https://en.wikipedia.org/wiki/Cophenetic>`_ of
+                       the cluster is greater than the threshold.
 
                        Lowering the number will increase recall,
                        raising it will increase precision
 
-            generator: Should :func:`match` return a list of clusters or a generator
-
         .. code:: python
 
-           > clusters = matcher.match(data, threshold=0.5)
+           > clusters = matcher.partition(data, threshold=0.5)
            > print(duplicates)
            [((1, 2, 3), (0.790, 0.860, 0.790)),
-             ((4, 5), (0.720, 0.720)),
-             ((10, 11), (0.899, 0.899))]
+            ((4, 5), (0.720, 0.720)),
+            ((10, 11), (0.899, 0.899))]
+
         """
         pairs = self.pairs(data)
         pair_scores = self.score(pairs)
         clusters = self.cluster(pair_scores, threshold)
 
+        clusters = list(self._add_singletons(data, clusters))
+
         try:
-            if generator:
-                return clusters
-            else:
-                clusters = list(clusters)
-                return clusters
-        finally:
-            try:
-                mmap_file = pair_scores.filename
-                del pair_scores
-                os.remove(mmap_file)
-            except AttributeError:
-                pass
+            mmap_file = pair_scores.filename
+            del pair_scores
+            os.remove(mmap_file)
+        except AttributeError:
+            pass
 
-    def threshold(self,
-                  data: Data,
-                  recall_weight: float = 1.5) -> float:  # pragma: no cover
-        """
-        Returns the threshold that maximizes the expected `F score
-        <https://en.wikipedia.org/wiki/F1_score>`_,
-        a weighted average of precision and recall for a sample of
-        data.
+        return clusters
 
-        Args:
-            data: Dictionary of records, where the keys are record_ids
-                  and the values are dictionaries with the keys being
-                  field names
+    def _add_singletons(self, data, clusters):
 
-            recall_weight: Sets the tradeoff between precision and
-                           recall. I.e. if you care twice as much about
-                           recall as you do precision, set recall_weight
-                           to 2.
-        """
+        singletons = set(data.keys())
 
-        pairs = self.pairs(data)
-        return self.threshold_pairs(pairs, recall_weight)
+        for record_ids, score in clusters:
+            singletons.difference_update(record_ids)
+            yield (record_ids, score)
 
-    def pairs(self, data_d: Data) -> RecordPairs:
-        """
-        TK
-        """
+        for singleton in singletons:
+            yield (singleton, ), (1.0, )
+
+    def pairs(self, data):
 
         assert self.blocker
-        if not self.loaded_indices:
-            self.blocker.indexAll(data_d)
+        self.blocker.indexAll(data)
 
-        blocked_records: Dict[str, List[RecordID]] = {}
-        for block_key, record_id in self.blocker(data_d.items()):
-            blocked_records.setdefault(block_key, []).append(record_id)
+        id_type = core.sqlite_id_type(data)
 
-        block_groups = itertools.groupby(self.blocker(data_d.items()),
-                                         lambda x: x[1])
+        # Blocking and pair generation are typically the first memory
+        # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with sqlite3.connect(temp_dir + '/blocks.db') as con:
 
-        product = itertools.product
+                con.execute('''CREATE TABLE blocking_map
+                               (block_key text, record_id {id_type})
+                            '''.format(id_type=id_type))
 
-        for a_record_id, block_keys in block_groups:
+                con.executemany("INSERT INTO blocking_map values (?, ?)",
+                                self.blocker(data.items()))
 
-            A: List[Record] = [(a_record_id, data_d[a_record_id])]
+                self.blocker.resetIndices()
 
-            b_record_ids: set = set()
-            for block_key, _ in block_keys:
-                if block_key in blocked_records:
-                    b_record_ids.update(blocked_records[block_key])
+                con.execute('''CREATE INDEX block_key_idx
+                               ON blocking_map (block_key)''')
+                pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+                                       FROM blocking_map a
+                                       INNER JOIN blocking_map b
+                                       USING (block_key)
+                                       WHERE a.record_id < b.record_id''')
 
-            B: List[Record] = [(b_record_id, data_d[b_record_id])
-                               for b_record_id
-                               in b_record_ids
-                               if b_record_id > a_record_id]
-
-            if B:
-                yield from product(A, B)
-
-        if not self.loaded_indices:
-            self.blocker.resetIndices()
+                for a_record_id, b_record_id in pairs:
+                    yield ((a_record_id, data[a_record_id]),
+                           (b_record_id, data[b_record_id]))
 
     def cluster(self,
                 matches: numpy.ndarray,
-                threshold: float,
-                *args,
-                **kwargs) -> Clusters:
+                threshold: float) -> Clusters:
         """
-        CLUSTERING
+        From the similarity scores of pairs of records, decide which groups
+        of records are all referring to the same entity.
+
+        Yields tuples containing a sequence of record ids and corresponding
+        sequence of confidence score as a float between 0 and 1. The
+        record_ids within each set should refer to the same entity and the
+        confidence score is a measure of our confidence a particular entity
+        belongs in the cluster.
+
+        Args:
+            matches: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
+                     ('score', 'f4')]` where dtype is either a str
+                     or int, and score is a number between 0 and
+                     1. The 'pairs' column contains pairs of ids of
+                     the records compared and the 'score' column
+                     should contains the similarity score for that
+                     pair of records.
+
+            threshold: Number between 0 and 1. We will only consider
+                       put together records into clusters if the
+                       `cophenetic similarity
+                       <https://en.wikipedia.org/wiki/Cophenetic>`_ of
+                       the cluster is greater than the threshold.
+
+                       Lowering the number will increase recall,
+                       raising it will increase precision
+
+        .. code:: python
+
+           > pairs = matcher.pairs(data)
+           > scores = matcher.scores(pairs)
+           > clusters = matcher.cluster(scores)
+           > print(list(clusters))
+           [((1, 2, 3), (0.790, 0.860, 0.790)),
+            ((4, 5), (0.720, 0.720)),
+            ((10, 11), (0.899, 0.899))]
+
         """
 
         logger.debug("matching done, begin clustering")
 
-        yield from self._cluster(matches, threshold, *args, **kwargs)
+        yield from clustering.cluster(matches, threshold)
 
 
-class RecordLinkMatching(Matching):
+class RecordLinkMatching(IntegralMatching):
     """
     Class for Record Linkage, extends Matching.
 
     Use RecordLinkMatching when you have two datasets that you want to merge
     where each dataset, individually, contains no duplicates.
-
-    Public methods:
-
-    - `__init__`
-    - `match`
-    - `threshold`
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        self._cluster = clustering.greedyMatching
-
-    def match(self,
-              data_1: Data,
-              data_2: Data,
-              threshold: float = 0.5,
-              generator: bool = False,
-              **kwargs) -> SearchResults:  # pragma: no cover
+    def pairs(self, data_1: Data, data_2: Data) -> RecordPairs:
         """
-        Identifies pairs of records that refer to the same entity, returns
-        tuples containing a set of record ids and a confidence score as a float
-        between 0 and 1. The record_ids within each set should refer to the
+        Yield the pairs of records that will be compared according to
+        the current blocking rules.
+
+        Each pair will occur at most once. If you override this
+        method, you need to take care to ensure that this remains
+        true, as downstream methods, particularly :func:`cluster`,
+        assumes that every pair of records is compared no more than
+        once.
+
+        Args:
+            data_1: Dictionary of records from first dataset, where the
+                    keys are record_ids and the values are dictionaries
+                    with the keys being field names
+            data_2: Dictionary of records from second dataset, same
+                    form as data_1
+
+        .. code:: python
+
+           > pairs = matcher.pairs(data_1, data_2)
+           > print(list(pairs))
+           [((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
+             (2, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’})),
+            ((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
+             (3, {‘name’ : ‘Sam’, ‘address’ : ‘123 Main’}))
+            ]
+        """
+
+        assert self.blocker
+
+        self.blocker.indexAll(data_2)
+
+        id_type_a = core.sqlite_id_type(data_1)
+        id_type_b = core.sqlite_id_type(data_2)
+
+        # Blocking and pair generation are typically the first memory
+        # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with sqlite3.connect(temp_dir + '/blocks.db') as con:
+
+                con.executescript('''CREATE TABLE blocking_map_a
+                                     (block_key text, record_id {id_type_a});
+
+                                     CREATE TABLE blocking_map_b
+                                     (block_key text, record_id {id_type_b});
+                                  '''.format(id_type_a=id_type_a,
+                                             id_type_b=id_type_b))
+
+                con.executemany("INSERT INTO blocking_map_a values (?, ?)",
+                                self.blocker(data_1.items()))
+
+                con.executemany("INSERT INTO blocking_map_b values (?, ?)",
+                                self.blocker(data_2.items(), target=True))
+
+                self.blocker.resetIndices()
+
+                con.executescript('''CREATE INDEX block_key_a_idx
+                                     ON blocking_map_a (block_key);
+
+                                     CREATE INDEX block_key_b_idx
+                                     ON blocking_map_b (block_key);''')
+
+                pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+                                       FROM blocking_map_a a
+                                       INNER JOIN blocking_map_b b
+                                       USING (block_key)''')
+
+                for a_record_id, b_record_id in pairs:
+                    yield ((a_record_id, data_1[a_record_id]),
+                           (b_record_id, data_2[b_record_id]))
+
+    def join(self,
+             data_1: Data,
+             data_2: Data,
+             threshold: float = 0.5,
+             constraint: JoinConstraint = "one-to-one") -> Links:
+        """
+        Identifies pairs of records that refer to the same entity.
+
+        Returns pairs of record ids with a confidence score as a float
+        between 0 and 1. The record_ids within the pair should refer to the
         same entity and the confidence score is the estimated probability that
         the records refer to the same entity.
 
@@ -350,107 +389,101 @@ class RecordLinkMatching(Matching):
                        Lowering the number will increase recall, raising it
                        will increase precision
 
-            generator: Should :func:`match` return a list of clusters or a generator
+        .. code:: python
+
+           > links = matcher.join(data_1, data_2, threshold=0.5)
+           > print(list(links))
+           [((1, 2), 0.790),
+            ((4, 5), 0.720),
+            ((10, 11), 0.899)]
+
+
 
         """
+
+        assert constraint in {'one-to-one', 'many-to-one', 'many-to-many'}, (
+            '%s is an invalid constraint option. Valid options include '
+            'one-to-one, many-to-one, or many-to-many' % constraint)
+
         pairs = self.pairs(data_1, data_2)
-        pair_scores = self.score(pairs, threshold)
-        clusters = self.cluster(pair_scores, **kwargs)
+        pair_scores = self.score(list(pairs), threshold)
+
+        if constraint == 'one-to-one':
+            links = self.one_to_one(pair_scores)
+        elif constraint == 'many-to-one':
+            links = self.many_to_one(pair_scores)
+        elif constraint == 'many-to-many':
+            links = pair_scores
+
+        links = list(links)
 
         try:
-            if generator:
-                return clusters
-            else:
-                clusters = list(clusters)
-                return clusters
-        finally:
-            try:
-                mmap_file = pair_scores.filename
-                del pair_scores
-                os.remove(mmap_file)
-            except AttributeError:
-                pass
+            mmap_file = pair_scores.filename
+            del pair_scores
+            os.remove(mmap_file)
+        except AttributeError:
+            pass
 
-    def threshold(self,
-                  data_1: Data,
-                  data_2: Data,
-                  recall_weight: float = 1.5) -> float:  # pragma: no cover
+        return links
+
+    def one_to_one(self,
+                   scores: numpy.ndarray) -> Links:
         """
-        Returns the threshold that maximizes the expected `F score
-        <https://en.wikipedia.org/wiki/F1_score>`_,
-        a weighted average of precision and recall for sample of data sets.
+        From the similarity scores of pairs of records, decide which
+        pairs refer to the same entity.
 
-        :param data_1: Dictionary of records from first dataset, where the
-                       keys are record_ids and the values are dictionaries
-                       with the keys being field names
-        :param data_2: Dictionary of records from second dataset, same form
-                       as data_1
+        Every record in data_1 can match at most one record from data_2.
+        See https://en.wikipedia.org/wiki/Injective_function.
 
-        :param recall_weight: Sets the tradeoff between precision and
-                              recall. I.e. if you care twice as much about
-                              recall as you do precision, set recall_weight
-                              to 2.
+        Yields pairs of record ids with a confidence score as a float
+        between 0 and 1. The record_ids within the pair should refer to the
+        same entity and the confidence score is the estimated probability that
+        the records refer to the same entity.
+
+        Args:
+            matches: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
+                     ('score', 'f4')]` where dtype is either a str
+                     or int, and score is a number between 0 and
+                     1. The 'pairs' column contains pairs of ids of
+                     the records compared and the 'score' column
+                     should contains the similarity score for that
+                     pair of records.
+
+
+        .. code:: python
+
+           > pairs = matcher.pairs(data)
+           > scores = matcher.scores(pairs, threshold=0.5)
+           > links = matcher.inject(scores)
+           > print(list(links))
+           [((1, 2), 0.790),
+            ((4, 5), 0.720),
+            ((10, 11), 0.899)]
+
         """
-        pairs = self.pairs(data_1, data_2)
-        return self.threshold_pairs(pairs, recall_weight)
 
-    def pairs(self, data_1: Data, data_2: Data) -> RecordPairs:
-        """
-        TK
-        """
+        logger.debug("matching done, begin clustering")
 
-        assert self.blocker
+        yield from clustering.greedyMatching(scores)
 
-        if not self.loaded_indices:
-            self.blocker.indexAll(data_2)
-
-        blocked_records: Dict[str, List[RecordID]] = {}
-
-        for block_key, record_id in self.blocker(data_2.items(), target=True):
-            blocked_records.setdefault(block_key, []).append(record_id)
-
-        block_groups = itertools.groupby(self.blocker(data_1.items()),
-                                         lambda x: x[1])
-
-        product = itertools.product
-
-        for i, (a_record_id, block_keys) in enumerate(block_groups):
-            if i % 100 == 0:
-                logger.info("%s records" % i)
-
-            A: List[Record] = [(a_record_id, data_1[a_record_id])]
-
-            b_record_ids: set = set()
-            for block_key, _ in block_keys:
-                if block_key in blocked_records:
-                    b_record_ids.update(blocked_records[block_key])
-
-            B: List[Record] = [(rec_id, data_2[rec_id])
-                               for rec_id
-                               in b_record_ids]
-
-            if B:
-                yield from product(A, B)
-
-    def cluster(self,
-                matches: numpy.ndarray,
-                **kwargs) -> SearchResults:
+    def many_to_one(self,
+                    scores: numpy.ndarray) -> Links:
         """
         TK
         """
 
         logger.debug("matching done, begin clustering")
 
-        yield from self._cluster(matches, **kwargs)
+        yield from clustering.pair_gazette_matching(scores, 1)
 
 
-class GazetteerMatching(RecordLinkMatching):
+class GazetteerMatching(Matching):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, num_cores: Optional[int], **kwargs) -> None:
 
-        self._cluster = clustering.pair_gazette_matching
-        self.blocked_records: Dict[str, Dict[RecordID, RecordDict]] = {}
+        super().__init__(num_cores, **kwargs)
+        self.con = sqlite3.connect('blocks.db')
+        self.indexed_data = {}
 
     def index(self, data: Data) -> None:  # pragma: no cover
         """
@@ -469,10 +502,17 @@ class GazetteerMatching(RecordLinkMatching):
 
         self.blocker.indexAll(data)
 
-        for block_key, record_id in self.blocker(data.items(), target=True):
-            if block_key not in self.blocked_records:
-                self.blocked_records[block_key] = {}
-            self.blocked_records[block_key][record_id] = data[record_id]
+        id_type = core.sqlite_id_type(data)
+        self.con.execute('''CREATE TABLE IF NOT EXISTS indexed_records
+                            (block_key text, record_id {id_type})
+                         '''.format(id_type=id_type))
+
+        self.con.executemany("INSERT INTO indexed_records VALUES (?, ?)",
+                             self.blocker(data.items(), target=True))
+
+        self.con.commit()
+
+        self.indexed_data.update(data)
 
     def unindex(self, data: Data) -> None:  # pragma: no cover
         """
@@ -493,20 +533,24 @@ class GazetteerMatching(RecordLinkMatching):
                                   in data.values()),
                                  field)
 
-        for block_key, record_id in self.blocker(data.items()):
-            try:
-                del self.blocked_records[block_key][record_id]
-            except KeyError:
-                pass
+        self.con.executemany('''DELETE FROM indexed_records
+                                WHERE record_id = ?''', data.keys())
+
+        self.con.commit()
+
+        for k in data:
+            del self.indexed_data[k]
 
     def blocks(self, data_1: Data) -> Blocks:
 
         assert self.blocker
 
+        product = itertools.product
+
+        # sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in that same thread.
+        
         block_groups = itertools.groupby(self.blocker(data_1.items()),
                                          lambda x: x[1])
-
-        product = itertools.product
 
         for i, (a_record_id, block_keys) in enumerate(block_groups):
             if i % 100 == 0:
@@ -514,18 +558,38 @@ class GazetteerMatching(RecordLinkMatching):
 
             A: List[Record] = [(a_record_id, data_1[a_record_id])]
 
-            B: Dict[RecordID, RecordDict] = {}
-            for block_key, _ in block_keys:
-                if block_key in self.blocked_records:
-                    B.update(self.blocked_records[block_key])
+            B: List[Record]
+
+            self.con.execute('BEGIN')
+            # do this in a transaction so don't have to explicitly
+            # drop block table
+            self.con.execute('''CREATE TEMPORARY TABLE block
+                                 (block_key text)''')
+            self.con.executemany('INSERT INTO block VALUES (?)',
+                                 ((key, ) for key, _ in block_keys))
+
+            indexed_record_ids = self.con.execute('''
+                SELECT DISTINCT record_id
+                FROM indexed_records
+                INNER JOIN block
+                USING (block_key)''')
+            B = [(str(record_id), self.indexed_data[record_id])
+                 for (record_id,) in indexed_record_ids]
+
+            self.con.execute('COMMIT')
 
             if B:
-                yield product(A, B.items())
+                yield product(A, B)
 
-    def score_blocks(self,
-                     blocks: Blocks,
-                     threshold: float,
-                     **kwargs) -> Generator[numpy.ndarray, None, None]:
+
+
+
+            
+
+    def score(self,
+              blocks: Blocks,
+              threshold: float,
+              **kwargs) -> Generator[numpy.ndarray, None, None]:
         """
         TK
         """
@@ -538,9 +602,9 @@ class GazetteerMatching(RecordLinkMatching):
 
         return matches
 
-    def cluster_blocks(self,
-                       score_blocks: Iterable[numpy.ndarray],
-                       n_matches: int = 1) -> SearchResults:
+    def many_to_n(self,
+                  score_blocks: Iterable[numpy.ndarray],
+                  n_matches: int = 1) -> Links:
         """
         TK
         """
@@ -600,8 +664,8 @@ class GazetteerMatching(RecordLinkMatching):
 
         """
         blocks = self.blocks(messy_data)
-        pair_scores = self.score_blocks(blocks, threshold=threshold)
-        search_results = self.cluster_blocks(pair_scores, n_matches)
+        pair_scores = self.score(blocks, threshold=threshold)
+        search_results = self.many_to_n(pair_scores, n_matches)
 
         results = self._format_search_results(messy_data, search_results)
 
@@ -610,24 +674,9 @@ class GazetteerMatching(RecordLinkMatching):
         else:
             return list(results)
 
-    def write_settings(self,
-                       file_obj: BinaryIO,
-                       index: bool = False) -> None:  # pragma: no cover
-        """
-        Write a settings file containing the
-        data model and predicates to a file object
-
-        Args:
-            file_obj: file object to write settings data into
-        """
-        super().write_settings(file_obj, index)
-
-        if index:
-            pickle.dump(self.blocked_records, file_obj)
-
     def _format_search_results(self,
                                search_d: Data,
-                               results: SearchResults) -> LookupResults:
+                               results: Links) -> LookupResults:
 
         seen: Set[RecordID] = set()
 
@@ -653,7 +702,7 @@ class StaticMatching(Matching):
 
     def __init__(self,
                  settings_file: BinaryIO,
-                 num_cores: int = None,
+                 num_cores: Optional[int] = None,
                  **kwargs) -> None:  # pragma: no cover
         """
         :param settings_file: A file object containing settings
@@ -679,46 +728,9 @@ class StaticMatching(Matching):
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
 
-        try:
-            self._loadIndices(settings_file)
-        except EOFError:
-            pass
-        except (KeyError, AttributeError):
-            raise SettingsFileLoadingException(
-                "This settings file is not compatible with "
-                "the current version of dedupe. This can happen "
-                "if you have recently upgraded dedupe.")
-        except:  # noqa: E722
-            raise SettingsFileLoadingException(
-                "Something has gone wrong with loading the settings file. "
-                "Try deleting the file")
-
         logger.info(self.predicates)
 
         self.blocker = blocking.Blocker(self.predicates)
-
-    def _loadIndices(self, settings_file: BinaryIO) -> None:
-        canopies = pickle.load(settings_file)
-        indices = pickle.load(settings_file)
-        doc_to_ids = pickle.load(settings_file)
-
-        for full_predicate in self.predicates:
-            for predicate in full_predicate:
-                if hasattr(predicate, "index") and predicate.index is None:
-                    predicate.index = predicate.initIndex()
-                    max_id = max(doc_to_ids[predicate].values())
-                    predicate.index._doc_to_id = core.Enumerator(max_id + 1,
-                                                                 doc_to_ids[predicate])
-
-                    if hasattr(predicate, "canopy"):
-                        predicate.canopy = canopies[predicate]
-                    else:
-                        try:
-                            predicate.index._index = indices[predicate]
-                        except KeyError:
-                            pass
-
-        self.loaded_indices = True
 
 
 class ActiveMatching(Matching):
@@ -730,7 +742,7 @@ class ActiveMatching(Matching):
     - train
     - write_settings
     - write_training
-    - uncertainPairs
+    - uncertain_pairs
     - mark_pairs
     - cleanup_training
     """
@@ -738,7 +750,7 @@ class ActiveMatching(Matching):
 
     def __init__(self,
                  variable_definition: Sequence[Mapping],
-                 num_cores: int = None,
+                 num_cores: Optional[int] = None,
                  **kwargs) -> None:
         """
         :param variable_definition: A list of dictionaries describing
@@ -754,8 +766,8 @@ class ActiveMatching(Matching):
         self.data_model = datamodel.DataModel(variable_definition)
 
         self.training_pairs: TrainingData
-        self.training_pairs = OrderedDict({u'distinct': [],
-                                           u'match': []})
+        self.training_pairs = {'distinct': [],
+                               'match': []}
         self.active_learner: Optional[Union[labeler.DedupeDisagreementLearner,
                                             labeler.RecordLinkDisagreementLearner]]
         self.active_learner = None
@@ -842,8 +854,7 @@ class ActiveMatching(Matching):
                   ensure_ascii=True)
 
     def write_settings(self,
-                       file_obj: BinaryIO,
-                       index: bool = False) -> None:  # pragma: no cover
+                       file_obj: BinaryIO) -> None:  # pragma: no cover
         """
         Write a settings file containing the
         data model and predicates to a file object
@@ -853,16 +864,13 @@ class ActiveMatching(Matching):
         .. code:: python
 
            with open('learned_settings', 'wb') as f:
-               deduper.write_settings(f)
+               matcher.write_settings(f)
 
         """
 
         pickle.dump(self.data_model, file_obj)
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
-
-        if index:
-            self._writeIndices(file_obj)
 
     def _writeIndices(self, file_obj: BinaryIO) -> None:
         indices = {}
@@ -894,7 +902,7 @@ class ActiveMatching(Matching):
 
        .. code:: python
 
-          > pair = matcher.uncertainPairs()
+          > pair = matcher.uncertain_pairs()
           > print(pair)
           [({'name' : 'Georgie Porgie'}, {'name' : 'Georgette Porgette'})]
 
@@ -926,8 +934,8 @@ class ActiveMatching(Matching):
         '''
         self._checkTrainingPairs(labeled_pairs)
 
-        for label, examples in labeled_pairs.items():
-            self.training_pairs[label].extend(examples)
+        self.training_pairs['match'].extend(labeled_pairs['match'])
+        self.training_pairs['distinct'].extend(labeled_pairs['distinct'])
 
         if self.active_learner:
             examples, y = flatten_training(labeled_pairs)
@@ -936,21 +944,21 @@ class ActiveMatching(Matching):
     def _checkTrainingPairs(self, labeled_pairs: TrainingData) -> None:
         try:
             labeled_pairs.items()
-            labeled_pairs[u'match']
-            labeled_pairs[u'distinct']
+            labeled_pairs['match']
+            labeled_pairs['distinct']
         except (AttributeError, KeyError):
             raise ValueError('labeled_pairs must be a dictionary with keys '
                              '"distinct" and "match"')
 
-        if labeled_pairs[u'match']:
-            pair = labeled_pairs[u'match'][0]
+        if labeled_pairs['match']:
+            pair = labeled_pairs['match'][0]
             self._checkRecordPair(pair)
 
-        if labeled_pairs[u'distinct']:
-            pair = labeled_pairs[u'distinct'][0]
+        if labeled_pairs['distinct']:
+            pair = labeled_pairs['distinct'][0]
             self._checkRecordPair(pair)
 
-        if not labeled_pairs[u'distinct'] and not labeled_pairs[u'match']:
+        if not labeled_pairs['distinct'] and not labeled_pairs['match']:
             warnings.warn("Didn't return any labeled record pairs")
 
     def _checkRecordPair(self, record_pair: TrainingExample) -> None:
@@ -1221,13 +1229,6 @@ class Gazetteer(Link, GazetteerMatching):
     addresses against a clean list
     """
 
-    def __init__(self,
-                 variable_definition: Sequence[Mapping],
-                 num_cores: int = None,
-                 **kwargs) -> None:  # pragma: no cover
-        super().__init__(variable_definition, num_cores=num_cores, **kwargs)
-        self.blocked_records = OrderedDict({})
-
 
 class StaticGazetteer(StaticMatching, GazetteerMatching):
     """
@@ -1236,25 +1237,6 @@ class StaticGazetteer(StaticMatching, GazetteerMatching):
     If you have already trained a :class:`Gazetteer` instance, you can
     load the saved settings with StaticGazetteer.
     """
-    def __init__(self,
-                 settings_file: BinaryIO,
-                 num_cores: int = None,
-                 **kwargs) -> None:  # pragma: no cover
-        super().__init__(settings_file, num_cores=num_cores, **kwargs)
-
-        try:
-            self.blocked_records = pickle.load(settings_file)
-        except EOFError:
-            self.blocked_records = OrderedDict({})
-        except (KeyError, AttributeError):
-            raise SettingsFileLoadingException(
-                "This settings file is not compatible with "
-                "the current version of dedupe. This can happen "
-                "if you have recently upgraded dedupe.")
-        except:  # noqa: E722
-            raise SettingsFileLoadingException(
-                "Something has gone wrong with loading the settings file. "
-                "Try deleting the file")
 
 
 class EmptyTrainingException(Exception):
@@ -1266,15 +1248,15 @@ class SettingsFileLoadingException(Exception):
 
 
 def flatten_training(training_pairs: TrainingData) -> Tuple[List[TrainingExample], numpy.ndarray]:
-    examples = []
+    examples: List[TrainingExample] = []
     y = []
-    for label, pairs in training_pairs.items():
-        for pair in pairs:
-            if label == 'match':
-                y.append(1)
-                examples.append(pair)
-            elif label == 'distinct':
-                y.append(0)
-                examples.append(pair)
+
+    for label in ('match', 'distinct'):
+        label = cast(Literal['match', 'distinct'], label)
+
+        pairs = training_pairs[label]
+        examples.extend(pairs)
+        encoded_y = 1 if label == 'match' else 0
+        y.extend([encoded_y] * len(pairs))
 
     return examples, numpy.array(y)

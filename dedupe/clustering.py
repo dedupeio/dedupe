@@ -19,7 +19,7 @@ from typing import (Iterable,
                     Generator,
                     Sequence,
                     Tuple)
-from dedupe._typing import Clusters, RecordID, SearchResults
+from dedupe._typing import Clusters, RecordID, Links
 
 logger = logging.getLogger(__name__)
 
@@ -214,8 +214,7 @@ def confidences(cluster: Sequence[int],
     return scores
 
 
-def greedyMatching(dupes: numpy.ndarray,
-                   threshold: float = 0.5) -> SearchResults:
+def greedyMatching(dupes: numpy.ndarray) -> Links:
     A: Set[RecordID] = set()
     B: Set[RecordID] = set()
 
@@ -231,7 +230,7 @@ def greedyMatching(dupes: numpy.ndarray,
 
 
 def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
-                    n_matches: int = 1) -> SearchResults:
+                    n_matches: int = 1) -> Links:
 
     for block in scored_blocks:
         block.sort(order='score')
@@ -244,7 +243,7 @@ def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
 
 
 def pair_gazette_matching(scored_pairs: numpy.ndarray,
-                          n_matches: int = 1) -> SearchResults:
+                          n_matches: int = 1) -> Links:
 
     scored_pairs.sort(order='pairs')
 
@@ -252,4 +251,6 @@ def pair_gazette_matching(scored_pairs: numpy.ndarray,
     change_points = numpy.where(numpy.roll(group_key, 1) != group_key)[0]
     scored_blocks = numpy.split(scored_pairs, change_points)
 
-    yield from gazetteMatching(scored_blocks, n_matches)
+    for match in gazetteMatching(scored_blocks, n_matches):
+        if match:
+            yield from match

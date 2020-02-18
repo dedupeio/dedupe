@@ -20,7 +20,7 @@ from typing import (Iterator,
                     Any,
                     Type,
                     Iterable)
-from dedupe._typing import (RecordPairs, RecordID, Blocks)
+from dedupe._typing import (RecordPairs, RecordID, Blocks, Data, Literal)
 
 import numpy
 import multiprocessing
@@ -276,7 +276,7 @@ def fillQueue(queue: _Queue,
               iterable: RecordPairs,
               stop_signals: int) -> None:
     iterable = iter(iterable)
-    chunk_size = 10000
+    chunk_size = 100000
     upper_bound = 7000000  # this number worked, but is unprincipled
     multiplier = 1.1
 
@@ -285,6 +285,8 @@ def fillQueue(queue: _Queue,
     n_records = 0
     t0 = time.perf_counter()
     last_rate = 10000.
+    step = 100
+    queue_flushed = 0
 
     while True:
         chunk = tuple(itertools.islice(iterable, chunk_size))
@@ -295,23 +297,35 @@ def fillQueue(queue: _Queue,
             n_records += chunk_size
             i += 1
 
-            if i % 10:
+            if i == queue_flushed:
+                t0 = time.perf_counter()
+                n_records = 0
+
+
+            if i % 100:
+            
                 time_delta = max(time.perf_counter() - t0, 0.0001)
 
                 current_rate = n_records / time_delta
-
+                
                 # chunk_size is always either growing or shrinking, if
                 # the shrinking led to a faster rate, keep
                 # shrinking. Same with growing. If the rate decreased,
                 # reverse directions
                 if current_rate < last_rate:
-                    multiplier = 1 / multiplier
+                    step = -step * 1
+                    if numpy.abs(step) < 1:
+                        if step > 0:
+                            step = 1
+                        else:
+                            step = -1
 
-                chunk_size = int(min(max(chunk_size * multiplier, 1), upper_bound))
+                chunk_size = int(min(max(chunk_size + step, 1), upper_bound))
+                print(chunk_size, current_rate, step)
 
                 last_rate = current_rate
-                n_records = 0
-                t0 = time.perf_counter()
+
+                queue_flushed = i + 2 * stop_signals
 
         else:
             # put poison pills in queue to tell scorers that they are
@@ -389,7 +403,7 @@ def appropriate_imap(num_cores):
     else:
         from .backport import Pool
         pool = Pool(processes=num_cores)
-        imap = functools.partial(pool.imap_unordered, chunksize=1000)
+        imap = functools.partial(pool.imap_unordered, chunksize=10000)
 
     return imap, pool
 
@@ -433,12 +447,27 @@ def sniff_id_type(ids: Sequence[Tuple[RecordID, RecordID]]) -> Union[Type[int], 
     python_type = type(example)
     if python_type is bytes or python_type is str:
         dtype: Union[Type[int], Tuple[Type[str], int]] = (str, 256)
-    else:
+    elif python_type is int:
         int(example)  # make sure we can cast to int
         dtype: Union[Type[int], Tuple[Type[str], int]] = int  # type: ignore
+    else:
+        raise ValueError('Invalid type for record id')
 
     return dtype
 
+
+def sqlite_id_type(data: Data) -> Literal['text', 'integer']:
+
+    example = next(iter(data.keys()))
+    python_type = type(example)
+
+    if python_type is bytes or python_type is str:
+        return 'text'
+    elif python_type is int:
+        return 'integer'
+    else:
+        raise ValueError('Invalid type for record id')
+    
 
 def unique(seq: Iterable) -> list:
     """Return the unique elements of a collection even if those elements are
