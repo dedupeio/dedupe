@@ -278,7 +278,6 @@ def fillQueue(queue: _Queue,
     iterable = iter(iterable)
     chunk_size = 100000
     upper_bound = 7000000  # this number worked, but is unprincipled
-    multiplier = 1.1
 
     # initial values
     i = 0
@@ -301,13 +300,12 @@ def fillQueue(queue: _Queue,
                 t0 = time.perf_counter()
                 n_records = 0
 
-
             if i % 100:
-            
+
                 time_delta = max(time.perf_counter() - t0, 0.0001)
 
                 current_rate = n_records / time_delta
-                
+
                 # chunk_size is always either growing or shrinking, if
                 # the shrinking led to a faster rate, keep
                 # shrinking. Same with growing. If the rate decreased,
@@ -467,7 +465,7 @@ def sqlite_id_type(data: Data) -> Literal['text', 'integer']:
         return 'integer'
     else:
         raise ValueError('Invalid type for record id')
-    
+
 
 def unique(seq: Iterable) -> list:
     """Return the unique elements of a collection even if those elements are

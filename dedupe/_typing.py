@@ -20,7 +20,7 @@ RecordID = Union[int, str]
 Record = Tuple[RecordID, RecordDict]
 RecordPair = Tuple[Record, Record]
 RecordPairs = Iterator[RecordPair]
-Blocks = Iterator[RecordPairs]
+Blocks = Iterator[List[RecordPair]]
 Cluster = Tuple[Tuple[RecordID, ...], Union[numpy.ndarray, Tuple]]
 Clusters = Iterable[Cluster]
 Data = Mapping[RecordID, RecordDict]
@@ -30,9 +30,11 @@ Links = Iterable[Union[numpy.ndarray,
 LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
 JoinConstraint = Literal['one-to-one', 'many-to-one', 'many-to-many']
 
+
 class TrainingData(TypedDict):
     match: List[TrainingExample]
     distinct: List[TrainingExample]
+
 
 class Classifier(Protocol):
     def fit(self, Any) -> None:

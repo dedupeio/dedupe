@@ -93,11 +93,13 @@ else:
     gazetteer.prepare_training(data_1, data_2, sample_size=10000)
     gazetteer.mark_pairs(training_pairs)
     gazetteer.train()
-    
+
     with open(settings_file, 'wb') as f:
         gazetteer.write_settings(f)
 
 
+gazetteer.index(data_2)
+gazetteer.unindex(data_2)
 gazetteer.index(data_2)
 
 # print candidates
@@ -115,4 +117,3 @@ confirm_dupes_a = set(frozenset([a, b])
                       for b, score in result)
 
 evaluateDuplicates(confirm_dupes_a, duplicates_s)
-

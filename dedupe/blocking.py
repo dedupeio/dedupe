@@ -80,6 +80,7 @@ class Blocker:
 
             for predicate in self.index_fields[field][index_type]:
                 logger.debug("Canopy: %s", str(predicate))
+                predicate.reset()
                 predicate.index = index
 
     def unindex(self, data: Iterable, field: str):
@@ -89,7 +90,10 @@ class Blocker:
         for doc in data:
             if doc:
                 for _, index, preprocess in indices:
-                    index.unindex(preprocess(doc))
+                    try:
+                        index.unindex(preprocess(doc))
+                    except KeyError:
+                        pass
 
         for index_type, index, _ in indices:
 

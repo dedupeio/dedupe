@@ -122,4 +122,3 @@ confirm_dupes = set(frozenset(pair)
 evaluateDuplicates(confirm_dupes, duplicates_s)
 
 print('ran in ', time.time() - t0, 'seconds')
-

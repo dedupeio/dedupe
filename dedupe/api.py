@@ -28,10 +28,10 @@ import dedupe.predicates
 
 from typing import (Mapping,
                     Optional,
-                    Dict,
                     List,
                     Tuple,
                     Set,
+                    Dict,
                     Union,
                     Generator,
                     Iterable,
@@ -44,9 +44,8 @@ from dedupe._typing import (Data,
                             Clusters,
                             RecordPairs,
                             RecordID,
-                            Record,
-                            Blocks,
                             RecordDict,
+                            Blocks,
                             TrainingExample,
                             LookupResults,
                             Links,
@@ -196,6 +195,31 @@ class DedupeMatching(IntegralMatching):
             yield (singleton, ), (1.0, )
 
     def pairs(self, data):
+        '''
+        Yield the pairs of records that will be compared according to the
+        current blocking rules.
+
+        Each pair will occur at most once. If you override this
+        method, you need to take care to ensure that this remains
+        true, as downstream methods, particularly cluster(), assumes
+        that every pair of records is compared no more than once.
+
+        Args:
+            data: Dictionary of records, where the keys are record_ids
+                  and the values are dictionaries with the keys being
+                  field names
+
+        .. code:: python
+
+            > pairs = matcher.pairs(data)
+            > print(list(pairs))
+            [((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
+              (2, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’})),
+             ((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
+              (3, {‘name’ : ‘Sam’, ‘address’ : ‘123 Main’}))
+             ]
+
+        '''
 
         assert self.blocker
         self.blocker.indexAll(data)
@@ -406,7 +430,7 @@ class RecordLinkMatching(IntegralMatching):
             'one-to-one, many-to-one, or many-to-many' % constraint)
 
         pairs = self.pairs(data_1, data_2)
-        pair_scores = self.score(list(pairs), threshold)
+        pair_scores = self.score(pairs, threshold)
 
         if constraint == 'one-to-one':
             links = self.one_to_one(pair_scores)
@@ -482,8 +506,20 @@ class GazetteerMatching(Matching):
     def __init__(self, num_cores: Optional[int], **kwargs) -> None:
 
         super().__init__(num_cores, **kwargs)
-        self.con = sqlite3.connect('blocks.db')
-        self.indexed_data = {}
+
+        temp_file, self.temp_file_path = tempfile.mkstemp()
+        os.close(temp_file)
+
+        self.con = sqlite3.connect(self.temp_file_path,
+                                   check_same_thread=False)
+        self.indexed_data: Dict[RecordID, RecordDict] = {}
+
+    def _close(self):
+        self.con.close()
+        os.remove(self.temp_file_path)
+
+    def __del__(self):
+        self._close()
 
     def index(self, data: Data) -> None:  # pragma: no cover
         """
@@ -504,11 +540,18 @@ class GazetteerMatching(Matching):
 
         id_type = core.sqlite_id_type(data)
         self.con.execute('''CREATE TABLE IF NOT EXISTS indexed_records
-                            (block_key text, record_id {id_type})
+                            (block_key text,
+                             record_id {id_type},
+                             UNIQUE(block_key, record_id))
                          '''.format(id_type=id_type))
 
-        self.con.executemany("INSERT INTO indexed_records VALUES (?, ?)",
+        self.con.executemany("REPLACE INTO indexed_records VALUES (?, ?)",
                              self.blocker(data.items(), target=True))
+
+        self.con.execute('''CREATE INDEX IF NOT EXISTS
+                            indexed_records_block_key_idx
+                            ON indexed_records
+                            (block_key)''')
 
         self.con.commit()
 
@@ -528,13 +571,14 @@ class GazetteerMatching(Matching):
         assert self.blocker
 
         for field in self.blocker.index_fields:
-            self.blocker.unindex((record[field]
+            self.blocker.unindex({record[field]
                                   for record
-                                  in data.values()),
+                                  in data.values()},
                                  field)
 
         self.con.executemany('''DELETE FROM indexed_records
-                                WHERE record_id = ?''', data.keys())
+                                WHERE record_id = ?''',
+                             ((k, ) for k in data.keys()))
 
         self.con.commit()
 
@@ -545,46 +589,33 @@ class GazetteerMatching(Matching):
 
         assert self.blocker
 
-        product = itertools.product
+        id_type = core.sqlite_id_type(data_1)
 
-        # sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in that same thread.
-        
-        block_groups = itertools.groupby(self.blocker(data_1.items()),
-                                         lambda x: x[1])
+        self.con.execute('BEGIN')
 
-        for i, (a_record_id, block_keys) in enumerate(block_groups):
-            if i % 100 == 0:
-                logger.info("%s records" % i)
+        self.con.execute('''CREATE TEMPORARY TABLE blocking_map
+                            (block_key text, record_id {id_type})
+                         '''.format(id_type=id_type))
+        self.con.executemany("INSERT INTO blocking_map VALUES (?, ?)",
+                             self.blocker(data_1.items()))
 
-            A: List[Record] = [(a_record_id, data_1[a_record_id])]
+        pairs = self.con.execute('''SELECT DISTINCT a.record_id, b.record_id
+                                    FROM blocking_map a
+                                    INNER JOIN indexed_records b
+                                    USING (block_key)
+                                    ORDER BY a.record_id''')
 
-            B: List[Record]
+        pair_blocks = itertools.groupby(pairs,
+                                        lambda x: x[0])
 
-            self.con.execute('BEGIN')
-            # do this in a transaction so don't have to explicitly
-            # drop block table
-            self.con.execute('''CREATE TEMPORARY TABLE block
-                                 (block_key text)''')
-            self.con.executemany('INSERT INTO block VALUES (?)',
-                                 ((key, ) for key, _ in block_keys))
+        for _, pair_block in pair_blocks:
 
-            indexed_record_ids = self.con.execute('''
-                SELECT DISTINCT record_id
-                FROM indexed_records
-                INNER JOIN block
-                USING (block_key)''')
-            B = [(str(record_id), self.indexed_data[record_id])
-                 for (record_id,) in indexed_record_ids]
+            yield [((a_record_id, data_1[a_record_id]),
+                    (b_record_id, self.indexed_data[b_record_id]))
+                   for a_record_id, b_record_id
+                   in pair_block]
 
-            self.con.execute('COMMIT')
-
-            if B:
-                yield product(A, B)
-
-
-
-
-            
+        self.con.execute("ROLLBACK")
 
     def score(self,
               blocks: Blocks,

@@ -145,6 +145,9 @@ class IndexPredicate(Predicate):
 
         return True
 
+    def reset(self):
+        ...
+
 
 class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
