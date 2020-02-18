@@ -27,10 +27,10 @@ Library Documentation
 
     Matching methods
     
-    .. automethod:: match
+    .. automethod:: partition
 
     Lower level methods
-    
+
     .. automethod:: pairs
     .. automethod:: score
     .. automethod:: cluster
@@ -46,7 +46,7 @@ Library Documentation
         with open('learned_settings', 'rb') as f:
             matcher = StaticDedupe(f)
 
-    .. automethod:: match
+    .. automethod:: partition
     .. automethod:: pairs
     .. automethod:: score
     .. automethod:: cluster
@@ -74,7 +74,7 @@ Library Documentation
     .. automethod:: write_training
     .. automethod:: write_settings
     .. automethod:: cleanup_training
-    .. automethod:: match
+    .. automethod:: join
     .. automethod:: pairs
     .. automethod:: score
     .. automethod:: one_to_one
@@ -90,7 +90,7 @@ Library Documentation
         with open('learned_settings', 'rb') as f:
             matcher = StaticRecordLink(f)
 
-    .. automethod:: match
+    .. automethod:: join
     .. automethod:: pairs
     .. automethod:: score
     .. automethod:: one_to_one
