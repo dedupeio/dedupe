@@ -34,8 +34,8 @@ class TrainingTest(unittest.TestCase):
 
     def test_dedupe_coverage(self):
         predicates = self.data_model.predicates()
-        blocker = dedupe.blocking.Blocker(predicates)
-        blocker.indexAll({i: x for i, x in enumerate(self.training_records)})
+        blocker = dedupe.blocking.Fingerprinter(predicates)
+        blocker.index_all({i: x for i, x in enumerate(self.training_records)})
         coverage = training.Cover(blocker.predicates,
                                   self.training)
         assert self.simple(coverage.keys()).issuperset(

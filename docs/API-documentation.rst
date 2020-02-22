@@ -31,6 +31,11 @@ Library Documentation
 
     Lower level methods
 
+    .. attribute:: fingerprinter
+
+       Instance of :class:`dedupe.blocking.Fingerprinter` class if
+       the :func:`train` has been run, else `None`.
+
     .. automethod:: pairs
     .. automethod:: score
     .. automethod:: cluster
@@ -142,3 +147,14 @@ Library Documentation
     .. automethod:: blocks
     .. automethod:: score
     .. automethod:: many_to_n
+
+
+:class:`Fingerprinter` Objects
+------------------------------
+.. autoclass:: dedupe.blocking.Fingerprinter
+
+   .. automethod:: __call__
+   .. automethod:: index
+   .. automethod:: unindex	       
+   .. automethod:: index_all
+   .. automethod:: reset_indices

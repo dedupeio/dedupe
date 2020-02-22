@@ -5,7 +5,7 @@ from collections import defaultdict
 import logging
 import time
 
-from typing import Generator, Tuple, Iterable, Dict, List
+from typing import Generator, Tuple, Iterable, Dict, List, Union
 from dedupe._typing import Record, RecordID, Data
 
 import dedupe.predicates
@@ -17,7 +17,7 @@ def index_list():
     return defaultdict(list)
 
 
-class Blocker:
+class Fingerprinter(object):
     '''Takes in a record and returns all blocks that record belongs to'''
 
     def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
@@ -41,6 +41,34 @@ class Blocker:
     def __call__(self,
                  records: Iterable[Record],
                  target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
+        '''
+        Generate the predicates for records. Yields tuples of (predicate,
+        record_id).
+
+        Args:
+            records: A sequence of tuples of (record_id,
+                  record_dict). Can often be created by
+                  `data_dict.items()`.
+            target: Indicates whether the data should be treated as
+                    the target data. This effects the behavior of
+                    search predicates. If `target` is set to
+                    `True`, an search predicate will return the
+                    value itself. If `target` is set to `False` the
+                    search predicate will return all possible
+                    values within the specified search distance.
+
+                    Let's say we have a
+                    `LevenshteinSearchPredicate` with an associated
+                    distance of `1` on a `"name"` field; and we
+                    have a record like `{"name": "thomas"}`. If the
+                    `target` is set to `True` then the predicate
+                    will return `"thomas"`.  If `target` is set to
+                    `False`, then the blocker could return
+                    `"thomas"`, `"tomas"`, and `"thoms"`. By using
+                    the `target` argument on one of your datasets,
+                    you will dramatically reduce the total number
+                    of comparisons without a loss of accuracy.
+        '''
 
         start_time = time.perf_counter()
         predicates = [(':' + str(i), predicate)
@@ -60,13 +88,15 @@ class Blocker:
                             {'iteration': i,
                              'elapsed': time.perf_counter() - start_time})
 
-    def resetIndices(self):
+    def reset_indices(self):
         # clear canopies to reduce memory usage
         for predicate in self.index_predicates:
             predicate.reset()
 
-    def index(self, data: Iterable, field: str):
-        '''Creates TF/IDF index of a given set of data'''
+    def index(self,
+              data: Union[Iterable[str], Iterable[Iterable[str]]],
+              field: str):
+        '''Creates index of a given set of data'''
         indices = extractIndices(self.index_fields[field])
 
         for doc in data:
@@ -103,7 +133,7 @@ class Blocker:
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
-    def indexAll(self, data_d: Data):
+    def index_all(self, data_d: Data):
         for field in self.index_fields:
             unique_fields = {record[field]
                              for record

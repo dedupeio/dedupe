@@ -67,15 +67,28 @@ class Matching(object):
     """
 
     def __init__(self, num_cores: Optional[int], **kwargs) -> None:
+
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
             self.num_cores = num_cores
 
-        self.blocker: Optional[blocking.Blocker] = None
+        self._fingerprinter: Optional[blocking.Fingerprinter] = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
         self.predicates: Sequence[dedupe.predicates.Predicate]
+
+    @property
+    def fingerprinter(self) -> blocking.Fingerprinter:
+        '''
+        what happens with this docstring
+        '''
+
+        if self._fingerprinter is None:
+            raise ValueError('the record fingerprinter is not intialized, '
+                             'please run the train method')
+
+        return self._fingerprinter
 
 
 class IntegralMatching(Matching):
@@ -221,8 +234,7 @@ class DedupeMatching(IntegralMatching):
 
         '''
 
-        assert self.blocker
-        self.blocker.indexAll(data)
+        self.fingerprinter.index_all(data)
 
         id_type = core.sqlite_id_type(data)
 
@@ -236,9 +248,9 @@ class DedupeMatching(IntegralMatching):
                         '''.format(id_type=id_type))
 
             con.executemany("INSERT INTO blocking_map values (?, ?)",
-                            self.blocker(data.items()))
+                            self.fingerprinter(data.items()))
 
-            self.blocker.resetIndices()
+            self.fingerprinter.reset_indices()
 
             con.execute('''CREATE INDEX block_key_idx
                            ON blocking_map (block_key)''')
@@ -340,9 +352,7 @@ class RecordLinkMatching(IntegralMatching):
             ]
         """
 
-        assert self.blocker
-
-        self.blocker.indexAll(data_2)
+        self.fingerprinter.index_all(data_2)
 
         id_type_a = core.sqlite_id_type(data_1)
         id_type_b = core.sqlite_id_type(data_2)
@@ -361,12 +371,12 @@ class RecordLinkMatching(IntegralMatching):
                                          id_type_b=id_type_b))
 
             con.executemany("INSERT INTO blocking_map_a values (?, ?)",
-                            self.blocker(data_1.items()))
+                            self.fingerprinter(data_1.items()))
 
             con.executemany("INSERT INTO blocking_map_b values (?, ?)",
-                            self.blocker(data_2.items(), target=True))
+                            self.fingerprinter(data_2.items(), target=True))
 
-            self.blocker.resetIndices()
+            self.fingerprinter.reset_indices()
 
             con.executescript('''CREATE INDEX block_key_a_idx
                                  ON blocking_map_a (block_key);
@@ -538,9 +548,7 @@ class GazetteerMatching(Matching):
                   field_names
         """
 
-        assert self.blocker
-
-        self.blocker.indexAll(data)
+        self.fingerprinter.index_all(data)
 
         id_type = core.sqlite_id_type(data)
 
@@ -552,7 +560,7 @@ class GazetteerMatching(Matching):
                     '''.format(id_type=id_type))
 
         con.executemany("REPLACE INTO indexed_records VALUES (?, ?)",
-                        self.blocker(data.items(), target=True))
+                        self.fingerprinter(data.items(), target=True))
 
         con.execute('''CREATE INDEX IF NOT EXISTS
                        indexed_records_block_key_idx
@@ -575,13 +583,11 @@ class GazetteerMatching(Matching):
                   field_names
         """
 
-        assert self.blocker
-
-        for field in self.blocker.index_fields:
-            self.blocker.unindex({record[field]
-                                  for record
-                                  in data.values()},
-                                 field)
+        for field in self.fingerprinter.index_fields:
+            self.fingerprinter.unindex({record[field]
+                                        for record
+                                        in data.values()},
+                                       field)
 
         con = sqlite3.connect(self.db)
         con.executemany('''DELETE FROM indexed_records
@@ -596,8 +602,6 @@ class GazetteerMatching(Matching):
 
     def blocks(self, data_1: Data) -> Blocks:
 
-        assert self.blocker
-
         id_type = core.sqlite_id_type(data_1)
 
         con = sqlite3.connect(self.db, check_same_thread=False)
@@ -608,7 +612,7 @@ class GazetteerMatching(Matching):
                        (block_key text, record_id {id_type})
                     '''.format(id_type=id_type))
         con.executemany("INSERT INTO blocking_map VALUES (?, ?)",
-                        self.blocker(data_1.items()))
+                        self.fingerprinter(data_1.items()))
 
         pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
                                FROM blocking_map a
@@ -774,7 +778,7 @@ class StaticMatching(Matching):
 
         logger.info(self.predicates)
 
-        self.blocker = blocking.Blocker(self.predicates)
+        self._fingerprinter = blocking.Fingerprinter(self.predicates)
 
 
 class ActiveMatching(Matching):
@@ -876,8 +880,8 @@ class ActiveMatching(Matching):
 
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
-        self.blocker = blocking.Blocker(self.predicates)
-        self.blocker.resetIndices()
+        self._fingerprinter = blocking.Fingerprinter(self.predicates)
+        self.fingerprinter.reset_indices()
 
     def write_training(self, file_obj: TextIO) -> None:  # pragma: no cover
         """

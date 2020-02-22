@@ -49,7 +49,8 @@ class ActiveMatch(unittest.TestCase):
 
         matcher = dedupe.api.ActiveMatching({},)
 
-        assert matcher.blocker is None
+        with self.assertRaises(ValueError):
+            matcher.fingerprinter
 
     def test_check_record(self):
         matcher = dedupe.api.ActiveMatching(self.field_definition)

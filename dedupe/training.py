@@ -115,8 +115,8 @@ class DedupeBlockLearner(BlockLearner):
 
         self.r = (N * (N - 1)) / (N_s * (N_s - 1))
 
-        self.blocker = blocking.Blocker(predicates)
-        self.blocker.indexAll(data)
+        self.blocker = blocking.Fingerprinter(predicates)
+        self.blocker.index_all(data)
 
         simple_cover = self.coveredPairs(self.blocker, sampled_records)
         compound_predicates = self.compound(simple_cover, compound_length)
@@ -186,8 +186,8 @@ class RecordLinkBlockLearner(BlockLearner):
 
         self.r = r_a * r_b
 
-        self.blocker = blocking.Blocker(predicates)
-        self.blocker.indexAll(data_2)
+        self.blocker = blocking.Fingerprinter(predicates)
+        self.blocker.index_all(data_2)
 
         simple_cover = self.coveredPairs(self.blocker,
                                          sampled_records_1,
