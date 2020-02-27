@@ -30,6 +30,7 @@ class DataModel(object):
 
         self._missing_field_indices = missing_field_indices(variables)
         self._interaction_indices = interaction_indices(variables)
+        self._interaction_weights = interaction_weights(variables)
 
         self._variables = variables
 
@@ -96,11 +97,11 @@ class DataModel(object):
         distances = primary_distances
 
         current_column = self._derived_start
-
-        for interaction in self._interaction_indices:
+        print(self._interaction_indices)
+        for interaction, weight in zip(self._interaction_indices, self._interaction_weights):
             distances[:, current_column] =\
                 numpy.prod(distances[:, interaction], axis=1)
-
+            print(distances[:, current_column])
             current_column += 1
 
         missing_data = numpy.isnan(distances[:, :current_column])
@@ -209,6 +210,16 @@ def interaction_indices(variables):
             indices.append(interaction_indices)
 
     return indices
+
+
+def interaction_weights(variables):
+    weights = []
+
+    for definition in variables:
+        if hasattr(definition, 'interaction_fields'):
+            weights.append(definition.weight)
+
+    return weights
 
 
 def reduce_method(m):
