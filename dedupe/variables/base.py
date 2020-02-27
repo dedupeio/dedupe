@@ -59,6 +59,11 @@ class FieldType(Variable):
         else:
             self.name = "(%s: %s)" % (self.field, self.type)
 
+        if 'weight' in definition:
+            self.weight = definition['weight']
+        else:
+            self.weight = 1
+
         self.predicates = [self._Predicate(pred, self.field)
                            for pred in self._predicate_functions]
 

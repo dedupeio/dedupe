@@ -36,6 +36,7 @@ class DataModel(object):
     def __len__(self):
         return len(self._variables)
 
+
     # Changing this from a property to just a normal attribute causes
     # pickling problems, because we are removing static methods from
     # their class context. This could be fixed by defining comparators
@@ -47,7 +48,8 @@ class DataModel(object):
         comparators = []
         for field in self.primary_fields:
             stop = start + len(field)
-            comparators.append((field.field, field.comparator, start, stop))
+            comparators.append((field.field, field.comparator,
+                                field.weight, start, stop))
             start = stop
 
         return comparators
@@ -74,16 +76,15 @@ class DataModel(object):
 
         distances = numpy.empty((num_records, len(self)), 'f4')
         field_comparators = self._field_comparators
-
         for i, (record_1, record_2) in enumerate(record_pairs):
 
-            for field, compare, start, stop in field_comparators:
+            for field, compare, weight, start, stop in field_comparators:
                 if record_1[field] is not None and record_2[field] is not None:
                     distances[i, start:stop] = compare(record_1[field],
-                                                       record_2[field])
+                                                       record_2[field])*weight
                 elif hasattr(compare, 'missing'):
                     distances[i, start:stop] = compare(record_1[field],
-                                                       record_2[field])
+                                                       record_2[field])*weight
                 else:
                     distances[i, start:stop] = numpy.nan
 
