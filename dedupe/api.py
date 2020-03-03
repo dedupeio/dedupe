@@ -59,11 +59,6 @@ logger = logging.getLogger(__name__)
 class Matching(object):
     """
     Base Class for Record Matching Classes
-
-    Public methods:
-
-    - `__init__`
-    - `matchBlocks`
     """
 
     def __init__(self, num_cores: Optional[int], **kwargs) -> None:
@@ -80,9 +75,6 @@ class Matching(object):
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:
-        '''
-        what happens with this docstring
-        '''
 
         if self._fingerprinter is None:
             raise ValueError('the record fingerprinter is not intialized, '
@@ -94,7 +86,7 @@ class Matching(object):
 class IntegralMatching(Matching):
     """
     This class is for linking class where we need to score all possible
-    pairs besides deciding on any matches
+    pairs before deciding on any matches
     """
 
     def score(self,
@@ -116,12 +108,18 @@ class IntegralMatching(Matching):
                        raising it will increase precision
 
         """
-
-        matches = core.scoreDuplicates(pairs,
-                                       self.data_model,
-                                       self.classifier,
-                                       self.num_cores,
-                                       threshold=threshold)
+        try:
+            matches = core.scoreDuplicates(pairs,
+                                           self.data_model,
+                                           self.classifier,
+                                           self.num_cores,
+                                           threshold=threshold)
+        except RuntimeError:
+            raise RuntimeError('''
+                You need to either turn off multiprocessing or protect
+                the calls to the Dedupe methods with a
+                `if __name__ == '__main__'` in your main module, see
+                https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods''')
 
         return matches
 
@@ -133,11 +131,6 @@ class DedupeMatching(IntegralMatching):
     Use DedupeMatching when you have a dataset that can contain
     multiple references to the same entity.
 
-    Public methods:
-
-    - `__init__`
-    - `match`
-    - `threshold`
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -182,10 +175,12 @@ class DedupeMatching(IntegralMatching):
 
         """
         pairs = self.pairs(data)
-        pair_scores = self.score(list(pairs))
+        pair_scores = self.score(pairs)
         clusters = self.cluster(pair_scores, threshold)
 
-        clusters = list(self._add_singletons(data, clusters))
+        clusters = self._add_singletons(data, clusters)
+
+        clusters = list(clusters)
 
         try:
             mmap_file = pair_scores.filename
@@ -209,12 +204,11 @@ class DedupeMatching(IntegralMatching):
 
     def pairs(self, data):
         '''
-        Yield the pairs of records that will be compared according to the
-        current blocking rules.
+        Yield pairs of records that share common fingerprints.
 
         Each pair will occur at most once. If you override this
         method, you need to take care to ensure that this remains
-        true, as downstream methods, particularly cluster(), assumes
+        true, as downstream methods, particularly :func:`cluster`, assumes
         that every pair of records is compared no more than once.
 
         Args:
@@ -226,10 +220,10 @@ class DedupeMatching(IntegralMatching):
 
             > pairs = matcher.pairs(data)
             > print(list(pairs))
-            [((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
-              (2, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’})),
-             ((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
-              (3, {‘name’ : ‘Sam’, ‘address’ : ‘123 Main’}))
+            [((1, {'name' : 'Pat', 'address' : '123 Main'}),
+              (2, {'name' : 'Pat', 'address' : '123 Main'})),
+             ((1, {'name' : 'Pat', 'address' : '123 Main'}),
+              (3, {'name' : 'Sam', 'address' : '123 Main'}))
              ]
 
         '''
@@ -268,7 +262,7 @@ class DedupeMatching(IntegralMatching):
             con.close()
 
     def cluster(self,
-                matches: numpy.ndarray,
+                scores: numpy.ndarray,
                 threshold: float) -> Clusters:
         """
         From the similarity scores of pairs of records, decide which groups
@@ -281,13 +275,13 @@ class DedupeMatching(IntegralMatching):
         belongs in the cluster.
 
         Args:
-            matches: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
-                     ('score', 'f4')]` where dtype is either a str
-                     or int, and score is a number between 0 and
-                     1. The 'pairs' column contains pairs of ids of
-                     the records compared and the 'score' column
-                     should contains the similarity score for that
-                     pair of records.
+            scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
+                    ('score', 'f4')]` where dtype is either a str
+                    or int, and score is a number between 0 and
+                    1. The 'pairs' column contains pairs of ids of
+                    the records compared and the 'score' column
+                    should contains the similarity score for that
+                    pair of records.
 
             threshold: Number between 0 and 1. We will only consider
                        put together records into clusters if the
@@ -312,7 +306,7 @@ class DedupeMatching(IntegralMatching):
 
         logger.debug("matching done, begin clustering")
 
-        yield from clustering.cluster(matches, threshold)
+        yield from clustering.cluster(scores, threshold)
 
 
 class RecordLinkMatching(IntegralMatching):
@@ -320,19 +314,17 @@ class RecordLinkMatching(IntegralMatching):
     Class for Record Linkage, extends Matching.
 
     Use RecordLinkMatching when you have two datasets that you want to merge
-    where each dataset, individually, contains no duplicates.
     """
 
     def pairs(self, data_1: Data, data_2: Data) -> RecordPairs:
         """
-        Yield the pairs of records that will be compared according to
-        the current blocking rules.
+        Yield pairs of records that share common fingerprints.
 
         Each pair will occur at most once. If you override this
         method, you need to take care to ensure that this remains
-        true, as downstream methods, particularly :func:`cluster`,
-        assumes that every pair of records is compared no more than
-        once.
+        true, as downstream methods, particularly :func:`one_to_one`,
+        and :func:`many_to_one` assumes that every pair of records is
+        compared no more than once.
 
         Args:
             data_1: Dictionary of records from first dataset, where the
@@ -345,10 +337,10 @@ class RecordLinkMatching(IntegralMatching):
 
            > pairs = matcher.pairs(data_1, data_2)
            > print(list(pairs))
-           [((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
-             (2, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’})),
-            ((1, {‘name’ : ‘Pat’, ‘address’ : ‘123 Main’}),
-             (3, {‘name’ : ‘Sam’, ‘address’ : ‘123 Main’}))
+           [((1, {'name' : 'Pat', 'address' : '123 Main'}),
+             (2, {'name' : 'Pat', 'address' : '123 Main'})),
+            ((1, {'name' : 'Pat', 'address' : '123 Main'}),
+             (3, {'name' : 'Sam', 'address' : '123 Main'}))
             ]
         """
 
@@ -429,6 +421,32 @@ class RecordLinkMatching(IntegralMatching):
                        Lowering the number will increase recall, raising it
                        will increase precision
 
+            constraint: What type of constraint to put on a join.
+
+                        'one-to-one'
+                              Every record in data_1 can match at most
+                              one record from data_2 and every record
+                              from data_2 can match at most one record
+                              from data_1. This is good for when both
+                              data_1 and data_2 are from different
+                              sources and you are interested in
+                              matching across the sources. If,
+                              individually, data_1 or data_2 have many
+                              duplicates you will not get good
+                              matches.
+                        'many-to-one'
+                              Every record in data_1 can match at most
+                              one record from data_2, but more than
+                              one record from data_1 can match to the
+                              same record in data_2. This is good for
+                              when data_2 is a lookup table and data_1
+                              is messy, such as geocoding or matching
+                              against golden records.
+                        'many-to-many'
+                              Every record in data_1 can match
+                              multiple records in data_2 and vice
+                              versa. This is like a SQL inner join.
+
         .. code:: python
 
            > links = matcher.join(data_1, data_2, threshold=0.5)
@@ -472,8 +490,15 @@ class RecordLinkMatching(IntegralMatching):
         From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
 
-        Every record in data_1 can match at most one record from data_2.
-        See https://en.wikipedia.org/wiki/Injective_function.
+        Every record in data_1 can match at most one record from
+        data_2 and every record from data_2 can match at most one
+        record from data_1. See
+        https://en.wikipedia.org/wiki/Injective_function.
+
+        This method is good for when both data_1 and data_2 are from
+        different sources and you are interested in matching across
+        the sources. If, individually, data_1 or data_2 have many duplicates
+        you will not get good matches.
 
         Yields pairs of record ids with a confidence score as a float
         between 0 and 1. The record_ids within the pair should refer to the
@@ -481,20 +506,20 @@ class RecordLinkMatching(IntegralMatching):
         the records refer to the same entity.
 
         Args:
-            matches: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
-                     ('score', 'f4')]` where dtype is either a str
-                     or int, and score is a number between 0 and
-                     1. The 'pairs' column contains pairs of ids of
-                     the records compared and the 'score' column
-                     should contains the similarity score for that
-                     pair of records.
+            scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
+                    ('score', 'f4')]` where dtype is either a str
+                    or int, and score is a number between 0 and
+                    1. The 'pairs' column contains pairs of ids of
+                    the records compared and the 'score' column
+                    should contains the similarity score for that
+                    pair of records.
 
 
         .. code:: python
 
            > pairs = matcher.pairs(data)
            > scores = matcher.scores(pairs, threshold=0.5)
-           > links = matcher.inject(scores)
+           > links = matcher.one_to_one(scores)
            > print(list(links))
            [((1, 2), 0.790),
             ((4, 5), 0.720),
@@ -509,7 +534,43 @@ class RecordLinkMatching(IntegralMatching):
     def many_to_one(self,
                     scores: numpy.ndarray) -> Links:
         """
-        TK
+        From the similarity scores of pairs of records, decide which
+        pairs refer to the same entity.
+
+        Every record in data_1 can match at most one record from
+        data_2, but more than one record from data_1 can match to the same
+        record in data_2. See
+        https://en.wikipedia.org/wiki/Surjective_function
+
+        This method is good for when data_2 is a lookup table and data_1
+        is messy, such as geocoding or matching against golden records.
+
+        Yields pairs of record ids with a confidence score as a float
+        between 0 and 1. The record_ids within the pair should refer to the
+        same entity and the confidence score is the estimated probability that
+        the records refer to the same entity.
+
+        Args:
+            scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
+                    ('score', 'f4')]` where dtype is either a str
+                    or int, and score is a number between 0 and
+                    1. The 'pairs' column contains pairs of ids of
+                    the records compared and the 'score' column
+                    should contains the similarity score for that
+                    pair of records.
+
+
+        .. code:: python
+
+           > pairs = matcher.pairs(data)
+           > scores = matcher.scores(pairs, threshold=0.5)
+           > links = matcher.many_to_one(scores)
+           > print(list(links))
+           [((1, 2), 0.790),
+            ((4, 5), 0.720),
+            ((7, 2), 0.623),
+            ((10, 11), 0.899)]
+
         """
 
         logger.debug("matching done, begin clustering")
@@ -600,9 +661,41 @@ class GazetteerMatching(Matching):
         for k in data:
             del self.indexed_data[k]
 
-    def blocks(self, data_1: Data) -> Blocks:
+    def blocks(self, data: Data) -> Blocks:
+        """
+        Yield groups of pairs of records that share fingerprints.
 
-        id_type = core.sqlite_id_type(data_1)
+        Each group contains one record from data_1 paired with the records
+        from the indexed records that data_1 shares a fingerprint with.
+
+        Each pair within and among blocks will occur at most once. If
+        you override this method, you need to take care to ensure that
+        this remains true, as downstream methods, particularly
+        :func:`many_to_n`, assumes that every pair of records is compared no
+        more than once.
+
+        Args:
+            data: Dictionary of records, where the keys are record_ids
+                  and the values are dictionaries with the keys being
+                  field names
+
+        .. code:: python
+
+            > pairs = matcher.pairs(data)
+            > print(list(pairs))
+            [[((1, {'name' : 'Pat', 'address' : '123 Main'}),
+               (8, {'name' : 'Pat', 'address' : '123 Main'})),
+              ((1, {'name' : 'Pat', 'address' : '123 Main'}),
+               (9, {'name' : 'Sam', 'address' : '123 Main'}))
+              ],
+             [((2, {'name' : 'Sam', 'address' : '2600 State'}),
+               (5, {'name' : 'Pam', 'address' : '2600 Stat'})),
+              ((2, {'name' : 'Sam', 'address' : '123 State'}),
+               (7, {'name' : 'Sammy', 'address' : '123 Main'}))
+             ]]
+        """
+
+        id_type = core.sqlite_id_type(data)
 
         con = sqlite3.connect(self.db, check_same_thread=False)
 
@@ -612,7 +705,7 @@ class GazetteerMatching(Matching):
                        (block_key text, record_id {id_type})
                     '''.format(id_type=id_type))
         con.executemany("INSERT INTO blocking_map VALUES (?, ?)",
-                        self.fingerprinter(data_1.items()))
+                        self.fingerprinter(data.items()))
 
         pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
                                FROM blocking_map a
@@ -625,7 +718,7 @@ class GazetteerMatching(Matching):
 
         for _, pair_block in pair_blocks:
 
-            yield [((a_record_id, data_1[a_record_id]),
+            yield [((a_record_id, data[a_record_id]),
                     (b_record_id, self.indexed_data[b_record_id]))
                    for a_record_id, b_record_id
                    in pair_block]
@@ -636,10 +729,23 @@ class GazetteerMatching(Matching):
 
     def score(self,
               blocks: Blocks,
-              threshold: float,
-              **kwargs) -> Generator[numpy.ndarray, None, None]:
+              threshold: float) -> Generator[numpy.ndarray, None, None]:
         """
-        TK
+        Scores groups of pairs of records. Yields structured numpy arrays
+        representing pairs of records in the group and the associated
+        probability that the pair is a match.
+
+        Args:
+            blocks: Iterator of blocks of records
+
+            threshold: Number between 0 and 1 (default is .5). We will
+                       only consider as duplicates record pairs as
+                       duplicates if their estimated duplicate
+                       likelihood is greater than the threshold.
+
+                       Lowering the number will increase recall,
+                       raising it will increase precision
+
         """
 
         matches = core.scoreGazette(blocks,
@@ -654,13 +760,26 @@ class GazetteerMatching(Matching):
                   score_blocks: Iterable[numpy.ndarray],
                   n_matches: int = 1) -> Links:
         """
-        TK
+        For each group of scored pairs, yield the highest scoring N pairs
+
+        Args:
+            score_blocks: Iterator of numpy `structured arrays <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_,
+                          each with a dtype of `[('pairs', id_type, 2),
+                          ('score', 'f4')]` where dtype is either a str
+                          or int, and score is a number between 0 and
+                          1. The 'pairs' column contains pairs of ids of
+                          the records compared and the 'score' column
+                          should contains the similarity score for that
+                          pair of records.
+
+            n_matches: How many top scoring pairs to select per group
+
         """
 
         yield from clustering.gazetteMatching(score_blocks, n_matches)
 
     def search(self,
-               messy_data: Data,
+               data: Data,
                threshold: float = 0.5,
                n_matches: int = 1,
                generator: bool = False) -> LookupResults:  # pragma: no cover
@@ -675,10 +794,10 @@ class GazetteerMatching(Matching):
 
         Args:
 
-            messy_data: a dictionary of records from a messy
-                        dataset, where the keys are record_ids and
-                        the values are dictionaries with the keys
-                        being field names.
+            data: a dictionary of records from a messy
+                  dataset, where the keys are record_ids and
+                  the values are dictionaries with the keys
+                  being field names.
 
             threshold: a number between 0 and 1 (default is
                        0.5). We will consider records as
@@ -691,7 +810,7 @@ class GazetteerMatching(Matching):
                        precision
             n_matches: the maximum number of possible matches from
                        canonical_data to return for each record in
-                       messy_data. If set to `None` all possible
+                       data. If set to `None` all possible
                        matches above the threshold will be
                        returned. Defaults to 1
             generator: when `True`, match will generate a sequence of
@@ -700,7 +819,7 @@ class GazetteerMatching(Matching):
 
         .. code:: python
 
-            > matches = gazetteer.search(messy_data, threshold=0.5, n_matches=2)
+            > matches = gazetteer.search(data, threshold=0.5, n_matches=2)
             > print(matches)
             [(((1, 6), 0.72),
               ((1, 8), 0.6)),
@@ -711,11 +830,11 @@ class GazetteerMatching(Matching):
               ((4, 5), 0.63))]
 
         """
-        blocks = self.blocks(messy_data)
+        blocks = self.blocks(data)
         pair_scores = self.score(blocks, threshold=threshold)
         search_results = self.many_to_n(pair_scores, n_matches)
 
-        results = self._format_search_results(messy_data, search_results)
+        results = self._format_search_results(data, search_results)
 
         if generator:
             return results
@@ -741,11 +860,7 @@ class GazetteerMatching(Matching):
 
 class StaticMatching(Matching):
     """
-    Class for initializing a dedupe object from a settings file,
-    extends Matching.
-
-    Public methods:
-    - __init__
+    Class for initializing a dedupe object from a settings file.
     """
 
     def __init__(self,
@@ -753,12 +868,22 @@ class StaticMatching(Matching):
                  num_cores: Optional[int] = None,
                  **kwargs) -> None:  # pragma: no cover
         """
-        :param settings_file: A file object containing settings
-                              info produced from the
-                              :func:`~dedupe.api.ActiveMatching.write_settings` method.
-        :param num_cores: the number of cpus to use for parallel
-                          processing, defaults to the number of cpus
-                          available on the machine
+        Args:
+            settings_file: A file object containing settings
+                           info produced from the
+                           :func:`~dedupe.api.ActiveMatching.write_settings` method.
+            num_cores: the number of cpus to use for parallel
+                       processing, defaults to the number of cpus
+                       available on the machine. If set to 0, then
+                       multiprocessing will be disabled.
+
+        .. warning::
+
+            If using multiprocessing on Windows or Mac OS X, then
+            you must protect calls to the Dedupe methods with a
+            `if __name__ == '__main__'` in your main module, see
+            https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
+
         """
         super().__init__(num_cores, **kwargs)
 
@@ -783,16 +908,7 @@ class StaticMatching(Matching):
 
 class ActiveMatching(Matching):
     """
-    Class for training dedupe extends Matching.
-
-    Public methods:
-    - __init__
-    - train
-    - write_settings
-    - write_training
-    - uncertain_pairs
-    - mark_pairs
-    - cleanup_training
+    Class for training a matcher.
     """
     classifier = rlr.RegularizedLogisticRegression()
 
@@ -801,13 +917,23 @@ class ActiveMatching(Matching):
                  num_cores: Optional[int] = None,
                  **kwargs) -> None:
         """
-        :param variable_definition: A list of dictionaries describing
-                                    the variables will be used for
-                                    training a model. **add link**
+        Args:
+            variable_definition: A list of dictionaries describing
+                                 the variables will be used for
+                                 training a model. See :ref:`variable_definitions`
 
-        :param num_cores: the number of cpus to use for parallel
-                          processing. If set to `None`, uses all cpus
-                          available on the machine.
+            num_cores: the number of cpus to use for parallel
+                       processing. If set to `None`, uses all cpus
+                       available on the machine. If set to 0, then
+                       multiprocessing will be disabled.
+
+        .. warning::
+
+            If using multiprocessing on Windows or Mac OS X, then
+            you must protect calls to the Dedupe methods with a
+            `if __name__ == '__main__'` in your main module, see
+            https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
+
         """
         super().__init__(num_cores, **kwargs)
 
@@ -842,7 +968,7 @@ class ActiveMatching(Matching):
         try:
             self.mark_pairs(training_pairs)
         except AttributeError as e:
-            if "Attempting to block with an index predicate without indexing records" in str(e):
+            if "Attempting to fingerprint with an index predicate without indexing records" in str(e):
                 raise UserWarning('Training data has records not known '
                                   'to the active learner. Read training '
                                   'in before initializing the active '
@@ -855,13 +981,13 @@ class ActiveMatching(Matching):
               recall: float = 0.95,
               index_predicates: bool = True) -> None:  # pragma: no cover
         """
-        Learn final pairwise classifier and blocking rules. Requires that
+        Learn final pairwise classifier and fingerprinting rules. Requires that
         adequate training data has been already been provided.
 
         Args:
             recall: The proportion of true dupe pairs in our
-                    training data that that the learned blocks
-                    must cover. If we lower the recall, there will
+                    training data that that the learned fingerprinting
+                    rules must cover. If we lower the recall, there will
                     be pairs of true dupes that we will never
                     directly compare.
 
@@ -885,7 +1011,7 @@ class ActiveMatching(Matching):
 
     def write_training(self, file_obj: TextIO) -> None:  # pragma: no cover
         """
-        Write to a json file that contains labeled examples
+        Write a JSON file that contains labeled examples
 
         :param file_obj: file object to write training data to
 
@@ -1062,7 +1188,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
                   with the keys being field names
             training_file: file object containing training data
             sample_size: Size of the sample to draw
-            blocked_proportion: Proportion of the sample that will be blocked
+            blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.9.
             original_length: If `data` is a subsample of all your data,
                              `original_length` should be the size of
                              your complete data. By default,
@@ -1135,10 +1261,6 @@ class Dedupe(ActiveMatching, DedupeMatching):
 class Link(ActiveMatching):
     """
     Mixin Class for Active Learning Record Linkage
-
-    Public Methods
-    - sample
-    - prepare_training
     """
 
     canopies = False
@@ -1252,10 +1374,7 @@ class RecordLink(Link, RecordLinkMatching):
     Class for active learning record linkage.
 
     Use RecordLinkMatching when you have two datasets that you want to
-    merge. Each dataset, individually, should contain no duplicates. A
-    record from the first dataset can match one and only one record from the
-    second dataset and vice versa. A record from the first dataset need not
-    match any record from the second dataset and vice versa.
+    join.
     """
 
 
@@ -1272,8 +1391,7 @@ class Gazetteer(Link, GazetteerMatching):
     Class for active learning gazetteer matching.
 
     Gazetteer matching is for matching a messy data set against a
-    'canonical dataset', i.e. one that does not have any
-    duplicates. This class is useful for such tasks as matching messy
+    'canonical dataset'.  This class is useful for such tasks as matching messy
     addresses against a clean list
     """
 

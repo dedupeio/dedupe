@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-import time
 import tempfile
 import os
 import random
@@ -274,18 +273,9 @@ def scoreDuplicates(record_pairs: RecordPairs,
 
 def fillQueue(queue: _Queue,
               iterable: RecordPairs,
-              stop_signals: int) -> None:
+              stop_signals: int,
+              chunk_size: int = 20000) -> None:
     iterable = iter(iterable)
-    chunk_size = 100000
-    upper_bound = 7000000  # this number worked, but is unprincipled
-
-    # initial values
-    i = 0
-    n_records = 0
-    t0 = time.perf_counter()
-    last_rate = 10000.
-    step = 100
-    queue_flushed = 0
 
     while True:
         chunk = tuple(itertools.islice(iterable, chunk_size))
@@ -293,42 +283,11 @@ def fillQueue(queue: _Queue,
             queue.put(chunk)
             del chunk
 
-            n_records += chunk_size
-            i += 1
-
-            if i == queue_flushed:
-                t0 = time.perf_counter()
-                n_records = 0
-
-            if i % 100:
-
-                time_delta = max(time.perf_counter() - t0, 0.0001)
-
-                current_rate = n_records / time_delta
-
-                # chunk_size is always either growing or shrinking, if
-                # the shrinking led to a faster rate, keep
-                # shrinking. Same with growing. If the rate decreased,
-                # reverse directions
-                if current_rate < last_rate:
-                    step = -step * 1
-                    if numpy.abs(step) < 1:
-                        if step > 0:
-                            step = 1
-                        else:
-                            step = -1
-
-                chunk_size = int(min(max(chunk_size + step, 1), upper_bound))
-                print(chunk_size, current_rate, step)
-
-                last_rate = current_rate
-
-                queue_flushed = i + 2 * stop_signals
-
         else:
             # put poison pills in queue to tell scorers that they are
             # done
-            [queue.put(None) for _ in range(stop_signals)]
+            for _ in range(stop_signals):
+                queue.put(None)
             break
 
 
@@ -401,7 +360,7 @@ def appropriate_imap(num_cores):
     else:
         from .backport import Pool
         pool = Pool(processes=num_cores)
-        imap = functools.partial(pool.imap_unordered, chunksize=10000)
+        imap = functools.partial(pool.imap_unordered, chunksize=20000)
 
     return imap, pool
 

@@ -2,3 +2,4 @@ pytest
 pytest-cov
 https://github.com/datamade/pytest-flake8/zipball/new_flake8
 mock
+mypy

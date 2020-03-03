@@ -7,16 +7,16 @@ Library Documentation
 .. autoclass:: dedupe.Dedupe
 
     .. code:: python
-     
-        # initialize from a defined set of fields
-        variables = [{'field' : 'Site name', 'type': 'String'},
-                     {'field' : 'Address', 'type': 'String'},
-                     {'field' : 'Zip', 'type': 'String', 'has missing':True},
-                     {'field' : 'Phone', 'type': 'String', 'has missing':True}
-                     ]
-        
-        matcher = dedupe.Dedupe(variables)
-
+    
+         # initialize from a defined set of fields
+         variables = [{'field' : 'Site name', 'type': 'String'},
+                      {'field' : 'Address', 'type': 'String'},
+                      {'field' : 'Zip', 'type': 'String', 'has missing':True},
+                      {'field' : 'Phone', 'type': 'String', 'has missing':True}
+                      ]
+         
+         deduper = dedupe.Dedupe(variables)
+	       
     .. automethod:: prepare_training
     .. automethod:: uncertain_pairs
     .. automethod:: mark_pairs
@@ -24,21 +24,7 @@ Library Documentation
     .. automethod:: write_training
     .. automethod:: write_settings
     .. automethod:: cleanup_training
-
-    Matching methods
-    
     .. automethod:: partition
-
-    Lower level methods
-
-    .. attribute:: fingerprinter
-
-       Instance of :class:`dedupe.blocking.Fingerprinter` class if
-       the :func:`train` has been run, else `None`.
-
-    .. automethod:: pairs
-    .. automethod:: score
-    .. automethod:: cluster
 
 
 
@@ -52,9 +38,6 @@ Library Documentation
             matcher = StaticDedupe(f)
 
     .. automethod:: partition
-    .. automethod:: pairs
-    .. automethod:: score
-    .. automethod:: cluster
     
 
 :class:`RecordLink` Objects
@@ -80,10 +63,6 @@ Library Documentation
     .. automethod:: write_settings
     .. automethod:: cleanup_training
     .. automethod:: join
-    .. automethod:: pairs
-    .. automethod:: score
-    .. automethod:: one_to_one
-    .. automethod:: many_to_one		    
 
 
 :class:`StaticRecordLink` Objects
@@ -96,10 +75,6 @@ Library Documentation
             matcher = StaticRecordLink(f)
 
     .. automethod:: join
-    .. automethod:: pairs
-    .. automethod:: score
-    .. automethod:: one_to_one
-    .. automethod:: many_to_one    		    
        
 
 :class:`Gazetteer` Objects
@@ -127,9 +102,6 @@ Library Documentation
     .. automethod:: index
     .. automethod:: unindex
     .. automethod:: search
-    .. automethod:: blocks
-    .. automethod:: score
-    .. automethod:: many_to_n
        
 
 :class:`StaticGazetteer` Objects
@@ -148,13 +120,129 @@ Library Documentation
     .. automethod:: score
     .. automethod:: many_to_n
 
+Lower Level Classes and Methods
+-------------------------------
 
+With the methods documented above, you can work with data into the
+millions of records. However, if are working with larger data you
+may not be able to load all your data into memory. You'll need
+to interact with some of the lower level classes and methods.
+
+.. seealso:: The `PostgreSQL <https://dedupeio.github.io/dedupe-examples/docs/pgsql_big_dedupe_example.html>`_ and `MySQL <https://dedupeio.github.io/dedupe-examples/docs/mysql_example.html>`_ examples use these lower level classes and methods.
+
+Dedupe and StaticDedupe
+***********************
+
+.. currentmodule:: dedupe
+
+.. class:: Dedupe
+
+    .. attribute:: fingerprinter
+    
+       Instance of :class:`dedupe.blocking.Fingerprinter` class if
+       the :func:`train` has been run, else `None`.
+    
+    .. automethod:: pairs
+    .. automethod:: score
+    .. automethod:: cluster
+
+.. class:: StaticDedupe
+
+    .. attribute:: fingerprinter
+    
+       Instance of :class:`dedupe.blocking.Fingerprinter` class
+    
+    .. method:: pairs(data)
+
+       Same as :func:`dedupe.Dedupe.pairs`
+		
+    .. method:: score(pairs, threshold=0.0)
+
+       Same as :func:`dedupe.Dedupe.score`
+
+    .. method:: cluster(matches, threshold)
+
+       Same as :func:`dedupe.Dedupe.cluster`
+		    
+    
+RecordLink and StaticRecordLink
+*******************************
+
+.. class:: RecordLink
+
+    .. attribute:: fingerprinter
+    
+       Instance of :class:`dedupe.blocking.Fingerprinter` class if
+       the :func:`train` has been run, else `None`.
+
+    .. automethod:: pairs
+    .. automethod:: score
+    .. automethod:: one_to_one
+    .. automethod:: many_to_one		    
+
+.. class:: StaticRecordLink
+
+   .. attribute:: fingerprinter
+    
+       Instance of :class:`dedupe.blocking.Fingerprinter` class
+
+   .. method:: pairs(data_1, data_2)
+
+	Same as :func:`dedupe.RecordLink.pairs`
+
+   .. method:: score(pairs, threshold=0.0)
+
+	Same as :func:`dedupe.RecordLink.score`
+
+   .. method:: one_to_one(scores)
+
+        Same as :func:`dedupe.RecordLink.one_to_one`
+
+   .. method:: many_to_one(scores)
+
+	Same as :func:`dedupe.RecordLink.many_to_one`
+
+
+Gazetteer and StaticGazetteer
+*****************************
+
+.. class:: Gazetteer
+
+    .. attribute:: fingerprinter
+    
+       Instance of :class:`dedupe.blocking.Fingerprinter` class if
+       the :func:`train` has been run, else `None`.
+
+    .. automethod:: blocks
+    .. automethod:: score
+    .. automethod:: many_to_n
+
+.. class:: StaticGazeteer
+
+    .. attribute:: fingerprinter
+    
+       Instance of :class:`dedupe.blocking.Fingerprinter` class
+	   
+    .. method:: blocks(data)
+
+	Same as :func:`dedupe.Gazetteer.blocks`
+
+    .. method:: score(blocks, threshold)
+
+	Same as :func:`dedupe.Gazetteer.score`
+
+    .. method:: many_to_n(score_blocks, n_matches=1)
+
+	Same as :func:`dedupe.Gazetteer.many_to_n`		
+		    
 :class:`Fingerprinter` Objects
-------------------------------
+******************************
 .. autoclass:: dedupe.blocking.Fingerprinter
 
    .. automethod:: __call__
+   .. autoinstanceattribute:: index_fields
+       :annotation:
    .. automethod:: index
    .. automethod:: unindex	       
-   .. automethod:: index_all
    .. automethod:: reset_indices
+

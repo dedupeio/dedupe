@@ -12,6 +12,8 @@ import dedupe.predicates
 
 logger = logging.getLogger(__name__)
 
+Docs = Union[Iterable[str], Iterable[Iterable[str]]]
+
 
 def index_list():
     return defaultdict(list)
@@ -28,6 +30,11 @@ class Fingerprinter(object):
                                 Dict[str,
                                      List[dedupe.predicates.IndexPredicate]]]
         self.index_fields = defaultdict(index_list)
+        '''
+        A dictionary of all the fingerprinter methods that use an
+        index of data field values. The keys are the field names,
+        which can be useful to know for indexing the data.
+        '''
 
         self.index_predicates = []
 
@@ -68,6 +75,14 @@ class Fingerprinter(object):
                     the `target` argument on one of your datasets,
                     you will dramatically reduce the total number
                     of comparisons without a loss of accuracy.
+
+        .. code:: python
+
+           > data = [(1, {'name' : 'bob'}), (2, {'name' : 'suzanne'})]
+           > blocked_ids = deduper.fingerprinter(data)
+           > print list(blocked_ids)
+           [('foo:1', 1), ..., ('bar:1', 100)]
+
         '''
 
         start_time = time.perf_counter()
@@ -88,18 +103,38 @@ class Fingerprinter(object):
                             {'iteration': i,
                              'elapsed': time.perf_counter() - start_time})
 
-    def reset_indices(self):
-        # clear canopies to reduce memory usage
+    def reset_indices(self) -> None:
+        '''
+        Fingeprinter indicdes can take up a lot of memory. If you are
+        done with blocking, the method will reset the indices to free up.
+        If you need to block again, the data will need to be re-indexed.
+        '''
         for predicate in self.index_predicates:
             predicate.reset()
 
     def index(self,
-              data: Union[Iterable[str], Iterable[Iterable[str]]],
-              field: str):
-        '''Creates index of a given set of data'''
+              docs: Docs,
+              field: str) -> None:
+        '''
+        Add docs to the indices used by fingerprinters.
+
+        Some fingerprinter methods depend upon having an index of
+        values that a field may have in the data. This method adds
+        those values to the index. If you don't have any fingerprinter
+        methods that use an index, this method will do nothing.
+
+        Args:
+            docs: an iterator of values from your data to index. While
+                  not required, it is recommended that docs be a unique
+                  set of of those values. Indexing can be an expensive
+                  operation.
+            field: fieldname or key associated with the values you are
+                   indexing
+
+        '''
         indices = extractIndices(self.index_fields[field])
 
-        for doc in data:
+        for doc in docs:
             if doc:
                 for _, index, preprocess in indices:
                     index.index(preprocess(doc))
@@ -113,11 +148,21 @@ class Fingerprinter(object):
                 predicate.reset()
                 predicate.index = index
 
-    def unindex(self, data: Iterable, field: str):
-        '''Remove index of a given set of data'''
+    def unindex(self, docs: Docs, field: str) -> None:
+        '''Remove docs from indices used by fingerprinters
+
+        Args:
+            docs: an iterator of values from your data to remove. While
+                  not required, it is recommended that docs be a unique
+                  set of of those values. Indexing can be an expensive
+                  operation.
+            field: fieldname or key associated with the values you are
+                   unindexing
+        '''
+
         indices = extractIndices(self.index_fields[field])
 
-        for doc in data:
+        for doc in docs:
             if doc:
                 for _, index, preprocess in indices:
                     try:
@@ -133,11 +178,11 @@ class Fingerprinter(object):
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
-    def index_all(self, data_d: Data):
+    def index_all(self, data: Data):
         for field in self.index_fields:
             unique_fields = {record[field]
                              for record
-                             in data_d.values()
+                             in data.values()
                              if record[field]}
             self.index(unique_fields, field)
 
