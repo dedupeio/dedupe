@@ -8,7 +8,7 @@ from dedupe.core import randomPairs, randomPairsMatch, unique
 from dedupe.canonical import getCanonicalRep
 
 
-def consoleLabel(deduper):  # pragma: no cover
+def console_label(deduper):  # pragma: no cover
     '''
     Command line interface for presenting and labeling training pairs
     by the user
@@ -97,7 +97,7 @@ def consoleLabel(deduper):  # pragma: no cover
             deduper.mark_pairs(examples)
 
 
-def trainingDataLink(data_1, data_2, common_key, training_size=50000):  # pragma: nocover
+def training_data_link(data_1, data_2, common_key, training_size=50000):  # pragma: nocover
     '''
     Construct training data for consumption by the ActiveLearning
     markPairs method from already linked datasets.
@@ -159,7 +159,7 @@ def trainingDataLink(data_1, data_2, common_key, training_size=50000):  # pragma
     return training_pairs
 
 
-def trainingDataDedupe(data, common_key, training_size=50000):  # pragma: nocover
+def training_data_dedupe(data, common_key, training_size=50000):  # pragma: nocover
     '''
     Construct training data for consumption by the ActiveLearning
     markPairs method from an already deduplicated dataset.

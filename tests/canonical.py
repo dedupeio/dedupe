@@ -58,9 +58,9 @@ if __name__ == '__main__':
 
     data_d, header = canonicalImport(raw_data)
 
-    training_pairs = dedupe.trainingDataDedupe(data_d,
-                                               'unique_id',
-                                               5000)
+    training_pairs = dedupe.training_data_dedupe(data_d,
+                                                 'unique_id',
+                                                 5000)
 
     duplicates = set()
     for _, pair in groupby(sorted(data_d.items(),

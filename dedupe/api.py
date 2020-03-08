@@ -90,8 +90,7 @@ class IntegralMatching(Matching):
     """
 
     def score(self,
-              pairs: RecordPairs,
-              threshold: float = 0.0) -> numpy.ndarray:
+              pairs: RecordPairs) -> numpy.ndarray:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilites that the pair of records are match
@@ -99,21 +98,12 @@ class IntegralMatching(Matching):
         Args:
             pairs: Iterator of pairs of records
 
-            threshold: Number between 0 and 1 (default is .5). We will
-                       only consider as duplicates record pairs as
-                       duplicates if their estimated duplicate
-                       likelihood is greater than the threshold.
-
-                       Lowering the number will increase recall,
-                       raising it will increase precision
-
         """
         try:
             matches = core.scoreDuplicates(pairs,
                                            self.data_model,
                                            self.classifier,
-                                           self.num_cores,
-                                           threshold=threshold)
+                                           self.num_cores)
         except RuntimeError:
             raise RuntimeError('''
                 You need to either turn off multiprocessing or protect
@@ -282,6 +272,8 @@ class DedupeMatching(IntegralMatching):
                     the records compared and the 'score' column
                     should contains the similarity score for that
                     pair of records.
+
+                    For each pair, the smaller id should be first.
 
             threshold: Number between 0 and 1. We will only consider
                        put together records into clusters if the
@@ -464,7 +456,9 @@ class RecordLinkMatching(IntegralMatching):
             'one-to-one, many-to-one, or many-to-many' % constraint)
 
         pairs = self.pairs(data_1, data_2)
-        pair_scores = self.score(pairs, threshold)
+        pair_scores = self.score(pairs)
+
+        pair_scores = pair_scores[pair_scores['score'] > threshold]
 
         if constraint == 'one-to-one':
             links = self.one_to_one(pair_scores)
@@ -728,8 +722,7 @@ class GazetteerMatching(Matching):
         con.close()
 
     def score(self,
-              blocks: Blocks,
-              threshold: float) -> Generator[numpy.ndarray, None, None]:
+              blocks: Blocks) -> Generator[numpy.ndarray, None, None]:
         """
         Scores groups of pairs of records. Yields structured numpy arrays
         representing pairs of records in the group and the associated
@@ -738,26 +731,18 @@ class GazetteerMatching(Matching):
         Args:
             blocks: Iterator of blocks of records
 
-            threshold: Number between 0 and 1 (default is .5). We will
-                       only consider as duplicates record pairs as
-                       duplicates if their estimated duplicate
-                       likelihood is greater than the threshold.
-
-                       Lowering the number will increase recall,
-                       raising it will increase precision
-
         """
 
         matches = core.scoreGazette(blocks,
                                     self.data_model,
                                     self.classifier,
-                                    self.num_cores,
-                                    threshold=threshold)
+                                    self.num_cores)
 
         return matches
 
     def many_to_n(self,
                   score_blocks: Iterable[numpy.ndarray],
+                  threshold: float = 0.,
                   n_matches: int = 1) -> Links:
         """
         For each group of scored pairs, yield the highest scoring N pairs
@@ -776,11 +761,13 @@ class GazetteerMatching(Matching):
 
         """
 
-        yield from clustering.gazetteMatching(score_blocks, n_matches)
+        yield from clustering.gazetteMatching(score_blocks,
+                                              threshold,
+                                              n_matches)
 
     def search(self,
                data: Data,
-               threshold: float = 0.5,
+               threshold: float = 0.0,
                n_matches: int = 1,
                generator: bool = False) -> LookupResults:  # pragma: no cover
         """
@@ -831,8 +818,8 @@ class GazetteerMatching(Matching):
 
         """
         blocks = self.blocks(data)
-        pair_scores = self.score(blocks, threshold=threshold)
-        search_results = self.many_to_n(pair_scores, n_matches)
+        pair_scores = self.score(blocks)
+        search_results = self.many_to_n(pair_scores, threshold, n_matches)
 
         results = self._format_search_results(data, search_results)
 
@@ -853,6 +840,7 @@ class GazetteerMatching(Matching):
             for (a, b), score in result:  # type: ignore
                 prepared_result.append((b, score))
             yield a, tuple(prepared_result)
+            seen.add(a)
 
         for k in (search_d.keys() - seen):
             yield k, ()

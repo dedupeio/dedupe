@@ -58,7 +58,7 @@ if __name__ == '__main__':
     data_1, header = canonicalImport('tests/datasets/restaurant-1.csv')
     data_2, _ = canonicalImport('tests/datasets/restaurant-2.csv')
 
-    training_pairs = dedupe.trainingDataLink(data_1, data_2, 'unique_id', 5000)
+    training_pairs = dedupe.training_data_link(data_1, data_2, 'unique_id', 5000)
 
     all_data = data_1.copy()
     all_data.update(data_2)

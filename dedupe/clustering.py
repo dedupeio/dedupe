@@ -230,9 +230,11 @@ def greedyMatching(dupes: numpy.ndarray) -> Links:
 
 
 def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
+                    threshold: float = 0,
                     n_matches: int = 1) -> Links:
 
     for block in scored_blocks:
+        block = block[block['score'] > threshold]
         block.sort(order='score')
         block = block[::-1]
 
@@ -251,6 +253,6 @@ def pair_gazette_matching(scored_pairs: numpy.ndarray,
     change_points = numpy.where(numpy.roll(group_key, 1) != group_key)[0]
     scored_blocks = numpy.split(scored_pairs, change_points)
 
-    for match in gazetteMatching(scored_blocks, n_matches):
+    for match in gazetteMatching(scored_blocks, 0, n_matches):
         if match:
             yield from match

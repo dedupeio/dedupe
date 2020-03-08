@@ -109,12 +109,10 @@ class ScoreDupes(object):
     def __init__(self,
                  data_model,
                  classifier,
-                 threshold: float,
                  records_queue: _Queue,
                  score_queue: _SimpleQueue):
         self.data_model = data_model
         self.classifier = classifier
-        self.threshold = threshold
         self.records_queue = records_queue
         self.score_queue = score_queue
 
@@ -144,8 +142,7 @@ class ScoreDupes(object):
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
 
-            mask = scores > self.threshold
-            if mask.any():
+            if scores.any():
                 id_type = sniff_id_type(record_ids)
                 ids = numpy.array(record_ids, dtype=id_type)
 
@@ -156,11 +153,11 @@ class ScoreDupes(object):
                 os.close(temp_file)
 
                 scored_pairs = numpy.memmap(file_path,
-                                            shape=numpy.count_nonzero(mask),
+                                            shape=numpy.count_nonzero(scores),
                                             dtype=dtype)
 
-                scored_pairs['pairs'] = ids[mask]
-                scored_pairs['score'] = scores[mask]
+                scored_pairs['pairs'] = ids
+                scored_pairs['score'] = scores
 
                 return file_path, dtype
 
@@ -211,8 +208,7 @@ def mergeScores(score_queue: _SimpleQueue,
 def scoreDuplicates(record_pairs: RecordPairs,
                     data_model,
                     classifier,
-                    num_cores: int = 1,
-                    threshold: float = 0.):
+                    num_cores: int = 1):
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
@@ -232,7 +228,6 @@ def scoreDuplicates(record_pairs: RecordPairs,
     n_map_processes = max(num_cores, 1)
     score_records = ScoreDupes(data_model,
                                classifier,
-                               threshold,
                                record_pairs_queue,
                                score_queue)
     map_processes = [Process(target=score_records)
@@ -292,10 +287,9 @@ def fillQueue(queue: _Queue,
 
 
 class ScoreGazette(object):
-    def __init__(self, data_model, classifier, threshold: float):
+    def __init__(self, data_model, classifier):
         self.data_model = data_model
         self.classifier = classifier
-        self.threshold = threshold
 
     def __call__(self, block: RecordPairs) -> numpy.ndarray:
 
@@ -304,18 +298,17 @@ class ScoreGazette(object):
         distances = self.data_model.distances(records)
         scores = self.classifier.predict_proba(distances)[:, -1]
 
-        mask = scores > self.threshold
         id_type = sniff_id_type(record_ids)
         ids = numpy.array(record_ids, dtype=id_type)
 
         dtype = numpy.dtype([('pairs', id_type, 2),
                              ('score', 'f4')])
 
-        scored_pairs = numpy.empty(shape=numpy.count_nonzero(mask),
+        scored_pairs = numpy.empty(shape=numpy.count_nonzero(scores),
                                    dtype=dtype)
 
-        scored_pairs['pairs'] = ids[mask]
-        scored_pairs['score'] = scores[mask]
+        scored_pairs['pairs'] = ids
+        scored_pairs['score'] = scores
 
         return scored_pairs
 
@@ -323,8 +316,7 @@ class ScoreGazette(object):
 def scoreGazette(record_pairs: Blocks,
                  data_model,
                  classifier,
-                 num_cores: int = 1,
-                 threshold: float = 0.) -> Generator[numpy.ndarray, None, None]:
+                 num_cores: int = 1) -> Generator[numpy.ndarray, None, None]:
 
     first, record_pairs = peek(record_pairs)
     if first is None:
@@ -332,7 +324,7 @@ def scoreGazette(record_pairs: Blocks,
 
     imap, pool = appropriate_imap(num_cores)
 
-    score_records = ScoreGazette(data_model, classifier, threshold)
+    score_records = ScoreGazette(data_model, classifier)
 
     for scored_pairs in imap(score_records, record_pairs):
         yield scored_pairs
