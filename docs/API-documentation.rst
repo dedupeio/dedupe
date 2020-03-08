@@ -156,7 +156,7 @@ Dedupe and StaticDedupe
 
        Same as :func:`dedupe.Dedupe.pairs`
 		
-    .. method:: score(pairs, threshold=0.0)
+    .. method:: score(pairs)
 
        Same as :func:`dedupe.Dedupe.score`
 
@@ -190,7 +190,7 @@ RecordLink and StaticRecordLink
 
 	Same as :func:`dedupe.RecordLink.pairs`
 
-   .. method:: score(pairs, threshold=0.0)
+   .. method:: score(pairs)
 
 	Same as :func:`dedupe.RecordLink.score`
 
@@ -227,7 +227,7 @@ Gazetteer and StaticGazetteer
 
 	Same as :func:`dedupe.Gazetteer.blocks`
 
-    .. method:: score(blocks, threshold)
+    .. method:: score(blocks)
 
 	Same as :func:`dedupe.Gazetteer.score`
 
