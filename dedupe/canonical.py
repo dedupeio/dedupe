@@ -61,7 +61,7 @@ def getCanonicalRep(record_cluster):
         for record in record_cluster:
             # assume non-empty values always better than empty value
             # for canonical record
-            if record[key]:
+            if record.get(key):
                 key_values.append(record[key])
         if key_values:
             canonical_rep[key] = getCentroid(key_values, comparator)

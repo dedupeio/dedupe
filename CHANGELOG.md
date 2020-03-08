@@ -13,6 +13,8 @@
 - Dropped threshold methods
 - matchBlocks has been replaced by score, which takes pairs of records not blocks
 
+# 1.10.0
+- Dropped python 2.7 support
 
 # 1.9.4
 - Cleaned up block learning
