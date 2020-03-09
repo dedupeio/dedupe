@@ -39,7 +39,6 @@ Command line tool for de-duplicating and [linking](https://github.com/dedupeio/c
 If you only want to use dedupe, install it this way:
 
 ```bash
-pip install "numpy>=1.9"
 pip install dedupe
 ```
 
