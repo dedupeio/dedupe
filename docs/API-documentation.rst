@@ -246,3 +246,11 @@ Gazetteer and StaticGazetteer
    .. automethod:: unindex	       
    .. automethod:: reset_indices
 
+
+Convenience Functions
+---------------------
+
+.. autofunction:: dedupe.console_label
+.. autofunction:: dedupe.training_data_dedupe
+.. autofunction:: dedupe.training_data_link
+.. autofunction:: dedupe.canonicalize

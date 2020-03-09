@@ -1080,7 +1080,7 @@ class ActiveMatching(Matching):
         pickle.dump(indices, file_obj)
         pickle.dump(doc_to_ids, file_obj)
 
-    def uncertain_pairs(self) -> TrainingExample:
+    def uncertain_pairs(self) -> List[TrainingExample]:
         '''
         Returns a list of pairs of records from the sample of record pairs
         tuples that Dedupe is most curious to have labeled.
@@ -1096,7 +1096,7 @@ class ActiveMatching(Matching):
 
         '''
         assert self.active_learner, "Please initialize with the sample method"
-        return self.active_learner.pop()
+        return [self.active_learner.pop()]
 
     def mark_pairs(self, labeled_pairs: TrainingData) -> None:
         '''
