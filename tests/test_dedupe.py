@@ -86,7 +86,7 @@ class ConnectedComponentsTest(unittest.TestCase):
                          ((12, 13), .2),
                          ((12, 14), .5),
                          ((11, 12), .2)],
-                        dtype=[('pairs', 'i4', 2), ('score', 'f4', 1)])
+                        dtype=[('pairs', 'i4', 2), ('score', 'f4')])
         components = dedupe.clustering.connected_components
         G_components = {frozenset(tuple(edge) for edge, _ in component)
                         for component in components(G, 30000)}
@@ -112,7 +112,7 @@ class ClusteringTest(unittest.TestCase):
                                   ((4, 5), .72),
                                   ((10, 11), .9)],
                                  dtype=[('pairs', 'i4', 2),
-                                        ('score', 'f4', 1)])
+                                        ('score', 'f4')])
 
         # Dupes with Ids as String
         self.str_dupes = numpy.array([(('1', '2'), .86),
@@ -125,7 +125,8 @@ class ClusteringTest(unittest.TestCase):
                                       (('3', '4'), .3),
                                       (('3', '5'), .5),
                                       (('4', '5'), .72)],
-                                     dtype=[('pairs', 'S4', 2), ('score', 'f4', 1)])
+                                     dtype=[('pairs', 'S4', 2),
+                                            ('score', 'f4')])
 
         self.bipartite_dupes = (((1, 5), .1),
                                 ((1, 6), .72),
@@ -198,21 +199,12 @@ class ClusteringTest(unittest.TestCase):
 
         bipartite_dupes = numpy.array(list(self.bipartite_dupes),
                                       dtype=[('ids', int, 2),
-                                             ('score', float, 1)])
+                                             ('score', float)])
 
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0.5)) == [((4, 6), 0.96),
-                                                    ((2, 7), 0.72),
-                                                    ((3, 8), 0.65)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0)) == [((4, 6), 0.96),
-                                                  ((2, 7), 0.72),
-                                                  ((3, 8), 0.65),
-                                                  ((1, 5), 0.1)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0.8)) == [((4, 6), 0.96)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=1)) == []
+        assert list(greedyMatch(bipartite_dupes)) == [((4, 6), 0.96),
+                                                      ((2, 7), 0.72),
+                                                      ((3, 8), 0.65),
+                                                      ((1, 5), 0.1)]
 
     def test_gazette_matching(self):
 
@@ -222,7 +214,7 @@ class ClusteringTest(unittest.TestCase):
 
         def to_numpy(x):
             return numpy.array(x, dtype=[('ids', int, 2),
-                                         ('score', float, 1)])
+                                         ('score', float)])
 
         blocked_dupes = [to_numpy(list(block)) for _, block in blocked_dupes]
 

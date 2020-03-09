@@ -25,7 +25,14 @@ jobs:
       run: |        
         pip install -r requirements.txt
         pytest tests dedupe --cov dedupe
-    - name: Integration tests
+    - name: Static Testing
+      run: |        
+        mypy --ignore-missing-imports dedupe
+    - name: Integration test, record link
+      run: |
+        python tests/canonical_gazetteer.py -vv
+        python tests/canonical_matching.py -vv
+    - name: Integration test, dedupe
       run: |
         python tests/canonical.py -vv
     - name: Coveralls

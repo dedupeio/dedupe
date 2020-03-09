@@ -8,22 +8,25 @@ import rlr
 import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
+from dedupe._typing import TrainingExample
 
 logger = logging.getLogger(__name__)
 
 
 class ActiveLearner(ABC):
 
+    candidates: list
+
     @abstractmethod
-    def transform():
+    def transform(self):
         pass
 
     @abstractmethod
-    def pop():
+    def pop(self) -> TrainingExample:
         pass
 
     @abstractmethod
-    def mark():
+    def mark(self):
         pass
 
     @abstractmethod
@@ -112,7 +115,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def fit_transform(self, pairs, y):
         self.fit(self.transform(pairs), y)
 
-    def pop(self):
+    def pop(self) -> TrainingExample:
         if not len(self.candidates):
             raise IndexError("No more unlabeled examples to label")
 
@@ -127,7 +130,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         uncertain_pair = self.candidates.pop(uncertain_index)
 
-        return [uncertain_pair]
+        return uncertain_pair
 
     def _remove(self, index):
         self.distances = numpy.delete(self.distances, index, axis=0)
@@ -234,9 +237,9 @@ class DedupeBlockLearner(BlockLearner):
                  index_include):
         super().__init__(data_model, candidates)
 
-        index_data = Sample(data, 50000, original_length)
+        index_data = Sample(data, 10000, original_length)
         sampled_records = Sample(index_data, 2000, original_length)
-        preds = self.data_model.predicates()
+        preds = self.data_model.predicates(index_predicates=False)
 
         self.block_learner = training.DedupeBlockLearner(preds,
                                                          sampled_records,
@@ -318,16 +321,16 @@ class DisagreementLearner(ActiveLearner):
         self.y = numpy.array([])
         self.pairs = []
 
-    def pop(self):
+    def pop(self) -> TrainingExample:
         if not len(self.candidates):
             raise IndexError("No more unlabeled examples to label")
 
-        probs = []
+        probs_l = []
         for learner in self.learners:
             probabilities = learner.candidate_scores()
-            probs.append(probabilities)
+            probs_l.append(probabilities)
 
-        probs = numpy.concatenate(probs, axis=1)
+        probs = numpy.concatenate(probs_l, axis=1)
 
         # where do the classifers disagree?
         disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
@@ -348,7 +351,7 @@ class DisagreementLearner(ActiveLearner):
         for learner in self.learners:
             learner._remove(uncertain_index)
 
-        return [uncertain_pair]
+        return uncertain_pair
 
     def mark(self, pairs, y):
 

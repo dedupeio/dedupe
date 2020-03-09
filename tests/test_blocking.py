@@ -52,7 +52,7 @@ class TfidfTest(unittest.TestCase):
 
     def test_unconstrained_inverted_index(self):
 
-        blocker = dedupe.blocking.Blocker(
+        blocker = dedupe.blocking.Fingerprinter(
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")])
 
         blocker.index(set(record["name"]
@@ -87,7 +87,7 @@ class TfIndexUnindex(unittest.TestCase):
             145: {"name": "Kyle", "age": "27", "dataset": 0},
         }
 
-        self.blocker = dedupe.blocking.Blocker(
+        self.blocker = dedupe.blocking.Fingerprinter(
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")])
 
         self.records_1 = dict((record_id, record)
