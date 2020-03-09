@@ -256,7 +256,7 @@ class DedupeMatching(IntegralMatching):
     def cluster(self,
                 scores: numpy.ndarray,
                 threshold: float = 0.5) -> Clusters:
-        """
+        r"""
         From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
 
