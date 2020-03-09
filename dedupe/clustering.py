@@ -245,6 +245,7 @@ def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
 
 
 def pair_gazette_matching(scored_pairs: numpy.ndarray,
+                          threshold: float = 0.0,
                           n_matches: int = 1) -> Links:
 
     scored_pairs.sort(order='pairs')
@@ -253,6 +254,6 @@ def pair_gazette_matching(scored_pairs: numpy.ndarray,
     change_points = numpy.where(numpy.roll(group_key, 1) != group_key)[0]
     scored_blocks = numpy.split(scored_pairs, change_points)
 
-    for match in gazetteMatching(scored_blocks, 0, n_matches):
+    for match in gazetteMatching(scored_blocks, threshold, n_matches):
         if match:
             yield from match

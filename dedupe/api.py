@@ -253,7 +253,7 @@ class DedupeMatching(IntegralMatching):
 
     def cluster(self,
                 scores: numpy.ndarray,
-                threshold: float) -> Clusters:
+                threshold: float = 0.5) -> Clusters:
         """
         From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
@@ -283,6 +283,8 @@ class DedupeMatching(IntegralMatching):
 
                        Lowering the number will increase recall,
                        raising it will increase precision
+
+                       Defaults to 0.5.
 
         .. code:: python
 
@@ -458,14 +460,12 @@ class RecordLinkMatching(IntegralMatching):
         pairs = self.pairs(data_1, data_2)
         pair_scores = self.score(pairs)
 
-        pair_scores = pair_scores[pair_scores['score'] > threshold]
-
         if constraint == 'one-to-one':
-            links = self.one_to_one(pair_scores)
+            links = self.one_to_one(pair_scores, threshold)
         elif constraint == 'many-to-one':
-            links = self.many_to_one(pair_scores)
+            links = self.many_to_one(pair_scores, threshold)
         elif constraint == 'many-to-many':
-            links = pair_scores
+            links = pair_scores[pair_scores['score'] > threshold]
 
         links = list(links)
 
@@ -479,9 +479,9 @@ class RecordLinkMatching(IntegralMatching):
         return links
 
     def one_to_one(self,
-                   scores: numpy.ndarray) -> Links:
-        """
-        From the similarity scores of pairs of records, decide which
+                   scores: numpy.ndarray,
+                   threshold: float = 0.0) -> Links:
+        """From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
 
         Every record in data_1 can match at most one record from
@@ -508,6 +508,14 @@ class RecordLinkMatching(IntegralMatching):
                     should contains the similarity score for that
                     pair of records.
 
+            threshold: Number between 0 and 1 (default is 0.0). We
+                       will consider records as potential
+                       duplicates if the predicted probability of
+                       being a duplicate is above the threshold.
+
+                       Lowering the number will increase recall, raising it
+                       will increase precision
+
 
         .. code:: python
 
@@ -520,13 +528,16 @@ class RecordLinkMatching(IntegralMatching):
             ((10, 11), 0.899)]
 
         """
+        if threshold:
+            scores = scores[scores['score'] > threshold]
 
         logger.debug("matching done, begin clustering")
 
         yield from clustering.greedyMatching(scores)
 
     def many_to_one(self,
-                    scores: numpy.ndarray) -> Links:
+                    scores: numpy.ndarray,
+                    threshold: float = 0.0) -> Links:
         """
         From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
@@ -553,6 +564,13 @@ class RecordLinkMatching(IntegralMatching):
                     should contains the similarity score for that
                     pair of records.
 
+            threshold: Number between 0 and 1 (default is 0.0). We
+                       will consider records as potential
+                       duplicates if the predicted probability of
+                       being a duplicate is above the threshold.
+
+                       Lowering the number will increase recall, raising it
+                       will increase precision
 
         .. code:: python
 
@@ -569,7 +587,7 @@ class RecordLinkMatching(IntegralMatching):
 
         logger.debug("matching done, begin clustering")
 
-        yield from clustering.pair_gazette_matching(scores, 1)
+        yield from clustering.pair_gazette_matching(scores, threshold, 1)
 
 
 class GazetteerMatching(Matching):
@@ -742,7 +760,7 @@ class GazetteerMatching(Matching):
 
     def many_to_n(self,
                   score_blocks: Iterable[numpy.ndarray],
-                  threshold: float = 0.,
+                  threshold: float = 0.0,
                   n_matches: int = 1) -> Links:
         """
         For each group of scored pairs, yield the highest scoring N pairs
@@ -756,6 +774,14 @@ class GazetteerMatching(Matching):
                           the records compared and the 'score' column
                           should contains the similarity score for that
                           pair of records.
+
+            threshold: Number between 0 and 1 (default is 0.0). We
+                       will consider records as potential
+                       duplicates if the predicted probability of
+                       being a duplicate is above the threshold.
+
+                       Lowering the number will increase recall, raising it
+                       will increase precision
 
             n_matches: How many top scoring pairs to select per group
 

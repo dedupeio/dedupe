@@ -160,7 +160,7 @@ Dedupe and StaticDedupe
 
        Same as :func:`dedupe.Dedupe.score`
 
-    .. method:: cluster(matches, threshold)
+    .. method:: cluster(matches, threshold=0.5)
 
        Same as :func:`dedupe.Dedupe.cluster`
 		    
@@ -194,11 +194,11 @@ RecordLink and StaticRecordLink
 
 	Same as :func:`dedupe.RecordLink.score`
 
-   .. method:: one_to_one(scores)
+   .. method:: one_to_one(scores, threshold=0.0)
 
         Same as :func:`dedupe.RecordLink.one_to_one`
 
-   .. method:: many_to_one(scores)
+   .. method:: many_to_one(scores, threshold=0.0)
 
 	Same as :func:`dedupe.RecordLink.many_to_one`
 
@@ -231,7 +231,7 @@ Gazetteer and StaticGazetteer
 
 	Same as :func:`dedupe.Gazetteer.score`
 
-    .. method:: many_to_n(score_blocks, n_matches=1)
+    .. method:: many_to_n(score_blocks, threshold=0.0, n_matches=1)
 
 	Same as :func:`dedupe.Gazetteer.many_to_n`		
 		    
