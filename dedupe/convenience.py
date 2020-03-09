@@ -201,7 +201,7 @@ def training_data_dedupe(data: Data,
     identified_records = collections.defaultdict(list)
     matched_pairs: Set[Tuple[RecordID, RecordID]] = set()
     distinct_pairs: Set[Tuple[RecordID, RecordID]] = set()
-    unique_record_ids = Set[RecordID] = set()
+    unique_record_ids: Set[RecordID] = set()
 
     # a list of record_ids associated with each common_key
     for record_id, record in data.items():
