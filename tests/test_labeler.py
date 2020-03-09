@@ -24,20 +24,20 @@ class ActiveLearningTest(unittest.TestCase):
         assert len(active_learner) == original_N
         pair = active_learner.pop()
         print(pair)
-        assert pair == [({"name": "Willy", "age": "35"},
-                         {"name": "William", "age": "35"})]
+        assert pair == ({"name": "Willy", "age": "35"},
+                        {"name": "William", "age": "35"})
 
         assert len(active_learner) == original_N - 1
 
         pair = active_learner.pop()
         print(pair)
-        assert pair == [({"name": "Jimmy", "age": "20"},
-                         {"name": "Jimbo", "age": "21"})]
+        assert pair == ({"name": "Jimmy", "age": "20"},
+                        {"name": "Jimbo", "age": "21"})
         assert len(active_learner) == original_N - 2
 
         pair = active_learner.pop()
-        assert pair == [({"name": "Meredith", "age": "40"},
-                         {"name": "Sue", "age": "10"})]
+        assert pair == ({"name": "Meredith", "age": "40"},
+                        {"name": "Sue", "age": "10"})
 
         assert len(active_learner) == original_N - 3
 

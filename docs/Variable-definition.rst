@@ -1,3 +1,5 @@
+.. _variable_definitions:
+
 Variable Definitions
 ====================
 

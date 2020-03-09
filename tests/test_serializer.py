@@ -49,7 +49,7 @@ class SerializerTest(unittest.TestCase):
 
         encoded_file.seek(0)
 
-        deduper.readTraining(encoded_file)
+        deduper._read_training(encoded_file)
         print(deduper.training_pairs)
         print(training_pairs)
         assert deduper.training_pairs == training_pairs
