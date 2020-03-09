@@ -256,8 +256,7 @@ class DedupeMatching(IntegralMatching):
     def cluster(self,
                 scores: numpy.ndarray,
                 threshold: float = 0.5) -> Clusters:
-        r"""
-        From the similarity scores of pairs of records, decide which groups
+        r"""From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
 
         Yields tuples containing a sequence of record ids and corresponding
@@ -274,10 +273,10 @@ class DedupeMatching(IntegralMatching):
 
            \mathrm{score}_i = 1 - \sqrt {\\frac{\sum_{j}^N (1 - \phi(i,j))^2}{N -1}}
 
-        This measure is similar to standard deviation of the distances
+        This measure is similar to the average squared distance
         between the focal record and the other records in the
-        cluster. These scores can be `combined to give a total
-        score for the cluster
+        cluster. These scores can be `combined to give a total score
+        for the cluster
         <https://en.wikipedia.org/wiki/Variance#Discrete_random_variable>`_.
 
         .. math::
