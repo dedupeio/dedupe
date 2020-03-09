@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# -*- coding: future_fstrings -*-
 
 from collections import defaultdict
 import logging
@@ -16,7 +17,11 @@ class Blocker:
     '''Takes in a record and returns all blocks that record belongs to'''
 
     def __init__(self, predicates):
-
+        """
+        Args:
+            :predicates: (set)[dudupe.predicates class]
+        """
+        print("Initializing Blocker class")
         self.predicates = predicates
 
         self.index_fields = defaultdict(index_list)
@@ -30,17 +35,24 @@ class Blocker:
                     self.index_predicates.append(predicate)
 
     def __call__(self, records, target=False):
-
+        """
+        Args:
+            :records: (dict_items) list of input records
+                key = (str) id of record
+                value = (dict) record
+        """
+        print("blocking.Blocker.__call__")
         start_time = time.perf_counter()
         predicates = [(':' + str(i), predicate)
                       for i, predicate
                       in enumerate(self.predicates)]
-
+        print(f"Predicates: {predicates}")
         for i, record in enumerate(records):
             record_id, instance = record
-
+            print(f"Record: {record}")
             for pred_id, predicate in predicates:
                 block_keys = predicate(instance, target=target)
+                print(f"Block keys: {block_keys}")
                 for block_key in block_keys:
                     yield block_key + pred_id, record_id
 

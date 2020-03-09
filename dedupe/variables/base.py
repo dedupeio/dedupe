@@ -63,7 +63,6 @@ class FieldType(Variable):
             self.weight = definition['weight']
         else:
             self.weight = 1
-
         self.predicates = [self._Predicate(pred, self.field)
                            for pred in self._predicate_functions]
 

@@ -12,6 +12,7 @@ import functools
 
 import numpy
 
+# -*- coding: future_fstrings -*-
 
 class ChildProcessError(Exception):
     pass
@@ -89,18 +90,19 @@ def randomPairsWithReplacement(n_records, sample_size):
 
 class ScoreDupes(object):
     def __init__(self, data_model, classifier, threshold):
+        print("Initializing core.ScoreDupes object")
         self.data_model = data_model
         self.classifier = classifier
         self.threshold = threshold
         self.score_queue = None
 
     def __call__(self, records_queue, score_queue):
+        print("core.ScoreDupes.__call__")
         self.score_queue = score_queue
         while True:
             record_pairs = records_queue.get()
             if record_pairs is None:
                 break
-
             try:
                 filtered_pairs = self.fieldDistance(record_pairs)
                 if filtered_pairs is not None:
@@ -112,24 +114,52 @@ class ScoreDupes(object):
         score_queue.put(None)
 
     def fieldDistance(self, record_pairs):
+        """
+
+        During the previous step, records were clustered (blocked) based on the
+        predicates. For each proposed cluster, the records were combined
+        pairwise, to create record_pairs.
+
+        For example, suppose we have 5 records, and block them as follows:
+            Block 1: record1, record2
+            Block 2: record3, record4, record5
+
+        The our record_pairs tuple would look like this:
+            (
+                (('id1', record1), ('id2', record2)),
+                (('id3', record3), ('id4', record4)),
+                (('id3', record3), ('id5', record5)),
+                (('id4', record4), ('id5', record5))
+            )
+
+        Args:
+            record_pairs: (tuple)[tuple]
+                (
+                    (('id1', record1, set()), ('id2', record2, set())),
+                    (('id1', record1, set()), ('id3', record3, set()))
+
+                )
+        """
+        print("core.ScoreDupes.fieldDistance")
         ids = []
         records = []
-
         for record_pair in record_pairs:
             ((id_1, record_1, smaller_ids_1),
              (id_2, record_2, smaller_ids_2)) = record_pair
-
+            print(f"Record pair: {id_1}, {id_2}")
+            print(f"Smaller ids: {smaller_ids_1}, {smaller_ids_2}")
             if smaller_ids_1.isdisjoint(smaller_ids_2):
-
+                print("Disjoint")
                 ids.append((id_1, id_2))
                 records.append((record_1, record_2))
-
         if records:
-
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
 
             mask = scores > self.threshold
+            print(scores)
+            print(f"Threshold = {self.threshold}")
+            print(f"Mask = {mask}")
             if mask.any():
                 id_type = sniff_id_type(ids)
                 ids = numpy.array(ids, dtype=id_type)
@@ -190,6 +220,7 @@ def mergeScores(score_queue, result_queue, stop_signals):
 
 
 def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
+    print("core.scoreDuplicates")
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
@@ -205,7 +236,6 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
     record_pairs_queue = Queue(2)
     score_queue = SimpleQueue()
     result_queue = SimpleQueue()
-
     n_map_processes = max(num_cores, 1)
     score_records = ScoreDupes(data_model, classifier, threshold)
     map_processes = [Process(target=score_records,
@@ -238,7 +268,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
 
     reduce_process.join()
     [process.join() for process in map_processes]
-
+    print(scored_pairs)
     return scored_pairs
 
 

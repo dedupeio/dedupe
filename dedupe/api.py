@@ -25,6 +25,7 @@ import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
 
 logger = logging.getLogger(__name__)
+# -*- coding: future_fstrings -*-
 
 
 class Matching(object):
@@ -39,6 +40,7 @@ class Matching(object):
     """
 
     def __init__(self, num_cores):
+        print("Initializing Matching class")
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
@@ -90,7 +92,8 @@ class Matching(object):
 
         return probability[i]
 
-    def matchBlocks(self, blocks, threshold=.5, *args, **kwargs):
+    def matchBlocks(self, blocks, classifier_threshold=.5,
+                    cluster_threshold=0.5, *args, **kwargs):
         """
         Partitions blocked data and generates a sequence of clusters,
         where each cluster is a tuple of record ids
@@ -109,17 +112,17 @@ class Matching(object):
                       raising it will increase precision
 
         """
+        print("Matching.matchBlocks")
         candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
-
         matches = core.scoreDuplicates(candidate_records,
                                        self.data_model,
                                        self.classifier,
                                        self.num_cores,
-                                       threshold=0)
-
+                                       classifier_threshold)
+        print(matches)
         logger.debug("matching done, begin clustering")
 
-        for cluster in self._cluster(matches, threshold, *args, **kwargs):
+        for cluster in self._cluster(matches, cluster_threshold, *args, **kwargs):
             yield cluster
 
         try:
@@ -183,10 +186,12 @@ class DedupeMatching(Matching):
     ActiveLearner = labeler.DedupeDisagreementLearner
 
     def __init__(self, *args, **kwargs):
+        print("Initializing DedupeMatching, calling super class Matching constructor")
         super().__init__(*args, **kwargs)
         self._cluster = clustering.cluster
 
-    def match(self, data, threshold=0.5, generator=False):  # pragma: no cover
+    def match(self, data, classifier_threshold=0.5, cluster_threshold=0.5,
+              generator=False):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
         tuples
 
@@ -199,7 +204,7 @@ class DedupeMatching(Matching):
         This method should only used for small to moderately sized
         datasets for larger data, use matchBlocks
 
-        Arguments:
+        Args:
 
         data -- Dictionary of records, where the keys are record_ids
                 and the values are dictionaries with the keys being
@@ -213,9 +218,18 @@ class DedupeMatching(Matching):
                       Lowering the number will increase recall,
                       raising it will increase precision
 
+        Returns:
+            clusters: (list)[tuple] list of clustered duplicates
+                'idx' = id of record
+                'scorex' = score, float between 0 and 1
+                [
+                    (('id1', 'id2', 'id3'), [score1, score2, score3])
+                ]
+
         """
         blocked_pairs = self._blockData(data)
-        clusters = self.matchBlocks(blocked_pairs, threshold)
+        print("DedupeMatching.match")
+        clusters = self.matchBlocks(blocked_pairs, classifier_threshold, cluster_threshold)
         if generator:
             return clusters
         else:
@@ -260,6 +274,27 @@ class DedupeMatching(Matching):
         return pairs
 
     def _blockData(self, data_d):
+        """Use blocking rules from predicates to create blocks (preliminary clusters).
+
+        The blocking.Blocker.__call__ function takes the list of
+        records (data_d) and creates groups of records based on
+        the predicates computed during training. This function takes
+        those results and converts them into a dictionary.
+
+        blocks: (dict)
+            key = (str) the stringified predicate rule
+                A predicate rule can involve 1+ predicates. For example, a
+                predicate rule might be:
+                (   SimplePredicate: (wholeFieldPredicate, gender),
+                    SimplePredicate: (wholeFieldPredicate, city)
+                )
+                For a record with city = 'Prince George' and gender = 'female',
+                the stringified predicate rule would be:
+                    'female:Prince George:0'
+                The final number indicates the predicate rule number (0)
+            value = (list)[str] list of record ids which are in this
+                blocked cluster
+        """
 
         blocks = {}
         coverage = {}
@@ -269,9 +304,12 @@ class DedupeMatching(Matching):
 
         block_groups = itertools.groupby(self.blocker(data_d.items()),
                                          lambda x: x[1])
+        print("DedupeMatching._blockData")
 
         for record_id, block in block_groups:
+            print(f"Record id: {record_id}")
             block_keys = [block_key for block_key, _ in block]
+            print(f"Block keys api: {block_keys}")
             coverage[record_id] = block_keys
             for block_key in block_keys:
                 if block_key in blocks:
@@ -284,17 +322,19 @@ class DedupeMatching(Matching):
 
         blocks = {block_key: record_ids for block_key, record_ids
                   in blocks.items() if len(record_ids) > 1}
-
+        print("Blocks")
+        print(blocks)
         coverage = {record_id: [k for k in cover if k in blocks]
                     for record_id, cover in coverage.items()}
-
+        print(coverage)
         for block_key, block in blocks.items():
             processed_block = []
+            print("New block")
             for record_id in block:
                 smaller_blocks = {k for k in coverage[record_id]
                                   if k < block_key}
                 processed_block.append((record_id, data_d[record_id], smaller_blocks))
-
+                print(record_id)
             yield processed_block
 
     def _checkBlock(self, block):
@@ -592,7 +632,7 @@ class ActiveMatching(Matching):
         #### Example usage
 
             # initialize from a defined set of fields
-            fields = [{'field' : 'Site name', 'type': 'String'},
+            variable_definition = [{'field' : 'Site name', 'type': 'String'},
                       {'field' : 'Address', 'type': 'String'},
                       {'field' : 'Zip', 'type': 'String',
                        'Has Missing':True},
@@ -611,6 +651,7 @@ class ActiveMatching(Matching):
         For details about variable types, check the documentation.
         <https://docs.dedupe.io/>`_
         """
+        print("Initializing ActiveMatching class")
         Matching.__init__(self, num_cores, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
@@ -681,9 +722,11 @@ class ActiveMatching(Matching):
 
                             Defaults to True.
         """
+        print("ActiveMatching.train")
         examples, y = flatten_training(self.training_pairs)
+        print("Fit classifier with active label training data")
         self.classifier.fit(self.data_model.distances(examples), y)
-
+        print(f"Number of matches: {len(self.training_pairs['match'])}")
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
         self.blocker = blocking.Blocker(self.predicates)
@@ -786,41 +829,45 @@ class Dedupe(DedupeMatching, ActiveMatching):
                          sample_size=15000,
                          blocked_proportion=0.5,
                          original_length=None):
-        '''
-        Sets up the learner.
-        Arguments:
+        """Sets up the learner.
 
-        Arguments: data -- Dictionary of records, where the keys are
+        Args:
+
+            :data: (dict) Dictionary of records, where the keys are
                            record_ids and the values are dictionaries
                            with the keys being field names
-        training_file -- file object containing training data
-        sample_size         -- Size of the sample to draw
-        blocked_proportion  -- Proportion of the sample that will be blocked
-        original_length     -- Length of original data, should be set if
+            :training_file: file object containing active labels training data
+            :sample_size: (int) Size of the sample to draw
+            :blocked_proportion: Proportion of the sample that will be blocked
+            :original_length: Length of original data, should be set if
                                `data` is a sample of full data
 
-        '''
-
+        """
+        print("Preparing training")
         if training_file:
+            print("Reading active labels from training file")
             self.readTraining(training_file)
         self.sample(data, sample_size, blocked_proportion, original_length)
 
     def sample(self, data, sample_size=15000,
                blocked_proportion=0.5, original_length=None):
-        '''Draw a sample of record pairs from the dataset
+        """Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
         and initialize active learning with this sample
 
-        Arguments: data -- Dictionary of records, where the keys are
-        record_ids and the values are dictionaries with the keys being
-        field names
-        sample_size         -- Size of the sample to draw
-        blocked_proportion  -- Proportion of the sample that will be blocked
-        original_length     -- Length of original data, should be set if `data` is
-                               a sample of full data
+        Args:
+
+            data: (dict) Dictionary of records, where the keys are
+                record_ids and the values are dictionaries with the keys being
+                field names
+            sample_size: (int) Size of the sample to draw
+            blocked_proportion  -- Proportion of the sample that will be blocked
+            original_length     -- Length of original data, should be set if `data` is
+                                   a sample of full data
 
 
-        '''
+        """
+        print("api.Dedupe.sample")
         self._checkData(data)
 
         if not original_length:
@@ -836,10 +883,13 @@ class Dedupe(DedupeMatching, ActiveMatching):
                                                  sample_size,
                                                  original_length,
                                                  index_include=examples)
-
+        print("Marking active training data")
         self.active_learner.mark(examples, y)
 
     def _checkData(self, data):
+        """Check that data is not empty and that each record has required fields.
+        """
+        print("Checking input data is valid")
         if len(data) == 0:
             raise ValueError(
                 'Dictionary of records is empty.')
@@ -1116,6 +1166,33 @@ class SettingsFileLoadingException(Exception):
 
 
 def flatten_training(training_pairs):
+    """Convert active label training pairs to two lists.
+
+    Args:
+        :training_pairs: (dict) dictionary of either 'match' or 'distinct', where
+            'match' is a list of pairs of records which are the same, and
+            'distinct' is a list of pairs of records which are different
+
+        {
+            'match': [
+                [record_1, record_2]
+            ],
+            'distinct': [
+                [record_1, record_3]
+            ]
+        }
+
+    Returns:
+        :examples: (list)[list] ordered list of all the record pairs (distinct and match)
+
+            [
+                [record_1, record_2],
+                [record_1, record_3]
+            ]
+        :y: (list)[int] list of either 1 or 0, corresponding to examples list
+            1 = match
+            0 = distinct
+    """
     examples = []
     y = []
     for label, pairs in training_pairs.items():
@@ -1126,5 +1203,4 @@ def flatten_training(training_pairs):
             elif label == 'distinct':
                 y.append(0)
                 examples.append(pair)
-
     return examples, numpy.array(y)

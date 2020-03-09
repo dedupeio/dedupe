@@ -131,7 +131,7 @@ def condensedDistance(dupes):
 
 
 def cluster(dupes, threshold=.5, max_components=30000):
-    '''
+    """
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
     threshold
@@ -140,10 +140,10 @@ def cluster(dupes, threshold=.5, max_components=30000):
     threshold -- number betweent 0 and 1 (default is .5). lowering the
                  number will increase precision, raising it will increase
                  recall
-    '''
+    """
+    print("clustering.cluster")
     distance_threshold = 1 - threshold
     dupe_sub_graphs = connected_components(dupes, max_components)
-
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
 
@@ -152,24 +152,27 @@ def cluster(dupes, threshold=.5, max_components=30000):
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid',
                                           preserve_input=True)
-
+            print(distance_threshold)
             partition = hcluster.fcluster(linkage,
                                           distance_threshold,
                                           criterion='distance')
 
             clusters = defaultdict(list)
-
+            print(partition)
+            print(linkage)
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
             for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
+                    print(tuple(i_to_id[i] for i in cluster), scores)
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             (ids, score), = sub_graph
-            if score > threshold:
+            if score > distance_threshold:
+                print(tuple(ids), (score,) * 2)
                 yield tuple(ids), (score,) * 2
 
 
