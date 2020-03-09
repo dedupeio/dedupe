@@ -271,7 +271,7 @@ class DedupeMatching(IntegralMatching):
 
         .. math::
 
-           \mathrm{score}_i = 1 - \sqrt {\\frac{\sum_{j}^N (1 - \phi(i,j))^2}{N -1}}
+           \mathrm{score}_i = 1 - \sqrt {\frac{\sum_{j}^N (1 - \phi(i,j))^2}{N -1}}
 
         This measure is similar to the average squared distance
         between the focal record and the other records in the
@@ -281,7 +281,7 @@ class DedupeMatching(IntegralMatching):
 
         .. math::
 
-           \mathrm{score} = 1 - \sqrt { \\frac{\sum_i^N(1 - \mathrm{score}_i)^2 \cdot (N - 1) } { 2 N^2}}
+           \mathrm{score} = 1 - \sqrt { \frac{\sum_i^N(1 - \mathrm{score}_i)^2 \cdot (N - 1) } { 2 N^2}}
 
         Args:
             scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
