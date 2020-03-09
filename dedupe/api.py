@@ -137,6 +137,8 @@ class DedupeMatching(IntegralMatching):
         confidence score is a measure of our confidence a particular entity
         belongs in the cluster.
 
+        For details on the confidence score, see :func:`dedupe.Dedupe.cluster`.
+
         This method should only used for small to moderately sized
         datasets for larger data, you need may need to generate your
         own pairs of records and feed them to :func:`~score`.
@@ -263,6 +265,24 @@ class DedupeMatching(IntegralMatching):
         record_ids within each set should refer to the same entity and the
         confidence score is a measure of our confidence a particular entity
         belongs in the cluster.
+
+        Each confidence scores is a measure of how similar the record is
+        to the other records in the cluster. Let :math:`\phi(i,j)` be the pair-wise
+        similarity between records :math:`i` and :math:`j`. Let :math:`N` be the number of records in the cluster.
+
+        .. math::
+
+           \mathrm{score}_i = 1 - \sqrt {\\frac{\sum_{j}^N (1 - \phi(i,j))^2}{N -1}}
+
+        This measure is similar to standard deviation of the distances
+        between the focal record and the other records in the
+        cluster. These scores can be `combined to give a total
+        score for the cluster
+        <https://en.wikipedia.org/wiki/Variance#Discrete_random_variable>`_.
+
+        .. math::
+
+           \mathrm{score} = 1 - \sqrt { \\frac{\sum_i^N(1 - \mathrm{score}_i)^2 \cdot (N - 1) } { 2 N^2}}
 
         Args:
             scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
