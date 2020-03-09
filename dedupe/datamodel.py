@@ -12,6 +12,7 @@ from dedupe.variables.interaction import InteractionType
 for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,
                                          'dedupe.variables.'):
     __import__(module)
+# -*- coding: future_fstrings -*-
 
 
 FIELD_CLASSES = {k: v for k, v in base.allSubclasses(base.FieldType) if k}
@@ -30,11 +31,13 @@ class DataModel(object):
 
         self._missing_field_indices = missing_field_indices(variables)
         self._interaction_indices = interaction_indices(variables)
+        self._interaction_weights = interaction_weights(variables)
 
         self._variables = variables
 
     def __len__(self):
         return len(self._variables)
+
 
     # Changing this from a property to just a normal attribute causes
     # pickling problems, because we are removing static methods from
@@ -47,12 +50,18 @@ class DataModel(object):
         comparators = []
         for field in self.primary_fields:
             stop = start + len(field)
-            comparators.append((field.field, field.comparator, start, stop))
+            comparators.append((field.field, field.comparator,
+                                field.weight, start, stop))
             start = stop
 
         return comparators
 
     def predicates(self, index_predicates=True, canopies=True):
+        """
+        Returns:
+            :predicates: (set)[dudupe.predicates class]
+        """
+        print("datamodel.DataModel.predicates")
         predicates = set()
         for definition in self.primary_fields:
             for predicate in definition.predicates:
@@ -66,45 +75,54 @@ class DataModel(object):
                                 predicates.add(predicate)
                 else:
                     predicates.add(predicate)
-
         return predicates
 
     def distances(self, record_pairs):
+        """
+        Returns:
+            :distances: (np.Array) 2D matrix
+                # rows = # pairs
+                # columns = # fields
+        """
         num_records = len(record_pairs)
-
         distances = numpy.empty((num_records, len(self)), 'f4')
         field_comparators = self._field_comparators
-
         for i, (record_1, record_2) in enumerate(record_pairs):
 
-            for field, compare, start, stop in field_comparators:
+            for field, compare, weight, start, stop in field_comparators:
                 if record_1[field] is not None and record_2[field] is not None:
                     distances[i, start:stop] = compare(record_1[field],
-                                                       record_2[field])
+                                                       record_2[field])*weight
                 elif hasattr(compare, 'missing'):
                     distances[i, start:stop] = compare(record_1[field],
-                                                       record_2[field])
+                                                       record_2[field])*weight
                 else:
                     distances[i, start:stop] = numpy.nan
+            #print(f"{record_1['id']}, {record_2['id']}: {distances[i, :]}")
+
+        if i>2:
+            print(f"Distances: {distances[0,:]}")
+
+            print(f"Distances: {distances[2,:]}")
 
         distances = self._derivedDistances(distances)
-
+        if i>2:
+            print(f"Distances: {distances[0,:]}")
+            print(f"Distances: {distances[2,:]}")
         return distances
 
     def _derivedDistances(self, primary_distances):
         distances = primary_distances
 
         current_column = self._derived_start
-
-        for interaction in self._interaction_indices:
+        for interaction, weight in zip(self._interaction_indices, self._interaction_weights):
             distances[:, current_column] =\
-                numpy.prod(distances[:, interaction], axis=1)
-
+                numpy.prod(distances[:, interaction], axis=1)*weight
             current_column += 1
 
         missing_data = numpy.isnan(distances[:, :current_column])
 
-        distances[:, :current_column][missing_data] = 0
+        distances[:, :current_column][missing_data] = 0.5
 
         if self._missing_field_indices:
             distances[:, current_column:] =\
@@ -113,6 +131,11 @@ class DataModel(object):
         return distances
 
     def check(self, record):
+        """Check that a record has all the required fields.
+
+        Args:
+            :record: (dict)
+        """
         for field_comparator in self._field_comparators:
             field = field_comparator[0]
             if field not in record:
@@ -208,6 +231,16 @@ def interaction_indices(variables):
             indices.append(interaction_indices)
 
     return indices
+
+
+def interaction_weights(variables):
+    weights = []
+
+    for definition in variables:
+        if hasattr(definition, 'interaction_fields'):
+            weights.append(definition.weight)
+
+    return weights
 
 
 def reduce_method(m):

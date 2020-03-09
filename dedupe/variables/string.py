@@ -1,6 +1,6 @@
 from .base import FieldType, indexPredicates
 from dedupe import predicates
-
+import numpy as np
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
@@ -27,6 +27,14 @@ base_predicates = (predicates.wholeFieldPredicate,
                    predicates.twoGramFingerprint,
                    predicates.sortedAcronym
                    )
+
+
+def string_comparator(field_1, field_2):
+    affine_distance = affineGap(field_1, field_2)
+    x = np.exp(0.5*affine_distance)-np.exp(1)/2
+    x0 = 5
+    a = 1
+    return np.exp(a*x-x0)/(np.exp(a*x-x0)+1)
 
 
 class BaseStringType(FieldType):
@@ -63,7 +71,7 @@ class ShortStringType(BaseStringType):
         if definition.get('crf', False) is True:
             self.comparator = crfEd
         else:
-            self.comparator = affineGap
+            self.comparator = string_comparator
 
 
 class StringType(ShortStringType):

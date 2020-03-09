@@ -11,6 +11,10 @@ class InteractionType(Variable):
 
         self.name = "(Interaction: %s)" % str(self.interactions)
         self.interaction_fields = self.interactions
+        if 'weight' in definition:
+            self.weight = definition['weight']
+        else:
+            self.weight = 1
 
         super(InteractionType, self).__init__(definition)
 

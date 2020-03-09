@@ -13,27 +13,58 @@ from collections.abc import Mapping
 from . import blocking, predicates, core
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
+# -*- coding: future_fstrings -*-
 
 
 class BlockLearner(object):
     def learn(self, matches, recall):
-        '''
+        """
         Takes in a set of training pairs and predicates and tries to find
-        a good set of blocking rules.
-        '''
-        comparison_count = self.comparison_count
+        a good set of blocking rules. Returns a subset of the initial
+        predicates which represent the minimum predicates required to
+        cover the training data.
 
+            :comparison_count: (dict) {
+                key: (dedupe.predicates class)
+                value: (float)
+            }
+
+        Args:
+            :matches: (list)[tuple][dict] list of pairs of records which
+                are labelled as matches (duplicates) from the active labelling
+                [
+                    (record1, record2)
+                ]
+            :recall: (float) number between 0 and 1, minimum fraction of the
+                active labelling training data that must be covered by
+                the blocking predicate rules
+
+        Returns:
+            :final_predicates: (tuple)[tuple] tuple of final predicate rules
+                (
+                    (predicate1, predicate2, ... predicateN),
+                    (predicate3, predicate4),
+                    ...
+                )
+                Each element in final_predicates consists of a tuple of
+                N predicates.
+        """
+        comparison_count = self.comparison_count
+        print("training.BlockLearner.learn")
+        print(f"Number of initial predicates: {len(self.blocker.predicates)}")
         dupe_cover = Cover(self.blocker.predicates, matches)
-        dupe_cover.compound(2)
+        dupe_cover.compound(compound_length=2)
         dupe_cover.intersection_update(comparison_count)
 
         dupe_cover.dominators(cost=comparison_count)
 
         coverable_dupes = set.union(*dupe_cover.values())
+        print(dupe_cover.values())
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
-
         epsilon = int((1.0 - recall) * len(matches))
+        print(f"Recall: {recall}, epsilon: {epsilon}")
 
         if len(uncoverable_dupes) > epsilon:
             logger.warning(OUT_OF_PREDICATES_WARNING)
@@ -44,14 +75,16 @@ class BlockLearner(object):
 
         for pred in dupe_cover:
             pred.count = comparison_count[pred]
-
-        searcher = BranchBound(len(coverable_dupes) - epsilon, 2500)
+        print(len(coverable_dupes)-epsilon)
+        searcher = BranchBound(target=len(coverable_dupes) - epsilon,
+                               max_calls=2500)
         final_predicates = searcher.search(dupe_cover)
 
         logger.info('Final predicate set:')
         for predicate in final_predicates:
             logger.info(predicate)
-
+        print(f"Final predicates: {final_predicates}")
+        print(f"Number of final predicate rules: {len(final_predicates)}")
         return final_predicates
 
     def compound(self, simple_predicates, compound_length):
@@ -69,6 +102,22 @@ class BlockLearner(object):
                     yield CP((pred_a, pred_b))
 
     def comparisons(self, predicates, simple_cover):
+        """
+
+        Args:
+            :simple_cover: (dict) {
+                key: (dedupe.predicates class)
+                value: (dedupe.training.Counter)
+            }
+            :predicates: (generator)[dedupe.predicates class]
+
+        Returns:
+            :comparison_count: (dict) {
+                key: (dedupe.predicates class)
+                value: (float)
+            }
+        """
+        print("training.BlockLearner.comparisons")
         compounder = self.Compounder(simple_cover)
         comparison_count = {}
 
@@ -79,7 +128,7 @@ class BlockLearner(object):
                 estimate = self.estimate(simple_cover[pred])
 
             comparison_count[pred] = estimate
-
+        print(f"Comparison count: {len(comparison_count)}")
         return comparison_count
 
     class Compounder(object):
@@ -107,7 +156,25 @@ class BlockLearner(object):
 class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records, data):
+        """
+        simple_cover: (dict) subset of the predicates list
+            {
+                key: (dedupe.predicates class)
+                value: (dedupe.training.Counter)
+            }
+        compound_predicates: (generator) given the compound_length,
+            this combines the predicates from simple_cover into
+            combinations.
+            Let n = len(simple_cover)
+                k = compound_length
+                L = number of compound_predicates
+            Then L = n C k = n! / (n-k)!k!
 
+        Args:
+            :predicates: (set)[dudupe.predicates class]
+        """
+
+        print("Initializing training.DedupeBlockLearner")
         compound_length = 2
 
         N = sampled_records.original_length
@@ -125,14 +192,37 @@ class DedupeBlockLearner(BlockLearner):
 
     @staticmethod
     def coveredPairs(blocker, records):
+        """
+
+        For each field, there are one or more predicates. A predicate is a class
+        defined in dedupe.predicates.py. A predicate is defined by the field
+        it is associated with, and the predicate type. A predicate is callable
+        (see the __call__ function).
+
+        Pseudo-Algorithm:
+
+            For each predicate, loop through the records list.
+            Call the predicate function on each record.
+
+        Args:
+            :blocker: (blocking.Blocker)
+            :records: (dict)[dict] Records dictionary
+
+        Returns:
+            :cover: (dict) {
+                key: (dedupe.predicates class)
+                value: (dedupe.training.Counter)
+            }
+        """
         cover = {}
 
         pair_enumerator = core.Enumerator()
         n_records = len(records)
-
+        print("training.DedupeBlockLearner.coveredPairs")
+        print(len(blocker.predicates))
         for predicate in blocker.predicates:
+            print(predicate)
             pred_cover = collections.defaultdict(set)
-
             for id, record in records.items():
                 blocks = predicate(record)
                 for block in blocks:
@@ -148,9 +238,9 @@ class DedupeBlockLearner(BlockLearner):
             pairs = (pair_enumerator[pair]
                      for block in pred_cover.values()
                      for pair in itertools.combinations(sorted(block), 2))
-
             cover[predicate] = Counter(pairs)
-
+            print(cover[predicate])
+        print(len(cover))
         return cover
 
     def estimate(self, comparisons):
@@ -236,12 +326,21 @@ class RecordLinkBlockLearner(BlockLearner):
 
 class BranchBound(object):
     def __init__(self, target, max_calls):
+        """
+        Args:
+            :target: (float) desired number of active label training
+                record matches to be covered by the predicate rules
+                (computed from recall)
+            :max_calls: (int) maximum number of iterations of the search
+                function recursion
+        """
         self.calls = max_calls
         self.target = target
         self.cheapest_score = float('inf')
         self.original_cover = None
 
     def search(self, candidates, partial=()):
+        print("training.BranchBound.search")
         if self.calls <= 0:
             return self.cheapest
 
@@ -253,19 +352,23 @@ class BranchBound(object):
 
         covered = self.covered(partial)
         score = self.score(partial)
-
+        print(partial)
         if covered >= self.target:
+            print(f"Number covered >= desired number covered, \
+                  covered={covered}, target={self.target}")
             if score < self.cheapest_score:
                 self.cheapest = partial
                 self.cheapest_score = score
 
         else:
             window = self.cheapest_score - score
+            print(self.cheapest_score)
+            print(score)
 
             candidates = {p: cover
                           for p, cover in candidates.items()
                           if p.count < window}
-
+            print(f"candidates: {candidates}")
             reachable = self.reachable(candidates) + covered
 
             if candidates and reachable >= self.target:
@@ -291,6 +394,13 @@ class BranchBound(object):
 
     @staticmethod
     def score(partial):
+        """
+        Args:
+            :partial: (tuple)[predicates.CompoundPredicate]
+        """
+        for p in partial:
+            print(f"p: {p}")
+            print(type(p))
         return sum(p.count for p in partial)
 
     def covered(self, partial):
@@ -408,16 +518,30 @@ class Cover(object):
                         self._d[CP(compound_predicate)] = compound_cover
 
     def dominators(self, cost):
+        """
+        candidate_match: list of active label training ids which are covered
+            by the compound predicate rule
+        candidate_cost: (float) computational cost of this predicate
+
+        Pseudo-Algorithm
+        1. Loop through list of predicates
+            a. Loop through remainder of list of predicates
+                - If a better or equally good match later in the list
+                    is found, continue to the next predicate in outer
+                    loop
+                - A better match is one with lower computational cost
+                    and one which covers more records in training data
+                - If not, add the predicate to the dominants list
+        """
+        print("training.Cover.dominators")
         def sort_key(x):
             return (-cost[x], len(self._d[x]))
 
         ordered_predicates = sorted(self._d, key=sort_key)
         dominants = {}
-
         for i, candidate in enumerate(ordered_predicates):
             candidate_match = self._d[candidate]
             candidate_cost = cost[candidate]
-
             for pred in ordered_predicates[(i + 1):]:
                 other_match = self._d[pred]
                 other_cost = cost[pred]
@@ -427,7 +551,7 @@ class Cover(object):
                     break
             else:
                 dominants[candidate] = candidate_match
-
+        print(f"dominants: {dominants}")
         self._d = dominants
 
     def __iter__(self):

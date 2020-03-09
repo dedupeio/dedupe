@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# -*- coding: future_fstrings -*-
 
 from collections import defaultdict
 import logging
@@ -23,7 +24,11 @@ class Fingerprinter(object):
     '''Takes in a record and returns all blocks that record belongs to'''
 
     def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
-
+        """
+        Args:
+            :predicates: (set)[dudupe.predicates class]
+        """
+        print("Initializing Blocker class")
         self.predicates = predicates
 
         self.index_fields: Dict[str,
@@ -48,14 +53,16 @@ class Fingerprinter(object):
     def __call__(self,
                  records: Iterable[Record],
                  target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
-        '''
+        """
         Generate the predicates for records. Yields tuples of (predicate,
         record_id).
 
         Args:
-            records: A sequence of tuples of (record_id,
-                  record_dict). Can often be created by
+            records: (dict_items) List of input recrods. A sequence of tuples of
+                    (record_id, record_dict). Can often be created by
                   `data_dict.items()`.
+                  key = (str) id of record
+                  value = (dict) record
             target: Indicates whether the data should be treated as
                     the target data. This effects the behavior of
                     search predicates. If `target` is set to
@@ -83,18 +90,19 @@ class Fingerprinter(object):
            > print list(blocked_ids)
            [('foo:1', 1), ..., ('bar:1', 100)]
 
-        '''
+        """
 
         start_time = time.perf_counter()
         predicates = [(':' + str(i), predicate)
                       for i, predicate
                       in enumerate(self.predicates)]
-
+        print(f"Predicates: {predicates}")
         for i, record in enumerate(records):
             record_id, instance = record
-
+            print(f"Record: {record}")
             for pred_id, predicate in predicates:
                 block_keys = predicate(instance, target=target)
+                print(f"Block keys: {block_keys}")
                 for block_key in block_keys:
                     yield block_key + pred_id, record_id
 

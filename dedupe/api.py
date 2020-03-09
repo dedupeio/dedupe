@@ -54,6 +54,7 @@ from dedupe._typing import (Data,
                             JoinConstraint)
 
 logger = logging.getLogger(__name__)
+# -*- coding: future_fstrings -*-
 
 
 class Matching(object):
@@ -62,7 +63,7 @@ class Matching(object):
     """
 
     def __init__(self, num_cores: Optional[int], **kwargs) -> None:
-
+        print("Initializing Matching class")
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
@@ -128,7 +129,8 @@ class DedupeMatching(IntegralMatching):
 
     def partition(self,
                   data: Data,
-                  threshold: float = 0.5) -> Clusters:  # pragma: no cover
+                  cluster_threshold: float = 0.5,
+                  classifier_threshold: float = 0.5) -> Clusters:  # pragma: no cover
         """
         Identifies records that all refer to the same entity, returns
         tuples containing a sequence of record ids and corresponding
@@ -166,7 +168,7 @@ class DedupeMatching(IntegralMatching):
         """
         pairs = self.pairs(data)
         pair_scores = self.score(pairs)
-        clusters = self.cluster(pair_scores, threshold)
+        clusters = self.cluster(pair_scores, cluster_threshold)
 
         clusters = self._add_singletons(data, clusters)
 
@@ -193,7 +195,7 @@ class DedupeMatching(IntegralMatching):
             yield (singleton, ), (1.0, )
 
     def pairs(self, data):
-        '''
+        """
         Yield pairs of records that share common fingerprints.
 
         Each pair will occur at most once. If you override this
@@ -216,7 +218,7 @@ class DedupeMatching(IntegralMatching):
               (3, {'name' : 'Sam', 'address' : '123 Main'}))
              ]
 
-        '''
+        """
 
         self.fingerprinter.index_all(data)
 
@@ -285,6 +287,13 @@ class DedupeMatching(IntegralMatching):
                        raising it will increase precision
 
                        Defaults to 0.5.
+        Returns:
+            clusters: (list)[tuple] list of clustered duplicates
+                'idx' = id of record
+                'scorex' = score, float between 0 and 1
+                [
+                    (('id1', 'id2', 'id3'), [score1, score2, score3])
+                ]
 
         .. code:: python
 
@@ -398,6 +407,27 @@ class RecordLinkMatching(IntegralMatching):
         This method should only used for small to moderately sized
         datasets for larger data, you need may need to generate your
         own pairs of records and feed them to the :func:`~score`.
+
+                Use blocking rules from predicates to create blocks (preliminary clusters).
+
+                The blocking.Blocker.__call__ function takes the list of
+                records (data_d) and creates groups of records based on
+                the predicates computed during training. This function takes
+                those results and converts them into a dictionary.
+
+                blocks: (dict)
+                    key = (str) the stringified predicate rule
+                        A predicate rule can involve 1+ predicates. For example, a
+                        predicate rule might be:
+                        (   SimplePredicate: (wholeFieldPredicate, gender),
+                            SimplePredicate: (wholeFieldPredicate, city)
+                        )
+                        For a record with city = 'Prince George' and gender = 'female',
+                        the stringified predicate rule would be:
+                            'female:Prince George:0'
+                        The final number indicates the predicate rule number (0)
+                    value = (list)[str] list of record ids which are in this
+                        blocked cluster
 
         Args:
             data_1: Dictionary of records from first dataset, where the
@@ -949,6 +979,8 @@ class ActiveMatching(Matching):
             https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 
         """
+
+        print("Initializing ActiveMatching class")
         super().__init__(num_cores, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
@@ -1016,8 +1048,9 @@ class ActiveMatching(Matching):
         assert self.active_learner, "Please initialize with the sample method"
 
         examples, y = flatten_training(self.training_pairs)
+        print("Fit classifier with active label training data")
         self.classifier.fit(self.data_model.distances(examples), y)
-
+        print(f"Number of matches: {len(self.training_pairs['match'])}")
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
         self._fingerprinter = blocking.Fingerprinter(self.predicates)
@@ -1190,7 +1223,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
                          sample_size: int = 1500,
                          blocked_proportion: float = 0.9,
                          original_length: int = None) -> None:
-        '''
+        """
         Initialize the active learner with your data and, optionally,
         existing training data.
 
@@ -1201,7 +1234,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
                   record_ids and the values are dictionaries
                   with the keys being field names
             training_file: file object containing training data
-            sample_size: Size of the sample to draw
+            sample_size: (int) Size of the sample to draw
             blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.9.
             original_length: If `data` is a subsample of all your data,
                              `original_length` should be the size of
@@ -1218,8 +1251,8 @@ class Dedupe(ActiveMatching, DedupeMatching):
                matcher.prepare_training(data_d, training_file=f)
 
 
-        '''
-
+        """
+        print("Preparing training")
         if training_file:
             self._read_training(training_file)
         self._sample(data, sample_size, blocked_proportion, original_length)
@@ -1229,7 +1262,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
                 sample_size: int = 15000,
                 blocked_proportion: float = 0.5,
                 original_length: int = None) -> None:
-        '''Draw a sample of record pairs from the dataset
+        """Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
         and initialize active learning with this sample
 
@@ -1245,7 +1278,8 @@ class Dedupe(ActiveMatching, DedupeMatching):
         :param original_length: Length of original data, should be set
                                 if `data` is a sample of full data
 
-        '''
+        """
+        print("api.Dedupe.sample")
         self._checkData(data)
 
         if not original_length:
@@ -1261,10 +1295,13 @@ class Dedupe(ActiveMatching, DedupeMatching):
                                                  sample_size,
                                                  original_length,
                                                  index_include=examples)
-
+        print("Marking active training data")
         self.active_learner.mark(examples, y)
 
     def _checkData(self, data: Data) -> None:
+        """Check that data is not empty and that each record has required fields.
+        """
+        print("Checking input data is valid")
         if len(data) == 0:
             raise ValueError(
                 'Dictionary of records is empty.')
@@ -1428,6 +1465,33 @@ class SettingsFileLoadingException(Exception):
 
 
 def flatten_training(training_pairs: TrainingData) -> Tuple[List[TrainingExample], numpy.ndarray]:
+    """Convert active label training pairs to two lists.
+
+    Args:
+        :training_pairs: (dict) dictionary of either 'match' or 'distinct', where
+            'match' is a list of pairs of records which are the same, and
+            'distinct' is a list of pairs of records which are different
+
+        {
+            'match': [
+                [record_1, record_2]
+            ],
+            'distinct': [
+                [record_1, record_3]
+            ]
+        }
+
+    Returns:
+        :examples: (list)[list] ordered list of all the record pairs (distinct and match)
+
+            [
+                [record_1, record_2],
+                [record_1, record_3]
+            ]
+        :y: (list)[int] list of either 1 or 0, corresponding to examples list
+            1 = match
+            0 = distinct
+    """
     examples: List[TrainingExample] = []
     y = []
 

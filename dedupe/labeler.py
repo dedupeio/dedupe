@@ -11,6 +11,7 @@ import dedupe.training as training
 from dedupe._typing import TrainingExample
 
 logger = logging.getLogger(__name__)
+# -*- coding: future_fstrings -*-
 
 
 class ActiveLearner(ABC):
@@ -86,6 +87,7 @@ class RecordLinkSampler(object):
 
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def __init__(self, data_model, *args, **kwargs):
+        print("Initializing RLRLearner class, calling super class ActiveLearner")
         super().__init__(alpha=1)
 
         self.data_model = data_model
@@ -99,6 +101,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
+        print("Initializing fit transform with random pair")
         self.fit_transform([exact_match, random_pair],
                            [1, 0])
 
@@ -106,10 +109,16 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         return self.data_model.distances(pairs)
 
     def fit(self, X, y):
-
+        """
+        Args:
+            X: (list)[list] a list of distance vectors, where the size of
+                the distance vector is the same as the number of fields;
+                distance between two records in R^n
+            y: (list)[float] vector of either 1 or 0
+        """
         self.y = numpy.array(y)
         self.X = X
-
+        print("Fit model")
         super().fit(self.X, self.y, cv=False)
 
     def fit_transform(self, pairs, y):
@@ -235,6 +244,7 @@ class DedupeBlockLearner(BlockLearner):
                  data,
                  original_length,
                  index_include):
+        print("Initializing labeler.DedupeBlockLearner")
         super().__init__(data_model, candidates)
 
         index_data = Sample(data, 10000, original_length)
@@ -354,7 +364,20 @@ class DisagreementLearner(ActiveLearner):
         return uncertain_pair
 
     def mark(self, pairs, y):
+        """
+        Args:
+            pairs: (list)[list] ordered list of all the record pairs (distinct and match)
 
+                [
+                    [record_1, record_2],
+                    [record_1, record_3]
+                ]
+            y: (list)[int] list of either 1 or 0, corresponding to examples list
+                1 = match
+                0 = distinct
+        """
+
+        print("Fitting classifier with active label training data")
         self.y = numpy.concatenate([self.y, y])
         self.pairs.extend(pairs)
 
@@ -368,6 +391,13 @@ class DisagreementLearner(ActiveLearner):
         pass
 
     def learn_predicates(self, recall, index_predicates):
+        """
+        Args:
+            recall: (float)
+            index_predicates: (boolean)
+        """
+        print("labeler.DisagreementLearner.learn_predicates")
+        print(f"Learning predicates, recall={recall}, index_predicates={index_predicates}")
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
 
         if not index_predicates:
@@ -399,6 +429,7 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                  original_length,
                  index_include):
 
+        print("Initializing DedupeDisagreementLearner class")
         self.data_model = data_model
 
         data = core.index(data)
@@ -418,7 +449,7 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                                           index_include)
 
         self._common_init()
-
+        print("Initializing with 5 random values")
         self.mark([exact_match] * 4 + [random_pair],
                   [1] * 4 + [0])
 

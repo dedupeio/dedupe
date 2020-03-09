@@ -25,6 +25,7 @@ import numpy
 import multiprocessing
 import multiprocessing.dummy
 
+# -*- coding: future_fstrings -*-
 
 class ChildProcessError(Exception):
     pass
@@ -109,9 +110,13 @@ class ScoreDupes(object):
     def __init__(self,
                  data_model,
                  classifier,
+                 threshold,
                  records_queue: _Queue,
                  score_queue: _SimpleQueue):
+        print("Initializing core.ScoreDupes object")
+
         self.data_model = data_model
+        self.threshold = threshold
         self.classifier = classifier
         self.records_queue = records_queue
         self.score_queue = score_queue
@@ -122,7 +127,6 @@ class ScoreDupes(object):
             record_pairs: Optional[RecordPairs] = self.records_queue.get()
             if record_pairs is None:
                 break
-
             try:
                 filtered_pairs: Optional[Tuple] = self.fieldDistance(record_pairs)
                 if filtered_pairs is not None:
@@ -134,11 +138,35 @@ class ScoreDupes(object):
         self.score_queue.put(None)
 
     def fieldDistance(self, record_pairs: RecordPairs) -> Optional[Tuple]:
+        """
 
+        During the previous step, records were clustered (blocked) based on the
+        predicates. For each proposed cluster, the records were combined
+        pairwise, to create record_pairs.
+
+        For example, suppose we have 5 records, and block them as follows:
+            Block 1: record1, record2
+            Block 2: record3, record4, record5
+
+        The our record_pairs tuple would look like this:
+            (
+                (('id1', record1), ('id2', record2)),
+                (('id3', record3), ('id4', record4)),
+                (('id3', record3), ('id5', record5)),
+                (('id4', record4), ('id5', record5))
+            )
+
+        Args:
+            record_pairs: (tuple)[tuple]
+                (
+                    (('id1', record1, set()), ('id2', record2, set())),
+                    (('id1', record1, set()), ('id3', record3, set()))
+
+                )
+        """
+        print("core.ScoreDupes.fieldDistance")
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
-
         if records:
-
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
 
@@ -208,7 +236,10 @@ def mergeScores(score_queue: _SimpleQueue,
 def scoreDuplicates(record_pairs: RecordPairs,
                     data_model,
                     classifier,
+                    threshold=0,
                     num_cores: int = 1):
+    print("core.scoreDuplicates")
+
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
