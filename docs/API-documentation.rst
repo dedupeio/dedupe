@@ -160,7 +160,7 @@ Dedupe and StaticDedupe
 
        Same as :func:`dedupe.Dedupe.score`
 
-    .. method:: cluster(matches, threshold=0.5)
+    .. method:: cluster(scores, threshold=0.5)
 
        Same as :func:`dedupe.Dedupe.cluster`
 		    
