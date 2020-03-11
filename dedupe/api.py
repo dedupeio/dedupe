@@ -300,7 +300,7 @@ class DedupeMatching(Matching):
         coverage = {}
 
         if not self.loaded_indices:
-            self.blocker.indexAll(data_d)
+            self.blocker.index_all(data_d)
 
         block_groups = itertools.groupby(self.blocker(data_d.items()),
                                          lambda x: x[1])
@@ -481,7 +481,7 @@ class RecordLinkMatching(Matching):
         blocked_records = {}
 
         if not self.loaded_indices:
-            self.blocker.indexAll(data_2)
+            self.blocker.index_all(data_2)
 
         for block_key, record_id in self.blocker(data_2.items(), target=True):
             block = blocked_records.setdefault(block_key, {})
@@ -1005,7 +1005,7 @@ class GazetteerMatching(RecordLinkMatching):
 
     def index(self, data):  # pragma: no cover
 
-        self.blocker.indexAll(data)
+        self.blocker.index_all(data)
 
         for block_key, record_id in self.blocker(data.items(), target=True):
             if block_key not in self.blocked_records:

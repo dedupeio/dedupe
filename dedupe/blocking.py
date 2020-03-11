@@ -68,7 +68,7 @@ class Blocker:
 
     def index(self, data, field):
         '''Creates TF/IDF index of a given set of data'''
-        indices = extractIndices(self.index_fields[field])
+        indices = extract_indices(self.index_fields[field])
 
         for doc in data:
             if doc:
@@ -85,7 +85,7 @@ class Blocker:
 
     def unindex(self, data, field):
         '''Remove index of a given set of data'''
-        indices = extractIndices(self.index_fields[field])
+        indices = extract_indices(self.index_fields[field])
 
         for doc in data:
             if doc:
