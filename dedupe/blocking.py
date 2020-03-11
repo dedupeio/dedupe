@@ -14,7 +14,7 @@ def index_list():
 
 
 class Blocker:
-    '''Takes in a record and returns all blocks that record belongs to'''
+    """Takes in a record and returns all blocks that record belongs to"""
 
     def __init__(self, predicates):
         """
@@ -61,7 +61,7 @@ class Blocker:
                             {'iteration': i,
                              'elapsed': time.perf_counter() - start_time})
 
-    def resetIndices(self):
+    def reset_indices(self):
         # clear canopies to reduce memory usage
         for predicate in self.index_predicates:
             predicate.reset()
@@ -100,7 +100,7 @@ class Blocker:
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
-    def indexAll(self, data_d):
+    def index_all(self, data_d):
         for field in self.index_fields:
             unique_fields = {record[field]
                              for record
@@ -109,7 +109,7 @@ class Blocker:
             self.index(unique_fields, field)
 
 
-def extractIndices(index_fields):
+def extract_indices(index_fields):
 
     indices = []
     for index_type, predicates in index_fields.items():
