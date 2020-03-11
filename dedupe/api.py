@@ -318,7 +318,7 @@ class DedupeMatching(Matching):
                     blocks[block_key] = [record_id]
 
         if not self.loaded_indices:
-            self.blocker.resetIndices()
+            self.blocker.reset_indices()
 
         blocks = {block_key: record_ids for block_key, record_ids
                   in blocks.items() if len(record_ids) > 1}
@@ -730,7 +730,7 @@ class ActiveMatching(Matching):
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
         self.blocker = blocking.Blocker(self.predicates)
-        self.blocker.resetIndices()
+        self.blocker.reset_indices()
 
     def write_training(self, file_obj):  # pragma: no cover
         """
