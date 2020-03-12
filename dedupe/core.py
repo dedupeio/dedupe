@@ -110,7 +110,7 @@ class ScoreDupes(object):
         print("core.ScoreDupes.__call__")
         self.score_queue = score_queue
         while True:
-            record_pairs = records_queue.get()
+            record_pairs: Optional[RecordPairs] = records_queue.get()
             if record_pairs is None:
                 break
             try:
@@ -123,7 +123,7 @@ class ScoreDupes(object):
 
         score_queue.put(None)
 
-    def field_distance(self, record_pairs):
+    def field_distance(self, record_pairs: RecordPairs) -> Optional[Tuple]:
         """
 
         During the previous step, records were clustered (blocked) based on the
@@ -151,21 +151,20 @@ class ScoreDupes(object):
                 )
         """
         print("core.ScoreDupes.field_distance")
+        record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
         ids = []
         records = []
+
         for record_pair in record_pairs:
-            ((id_1, record_1, smaller_ids_1),
-             (id_2, record_2, smaller_ids_2)) = record_pair
-            print(f"Record pair: {id_1}, {id_2}")
-            print(f"Smaller ids: {smaller_ids_1}, {smaller_ids_2}")
-            if smaller_ids_1.isdisjoint(smaller_ids_2):
-                print("Disjoint")
-                ids.append((id_1, id_2))
-                records.append((record_1, record_2))
+            ((id_1, record_1),
+             (id_2, record_2)) = record_pair
+
+            ids.append((id_1, id_2))
+            records.append((record_1, record_2))
+            
         if records:
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
-
             mask = scores > self.threshold
             print(scores)
             print(f"Threshold = {self.threshold}")

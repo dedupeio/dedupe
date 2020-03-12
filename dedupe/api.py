@@ -152,8 +152,8 @@ class Matching(object):
 
         """
         print("Matching.matchBlocks")
-        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
-        matches = core.scoreDuplicates(candidate_records,
+        # candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
+        matches = core.scoreDuplicates(blocks,
                                        self.data_model,
                                        self.classifier,
                                        self.num_cores,
@@ -311,6 +311,7 @@ class DedupeMatching(Matching):
                 [
                     (('id1', 'id2', 'id3'), [score1, score2, score3])
                 ]
+
         .. code:: python
            > clusters = matcher.partition(data, threshold=0.5)
            > print(duplicates)
@@ -319,34 +320,70 @@ class DedupeMatching(Matching):
             ((10, 11), (0.899, 0.899))]
 
         """
-
-        blocked_pairs = self._blockData(data)
         print("DedupeMatching.partition")
-        clusters = self.matchBlocks(blocked_pairs, classifier_threshold, cluster_threshold)
+        pairs = self.pairs(data)
+        pair_scores = self.score(pairs, classifier_threshold=classifier_threshold)
+        clusters = self.cluster(pair_scores, threshold=cluster_threshold)
         if generator:
             return clusters
         else:
             return list(clusters)
 
-    def threshold(self, data, recall_weight=1.5):  # pragma: no cover
+    def pairs(self, data):
         """
-        Returns the threshold that maximizes the expected F score,
-        a weighted average of precision and recall for a sample of
-        data.
+        Yield pairs of records that share common fingerprints.
+        Each pair will occur at most once. If you override this
+        method, you need to take care to ensure that this remains
+        true, as downstream methods, particularly :func:`cluster`, assumes
+        that every pair of records is compared no more than once.
 
-        Arguments:
-        data          -- Dictionary of records, where the keys are record_ids
-                         and the values are dictionaries with the keys being
-                         field names
+        Args:
+            data: Dictionary of records, where the keys are record_ids
+                  and the values are dictionaries with the keys being
+                  field names
 
-        recall_weight -- Sets the tradeoff between precision and
-                         recall. I.e. if you care twice as much about
-                         recall as you do precision, set recall_weight
-                         to 2.
+        .. code:: python
+            > pairs = matcher.pairs(data)
+            > print(list(pairs))
+            [((1, {'name' : 'Pat', 'address' : '123 Main'}),
+              (2, {'name' : 'Pat', 'address' : '123 Main'})),
+             ((1, {'name' : 'Pat', 'address' : '123 Main'}),
+              (3, {'name' : 'Sam', 'address' : '123 Main'}))
+             ]
         """
 
-        blocked_pairs = self._blockData(data)
-        return self.thresholdBlocks(blocked_pairs, recall_weight)
+        self.fingerprinter.index_all(data)
+
+        id_type = core.sqlite_id_type(data)
+
+        # Blocking and pair generation are typically the first memory
+        # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            con = sqlite3.connect(temp_dir + '/blocks.db')
+
+            con.execute('''CREATE TABLE blocking_map
+                           (block_key text, record_id {id_type})
+                        '''.format(id_type=id_type))
+
+            con.executemany("INSERT INTO blocking_map values (?, ?)",
+                            self.fingerprinter(data.items()))
+
+            self.fingerprinter.reset_indices()
+
+            con.execute('''CREATE INDEX block_key_idx
+                           ON blocking_map (block_key)''')
+            pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+                                   FROM blocking_map a
+                                   INNER JOIN blocking_map b
+                                   USING (block_key)
+                                   WHERE a.record_id < b.record_id''')
+
+            for a_record_id, b_record_id in pairs:
+                yield ((a_record_id, data[a_record_id]),
+                       (b_record_id, data[b_record_id]))
+
+            pairs.close()
+            con.close()
 
     def _blockedPairs(self, blocks):
         """
@@ -393,9 +430,9 @@ class DedupeMatching(Matching):
         coverage = {}
 
         if not self.loaded_indices:
-            self.blocker.index_all(data_d)
+            self.fingerprinter.index_all(data_d)
 
-        block_groups = itertools.groupby(self.blocker(data_d.items()),
+        block_groups = itertools.groupby(self.fingerprinter(data_d.items()),
                                          lambda x: x[1])
         print("DedupeMatching._blockData")
 
@@ -411,7 +448,7 @@ class DedupeMatching(Matching):
                     blocks[block_key] = [record_id]
 
         if not self.loaded_indices:
-            self.blocker.reset_indices()
+            self.fingerprinter.reset_indices()
 
         blocks = {block_key: record_ids for block_key, record_ids
                   in blocks.items() if len(record_ids) > 1}
@@ -601,7 +638,7 @@ class RecordLinkMatching(Matching):
         return pairs
 
     def _blockGenerator(self, messy_data, blocked_records):
-        block_groups = itertools.groupby(self.blocker(messy_data.items()),
+        block_groups = itertools.groupby(self.fingerprinter(messy_data.items()),
                                          lambda x: x[1])
 
         for i, (record_id, block_keys) in enumerate(block_groups):
@@ -628,9 +665,9 @@ class RecordLinkMatching(Matching):
         blocked_records = {}
 
         if not self.loaded_indices:
-            self.blocker.index_all(data_2)
+            self.fingerprinter.index_all(data_2)
 
-        for block_key, record_id in self.blocker(data_2.items(), target=True):
+        for block_key, record_id in self.fingerprinter(data_2.items(), target=True):
             block = blocked_records.setdefault(block_key, {})
             block[record_id] = data_2[record_id]
 
@@ -725,7 +762,7 @@ class StaticMatching(Matching):
 
         logger.info(self.predicates)
 
-        self.blocker = blocking.Fingerprinter(self.predicates)
+        self._fingerprinter = blocking.Fingerprinter(self.predicates)
 
     def _loadIndices(self, settings_file):
         canopies = pickle.load(settings_file)
@@ -812,7 +849,7 @@ class ActiveMatching(Matching):
         self.training_pairs = OrderedDict({u'distinct': [],
                                            u'match': []})
 
-        self.blocker = None
+        self._fingerprinter = None
 
     def cleanupTraining(self):  # pragma: no cover
         '''
@@ -876,8 +913,8 @@ class ActiveMatching(Matching):
         print(f"Number of matches: {len(self.training_pairs['match'])}")
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
-        self.blocker = blocking.Fingerprinter(self.predicates)
-        self.blocker.reset_indices()
+        self._fingerprinter = blocking.Fingerprinter(self.predicates)
+        self._fingerprinter.reset_indices()
 
     def write_training(self, file_obj):  # pragma: no cover
         """
@@ -1167,22 +1204,22 @@ class GazetteerMatching(RecordLinkMatching):
 
     def index(self, data):  # pragma: no cover
 
-        self.blocker.index_all(data)
+        self.fingerprinter.index_all(data)
 
-        for block_key, record_id in self.blocker(data.items(), target=True):
+        for block_key, record_id in self.fingerprinter(data.items(), target=True):
             if block_key not in self.blocked_records:
                 self.blocked_records[block_key] = {}
             self.blocked_records[block_key][record_id] = data[record_id]
 
     def unindex(self, data):  # pragma: no cover
 
-        for field in self.blocker.index_fields:
-            self.blocker.unindex((record[field]
+        for field in self.fingerprinter.index_fields:
+            self.fingerprinter.unindex((record[field]
                                   for record
                                   in data.values()),
                                  field)
 
-        for block_key, record_id in self.blocker(data.items()):
+        for block_key, record_id in self.fingerprinter(data.items()):
             try:
                 del self.blocked_records[block_key][record_id]
             except KeyError:
