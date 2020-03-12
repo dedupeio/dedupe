@@ -6,6 +6,29 @@
 dedupe provides the main user interface for the library the
 Dedupe class
 """
+"""
+blockData
+Use blocking rules from predicates to create blocks (preliminary clusters).
+
+The blocking.Fingerprinter.__call__ function takes the list of
+records (data_d) and creates groups of records based on
+the predicates computed during training. This function takes
+those results and converts them into a dictionary.
+
+blocks: (dict)
+    key = (str) the stringified predicate rule
+        A predicate rule can involve 1+ predicates. For example, a
+        predicate rule might be:
+        (   SimplePredicate: (wholeFieldPredicate, gender),
+            SimplePredicate: (wholeFieldPredicate, city)
+        )
+        For a record with city = 'Prince George' and gender = 'female',
+        the stringified predicate rule would be:
+            'female:Prince George:0'
+        The final number indicates the predicate rule number (0)
+    value = (list)[str] list of record ids which are in this
+        blocked cluster
+"""
 
 import itertools
 import logging
@@ -131,46 +154,6 @@ class Matching(object):
 
         return probability[i]
 
-    def matchBlocks(self, blocks, classifier_threshold=.5,
-                    cluster_threshold=0.5, *args, **kwargs):
-        """
-        Partitions blocked data and generates a sequence of clusters,
-        where each cluster is a tuple of record ids
-
-        Keyword arguments:
-
-        blocks -- Sequence of tuples of records, where each tuple is a
-                  set of records covered by a blocking predicate
-
-        threshold -- Number between 0 and 1 (default is .5). We will
-                      only consider as duplicates record pairs as
-                      duplicates if their estimated duplicate
-                      likelihood is greater than the threshold.
-
-                      Lowering the number will increase recall,
-                      raising it will increase precision
-
-        """
-        print("Matching.matchBlocks")
-        # candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
-        matches = core.scoreDuplicates(blocks,
-                                       self.data_model,
-                                       self.classifier,
-                                       self.num_cores,
-                                       classifier_threshold)
-        #print(matches)
-        logger.debug("matching done, begin clustering")
-
-        for cluster in self._cluster(matches, cluster_threshold, *args, **kwargs):
-            yield cluster
-
-        try:
-            match_file = matches.filename
-            del matches
-            os.remove(match_file)
-        except AttributeError:
-            pass
-
     def write_settings(self, file_obj, index=False):  # pragma: no cover
         """
         Write a settings file containing the
@@ -290,7 +273,8 @@ class DedupeMatching(Matching):
         the same entity.
 
         This method should only used for small to moderately sized
-        datasets for larger data, use matchBlocks
+        datasets for larger data, you need may need to generate your
+        own pairs of records and feed them to :func:`~score`.
 
         Args:
             data: Dictionary of records, where the keys are record_ids
@@ -324,11 +308,30 @@ class DedupeMatching(Matching):
         pairs = self.pairs(data)
         pair_scores = self.score(pairs, classifier_threshold=classifier_threshold)
         clusters = self.cluster(pair_scores, threshold=cluster_threshold)
+
+        try:
+            mmap_file = pair_scores.filename
+            del pair_scores
+            os.remove(mmap_file)
+        except AttributeError:
+            pass
+
         if generator:
             return clusters
         else:
             return list(clusters)
 
+    def _add_singletons(self, data, clusters):
+
+        singletons = set(data.keys())
+
+        for record_ids, score in clusters:
+            singletons.difference_update(record_ids)
+            yield (record_ids, score)
+
+        for singleton in singletons:
+            yield (singleton, ), (1.0, )
+            
     def pairs(self, data):
         """
         Yield pairs of records that share common fingerprints.
@@ -385,119 +388,23 @@ class DedupeMatching(Matching):
             pairs.close()
             con.close()
 
-    def _blockedPairs(self, blocks):
-        """
-        Generate tuples of pairs of records from a block of records
-
-        Arguments:
-
-        blocks -- an iterable sequence of blocked records
-        """
-
-        block, blocks = core.peek(blocks)
-        self._checkBlock(block)
-
-        combinations = itertools.combinations
-
-        pairs = (combinations(sorted(block), 2) for block in blocks)
-
-        return pairs
-
-    def _blockData(self, data_d):
-        """Use blocking rules from predicates to create blocks (preliminary clusters).
-
-        The blocking.Fingerprinter.__call__ function takes the list of
-        records (data_d) and creates groups of records based on
-        the predicates computed during training. This function takes
-        those results and converts them into a dictionary.
-
-        blocks: (dict)
-            key = (str) the stringified predicate rule
-                A predicate rule can involve 1+ predicates. For example, a
-                predicate rule might be:
-                (   SimplePredicate: (wholeFieldPredicate, gender),
-                    SimplePredicate: (wholeFieldPredicate, city)
-                )
-                For a record with city = 'Prince George' and gender = 'female',
-                the stringified predicate rule would be:
-                    'female:Prince George:0'
-                The final number indicates the predicate rule number (0)
-            value = (list)[str] list of record ids which are in this
-                blocked cluster
-        """
-
-        blocks = {}
-        coverage = {}
-
-        if not self.loaded_indices:
-            self.fingerprinter.index_all(data_d)
-
-        block_groups = itertools.groupby(self.fingerprinter(data_d.items()),
-                                         lambda x: x[1])
-        print("DedupeMatching._blockData")
-
-        for record_id, block in block_groups:
-            print(f"Record id: {record_id}")
-            block_keys = [block_key for block_key, _ in block]
-            print(f"Block keys api: {block_keys}")
-            coverage[record_id] = block_keys
-            for block_key in block_keys:
-                if block_key in blocks:
-                    blocks[block_key].append(record_id)
-                else:
-                    blocks[block_key] = [record_id]
-
-        if not self.loaded_indices:
-            self.fingerprinter.reset_indices()
-
-        blocks = {block_key: record_ids for block_key, record_ids
-                  in blocks.items() if len(record_ids) > 1}
-        print("Blocks")
-        print(blocks)
-        coverage = {record_id: [k for k in cover if k in blocks]
-                    for record_id, cover in coverage.items()}
-        print(coverage)
-        for block_key, block in blocks.items():
-            processed_block = []
-            print("New block")
-            for record_id in block:
-                smaller_blocks = {k for k in coverage[record_id]
-                                  if k < block_key}
-                processed_block.append((record_id, data_d[record_id], smaller_blocks))
-                print(record_id)
-            yield processed_block
-
-    def _checkBlock(self, block):
-        if block:
-            try:
-                id, record, smaller_ids = block[0]
-            except (ValueError, KeyError):
-                raise ValueError(
-                    "Each item in a block must be a sequence of "
-                    "record_id, record, and smaller ids and the "
-                    "records also must be dictionaries")
-            try:
-                record.items()
-                smaller_ids.isdisjoint([])
-            except AttributeError:
-                raise ValueError("The record must be a dictionary and "
-                                 "smaller_ids must be a set")
-
-            self.data_model.check(record)
-
     def cluster(self,
                 scores: numpy.ndarray,
                 threshold: float = 0.5) -> Clusters:
         r"""From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
+
         Yields tuples containing a sequence of record ids and corresponding
         sequence of confidence score as a float between 0 and 1. The
         record_ids within each set should refer to the same entity and the
         confidence score is a measure of our confidence a particular entity
         belongs in the cluster.
+
         Each confidence scores is a measure of how similar the record is
         to the other records in the cluster. Let :math:`\phi(i,j)` be the pair-wise
-        similarity between records :math:`i` and :math:`j`. Let :math:`N` be the number of records in the cluster.
+        similarity between records :math:`i` and :math:`j`. Let :math:`N` be the number of
+        records in the cluster.
+
         .. math::
            \text{confidence score}_i = 1 - \sqrt {\frac{\sum_{j}^N (1 - \phi(i,j))^2}{N -1}}
         This measure is similar to the average squared distance
@@ -505,8 +412,10 @@ class DedupeMatching(Matching):
         cluster. These scores can be `combined to give a total score
         for the cluster
         <https://en.wikipedia.org/wiki/Variance#Discrete_random_variable>`_.
+
         .. math::
            \text{cluster score} = 1 - \sqrt { \frac{\sum_i^N(1 - \mathrm{score}_i)^2 \cdot (N - 1) } { 2 N^2}}
+
         Args:
             scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_
                 with a dtype of `[('pairs', id_type, 2),
@@ -525,6 +434,7 @@ class DedupeMatching(Matching):
                        Lowering the number will increase recall,
                        raising it will increase precision
                        Defaults to 0.5.
+
         .. code:: python
            > pairs = matcher.pairs(data)
            > scores = matcher.scores(pairs)
@@ -560,6 +470,45 @@ class RecordLinkMatching(Matching):
         super().__init__(*args, **kwargs)
 
         self._cluster = clustering.greedyMatching
+
+    def matchBlocks(self, blocks, classifier_threshold=.5,
+                    cluster_threshold=0.5, *args, **kwargs):
+        """
+        Partitions blocked data and generates a sequence of clusters,
+        where each cluster is a tuple of record ids
+
+        Keyword arguments:
+
+        blocks -- Sequence of tuples of records, where each tuple is a
+                  set of records covered by a blocking predicate
+
+        threshold -- Number between 0 and 1 (default is .5). We will
+                      only consider as duplicates record pairs as
+                      duplicates if their estimated duplicate
+                      likelihood is greater than the threshold.
+
+                      Lowering the number will increase recall,
+                      raising it will increase precision
+
+        """
+        print("RecordLinkMatching.matchBlocks")
+        candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
+        matches = core.scoreDuplicates(candidate_records,
+                                       self.data_model,
+                                       self.classifier,
+                                       self.num_cores,
+                                       classifier_threshold)
+        logger.debug("matching done, begin clustering")
+
+        for cluster in self._cluster(matches, cluster_threshold, *args, **kwargs):
+            yield cluster
+
+        try:
+            match_file = matches.filename
+            del matches
+            os.remove(match_file)
+        except AttributeError:
+            pass
 
     def match(self, data_1, data_2, threshold=0.5, generator=False):  # pragma: no cover
         """
