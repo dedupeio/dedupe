@@ -104,7 +104,7 @@ class ScoreDupes(object):
             if record_pairs is None:
                 break
             try:
-                filtered_pairs = self.fieldDistance(record_pairs)
+                filtered_pairs = self.field_distance(record_pairs)
                 if filtered_pairs is not None:
                     score_queue.put(filtered_pairs)
             except Exception as e:
@@ -113,7 +113,7 @@ class ScoreDupes(object):
 
         score_queue.put(None)
 
-    def fieldDistance(self, record_pairs):
+    def field_distance(self, record_pairs):
         """
 
         During the previous step, records were clustered (blocked) based on the
@@ -140,7 +140,7 @@ class ScoreDupes(object):
 
                 )
         """
-        print("core.ScoreDupes.fieldDistance")
+        print("core.ScoreDupes.field_distance")
         ids = []
         records = []
         for record_pair in record_pairs:

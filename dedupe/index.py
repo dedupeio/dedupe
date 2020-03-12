@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class Index(ABC):
     @abstractmethod
-    def __init__():  # pragma: no cover
+    def __init__(self):  # pragma: no cover
         pass
 
     @abstractmethod
@@ -19,5 +19,5 @@ class Index(ABC):
         pass
 
     @abstractmethod
-    def initSearch():  # pragma: no cover
+    def initSearch(self):  # pragma: no cover
         pass

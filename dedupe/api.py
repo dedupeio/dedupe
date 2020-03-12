@@ -12,7 +12,8 @@ import multiprocessing
 import warnings
 import os
 from collections import OrderedDict
-
+import tempfile
+import sqlite3
 import numpy
 import json
 import rlr
@@ -23,6 +24,33 @@ import dedupe.blocking as blocking
 import dedupe.clustering as clustering
 import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
+import dedupe.predicates
+from typing import (Mapping,
+                    Optional,
+                    List,
+                    Tuple,
+                    Set,
+                    Dict,
+                    Union,
+                    Generator,
+                    Iterable,
+                    Sequence,
+                    BinaryIO,
+                    cast,
+                    TextIO)
+from typing_extensions import Literal
+from dedupe._typing import (Data,
+                            Clusters,
+                            RecordPairs,
+                            RecordID,
+                            RecordDict,
+                            Blocks,
+                            TrainingExample,
+                            LookupResults,
+                            Links,
+                            TrainingData,
+                            Classifier,
+                            JoinConstraint)
 
 logger = logging.getLogger(__name__)
 # -*- coding: future_fstrings -*-
@@ -39,14 +67,25 @@ class Matching(object):
     - `matchBlocks`
     """
 
-    def __init__(self, num_cores):
+    def __init__(self, num_cores: Optional[int], **kwargs) -> None:
         print("Initializing Matching class")
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
             self.num_cores = num_cores
 
+        self._fingerprinter: Optional[blocking.Fingerprinter] = None
+        self.data_model: datamodel.DataModel
+        self.classifier: Classifier
+        self.predicates: Sequence[dedupe.predicates.Predicate]
         self.loaded_indices = False
+
+    @property
+    def fingerprinter(self) -> blocking.Fingerprinter:
+        if self._fingerprinter is None:
+            raise ValueError('the record fingerprinter is not intialized, '
+                             'please run the train method')
+        return self._fingerprinter
 
     def thresholdBlocks(self, blocks, recall_weight=1.5):  # pragma: nocover
         """
@@ -119,7 +158,7 @@ class Matching(object):
                                        self.classifier,
                                        self.num_cores,
                                        classifier_threshold)
-        print(matches)
+        #print(matches)
         logger.debug("matching done, begin clustering")
 
         for cluster in self._cluster(matches, cluster_threshold, *args, **kwargs):
@@ -167,6 +206,28 @@ class Matching(object):
         pickle.dump(canopies, file_obj)
         pickle.dump(indices, file_obj)
         pickle.dump(doc_to_ids, file_obj)
+
+    def score(self, pairs, classifier_threshold=0.5):
+        """
+        Scores pairs of records. Returns pairs of tuples of records id and
+        associated probabilites that the pair of records are match
+        Args:
+            pairs: Iterator of pairs of records
+        """
+        try:
+            matches = core.scoreDuplicates(pairs,
+                                           self.data_model,
+                                           self.classifier,
+                                           self.num_cores,
+                                           classifier_threshold)
+        except RuntimeError:
+            raise RuntimeError('''
+                You need to either turn off multiprocessing or protect
+                the calls to the Dedupe methods with a
+                `if __name__ == '__main__'` in your main module, see
+                https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods''')
+
+        return matches
 
 
 class DedupeMatching(Matching):
@@ -276,7 +337,7 @@ class DedupeMatching(Matching):
     def _blockData(self, data_d):
         """Use blocking rules from predicates to create blocks (preliminary clusters).
 
-        The blocking.Blocker.__call__ function takes the list of
+        The blocking.Fingerprinter.__call__ function takes the list of
         records (data_d) and creates groups of records based on
         the predicates computed during training. This function takes
         those results and converts them into a dictionary.
@@ -354,6 +415,59 @@ class DedupeMatching(Matching):
                                  "smaller_ids must be a set")
 
             self.data_model.check(record)
+
+    def cluster(self,
+                scores,
+                threshold=0.5):
+        """From the similarity scores of pairs of records, decide which groups
+        of records are all referring to the same entity.
+        Yields tuples containing a sequence of record ids and corresponding
+        sequence of confidence score as a float between 0 and 1. The
+        record_ids within each set should refer to the same entity and the
+        confidence score is a measure of our confidence a particular entity
+        belongs in the cluster.
+        Each confidence scores is a measure of how similar the record is
+        to the other records in the cluster. Let :math:`\phi(i,j)` be the pair-wise
+        similarity between records :math:`i` and :math:`j`. Let :math:`N` be the number of records in the cluster.
+        .. math::
+           \text{confidence score}_i = 1 - \sqrt {\frac{\sum_{j}^N (1 - \phi(i,j))^2}{N -1}}
+        This measure is similar to the average squared distance
+        between the focal record and the other records in the
+        cluster. These scores can be `combined to give a total score
+        for the cluster
+        <https://en.wikipedia.org/wiki/Variance#Discrete_random_variable>`_.
+        .. math::
+           \text{cluster score} = 1 - \sqrt { \frac{\sum_i^N(1 - \mathrm{score}_i)^2 \cdot (N - 1) } { 2 N^2}}
+        Args:
+            scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
+                    ('score', 'f4')]` where dtype is either a str
+                    or int, and score is a number between 0 and
+                    1. The 'pairs' column contains pairs of ids of
+                    the records compared and the 'score' column
+                    should contains the similarity score for that
+                    pair of records.
+                    For each pair, the smaller id should be first.
+            threshold: Number between 0 and 1. We will only consider
+                       put together records into clusters if the
+                       `cophenetic similarity
+                       <https://en.wikipedia.org/wiki/Cophenetic>`_ of
+                       the cluster is greater than the threshold.
+                       Lowering the number will increase recall,
+                       raising it will increase precision
+                       Defaults to 0.5.
+        .. code:: python
+           > pairs = matcher.pairs(data)
+           > scores = matcher.scores(pairs)
+           > clusters = matcher.cluster(scores)
+           > print(list(clusters))
+           [((1, 2, 3), (0.790, 0.860, 0.790)),
+            ((4, 5), (0.720, 0.720)),
+            ((10, 11), (0.899, 0.899))]
+        """
+
+        logger.debug("matching done, begin clustering")
+
+        yield from clustering.cluster(scores, threshold)
 
 
 class RecordLinkMatching(Matching):
@@ -578,7 +692,7 @@ class StaticMatching(Matching):
 
         logger.info(self.predicates)
 
-        self.blocker = blocking.Blocker(self.predicates)
+        self.blocker = blocking.Fingerprinter(self.predicates)
 
     def _loadIndices(self, settings_file):
         canopies = pickle.load(settings_file)
@@ -729,7 +843,7 @@ class ActiveMatching(Matching):
         print(f"Number of matches: {len(self.training_pairs['match'])}")
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
-        self.blocker = blocking.Blocker(self.predicates)
+        self.blocker = blocking.Fingerprinter(self.predicates)
         self.blocker.reset_indices()
 
     def write_training(self, file_obj):  # pragma: no cover

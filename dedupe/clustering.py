@@ -5,7 +5,16 @@ import itertools
 from collections import defaultdict
 import array
 import logging
-
+from typing import (Iterable,
+                    Dict,
+                    ValuesView,
+                    cast,
+                    List,
+                    Set,
+                    Generator,
+                    Sequence,
+                    Tuple)
+from dedupe._typing import Clusters, RecordID, Links
 import numpy
 import fastcluster
 import hcluster
@@ -13,7 +22,8 @@ import hcluster
 logger = logging.getLogger(__name__)
 
 
-def connected_components(edgelist, max_components):
+def connected_components(edgelist: numpy.ndarray,
+                         max_components: int) -> Generator[numpy.ndarray, None, None]:
 
     if len(edgelist) == 0:
         raise StopIteration()
@@ -42,9 +52,9 @@ def connected_components(edgelist, max_components):
             yield sub_graph
 
 
-def union_find(edgelist):
+def union_find(edgelist: numpy.ndarray) -> ValuesView[Sequence[int]]:
 
-    root = {}
+    root: Dict[RecordID, RecordID] = {}
     components = {}
     component_size = {}
 
@@ -67,6 +77,7 @@ def union_find(edgelist):
                 root_a = root_b
             components[root_a].append(i)
             component_size[root_a] += 1
+            root_a = cast(RecordID, root_a)  # AH upgrade
             root[b] = root_a
         elif root_a != root_b:
             if component_size[root_a] < component_size[root_b]:
@@ -91,8 +102,10 @@ def union_find(edgelist):
     return components.values()
 
 
-def condensedDistance(dupes):
-    '''
+def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
+                                                     numpy.ndarray,
+                                                     int]:
+    """
     Convert the pairwise list of distances in dupes to "condensed
     distance matrix" required by the hierarchical clustering
     algorithms. Also return a dictionary that maps the distance matrix
@@ -108,7 +121,7 @@ def condensedDistance(dupes):
     where (row,col) is index of an uncondensed square N X N distance matrix.
 
     See http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
-    '''
+    """
 
     candidate_set = numpy.unique(dupes['pairs'])
 
@@ -130,7 +143,9 @@ def condensedDistance(dupes):
     return i_to_id, condensed_distances, N
 
 
-def cluster(dupes, threshold=.5, max_components=30000):
+def cluster(dupes: numpy.ndarray,
+            threshold: float = 0.5,
+            max_components: int = 30000) -> Clusters:
     """
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
@@ -157,7 +172,7 @@ def cluster(dupes, threshold=.5, max_components=30000):
                                           distance_threshold,
                                           criterion='distance')
 
-            clusters = defaultdict(list)
+            clusters: Dict[int, List[int]] = defaultdict(list)
             print(partition)
             print(linkage)
             for i, cluster_id in enumerate(partition):
@@ -176,7 +191,9 @@ def cluster(dupes, threshold=.5, max_components=30000):
                 yield tuple(ids), (score,) * 2
 
 
-def confidences(cluster, condensed_distances, d):
+def confidences(cluster: Sequence[int],
+                condensed_distances: numpy.ndarray,
+                d: int) -> numpy.ndarray:
     '''
     We calculate a per record score that is similar to a standard
     deviation.  The main reason is that these record scores can be
@@ -198,9 +215,9 @@ def confidences(cluster, condensed_distances, d):
     return scores
 
 
-def greedyMatching(dupes, threshold=0.5):
-    A = set()
-    B = set()
+def greedyMatching(dupes: numpy.ndarray, threshold: float = 0.5) -> Links:  # AH upgrade threshold
+    A: Set[RecordID] = set()
+    B: Set[RecordID] = set()
 
     dupes = dupes[dupes['score'] >= threshold]
     dupes.sort(order='score')
@@ -214,13 +231,30 @@ def greedyMatching(dupes, threshold=0.5):
             yield (a, b), score
 
 
-def gazetteMatching(scored_blocks, n_matches=1):
+def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
+                    threshold: float = 0,
+                    n_matches: int = 1) -> Links:  # AH upgrade threshold
 
     for block in scored_blocks:
         block.sort(order='score')
         block = block[::-1]
 
         if n_matches:
-            yield block[:n_matches]
+            yield block[:n_matches].copy()
         else:
-            yield block
+            yield block.copy()
+
+
+def pair_gazette_matching(scored_pairs: numpy.ndarray,
+                          threshold: float = 0.0,
+                          n_matches: int = 1) -> Links:
+
+    scored_pairs.sort(order='pairs')
+
+    group_key = scored_pairs['pairs'][:, 0]
+    change_points = numpy.where(numpy.roll(group_key, 1) != group_key)[0]
+    scored_blocks = numpy.split(scored_pairs, change_points)
+
+    for match in gazetteMatching(scored_blocks, threshold, n_matches):
+        if match:
+            yield from match

@@ -105,17 +105,17 @@ class BlockLearner(object):
         """
 
         Args:
-            :simple_cover: (dict) {
+            simple_cover: (dict) {
                 key: (dedupe.predicates class)
                 value: (dedupe.training.Counter)
-            }
-            :predicates: (generator)[dedupe.predicates class]
+                }
+            predicates: (generator)[dedupe.predicates class]
 
         Returns:
-            :comparison_count: (dict) {
+            comparison_count: (dict) {
                 key: (dedupe.predicates class)
                 value: (float)
-            }
+                }
         """
         print("training.BlockLearner.comparisons")
         compounder = self.Compounder(simple_cover)
@@ -182,8 +182,8 @@ class DedupeBlockLearner(BlockLearner):
 
         self.r = (N * (N - 1)) / (N_s * (N_s - 1))
 
-        self.blocker = blocking.Blocker(predicates)
-        self.blocker.indexAll(data)
+        self.blocker = blocking.Fingerprinter(predicates)
+        self.blocker.index_all(data)
 
         simple_cover = self.coveredPairs(self.blocker, sampled_records)
         compound_predicates = self.compound(simple_cover, compound_length)
@@ -205,7 +205,7 @@ class DedupeBlockLearner(BlockLearner):
             Call the predicate function on each record.
 
         Args:
-            :blocker: (blocking.Blocker)
+            :blocker: (blocking.Fingerprinter)
             :records: (dict)[dict] Records dictionary
 
         Returns:
@@ -276,8 +276,8 @@ class RecordLinkBlockLearner(BlockLearner):
 
         self.r = r_a * r_b
 
-        self.blocker = blocking.Blocker(predicates)
-        self.blocker.indexAll(data_2)
+        self.blocker = blocking.Fingerprinter(predicates)
+        self.blocker.index_all(data_2)
 
         simple_cover = self.coveredPairs(self.blocker,
                                          sampled_records_1,

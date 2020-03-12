@@ -5,25 +5,36 @@
 from collections import defaultdict
 import logging
 import time
+from typing import Generator, Tuple, Iterable, Dict, List, Union
+from dedupe._typing import Record, RecordID, Data
+
+import dedupe.predicates
 
 logger = logging.getLogger(__name__)
+
+Docs = Union[Iterable[str], Iterable[Iterable[str]]]
 
 
 def index_list():
     return defaultdict(list)
 
 
-class Blocker:
+class Fingerprinter(object):
     """Takes in a record and returns all blocks that record belongs to"""
 
-    def __init__(self, predicates):
+    def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
         """
         Args:
-            :predicates: (set)[dudupe.predicates class]
+            predicates: (set)[dudupe.predicates class]
+            index_fields: (dict) A dictionary of all the fingerprinter methods that use an
+                index of data field values. The keys are the field names,
+                which can be useful to know for indexing the data.
         """
         print("Initializing Blocker class")
         self.predicates = predicates
-
+        self.index_fields: Dict[str,
+                                Dict[str,
+                                     List[dedupe.predicates.IndexPredicate]]]
         self.index_fields = defaultdict(index_list)
         self.index_predicates = []
 
@@ -34,14 +45,45 @@ class Blocker:
                         predicate)
                     self.index_predicates.append(predicate)
 
-    def __call__(self, records, target=False):
+    def __call__(self,
+                 records: Iterable[Record],
+                 target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
         """
+        Generate the predicates for records. Yields tuples of (predicate,
+        record_id).
+
         Args:
-            :records: (dict_items) list of input records
-                key = (str) id of record
-                value = (dict) record
+            records: (dict_items) A sequence of tuples of (record_id,
+                  record_dict). Can often be created by
+                  `data_dict.items()`. List of input records.
+                  key = (str) id of record
+                  value = (dict) record
+            target: Indicates whether the data should be treated as
+                    the target data. This effects the behavior of
+                    search predicates. If `target` is set to
+                    `True`, an search predicate will return the
+                    value itself. If `target` is set to `False` the
+                    search predicate will return all possible
+                    values within the specified search distance.
+                    Let's say we have a
+                    `LevenshteinSearchPredicate` with an associated
+                    distance of `1` on a `"name"` field; and we
+                    have a record like `{"name": "thomas"}`. If the
+                    `target` is set to `True` then the predicate
+                    will return `"thomas"`.  If `target` is set to
+                    `False`, then the blocker could return
+                    `"thomas"`, `"tomas"`, and `"thoms"`. By using
+                    the `target` argument on one of your datasets,
+                    you will dramatically reduce the total number
+                    of comparisons without a loss of accuracy.
+        .. code:: python
+           > data = [(1, {'name' : 'bob'}), (2, {'name' : 'suzanne'})]
+           > blocked_ids = deduper.fingerprinter(data)
+           > print list(blocked_ids)
+           [('foo:1', 1), ..., ('bar:1', 100)]
+
         """
-        print("blocking.Blocker.__call__")
+        print("blocking.Fingerprinter.__call__")
         start_time = time.perf_counter()
         predicates = [(':' + str(i), predicate)
                       for i, predicate
@@ -61,16 +103,33 @@ class Blocker:
                             {'iteration': i,
                              'elapsed': time.perf_counter() - start_time})
 
-    def reset_indices(self):
-        # clear canopies to reduce memory usage
+    def reset_indices(self) -> None:
+        """
+        Fingeprinter indicdes can take up a lot of memory. If you are
+        done with blocking, the method will reset the indices to free up.
+        If you need to block again, the data will need to be re-indexed.
+        """
         for predicate in self.index_predicates:
             predicate.reset()
 
-    def index(self, data, field):
-        '''Creates TF/IDF index of a given set of data'''
+    def index(self, docs: Docs, field: str) -> None:
+        """
+        Add docs to the indices used by fingerprinters.
+        Some fingerprinter methods depend upon having an index of
+        values that a field may have in the data. This method adds
+        those values to the index. If you don't have any fingerprinter
+        methods that use an index, this method will do nothing.
+        Args:
+            docs: an iterator of values from your data to index. While
+                  not required, it is recommended that docs be a unique
+                  set of of those values. Indexing can be an expensive
+                  operation.
+            field: fieldname or key associated with the values you are
+                   indexing
+        """
         indices = extract_indices(self.index_fields[field])
 
-        for doc in data:
+        for doc in docs:
             if doc:
                 for _, index, preprocess in indices:
                     index.index(preprocess(doc))
@@ -81,13 +140,24 @@ class Blocker:
 
             for predicate in self.index_fields[field][index_type]:
                 logger.debug("Canopy: %s", str(predicate))
+                predicate.reset()  # AH upgrade
                 predicate.index = index
 
-    def unindex(self, data, field):
-        '''Remove index of a given set of data'''
+    def unindex(self, docs: Docs, field: str) -> None:
+        """Remove docs from indices used by fingerprinters.
+
+        Args:
+            docs: an iterator of values from your data to remove. While
+                  not required, it is recommended that docs be a unique
+                  set of of those values. Indexing can be an expensive
+                  operation.
+            field: fieldname or key associated with the values you are
+                   unindexing
+        """
+
         indices = extract_indices(self.index_fields[field])
 
-        for doc in data:
+        for doc in docs:
             if doc:
                 for _, index, preprocess in indices:
                     index.unindex(preprocess(doc))
@@ -100,11 +170,11 @@ class Blocker:
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
-    def index_all(self, data_d):
+    def index_all(self, data: Data):
         for field in self.index_fields:
             unique_fields = {record[field]
                              for record
-                             in data_d.values()
+                             in data.values()
                              if record[field]}
             self.index(unique_fields, field)
 
