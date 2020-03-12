@@ -279,12 +279,10 @@ class DedupeMatching(Matching):
         super().__init__(*args, **kwargs)
         self._cluster = clustering.cluster
 
-    def match(self, data, classifier_threshold=0.5, cluster_threshold=0.5,
-              generator=False):  # pragma: no cover
+    def partition(self, data, classifier_threshold=0.5, cluster_threshold=0.5,
+                generator=False):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
-        tuples
-
-        containing a set of record ids and a confidence score as a
+        tuples containing a set of record ids and a confidence score as a
         float between 0 and 1. The record_ids within each set should
         refer to the same entity and the confidence score is a measure
         of our confidence that all the records in a cluster refer to
@@ -294,18 +292,16 @@ class DedupeMatching(Matching):
         datasets for larger data, use matchBlocks
 
         Args:
-
-        data -- Dictionary of records, where the keys are record_ids
-                and the values are dictionaries with the keys being
-                field names
-
-        threshold -- Number between 0 and 1 (default is .5). We will
-                      consider records as potential duplicates if the
-                      predicted probability of being a duplicate is
-                      above the threshold.
-
-                      Lowering the number will increase recall,
-                      raising it will increase precision
+            data: Dictionary of records, where the keys are record_ids
+                  and the values are dictionaries with the keys being
+                  field names
+            threshold: Number between 0 and 1 (Default is 0.5).  We
+                       will only consider put together records into
+                       clusters if the `cophenetic similarity
+                       <https://en.wikipedia.org/wiki/Cophenetic>`_ of
+                       the cluster is greater than the threshold.
+                       Lowering the number will increase recall,
+                       raising it will increase precision
 
         Returns:
             clusters: (list)[tuple] list of clustered duplicates
@@ -314,8 +310,15 @@ class DedupeMatching(Matching):
                 [
                     (('id1', 'id2', 'id3'), [score1, score2, score3])
                 ]
+        .. code:: python
+           > clusters = matcher.partition(data, threshold=0.5)
+           > print(duplicates)
+           [((1, 2, 3), (0.790, 0.860, 0.790)),
+            ((4, 5), (0.720, 0.720)),
+            ((10, 11), (0.899, 0.899))]
 
         """
+
         blocked_pairs = self._blockData(data)
         print("DedupeMatching.match")
         clusters = self.matchBlocks(blocked_pairs, classifier_threshold, cluster_threshold)

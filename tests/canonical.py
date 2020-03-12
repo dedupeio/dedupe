@@ -103,7 +103,7 @@ alpha = deduper.threshold(data_d, 1)
 
 # print candidates
 print('clustering...')
-clustered_dupes = deduper.match(data_d, threshold=alpha)
+clustered_dupes = deduper.partition(data_d, threshold=alpha)
 
 
 print('Evaluate Clustering')
