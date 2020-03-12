@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# -*- coding: future_fstrings -*-
+
 """
 dedupe provides the main user interface for the library the
 Dedupe class
@@ -52,7 +54,6 @@ from dedupe._typing import (Data,
                             JoinConstraint)
 
 logger = logging.getLogger(__name__)
-# -*- coding: future_fstrings -*-
 
 
 class Matching(object):
@@ -280,7 +281,7 @@ class DedupeMatching(Matching):
         self._cluster = clustering.cluster
 
     def partition(self, data, classifier_threshold=0.5, cluster_threshold=0.5,
-                generator=False):  # pragma: no cover
+                  generator=False):  # pragma: no cover
         """Identifies records that all refer to the same entity, returns
         tuples containing a set of record ids and a confidence score as a
         float between 0 and 1. The record_ids within each set should
@@ -320,7 +321,7 @@ class DedupeMatching(Matching):
         """
 
         blocked_pairs = self._blockData(data)
-        print("DedupeMatching.match")
+        print("DedupeMatching.partition")
         clusters = self.matchBlocks(blocked_pairs, classifier_threshold, cluster_threshold)
         if generator:
             return clusters
@@ -448,9 +449,9 @@ class DedupeMatching(Matching):
             self.data_model.check(record)
 
     def cluster(self,
-                scores,
-                threshold=0.5):
-        """From the similarity scores of pairs of records, decide which groups
+                scores: numpy.ndarray,
+                threshold: float = 0.5) -> Clusters:
+        r"""From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
         Yields tuples containing a sequence of record ids and corresponding
         sequence of confidence score as a float between 0 and 1. The
@@ -470,7 +471,8 @@ class DedupeMatching(Matching):
         .. math::
            \text{cluster score} = 1 - \sqrt { \frac{\sum_i^N(1 - \mathrm{score}_i)^2 \cdot (N - 1) } { 2 N^2}}
         Args:
-            scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ with a dtype of `[('pairs', id_type, 2),
+            scores: a numpy `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_
+                with a dtype of `[('pairs', id_type, 2),
                     ('score', 'f4')]` where dtype is either a str
                     or int, and score is a number between 0 and
                     1. The 'pairs' column contains pairs of ids of
@@ -819,7 +821,7 @@ class ActiveMatching(Matching):
         del self.training_pairs
         del self.active_learner
 
-    def readTraining(self, training_file):
+    def _read_training(self, training_file):
         '''
         Read training from previously built training data file object
 
@@ -961,41 +963,56 @@ class StaticDedupe(DedupeMatching, StaticMatching):
 
 class Dedupe(DedupeMatching, ActiveMatching):
     """
-    Mixin Class for Active Learning Deduplication
-
-    Public Methods
-    - sample
+    Class for active learning deduplication. Use deduplication when you have
+    data that can contain multiple records that can all refer to the same
+    entity.
     """
+
     canopies = True
 
     def prepare_training(self,
-                         data,
-                         training_file=None,
-                         sample_size=15000,
-                         blocked_proportion=0.5,
-                         original_length=None):
+                         data: Data,
+                         training_file: TextIO = None,
+                         sample_size: int = 1500,
+                         blocked_proportion: float = 0.9,
+                         original_length: int = None) -> None:
         """Sets up the learner.
 
-        Args:
+        Initialize the active learner with your data and, optionally,
+        existing training data.
 
-            :data: (dict) Dictionary of records, where the keys are
-                           record_ids and the values are dictionaries
-                           with the keys being field names
-            :training_file: file object containing active labels training data
-            :sample_size: (int) Size of the sample to draw
-            :blocked_proportion: Proportion of the sample that will be blocked
-            :original_length: Length of original data, should be set if
-                               `data` is a sample of full data
+        Args:
+            data: (dict) Dictionary of records, where the keys are
+                  record_ids and the values are dictionaries
+                  with the keys being field names
+            training_file: file object containing training data
+            sample_size: (int) Size of the sample to draw
+            blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.9.
+            original_length: If `data` is a subsample of all your data,
+                             `original_length` should be the size of
+                             your complete data. By default,
+                             `original_length` defaults to the length of
+                             `data`.
+
+        .. code:: python
+           matcher.prepare_training(data_d, 150000, .5)
+           # or
+           with open('training_file.json') as f:
+               matcher.prepare_training(data_d, training_file=f)
 
         """
+
         print("Preparing training")
         if training_file:
             print("Reading active labels from training file")
-            self.readTraining(training_file)
-        self.sample(data, sample_size, blocked_proportion, original_length)
+            self._read_training(training_file)
+        self._sample(data, sample_size, blocked_proportion, original_length)
 
-    def sample(self, data, sample_size=15000,
-               blocked_proportion=0.5, original_length=None):
+    def _sample(self,
+                data: Data,
+                sample_size: int = 15000,
+                blocked_proportion: float = 0.5,
+                original_length: int = None) -> None:
         """Draw a sample of record pairs from the dataset
         (a mix of random pairs & pairs of similar records)
         and initialize active learning with this sample
@@ -1006,8 +1023,8 @@ class Dedupe(DedupeMatching, ActiveMatching):
                 record_ids and the values are dictionaries with the keys being
                 field names
             sample_size: (int) Size of the sample to draw
-            blocked_proportion  -- Proportion of the sample that will be blocked
-            original_length     -- Length of original data, should be set if `data` is
+            blocked_proportion: Proportion of the sample that will be blocked
+            original_length: Length of original data, should be set if `data` is
                                    a sample of full data
 
 
@@ -1078,7 +1095,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         '''
 
         if training_file:
-            self.readTraining(training_file)
+            self._read_training(training_file)
         self.sample(data_1,
                     data_2,
                     sample_size,
