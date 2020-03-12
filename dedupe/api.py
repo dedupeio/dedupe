@@ -17,7 +17,6 @@ import sqlite3
 import numpy
 import json
 import rlr
-
 import dedupe.core as core
 import dedupe.serializer as serializer
 import dedupe.blocking as blocking
@@ -220,6 +219,35 @@ class Matching(object):
                                            self.classifier,
                                            self.num_cores,
                                            classifier_threshold)
+        except RuntimeError:
+            raise RuntimeError('''
+                You need to either turn off multiprocessing or protect
+                the calls to the Dedupe methods with a
+                `if __name__ == '__main__'` in your main module, see
+                https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods''')
+
+        return matches
+
+
+class IntegralMatching(Matching):
+    """
+    This class is for linking class where we need to score all possible
+    pairs before deciding on any matches
+    """
+
+    def score(self,
+              pairs: RecordPairs) -> numpy.ndarray:
+        """
+        Scores pairs of records. Returns pairs of tuples of records id and
+        associated probabilites that the pair of records are match
+        Args:
+            pairs: Iterator of pairs of records
+        """
+        try:
+            matches = core.scoreDuplicates(pairs,
+                                           self.data_model,
+                                           self.classifier,
+                                           self.num_cores)
         except RuntimeError:
             raise RuntimeError('''
                 You need to either turn off multiprocessing or protect
