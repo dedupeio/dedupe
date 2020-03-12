@@ -9,7 +9,17 @@ import random
 import collections
 import warnings
 import functools
-
+from typing import (Iterator,
+                    Tuple,
+                    Mapping,
+                    Sequence,
+                    Union,
+                    Generator,
+                    Optional,
+                    Any,
+                    Type,
+                    Iterable)
+from dedupe._typing import (RecordPairs, RecordID, Blocks, Data, Literal)
 import numpy
 
 # -*- coding: future_fstrings -*-
@@ -449,3 +459,16 @@ def unique(seq):
         if each not in cleaned:
             cleaned.append(each)
     return cleaned
+
+
+def sqlite_id_type(data: Data) -> Literal['text', 'integer']:
+
+    example = next(iter(data.keys()))
+    python_type = type(example)
+
+    if python_type is bytes or python_type is str:
+        return 'text'
+    elif python_type is int:
+        return 'integer'
+    else:
+        raise ValueError('Invalid type for record id')
