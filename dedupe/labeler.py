@@ -8,7 +8,7 @@ import rlr
 import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
-
+from dedupe._typing import TrainingExample
 logger = logging.getLogger(__name__)
 # -*- coding: future_fstrings -*-
 
@@ -16,15 +16,15 @@ logger = logging.getLogger(__name__)
 class ActiveLearner(ABC):
 
     @abstractmethod
-    def transform():
+    def transform(self):
         pass
 
     @abstractmethod
-    def pop():
+    def pop(self) -> TrainingExample:
         pass
 
     @abstractmethod
-    def mark():
+    def mark(self):
         pass
 
     @abstractmethod
@@ -121,7 +121,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def fit_transform(self, pairs, y):
         self.fit(self.transform(pairs), y)
 
-    def pop(self):
+    def pop(self) -> TrainingExample:
         if not len(self.candidates):
             raise IndexError("No more unlabeled examples to label")
 
@@ -136,7 +136,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         uncertain_pair = self.candidates.pop(uncertain_index)
 
-        return [uncertain_pair]
+        return [uncertain_pair]  # AH upgrade
 
     def _remove(self, index):
         self.distances = numpy.delete(self.distances, index, axis=0)

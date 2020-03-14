@@ -91,7 +91,7 @@ else:
 
     gazetteer = dedupe.Gazetteer(fields)
     gazetteer.sample(data_1, data_2, 10000)
-    gazetteer.markPairs(training_pairs)
+    gazetteer.mark_pairs(training_pairs)
     gazetteer.train()
 
 if not gazetteer.blocked_records:

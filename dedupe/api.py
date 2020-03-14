@@ -220,7 +220,8 @@ class IntegralMatching(Matching):
     """
 
     def score(self,
-              pairs: RecordPairs) -> numpy.ndarray:
+              pairs: RecordPairs,
+              classifier_threshold: float = 0.5) -> numpy.ndarray:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilites that the pair of records are match
@@ -231,7 +232,8 @@ class IntegralMatching(Matching):
             matches = core.scoreDuplicates(pairs,
                                            self.data_model,
                                            self.classifier,
-                                           self.num_cores)
+                                           self.num_cores,
+                                           classifier_threshold)
         except RuntimeError:
             raise RuntimeError('''
                 You need to either turn off multiprocessing or protect
@@ -331,27 +333,69 @@ class DedupeMatching(Matching):
 
         for singleton in singletons:
             yield (singleton, ), (1.0, )
-            
+
     def pairs(self, data):
-        """
-        Yield pairs of records that share common fingerprints.
+        """Yield pairs of records that share common fingerprints.
+
+        A fingerprint is a combination of n predicates
         Each pair will occur at most once. If you override this
         method, you need to take care to ensure that this remains
         true, as downstream methods, particularly :func:`cluster`, assumes
         that every pair of records is compared no more than once.
 
         Args:
-            data: Dictionary of records, where the keys are record_ids
+            data: (dict) Dictionary of records, where the keys are record_ids
                   and the values are dictionaries with the keys being
-                  field names
+                  field names i.e.
 
+                  {
+                    'record_id': record
+                  }
+
+        Example:
+
+        Suppose you have the following data:
         .. code:: python
-            > pairs = matcher.pairs(data)
+            > print(data)
+            {'0': {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'},
+             '1': {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'},
+             '2': {'first_name': 'Sam', 'last_name': 'Smith', 'address': '123 Main'}}
+
+        To find out which predicates are used for your fingerprints:
+        .. code:: python
+            > print(deduper.fingerprinter.predicates)
+            ((SimplePredicate: (sortedAcronym, first_name),
+              SimplePredicate: (sortedAcronym, last_name)),
+             (SimplePredicate: (wholeFieldPredicate, last_name),
+             (SimplePredicate: (wholeFieldPredicate, address))))
+
+        Then your output will be:
+        .. code:: python
+            > pairs = deduper.pairs(data)
             > print(list(pairs))
-            [((1, {'name' : 'Pat', 'address' : '123 Main'}),
-              (2, {'name' : 'Pat', 'address' : '123 Main'})),
-             ((1, {'name' : 'Pat', 'address' : '123 Main'}),
-              (3, {'name' : 'Sam', 'address' : '123 Main'}))
+            [(('0', {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'}),
+              ('1', {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'})),
+             (('0', {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'}),
+              ('2', {'first_name': 'Sam', 'last_name': 'Smith', 'address': '123 Main'})),
+             (('1', {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'}),
+              ('2', {'first_name': 'Sam', 'last_name': 'Smith', 'address': '123 Main'}))
+             ]
+
+        In this example, because of the predicates we had, all the records had some similarity.
+        If, on the other hand, our predicates had been:
+        .. code:: python
+            > print(deduper.fingerprinter.predicates)
+            ((SimplePredicate: (sortedAcronym, first_name),
+              SimplePredicate: (sortedAcronym, last_name)),
+             (SimplePredicate: (wholeFieldPredicate, first_name),
+             (SimplePredicate: (wholeFieldPredicate, address))))
+
+        then our output would be:
+        .. code:: python
+            > pairs = deduper.pairs(data)
+            > print(list(pairs))
+            [(('0', {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'}),
+              ('1', {'first_name': 'Pat', 'last_name': 'Smith', 'address': '123 Main'}))
              ]
         """
 
@@ -821,7 +865,7 @@ class ActiveMatching(Matching):
                                    cls=serializer.dedupe_decoder)
 
         try:
-            self.markPairs(training_pairs)
+            self.mark_pairs(training_pairs)
         except AttributeError as e:
             if "Attempting to block with an index predicate without indexing records" in str(e):
                 raise UserWarning('Training data has records not known '
@@ -878,7 +922,7 @@ class ActiveMatching(Matching):
                   default=serializer._to_json,
                   ensure_ascii=True)
 
-    def uncertainPairs(self):
+    def uncertain_pairs(self):
         '''
         Provides a list of the pairs of records that dedupe is most
         curious to learn if they are matches or distinct.
@@ -889,7 +933,7 @@ class ActiveMatching(Matching):
 
         return self.active_learner.pop()
 
-    def markPairs(self, labeled_pairs):
+    def mark_pairs(self, labeled_pairs):
         '''
         Argument :
 

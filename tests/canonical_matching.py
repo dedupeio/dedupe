@@ -91,7 +91,7 @@ else:
 
     deduper = dedupe.RecordLink(fields)
     deduper.prepare_training(data_1, data_2, sample_size=10000)
-    deduper.markPairs(training_pairs)
+    deduper.mark_pairs(training_pairs)
     deduper.train()
 
 alpha = deduper.threshold(data_1, data_2)

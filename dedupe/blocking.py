@@ -48,8 +48,7 @@ class Fingerprinter(object):
     def __call__(self,
                  records: Iterable[Record],
                  target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
-        """
-        Generate the predicates for records. Yields tuples of (predicate,
+        """Generate the predicates for records. Yields tuples of (predicate,
         record_id).
 
         Args:
@@ -76,11 +75,51 @@ class Fingerprinter(object):
                     the `target` argument on one of your datasets,
                     you will dramatically reduce the total number
                     of comparisons without a loss of accuracy.
+
+        Yields:
+            A generator of tuples: ('predicate', 'record_id')
+
+        Example:
+
+            Say you only have 3 records:
+
         .. code:: python
-           > data = [(1, {'name' : 'bob'}), (2, {'name' : 'suzanne'})]
-           > blocked_ids = deduper.fingerprinter(data)
-           > print list(blocked_ids)
-           [('foo:1', 1), ..., ('bar:1', 100)]
+            > data = [('0', {'first_name': 'John',
+                             'last_name': 'Doe',
+                             'city': 'Vancouver',
+                             'gender': 'male',
+                             'country': 'Canada'})
+                      ('1', {'first_name': 'John',
+                             'last_name': 'Donovan',
+                             'city': 'Vancouver',
+                             'gender': 'male',
+                             'country': 'Canada'})
+                      ('2', {'first_name': 'Alice',
+                             'last_name': 'Walker',
+                             'city': 'Victoria',
+                             'gender': 'female',
+                             'country': 'Canada'})]
+
+        If your model has been trained already, you can see what predicates were chosen
+        (these are just an example):
+        .. code:: python
+            > print(deduper.fingerprinter.predicates)
+            ((SimplePredicate: (sortedAcronym, city),
+              SimplePredicate: (sortedAcronym, gender)),
+             (SimplePredicate: (wholeFieldPredicate, first_name),
+             (SimplePredicate: (wholeFieldPredicate, last_name))))
+
+        Your output would then be:
+        .. code:: python
+            > blocked_records = deduper.fingerprinter(data)
+            > print(list(blocked_records))
+            [('V:M:0', '0'),
+             ('John:Doe:1', '0'),
+             ('V:M:0', '1'),
+             ('John:Donovan:1', '1'),
+             ('V:F:0', '2'),
+             ('Alice:Walker:1', '2')
+            ]
 
         """
         print("blocking.Fingerprinter.__call__")
@@ -119,6 +158,7 @@ class Fingerprinter(object):
         values that a field may have in the data. This method adds
         those values to the index. If you don't have any fingerprinter
         methods that use an index, this method will do nothing.
+
         Args:
             docs: an iterator of values from your data to index. While
                   not required, it is recommended that docs be a unique
