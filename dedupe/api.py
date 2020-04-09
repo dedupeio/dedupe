@@ -91,7 +91,7 @@ class Matching(object):
     """
 
     def __init__(self, num_cores: Optional[int], **kwargs) -> None:
-        print("Initializing Matching class")
+        logger.debug("Initializing Matching class")
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
@@ -261,7 +261,7 @@ class DedupeMatching(Matching):
     ActiveLearner = labeler.DedupeDisagreementLearner
 
     def __init__(self, *args, **kwargs):
-        print("Initializing DedupeMatching, calling super class Matching constructor")
+        logger.debug("Initializing DedupeMatching, calling super class Matching constructor")
         super().__init__(*args, **kwargs)
         self._cluster = clustering.cluster
 
@@ -306,7 +306,7 @@ class DedupeMatching(Matching):
             ((10, 11), (0.899, 0.899))]
 
         """
-        print("DedupeMatching.partition")
+        logger.debug("DedupeMatching.partition")
         pairs = self.pairs(data)
         pair_scores = self.score(pairs, classifier_threshold=classifier_threshold)
         clusters = self.cluster(pair_scores, threshold=cluster_threshold)
@@ -478,8 +478,14 @@ class DedupeMatching(Matching):
                        Lowering the number will increase recall,
                        raising it will increase precision
                        Defaults to 0.5.
+        Yields:
+            (tuple)[tuple]: a tuple of two tuples, where the first tuple is the
+                list of record_ids in a cluster, and the second tuple is the
+                corresponding probabilities of being in that cluster.
 
+        Example:
         .. code:: python
+
            > pairs = matcher.pairs(data)
            > scores = matcher.scores(pairs)
            > clusters = matcher.cluster(scores)
@@ -535,7 +541,7 @@ class RecordLinkMatching(Matching):
                       raising it will increase precision
 
         """
-        print("RecordLinkMatching.matchBlocks")
+        logger.debug("RecordLinkMatching.matchBlocks")
         candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
         matches = core.scoreDuplicates(candidate_records,
                                        self.data_model,
@@ -828,7 +834,7 @@ class ActiveMatching(Matching):
         For details about variable types, check the documentation.
         <https://docs.dedupe.io/>`_
         """
-        print("Initializing ActiveMatching class")
+        logger.debug("Initializing ActiveMatching class")
         Matching.__init__(self, num_cores, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
@@ -899,11 +905,11 @@ class ActiveMatching(Matching):
 
                             Defaults to True.
         """
-        print("ActiveMatching.train")
+        logger.debug("ActiveMatching.train")
         examples, y = flatten_training(self.training_pairs)
-        print("Fit classifier with active label training data")
+        logger.debug("Fit classifier with active label training data")
         self.classifier.fit(self.data_model.distances(examples), y)
-        print(f"Number of matches: {len(self.training_pairs['match'])}")
+        logger.debug(f"Number of matches: {len(self.training_pairs['match'])}")
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
         self._fingerprinter = blocking.Fingerprinter(self.predicates)
@@ -1032,9 +1038,9 @@ class Dedupe(DedupeMatching, ActiveMatching):
 
         """
 
-        print("Preparing training")
+        logger.debug("Preparing training")
         if training_file:
-            print("Reading active labels from training file")
+            logger.debug("Reading active labels from training file")
             self._read_training(training_file)
         self._sample(data, sample_size, blocked_proportion, original_length)
 
@@ -1059,7 +1065,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
 
 
         """
-        print("api.Dedupe.sample")
+        logger.debug("api.Dedupe.sample")
         self._checkData(data)
 
         if not original_length:
@@ -1075,13 +1081,13 @@ class Dedupe(DedupeMatching, ActiveMatching):
                                                  sample_size,
                                                  original_length,
                                                  index_include=examples)
-        print("Marking active training data")
+        logger.debug("Marking active training data")
         self.active_learner.mark(examples, y)
 
     def _checkData(self, data):
         """Check that data is not empty and that each record has required fields.
         """
-        print("Checking input data is valid")
+        logger.debug("Checking input data is valid")
         if len(data) == 0:
             raise ValueError(
                 'Dictionary of records is empty.')

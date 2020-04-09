@@ -25,12 +25,33 @@ class Fingerprinter(object):
     def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
         """
         Args:
-            predicates: (set)[dudupe.predicates class]
+            predicates: (tuple)[dedupe.Predicate class] a tuple of predicates which
+                are used to block the data. Can be a simple or compound predicate.
+                For example, a tuple of compound predicates:
+                ::
+                    ((LevenshteinCanopyPredicate: (2, first_name),
+                      SimplePredicate: (sortedAcronym, last_name)),
+                     (SimplePredicate: (fingerprint, initials),
+                      SimplePredicate: (nearIntegersPredicate, street_address)))
+
+                where
+                ::
+
+                    (LevenshteinCanopyPredicate: (2, first_name),
+                      SimplePredicate: (sortedAcronym, last_name))
+
+                is a compound predicate (inherits from tuple)
+
+                A tuple of simple predicates:
+                ::
+                    (SimplePredicate: (sortedAcronym, last_name),)
+
             index_fields: (dict) A dictionary of all the fingerprinter methods that use an
                 index of data field values. The keys are the field names,
                 which can be useful to know for indexing the data.
+
         """
-        print("Initializing Blocker class")
+        logger.debug("Initializing Blocker class")
         self.predicates = predicates
         self.index_fields: Dict[str,
                                 Dict[str,
@@ -122,18 +143,18 @@ class Fingerprinter(object):
             ]
 
         """
-        print("blocking.Fingerprinter.__call__")
+        logger.debug("blocking.Fingerprinter.__call__")
         start_time = time.perf_counter()
         predicates = [(':' + str(i), predicate)
                       for i, predicate
                       in enumerate(self.predicates)]
-        print(f"Predicates: {predicates}")
+        logger.debug(f"Predicates: {predicates}")
         for i, record in enumerate(records):
             record_id, instance = record
-            print(f"Record: {record}")
+            logger.debug(f"Record: {record}")
             for pred_id, predicate in predicates:
                 block_keys = predicate(instance, target=target)
-                print(f"Block keys: {block_keys}")
+                logger.debug(f"Block keys: {block_keys}")
                 for block_key in block_keys:
                     yield block_key + pred_id, record_id
 

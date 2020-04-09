@@ -1,9 +1,10 @@
-import pkgutil
+# -*- coding: future_fstrings -*-
 
+import pkgutil
 import numpy
 import copyreg
 import types
-
+import logging
 import dedupe.variables
 import dedupe.variables.base as base
 from dedupe.variables.base import MissingDataType
@@ -12,8 +13,8 @@ from dedupe.variables.interaction import InteractionType
 for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,
                                          'dedupe.variables.'):
     __import__(module)
-# -*- coding: future_fstrings -*-
 
+logger = logging.getLogger(__name__)
 
 FIELD_CLASSES = {k: v for k, v in base.allSubclasses(base.FieldType) if k}
 
@@ -61,7 +62,7 @@ class DataModel(object):
         Returns:
             :predicates: (set)[dudupe.predicates class]
         """
-        print("datamodel.DataModel.predicates")
+        logger.debug("datamodel.DataModel.predicates")
         predicates = set()
         for definition in self.primary_fields:
             for predicate in definition.predicates:
@@ -101,14 +102,14 @@ class DataModel(object):
             #print(f"{record_1['id']}, {record_2['id']}: {distances[i, :]}")
 
         if i>2:
-            print(f"Distances: {distances[0,:]}")
+            logger.debug(f"Distances: {distances[0,:]}")
 
-            print(f"Distances: {distances[2,:]}")
+            logger.debug(f"Distances: {distances[2,:]}")
 
         distances = self._derivedDistances(distances)
         if i>2:
-            print(f"Distances: {distances[0,:]}")
-            print(f"Distances: {distances[2,:]}")
+            logger.debug(f"Distances: {distances[0,:]}")
+            logger.debug(f"Distances: {distances[2,:]}")
         return distances
 
     def _derivedDistances(self, primary_distances):

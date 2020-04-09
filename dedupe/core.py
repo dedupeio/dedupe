@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# -*- coding: future_fstrings -*-
 
 import itertools
 import time
@@ -9,6 +10,8 @@ import random
 import collections
 import warnings
 import functools
+import numpy
+import logging
 from typing import (Iterator,
                     Tuple,
                     Mapping,
@@ -20,9 +23,9 @@ from typing import (Iterator,
                     Type,
                     Iterable)
 from dedupe._typing import (RecordPairs, RecordID, Blocks, Data, Literal)
-import numpy
 
-# -*- coding: future_fstrings -*-
+logger = logging.getLogger(__name__)
+
 
 class ChildProcessError(Exception):
     pass
@@ -100,14 +103,14 @@ def randomPairsWithReplacement(n_records, sample_size):
 
 class ScoreDupes(object):
     def __init__(self, data_model, classifier, threshold):
-        print("Initializing core.ScoreDupes object")
+        logger.debug("Initializing core.ScoreDupes object")
         self.data_model = data_model
         self.classifier = classifier
         self.threshold = threshold
         self.score_queue = None
 
     def __call__(self, records_queue, score_queue):
-        print("core.ScoreDupes.__call__")
+        logger.debug("core.ScoreDupes.__call__")
         self.score_queue = score_queue
         while True:
             record_pairs: Optional[RecordPairs] = records_queue.get()
@@ -150,7 +153,7 @@ class ScoreDupes(object):
 
                 )
         """
-        print("core.ScoreDupes.field_distance")
+        logger.debug("core.ScoreDupes.field_distance")
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
         ids = []
         records = []
@@ -161,14 +164,14 @@ class ScoreDupes(object):
 
             ids.append((id_1, id_2))
             records.append((record_1, record_2))
-            
+
         if records:
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
             mask = scores > self.threshold
-            print(scores)
-            print(f"Threshold = {self.threshold}")
-            print(f"Mask = {mask}")
+            logger.debug(scores)
+            logger.debug(f"Threshold = {self.threshold}")
+            logger.debug(f"Mask = {mask}")
             if mask.any():
                 id_type = sniff_id_type(ids)
                 ids = numpy.array(ids, dtype=id_type)
@@ -229,7 +232,7 @@ def mergeScores(score_queue, result_queue, stop_signals):
 
 
 def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
-    print("core.scoreDuplicates")
+    logger.debug("core.scoreDuplicates")
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
@@ -238,9 +241,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
 
     first, records = peek(records)
     if first is None:
-        raise BlockingError("No records have been blocked together. "
-                            "Is the data you are trying to match like "
-                            "the data you trained on?")
+        return []
 
     record_pairs_queue = Queue(2)
     score_queue = SimpleQueue()
@@ -277,7 +278,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
 
     reduce_process.join()
     [process.join() for process in map_processes]
-    print(scored_pairs)
+    logger.debug(scored_pairs)
     return scored_pairs
 
 

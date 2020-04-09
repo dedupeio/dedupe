@@ -156,7 +156,7 @@ def cluster(dupes: numpy.ndarray,
                  number will increase precision, raising it will increase
                  recall
     """
-    print("clustering.cluster")
+    logger.debug("clustering.cluster")
     distance_threshold = 1 - threshold
     dupe_sub_graphs = connected_components(dupes, max_components)
     for sub_graph in dupe_sub_graphs:
@@ -167,27 +167,27 @@ def cluster(dupes: numpy.ndarray,
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid',
                                           preserve_input=True)
-            print(distance_threshold)
+            logger.debug(distance_threshold)
             partition = hcluster.fcluster(linkage,
                                           distance_threshold,
                                           criterion='distance')
 
             clusters: Dict[int, List[int]] = defaultdict(list)
-            print(partition)
-            print(linkage)
+            logger.debug(partition)
+            logger.debug(linkage)
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
             for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
-                    print(tuple(i_to_id[i] for i in cluster), scores)
+                    logger.debug(tuple(i_to_id[i] for i in cluster), scores)
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             (ids, score), = sub_graph
             if score > distance_threshold:
-                print(tuple(ids), (score,) * 2)
+                logger.debug(tuple(ids), (score,) * 2)
                 yield tuple(ids), (score,) * 2
 
 

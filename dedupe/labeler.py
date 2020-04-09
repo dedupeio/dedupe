@@ -84,7 +84,7 @@ class RecordLinkSampler(object):
 
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def __init__(self, data_model, *args, **kwargs):
-        print("Initializing RLRLearner class, calling super class ActiveLearner")
+        logger.debug("Initializing RLRLearner class, calling super class ActiveLearner")
         super().__init__(alpha=1)
 
         self.data_model = data_model
@@ -98,7 +98,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
-        print("Initializing fit transform with random pair")
+        logger.debug("Initializing fit transform with random pair")
         self.fit_transform([exact_match, random_pair],
                            [1, 0])
 
@@ -115,7 +115,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         """
         self.y = numpy.array(y)
         self.X = X
-        print("Fit model")
+        logger.debug("Fit model")
         super().fit(self.X, self.y, cv=False)
 
     def fit_transform(self, pairs, y):
@@ -241,7 +241,7 @@ class DedupeBlockLearner(BlockLearner):
                  data,
                  original_length,
                  index_include):
-        print("Initializing labeler.DedupeBlockLearner")
+        logger.debug("Initializing labeler.DedupeBlockLearner")
         super().__init__(data_model, candidates)
 
         index_data = Sample(data, 50000, original_length)
@@ -374,7 +374,7 @@ class DisagreementLearner(ActiveLearner):
                 0 = distinct
         """
 
-        print("Fitting classifier with active label training data")
+        logger.debug("Fitting classifier with active label training data")
         self.y = numpy.concatenate([self.y, y])
         self.pairs.extend(pairs)
 
@@ -393,8 +393,8 @@ class DisagreementLearner(ActiveLearner):
             recall: (float)
             index_predicates: (boolean)
         """
-        print("labeler.DisagreementLearner.learn_predicates")
-        print(f"Learning predicates, recall={recall}, index_predicates={index_predicates}")
+        logger.debug("labeler.DisagreementLearner.learn_predicates")
+        logger.debug(f"Learning predicates, recall={recall}, index_predicates={index_predicates}")
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
 
         if not index_predicates:
@@ -426,7 +426,7 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                  original_length,
                  index_include):
 
-        print("Initializing DedupeDisagreementLearner class")
+        logger.debug("Initializing DedupeDisagreementLearner class")
         self.data_model = data_model
 
         data = core.index(data)
@@ -446,7 +446,7 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                                           index_include)
 
         self._common_init()
-        print("Initializing with 5 random values")
+        logger.debug("Initializing with 5 random values")
         self.mark([exact_match] * 4 + [random_pair],
                   [1] * 4 + [0])
 

@@ -6,9 +6,11 @@ import itertools
 import sys
 from typing import List, Tuple, Dict, Set
 import dedupe
+import logging
 from dedupe.core import randomPairs, randomPairsMatch, unique
 from dedupe.canonical import getCanonicalRep
 from dedupe._typing import Data, TrainingData, RecordDict, TrainingExample, Literal, RecordID
+logger = logging.getLogger(__name__)
 
 
 def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cover
@@ -52,12 +54,12 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         for pair in record_pair:
             for field in fields:
                 line = "%s : %s" % (field, pair[field])
-                print(line, file=sys.stderr)
-            print(file=sys.stderr)
+                logger.debug(line, file=sys.stderr)
+            logger.debug(file=sys.stderr)
 
-        print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
+        logger.debug("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
               file=sys.stderr)
-        print('Do these records refer to the same thing?', file=sys.stderr)
+        logger.debug('Do these records refer to the same thing?', file=sys.stderr)
 
         valid_response = False
         user_input = ''
@@ -69,7 +71,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
                 prompt = '(y)es / (n)o / (u)nsure / (f)inished'
                 valid_responses = {'y', 'n', 'u', 'f'}
 
-            print(prompt, file=sys.stderr)
+            logger.debug(prompt, file=sys.stderr)
             user_input = input()
             if user_input in valid_responses:
                 valid_response = True
@@ -81,7 +83,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         elif user_input == 'u':
             examples_buffer.insert(0, (record_pair, 'uncertain'))
         elif user_input == 'f':
-            print('Finished labeling', file=sys.stderr)
+            logger.debug('Finished labeling', file=sys.stderr)
             finished = True
         elif user_input == 'p':
             use_previous = True
