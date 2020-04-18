@@ -142,7 +142,8 @@ class ScoreDupes(object):
             distances = self.data_model.distances(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
 
-            if scores.any():
+            mask = scores > 0
+            if mask.any():
                 id_type = sniff_id_type(record_ids)
                 ids = numpy.array(record_ids, dtype=id_type)
 
@@ -153,11 +154,11 @@ class ScoreDupes(object):
                 os.close(temp_file)
 
                 scored_pairs = numpy.memmap(file_path,
-                                            shape=numpy.count_nonzero(scores),
+                                            shape=numpy.count_nonzero(mask),
                                             dtype=dtype)
 
-                scored_pairs['pairs'] = ids
-                scored_pairs['score'] = scores
+                scored_pairs['pairs'] = ids[mask]
+                scored_pairs['score'] = scores[mask]
 
                 return file_path, dtype
 
@@ -304,7 +305,7 @@ class ScoreGazette(object):
         dtype = numpy.dtype([('pairs', id_type, 2),
                              ('score', 'f4')])
 
-        scored_pairs = numpy.empty(shape=numpy.count_nonzero(scores),
+        scored_pairs = numpy.empty(shape=scores.shape[0],
                                    dtype=dtype)
 
         scored_pairs['pairs'] = ids
