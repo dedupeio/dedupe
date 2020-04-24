@@ -21,10 +21,15 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install -e .
-    - name: Test with pytest
+    - name: Install test dependencies
       run: |        
         pip install -r requirements.txt
-        pytest tests dedupe --cov dedupe
+    - name: pytest
+      run: |
+         pytest tests dedupe --cov dedupe
+    - name: flake8
+      run: |
+         flake8 dedupe tests
     - name: Static Testing
       run: |        
         mypy --ignore-missing-imports dedupe
