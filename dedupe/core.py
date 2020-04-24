@@ -153,7 +153,7 @@ class ScoreDupes(object):
                 os.close(temp_file)
 
                 scored_pairs = numpy.memmap(file_path,
-                                            shape=numpy.count_nonzero(scores),
+                                            shape=len(scores),
                                             dtype=dtype)
 
                 scored_pairs['pairs'] = ids
