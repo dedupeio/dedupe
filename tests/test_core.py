@@ -96,6 +96,30 @@ class ScoreDuplicates(unittest.TestCase):
         numpy.testing.assert_allclose(scores['score'],
                                       self.desired_scored_pairs['score'], 2)
 
+    def test_score_duplicates_with_zeros(self):
+        self.classifier.weights = [-1000]
+        self.classifier.bias = 1000
+        self.records = iter([(('1', {'name': 'ABCD'}),
+                              ('2', {'name': 'EFGH'})),
+                             (('3', {'name': 'IJKL'}),
+                              ('4', {'name': 'IJKL'}))
+                             ])
+        scores = dedupe.core.scoreDuplicates(self.records,
+                                             self.data_model,
+                                             self.classifier,
+                                             2)
+
+        score_dtype = [('pairs', '<U1', 2), ('score', 'f4')]
+
+        self.desired_scored_pairs = numpy.array([(['3', '4'], 1)],
+                                                dtype=score_dtype)
+
+        numpy.testing.assert_equal(scores['pairs'],
+                                   self.desired_scored_pairs['pairs'])
+
+        numpy.testing.assert_allclose(scores['score'],
+                                      self.desired_scored_pairs['score'], 2)
+
 
 class FieldDistances(unittest.TestCase):
 
