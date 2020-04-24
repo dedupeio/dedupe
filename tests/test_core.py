@@ -111,7 +111,8 @@ class ScoreDuplicates(unittest.TestCase):
 
         score_dtype = [('pairs', '<U1', 2), ('score', 'f4')]
 
-        self.desired_scored_pairs = numpy.array([(['3', '4'], 1)],
+        self.desired_scored_pairs = numpy.array([(['1', '2'], 0),
+                                                 (['3', '4'], 1)],
                                                 dtype=score_dtype)
 
         numpy.testing.assert_equal(scores['pairs'],

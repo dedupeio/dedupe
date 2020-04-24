@@ -304,7 +304,7 @@ class ScoreGazette(object):
         dtype = numpy.dtype([('pairs', id_type, 2),
                              ('score', 'f4')])
 
-        scored_pairs = numpy.empty(shape=numpy.count_nonzero(scores),
+        scored_pairs = numpy.empty(shape=len(scores),
                                    dtype=dtype)
 
         scored_pairs['pairs'] = ids
