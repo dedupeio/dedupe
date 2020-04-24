@@ -9,4 +9,4 @@ if platform.system() == 'Darwin':
     Pool = ctx.Pool
     SimpleQueue = ctx.SimpleQueue
 else:
-    from multiprocessing import Process, Pool, Queue, SimpleQueue  # noqa
+    from multiprocessing import Process, Pool, Queue, SimpleQueue  # type: ignore # noqa 
