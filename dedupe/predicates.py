@@ -456,7 +456,9 @@ def suffixArray(field):
         for i in range(0, n):
             yield field[i:]
 
+
 suffixArray.compounds_with_same_field = False  # type: ignore
+
 
 def sortedAcronym(field: str) -> Tuple[str]:
     return (''.join(sorted(each[0] for each in field.split())),)
