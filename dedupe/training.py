@@ -8,7 +8,7 @@ import logging
 import collections
 import functools
 
-from collections.abc import Mapping
+from collections.abc import Set
 
 from . import blocking, predicates, core
 
@@ -64,9 +64,9 @@ class BlockLearner(object):
 
         for i in range(2, compound_length + 1):
             compound_predicates = itertools.combinations(simple_predicates, i)
-            for pred_a, pred_b in compound_predicates:
-                if pred_a.compounds_with(pred_b) and pred_b.compounds_with(pred_a):
-                    yield CP((pred_a, pred_b))
+            for preds in compound_predicates:
+                if all(a.compounds_with(b) for a, b in itertools.combinations(preds, 2)):
+                    yield CP(preds)
 
     def comparisons(self, predicates, simple_cover):
         compounder = self.Compounder(simple_cover)
@@ -101,7 +101,7 @@ class BlockLearner(object):
                 a, = a
                 a_cover = self.cover[a]
 
-            return a_cover * self.cover[b]
+            return a_cover & self.cover[b]
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -149,7 +149,7 @@ class DedupeBlockLearner(BlockLearner):
                      for block in pred_cover.values()
                      for pair in itertools.combinations(sorted(block), 2)}
 
-            cover[predicate] = Counter(pairs)
+            cover[predicate] = pairs
 
         return cover
 
@@ -160,7 +160,7 @@ class DedupeBlockLearner(BlockLearner):
         # This estimates the total number of comparisons a blocking
         # rule will produce.
 
-        return self.r * comparisons.total
+        return self.r * len(comparisons)
 
 
 class RecordLinkBlockLearner(BlockLearner):
@@ -209,7 +209,7 @@ class RecordLinkBlockLearner(BlockLearner):
             pairs = {pair_enumerator[pair]
                      for A, B in blocks.values()
                      for pair in itertools.product(A, B)}
-            cover[predicate] = Counter(pairs)
+            cover[predicate] = pairs
 
         return cover
 
@@ -221,7 +221,7 @@ class RecordLinkBlockLearner(BlockLearner):
         # as the intersection of random multisets?
         #
         # In any case, here's the estimator we are using now.
-        return self.r * comparisons.total
+        return self.r * len(comparisons)
 
 
 class BranchBound(object):
@@ -317,46 +317,6 @@ class BranchBound(object):
                 remaining[predicate] = still_uncovered
 
         return remaining
-
-
-class Counter(object):
-    def __init__(self, iterable):
-        if isinstance(iterable, Mapping):
-            self._d = iterable
-        else:
-            d = collections.defaultdict(int)
-            for elem in iterable:
-                d[elem] += 1
-            self._d = d
-
-        self.total = sum(self._d.values())
-
-    def __le__(self, other):
-        return (self._d.keys() <= other._d.keys() and
-                self.total <= other.total)
-
-    def __eq__(self, other):
-        return self._d == other._d
-
-    def __len__(self):
-        return len(self._d)
-
-    def __mul__(self, other):
-
-        if len(self) <= len(other):
-            smaller, larger = self._d, other._d
-        else:
-            smaller, larger = other._d, self._d
-
-        # it's meaningfully faster to check in the key dictview
-        # of 'larger' than in the dict directly
-        larger_keys = larger.keys()
-
-        common = {k: v * larger[k]
-                  for k, v in smaller.items()
-                  if k in larger_keys}
-
-        return Counter(common)
 
 
 class Cover(object):
