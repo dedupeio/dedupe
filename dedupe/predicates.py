@@ -84,8 +84,9 @@ class StringPredicate(SimplePredicate):
     def compounds_with(self, other):
 
         if other.field == self.field:
-            if not getattr(self.func, 'compounds_with_same_field', True):
-                return False
+            return getattr(self.func,
+                           'compounds_with_same_field',
+                           True)
 
         return True
 

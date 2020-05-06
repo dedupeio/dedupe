@@ -63,7 +63,11 @@ class BlockLearner(object):
         for i in range(2, compound_length + 1):
             compound_predicates = itertools.combinations(simple_predicates, i)
             for preds in compound_predicates:
-                if all(a.compounds_with(b) for a, b in itertools.combinations(preds, 2)):
+                compoundable = all((a.compounds_with(b) and
+                                    b.compounds_with(a))
+                                   for a, b
+                                   in itertools.combinations(preds, 2))
+                if compoundable:
                     yield CP(preds)
 
     def comparisons(self, predicates, simple_cover):
