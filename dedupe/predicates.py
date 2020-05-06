@@ -19,7 +19,7 @@ words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
-alpha_numeric = re.compile(r"(?=.*\d)[a-zA-Z\d]+").findall
+alpha_numeric = re.compile(r"(?=\w*\d)[a-zA-Z\d]+").findall
 
 PUNCTABLE = str.maketrans("", "", string.punctuation)
 
@@ -451,12 +451,12 @@ def sameSevenCharStartPredicate(field: str) -> Tuple[str]:
 
 
 def suffixArray(field):
-    field = field.replace(' ', '')
     n = len(field) - 4
     if n > 0:
         for i in range(0, n):
             yield field[i:]
 
+suffixArray.compounds_with_same_field = False  # type: ignore
 
 def sortedAcronym(field: str) -> Tuple[str]:
     return (''.join(sorted(each[0] for each in field.split())),)
