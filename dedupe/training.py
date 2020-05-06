@@ -8,8 +8,6 @@ import logging
 import collections
 import functools
 
-from collections.abc import Set
-
 from . import blocking, predicates, core
 
 logger = logging.getLogger(__name__)
