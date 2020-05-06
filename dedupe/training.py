@@ -145,9 +145,9 @@ class DedupeBlockLearner(BlockLearner):
             if max_cover == n_records:
                 continue
 
-            pairs = (pair_enumerator[pair]
+            pairs = {pair_enumerator[pair]
                      for block in pred_cover.values()
-                     for pair in itertools.combinations(sorted(block), 2))
+                     for pair in itertools.combinations(sorted(block), 2)}
 
             cover[predicate] = Counter(pairs)
 
@@ -159,16 +159,6 @@ class DedupeBlockLearner(BlockLearner):
         #
         # This estimates the total number of comparisons a blocking
         # rule will produce.
-        #
-        # While it is true that if we block together records 1 and 2 together
-        # N times we have to pay the overhead of that blocking and
-        # and there is some cost to each one of those N comparisons,
-        # we are using a redundant-free scheme so we only make one
-        # truly expensive computation for every record pair.
-        #
-        # So, how can we estimate how many expensive comparison a
-        # predicate will lead to? In other words, how many unique record
-        # pairs will be covered by a predicate?
 
         return self.r * comparisons.total
 
