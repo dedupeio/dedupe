@@ -237,8 +237,8 @@ class DedupeBlockLearner(BlockLearner):
                  index_include):
         super().__init__(data_model, candidates)
 
-        index_data = Sample(data, 10000, original_length)
-        sampled_records = Sample(index_data, 2000, original_length)
+        index_data = Sample(data, 50000, original_length)
+        sampled_records = Sample(index_data, 5000, original_length)
         preds = self.data_model.predicates(index_predicates=False)
 
         self.block_learner = training.DedupeBlockLearner(preds,
@@ -475,7 +475,10 @@ class Sample(dict):
         else:
             _keys = tuple(d.keys())
             sample = (random.choice(_keys) for _ in range(sample_size))
-            super().__init__({k: d[k] for k in sample})
+            # we want to sample with replacement so need to allow
+            # the same record being chosen more than one time, so
+            # don't use the original dictionary key as the sample key
+            super().__init__({i: d[k] for i, k in enumerate(sample)})
         if original_length is None:
             self.original_length = len(d)
         else:

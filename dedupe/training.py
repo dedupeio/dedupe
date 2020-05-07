@@ -216,13 +216,8 @@ class RecordLinkBlockLearner(BlockLearner):
         return cover
 
     def estimate(self, comparisons):
-        # For record pairs we only compare unique comparisons.
-        #
-        # I have no real idea of how to estimate the total number
-        # of unique comparisons. Maybe the way to think about this
-        # as the intersection of random multisets?
-        #
-        # In any case, here's the estimator we are using now.
+        # https://stats.stackexchange.com/a/465060/82
+
         return self.r * len(comparisons)
 
 
