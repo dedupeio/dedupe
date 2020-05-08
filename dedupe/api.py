@@ -46,7 +46,7 @@ import dedupe.core as core
 import dedupe.serializer as serializer
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
-import dedupe.datamodel as datamodel
+from dedupe.distances import Distances
 import dedupe.labeler as labeler
 import dedupe.predicates
 from typing import (Mapping,
@@ -98,7 +98,7 @@ class Matching(object):
             self.num_cores = num_cores
 
         self._fingerprinter: Optional[blocking.Fingerprinter] = None
-        self.data_model: datamodel.DataModel
+        self.distances: Distances
         self.classifier: Classifier
         self.predicates: Sequence[dedupe.predicates.Predicate]
         self.loaded_indices = False
@@ -130,7 +130,7 @@ class Matching(object):
         candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
 
         probability = core.scoreDuplicates(candidate_records,
-                                           self.data_model,
+                                           self.distances,
                                            self.classifier,
                                            self.num_cores)['score']
 
@@ -163,7 +163,7 @@ class Matching(object):
         file_obj -- file object to write settings data into
         """
 
-        pickle.dump(self.data_model, file_obj)
+        pickle.dump(self.distances, file_obj)
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
 
@@ -199,7 +199,7 @@ class Matching(object):
         """
         try:
             matches = core.scoreDuplicates(pairs,
-                                           self.data_model,
+                                           self.distances,
                                            self.classifier,
                                            self.num_cores,
                                            classifier_threshold)
@@ -230,7 +230,7 @@ class IntegralMatching(Matching):
         """
         try:
             matches = core.scoreDuplicates(pairs,
-                                           self.data_model,
+                                           self.distances,
                                            self.classifier,
                                            self.num_cores,
                                            classifier_threshold)
@@ -544,7 +544,7 @@ class RecordLinkMatching(Matching):
         logger.debug("RecordLinkMatching.matchBlocks")
         candidate_records = itertools.chain.from_iterable(self._blockedPairs(blocks))
         matches = core.scoreDuplicates(candidate_records,
-                                       self.data_model,
+                                       self.distances,
                                        self.classifier,
                                        self.num_cores,
                                        classifier_threshold)
@@ -688,7 +688,7 @@ class RecordLinkMatching(Matching):
                     raise ValueError(
                         "Each sequence must be made up of 3-tuple "
                         "like (record_id, record, covered_blocks)")
-                self.data_model.check(base_record)
+                self.distances.check(base_record)
             if target:
                 try:
                     target_id, target_record, target_smaller_ids = target[0]
@@ -696,7 +696,7 @@ class RecordLinkMatching(Matching):
                     raise ValueError(
                         "Each sequence must be made up of 3-tuple "
                         "like (record_id, record, covered_blocks)")
-                self.data_model.check(target_record)
+                self.distances.check(target_record)
 
 
 class StaticMatching(Matching):
@@ -732,7 +732,7 @@ class StaticMatching(Matching):
         Matching.__init__(self, num_cores, **kwargs)
 
         try:
-            self.data_model = pickle.load(settings_file)
+            self.distances = pickle.load(settings_file)
             self.classifier = pickle.load(settings_file)
             self.predicates = pickle.load(settings_file)
         except (KeyError, AttributeError):
@@ -837,7 +837,7 @@ class ActiveMatching(Matching):
         logger.debug("Initializing ActiveMatching class")
         Matching.__init__(self, num_cores, **kwargs)
 
-        self.data_model = datamodel.DataModel(variable_definition)
+        self.distances = Distances(variable_definition)
 
         if data_sample is not None:
             raise UserWarning(
@@ -908,7 +908,7 @@ class ActiveMatching(Matching):
         logger.debug("ActiveMatching.train")
         examples, y = flatten_training(self.training_pairs)
         logger.debug("Fit classifier with active label training data")
-        self.classifier.fit(self.data_model.distances(examples), y)
+        self.classifier.fit(self.distances.compute_distance_matrix(examples), y)
         logger.debug(f"Number of matches: {len(self.training_pairs['match'])}")
         self.predicates = self.active_learner.learn_predicates(
             recall, index_predicates)
@@ -987,8 +987,8 @@ class ActiveMatching(Matching):
             raise ValueError("A pair of record_pairs must be made up of two "
                              "dictionaries ")
 
-        self.data_model.check(record_pair[0])
-        self.data_model.check(record_pair[1])
+        self.distances.check(record_pair[0])
+        self.distances.check(record_pair[1])
 
 
 class StaticDedupe(DedupeMatching, StaticMatching):
@@ -1075,7 +1075,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
         # existing training data, so add them to data dictionary
         examples, y = flatten_training(self.training_pairs)
 
-        self.active_learner = self.ActiveLearner(self.data_model,
+        self.active_learner = self.ActiveLearner(self.distances,
                                                  data,
                                                  blocked_proportion,
                                                  sample_size,
@@ -1092,7 +1092,7 @@ class Dedupe(DedupeMatching, ActiveMatching):
             raise ValueError(
                 'Dictionary of records is empty.')
 
-        self.data_model.check(next(iter(data.values())))
+        self.distances.check(next(iter(data.values())))
 
 
 class StaticRecordLink(RecordLinkMatching, StaticMatching):
@@ -1167,7 +1167,7 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
         # existing training data, so add them to data dictionaries
         examples, y = flatten_training(self.training_pairs)
 
-        self.active_learner = self.ActiveLearner(self.data_model,
+        self.active_learner = self.ActiveLearner(self.distances,
                                                  data_1,
                                                  data_2,
                                                  blocked_proportion,
@@ -1186,8 +1186,8 @@ class RecordLink(RecordLinkMatching, ActiveMatching):
             raise ValueError(
                 'Dictionary of records from second dataset is empty.')
 
-        self.data_model.check(next(iter(data_1.values())))
-        self.data_model.check(next(iter(data_2.values())))
+        self.distances.check(next(iter(data_1.values())))
+        self.distances.check(next(iter(data_2.values())))
 
 
 class GazetteerMatching(RecordLinkMatching):
@@ -1246,7 +1246,7 @@ class GazetteerMatching(RecordLinkMatching):
         candidate_records = self._blockedPairs(blocks)
 
         matches = core.scoreGazette(candidate_records,
-                                    self.data_model,
+                                    self.distances,
                                     self.classifier,
                                     self.num_cores,
                                     threshold=threshold)

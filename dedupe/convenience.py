@@ -27,7 +27,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
     use_previous = False
     fields = unique(field.field
                     for field
-                    in deduper.data_model.primary_fields)
+                    in deduper.distances.primary_fields)
 
     buffer_len = 1  # Max number of previous operations
     examples_buffer: List[Tuple[TrainingExample, Literal['match', 'distinct', 'uncertain']]] = []

@@ -7,7 +7,7 @@ class TrainingTest(unittest.TestCase):
     def setUp(self):
 
         field_definition = [{'field': 'name', 'type': 'String'}]
-        self.data_model = dedupe.Dedupe(field_definition).data_model
+        self.distances = dedupe.Dedupe(field_definition).distances
         self.training_pairs = {
             'match': [({"name": "Bob", "age": "50"},
                        {"name": "Bob", "age": "75"}),
@@ -33,7 +33,7 @@ class TrainingTest(unittest.TestCase):
                                      if "CompoundPredicate" not in str(k)])
 
     def test_dedupe_coverage(self):
-        predicates = self.data_model.predicates()
+        predicates = self.distances.predicates()
         blocker = dedupe.blocking.Fingerprinter(predicates)
         blocker.index_all({i: x for i, x in enumerate(self.training_records)})
         coverage = training.Cover(blocker.predicates,

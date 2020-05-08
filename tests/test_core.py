@@ -71,7 +71,7 @@ class ScoreDuplicates(unittest.TestCase):
                              ])
 
         deduper = dedupe.Dedupe([{'field': "name", 'type': 'String'}])
-        self.data_model = deduper.data_model
+        self.distances = deduper.distances
         self.classifier = deduper.classifier
         self.classifier.weights = [-1.0302742719650269]
         self.classifier.bias = 4.76
@@ -87,7 +87,7 @@ class ScoreDuplicates(unittest.TestCase):
 
     def test_score_duplicates(self):
         scores = dedupe.core.scoreDuplicates(self.records,
-                                             self.data_model,
+                                             self.distances,
                                              self.classifier,
                                              2)
 
@@ -108,7 +108,7 @@ class FieldDistances(unittest.TestCase):
         record_pairs = (({'name': 'Shmoo'}, {'name': 'Shmee'}),
                         ({'name': 'Shmoo'}, {'name': 'Shmoo'}))
 
-        numpy.testing.assert_array_almost_equal(deduper.data_model.distances(record_pairs),
+        numpy.testing.assert_array_almost_equal(deduper.distances.compute_distance_matrix(record_pairs),
                                                 numpy.array([[0.0],
                                                              [1.0]]),
                                                 3)
@@ -124,7 +124,7 @@ class FieldDistances(unittest.TestCase):
                         ({'type': 'a'},
                          {'type': 'c'}))
 
-        numpy.testing.assert_array_almost_equal(deduper.data_model.distances(record_pairs),
+        numpy.testing.assert_array_almost_equal(deduper.distances.compute_distance_matrix(record_pairs),
                                                 numpy.array([[0, 0, 1, 0, 0],
                                                              [0, 0, 0, 1, 0]]),
                                                 3)
@@ -145,7 +145,7 @@ class FieldDistances(unittest.TestCase):
                         ({'name': 'steven', 'type': 'b'},
                          {'name': 'steven', 'type': 'b'}))
 
-        numpy.testing.assert_array_almost_equal(deduper.data_model.distances(record_pairs),
+        numpy.testing.assert_array_almost_equal(deduper.distances.compute_distance_matrix(record_pairs),
                                                 numpy.array([[0, 1, 1, 0, 1],
                                                              [1, 0, 1, 1, 0]]), 3)
 

@@ -12,6 +12,8 @@ import warnings
 import functools
 import numpy
 import logging
+import multiprocessing
+import multiprocessing.dummy
 from typing import (Iterator,
                     Tuple,
                     Mapping,
@@ -25,6 +27,11 @@ from typing import (Iterator,
 from dedupe._typing import (RecordPairs, RecordID, Blocks, Data, Literal)
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+_Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
+_SimpleQueue = Union[multiprocessing.dummy.Queue, multiprocessing.SimpleQueue]
+IndicesIterator = Iterator[Tuple[int, int]]
 
 
 class ChildProcessError(Exception):
@@ -102,29 +109,35 @@ def randomPairsWithReplacement(n_records, sample_size):
 
 
 class ScoreDupes(object):
-    def __init__(self, data_model, classifier, threshold):
-        logger.debug("Initializing core.ScoreDupes object")
-        self.data_model = data_model
+
+    def __init__(self,
+                 distances,
+                 classifier,
+                 threshold,
+                 records_queue: _Queue,
+                 score_queue: _SimpleQueue):
+        self.distances = distances
         self.classifier = classifier
         self.threshold = threshold
-        self.score_queue = None
-
-    def __call__(self, records_queue, score_queue):
-        logger.debug("core.ScoreDupes.__call__")
+        self.records_queue = records_queue
         self.score_queue = score_queue
+
+    def __call__(self) -> None:
+
         while True:
-            record_pairs: Optional[RecordPairs] = records_queue.get()
+            record_pairs: Optional[RecordPairs] = self.records_queue.get()
             if record_pairs is None:
                 break
+
             try:
-                filtered_pairs = self.field_distance(record_pairs)
+                filtered_pairs: Optional[Tuple] = self.field_distance(record_pairs)
                 if filtered_pairs is not None:
-                    score_queue.put(filtered_pairs)
+                    self.score_queue.put(filtered_pairs)
             except Exception as e:
-                score_queue.put(e)
+                self.score_queue.put(e)
                 raise
 
-        score_queue.put(None)
+        self.score_queue.put(None)
 
     def field_distance(self, record_pairs: RecordPairs) -> Optional[Tuple]:
         """
@@ -155,26 +168,18 @@ class ScoreDupes(object):
         """
         logger.debug("core.ScoreDupes.field_distance")
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
-        ids = []
-        records = []
-
-        for record_pair in record_pairs:
-            ((id_1, record_1),
-             (id_2, record_2)) = record_pair
-
-            ids.append((id_1, id_2))
-            records.append((record_1, record_2))
 
         if records:
-            distances = self.data_model.distances(records)
+            distances = self.distances.compute_distance_matrix(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
             mask = scores > self.threshold
+            logger.debug(distances)
             logger.debug(scores)
             logger.debug(f"Threshold = {self.threshold}")
             logger.debug(f"Mask = {mask}")
             if mask.any():
-                id_type = sniff_id_type(ids)
-                ids = numpy.array(ids, dtype=id_type)
+                id_type = sniff_id_type(record_ids)
+                ids = numpy.array(record_ids, dtype=id_type)
 
                 dtype = numpy.dtype([('pairs', id_type, 2),
                                      ('score', 'f4')])
@@ -190,6 +195,8 @@ class ScoreDupes(object):
                 scored_pairs['score'] = scores[mask]
 
                 return file_path, dtype
+
+        return None
 
 
 def mergeScores(score_queue, result_queue, stop_signals):
@@ -231,7 +238,26 @@ def mergeScores(score_queue, result_queue, stop_signals):
         result_queue.put(None)
 
 
-def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
+def scoreDuplicates(records, distances, classifier, num_cores: int = 1, threshold=0):
+    """
+    Returns:
+        scored_pairs: (generator) (np.array)[tuple(list[str], float)] A list of tuples,
+            where each tuple contains an id pair and a probability that they are a match:
+                id_pair_tuple: ([record_id_1, record_id_2], prob)
+                dtype: np.dtype([('pairs', '<U256', 2),
+                                 ('score', 'f4', 1)])
+
+    Example:
+
+        ..code:: python
+
+            > scored_pairs = scoreDuplicates()
+            > print(list(scored_pairs))
+            > [(['19', '20'], 0.9990217 ),
+                (['19', '21'], 0.9990217 ), (['19', '22'], 0.9990217 ),
+                (['20', '21'], 0.9990217 ), (['20', '22'], 0.9990217 ),
+                (['21', '22'], 0.9990217 ), (['22', '23'], 0.999513  )]
+    """
     logger.debug("core.scoreDuplicates")
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
@@ -240,6 +266,7 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
         from .backport import Process, SimpleQueue, Queue
 
     first, records = peek(records)
+
     if first is None:
         return []
 
@@ -247,19 +274,21 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
     score_queue = SimpleQueue()
     result_queue = SimpleQueue()
     n_map_processes = max(num_cores, 1)
-    score_records = ScoreDupes(data_model, classifier, threshold)
-    map_processes = [Process(target=score_records,
-                             args=(record_pairs_queue,
-                                   score_queue))
+    score_records = ScoreDupes(distances,
+                               classifier,
+                               threshold,
+                               record_pairs_queue,
+                               score_queue)
+    map_processes = [Process(target=score_records)
                      for _ in range(n_map_processes)]
-    [process.start() for process in map_processes]
 
+    for process in map_processes:
+        process.start()
     reduce_process = Process(target=mergeScores,
                              args=(score_queue,
                                    result_queue,
                                    n_map_processes))
     reduce_process.start()
-
     fillQueue(record_pairs_queue, records, n_map_processes)
 
     result = result_queue.get()
@@ -282,55 +311,75 @@ def scoreDuplicates(records, data_model, classifier, num_cores=1, threshold=0):
     return scored_pairs
 
 
-def fillQueue(queue, iterable, stop_signals):
-    iterable = iter(iterable)
-    chunk_size = 10000
-    upper_bound = 7000000  # this number worked, but is unprincipled
-    multiplier = 1.1
+# def fillQueue(queue, iterable, stop_signals):
+#     iterable = iter(iterable)
+#     chunk_size = 10000
+#     upper_bound = 7000000  # this number worked, but is unprincipled
+#     multiplier = 1.1
+#
+#     # initial values
+#     i = 0
+#     n_records = 0
+#     t0 = time.perf_counter()
+#     last_rate = 10000
+#
+#     while True:
+#         chunk = tuple(itertools.islice(iterable, int(chunk_size)))
+#         if chunk:
+#             queue.put(chunk)
+#             del chunk
+#
+#             n_records += chunk_size
+#             i += 1
+#
+#             if i % 10:
+#                 time_delta = max(time.perf_counter() - t0, 0.0001)
+#
+#                 current_rate = n_records / time_delta
+#
+#                 # chunk_size is always either growing or shrinking, if
+#                 # the shrinking led to a faster rate, keep
+#                 # shrinking. Same with growing. If the rate decreased,
+#                 # reverse directions
+#                 if current_rate < last_rate:
+#                     multiplier = 1 / multiplier
+#
+#                 chunk_size = min(max(chunk_size * multiplier, 1), upper_bound)
+#
+#                 last_rate = current_rate
+#                 n_records = 0
+#                 t0 = time.perf_counter()
+#
+#         else:
+#             # put poison pills in queue to tell scorers that they are
+#             # done
+#             [queue.put(None) for _ in range(stop_signals)]
+#             break
 
-    # initial values
-    i = 0
-    n_records = 0
-    t0 = time.perf_counter()
-    last_rate = 10000
+
+def fillQueue(queue: _Queue,
+              iterable: RecordPairs,
+              stop_signals: int,
+              chunk_size: int = 20000) -> None:
+    iterable = iter(iterable)
 
     while True:
-        chunk = tuple(itertools.islice(iterable, int(chunk_size)))
+        chunk = tuple(itertools.islice(iterable, chunk_size))
         if chunk:
             queue.put(chunk)
             del chunk
 
-            n_records += chunk_size
-            i += 1
-
-            if i % 10:
-                time_delta = max(time.perf_counter() - t0, 0.0001)
-
-                current_rate = n_records / time_delta
-
-                # chunk_size is always either growing or shrinking, if
-                # the shrinking led to a faster rate, keep
-                # shrinking. Same with growing. If the rate decreased,
-                # reverse directions
-                if current_rate < last_rate:
-                    multiplier = 1 / multiplier
-
-                chunk_size = min(max(chunk_size * multiplier, 1), upper_bound)
-
-                last_rate = current_rate
-                n_records = 0
-                t0 = time.perf_counter()
-
         else:
             # put poison pills in queue to tell scorers that they are
             # done
-            [queue.put(None) for _ in range(stop_signals)]
+            for _ in range(stop_signals):
+                queue.put(None)
             break
 
 
 class ScoreGazette(object):
-    def __init__(self, data_model, classifier, threshold):
-        self.data_model = data_model
+    def __init__(self, distances, classifier, threshold):
+        self.distances = distances
         self.classifier = classifier
         self.threshold = threshold
 
@@ -345,7 +394,7 @@ class ScoreGazette(object):
             ids.append((id_1, id_2))
             records.append((record_1, record_2))
 
-        distances = self.data_model.distances(records)
+        distances = self.distances.compute_distance_matrix(records)
         scores = self.classifier.predict_proba(distances)[:, -1]
 
         mask = scores > self.threshold
@@ -364,7 +413,7 @@ class ScoreGazette(object):
         return scored_pairs
 
 
-def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
+def scoreGazette(records, distances, classifier, num_cores=1, threshold=0):
 
     first, records = peek(records)
     if first is None:
@@ -372,7 +421,7 @@ def scoreGazette(records, data_model, classifier, num_cores=1, threshold=0):
 
     imap, pool = appropriate_imap(num_cores)
 
-    score_records = ScoreGazette(data_model, classifier, threshold)
+    score_records = ScoreGazette(distances, classifier, threshold)
 
     for scored_pairs in imap(score_records, records):
         yield scored_pairs

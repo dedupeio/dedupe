@@ -9,7 +9,7 @@ class BlockingTest(unittest.TestCase):
     def setUp(self):
 
         field_definition = [{'field': 'name', 'type': 'String'}]
-        self.data_model = dedupe.Dedupe(field_definition).data_model
+        self.distances = dedupe.Dedupe(field_definition).distances
         self.training_pairs = {
             'match': [({"name": "Bob", "age": "50"},
                        {"name": "Bob", "age": "75"}),

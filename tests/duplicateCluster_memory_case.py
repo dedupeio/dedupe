@@ -5,12 +5,12 @@ import dedupe.dedupe  # noqa: F401
 # simulated_candidates = (((1, {'name': 'asdffdsa'}), (2, {'name': 'fdsaasdf'}))
 # for _ in xrange(10**6))
 
-# data_model =  {"fields": {"name": {"type": "String", "weight": -1.0}},
+# distances =  {"fields": {"name": {"type": "String", "weight": -1.0}},
 # "bias": 1.0}
 # threshold = 0
 
 # dupes = dedupe.core.scoreDuplicates(simulated_candidates,
-# data_model,
+# distances,
 # 0)
 
 # simulated_candidates = (((1, {'name': 'asdffdsa'}), (2, {'name': 'fdsaasdf'}))

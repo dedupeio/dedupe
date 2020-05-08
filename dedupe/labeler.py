@@ -36,7 +36,7 @@ class DedupeSampler(object):
 
     def sample(self, data, blocked_proportion, sample_size):
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
+        predicates = list(self.distances.predicates(index_predicates=False))
 
         data = sampling.randomDeque(data)
         blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
@@ -59,7 +59,7 @@ class RecordLinkSampler(object):
         offset = len(data_1)
 
         blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
+        predicates = list(self.distances.predicates(index_predicates=False))
 
         deque_1 = sampling.randomDeque(data_1)
         deque_2 = sampling.randomDeque(data_2)
@@ -83,11 +83,11 @@ class RecordLinkSampler(object):
 
 
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
-    def __init__(self, data_model, *args, **kwargs):
+    def __init__(self, distances, *args, **kwargs):
         logger.debug("Initializing RLRLearner class, calling super class ActiveLearner")
         super().__init__(alpha=1)
 
-        self.data_model = data_model
+        self.distances = distances
 
         if 'candidates' not in kwargs:
             self.candidates = super().sample(*args)
@@ -103,7 +103,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
                            [1, 0])
 
     def transform(self, pairs):
-        return self.data_model.distances(pairs)
+        return self.distances.compute_distance_matrix(pairs)
 
     def fit(self, X, y):
         """
@@ -184,8 +184,8 @@ class RecordLinkRLRLearner(RLRLearner, RecordLinkSampler):
 
 class BlockLearner(object):
 
-    def __init__(self, data_model, candidates, *args):
-        self.data_model = data_model
+    def __init__(self, distances, candidates, *args):
+        self.distances = distances
         self.candidates = candidates
 
         self.current_predicates = ()
@@ -236,17 +236,17 @@ class BlockLearner(object):
 
 class DedupeBlockLearner(BlockLearner):
 
-    def __init__(self, data_model,
+    def __init__(self, distances,
                  candidates,
                  data,
                  original_length,
                  index_include):
         logger.debug("Initializing labeler.DedupeBlockLearner")
-        super().__init__(data_model, candidates)
+        super().__init__(distances, candidates)
 
         index_data = Sample(data, 50000, original_length)
         sampled_records = Sample(index_data, 2000, original_length)
-        preds = self.data_model.predicates()
+        preds = self.distances.predicates()
 
         self.block_learner = training.DedupeBlockLearner(preds,
                                                          sampled_records,
@@ -275,7 +275,7 @@ class DedupeBlockLearner(BlockLearner):
 class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self,
-                 data_model,
+                 distances,
                  candidates,
                  data_1,
                  data_2,
@@ -283,13 +283,13 @@ class RecordLinkBlockLearner(BlockLearner):
                  original_length_2,
                  index_include):
 
-        super().__init__(data_model, candidates)
+        super().__init__(distances, candidates)
 
         sampled_records_1 = Sample(data_1, 600, original_length_1)
         index_data = Sample(data_2, 50000, original_length_2)
         sampled_records_2 = Sample(index_data, 600, original_length_2)
 
-        preds = self.data_model.predicates(canopies=False)
+        preds = self.distances.predicates(canopies=False)
 
         self.block_learner = training.RecordLinkBlockLearner(preds,
                                                              sampled_records_1,
@@ -322,7 +322,7 @@ class DisagreementLearner(ActiveLearner):
 
     def _common_init(self):
 
-        self.classifier = RLRLearner(self.data_model,
+        self.classifier = RLRLearner(self.distances,
                                      candidates=self.candidates)
         self.learners = (self.classifier, self.blocker)
         self.y = numpy.array([])
@@ -419,7 +419,7 @@ class DisagreementLearner(ActiveLearner):
 class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
 
     def __init__(self,
-                 data_model,
+                 distances,
                  data,
                  blocked_proportion,
                  sample_size,
@@ -427,7 +427,7 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                  index_include):
 
         logger.debug("Initializing DedupeDisagreementLearner class")
-        self.data_model = data_model
+        self.distances = distances
 
         data = core.index(data)
 
@@ -439,7 +439,7 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = DedupeBlockLearner(data_model,
+        self.blocker = DedupeBlockLearner(distances,
                                           self.candidates,
                                           data,
                                           original_length,
@@ -454,7 +454,7 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
 class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
 
     def __init__(self,
-                 data_model,
+                 distances,
                  data_1,
                  data_2,
                  blocked_proportion,
@@ -463,7 +463,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
                  original_length_2,
                  index_include):
 
-        self.data_model = data_model
+        self.distances = distances
 
         data_1 = core.index(data_1)
 
@@ -481,7 +481,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner, RecordLinkSampler):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = RecordLinkBlockLearner(data_model,
+        self.blocker = RecordLinkBlockLearner(distances,
                                               self.candidates,
                                               data_1,
                                               data_2,
