@@ -90,7 +90,7 @@ class Distances(object):
                     ]
 
         Returns:
-            distances: (np.Array) 2D matrix
+            distance_matrix: (np.Array) 2D matrix
                 # rows = # pairs
                 # columns = # fields
         """
@@ -140,7 +140,7 @@ class Distances(object):
         """Check that a record has all the required fields.
 
         Args:
-            :record: (dict)
+            record: (dict)
         """
         for field_comparator in self._field_comparators:
             field = field_comparator[0]
@@ -152,7 +152,7 @@ class Distances(object):
 
 def typifyFields(fields):
     primary_fields = []
-    distances = []
+    distance_matrix = []
 
     for definition in fields:
         try:
@@ -186,16 +186,16 @@ def typifyFields(fields):
         primary_fields.append(field_object)
 
         if hasattr(field_object, 'higher_vars'):
-            distances.extend(field_object.higher_vars)
+            distance_matrix.extend(field_object.higher_vars)
         else:
-            distances.append(field_object)
+            distance_matrix.append(field_object)
 
-    return primary_fields, distances
+    return primary_fields, distance_matrix
 
 
-def missing(distances):
+def missing(distance_matrix):
     missing_variables = []
-    for definition in distances[:]:
+    for definition in distance_matrix[:]:
         if definition.has_missing:
             missing_variables.append(MissingDataType(definition.name))
 

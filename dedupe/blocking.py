@@ -3,14 +3,14 @@
 # -*- coding: future_fstrings -*-
 
 from collections import defaultdict
-import logging
 import time
+import logging
 from typing import Generator, Tuple, Iterable, Dict, List, Union
 from dedupe._typing import Record, RecordID, Data
-
+from dedupe.logger import logger
 import dedupe.predicates
+logger.setLevel(logging.DEBUG)
 
-logger = logging.getLogger(__name__)
 
 Docs = Union[Iterable[str], Iterable[Iterable[str]]]
 
@@ -51,7 +51,7 @@ class Fingerprinter(object):
                 which can be useful to know for indexing the data.
 
         """
-        logger.debug("Initializing Blocker class")
+        logger.debug("Initializing Fingerprinter class")
         self.predicates = predicates
         self.index_fields: Dict[str,
                                 Dict[str,
@@ -198,9 +198,8 @@ class Fingerprinter(object):
         for index_type, index, _ in indices:
 
             index.initSearch()
-
             for predicate in self.index_fields[field][index_type]:
-                logger.debug("Canopy: %s", str(predicate))
+                # logger.debug("Canopy: %s", str(predicate))
                 predicate.reset()  # AH upgrade
                 predicate.index = index
 
@@ -228,7 +227,7 @@ class Fingerprinter(object):
             index._index.initSearch()
 
             for predicate in self.index_fields[field][index_type]:
-                logger.debug("Canopy: %s", str(predicate))
+                # logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
 
     def index_all(self, data: Data):
@@ -241,7 +240,6 @@ class Fingerprinter(object):
 
 
 def extract_indices(index_fields):
-
     indices = []
     for index_type, predicates in index_fields.items():
         predicate = predicates[0]

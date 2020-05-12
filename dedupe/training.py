@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from . import blocking, predicates, core
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.DEBUG)
 # -*- coding: future_fstrings -*-
 
 
@@ -53,6 +53,7 @@ class BlockLearner(object):
         comparison_count = self.comparison_count
         logger.debug("training.BlockLearner.learn")
         logger.debug(f"Number of initial predicates: {len(self.blocker.predicates)}")
+        # logger.debug(self.blocker.predicates)
         dupe_cover = Cover(self.blocker.predicates, matches)
         dupe_cover.compound(compound_length=2)
         dupe_cover.intersection_update(comparison_count)
@@ -60,9 +61,10 @@ class BlockLearner(object):
         dupe_cover.dominators(cost=comparison_count)
 
         coverable_dupes = set.union(*dupe_cover.values())
-        logger.debug(dupe_cover.values())
+        # logger.debug(dupe_cover.values())
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
+        logger.debug(f"Uncoverable dupes: {uncoverable_dupes}")
         epsilon = int((1.0 - recall) * len(matches))
         logger.debug(f"Recall: {recall}, epsilon: {epsilon}")
 
@@ -75,11 +77,10 @@ class BlockLearner(object):
 
         for pred in dupe_cover:
             pred.count = comparison_count[pred]
-        logger.debug(len(coverable_dupes)-epsilon)
+        logger.debug(f"Target: {len(coverable_dupes)-epsilon}")
         searcher = BranchBound(target=len(coverable_dupes) - epsilon,
                                max_calls=2500)
         final_predicates = searcher.search(dupe_cover)
-
         logger.info('Final predicate set:')
         for predicate in final_predicates:
             logger.info(predicate)
@@ -218,10 +219,10 @@ class DedupeBlockLearner(BlockLearner):
 
         pair_enumerator = core.Enumerator()
         n_records = len(records)
-        logger.debug("training.DedupeBlockLearner.coveredPairs")
-        logger.debug(len(blocker.predicates))
+        # logger.debug("training.DedupeBlockLearner.coveredPairs")
+        # logger.debug(len(blocker.predicates))
         for predicate in blocker.predicates:
-            logger.debug(predicate)
+            # logger.debug(predicate)
             pred_cover = collections.defaultdict(set)
             for id, record in records.items():
                 blocks = predicate(record)
@@ -239,8 +240,8 @@ class DedupeBlockLearner(BlockLearner):
                      for block in pred_cover.values()
                      for pair in itertools.combinations(sorted(block), 2))
             cover[predicate] = Counter(pairs)
-            logger.debug(cover[predicate])
-        logger.debug(len(cover))
+            # logger.debug(cover[predicate])
+        # logger.debug(len(cover))
         return cover
 
     def estimate(self, comparisons):
@@ -340,7 +341,7 @@ class BranchBound(object):
         self.original_cover = None
 
     def search(self, candidates, partial=()):
-        logger.debug("training.BranchBound.search")
+        # logger.debug("training.BranchBound.search")
         if self.calls <= 0:
             return self.cheapest
 
@@ -352,23 +353,25 @@ class BranchBound(object):
 
         covered = self.covered(partial)
         score = self.score(partial)
-        logger.debug(partial)
         if covered >= self.target:
-            logger.debug(f"Number covered >= desired number covered, \
-                  covered={covered}, target={self.target}")
+            logger.debug(f"""Number covered >= desired number covered,
+                            covered={covered}, target={self.target},
+                            score={score}
+                            """)
             if score < self.cheapest_score:
+                logger.debug(f'Candidates: {partial}')
                 self.cheapest = partial
                 self.cheapest_score = score
 
         else:
             window = self.cheapest_score - score
-            logger.debug(self.cheapest_score)
-            logger.debug(score)
+            # logger.debug(f'Cheapest score: {self.cheapest_score}')
+            # logger.debug(f'Score: {score}')
 
             candidates = {p: cover
                           for p, cover in candidates.items()
                           if p.count < window}
-            logger.debug(f"candidates: {candidates}")
+            # logger.debug(f"candidates: {candidates}")
             reachable = self.reachable(candidates) + covered
 
             if candidates and reachable >= self.target:
@@ -386,6 +389,7 @@ class BranchBound(object):
                 self.search(reduced, partial)
                 del reduced
 
+        # logger.debug(f"Cheapest final: {self.cheapest}")
         return self.cheapest
 
     @staticmethod
@@ -399,8 +403,9 @@ class BranchBound(object):
             :partial: (tuple)[predicates.CompoundPredicate]
         """
         for p in partial:
-            logger.debug(f"p: {p}")
-            logger.debug(type(p))
+            pass
+            # logger.debug(f"p: {p}")
+            # logger.debug(type(p))
         return sum(p.count for p in partial)
 
     def covered(self, partial):
@@ -551,7 +556,7 @@ class Cover(object):
                     break
             else:
                 dominants[candidate] = candidate_match
-        logger.debug(f"dominants: {dominants}")
+        # logger.debug(f"dominants: {dominants}")
         self._d = dominants
 
     def __iter__(self):

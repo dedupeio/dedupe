@@ -20,6 +20,7 @@ import fastcluster
 import hcluster
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def connected_components(edgelist: numpy.ndarray,
@@ -29,7 +30,6 @@ def connected_components(edgelist: numpy.ndarray,
         raise StopIteration()
 
     components = union_find(edgelist['pairs'])
-
     for component in components:
         sub_graph = edgelist[component]
         n_components = len(numpy.unique(sub_graph['pairs']))
@@ -102,14 +102,30 @@ def union_find(edgelist: numpy.ndarray) -> ValuesView[Sequence[int]]:
     return components.values()
 
 
-def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
-                                                     numpy.ndarray,
-                                                     int]:
-    """
-    Convert the pairwise list of distances in dupes to "condensed
-    distance matrix" required by the hierarchical clustering
-    algorithms. Also return a dictionary that maps the distance matrix
-    to the record_ids.
+def condensed_distance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
+                                                      numpy.ndarray,
+                                                      int]:
+    """Convert the pairwise list of distances in dupes to ``condensed distance vector``.
+
+    The condensed distance vector is required by the hierarchical clustering
+    algorithms: http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
+
+    Let's suppose we have 3 records. Then there are 3_C_2 = 3 possible pairs. Our
+    distance matrix might look like this:
+
+    ::
+              a        b       c
+        a  0        d(a, b)  d(a, c)
+        b  d(b, a)  0        d(b, c)
+        c  d(c, a)  d(c, b)  0
+
+    Since that contains some redundant information, we create a condensed distance vector
+    from the upper right triangular of the distance matrix. We just read from
+    left to right.
+
+    ::
+
+        [d(a, b), d(a, c), d(b, c)]
 
     The formula for an index of the condensed matrix is
 
@@ -120,7 +136,12 @@ def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
 
     where (row,col) is index of an uncondensed square N X N distance matrix.
 
-    See http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
+    Returns:
+        i_to_id: (dict) dictionary that maps the distance matrix to the record_ids.
+        condensed_distances: (np.array) a 1 x N_C_2 dimensional vector, containing all the
+            pair-wise distances flattened into a 1D array.
+        N: (int)
+
     """
 
     candidate_set = numpy.unique(dupes['pairs'])
@@ -151,43 +172,51 @@ def cluster(dupes: numpy.ndarray,
     list records that all refer to the same entity based on a given
     threshold
 
-    Keyword arguments:
-    threshold -- number betweent 0 and 1 (default is .5). lowering the
-                 number will increase precision, raising it will increase
-                 recall
+    `https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.cluster.hierarchy.fcluster.html`
+
+
+
+    Args:
+        dupes: (np.array)[tuple(list[str], float)] A list of tuples, where each tuple
+            contains an id pair and a probability that they are a match:
+                id_pair_tuple: ([record_id_1, record_id_2], prob)
+                dtype: np.dtype([('pairs', '<U256', 2),
+                                 ('score', 'f4', 1)])
+        threshold: (float) number betweent 0 and 1 (default is .5). lowering the
+            number will increase precision, raising it will increase recall
     """
-    logger.debug("clustering.cluster")
-    distance_threshold = 1 - threshold
+    distance_threshold = threshold
+    score_threshold = 1 - threshold
     dupe_sub_graphs = connected_components(dupes, max_components)
+    logger.debug(f"Dupes: {dupes}")
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
-
-            i_to_id, condensed_distances, N = condensedDistance(sub_graph)
-
+            i_to_id, condensed_distances, N = condensed_distance(sub_graph)
+            logger.debug(f"{condensed_distances}")
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid',
                                           preserve_input=True)
-            logger.debug(distance_threshold)
             partition = hcluster.fcluster(linkage,
                                           distance_threshold,
                                           criterion='distance')
 
             clusters: Dict[int, List[int]] = defaultdict(list)
-            logger.debug(partition)
-            logger.debug(linkage)
+            logger.debug(f"Partition: {partition}")
+            logger.debug(f"Linkage: {linkage}")
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
+            logger.debug(f"Clusters: {clusters}")
             for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
-                    logger.debug(tuple(i_to_id[i] for i in cluster), scores)
+                    logger.debug(f"{tuple(i_to_id[i] for i in cluster)}, {scores}")
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             (ids, score), = sub_graph
-            if score > distance_threshold:
-                logger.debug(tuple(ids), (score,) * 2)
+            if score > score_threshold:
+                # logger.debug(tuple(ids), ((score,) * 2))
                 yield tuple(ids), (score,) * 2
 
 
