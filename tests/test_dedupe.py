@@ -76,19 +76,21 @@ class DataModelTest(unittest.TestCase):
 
 class ConnectedComponentsTest(unittest.TestCase):
     def test_components(self):
-        G = numpy.array([((1, 2), .1),
-                         ((2, 3), .2),
-                         ((4, 5), .2),
-                         ((4, 6), .2),
-                         ((7, 9), .2),
-                         ((8, 9), .2),
-                         ((10, 11), .2),
-                         ((12, 13), .2),
-                         ((12, 14), .5),
-                         ((11, 12), .2)],
-                        dtype=[('pairs', 'i4', 2), ('score', 'f4')])
+        G = numpy.array([((1, 2), .1, 0),
+                         ((2, 3), .2, 0),
+                         ((4, 5), .2, 0),
+                         ((4, 6), .2, 0),
+                         ((7, 9), .2, 0),
+                         ((8, 9), .2, 0),
+                         ((10, 11), .2, 0),
+                         ((12, 13), .2, 0),
+                         ((12, 14), .5, 0),
+                         ((11, 12), .2, 0)],
+                        dtype=[('pairs', 'i4', 2),
+                               ('score', 'f4'),
+                               ('label', 'int32')])
         components = dedupe.clustering.connected_components
-        G_components = {frozenset(tuple(edge) for edge, _ in component)
+        G_components = {frozenset(tuple(edge) for edge, _, _ in component)
                         for component in components(G, 30000)}
         assert G_components == {frozenset(((1, 2), (2, 3))),
                                 frozenset(((4, 5), (4, 6))),
@@ -100,33 +102,35 @@ class ConnectedComponentsTest(unittest.TestCase):
 class ClusteringTest(unittest.TestCase):
     def setUp(self):
         # Fully connected star network
-        self.dupes = numpy.array([((1, 2), .86),
-                                  ((1, 3), .72),
-                                  ((1, 4), .2),
-                                  ((1, 5), .6),
-                                  ((2, 3), .86),
-                                  ((2, 4), .2),
-                                  ((2, 5), .72),
-                                  ((3, 4), .3),
-                                  ((3, 5), .5),
-                                  ((4, 5), .72),
-                                  ((10, 11), .9)],
+        self.dupes = numpy.array([((1, 2), .86, 0),
+                                  ((1, 3), .72, 0),
+                                  ((1, 4), .2,  0),
+                                  ((1, 5), .6,  0),
+                                  ((2, 3), .86, 0),
+                                  ((2, 4), .2,  0),
+                                  ((2, 5), .72, 0),
+                                  ((3, 4), .3,  0),
+                                  ((3, 5), .5,  0),
+                                  ((4, 5), .72, 0),
+                                  ((10, 11), .9, 0)],
                                  dtype=[('pairs', 'i4', 2),
-                                        ('score', 'f4')])
+                                        ('score', 'f4'),
+                                        ('label', 'int32')])
 
         # Dupes with Ids as String
-        self.str_dupes = numpy.array([(('1', '2'), .86),
-                                      (('1', '3'), .72),
-                                      (('1', '4'), .2),
-                                      (('1', '5'), .6),
-                                      (('2', '3'), .86),
-                                      (('2', '4'), .2),
-                                      (('2', '5'), .72),
-                                      (('3', '4'), .3),
-                                      (('3', '5'), .5),
-                                      (('4', '5'), .72)],
+        self.str_dupes = numpy.array([(('1', '2'), .86, 0),
+                                      (('1', '3'), .72, 0),
+                                      (('1', '4'), .2,  0),
+                                      (('1', '5'), .6,  0),
+                                      (('2', '3'), .86, 0),
+                                      (('2', '4'), .2,  0),
+                                      (('2', '5'), .72, 0),
+                                      (('3', '4'), .3,  0),
+                                      (('3', '5'), .5,  0),
+                                      (('4', '5'), .72, 0)],
                                      dtype=[('pairs', 'S4', 2),
-                                            ('score', 'f4')])
+                                            ('score', 'f4'),
+                                            ('label', 'int32')])
 
         self.bipartite_dupes = (((1, 5), .1),
                                 ((1, 6), .72),
