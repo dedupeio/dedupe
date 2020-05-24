@@ -60,9 +60,9 @@ def connected_components(edgelist: numpy.ndarray,
             yield sub_graph
 
 
-def union_find(scored_pairs: numpy.ndarray) -> ValuesView[Sequence[int]]:
+def union_find(scored_pairs: numpy.ndarray) -> Sequence[int]:
 
-    root: Dict[RecordID, RecordID] = {}
+    root: Dict[RecordID, int] = {}
 
     components = {}
 
@@ -82,8 +82,8 @@ def union_find(scored_pairs: numpy.ndarray) -> ValuesView[Sequence[int]]:
             if root_a is None:
                 b = a
                 root_a = root_b
+            root_a = cast(int, root_a)
             components[root_a].append(i)
-            root_a = cast(RecordID, root_a)
             root[b] = root_a
         elif root_a != root_b:
             if len(components[root_a]) < len(components[root_b]):
