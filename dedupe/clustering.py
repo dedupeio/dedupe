@@ -12,7 +12,6 @@ import hcluster
 
 from typing import (Iterable,
                     Dict,
-                    ValuesView,
                     cast,
                     List,
                     Set,
