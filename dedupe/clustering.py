@@ -6,7 +6,6 @@ from collections import defaultdict
 import array
 import logging
 import tempfile
-import os
 
 import numpy
 import fastcluster
@@ -16,7 +15,6 @@ from typing import (Iterable,
                     Dict,
                     cast,
                     List,
-                    Optional,
                     Set,
                     Generator,
                     Sequence,
@@ -32,19 +30,16 @@ def connected_components(edgelist: numpy.ndarray,
     if len(edgelist) == 0:
         raise StopIteration()
 
-    mmap_file_path: Optional[str]
+    unlabeled_edgelist = edgelist
 
-    if 'label' not in edgelist.dtype.names:
-        # need this guard for because connected_components is recursive
-
-        scored_pairs_file, mmap_file_path = tempfile.mkstemp()
-        os.close(scored_pairs_file)
-
-        unlabeled_edgelist = edgelist
-        edgelist = numpy.memmap(mmap_file_path,
+    with tempfile.TemporaryDirectory() as path:
+        filename = path + '/unlabeled_edgelist'
+        edgelist = numpy.memmap(filename,
                                 dtype=(unlabeled_edgelist.dtype.descr
                                        + [('label', 'int32')]),
+                                mode='w+',
                                 shape=unlabeled_edgelist.shape)
+
         if hasattr(unlabeled_edgelist, 'filename'):
             copy_mmap_record_arrays(unlabeled_edgelist,
                                     edgelist,
@@ -53,9 +48,14 @@ def connected_components(edgelist: numpy.ndarray,
             copy_to_mmap_record_array(unlabeled_edgelist,
                                       edgelist,
                                       ['pairs', 'score'])
-    else:
-        mmap_file_path = None
 
+        yield from _connected_components(edgelist, max_components)
+
+        edgelist._mmap.close()
+
+
+def _connected_components(edgelist: numpy.ndarray,
+                          max_components: int) -> Generator[numpy.ndarray, None, None]:
     component_stops = union_find(edgelist)
 
     start = 0
@@ -79,14 +79,11 @@ def connected_components(edgelist: numpy.ndarray,
             sub_graph.sort(order='score')
             cut_point = numpy.searchsorted(sub_graph['score'], threshold)
             filtered_sub_graph = sub_graph[max(cut_point, 2):]
-            for sub_graph in connected_components(filtered_sub_graph,
-                                                  max_components):
+            for sub_graph in _connected_components(filtered_sub_graph,
+                                                   max_components):
                 yield sub_graph[['pairs', 'score']]
         else:
             yield sub_graph[['pairs', 'score']]
-
-    if mmap_file_path:
-        os.remove(mmap_file_path)
 
 
 def union_find(scored_pairs: numpy.ndarray) -> Sequence[int]:
@@ -294,6 +291,12 @@ def pair_gazette_matching(scored_pairs: numpy.ndarray,
 
 
 def copy_to_mmap_record_array(source, target, fields, chunksize=100000):
+    '''
+    Writing into a memmapped array allocates memory equivalent to the
+    amount that you are writing. With big arrays this is undesirable
+    so we write in chunks
+    '''
+
     start = 0
     stops = itertools.chain(range(chunksize, source.size, chunksize),
                             [source.size])
@@ -309,6 +312,12 @@ def copy_to_mmap_record_array(source, target, fields, chunksize=100000):
 
 
 def copy_mmap_record_arrays(source, target, fields, chunksize=100000):
+    '''
+    Writing into a memmapped array allocates memory equivalent to the
+    amount that you are writing. With big arrays this is undesirable
+    so we write in chunks
+    '''
+
     start = 0
     stops = itertools.chain(range(chunksize, source.size, chunksize),
                             [source.size])
@@ -323,4 +332,5 @@ def copy_mmap_record_arrays(source, target, fields, chunksize=100000):
                                     offset=(start * target.dtype.itemsize),
                                     shape=shape)
         target_slice[fields] = source_slice[fields]
+
         start = stop
