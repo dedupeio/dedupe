@@ -5,6 +5,8 @@ import itertools
 from collections import defaultdict
 import array
 import logging
+import tempfile
+import os
 
 import numpy
 import fastcluster
@@ -14,6 +16,7 @@ from typing import (Iterable,
                     Dict,
                     cast,
                     List,
+                    Optional,
                     Set,
                     Generator,
                     Sequence,
@@ -28,6 +31,30 @@ def connected_components(edgelist: numpy.ndarray,
 
     if len(edgelist) == 0:
         raise StopIteration()
+
+    mmap_file_path: Optional[str]
+
+    if 'label' not in edgelist.dtype.names:
+        # need this guard for because connected_components is recursive
+
+        scored_pairs_file, mmap_file_path = tempfile.mkstemp()
+        os.close(scored_pairs_file)
+
+        unlabeled_edgelist = edgelist
+        edgelist = numpy.memmap(mmap_file_path,
+                                dtype=(unlabeled_edgelist.dtype.descr
+                                       + [('label', 'int32')]),
+                                shape=unlabeled_edgelist.shape)
+        if hasattr(unlabeled_edgelist, 'filename'):
+            copy_mmap_record_arrays(unlabeled_edgelist,
+                                    edgelist,
+                                    ['pairs', 'score'])
+        else:
+            copy_to_mmap_record_array(unlabeled_edgelist,
+                                      edgelist,
+                                      ['pairs', 'score'])
+    else:
+        mmap_file_path = None
 
     component_stops = union_find(edgelist)
 
@@ -54,9 +81,12 @@ def connected_components(edgelist: numpy.ndarray,
             filtered_sub_graph = sub_graph[max(cut_point, 2):]
             for sub_graph in connected_components(filtered_sub_graph,
                                                   max_components):
-                yield sub_graph
+                yield sub_graph[['pairs', 'score']]
         else:
-            yield sub_graph
+            yield sub_graph[['pairs', 'score']]
+
+    if mmap_file_path:
+        os.remove(mmap_file_path)
 
 
 def union_find(scored_pairs: numpy.ndarray) -> Sequence[int]:
@@ -189,7 +219,7 @@ def cluster(dupes: numpy.ndarray,
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
-            (ids, score, _), = sub_graph
+            (ids, score), = sub_graph
             if score > threshold:
                 yield tuple(ids), (score,) * 2
 
@@ -261,3 +291,36 @@ def pair_gazette_matching(scored_pairs: numpy.ndarray,
     for match in gazetteMatching(scored_blocks, threshold, n_matches):
         if match:
             yield from match
+
+
+def copy_to_mmap_record_array(source, target, fields, chunksize=100000):
+    start = 0
+    stops = itertools.chain(range(chunksize, source.size, chunksize),
+                            [source.size])
+    for stop in stops:
+        shape = (stop - start,)
+        source_slice = source[start:stop]
+        target_slice = numpy.memmap(target.filename,
+                                    dtype=target.dtype,
+                                    offset=(start * target.dtype.itemsize),
+                                    shape=shape)
+        target_slice[fields] = source_slice[fields]
+        start = stop
+
+
+def copy_mmap_record_arrays(source, target, fields, chunksize=100000):
+    start = 0
+    stops = itertools.chain(range(chunksize, source.size, chunksize),
+                            [source.size])
+    for stop in stops:
+        shape = (stop - start,)
+        source_slice = numpy.memmap(source.filename,
+                                    dtype=source.dtype,
+                                    offset=(start * source.dtype.itemsize),
+                                    shape=shape)
+        target_slice = numpy.memmap(target.filename,
+                                    dtype=target.dtype,
+                                    offset=(start * target.dtype.itemsize),
+                                    shape=shape)
+        target_slice[fields] = source_slice[fields]
+        start = stop
