@@ -32,6 +32,12 @@ def connected_components(edgelist: numpy.ndarray,
 
     unlabeled_edgelist = edgelist
 
+    # we are going to keep track of the connected components
+    # with another field in the record array of the edgelist.
+    # unfortunately, it's not straightforward to add another
+    # field to a memmapped record array so, we are going to
+    # have to create a new memmapped array with all the fields
+    # we want and copy things over.
     with tempfile.TemporaryDirectory() as path:
         filename = path + '/unlabeled_edgelist'
         edgelist = numpy.memmap(filename,
@@ -76,9 +82,15 @@ def _connected_components(edgelist: numpy.ndarray,
                            'filtering is %s' % (n_components,
                                                 max_components,
                                                 threshold))
+            # slices of memmaped arrays are also memmaped arrays,
+            # which is what we want. So, we sort and slice as oppose
+            # to selecting like `sub_graph[sub_graph['score'] >
+            # threshold]`, which would lead to an in memory copy being
+            # made
             sub_graph.sort(order='score')
             cut_point = numpy.searchsorted(sub_graph['score'], threshold)
             filtered_sub_graph = sub_graph[max(cut_point, 2):]
+
             for sub_graph in _connected_components(filtered_sub_graph,
                                                    max_components):
                 yield sub_graph[['pairs', 'score']]
@@ -130,6 +142,11 @@ def union_find(scored_pairs: numpy.ndarray) -> Sequence[int]:
     for label, component in components.items():
         labels[component] = label
 
+    # we want our selections to remain memmapped arrays
+    # so we sort and get the indices where the components
+    # change. This will allow us to slice pieces of the
+    # memmapped array. Those slices will also be memmaped
+    # arrays.
     scored_pairs.sort(order='label')
     return numpy.cumsum(numpy.unique(scored_pairs['label'],
                                      return_counts=True)[1])
