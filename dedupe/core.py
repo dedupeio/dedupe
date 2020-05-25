@@ -147,8 +147,7 @@ class ScoreDupes(object):
                 ids = numpy.array(record_ids, dtype=id_type)
 
                 dtype = numpy.dtype([('pairs', id_type, 2),
-                                     ('score', 'f4'),
-                                     ('label', id_type)])
+                                     ('score', 'f4')])
 
                 temp_file, file_path = tempfile.mkstemp()
                 os.close(temp_file)
@@ -256,8 +255,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
                                     shape=(size,))
     else:
         dtype = numpy.dtype([('pairs', object, 2),
-                             ('score', 'f4'),
-                             ('label', object)])
+                             ('score', 'f4', 1)])
         scored_pairs = numpy.array([], dtype=dtype)
 
     reduce_process.join()
