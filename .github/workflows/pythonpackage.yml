@@ -33,7 +33,7 @@ jobs:
     - env:
         COVERALLS_PARALLEL: true
         COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COVERALLS_FLAG_NAME: job-${{ matrix.os}}-${{ matrix.python_version }}
+        COVERALLS_FLAG_NAME: job-${{ matrix.os}}-${{ matrix.python-version }}
       name: Submit to coveralls
       run: |
         pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
