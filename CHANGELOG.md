@@ -1,3 +1,7 @@
+# 2.0.3
+- Improved memory performance of connected components
+
+
 # 2.0
 
 - Python 3 only
