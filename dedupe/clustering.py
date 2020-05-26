@@ -5,6 +5,7 @@ import itertools
 from collections import defaultdict
 import array
 import logging
+import tempfile
 
 import numpy
 import fastcluster
@@ -12,7 +13,6 @@ import hcluster
 
 from typing import (Iterable,
                     Dict,
-                    ValuesView,
                     cast,
                     List,
                     Set,
@@ -30,10 +30,46 @@ def connected_components(edgelist: numpy.ndarray,
     if len(edgelist) == 0:
         raise StopIteration()
 
-    components = union_find(edgelist['pairs'])
+    unlabeled_edgelist = edgelist
 
-    for component in components:
-        sub_graph = edgelist[component]
+    # we are going to keep track of the connected components
+    # with another field in the record array of the edgelist.
+    # unfortunately, it's not straightforward to add another
+    # field to a memmapped record array so, we are going to
+    # have to create a new memmapped array with all the fields
+    # we want and copy things over.
+    with tempfile.TemporaryDirectory() as path:
+        filename = path + '/unlabeled_edgelist'
+        edgelist = numpy.memmap(filename,
+                                dtype=(unlabeled_edgelist.dtype.descr
+                                       + [('label', 'int32')]),
+                                mode='w+',
+                                shape=unlabeled_edgelist.shape)
+
+        if hasattr(unlabeled_edgelist, 'filename'):
+            copy_mmap_record_arrays(unlabeled_edgelist,
+                                    edgelist,
+                                    ['pairs', 'score'])
+        else:
+            copy_to_mmap_record_array(unlabeled_edgelist,
+                                      edgelist,
+                                      ['pairs', 'score'])
+
+        yield from _connected_components(edgelist, max_components)
+
+        edgelist._mmap.close()
+
+
+def _connected_components(edgelist: numpy.ndarray,
+                          max_components: int) -> Generator[numpy.ndarray, None, None]:
+    component_stops = union_find(edgelist)
+
+    start = 0
+    for stop in component_stops:
+
+        sub_graph = edgelist[start:stop]
+        start = stop
+
         n_components = len(numpy.unique(sub_graph['pairs']))
 
         if n_components > max_components:
@@ -46,19 +82,30 @@ def connected_components(edgelist: numpy.ndarray,
                            'filtering is %s' % (n_components,
                                                 max_components,
                                                 threshold))
-            filtered_sub_graph = sub_graph[sub_graph['score'] > threshold]
-            for sub_graph in connected_components(filtered_sub_graph,
-                                                  max_components):
-                yield sub_graph
+            # slices of memmaped arrays are also memmaped arrays,
+            # which is what we want. So, we sort and slice as oppose
+            # to selecting like `sub_graph[sub_graph['score'] >
+            # threshold]`, which would lead to an in memory copy being
+            # made
+            sub_graph.sort(order='score')
+            cut_point = numpy.searchsorted(sub_graph['score'], threshold)
+            filtered_sub_graph = sub_graph[max(cut_point, 2):]
+
+            for sub_graph in _connected_components(filtered_sub_graph,
+                                                   max_components):
+                yield sub_graph[['pairs', 'score']]
         else:
-            yield sub_graph
+            yield sub_graph[['pairs', 'score']]
 
 
-def union_find(edgelist: numpy.ndarray) -> ValuesView[Sequence[int]]:
+def union_find(scored_pairs: numpy.ndarray) -> Sequence[int]:
 
-    root: Dict[RecordID, RecordID] = {}
+    root: Dict[RecordID, int] = {}
+
     components = {}
-    component_size = {}
+
+    edgelist = scored_pairs['pairs']
+    labels = scored_pairs['label']
 
     it = numpy.nditer(edgelist, ['external_loop'])
 
@@ -67,41 +114,42 @@ def union_find(edgelist: numpy.ndarray) -> ValuesView[Sequence[int]]:
         root_b = root.get(b)
 
         if root_a is None and root_b is None:
-            # assuming that it will be a while before we are handling
-            # edgelists of much more than 4 billion elements we will
-            # use an the 'I' type
-            components[a] = array.array('I', [i])
-            component_size[a] = 2
-            root[a] = root[b] = a
+            root[a] = root[b] = i
+            components[i] = array.array('I', [i])
         elif root_a is None or root_b is None:
             if root_a is None:
                 b = a
                 root_a = root_b
+            root_a = cast(int, root_a)
             components[root_a].append(i)
-            component_size[root_a] += 1
-            root_a = cast(RecordID, root_a)
             root[b] = root_a
         elif root_a != root_b:
-            if component_size[root_a] < component_size[root_b]:
+            if len(components[root_a]) < len(components[root_b]):
                 root_a, root_b = root_b, root_a
 
             components[root_a].extend(components[root_b])
             components[root_a].append(i)
 
             component_b = numpy.unique(edgelist[components[root_b]])
-
             for node in component_b:
                 root[node] = root_a
 
-            component_size[root_a] += len(component_b)
-
             del components[root_b]
-            del component_size[root_b]
 
         else:
             components[root_a].append(i)
 
-    return components.values()
+    for label, component in components.items():
+        labels[component] = label
+
+    # we want our selections to remain memmapped arrays
+    # so we sort and get the indices where the components
+    # change. This will allow us to slice pieces of the
+    # memmapped array. Those slices will also be memmaped
+    # arrays.
+    scored_pairs.sort(order='label')
+    return numpy.cumsum(numpy.unique(scored_pairs['label'],
+                                     return_counts=True)[1])
 
 
 def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
@@ -257,3 +305,49 @@ def pair_gazette_matching(scored_pairs: numpy.ndarray,
     for match in gazetteMatching(scored_blocks, threshold, n_matches):
         if match:
             yield from match
+
+
+def copy_to_mmap_record_array(source, target, fields, chunksize=100000):
+    '''
+    Writing into a memmapped array allocates memory equivalent to the
+    amount that you are writing. With big arrays this is undesirable
+    so we write in chunks
+    '''
+
+    start = 0
+    stops = itertools.chain(range(chunksize, source.size, chunksize),
+                            [source.size])
+    for stop in stops:
+        shape = (stop - start,)
+        source_slice = source[start:stop]
+        target_slice = numpy.memmap(target.filename,
+                                    dtype=target.dtype,
+                                    offset=(start * target.dtype.itemsize),
+                                    shape=shape)
+        target_slice[fields] = source_slice[fields]
+        start = stop
+
+
+def copy_mmap_record_arrays(source, target, fields, chunksize=100000):
+    '''
+    Writing into a memmapped array allocates memory equivalent to the
+    amount that you are writing. With big arrays this is undesirable
+    so we write in chunks
+    '''
+
+    start = 0
+    stops = itertools.chain(range(chunksize, source.size, chunksize),
+                            [source.size])
+    for stop in stops:
+        shape = (stop - start,)
+        source_slice = numpy.memmap(source.filename,
+                                    dtype=source.dtype,
+                                    offset=(start * source.dtype.itemsize),
+                                    shape=shape)
+        target_slice = numpy.memmap(target.filename,
+                                    dtype=target.dtype,
+                                    offset=(start * target.dtype.itemsize),
+                                    shape=shape)
+        target_slice[fields] = source_slice[fields]
+
+        start = stop
