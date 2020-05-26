@@ -30,6 +30,14 @@ jobs:
     - name: pytest
       run: |
          pytest tests dedupe --cov dedupe
+    - env:
+        COVERALLS_PARALLEL: true
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_FLAG_NAME: job-${{ matrix.os}}-${{ matrix.python-version }}
+      name: Submit to coveralls
+      run: |
+        pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
+        coveralls
     - name: flake8
       run: |
          flake8 dedupe tests
@@ -53,6 +61,15 @@ jobs:
         pip wheel -w dist --no-deps .
         twine upload dist/*
       continue-on-error: true
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@57daa114ba54fd8e1c8563e8027325c0bf2f5e80
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
   manylinux_sdist:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     needs: test
