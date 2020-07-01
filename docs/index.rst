@@ -76,10 +76,11 @@ different sized datasets for you
 annotated source code:
 
 * `Small data deduplication <http://dedupeio.github.io/dedupe-examples/docs/csv_example.html>`__
-* `Bigger data deduplication ~700K <http://dedupeio.github.io/dedupe-examples/docs/mysql_example.html>`__
-* `Record Linkage  <http://dedupeio.github.io/dedupe-examples/docs/record_linkage_example.html>`__
-* `Postgres <http://dedupeio.github.io/dedupe-examples/docs/pgsql_example.html>`__
-* `Patent Author Disambiguation <http://dedupeio.github.io/dedupe-examples/docs/patent_example.html>`__
+* `Record Linkage <https://dedupeio.github.io/dedupe-examples/docs/record_linkage_example.html>`__
+* `Gazetter example <https://dedupeio.github.io/dedupe-examples/docs/gazetteer_example.html>`__
+* `MySQL example <https://dedupeio.github.io/dedupe-examples/docs/mysql_example.html>`__
+* `Postgres big dedupe example <https://dedupeio.github.io/dedupe-examples/docs/pgsql_big_dedupe_example.html>`__
+* `Patent Author Disambiguation <https://dedupeio.github.io/dedupe-examples/docs/patent_example.html>`__
 
 Errors / Bugs
 =============
