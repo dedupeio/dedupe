@@ -18,7 +18,7 @@ from typing import (Iterator,
                     Optional,
                     Any,
                     Type,
-                    Iterable)
+                    Iterable, cast)
 from dedupe._typing import (RecordPairs,
                             RecordID,
                             RecordDict,
@@ -140,9 +140,9 @@ class ScoreDupes(object):
 
     def fieldDistance(self, record_pairs: RecordPairs) -> Optional[Tuple]:
 
-        record_ids: Sequence[Tuple[RecordID, RecordID]]
-        records: Sequence[Tuple[RecordDict, RecordDict]]
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))  # type: ignore
+        record_ids = cast(Tuple[Tuple[RecordID, RecordID], ...], record_ids)
+        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records) 
 
         if records:
 
@@ -300,9 +300,9 @@ class ScoreGazette(object):
 
     def __call__(self, block: RecordPairs) -> numpy.ndarray:
 
-        record_ids: Sequence[Tuple[RecordID, RecordID]]
-        records: Sequence[Tuple[RecordDict, RecordDict]]
         record_ids, records = zip(*(zip(*each) for each in block))  # type: ignore
+        record_ids = cast(Tuple[Tuple[RecordID, RecordID], ...], record_ids)
+        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records) 
 
         distances = self.data_model.distances(records)
         scores = self.classifier.predict_proba(distances)[:, -1]
