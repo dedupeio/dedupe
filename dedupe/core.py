@@ -142,7 +142,7 @@ class ScoreDupes(object):
 
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))  # type: ignore
         record_ids = cast(Tuple[Tuple[RecordID, RecordID], ...], record_ids)
-        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records) 
+        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records)
 
         if records:
 
@@ -302,7 +302,7 @@ class ScoreGazette(object):
 
         record_ids, records = zip(*(zip(*each) for each in block))  # type: ignore
         record_ids = cast(Tuple[Tuple[RecordID, RecordID], ...], record_ids)
-        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records) 
+        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records)
 
         distances = self.data_model.distances(records)
         scores = self.classifier.predict_proba(distances)[:, -1]
