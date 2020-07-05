@@ -168,7 +168,6 @@ class DedupeMatching(IntegralMatching):
         """
         pairs = self.pairs(data)
         pair_scores = self.score(pairs)
-        pair_scores = pair_scores[pair_scores["score"] > 0]
         clusters = self.cluster(pair_scores, threshold)
 
         clusters = self._add_singletons(data, clusters)

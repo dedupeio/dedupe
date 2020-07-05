@@ -74,6 +74,9 @@ def _connected_components(edgelist: numpy.ndarray,
 
         if n_components > max_components:
             min_score = numpy.min(sub_graph['score'])
+            if min_score == 0:
+                sub_graph = sub_graph[sub_graph['score'] > 0]
+                min_score = numpy.min(sub_graph['score'])
             min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
             logger.warning('A component contained %s elements. '
