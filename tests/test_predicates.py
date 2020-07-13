@@ -97,7 +97,7 @@ class TestCompoundPredicate(unittest.TestCase):
         block_val = predicates.CompoundPredicate([
             predicate_1,
             predicate_2
-        ])(record)        
+        ])(record)
         assert block_val == ['foo\\::\\:bar', 'foo\\::bar', 'foo:\\:bar', 'foo:bar']
 
 
