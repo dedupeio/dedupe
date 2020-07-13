@@ -80,5 +80,26 @@ class TestNumericPredicates(unittest.TestCase):
         assert predicates.roundTo1(-22315) == (u'-20000',)
 
 
+class TestCompoundPredicate(unittest.TestCase):
+    def test_escapes_colon(self):
+        '''
+        Regression test for issue #836
+        '''
+        predicate_1 = predicates.SimplePredicate(
+            predicates.commonSetElementPredicate, 'col_1')
+        predicate_2 = predicates.SimplePredicate(
+            predicates.commonSetElementPredicate, 'col_2')
+        record = {
+            'col_1': ['foo:', 'foo'],
+            'col_2': [':bar', 'bar']
+        }
+
+        block_val = predicates.CompoundPredicate([
+            predicate_1,
+            predicate_2
+        ])(record)        
+        assert block_val == ['foo\\::\\:bar', 'foo\\::bar', 'foo:\\:bar', 'foo:bar']
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -329,9 +329,14 @@ class CompoundPredicate(tuple):
     def __call__(self, record, **kwargs):
         predicate_keys = [predicate(record, **kwargs)
                           for predicate in self]
-        return [u':'.join(block_key)
-                for block_key
-                in itertools.product(*predicate_keys)]
+        return [
+            u':'.join(
+                # must escape : to avoid confusion with : join separator
+                b.replace(u':', u'\\:') for b in block_key
+            )
+            for block_key
+            in itertools.product(*predicate_keys)
+        ]
 
 
 def wholeFieldPredicate(field: Any) -> Tuple[str]:
