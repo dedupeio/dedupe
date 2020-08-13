@@ -1,1 +1,2 @@
 include dedupe/cpredicates.pyx
+pyproject.toml
