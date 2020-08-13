@@ -473,12 +473,8 @@ class Sample(dict):
         if len(d) <= sample_size:
             super().__init__(d)
         else:
-            _keys = tuple(d.keys())
-            sample = (random.choice(_keys) for _ in range(sample_size))
-            # we want to sample with replacement so need to allow
-            # the same record being chosen more than one time, so
-            # don't use the original dictionary key as the sample key
-            super().__init__({i: d[k] for i, k in enumerate(sample)})
+            sample = random.sample(d.keys(), sample_size)
+            super().__init__({k: d[k] for k in sample})
         if original_length is None:
             self.original_length = len(d)
         else:
