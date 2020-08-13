@@ -7,21 +7,22 @@ import itertools
 import logging
 import collections
 import functools
+from abc import ABC, abstractmethod
 
 from . import blocking, predicates, core
 
 logger = logging.getLogger(__name__)
 
 
-class BlockLearner(object):
+class BlockLearner(ABC):
     def learn(self, matches, recall):
         '''
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
-        comparison_count = self.comparison_count
+        comparison_count = self.comparison_count  # type: ignore
 
-        dupe_cover = Cover(self.blocker.predicates, matches)
+        dupe_cover = Cover(self.blocker.predicates, matches)  # type: ignore
         dupe_cover.compound(2)
         dupe_cover.intersection_update(comparison_count)
 
@@ -104,6 +105,10 @@ class BlockLearner(object):
                 a_cover = self.cover[a]
 
             return a_cover & self.cover[b]
+
+    @abstractmethod
+    def estimate(self, comparisons):
+        ...
 
 
 class DedupeBlockLearner(BlockLearner):
