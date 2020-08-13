@@ -483,7 +483,7 @@ class RecordLinkMatching(IntegralMatching):
             links = self.one_to_one(pair_scores, threshold)
         elif constraint == 'many-to-one':
             links = self.many_to_one(pair_scores, threshold)
-        elif constraint == 'many-to-many':
+        else:
             links = pair_scores[pair_scores['score'] > threshold]
 
         links = list(links)
@@ -880,10 +880,15 @@ class GazetteerMatching(Matching):
         seen: Set[RecordID] = set()
 
         for result in results:
-            a = None
-            prepared_result = []
+            a: Optional[RecordID] = None
+            b: RecordID
+            score: float
+            prepared_result: List[Tuple[RecordID, float]] = []
             for (a, b), score in result:  # type: ignore
                 prepared_result.append((b, score))
+
+            assert a is not None
+
             yield a, tuple(prepared_result)
             seen.add(a)
 
@@ -1085,13 +1090,13 @@ class ActiveMatching(Matching):
         canopies = {}
         for full_predicate in self.predicates:
             for predicate in full_predicate:
-                if hasattr(predicate, 'index') and predicate.index:
-                    doc_to_ids[predicate] = dict(predicate.index._doc_to_id)
+                if hasattr(predicate, 'index') and predicate.index:  # type: ignore
+                    doc_to_ids[predicate] = dict(predicate.index._doc_to_id)  # type: ignore
                     if hasattr(predicate, "canopy"):
-                        canopies[predicate] = predicate.canopy
+                        canopies[predicate] = predicate.canopy  # type: ignore
                     else:
                         try:
-                            indices[predicate] = predicate.index._index
+                            indices[predicate] = predicate.index._index  # type: ignore
                         except AttributeError:
                             pass
 

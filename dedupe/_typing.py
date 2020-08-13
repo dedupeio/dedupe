@@ -37,8 +37,8 @@ class TrainingData(TypedDict):
 
 
 class Classifier(Protocol):
-    def fit(self, Any) -> None:
+    def fit(self, X: object, y: object) -> None:
         ...
 
-    def predict_proba(self, Any) -> Any:
+    def predict_proba(self, X: object) -> Any:
         ...
