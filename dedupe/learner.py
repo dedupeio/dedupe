@@ -327,6 +327,9 @@ class DedupeBlockLearner(BlockLearner):
 
 class DedupeSampler(object):
 
+    def __init__(self, distances):
+        self.distances = distances
+
     def sample(self, data, blocked_proportion, sample_size):
         blocked_sample_size = int(blocked_proportion * sample_size)
         predicates = list(self.distances.predicates(index_predicates=False))
@@ -346,7 +349,7 @@ class DedupeSampler(object):
                 in blocked_sample_keys | random_sample_keys]
 
 
-class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
+class DedupeDisagreementLearner(DisagreementLearner):
 
     def __init__(self,
                  distances,
@@ -356,13 +359,11 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                  original_length,
                  index_include):
 
-        logger.debug("Initializing DedupeDisagreementLearner class")
         self.distances = distances
-        logger.debug(f"labeler.DedupeDisagreementLearner distances type: {type(distances)}")
-        logger.debug(f"labeler.DedupeDisagreementLearner self.distances type: {type(self.distances)}")
+        self.sampler = DedupeSampler(distances)
         data = core.index(data)
 
-        self.candidates = super().sample(data, blocked_proportion, sample_size)
+        self.candidates = self.sampler.sample(data, blocked_proportion, sample_size)
 
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
