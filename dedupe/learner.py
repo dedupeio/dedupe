@@ -215,19 +215,17 @@ class DisagreementLearner(ActiveLearner):
 
         if not index_predicates:
             logger.info(f"Copying predicates from blocking.Fingerprinter")
-            old_preds = self.block_learner.block_learner.fingerprinter.predicates.copy()
+            old_preds = self.block_learner.fingerprinter.predicates.copy()
 
             no_index_predicates = [pred for pred in old_preds
                                    if not hasattr(pred, 'index')]
-            self.block_learner.block_learner.fingerprinter.predicates = no_index_predicates
-            learned_preds = self.block_learner.block_learner.learn(dupes,
-                                                                   recall=recall)
+            self.block_learner.fingerprinter.predicates = no_index_predicates
+            learned_preds = self.block_learner.learn(dupes, recall=recall)
 
-            self.block_learner.block_learner.fingerprinter.predicates = old_preds
+            self.block_learner.fingerprinter.predicates = old_preds
 
         else:
-            learned_preds = self.block_learner.block_learner.learn(dupes,
-                                                                   recall=recall)
+            learned_preds = self.block_learner.learn(dupes, recall=recall)
 
         return learned_preds
 
@@ -268,26 +266,47 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
 class BlockLearner(object):
 
-    def __init__(self, distances,
-                 candidates,
-                 data,
-                 original_length,
-                 index_include, *args):
+    def __init__(self, distances, candidates, data, original_length, index_include, *args):
+        """
+        simple_cover: (dict) subset of the predicates list
+            {
+                key: (dedupe.predicates class)
+                value: (dedupe.training.Counter)
+            }
+        compound_predicates: (generator) given the compound_length,
+            this combines the predicates from simple_cover into
+            combinations.
+            Let n = len(simple_cover)
+                k = compound_length
+                L = number of compound_predicates
+            Then L = n C k = n! / (n-k)!k!
+
+        Args:
+            predicates: (set)[dudupe.predicates class]
+        """
         self.distances = distances
         self.candidates = candidates
-
-        self.current_predicates = ()
-
-        self._cached_labels = None
+        self.compound_length = 2
         self._old_dupes = []
+        self.current_predicates = ()
+        self._cached_labels = None
 
         index_data = Sample(data, 50000, original_length)
         sampled_records = Sample(index_data, 2000, original_length)
-        preds = self.distances.predicates()
+        predicates = self.distances.predicates()
 
-        self.block_learner = TrainingBlockLearner(preds,
-                                                  sampled_records,
-                                                  index_data)
+        N = sampled_records.original_length
+        N_s = len(sampled_records)
+
+        self.r = (N * (N - 1)) / (N_s * (N_s - 1))
+
+        self.fingerprinter = blocking.Fingerprinter(predicates)
+        self.fingerprinter.index_all(index_data)
+
+        simple_cover = self.coveredPairs(self.fingerprinter, sampled_records)
+        compound_predicates = self.compound(simple_cover, self.compound_length)
+        self.comparison_count = self.comparisons(compound_predicates,
+                                                 simple_cover)
         examples_to_index = candidates.copy()
         if index_include:
             examples_to_index += index_include
@@ -301,10 +320,28 @@ class BlockLearner(object):
         new_uncovered = (not all(self.predict(new_dupes)))
 
         if new_uncovered:
-            self.current_predicates = self.block_learner.learn(dupes,
-                                                               recall=1.0)
+            self.current_predicates = self.learn(dupes, recall=1.0)
             self._cached_labels = None
             self._old_dupes = dupes
+
+    def _index_predicates(self, candidates):
+
+        fingerprinter = self.fingerprinter
+
+        records = core.unique((record for pair in candidates for record in pair))
+
+        for field in fingerprinter.index_fields:
+            unique_fields = {record[field] for record in records}
+            fingerprinter.index(unique_fields, field)
+
+        for pred in fingerprinter.index_predicates:
+            pred.freeze(records)
+
+    def _remove(self, index):
+        if self._cached_labels is not None:
+            self._cached_labels = numpy.delete(self._cached_labels,
+                                               index,
+                                               axis=0)
 
     def candidate_scores(self):
         if self._cached_labels is None:
@@ -327,62 +364,6 @@ class BlockLearner(object):
                 labels.append(0)
 
         return labels
-
-    def _remove(self, index):
-        if self._cached_labels is not None:
-            self._cached_labels = numpy.delete(self._cached_labels,
-                                               index,
-                                               axis=0)
-
-    def _index_predicates(self, candidates):
-
-        fingerprinter = self.block_learner.fingerprinter
-
-        records = core.unique((record for pair in candidates for record in pair))
-
-        for field in fingerprinter.index_fields:
-            unique_fields = {record[field] for record in records}
-            fingerprinter.index(unique_fields, field)
-
-        for pred in fingerprinter.index_predicates:
-            pred.freeze(records)
-
-
-class TrainingBlockLearner(object):
-
-    def __init__(self, predicates, sampled_records, data):
-        """
-        simple_cover: (dict) subset of the predicates list
-            {
-                key: (dedupe.predicates class)
-                value: (dedupe.training.Counter)
-            }
-        compound_predicates: (generator) given the compound_length,
-            this combines the predicates from simple_cover into
-            combinations.
-            Let n = len(simple_cover)
-                k = compound_length
-                L = number of compound_predicates
-            Then L = n C k = n! / (n-k)!k!
-
-        Args:
-            predicates: (set)[dudupe.predicates class]
-        """
-
-        self.compound_length = 2
-
-        N = sampled_records.original_length
-        N_s = len(sampled_records)
-
-        self.r = (N * (N - 1)) / (N_s * (N_s - 1))
-
-        self.fingerprinter = blocking.Fingerprinter(predicates)
-        self.fingerprinter.index_all(data)
-
-        simple_cover = self.coveredPairs(self.fingerprinter, sampled_records)
-        compound_predicates = self.compound(simple_cover, self.compound_length)
-        self.comparison_count = self.comparisons(compound_predicates,
-                                                 simple_cover)
 
     def learn(self, matches, recall):
         """
