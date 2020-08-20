@@ -233,10 +233,47 @@ class DisagreementLearner(ActiveLearner):
         return learned_preds
 
 
+class DedupeDisagreementLearner(DisagreementLearner):
+
+    def __init__(self,
+                 distances,
+                 data,
+                 blocked_proportion,
+                 sample_size,
+                 original_length,
+                 index_include):
+
+        self.distances = distances
+        self.sampler = DedupeSampler(distances)
+        data = core.index(data)
+
+        self.candidates = self.sampler.sample(data, blocked_proportion, sample_size)
+
+        random_pair = random.choice(self.candidates)
+        exact_match = (random_pair[0], random_pair[0])
+
+        index_include = index_include.copy()
+        index_include.append(exact_match)
+
+        self.blocker = BlockLearner(distances,
+                                    self.candidates,
+                                    data,
+                                    original_length,
+                                    index_include)
+
+        self._common_init()
+        logger.debug("Initializing with 5 random values")
+        self.mark([exact_match] * 4 + [random_pair],
+                  [1] * 4 + [0])
+
+
 class BlockLearner(object):
 
-    def __init__(self, distances, candidates, *args):
-        logger.debug(f"labeler.BlockLearner distances type: {type(distances)}")
+    def __init__(self, distances,
+                 candidates,
+                 data,
+                 original_length,
+                 index_include, *args):
         self.distances = distances
         self.candidates = candidates
 
@@ -244,6 +281,19 @@ class BlockLearner(object):
 
         self._cached_labels = None
         self._old_dupes = []
+
+        index_data = Sample(data, 50000, original_length)
+        sampled_records = Sample(index_data, 2000, original_length)
+        preds = self.distances.predicates()
+
+        self.block_learner = TrainingBlockLearner(preds,
+                                                  sampled_records,
+                                                  index_data)
+        examples_to_index = candidates.copy()
+        if index_include:
+            examples_to_index += index_include
+
+        self._index_predicates(examples_to_index)
 
     def fit_transform(self, pairs, y):
         dupes = [pair for label, pair in zip(y, pairs) if label]
@@ -285,35 +335,9 @@ class BlockLearner(object):
                                                index,
                                                axis=0)
 
-
-class DedupeBlockLearner(BlockLearner):
-
-    def __init__(self, distances,
-                 candidates,
-                 data,
-                 original_length,
-                 index_include):
-        logger.debug("Initializing labeler.DedupeBlockLearner")
-
-        super().__init__(distances, candidates)
-
-        index_data = Sample(data, 50000, original_length)
-        sampled_records = Sample(index_data, 2000, original_length)
-        preds = self.distances.predicates()
-
-        self.block_learner = TrainingDedupeBlockLearner(preds,
-                                                        sampled_records,
-                                                        index_data)
-        examples_to_index = candidates.copy()
-        if index_include:
-            examples_to_index += index_include
-
-        self._index_predicates(examples_to_index)
-
     def _index_predicates(self, candidates):
 
         blocker = self.block_learner.blocker
-        logger.debug(f"labeler.DedupeBlockLearner blocker: {type(self.block_learner.blocker)}")
 
         records = core.unique((record for pair in candidates for record in pair))
 
@@ -325,80 +349,42 @@ class DedupeBlockLearner(BlockLearner):
             pred.freeze(records)
 
 
-class DedupeSampler(object):
-
-    def __init__(self, distances):
-        self.distances = distances
-
-    def sample(self, data, blocked_proportion, sample_size):
-        blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.distances.predicates(index_predicates=False))
-
-        data = sampling.randomDeque(data)
-        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
-                                                           predicates,
-                                                           data)
-
-        random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = set(core.randomPairs(len(data),
-                                                  random_sample_size))
-        data = dict(data)
-
-        return [(data[k1], data[k2])
-                for k1, k2
-                in blocked_sample_keys | random_sample_keys]
-
-
-class DedupeDisagreementLearner(DisagreementLearner):
-
-    def __init__(self,
-                 distances,
-                 data,
-                 blocked_proportion,
-                 sample_size,
-                 original_length,
-                 index_include):
-
-        self.distances = distances
-        self.sampler = DedupeSampler(distances)
-        data = core.index(data)
-
-        self.candidates = self.sampler.sample(data, blocked_proportion, sample_size)
-
-        random_pair = random.choice(self.candidates)
-        exact_match = (random_pair[0], random_pair[0])
-
-        index_include = index_include.copy()
-        index_include.append(exact_match)
-
-        self.blocker = DedupeBlockLearner(distances,
-                                          self.candidates,
-                                          data,
-                                          original_length,
-                                          index_include)
-
-        self._common_init()
-        logger.debug("Initializing with 5 random values")
-        self.mark([exact_match] * 4 + [random_pair],
-                  [1] * 4 + [0])
-
-
-class Sample(dict):
-
-    def __init__(self, d, sample_size, original_length):
-        if len(d) <= sample_size:
-            super().__init__(d)
-        else:
-            _keys = tuple(d.keys())
-            sample = (random.choice(_keys) for _ in range(sample_size))
-            super().__init__({k: d[k] for k in sample})
-        if original_length is None:
-            self.original_length = len(d)
-        else:
-            self.original_length = original_length
-
-
 class TrainingBlockLearner(object):
+
+    def __init__(self, predicates, sampled_records, data):
+        """
+        simple_cover: (dict) subset of the predicates list
+            {
+                key: (dedupe.predicates class)
+                value: (dedupe.training.Counter)
+            }
+        compound_predicates: (generator) given the compound_length,
+            this combines the predicates from simple_cover into
+            combinations.
+            Let n = len(simple_cover)
+                k = compound_length
+                L = number of compound_predicates
+            Then L = n C k = n! / (n-k)!k!
+
+        Args:
+            predicates: (set)[dudupe.predicates class]
+        """
+
+        self.compound_length = 2
+
+        N = sampled_records.original_length
+        N_s = len(sampled_records)
+
+        self.r = (N * (N - 1)) / (N_s * (N_s - 1))
+
+        self.blocker = blocking.Fingerprinter(predicates)
+        self.blocker.index_all(data)
+
+        simple_cover = self.coveredPairs(self.blocker, sampled_records)
+        compound_predicates = self.compound(simple_cover, self.compound_length)
+        self.comparison_count = self.comparisons(compound_predicates,
+                                                 simple_cover)
+
     def learn(self, matches, recall):
         """
         Takes in a set of training pairs and predicates and tries to find
@@ -469,6 +455,78 @@ class TrainingBlockLearner(object):
         logger.debug(f"Number of final predicate rules: {len(final_predicates)}")
         return final_predicates
 
+    @staticmethod
+    def coveredPairs(blocker, records):
+        """
+
+        For each field, there are one or more predicates. A predicate is a class
+        defined in dedupe.predicates.py. A predicate is defined by the field
+        it is associated with, and the predicate type. A predicate is callable
+        (see the __call__ function).
+
+        Pseudo-Algorithm:
+
+            For each predicate, loop through the records list.
+            Call the predicate function on each record.
+
+        Args:
+            blocker: (blocking.Fingerprinter)
+            records: (dict)[dict] Records dictionary
+
+        Returns:
+            cover: (dict) {
+                key: (dedupe.predicates class)
+                value: (dedupe.training.Counter)
+            }
+        """
+        cover = {}
+
+        pair_enumerator = core.Enumerator()
+        n_records = len(records)
+        # logger.debug("training.DedupeBlockLearner.coveredPairs")
+        # logger.debug(len(blocker.predicates))
+        for predicate in blocker.predicates:
+            # logger.debug(predicate)
+            pred_cover = collections.defaultdict(set)
+            for id, record in records.items():
+                blocks = predicate(record)
+                for block in blocks:
+                    pred_cover[block].add(id)
+
+            if not pred_cover:
+                continue
+
+            max_cover = max(len(v) for v in pred_cover.values())
+            if max_cover == n_records:
+                continue
+
+            pairs = (pair_enumerator[pair]
+                     for block in pred_cover.values()
+                     for pair in itertools.combinations(sorted(block), 2))
+            cover[predicate] = Counter(pairs)
+            # logger.debug(cover[predicate])
+        # logger.debug(len(cover))
+        return cover
+
+    def estimate(self, comparisons):
+        # Result due to Stefano Allesina and Jacopo Grilli,
+        # details forthcoming
+        #
+        # This estimates the total number of comparisons a blocking
+        # rule will produce.
+        #
+        # While it is true that if we block together records 1 and 2 together
+        # N times we have to pay the overhead of that blocking and
+        # and there is some cost to each one of those N comparisons,
+        # we are using a redundant-free scheme so we only make one
+        # truly expensive computation for every record pair.
+        #
+        # So, how can we estimate how many expensive comparison a
+        # predicate will lead to? In other words, how many unique record
+        # pairs will be covered by a predicate?
+
+        return self.r * comparisons.total
+
     def compound(self, simple_predicates, compound_length):
         simple_predicates = sorted(simple_predicates, key=str)
 
@@ -533,116 +591,6 @@ class TrainingBlockLearner(object):
                 a_cover = self.cover[a]
 
             return a_cover * self.cover[b]
-
-
-class TrainingDedupeBlockLearner(TrainingBlockLearner):
-
-    def __init__(self, predicates, sampled_records, data):
-        """
-        simple_cover: (dict) subset of the predicates list
-            {
-                key: (dedupe.predicates class)
-                value: (dedupe.training.Counter)
-            }
-        compound_predicates: (generator) given the compound_length,
-            this combines the predicates from simple_cover into
-            combinations.
-            Let n = len(simple_cover)
-                k = compound_length
-                L = number of compound_predicates
-            Then L = n C k = n! / (n-k)!k!
-
-        Args:
-            predicates: (set)[dudupe.predicates class]
-        """
-
-        logger.debug("Initializing training.DedupeBlockLearner")
-        self.compound_length = 2
-
-        N = sampled_records.original_length
-        N_s = len(sampled_records)
-
-        self.r = (N * (N - 1)) / (N_s * (N_s - 1))
-
-        self.blocker = blocking.Fingerprinter(predicates)
-        self.blocker.index_all(data)
-
-        simple_cover = self.coveredPairs(self.blocker, sampled_records)
-        compound_predicates = self.compound(simple_cover, self.compound_length)
-        self.comparison_count = self.comparisons(compound_predicates,
-                                                 simple_cover)
-
-    @staticmethod
-    def coveredPairs(blocker, records):
-        """
-
-        For each field, there are one or more predicates. A predicate is a class
-        defined in dedupe.predicates.py. A predicate is defined by the field
-        it is associated with, and the predicate type. A predicate is callable
-        (see the __call__ function).
-
-        Pseudo-Algorithm:
-
-            For each predicate, loop through the records list.
-            Call the predicate function on each record.
-
-        Args:
-            :blocker: (blocking.Fingerprinter)
-            :records: (dict)[dict] Records dictionary
-
-        Returns:
-            :cover: (dict) {
-                key: (dedupe.predicates class)
-                value: (dedupe.training.Counter)
-            }
-        """
-        cover = {}
-
-        pair_enumerator = core.Enumerator()
-        n_records = len(records)
-        # logger.debug("training.DedupeBlockLearner.coveredPairs")
-        # logger.debug(len(blocker.predicates))
-        for predicate in blocker.predicates:
-            # logger.debug(predicate)
-            pred_cover = collections.defaultdict(set)
-            for id, record in records.items():
-                blocks = predicate(record)
-                for block in blocks:
-                    pred_cover[block].add(id)
-
-            if not pred_cover:
-                continue
-
-            max_cover = max(len(v) for v in pred_cover.values())
-            if max_cover == n_records:
-                continue
-
-            pairs = (pair_enumerator[pair]
-                     for block in pred_cover.values()
-                     for pair in itertools.combinations(sorted(block), 2))
-            cover[predicate] = Counter(pairs)
-            # logger.debug(cover[predicate])
-        # logger.debug(len(cover))
-        return cover
-
-    def estimate(self, comparisons):
-        # Result due to Stefano Allesina and Jacopo Grilli,
-        # details forthcoming
-        #
-        # This estimates the total number of comparisons a blocking
-        # rule will produce.
-        #
-        # While it is true that if we block together records 1 and 2 together
-        # N times we have to pay the overhead of that blocking and
-        # and there is some cost to each one of those N comparisons,
-        # we are using a redundant-free scheme so we only make one
-        # truly expensive computation for every record pair.
-        #
-        # So, how can we estimate how many expensive comparison a
-        # predicate will lead to? In other words, how many unique record
-        # pairs will be covered by a predicate?
-
-        return self.r * comparisons.total
 
 
 class Counter(object):
@@ -859,6 +807,7 @@ class Cover(object):
                 - If not, add the predicate to the dominants list
         """
         logger.debug("training.Cover.dominators")
+
         def sort_key(x):
             return (-cost[x], len(self._d[x]))
 
@@ -905,6 +854,45 @@ class Cover(object):
 
     def intersection_update(self, other):
         self._d = {k: self._d[k] for k in set(self._d) & set(other)}
+
+
+class Sample(dict):
+
+    def __init__(self, d, sample_size, original_length):
+        if len(d) <= sample_size:
+            super().__init__(d)
+        else:
+            _keys = tuple(d.keys())
+            sample = (random.choice(_keys) for _ in range(sample_size))
+            super().__init__({k: d[k] for k in sample})
+        if original_length is None:
+            self.original_length = len(d)
+        else:
+            self.original_length = original_length
+
+
+class DedupeSampler(object):
+
+    def __init__(self, distances):
+        self.distances = distances
+
+    def sample(self, data, blocked_proportion, sample_size):
+        blocked_sample_size = int(blocked_proportion * sample_size)
+        predicates = list(self.distances.predicates(index_predicates=False))
+
+        data = sampling.randomDeque(data)
+        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
+                                                           predicates,
+                                                           data)
+
+        random_sample_size = sample_size - len(blocked_sample_keys)
+        random_sample_keys = set(core.randomPairs(len(data),
+                                                  random_sample_size))
+        data = dict(data)
+
+        return [(data[k1], data[k2])
+                for k1, k2
+                in blocked_sample_keys | random_sample_keys]
 
 
 OUT_OF_PREDICATES_WARNING = """Ran out of predicates: Dedupe tries to find blocking rules
