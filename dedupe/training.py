@@ -55,7 +55,7 @@ class BlockLearner(object):
         logger.debug(f"Number of initial predicates: {len(self.blocker.predicates)}")
         # logger.debug(self.blocker.predicates)
         dupe_cover = Cover(self.blocker.predicates, matches)
-        dupe_cover.compound(compound_length=2)
+        dupe_cover.compound(compound_length=self.compound_length)
         dupe_cover.intersection_update(comparison_count)
 
         dupe_cover.dominators(cost=comparison_count)
@@ -172,11 +172,11 @@ class DedupeBlockLearner(BlockLearner):
             Then L = n C k = n! / (n-k)!k!
 
         Args:
-            :predicates: (set)[dudupe.predicates class]
+            predicates: (set)[dudupe.predicates class]
         """
 
         logger.debug("Initializing training.DedupeBlockLearner")
-        compound_length = 2
+        self.compound_length = 2
 
         N = sampled_records.original_length
         N_s = len(sampled_records)
@@ -187,7 +187,7 @@ class DedupeBlockLearner(BlockLearner):
         self.blocker.index_all(data)
 
         simple_cover = self.coveredPairs(self.blocker, sampled_records)
-        compound_predicates = self.compound(simple_cover, compound_length)
+        compound_predicates = self.compound(simple_cover, self.compound_length)
         self.comparison_count = self.comparisons(compound_predicates,
                                                  simple_cover)
 
