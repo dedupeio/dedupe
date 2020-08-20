@@ -142,7 +142,7 @@ class DisagreementLearner(ActiveLearner):
     def _common_init(self):
         self.classifier = RLRLearner(self.distances,
                                      candidates=self.candidates)
-        self.learners = (self.classifier, self.blocker)
+        self.learners = (self.classifier, self.block_learner)
         self.y = numpy.array([])
         self.pairs = []
 
@@ -215,20 +215,19 @@ class DisagreementLearner(ActiveLearner):
 
         if not index_predicates:
             logger.info(f"Copying predicates from blocking.Fingerprinter")
-            old_preds = self.blocker.block_learner.blocker.predicates.copy()
+            old_preds = self.block_learner.block_learner.fingerprinter.predicates.copy()
 
             no_index_predicates = [pred for pred in old_preds
                                    if not hasattr(pred, 'index')]
-            self.blocker.block_learner.blocker.predicates = no_index_predicates
-            logger.info(f"Learning predicates from {type(self.blocker.block_learner)}")
-            learned_preds = self.blocker.block_learner.learn(dupes,
-                                                             recall=recall)
+            self.block_learner.block_learner.fingerprinter.predicates = no_index_predicates
+            learned_preds = self.block_learner.block_learner.learn(dupes,
+                                                                   recall=recall)
 
-            self.blocker.block_learner.blocker.predicates = old_preds
+            self.block_learner.block_learner.fingerprinter.predicates = old_preds
 
         else:
-            learned_preds = self.blocker.block_learner.learn(dupes,
-                                                             recall=recall)
+            learned_preds = self.block_learner.block_learner.learn(dupes,
+                                                                   recall=recall)
 
         return learned_preds
 
@@ -255,11 +254,11 @@ class DedupeDisagreementLearner(DisagreementLearner):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = BlockLearner(distances,
-                                    self.candidates,
-                                    data,
-                                    original_length,
-                                    index_include)
+        self.block_learner = BlockLearner(distances,
+                                          self.candidates,
+                                          data,
+                                          original_length,
+                                          index_include)
 
         self._common_init()
         logger.debug("Initializing with 5 random values")
@@ -337,15 +336,15 @@ class BlockLearner(object):
 
     def _index_predicates(self, candidates):
 
-        blocker = self.block_learner.blocker
+        fingerprinter = self.block_learner.fingerprinter
 
         records = core.unique((record for pair in candidates for record in pair))
 
-        for field in blocker.index_fields:
+        for field in fingerprinter.index_fields:
             unique_fields = {record[field] for record in records}
-            blocker.index(unique_fields, field)
+            fingerprinter.index(unique_fields, field)
 
-        for pred in blocker.index_predicates:
+        for pred in fingerprinter.index_predicates:
             pred.freeze(records)
 
 
@@ -377,10 +376,10 @@ class TrainingBlockLearner(object):
 
         self.r = (N * (N - 1)) / (N_s * (N_s - 1))
 
-        self.blocker = blocking.Fingerprinter(predicates)
-        self.blocker.index_all(data)
+        self.fingerprinter = blocking.Fingerprinter(predicates)
+        self.fingerprinter.index_all(data)
 
-        simple_cover = self.coveredPairs(self.blocker, sampled_records)
+        simple_cover = self.coveredPairs(self.fingerprinter, sampled_records)
         compound_predicates = self.compound(simple_cover, self.compound_length)
         self.comparison_count = self.comparisons(compound_predicates,
                                                  simple_cover)
@@ -419,9 +418,8 @@ class TrainingBlockLearner(object):
         """
         comparison_count = self.comparison_count
         logger.debug("training.BlockLearner.learn")
-        logger.debug(f"Number of initial predicates: {len(self.blocker.predicates)}")
-        # logger.debug(self.blocker.predicates)
-        dupe_cover = Cover(self.blocker.predicates, matches)
+        logger.debug(f"Number of initial predicates: {len(self.fingerprinter.predicates)}")
+        dupe_cover = Cover(self.fingerprinter.predicates, matches)
         dupe_cover.compound(compound_length=self.compound_length)
         dupe_cover.intersection_update(comparison_count)
 
@@ -456,7 +454,7 @@ class TrainingBlockLearner(object):
         return final_predicates
 
     @staticmethod
-    def coveredPairs(blocker, records):
+    def coveredPairs(fingerprinter, records):
         """
 
         For each field, there are one or more predicates. A predicate is a class
@@ -470,7 +468,7 @@ class TrainingBlockLearner(object):
             Call the predicate function on each record.
 
         Args:
-            blocker: (blocking.Fingerprinter)
+            fingerprinter: (blocking.Fingerprinter)
             records: (dict)[dict] Records dictionary
 
         Returns:
@@ -484,8 +482,8 @@ class TrainingBlockLearner(object):
         pair_enumerator = core.Enumerator()
         n_records = len(records)
         # logger.debug("training.DedupeBlockLearner.coveredPairs")
-        # logger.debug(len(blocker.predicates))
-        for predicate in blocker.predicates:
+        # logger.debug(len(fingerprinter.predicates))
+        for predicate in fingerprinter.predicates:
             # logger.debug(predicate)
             pred_cover = collections.defaultdict(set)
             for id, record in records.items():
