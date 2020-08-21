@@ -323,7 +323,13 @@ class CompoundPredicate(tuple):
 
 
 def wholeFieldPredicate(field):
-    """return the whole field"""
+    """Returns the whole field as-is.
+
+    Examples:
+    .. code:: python
+        > print(wholeFieldPredicate('John Woodward'))
+        > ('John Woodward',)
+    """
     return (str(field), )
 
 
@@ -331,11 +337,25 @@ wholeFieldPredicate.compounds_with_same_field = False
 
 
 def tokenFieldPredicate(field):
-    """returns the tokens"""
+    """Breaks the field down into 'words' or 'tokens'.
+
+    Examples:
+    .. code:: python
+        > print(tokenFieldPredicate('John Woodward'))
+        > {'John', 'Woodward'}
+    """
     return set(words(field))
 
 
 def firstTokenPredicate(field):
+    """Finds first word/token in the field.
+
+    Examples:
+    .. code:: python
+        > print(firstTokenPredicate('John Woodward'))
+        > ('John',)
+
+    """
     first_token = start_word(field)
     if first_token:
         return first_token.groups()
@@ -344,16 +364,35 @@ def firstTokenPredicate(field):
 
 
 def commonIntegerPredicate(field):
-    """return any integers"""
+    """Returns any integers in the field.
+
+    eg.
+    .. code:: python
+        print(commonIntegerPredicate('Joh5n 12 45 '))
+        > {'12', '45', '5'}
+    """
     return {str(int(i)) for i in integers(field)}
 
 
 def alphaNumericPredicate(field):
+    """Returns any fields with at least one number.
+
+    Examples:
+    .. code:: python
+        > print(alphaNumericPredicate('Joh5n 12 45 '))
+        > {'12', '45', 'Joh5n'}
+    """
     return set(alpha_numeric(field))
 
 
 def nearIntegersPredicate(field):
-    """return any integers N, N+1, and N-1"""
+    """If field has integers N in it, return any integers N, N+1, and N-1
+
+    Examples:
+    .. code:: python
+        > print(nearIntegersPredicate('Joh5n 12 45 '))
+        > {'11', '12', '13', '4', '44', '45', '46', '5', '6'}
+    """
     ints = integers(field)
     near_ints = set()
     for char in ints:
@@ -366,6 +405,13 @@ def nearIntegersPredicate(field):
 
 
 def hundredIntegerPredicate(field):
+    """If field has integers in it, round to the nearest hundred.
+
+    Examples:
+    .. code:: python
+        > print(hundredIntegerPredicate('3540 56 J10000'))
+        > {'00', '10000', '3500'}
+    """
     return {str(int(i))[:-2] + '00' for i in integers(field)}
 
 
@@ -391,10 +437,28 @@ def ngramsTokens(field, n):
 
 
 def commonTwoTokens(field):
+    """Break field down into sets of two adjacent tokens/words (windowing).
+
+    If only one token found, return empy set.
+
+    Examples:
+    .. code:: python
+        > print(commonTwoTokens('John Woodward 123 la la llll'))
+        > {'123 la', 'John Woodward', 'Woodward 123', 'la la', 'la llll'}
+    """
     return ngramsTokens(field.split(), 2)
 
 
 def commonThreeTokens(field):
+    """Break field down into sets of three adjacent tokens/words (windowing).
+
+    If only one or two tokens found, return empy set.
+
+    Examples:
+    .. code:: python
+        > print(commonThreeTokens('John Woodward 123 la la llll'))
+        > {'123 la la', 'John Woodward 123', 'Woodward 123 la', 'la la llll'}
+    """
     return ngramsTokens(field.split(), 3)
 
 
@@ -415,31 +479,77 @@ def twoGramFingerprint(field):
 
 
 def commonFourGram(field):
-    """return 4-grams"""
+    """Split the field into overlapping windows of 4 characters (spaces removed).
+
+    Examples:
+    .. code:: python
+        > print(commonFourGram('John Woodward'))
+        > {'John', 'Wood', 'dwar', 'hnWo', 'nWoo', 'odwa', 'ohnW', 'oodw', 'ward'}
+    """
     return set(ngrams(field.replace(' ', ''), 4))
 
 
 def commonSixGram(field):
-    """return 6-grams"""
+    """Split the field into overlapping windows of 6 characters (spaces removed).
+
+    Examples:
+    .. code:: python
+        > print(commonFourGram('John Woodward'))
+        > {'JohnWo', 'Woodwa', 'hnWood', 'nWoodw', 'odward', 'ohnWoo', 'oodwar'}
+    """
     return set(ngrams(field.replace(' ', ''), 6))
 
 
 def sameThreeCharStartPredicate(field):
-    """return first three characters"""
+    """Return first three characters (spaces removed).
+
+    Examples:
+    .. code:: python
+        > print(sameThreeCharStartPredicate('John Woodward'))
+        > ('Joh',)
+    """
     return initials(field.replace(' ', ''), 3)
 
 
 def sameFiveCharStartPredicate(field):
-    """return first five characters"""
+    """Return first five characters (spaces removed).
+
+    Examples:
+    .. code:: python
+        > print(sameFiveCharStartPredicate('John Woodward'))
+        > ('JohnW',)
+    """
     return initials(field.replace(' ', ''), 5)
 
 
 def sameSevenCharStartPredicate(field):
-    """return first seven characters"""
+    """Return first seven characters (spaces removed).
+
+    Examples:
+    .. code:: python
+        > print(sameSevenCharStartPredicate('John Woodward'))
+        > ('JohnWoo',)
+    """
     return initials(field.replace(' ', ''), 7)
 
 
 def suffixArray(field):
+    """Create an array of characters in the field, 0-N, then 1-N, 2-N...
+
+    Returns a generator.
+
+    Examples:
+    .. code:: python
+        > print([suffix for suffix in suffixArray('John Woodward')])
+        > ['JohnWoodward',
+           'ohnWoodward',
+           'hnWoodward',
+           'nWoodward',
+           'Woodward',
+            'oodward',
+            'odward',
+            'dward']
+    """
     field = field.replace(' ', '')
     n = len(field) - 4
     if n > 0:
@@ -448,14 +558,35 @@ def suffixArray(field):
 
 
 def sortedAcronym(field):
+    """Find first character of each token, and sort them alphanumerically.
+
+    Examples:
+    .. code:: python
+        > print(sortedAcronym('Xavier woodward 4K'))
+        > ('4Xw',)
+    """
     return (''.join(sorted(each[0] for each in field.split())),)
 
 
 def doubleMetaphone(field):
+    """TODO.
+
+    Examples:
+    .. code:: python
+        > print(doubleMetaphone('John Woodward'))
+        > {'ANTRT', 'JNTRT'}
+    """
     return {metaphone for metaphone in doublemetaphone(field) if metaphone}
 
 
 def metaphoneToken(field):
+    """TODO.
+
+    Examples:
+    .. code:: python
+        > print(metaphoneToken('John Woodward'))
+        > {'AN', 'ATRT', 'FTRT', 'JN'}
+    """
     return {metaphone_token for metaphone_token
             in itertools.chain(*(doublemetaphone(token)
                                  for token in set(field.split())))
@@ -469,31 +600,38 @@ def wholeSetPredicate(field_set):
 wholeSetPredicate.compounds_with_same_field = False
 
 
-def commonSetElementPredicate(field_set):
-    """return set as individual elements"""
-    return tuple([str(each) for each in field_set])
-
-
 def commonTwoElementsPredicate(field):
+    """TODO.
+
+    Examples:
+    .. code:: python
+        > print(commonTwoElementsPredicate('John Woodward'))
+        > {'  J', 'J W', 'W a', 'a d', 'd d', 'd h', 'h n', 'n o', 'o o', 'o r', 'r w'}
+    """
     sequence = sorted(field)
     return ngramsTokens(sequence, 2)
 
 
 def commonThreeElementsPredicate(field):
+    """TODO.
+
+    Examples:
+    .. code:: python
+        > print(commonThreeElementsPredicate('John Woodward'))
+        > {  '  J W',
+             'J W a',
+             'W a d',
+             'a d d',
+             'd d h',
+             'd h n',
+             'h n o',
+             'n o o',
+             'o o o',
+             'o o r',
+             'o r w'}
+    """
     sequence = sorted(field)
     return ngramsTokens(sequence, 3)
-
-
-def lastSetElementPredicate(field_set):
-    return (str(max(field_set)), )
-
-
-def firstSetElementPredicate(field_set):
-    return (str(min(field_set)), )
-
-
-def magnitudeOfCardinality(field_set):
-    return orderOfMagnitude(len(field_set))
 
 
 def latLongGridPredicate(field, digits=1):
@@ -524,3 +662,20 @@ def roundTo1(field):  # thanks http://stackoverflow.com/questions/3410976/how-to
     order = int(math.floor(math.log10(abs_num)))
     rounded = round(abs_num, -order)
     return (str(int(math.copysign(rounded, field))),)
+
+
+def lastSetElementPredicate(field_set):
+    return (str(max(field_set)), )
+
+
+def firstSetElementPredicate(field_set):
+    return (str(min(field_set)), )
+
+
+def magnitudeOfCardinality(field_set):
+    return orderOfMagnitude(len(field_set))
+
+
+def commonSetElementPredicate(field_set):
+    """return set as individual elements"""
+    return tuple([str(each) for each in field_set])
