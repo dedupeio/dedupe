@@ -11,7 +11,7 @@ import collections
 import warnings
 import functools
 import numpy
-import logging
+from dedupe.logger import logger
 import multiprocessing
 import multiprocessing.dummy
 from typing import (Iterator,
@@ -26,8 +26,6 @@ from typing import (Iterator,
                     Iterable)
 from dedupe._typing import (RecordPairs, RecordID, Blocks, Data, Literal)
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 _Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
 _SimpleQueue = Union[multiprocessing.dummy.Queue, multiprocessing.SimpleQueue]
@@ -166,17 +164,17 @@ class ScoreDupes(object):
 
                 )
         """
-        logger.debug("core.ScoreDupes.field_distance")
+        logger.info("core.ScoreDupes.field_distance")
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
 
         if records:
             distances = self.distances.compute_distance_matrix(records)
             scores = self.classifier.predict_proba(distances)[:, -1]
             mask = scores > self.threshold
-            logger.debug(distances)
-            logger.debug(scores)
-            logger.debug(f"Threshold = {self.threshold}")
-            logger.debug(f"Mask = {mask}")
+            # logger.debug(distances)
+            # logger.debug(scores)
+            # logger.debug(f"Threshold = {self.threshold}")
+            # logger.debug(f"Mask = {mask}")
             if mask.any():
                 id_type = sniff_id_type(record_ids)
                 ids = numpy.array(record_ids, dtype=id_type)
@@ -202,7 +200,6 @@ class ScoreDupes(object):
 def mergeScores(score_queue, result_queue, stop_signals):
     scored_pairs_file, file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
-
     seen_signals = 0
     end = 0
 
@@ -258,7 +255,8 @@ def scoreDuplicates(records, distances, classifier, num_cores: int = 1, threshol
                 (['20', '21'], 0.9990217 ), (['20', '22'], 0.9990217 ),
                 (['21', '22'], 0.9990217 ), (['22', '23'], 0.999513  )]
     """
-    logger.debug("core.scoreDuplicates")
+    logger.info(f"Num cores: {num_cores}")
+    # num_cores = 1
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue

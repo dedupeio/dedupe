@@ -8,6 +8,7 @@ import logging
 from typing import Generator, Tuple, Iterable, Dict, List, Union
 from dedupe._typing import Record, RecordID, Data
 from dedupe.logger import logger
+from timebudget import timebudget
 import dedupe.predicates
 logger.setLevel(logging.DEBUG)
 
@@ -66,6 +67,7 @@ class Fingerprinter(object):
                         predicate)
                     self.index_predicates.append(predicate)
 
+    @timebudget
     def __call__(self,
                  records: Iterable[Record],
                  target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
@@ -143,18 +145,18 @@ class Fingerprinter(object):
             ]
 
         """
-        logger.debug("blocking.Fingerprinter.__call__")
+        # logger.debug("blocking.Fingerprinter.__call__")
         start_time = time.perf_counter()
         predicates = [(':' + str(i), predicate)
                       for i, predicate
                       in enumerate(self.predicates)]
-        logger.debug(f"Predicates: {predicates}")
+        # logger.debug(f"Predicates: {predicates}")
         for i, record in enumerate(records):
             record_id, instance = record
-            logger.debug(f"Record: {record}")
+            # logger.debug(f"Record: {record}")
             for pred_id, predicate in predicates:
                 block_keys = predicate(instance, target=target)
-                logger.debug(f"Block keys: {block_keys}")
+                # logger.debug(f"Block keys: {block_keys}")
                 for block_key in block_keys:
                     yield block_key + pred_id, record_id
 

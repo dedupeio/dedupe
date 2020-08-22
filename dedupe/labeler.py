@@ -84,7 +84,15 @@ class RecordLinkSampler(object):
 
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def __init__(self, distances, *args, **kwargs):
-        logger.debug("Initializing RLRLearner class, calling super class ActiveLearner")
+        """
+        candidates: (list)(tuple(dict, dict)) A list of record pair tuples, e.g.
+            ::
+                [
+                    ({record_1}, {record_2}),
+                    ({record_2}, {record_5})
+                ]
+        """
+        logger.info("Initializing RLRLearner class, calling super class ActiveLearner")
         super().__init__(alpha=1)
 
         self.distances = distances
@@ -98,7 +106,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
-        logger.debug("Initializing fit transform with random pair")
+        logger.info("Initializing fit transform with random pair")
         self.fit_transform([exact_match, random_pair],
                            [1, 0])
 
@@ -243,7 +251,6 @@ class DedupeBlockLearner(BlockLearner):
                  original_length,
                  index_include):
         logger.debug("Initializing labeler.DedupeBlockLearner")
-        logger.debug(f"labeler.DedupeBlockLearner distances type: {type(distances)}")
 
         super().__init__(distances, candidates)
 
@@ -254,7 +261,6 @@ class DedupeBlockLearner(BlockLearner):
         self.block_learner = training.DedupeBlockLearner(preds,
                                                          sampled_records,
                                                          index_data)
-        logger.debug(f"labeler.DedupeBlockLearner distances type 2: {type(self.distances)}")
         examples_to_index = candidates.copy()
         if index_include:
             examples_to_index += index_include
@@ -325,8 +331,6 @@ class RecordLinkBlockLearner(BlockLearner):
 class DisagreementLearner(ActiveLearner):
 
     def _common_init(self):
-        logger.debug(f"labeler.DisagreementLearner self.distances type: {type(self.distances)}")
-
         self.classifier = RLRLearner(self.distances,
                                      candidates=self.candidates)
         self.learners = (self.classifier, self.blocker)
@@ -398,17 +402,16 @@ class DisagreementLearner(ActiveLearner):
             recall: (float)
             index_predicates: (boolean)
         """
-        logger.debug("labeler.DisagreementLearner.learn_predicates")
-        logger.debug(f"Learning predicates, recall={recall}, index_predicates={index_predicates}")
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
 
         if not index_predicates:
+            logger.info(f"Copying predicates from blocking.Fingerprinter")
             old_preds = self.blocker.block_learner.blocker.predicates.copy()
 
             no_index_predicates = [pred for pred in old_preds
                                    if not hasattr(pred, 'index')]
             self.blocker.block_learner.blocker.predicates = no_index_predicates
-
+            logger.info(f"Learning predicates from {type(self.blocker.block_learner)}")
             learned_preds = self.blocker.block_learner.learn(dupes,
                                                              recall=recall)
 
@@ -451,7 +454,6 @@ class DedupeDisagreementLearner(DisagreementLearner, DedupeSampler):
                                           original_length,
                                           index_include)
 
-        logger.debug(f"labeler.DedupeDisagreementLearner self.distances type 2: {type(self.distances)}")
         self._common_init()
         logger.debug("Initializing with 5 random values")
         self.mark([exact_match] * 4 + [random_pair],

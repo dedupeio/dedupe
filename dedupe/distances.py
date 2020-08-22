@@ -9,6 +9,7 @@ import dedupe.variables
 import dedupe.variables.base as base
 from dedupe.variables.base import MissingDataType
 from dedupe.variables.interaction import InteractionType
+from timebudget import timebudget
 
 for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,
                                          'dedupe.variables.'):
@@ -17,6 +18,7 @@ for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 FIELD_CLASSES = {k: v for k, v in base.allSubclasses(base.FieldType) if k}
+timebudget.set_quiet()
 
 
 class Distances(object):
@@ -62,10 +64,11 @@ class Distances(object):
         Returns:
             predicates: (set)[dudupe.predicates class]
         """
-        logger.debug("distances.Distances.predicates")
         predicates = set()
         for definition in self.primary_fields:
+            logger.info(f"dedupe.distances L70: Definition: {definition}")
             for predicate in definition.predicates:
+                logger.info(f"dedupe.distances L72: Predicates: {predicate}")
                 if hasattr(predicate, 'index'):
                     if index_predicates:
                         if hasattr(predicate, 'canopy'):
@@ -76,8 +79,10 @@ class Distances(object):
                                 predicates.add(predicate)
                 else:
                     predicates.add(predicate)
+        logger.info(f"number of predicates: {len(predicates)}")
         return predicates
 
+    @timebudget
     def compute_distance_matrix(self, record_pairs):
         """
         Args:
@@ -151,6 +156,18 @@ class Distances(object):
 
 
 def typifyFields(fields):
+    """Given the field definitions, compute list of predicates for each field.
+    Args:
+        fields: (list)(dict) a dictionary of field definitions as supplied in the ``fields.json``
+            file, eg
+            ::
+
+                [
+                    {'field': 'middle_name', 'variable name': 'middle_name', 'type': 'String'},
+                    {'field': 'street_address', 'variable name': 'street_address',
+                        'type': 'String', 'weight': 0.5}
+                ]
+    """
     primary_fields = []
     distance_matrix = []
 
@@ -183,6 +200,8 @@ def typifyFields(fields):
                            % (definition['type'], ', '.join(FIELD_CLASSES)))
 
         field_object = field_class(definition)
+        logger.info(f"dedupe.distances L193: field_object: {dir(field_object)}")
+        logger.info(f"dedupe.distances L193: field_object: {field_object.predicates}")
         primary_fields.append(field_object)
 
         if hasattr(field_object, 'higher_vars'):

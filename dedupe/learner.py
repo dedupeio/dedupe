@@ -281,8 +281,20 @@ class BlockLearner(object):
                 L = number of compound_predicates
             Then L = n C k = n! / (n-k)!k!
 
+        predicates: (set)[dudupe.predicates class]
+
         Args:
-            predicates: (set)[dudupe.predicates class]
+            distances: TODO
+            candidates: TODO
+            data: TODO
+            original_length: (int) TODO
+            index_include: TODO
+
+        Fields:
+            comparison_count: (dict) {
+                key: (dedupe.predicates class)
+                value: (float)
+            }
         """
         self.distances = distances
         self.candidates = candidates
@@ -292,26 +304,37 @@ class BlockLearner(object):
         self._cached_labels = None
 
         index_data = Sample(data, 50000, original_length)
-        sampled_records = Sample(index_data, 2000, original_length)
+        self.sampled_records = Sample(index_data, 2000, original_length)
         predicates = self.distances.predicates()
-
-        N = sampled_records.original_length
-        N_s = len(sampled_records)
-
-        self.r = (N * (N - 1)) / (N_s * (N_s - 1))
-
+        self.r = self.compute_r()
         self.fingerprinter = blocking.Fingerprinter(predicates)
         self.fingerprinter.index_all(index_data)
+        self.comparison_count = self.compute_comparison_count()
 
-        simple_cover = self.coveredPairs(self.fingerprinter, sampled_records)
-        compound_predicates = self.compound(simple_cover, self.compound_length)
-        self.comparison_count = self.comparisons(compound_predicates,
-                                                 simple_cover)
         examples_to_index = candidates.copy()
         if index_include:
             examples_to_index += index_include
 
         self._index_predicates(examples_to_index)
+
+    @property
+    def comparison_count(self):
+        return self._comparison_count
+
+    @comparison_count.setter
+    def comparison_count(self, comparison_count):
+        self._comparison_count = comparison_count
+
+    def compute_comparison_count(self):
+        simple_cover = self.covered_pairs(self.fingerprinter, self.sampled_records)
+        compound_predicates = self.compound(simple_cover, self.compound_length)
+        return self.comparisons(compound_predicates, simple_cover)
+
+    def compute_r(self):
+        N = self.sampled_records.original_length
+        N_s = len(self.sampled_records)
+        r = (N * (N - 1)) / (N_s * (N_s - 1))
+        return r
 
     def fit_transform(self, pairs, y):
         dupes = [pair for label, pair in zip(y, pairs) if label]
@@ -372,7 +395,7 @@ class BlockLearner(object):
         predicates which represent the minimum predicates required to
         cover the training data.
 
-            :comparison_count: (dict) {
+            comparison_count: (dict) {
                 key: (dedupe.predicates class)
                 value: (float)
             }
@@ -398,7 +421,6 @@ class BlockLearner(object):
                 N predicates.
         """
         comparison_count = self.comparison_count
-        logger.debug("training.BlockLearner.learn")
         logger.debug(f"Number of initial predicates: {len(self.fingerprinter.predicates)}")
         dupe_cover = Cover(self.fingerprinter.predicates, matches)
         dupe_cover.compound(compound_length=self.compound_length)
@@ -435,7 +457,7 @@ class BlockLearner(object):
         return final_predicates
 
     @staticmethod
-    def coveredPairs(fingerprinter, records):
+    def covered_pairs(fingerprinter, records):
         """
 
         For each field, there are one or more predicates. A predicate is a class
@@ -462,8 +484,7 @@ class BlockLearner(object):
 
         pair_enumerator = core.Enumerator()
         n_records = len(records)
-        # logger.debug("training.DedupeBlockLearner.coveredPairs")
-        # logger.debug(len(fingerprinter.predicates))
+        logger.info(f"fingerprint predicates: {len(fingerprinter.predicates)}")
         for predicate in fingerprinter.predicates:
             # logger.debug(predicate)
             pred_cover = collections.defaultdict(set)
@@ -838,6 +859,10 @@ class Cover(object):
 class Sample(dict):
 
     def __init__(self, d, sample_size, original_length):
+        """
+        Args:
+            original_length: (int)
+        """
         if len(d) <= sample_size:
             super().__init__(d)
         else:

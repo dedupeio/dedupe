@@ -166,7 +166,8 @@ def condensed_distance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
 
 def cluster(dupes: numpy.ndarray,
             threshold: float = 0.5,
-            max_components: int = 30000) -> Clusters:
+            max_components: int = 30000,
+            id_to_match: str = None) -> Clusters:
     """
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
@@ -211,12 +212,15 @@ def cluster(dupes: numpy.ndarray,
                 if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
                     logger.debug(f"{tuple(i_to_id[i] for i in cluster)}, {scores}")
-                    yield tuple(i_to_id[i] for i in cluster), scores
+                    ids = [i_to_id[i] for i in cluster]
+                    if id_to_match in ids:
+                        yield tuple(ids), scores
+                    # yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             (ids, score), = sub_graph
-            if score > score_threshold:
-                # logger.debug(tuple(ids), ((score,) * 2))
+            if score > score_threshold and id_to_match in ids:
+                logger.info(tuple(ids), ((score,) * 2))
                 yield tuple(ids), (score,) * 2
 
 
