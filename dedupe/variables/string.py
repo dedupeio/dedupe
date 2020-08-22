@@ -7,23 +7,24 @@ from simplecosine.cosine import CosineTextSimilarity
 
 crfEd = CRFEditDistance()
 
-base_predicates = (predicates.wholeFieldPredicate,
-                   predicates.firstTokenPredicate,
-                   predicates.commonIntegerPredicate,
-                   predicates.nearIntegersPredicate,
-                   predicates.firstIntegerPredicate,
-                   predicates.hundredIntegerPredicate,
-                   predicates.hundredIntegersOddPredicate,
-                   predicates.alphaNumericPredicate,
-                   predicates.sameThreeCharStartPredicate,
-                   predicates.sameFiveCharStartPredicate,
-                   predicates.sameSevenCharStartPredicate,
-                   predicates.commonTwoTokens,
-                   predicates.commonThreeTokens,
-                   predicates.fingerprint,
-                   predicates.oneGramFingerprint,
-                   predicates.twoGramFingerprint,
-                   predicates.sortedAcronym)
+base_predicates_min = (predicates.wholeFieldPredicate,
+                       predicates.commonIntegerPredicate,
+                       predicates.nearIntegersPredicate,
+                       predicates.firstIntegerPredicate,
+                       predicates.hundredIntegerPredicate,
+                       predicates.hundredIntegersOddPredicate,
+                       predicates.alphaNumericPredicate,
+                       predicates.commonTwoTokens,
+                       predicates.commonThreeTokens,
+                       predicates.fingerprint,
+                       predicates.oneGramFingerprint,
+                       predicates.twoGramFingerprint,
+                       predicates.sortedAcronym)
+
+base_predicates = (base_predicates_min + (predicates.firstTokenPredicate,
+                                          predicates.sameThreeCharStartPredicate,
+                                          predicates.sameFiveCharStartPredicate,
+                                          predicates.sameSevenCharStartPredicate))
 
 
 def string_comparator(field_1, field_2):
@@ -96,3 +97,29 @@ class TextType(BaseStringType):
             definition['corpus'] = []
 
         self.comparator = CosineTextSimilarity(definition['corpus'])
+
+
+class HighInfoStringType(BaseStringType):
+    type = "HighInfoString"
+    _predicate_functions = (base_predicates_min +
+                            (predicates.commonFourGram,
+                             predicates.commonSixGram,
+                             predicates.tokenFieldPredicate,
+                             predicates.suffixArray,
+                             predicates.doubleMetaphone,
+                             predicates.metaphoneToken))
+
+    _index_predicates = (predicates.TfidfNGramCanopyPredicate,
+                         predicates.TfidfNGramSearchPredicate,
+                         predicates.TfidfTextCanopyPredicate,
+                         predicates.TfidfTextSearchPredicate)
+
+    _index_thresholds = (0.2, 0.4, 0.6, 0.8)
+
+    def __init__(self, definition):
+        super(HighInfoStringType, self).__init__(definition)
+
+        if definition.get('crf', False) is True:
+            self.comparator = crfEd
+        else:
+            self.comparator = string_comparator
