@@ -165,7 +165,7 @@ def condensed_distance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
 
 
 def cluster(dupes: numpy.ndarray,
-            threshold: float = 0.5,
+            cluster_threshold: float = 0.5,
             max_components: int = 30000,
             id_to_match: str = None) -> Clusters:
     """
@@ -186,10 +186,10 @@ def cluster(dupes: numpy.ndarray,
         threshold: (float) number betweent 0 and 1 (default is .5). lowering the
             number will increase precision, raising it will increase recall
     """
-    distance_threshold = threshold
-    score_threshold = 1 - threshold
+    distance_threshold = cluster_threshold
+    score_threshold = 1 - cluster_threshold
     dupe_sub_graphs = connected_components(dupes, max_components)
-    logger.debug(f"Dupes: {dupes}")
+    # logger.info(f"Dupes: {dupes}")
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
             i_to_id, condensed_distances, N = condensed_distance(sub_graph)
@@ -207,20 +207,24 @@ def cluster(dupes: numpy.ndarray,
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
-            logger.debug(f"Clusters: {clusters}")
+            logger.info(f"Clusters: {clusters}")
             for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
-                    logger.debug(f"{tuple(i_to_id[i] for i in cluster)}, {scores}")
+                    logger.info(f"{tuple(i_to_id[i] for i in cluster)}, {scores}")
                     ids = [i_to_id[i] for i in cluster]
-                    if id_to_match in ids:
+                    if id_to_match in ids and id_to_match is not None:
+                        yield tuple(ids), scores
+                    elif id_to_match is None:
                         yield tuple(ids), scores
                     # yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             (ids, score), = sub_graph
-            if score > score_threshold and id_to_match in ids:
-                logger.info(tuple(ids), ((score,) * 2))
+            if score > score_threshold and id_to_match in ids and id_to_match is not None:
+                # logger.info(tuple(ids), ((score,) * 2))
+                yield tuple(ids), (score,) * 2
+            elif score > score_threshold and id_to_match is None:
                 yield tuple(ids), (score,) * 2
 
 
