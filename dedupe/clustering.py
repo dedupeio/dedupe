@@ -286,10 +286,11 @@ def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
         block.sort(order='score')
         block = block[::-1]
 
-        if n_matches:
-            yield block[:n_matches].copy()
-        else:
-            yield block.copy()
+        if len(block):
+            if n_matches:
+                yield block[:n_matches].copy()
+            else:
+                yield block.copy()
 
 
 def pair_gazette_matching(scored_pairs: numpy.ndarray,
