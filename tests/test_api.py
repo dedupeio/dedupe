@@ -1,4 +1,5 @@
 import dedupe
+import dedupe.api
 import unittest
 import itertools
 import random
@@ -11,7 +12,7 @@ def icfi(x):
     return list(itertools.chain.from_iterable(x))
 
 
-DATA_SAMPLE = (({'age': '27', 'name': 'Kyle'},
+DATA_SAMPLE = [({'age': '27', 'name': 'Kyle'},
                 {'age': '50', 'name': 'Bob'}),
                ({'age': '27', 'name': 'Kyle'},
                 {'age': '35', 'name': 'William'}),
@@ -20,7 +21,7 @@ DATA_SAMPLE = (({'age': '27', 'name': 'Kyle'},
                ({'age': '27', 'name': 'Kyle'},
                 {'age': '20', 'name': 'Jimmy'}),
                ({'age': '75', 'name': 'Charlie'},
-                {'age': '21', 'name': 'Jimbo'}))
+                {'age': '21', 'name': 'Jimbo'})]
 
 data_dict = OrderedDict(((0, {'name': 'Bob', 'age': '51'}),
                          (1, {'name': 'Linda', 'age': '50'}),
@@ -48,20 +49,17 @@ class ActiveMatch(unittest.TestCase):
         self.assertRaises(TypeError, dedupe.api.ActiveMatching)
 
         with self.assertRaises(ValueError):
-            dedupe.api.ActiveMatching({},)
+            dedupe.api.ActiveMatching([],)
 
         with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching([{'field': 'name', 'type': 'Custom', 'comparator': lambda x: 1}],)
-            
+
         with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching([{'field': 'name', 'type': 'Custom', 'comparator': lambda x: 1},
                                        {'field': 'age', 'type': 'Custom', 'comparator': lambda x: 1}],)
-            
+
         dedupe.api.ActiveMatching([{'field': 'name', 'type': 'Custom', 'comparator': lambda x: 1},
                                    {'field': 'age', 'type': 'String'}],)
-
-
-
 
     def test_check_record(self):
         matcher = dedupe.api.ActiveMatching(self.field_definition)
@@ -76,8 +74,8 @@ class ActiveMatch(unittest.TestCase):
 
     def test_markPair(self):
         from collections import OrderedDict
-        good_training_pairs = OrderedDict((('distinct', DATA_SAMPLE[0:3]),
-                                           ('match', DATA_SAMPLE[3:5])))
+        good_training_pairs = OrderedDict((('match', DATA_SAMPLE[3:5]),
+                                           ('distinct', DATA_SAMPLE[0:3])))
         bad_training_pairs = {'non_dupes': DATA_SAMPLE[0:3],
                               'match': DATA_SAMPLE[3:5]}
 
