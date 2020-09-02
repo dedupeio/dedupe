@@ -256,7 +256,7 @@ def scoreDuplicates(records, distances, classifier, num_cores: int = 1, threshol
                 (['21', '22'], 0.9990217 ), (['22', '23'], 0.999513  )]
     """
     logger.info(f"Num cores: {num_cores}")
-    # num_cores = 1
+    num_cores = 1
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
         SimpleQueue = Queue
