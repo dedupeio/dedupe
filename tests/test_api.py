@@ -47,10 +47,21 @@ class ActiveMatch(unittest.TestCase):
     def test_initialize_fields(self):
         self.assertRaises(TypeError, dedupe.api.ActiveMatching)
 
-        matcher = dedupe.api.ActiveMatching({},)
+        with self.assertRaises(ValueError):
+            dedupe.api.ActiveMatching({},)
 
         with self.assertRaises(ValueError):
-            matcher.fingerprinter
+            dedupe.api.ActiveMatching([{'field': 'name', 'type': 'Custom', 'comparator': lambda x: 1}],)
+            
+        with self.assertRaises(ValueError):
+            dedupe.api.ActiveMatching([{'field': 'name', 'type': 'Custom', 'comparator': lambda x: 1},
+                                       {'field': 'age', 'type': 'Custom', 'comparator': lambda x: 1}],)
+            
+        dedupe.api.ActiveMatching([{'field': 'name', 'type': 'Custom', 'comparator': lambda x: 1},
+                                   {'field': 'age', 'type': 'String'}],)
+
+
+
 
     def test_check_record(self):
         matcher = dedupe.api.ActiveMatching(self.field_definition)

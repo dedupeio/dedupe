@@ -114,7 +114,11 @@ The corresponding variable definition:
         'field': 'Zip',
         'type': 'Custom', 
         'comparator': sameOrNotComparator
-     } 
+     }
+
+``Custom`` fields do not have any blocking rules associated with them.
+Since dedupe needs blocking rules, a data model that only contains ``Custom``
+fields will raise an error.
 
 LatLong
 ^^^^^^^
