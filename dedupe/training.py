@@ -3,6 +3,7 @@
 
 # provides functions for selecting a sample of training data
 
+from dedupe.predicates import CompoundPredicate
 import itertools
 import logging
 import collections
@@ -26,7 +27,7 @@ class BlockLearner(ABC):
         for key in list(match_cover.keys() - comparison_cover.keys()):
             del match_cover[key]
 
-        coverable_dupes = set.union(*match_cover.values())
+        coverable_dupes = frozenset.union(*match_cover.values())
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
 
@@ -54,18 +55,40 @@ class BlockLearner(ABC):
     def generate_candidates(self,
                             match_cover: dict,
                             comparison_cover: dict) -> dict:
-        for pred in match_cover:
-            pred.count = self.estimate(comparison_cover[pred])
+        predicates = list(match_cover)
+        candidates = {}
+        K = 3
 
-        return match_cover
+        for i, predicate in enumerate(predicates):
+            current_match_cover = match_cover[predicate]
+            current_comparison_cover = comparison_cover[predicate]
+            predicate.count = self.estimate(current_comparison_cover)
+            candidates[predicate] = current_match_cover
+            remaining = predicates
+            predicate = CompoundPredicate(predicate,)
+            for _ in range(K):
+                if not remaining:
+                    break
+                best_p = max(remaining,
+                             key=lambda x: (len(current_match_cover & match_cover[x]) /
+                                            (self.estimate(current_comparison_cover & comparison_cover[x]) or float('inf'))))
+                predicate = CompoundPredicate(predicate + (best_p,))
+                current_match_cover &= match_cover[best_p]
+                current_comparison_cover &= comparison_cover[best_p]
+                predicate.count = self.estimate(current_comparison_cover)
+                candidates[predicate] = current_match_cover
+                remaining.remove(best_p)
+
+        return candidates
 
     def cover(self, pairs):
         predicate_cover = {}
         for predicate in self.blocker.predicates:  # type: ignore
-            coverage = {i for i, (record_1, record_2)
-                        in enumerate(pairs)
-                        if (set(predicate(record_1)) &
-                            set(predicate(record_2, target=True)))}
+            coverage = frozenset(
+                i for i, (record_1, record_2)
+                in enumerate(pairs)
+                if (set(predicate(record_1)) &
+                    set(predicate(record_2, target=True))))
             if coverage:
                 predicate_cover[predicate] = coverage
 
@@ -112,10 +135,10 @@ class DedupeBlockLearner(BlockLearner):
             if max_cover == n_records:
                 continue
 
-            pairs = {pair_enumerator[pair]
-                     for block in pred_cover.values()
-                     for pair in itertools.combinations(sorted(block), 2)}
-
+            pairs = frozenset(
+                pair_enumerator[pair]
+                for block in pred_cover.values()
+                for pair in itertools.combinations(sorted(block), 2))
             cover[predicate] = pairs
 
         return cover
@@ -167,9 +190,10 @@ class RecordLinkBlockLearner(BlockLearner):
                     cover[predicate][block][0].add(id)
 
         for predicate, blocks in cover.items():
-            pairs = {pair_enumerator[pair]
-                     for A, B in blocks.values()
-                     for pair in itertools.product(A, B)}
+            pairs = frozenset(
+                pair_enumerator[pair]
+                for A, B in blocks.values()
+                for pair in itertools.product(A, B))
             cover[predicate] = pairs
 
         return cover
@@ -193,7 +217,7 @@ class BranchBound(object):
 
         if self.original_cover is None:
             self.original_cover = candidates.copy()
-            self.cheapest = candidates
+            self.cheapest = tuple(candidates)
 
         self.calls -= 1
 
@@ -241,15 +265,15 @@ class BranchBound(object):
 
     def covered(self, partial):
         if partial:
-            return len(set.union(*(self.original_cover[p]
-                                   for p in partial)))
+            return len(frozenset.union(*(self.original_cover[p]
+                                         for p in partial)))
         else:
             return 0
 
     @staticmethod
     def reachable(dupe_cover):
         if dupe_cover:
-            return len(set.union(*dupe_cover.values()))
+            return len(frozenset.union(*dupe_cover.values()))
         else:
             return 0
 
