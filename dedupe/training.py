@@ -21,9 +21,10 @@ class BlockLearner(ABC):
         a good set of blocking rules.
         '''
         comparison_cover = self.comparison_cover  # type: ignore
+        match_cover = self.cover(matches)  # type: ignore
 
-        match_cover = Cover(self.blocker.predicates, matches)  # type: ignore
-        match_cover.intersection_update(comparison_cover)
+        for key in list(match_cover.keys() - comparison_cover.keys()):
+            del match_cover[key]
 
         coverable_dupes = set.union(*match_cover.values())
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
@@ -51,12 +52,24 @@ class BlockLearner(ABC):
         return final_predicates
 
     def generate_candidates(self,
-                            match_cover: 'Cover',
-                            comparison_cover: 'Cover') -> 'Cover':
+                            match_cover: dict,
+                            comparison_cover: dict) -> dict:
         for pred in match_cover:
             pred.count = self.estimate(comparison_cover[pred])
 
         return match_cover
+
+    def cover(self, pairs):
+        predicate_cover = {}
+        for predicate in self.blocker.predicates:  # type: ignore
+            coverage = {i for i, (record_1, record_2)
+                        in enumerate(pairs)
+                        if (set(predicate(record_1)) &
+                            set(predicate(record_2, target=True)))}
+            if coverage:
+                predicate_cover[predicate] = coverage
+
+        return predicate_cover
 
     @abstractmethod
     def estimate(self, comparisons):
@@ -260,55 +273,6 @@ class BranchBound(object):
                 remaining[predicate] = still_uncovered
 
         return remaining
-
-
-class Cover(object):
-    def __init__(self, *args):
-        if len(args) == 1:
-            self._d, = args
-        else:
-            self._d = {}
-            predicates, pairs = args
-            self._cover(predicates, pairs)
-
-    def __repr__(self):
-        return 'Cover:' + str(self._d.keys())
-
-    def _cover(self, predicates, pairs):
-        for predicate in predicates:
-            coverage = {i for i, (record_1, record_2)
-                        in enumerate(pairs)
-                        if (set(predicate(record_1)) &
-                            set(predicate(record_2, target=True)))}
-            if coverage:
-                self._d[predicate] = coverage
-
-    def __iter__(self):
-        return iter(self._d)
-
-    def keys(self):
-        return self._d.keys()
-
-    def values(self):
-        return self._d.values()
-
-    def items(self):
-        return self._d.items()
-
-    def __getitem__(self, k):
-        return self._d[k]
-
-    def copy(self):
-        return Cover(self._d.copy())
-
-    def update(self, *args, **kwargs):
-        self._d.update(*args, **kwargs)
-
-    def __eq__(self, other):
-        return self._d == other._d
-
-    def intersection_update(self, other):
-        self._d = {k: self._d[k] for k in set(self._d) & set(other)}
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501

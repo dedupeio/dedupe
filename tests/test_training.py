@@ -32,12 +32,12 @@ class TrainingTest(unittest.TestCase):
         self.simple = lambda x: set([str(k) for k in x
                                      if "CompoundPredicate" not in str(k)])
 
+        self.block_learner = training.BlockLearner
+        self.block_learner.blocker = dedupe.blocking.Fingerprinter(self.data_model.predicates())
+        self.block_learner.blocker.index_all({i: x for i, x in enumerate(self.training_records)})
+
     def test_dedupe_coverage(self):
-        predicates = self.data_model.predicates()
-        blocker = dedupe.blocking.Fingerprinter(predicates)
-        blocker.index_all({i: x for i, x in enumerate(self.training_records)})
-        coverage = training.Cover(blocker.predicates,
-                                  self.training)
+        coverage = self.block_learner.cover(self.block_learner, self.training)
         assert self.simple(coverage.keys()).issuperset(
             set(["SimplePredicate: (tokenFieldPredicate, name)",
                  "SimplePredicate: (commonSixGram, name)",
@@ -66,7 +66,9 @@ class TrainingTest(unittest.TestCase):
     def test_covered_pairs(self):
         p1 = lambda x, target=None: (1,)  # noqa: E 731
 
-        cover = training.Cover((p1,), [('a', 'b')] * 2)
+        self.block_learner.blocker.predicates = (p1,)
+        cover = self.block_learner.cover(self.block_learner,
+                                         [('a', 'b')] * 2)
 
         assert cover[p1] == {0, 1}
 
