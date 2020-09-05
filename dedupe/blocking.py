@@ -145,7 +145,6 @@ class Fingerprinter(object):
 
             for predicate in self.index_fields[field][index_type]:
                 logger.debug("Canopy: %s", str(predicate))
-                predicate.reset()
                 predicate.index = index
 
     def unindex(self, docs: Docs, field: str) -> None:

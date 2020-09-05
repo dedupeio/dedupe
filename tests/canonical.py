@@ -91,7 +91,7 @@ if __name__ == '__main__':
         deduper = dedupe.Dedupe(fields, num_cores=5)
         deduper.prepare_training(data_d, sample_size=10000)
         deduper.mark_pairs(training_pairs)
-        deduper.train(index_predicates=False)
+        deduper.train(index_predicates=True)
         with open(settings_file, 'wb') as f:
             deduper.write_settings(f)
 
