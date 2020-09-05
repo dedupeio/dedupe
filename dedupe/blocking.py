@@ -146,6 +146,7 @@ class Fingerprinter(object):
             for predicate in self.index_fields[field][index_type]:
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
+                predicate.bust_cache()
 
     def unindex(self, docs: Docs, field: str) -> None:
         '''Remove docs from indices used by fingerprinters
@@ -176,6 +177,7 @@ class Fingerprinter(object):
             for predicate in self.index_fields[field][index_type]:
                 logger.debug("Canopy: %s", str(predicate))
                 predicate.index = index
+                predicate.bust_cache()
 
     def index_all(self, data: Data):
         for field in self.index_fields:
