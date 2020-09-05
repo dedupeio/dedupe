@@ -239,7 +239,7 @@ class DedupeBlockLearner(BlockLearner):
 
         index_data = Sample(data, 50000, original_length)
         sampled_records = Sample(index_data, 5000, original_length)
-        preds = self.data_model.predicates(index_predicates=False)
+        preds = self.data_model.predicates()
 
         self.block_learner = training.DedupeBlockLearner(preds,
                                                          sampled_records,
