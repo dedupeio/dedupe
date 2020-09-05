@@ -77,7 +77,7 @@ class BlockLearner(ABC):
                 predicate = CompoundPredicate(predicate + (best_p,))
                 current_match_cover &= match_cover[best_p]
                 current_comparison_cover &= comparison_cover[best_p]
-                predicate.count = self.estimate(current_comparison_cover)
+                predicate.count = self.estimate(current_comparison_cover)  # type: ignore
                 candidates[predicate] = current_match_cover
                 remaining.remove(best_p)
 
@@ -109,7 +109,7 @@ class BlockLearner(ABC):
                 current_match_cover &= expander(match_cover[best_p])
                 real_match_cover &= match_cover[best_p]
                 current_comparison_cover &= comparison_cover[best_p]
-                predicate.count = self.estimate(current_comparison_cover)
+                predicate.count = self.estimate(current_comparison_cover)  # type: ignore
                 candidates[predicate] = real_match_cover
                 sample_predicates.remove(best_p)
 
