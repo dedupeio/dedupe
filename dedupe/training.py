@@ -3,14 +3,16 @@
 
 # provides functions for selecting a sample of training data
 
-from dedupe.predicates import CompoundPredicate
 import itertools
 import logging
 import collections
 import functools
+import random
 from abc import ABC, abstractmethod
+import math
 
 from . import blocking, core
+from .predicates import CompoundPredicate
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +42,8 @@ class BlockLearner(ABC):
         else:
             epsilon -= len(uncoverable_dupes)
 
-        candidate_cover = self.generate_candidates(match_cover,
-                                                   comparison_cover)
+        candidate_cover = self.generate_candidates_rf(match_cover,
+                                                      comparison_cover)
 
         searcher = BranchBound(len(coverable_dupes) - epsilon, 2500)
         final_predicates = searcher.search(candidate_cover)
@@ -52,9 +54,9 @@ class BlockLearner(ABC):
 
         return final_predicates
 
-    def generate_candidates(self,
-                            match_cover: dict,
-                            comparison_cover: dict) -> dict:
+    def generate_candidates_bilenko(self,
+                                    match_cover: dict,
+                                    comparison_cover: dict) -> dict:
         predicates = list(match_cover)
         candidates = {}
         K = 3
@@ -78,6 +80,38 @@ class BlockLearner(ABC):
                 predicate.count = self.estimate(current_comparison_cover)
                 candidates[predicate] = current_match_cover
                 remaining.remove(best_p)
+
+        return candidates
+
+    def generate_candidates_rf(self,
+                               match_cover: dict,
+                               comparison_cover: dict) -> dict:
+        predicates = list(match_cover)
+        matches = list(frozenset.union(*match_cover.values()))
+        n_pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
+        candidates = {}
+        K = 3
+
+        n_candidates = 10000
+        for _ in range(n_candidates):
+            sample_predicates = random.sample(predicates,
+                                              n_pred_sample_size)
+            expander = Expander(random.choices(matches, k=len(matches)), max(matches))
+            current_match_cover = InfiniteSet()
+            real_match_cover = InfiniteSet()
+            current_comparison_cover = InfiniteSet()
+            predicate = CompoundPredicate()
+            for _ in range(K):
+                best_p = max(sample_predicates,
+                             key=lambda x: (len((current_match_cover & expander(match_cover[x]))) /
+                                            (self.estimate(current_comparison_cover & comparison_cover[x]) or float('inf'))))
+                predicate = CompoundPredicate(predicate + (best_p,))
+                current_match_cover &= expander(match_cover[best_p])
+                real_match_cover &= match_cover[best_p]
+                current_comparison_cover &= comparison_cover[best_p]
+                predicate.count = self.estimate(current_comparison_cover)
+                candidates[predicate] = real_match_cover
+                sample_predicates.remove(best_p)
 
         return candidates
 
@@ -228,6 +262,7 @@ class BranchBound(object):
             if score < self.cheapest_score:
                 self.cheapest = partial
                 self.cheapest_score = score
+                print(score)
 
         else:
             window = self.cheapest_score - score
@@ -297,6 +332,37 @@ class BranchBound(object):
                 remaining[predicate] = still_uncovered
 
         return remaining
+
+
+class InfiniteSet(object):
+
+    def __and__(self, item):
+        return item
+
+    def __rand__(self, item):
+        return item
+
+
+class Expander(object):
+
+    def __init__(self, iterable, max_value):
+        c = collections.Counter(iterable)
+        max_value += 1
+
+        self.replacements = {}
+        for k, v in c.items():
+            self.replacements[k] = [v]
+            if v > 1:
+                for _ in range(v - 1):
+                    self.replacements[k].append(max_value)
+                    max_value += 1
+
+    def __call__(self, iterable):
+
+        result = itertools.chain.from_iterable(self.replacements[k]
+                                               for k in iterable
+                                               if k in self.replacements)
+        return frozenset(result)
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501

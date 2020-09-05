@@ -939,7 +939,9 @@ class StaticMatching(Matching):
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
 
-        logger.info(self.predicates)
+        logger.info('Predicate set:')
+        for predicate in self.predicates:
+            logger.info(predicate)
 
         self._fingerprinter = blocking.Fingerprinter(self.predicates)
 
