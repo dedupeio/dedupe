@@ -149,6 +149,9 @@ class IndexPredicate(Predicate):
     def reset(self):
         ...
 
+    def bust_cache(self):
+        self._cache = {}
+
 
 class CanopyPredicate(object):
     def __init__(self, *args, **kwargs):
