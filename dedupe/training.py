@@ -47,8 +47,8 @@ class BlockLearner(ABC):
         else:
             epsilon -= len(uncoverable_dupes)
 
-        candidate_cover = self.generate_candidates_rf(match_cover,
-                                                      comparison_cover)
+        candidate_cover = self.generate_candidates(match_cover,
+                                                   comparison_cover)
 
         searcher = BranchBound(len(coverable_dupes) - epsilon, 2500)
         final_predicates = searcher.search(candidate_cover)
@@ -59,38 +59,9 @@ class BlockLearner(ABC):
 
         return final_predicates
 
-    def generate_candidates_bilenko(self,
-                                    match_cover: dict,
-                                    comparison_cover: dict) -> dict:
-        predicates = list(match_cover)
-        candidates = {}
-        K = 3
-
-        for i, predicate in enumerate(predicates):
-            current_match_cover = match_cover[predicate]
-            current_comparison_cover = comparison_cover[predicate]
-            predicate.count = self.estimate(current_comparison_cover)
-            candidates[predicate] = current_match_cover
-            remaining = predicates
-            predicate = CompoundPredicate(predicate,)
-            for _ in range(K):
-                if not remaining:
-                    break
-                best_p = max(remaining,
-                             key=lambda x: (len(current_match_cover & match_cover[x]) /
-                                            (self.estimate(current_comparison_cover & comparison_cover[x]) or float('inf'))))
-                predicate += best_p
-                current_match_cover &= match_cover[best_p]
-                current_comparison_cover &= comparison_cover[best_p]
-                predicate.count = self.estimate(current_comparison_cover)  # type: ignore
-                candidates[predicate] = current_match_cover
-                remaining.remove(best_p)
-
-        return candidates
-
-    def generate_candidates_rf(self,
-                               match_cover: Cover,
-                               comparison_cover: Cover) -> Cover:
+    def generate_candidates(self,
+                            match_cover: Cover,
+                            comparison_cover: Cover) -> Cover:
         predicates = list(match_cover)
         matches = list(frozenset.union(*match_cover.values()))
         pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
