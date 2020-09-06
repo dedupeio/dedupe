@@ -1,5 +1,3 @@
-from __future__ import division
-
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.textindex import TextIndex
 from zope.index.text.cosineindex import CosineIndex

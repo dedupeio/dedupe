@@ -34,27 +34,6 @@ class BlockingTest(unittest.TestCase):
         self.simple = lambda x: set([str(k) for k in x
                                      if "CompoundPredicate" not in str(k)])
 
-    def test_dedupe_coverage(self):
-        predicates = self.data_model.predicates()
-        blocker = dedupe.blocking.Blocker(predicates)
-        blocker.indexAll({i: x for i, x in enumerate(self.training_records)})
-        coverage = dedupe.training.coveredPairs(blocker.predicates,
-                                                self.training)
-        assert self.simple(coverage.keys()).issuperset(
-            set(["SimplePredicate: (tokenFieldPredicate, name)",
-                 "SimplePredicate: (commonSixGram, name)",
-                 "TfidfTextCanopyPredicate: (0.4, name)",
-                 "SimplePredicate: (sortedAcronym, name)",
-                 "SimplePredicate: (sameThreeCharStartPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.2, name)",
-                 "SimplePredicate: (sameFiveCharStartPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.6, name)",
-                 "SimplePredicate: (wholeFieldPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.8, name)",
-                 "SimplePredicate: (commonFourGram, name)",
-                 "SimplePredicate: (firstTokenPredicate, name)",
-                 "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
-
 
 class TfidfTest(unittest.TestCase):
     def setUp(self):
@@ -73,7 +52,7 @@ class TfidfTest(unittest.TestCase):
 
     def test_unconstrained_inverted_index(self):
 
-        blocker = dedupe.blocking.Blocker(
+        blocker = dedupe.blocking.Fingerprinter(
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")])
 
         blocker.index(set(record["name"]
@@ -108,7 +87,7 @@ class TfIndexUnindex(unittest.TestCase):
             145: {"name": "Kyle", "age": "27", "dataset": 0},
         }
 
-        self.blocker = dedupe.blocking.Blocker(
+        self.blocker = dedupe.blocking.Fingerprinter(
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")])
 
         self.records_1 = dict((record_id, record)

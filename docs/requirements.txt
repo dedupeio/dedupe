@@ -1,0 +1,6 @@
+sphinx>=2.1
+sphinx-autodoc-typehints
+sphinx-rtd-theme
+sphinxcontrib-htmlhelp
+sphinxcontrib-jsmath
+sphinxcontrib-serializinghtml

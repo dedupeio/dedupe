@@ -1,11 +1,9 @@
-from future.utils import with_metaclass
-
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 
-class Index(with_metaclass(ABCMeta)):
+class Index(ABC):
     @abstractmethod
-    def __init__():  # pragma: no cover
+    def __init__(self):  # pragma: no cover
         pass
 
     @abstractmethod
@@ -21,5 +19,5 @@ class Index(with_metaclass(ABCMeta)):
         pass
 
     @abstractmethod
-    def initSearch():  # pragma: no cover
+    def initSearch(self):  # pragma: no cover
         pass

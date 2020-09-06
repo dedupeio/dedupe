@@ -6,12 +6,13 @@ try:
 except ImportError:
     raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
 
-install_requires = ['fastcluster<1.1.25',
+from Cython.Build import cythonize
+
+install_requires = ['fastcluster',
                     'dedupe-hcluster',
                     'affinegap>=1.3',
                     'categorical-distance>=1.9',
                     'dedupe-variable-datetime',
-                    'future>=0.14',
                     'rlr>=2.4.3',
                     'numpy>=1.13',
                     'doublemetaphone',
@@ -19,19 +20,20 @@ install_requires = ['fastcluster<1.1.25',
                     'simplecosine>=1.2',
                     'haversine>=0.4.1',
                     'BTrees>=4.1.4',
-                    'simplejson',
                     'zope.index',
-                    'Levenshtein_search']
+                    'Levenshtein_search',
+                    'typing_extensions']
+
 
 setup(
     name='dedupe',
     url='https://github.com/dedupeio/dedupe',
-    version='1.9.2',
+    version='2.0.6',
     author='Forest Gregg',
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
     packages=['dedupe', 'dedupe.variables'],
-    ext_modules=[Extension('dedupe.cpredicates', ['src/cpredicates.c'])],
+    ext_modules=cythonize([Extension('dedupe.cpredicates', ['dedupe/cpredicates.pyx'])]),
     install_requires=install_requires,
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -43,8 +45,7 @@ setup(
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
         'Programming Language :: Cython',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Information Analysis'],
@@ -62,6 +63,9 @@ setup(
     project_urls={
         "Issues": "https://github.com/dedupeio/dedupe/issues",
         "Documentation": "https://docs.dedupe.io/en/latest/",
-        "Examples": "https://github.com/dedupeio/dedupe-examples"
+        "Examples": "https://github.com/dedupeio/dedupe-examples",
+        "Twitter": "https://twitter.com/DedupeIo",
+        "Changelog": "https://github.com/dedupeio/dedupe/blob/master/CHANGELOG.md",
+        "Mailing List": "https://groups.google.com/forum/#!forum/open-source-deduplication",
     }
 )

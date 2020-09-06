@@ -86,7 +86,7 @@ class ConnectedComponentsTest(unittest.TestCase):
                          ((12, 13), .2),
                          ((12, 14), .5),
                          ((11, 12), .2)],
-                        dtype=[('pairs', 'i4', 2), ('score', 'f4', 1)])
+                        dtype=[('pairs', 'i4', 2), ('score', 'f4')])
         components = dedupe.clustering.connected_components
         G_components = {frozenset(tuple(edge) for edge, _ in component)
                         for component in components(G, 30000)}
@@ -112,7 +112,7 @@ class ClusteringTest(unittest.TestCase):
                                   ((4, 5), .72),
                                   ((10, 11), .9)],
                                  dtype=[('pairs', 'i4', 2),
-                                        ('score', 'f4', 1)])
+                                        ('score', 'f4')])
 
         # Dupes with Ids as String
         self.str_dupes = numpy.array([(('1', '2'), .86),
@@ -125,7 +125,8 @@ class ClusteringTest(unittest.TestCase):
                                       (('3', '4'), .3),
                                       (('3', '5'), .5),
                                       (('4', '5'), .72)],
-                                     dtype=[('pairs', 'S4', 2), ('score', 'f4', 1)])
+                                     dtype=[('pairs', 'S4', 2),
+                                            ('score', 'f4')])
 
         self.bipartite_dupes = (((1, 5), .1),
                                 ((1, 6), .72),
@@ -145,6 +146,11 @@ class ClusteringTest(unittest.TestCase):
                                 ((5, 8), .24))
 
     def clusterEquals(self, x, y):
+        if [] == x == y:
+            return True
+        if len(x) != len(y):
+            return False
+
         for cluster_a, cluster_b in zip(x, y):
             if cluster_a[0] != cluster_b[0]:
                 return False
@@ -157,15 +163,13 @@ class ClusteringTest(unittest.TestCase):
     def test_hierarchical(self):
         hierarchical = dedupe.clustering.cluster
         assert self.clusterEquals(list(hierarchical(self.dupes, 1)),
-                                  [((10, 11),
-                                    (0.89999,
-                                     0.89999))])
+                                  [])
 
-        assert self.clusterEquals(hierarchical(self.dupes, 0.5),
+        assert self.clusterEquals(list(hierarchical(self.dupes, 0.5)),
                                   [((1, 2, 3),
-                                    (0.79,
+                                    (0.778,
                                      0.860,
-                                     0.79)),
+                                     0.778)),
                                    ((4, 5),
                                     (0.720,
                                      0.720)),
@@ -174,13 +178,13 @@ class ClusteringTest(unittest.TestCase):
                                      0.899))])
 
         print(hierarchical(self.dupes, 0.0))
-        assert self.clusterEquals(hierarchical(self.dupes, 0),
+        assert self.clusterEquals(list(hierarchical(self.dupes, 0)),
                                   [((1, 2, 3, 4, 5),
-                                    (0.595,
-                                     0.660,
-                                     0.595,
-                                     0.355,
-                                     0.635)),
+                                    (0.526,
+                                     0.564,
+                                     0.542,
+                                     0.320,
+                                     0.623)),
                                    ((10, 11),
                                     (0.899,
                                      0.899))])
@@ -195,21 +199,12 @@ class ClusteringTest(unittest.TestCase):
 
         bipartite_dupes = numpy.array(list(self.bipartite_dupes),
                                       dtype=[('ids', int, 2),
-                                             ('score', float, 1)])
+                                             ('score', float)])
 
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0.5)) == [((4, 6), 0.96),
-                                                    ((2, 7), 0.72),
-                                                    ((3, 8), 0.65)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0)) == [((4, 6), 0.96),
-                                                  ((2, 7), 0.72),
-                                                  ((3, 8), 0.65),
-                                                  ((1, 5), 0.1)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=0.8)) == [((4, 6), 0.96)]
-        assert list(greedyMatch(bipartite_dupes,
-                                threshold=1)) == []
+        assert list(greedyMatch(bipartite_dupes)) == [((4, 6), 0.96),
+                                                      ((2, 7), 0.72),
+                                                      ((3, 8), 0.65),
+                                                      ((1, 5), 0.1)]
 
     def test_gazette_matching(self):
 
@@ -219,7 +214,7 @@ class ClusteringTest(unittest.TestCase):
 
         def to_numpy(x):
             return numpy.array(x, dtype=[('ids', int, 2),
-                                         ('score', float, 1)])
+                                         ('score', float)])
 
         blocked_dupes = [to_numpy(list(block)) for _, block in blocked_dupes]
 
@@ -236,10 +231,6 @@ class ClusteringTest(unittest.TestCase):
 class PredicatesTest(unittest.TestCase):
     def test_predicates_correctness(self):
         field = '123 16th st'
-        assert dedupe.predicates.existsPredicate(field) == ('1',)
-        assert dedupe.predicates.existsPredicate('') == ('0',)
-        assert dedupe.predicates.existsPredicate(1) == ('1',)
-        assert dedupe.predicates.existsPredicate(0) == ('0',)
         assert dedupe.predicates.sortedAcronym(field) == ('11s',)
         assert dedupe.predicates.wholeFieldPredicate(field) == ('123 16th st',)
         assert dedupe.predicates.firstTokenPredicate(field) == ('123',)

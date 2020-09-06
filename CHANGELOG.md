@@ -1,3 +1,35 @@
+# 2.0.6
+- fixed bug that was preventing learning of index predicates in Dedupe mode
+
+# 2.0.3
+- Improved memory performance of connected components
+
+
+# 2.0
+
+- Python 3 only
+- Static typing and type Hints
+- Incorporate sqlite to extend normal API to millions of records
+- Multiprocessing enabled for Windows
+- Multiprocessing mode changed to spawn for Mac OS X
+- Moved from CamelCase to lowercase_with_underscore for method names.
+- Dropped ability to save indices in save settings.
+- Moved from Deduper.match -> Dedupe.partition, RecordLink.match -> RecordLink.join, Gazetteer.match -> Gazetteer.search
+- Renamed Matching.blocker -> Matching.fingerprinter
+- Moved to autodoc for documentation
+- Dropped threshold methods
+- matchBlocks has been replaced by score, which takes pairs of records not blocks
+
+# 1.10.0
+- Dropped python 2.7 support
+
+# 1.9.4
+- Cleaned up block learning
+
+# 1.9.3
+- Improved performance of connected components algorithm with very large components
+- Fixed pickling unpickling bug of Index predicate classes
+
 # 1.9.0
 - Implemented a disagreement based active labeler to improve blocking recall
 

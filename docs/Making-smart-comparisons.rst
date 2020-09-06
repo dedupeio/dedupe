@@ -107,7 +107,7 @@ That leaves us with two blocks - The '160' block, which contains records
      '123' : (3,4)
      } 
 
-Again, we're applying the "first three words" predicate function to the
+Again, we're applying the "first three characters" predicate function to the
 address field in our data, the function outputs the following features --
 160, 160, 123, 123 -- and then we group together the records that have
 identical features into "blocks". 

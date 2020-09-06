@@ -67,12 +67,6 @@ class TestLatLongGrid(unittest.TestCase):
         block_val = predicates.latLongGridPredicate((0, 0))
         assert block_val == ()
 
-    def test_exists(self):
-        block_val = predicates.existsPredicate(self.latlong1)
-        assert block_val == (u'1',)
-        block_val = predicates.existsPredicate((0, 0))
-        assert block_val == (u'0',)
-
 
 class TestNumericPredicates(unittest.TestCase):
     def test_order_of_magnitude(self):
@@ -84,6 +78,48 @@ class TestNumericPredicates(unittest.TestCase):
     def test_round_to_1(self):
         assert predicates.roundTo1(22315) == (u'20000',)
         assert predicates.roundTo1(-22315) == (u'-20000',)
+
+
+class TestCompoundPredicate(unittest.TestCase):
+    def test_escapes_colon(self):
+        '''
+        Regression test for issue #836
+        '''
+        predicate_1 = predicates.SimplePredicate(
+            predicates.commonSetElementPredicate, 'col_1')
+        predicate_2 = predicates.SimplePredicate(
+            predicates.commonSetElementPredicate, 'col_2')
+        record = {
+            'col_1': ['foo:', 'foo'],
+            'col_2': [':bar', 'bar']
+        }
+
+        block_val = predicates.CompoundPredicate([
+            predicate_1,
+            predicate_2
+        ])(record)
+        assert len(set(block_val)) == 4
+        assert block_val == ['foo\\::\\:bar', 'foo\\::bar', 'foo:\\:bar', 'foo:bar']
+
+    def test_escapes_escaped_colon(self):
+        '''
+        Regression test for issue #836
+        '''
+        predicate_1 = predicates.SimplePredicate(
+            predicates.commonSetElementPredicate, 'col_1')
+        predicate_2 = predicates.SimplePredicate(
+            predicates.commonSetElementPredicate, 'col_2')
+        record = {
+            'col_1': ['foo\\:', 'foo'],
+            'col_2': ['\\:bar', 'bar']
+        }
+
+        block_val = predicates.CompoundPredicate([
+            predicate_1,
+            predicate_2
+        ])(record)
+        assert len(set(block_val)) == 4
+        assert block_val == ['foo\\\\::\\\\:bar', 'foo\\\\::bar', 'foo:\\\\:bar', 'foo:bar']
 
 
 if __name__ == '__main__':

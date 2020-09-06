@@ -5,6 +5,8 @@ from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
+from typing import Optional
+
 crfEd = CRFEditDistance()
 
 base_predicates = (predicates.wholeFieldPredicate,
@@ -16,11 +18,12 @@ base_predicates = (predicates.wholeFieldPredicate,
                    predicates.fingerprint,
                    predicates.oneGramFingerprint,
                    predicates.twoGramFingerprint,
-                   predicates.sortedAcronym)
+                   predicates.sortedAcronym
+                   )
 
 
 class BaseStringType(FieldType):
-    type = None
+    type: Optional[str] = None
     _Predicate = predicates.StringPredicate
 
     def __init__(self, definition):
@@ -38,8 +41,8 @@ class ShortStringType(BaseStringType):
     _predicate_functions = (base_predicates +
                             (predicates.doubleMetaphone,))
 
-    _index_predicates = (predicates.TfidfNGramCanopyPredicate,
-                         predicates.TfidfNGramSearchPredicate)
+    _index_predicates = [predicates.TfidfNGramCanopyPredicate,
+                         predicates.TfidfNGramSearchPredicate]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     _overlap_predicates = (predicates.tokenFieldPredicate,
@@ -65,10 +68,10 @@ class ShortStringType(BaseStringType):
 class StringType(ShortStringType):
     type = "String"
 
-    _index_predicates = (predicates.TfidfNGramCanopyPredicate,
+    _index_predicates = [predicates.TfidfNGramCanopyPredicate,
                          predicates.TfidfNGramSearchPredicate,
                          predicates.TfidfTextCanopyPredicate,
-                         predicates.TfidfTextSearchPredicate)
+                         predicates.TfidfTextSearchPredicate]
 
 
 class TextType(BaseStringType):
@@ -76,8 +79,8 @@ class TextType(BaseStringType):
 
     _predicate_functions = base_predicates
 
-    _index_predicates = (predicates.TfidfTextCanopyPredicate,
-                         predicates.TfidfTextSearchPredicate)
+    _index_predicates = [predicates.TfidfTextCanopyPredicate,
+                         predicates.TfidfTextSearchPredicate]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(self, definition):

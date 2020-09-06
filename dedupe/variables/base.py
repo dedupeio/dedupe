@@ -1,3 +1,5 @@
+from typing import Callable, Sequence, Type, Any, Iterable
+
 from dedupe import predicates
 
 
@@ -47,8 +49,9 @@ class MissingDataType(Variable):
 
 
 class FieldType(Variable):
-    _index_thresholds = []
-    _index_predicates = []
+    _index_thresholds: Sequence[float] = []
+    _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
+    _predicate_functions: Sequence[Callable[[Any], Iterable[str]]] = ()
     _overlap_predicates = []
     _overlap_thresholds = []
     _Predicate = predicates.SimplePredicate
@@ -97,7 +100,6 @@ class FieldType(Variable):
 
 class CustomType(FieldType):
     type = "Custom"
-    _predicate_functions = []
 
     def __init__(self, definition):
         super(CustomType, self).__init__(definition)
