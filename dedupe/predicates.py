@@ -52,6 +52,15 @@ class Predicate(abc.ABC):
     def __call__(self, record, **kwargs):
         pass
 
+    def __add__(self, other: 'Predicate') -> 'CompoundPredicate':
+
+        if isinstance(other, CompoundPredicate):
+            return CompoundPredicate((self,) + tuple(other))
+        elif isinstance(other, Predicate):
+            return CompoundPredicate((self, other))
+        else:
+            raise ValueError('Can only combine predicates')
+
 
 class SimplePredicate(Predicate):
     type = "SimplePredicate"
@@ -292,12 +301,18 @@ class LevenshteinSearchPredicate(SearchPredicate, LevenshteinPredicate):
     type = "LevenshteinSearchPredicate"
 
 
-class CompoundPredicate(tuple):
+class CompoundPredicate(tuple, Predicate):
     type = "CompoundPredicate"
 
-    @property
-    def __name__(self):
-        return u'(%s)' % u', '.join(str(pred) for pred in self)
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(frozenset(self))
+            return h
+
+    def __eq__(self, other):
+        return frozenset(self) == frozenset(other)
 
     def __call__(self, record, **kwargs):
         predicate_keys = [predicate(record, **kwargs)
@@ -310,6 +325,15 @@ class CompoundPredicate(tuple):
             for block_key
             in itertools.product(*predicate_keys)
         ]
+
+    def __add__(self, other: Predicate) -> 'CompoundPredicate':  # type: ignore
+
+        if isinstance(other, CompoundPredicate):
+            return CompoundPredicate(tuple(self) + tuple(other))
+        elif isinstance(other, Predicate):
+            return CompoundPredicate(tuple(self) + (other,))
+        else:
+            raise ValueError('Can only combine predicates')
 
 
 def wholeFieldPredicate(field: Any) -> Tuple[str]:
