@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   test:
-
+    timeout-minutes: 5
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
