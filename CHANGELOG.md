@@ -1,3 +1,6 @@
+# 2.0.6
+- fixed bug that was preventing learning of index predicates in Dedupe mode
+
 # 2.0.3
 - Improved memory performance of connected components
 
