@@ -95,8 +95,13 @@ if __name__ == '__main__':
             gazetteer.write_settings(f)
 
     gazetteer.index(data_2)
-    gazetteer.unindex(data_2)
-    gazetteer.index(data_2)
+    try:
+        gazetteer.unindex(data_2)
+    except NotImplementedError:
+        gazetteer.fingerprinter.reset_indices()
+        gazetteer.index(data_2)
+    else:
+        gazetteer.index(data_2)
 
     # print candidates
     print('clustering...')
