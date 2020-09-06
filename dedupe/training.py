@@ -15,7 +15,7 @@ from typing import (Dict, Sequence, Iterable, Tuple, List,
                     FrozenSet)
 
 from . import blocking, core
-from .predicates import CompoundPredicate, Predicate
+from .predicates import Predicate
 
 logger = logging.getLogger(__name__)
 
