@@ -110,13 +110,15 @@ class BlockLearner(ABC):
             # the base for the k-conjunctions
             candidate = CompoundPredicate()
             covered_comparisons = InfiniteSet()
-            covered_matches = frozenset(matches)
+            covered_matches = InfiniteSet()
             covered_sample_matches = InfiniteSet()
 
             def score(predicate: Predicate) -> float:
                 try:
-                    return (len(covered_sample_matches & sample_match_cover[predicate]) /
-                            self.estimate(covered_comparisons & comparison_cover[predicate]))
+                    return (len(covered_sample_matches &
+                                sample_match_cover[predicate]) /
+                            self.estimate(covered_comparisons &
+                                          comparison_cover[predicate]))
                 except ZeroDivisionError:
                     return 0.
 
@@ -390,11 +392,6 @@ class Resampler(object):
                                                for k in iterable
                                                if k in self.replacements)
         return frozenset(result)
-
-    @property
-    def pairs(self) -> frozenset:
-
-        return frozenset(itertools.chain.from_iterable(self.replacements.values()))
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501
