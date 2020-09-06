@@ -106,9 +106,9 @@ class BlockLearner(ABC):
                                   for pred, pairs
                                   in match_cover.items()}
 
-            # initialize an empty predicate that will be
-            # the base for the k-conjunctions
-            candidate = CompoundPredicate()
+            # initialize variables that will be
+            # the base for the constructing k-conjunctions
+            candidate = None
             covered_comparisons = InfiniteSet()
             covered_matches = InfiniteSet()
             covered_sample_matches = InfiniteSet()
@@ -124,7 +124,10 @@ class BlockLearner(ABC):
 
             for _ in range(K):
                 next_predicate = max(sample_predicates, key=score)
-                candidate += next_predicate
+                if candidate:
+                    candidate += next_predicate
+                else:
+                    candidate = next_predicate
 
                 covered_comparisons &= comparison_cover[next_predicate]
                 candidate.count = self.estimate(covered_comparisons)  # type: ignore
