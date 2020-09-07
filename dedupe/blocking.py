@@ -172,7 +172,7 @@ class Fingerprinter(object):
 
         for index_type, index, _ in indices:
 
-            index._index.initSearch()
+            index.initSearch()
 
             for predicate in self.index_fields[field][index_type]:
                 logger.debug("Canopy: %s", str(predicate))

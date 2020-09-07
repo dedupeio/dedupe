@@ -15,9 +15,9 @@ class LevenshteinIndex(Index):
             Levenshtein_search.add_string(self.index_key, doc)
 
     def unindex(self, doc):
-        raise NotImplementedError('problem in upstream library for levenshtein index')
         del self._doc_to_id[doc]
-        Levenshtein_search.remove_string(self.index_key, doc)
+        Levenshtein_search.clear_wordset(self.index_key)
+        self.index_key = Levenshtein_search.populate_wordset(-1, list(self._doc_to_id))
 
     def initSearch(self):
         pass
