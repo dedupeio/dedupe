@@ -67,7 +67,7 @@ class Fingerprinter(object):
                         predicate)
                     self.index_predicates.append(predicate)
 
-    @timebudget
+    # @timebudget
     def __call__(self,
                  records: Iterable[Record],
                  target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:

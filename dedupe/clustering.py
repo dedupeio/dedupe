@@ -211,13 +211,12 @@ def cluster(dupes: numpy.ndarray,
             for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, condensed_distances, N)
-                    logger.info(f"{tuple(i_to_id[i] for i in cluster)}, {scores}")
+                    logger.info(f"Cluster Ids and scores: {tuple(i_to_id[i] for i in cluster)}, {scores}")
                     ids = [i_to_id[i] for i in cluster]
                     if id_to_match in ids and id_to_match is not None:
                         yield tuple(ids), scores
                     elif id_to_match is None:
                         yield tuple(ids), scores
-                    # yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
             (ids, score), = sub_graph

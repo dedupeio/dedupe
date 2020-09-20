@@ -32,8 +32,7 @@ else:
     from multiprocessing.dummy import Process, Pool, Queue  # noqa: F401
     SimpleQueue = Queue
 
-# import platform
-#
+
 # if platform.system() == 'Darwin':
 #     print("Darwin")
 #     import multiprocessing

@@ -211,7 +211,6 @@ class DisagreementLearner(ActiveLearner):
             recall: (float)
             index_predicates: (boolean)
         """
-        dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
 
         if not index_predicates:
             logger.info(f"Copying predicates from blocking.Fingerprinter")
@@ -245,7 +244,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
         data = core.index(data)
 
         self.candidates = self.sampler.sample(data, blocked_proportion, sample_size)
-
+        logger.info(f"self.candidates: {len(self.candidates)}")
         random_pair = random.choice(self.candidates)
         exact_match = (random_pair[0], random_pair[0])
 
@@ -422,19 +421,20 @@ class BlockLearner(object):
         """
         comparison_count = self.comparison_count
         logger.debug(f"Number of initial predicates: {len(self.fingerprinter.predicates)}")
+        logger.info(f"Number of matches: {len(matches)}")
         dupe_cover = Cover(self.fingerprinter.predicates, matches)
         dupe_cover.compound(compound_length=self.compound_length)
         dupe_cover.intersection_update(comparison_count)
-
+        logger.info(f"{len(dupe_cover._d)}")
         dupe_cover.dominators(cost=comparison_count)
 
         coverable_dupes = set.union(*dupe_cover.values())
-        # logger.debug(dupe_cover.values())
+        # logger.info(dupe_cover.values())
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
-        logger.debug(f"Uncoverable dupes: {uncoverable_dupes}")
+        logger.info(f"Uncoverable dupes: {uncoverable_dupes}")
         epsilon = int((1.0 - recall) * len(matches))
-        logger.debug(f"Recall: {recall}, epsilon: {epsilon}")
+        logger.info(f"Recall: {recall}, epsilon: {epsilon}")
 
         if len(uncoverable_dupes) > epsilon:
             logger.warning(OUT_OF_PREDICATES_WARNING)
@@ -445,14 +445,16 @@ class BlockLearner(object):
 
         for pred in dupe_cover:
             pred.count = comparison_count[pred]
-        logger.debug(f"Target: {len(coverable_dupes)-epsilon}")
+        logger.info(epsilon)
+        logger.info(f"Target: {len(coverable_dupes)-epsilon}")
         searcher = BranchBound(target=len(coverable_dupes) - epsilon,
                                max_calls=2500)
         final_predicates = searcher.search(dupe_cover)
+        logger.info([searcher.original_cover[p] for p in searcher.cheapest])
+        logger.info(f"Number of matches covered: {searcher.covered(searcher.cheapest)}")
         logger.info('Final predicate set:')
         for predicate in final_predicates:
             logger.info(predicate)
-        logger.debug(f"Final predicates: {final_predicates}")
         logger.debug(f"Number of final predicate rules: {len(final_predicates)}")
         return final_predicates
 
@@ -662,9 +664,9 @@ class BranchBound(object):
         covered = self.covered(partial)
         score = self.score(partial)
         if covered >= self.target:
-            logger.debug(f"""Number covered >= desired number covered,
+            logger.info(f"""Number covered >= desired number covered,
                             covered={covered}, target={self.target},
-                            score={score}
+                            score={score}, candidates={partial}
                             """)
             if score < self.cheapest_score:
                 logger.debug(f'Candidates: {partial}')
@@ -697,7 +699,8 @@ class BranchBound(object):
                 self.search(reduced, partial)
                 del reduced
 
-        # logger.debug(f"Cheapest final: {self.cheapest}")
+        # logger.info(f"Target score: {self.target}")
+        # logger.info(f"Actual score: {covered}")
         return self.cheapest
 
     @staticmethod
@@ -770,6 +773,8 @@ class Cover(object):
                         in enumerate(pairs)
                         if (set(predicate(record_1)) &
                             set(predicate(record_2, target=True)))}
+            # logger.info(f"Number of pairs: {len(pairs)}")
+            # logger.info(len(coverage))
             if coverage:
                 self._d[predicate] = coverage
 

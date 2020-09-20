@@ -66,9 +66,9 @@ class Distances(object):
         """
         predicates = set()
         for definition in self.primary_fields:
-            logger.info(f"dedupe.distances L70: Definition: {definition}")
+            # logger.info(f"dedupe.distances L70: Definition: {definition}")
             for predicate in definition.predicates:
-                logger.info(f"dedupe.distances L72: Predicates: {predicate}")
+                # logger.info(f"dedupe.distances L72: Predicates: {predicate}")
                 if hasattr(predicate, 'index'):
                     if index_predicates:
                         if hasattr(predicate, 'canopy'):
@@ -82,7 +82,7 @@ class Distances(object):
         logger.info(f"number of predicates: {len(predicates)}")
         return predicates
 
-    @timebudget
+    # @timebudget
     def compute_distance_matrix(self, record_pairs):
         """
         Args:
@@ -102,6 +102,8 @@ class Distances(object):
         num_records = len(record_pairs)
         distance_matrix = numpy.empty((num_records, len(self)), 'f4')
         field_comparators = self._field_comparators
+        # ids_of_interest = {}
+
         for i, (record_1, record_2) in enumerate(record_pairs):
 
             for field, compare, weight, start, stop in field_comparators:
@@ -113,13 +115,15 @@ class Distances(object):
                                                        record_2[field])*weight
                 else:
                     distance_matrix[i, start:stop] = numpy.nan
-            # print(f"{record_1['id']}, {record_2['id']}: {distances[i, :]}")
-
-        if i > 2:
-            logger.debug(f"Distances: {distance_matrix[0,:]}")
-            logger.debug(f"Distances: {distance_matrix[2,:]}")
+            # if record_1['id'] in ['91', '92', '93'] and record_2['id'] in ['91', '92', '93']:
+            #     logger.info(f"Distance between {record_1['id']} and {record_2['id']}: {distance_matrix[i, :stop]}")
+            #     ids_of_interest[i] = (record_1['id'], record_2['id'])
 
         distance_matrix = self._compute_interaction_distances(distance_matrix)
+        # for i, pair in ids_of_interest.items():
+        #     logger.info(f"Distance between {pair[0]} and {pair[1]}: {distance_matrix[i, :]}")
+        #     logger.info(numpy.sum(distance_matrix[i, :]))
+
         return distance_matrix
 
     def _compute_interaction_distances(self, primary_distance_matrix):
@@ -200,8 +204,8 @@ def typifyFields(fields):
                            % (definition['type'], ', '.join(FIELD_CLASSES)))
 
         field_object = field_class(definition)
-        logger.info(f"dedupe.distances L193: field_object: {dir(field_object)}")
-        logger.info(f"dedupe.distances L193: field_object: {field_object.predicates}")
+        # logger.info(f"dedupe.distances L193: field_object: {dir(field_object)}")
+        # logger.info(f"dedupe.distances L193: field_object: {field_object.predicates}")
         primary_fields.append(field_object)
 
         if hasattr(field_object, 'higher_vars'):
