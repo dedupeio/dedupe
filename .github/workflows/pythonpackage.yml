@@ -22,11 +22,11 @@ jobs:
         pip install --upgrade pip
         pip install -e .
     - name: Test with pytest
-      run: |        
+      run: |
         pip install -r requirements.txt
         pytest tests dedupe --cov dedupe
     - name: Static Testing
-      run: |        
+      run: |
         mypy --ignore-missing-imports dedupe
     - name: Integration test, record link
       run: |

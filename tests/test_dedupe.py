@@ -31,14 +31,14 @@ DATA_SAMPLE = (({'age': '27', 'name': 'Kyle'},
                 {'age': '21', 'name': 'Jimbo'}))
 
 
-class DataModelTest(unittest.TestCase):
+class DistancesTest(unittest.TestCase):
 
-    def test_data_model(self):
-        DataModel = dedupe.datamodel.DataModel
+    def test_distances(self):
+        Distances = dedupe.distances.Distances
 
-        self.assertRaises(TypeError, DataModel)
+        self.assertRaises(TypeError, Distances)
 
-        data_model = DataModel([{'field': 'a',
+        distances = Distances([{'field': 'a',
                                  'variable name': 'a',
                                  'type': 'String'},
                                 {'field': 'b',
@@ -47,9 +47,9 @@ class DataModelTest(unittest.TestCase):
                                 {'type': 'Interaction',
                                  'interaction variables': ['a', 'b']}])
 
-        assert data_model._interaction_indices == [[0, 1]]
+        assert distances._interaction_indices == [[0, 1]]
 
-        data_model = DataModel([{'field': 'a',
+        distances = Distances([{'field': 'a',
                                  'variable name': 'a',
                                  'type': 'String',
                                  'has missing': True},
@@ -59,9 +59,9 @@ class DataModelTest(unittest.TestCase):
                                 {'type': 'Interaction',
                                  'interaction variables': ['a', 'b']}])
 
-        assert data_model._missing_field_indices == [0, 2]
+        assert distances._missing_field_indices == [0, 2]
 
-        data_model = DataModel([{'field': 'a',
+        distances = Distances([{'field': 'a',
                                  'variable name': 'a',
                                  'type': 'String',
                                  'has missing': False},
@@ -71,7 +71,7 @@ class DataModelTest(unittest.TestCase):
                                 {'type': 'Interaction',
                                  'interaction variables': ['a', 'b']}])
 
-        assert data_model._missing_field_indices == []
+        assert distances._missing_field_indices == []
 
 
 class ConnectedComponentsTest(unittest.TestCase):

@@ -4,7 +4,7 @@
 
 _dedupe is a python library that uses machine learning to perform fuzzy matching, deduplication and entity resolution quickly on structured data._
 
-__dedupe__ will help you: 
+__dedupe__ will help you:
 
 * __remove duplicate entries__ from a spreadsheet of names and addresses
 * __link a list__ with customer information to another with order history, even without unique customer IDs
@@ -39,8 +39,10 @@ Command line tool for de-duplicating and [linking](https://github.com/dedupeio/c
 If you only want to use dedupe, install it this way:
 
 ```bash
-pip install "numpy>=1.9"
-pip install dedupe
+pip3 install "numpy>=1.9"
+pip3 install Cython
+CFLAGS="-stdlib=libc++" pip3 install fastcluster
+pip3 install dedupe
 ```
 
 Familiarize yourself with [dedupe's API](https://docs.dedupe.io/en/latest/API-documentation.html), and get started on your project. Need inspiration? Have a look at [some examples](https://github.com/dedupeio/dedupe-examples).
@@ -80,7 +82,7 @@ pytest
 ```
 
 #### Test using canonical dataset from Bilenko's research
-  
+
 Using Deduplication
 ```bash
 python tests/canonical.py
@@ -108,7 +110,7 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 
 ## Note on Patches/Pull Requests
- 
+
 * Fork the project.
 * Make your feature addition or bug fix.
 * Send us a pull request. Bonus points for topic branches.

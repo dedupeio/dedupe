@@ -11,7 +11,7 @@ SAMPLE = [({"name": "Bob", "age": "50"}, {"name": "Charlie", "age": "75"}),
 
 class ActiveLearningTest(unittest.TestCase):
     def setUp(self):
-        self.data_model = dedupe.datamodel.DataModel([{'field': 'name',
+        self.distances = dedupe.distances.Distances([{'field': 'name',
                                                        'type': 'String'},
                                                       {'field': 'age',
                                                        'type': 'String'}])
@@ -19,7 +19,7 @@ class ActiveLearningTest(unittest.TestCase):
     def test_AL(self):
         random.seed(1111111111110)
         original_N = len(SAMPLE)
-        active_learner = dedupe.labeler.DedupeRLRLearner(self.data_model,
+        active_learner = dedupe.labeler.DedupeRLRLearner(self.distances,
                                                          candidates=SAMPLE)
         assert len(active_learner) == original_N
         pair = active_learner.pop()

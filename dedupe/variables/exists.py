@@ -30,6 +30,6 @@ class ExistsType(CategoricalType):
         else:
             return self.cat_comparator(0, 0)
 
-    # This flag tells fieldDistances in dedupe.core to pass
+    # This flag tells field_distances in dedupe.core to pass
     # missing values (None) into the comparator
     comparator.missing = True  # type: ignore

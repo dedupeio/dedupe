@@ -94,9 +94,10 @@ if __name__ == '__main__':
         with open(settings_file, 'wb') as f:
             deduper.write_settings(f)
 
-    # print candidates
-    print('clustering...')
-    clustered_dupes = deduper.join(data_1, data_2, threshold=0.5)
+    deduper = dedupe.RecordLink(fields)
+    deduper.prepare_training(data_1, data_2, sample_size=10000)
+    deduper.mark_pairs(training_pairs)
+    deduper.train()
 
     print('Evaluate Clustering')
     confirm_dupes = set(frozenset(pair)

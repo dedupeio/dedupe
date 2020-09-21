@@ -73,19 +73,19 @@ learn these weights for you. For example:-
 
    {
     'field': 'Product description',
-    'type': 'Text', 
+    'type': 'Text',
     'corpus' : [
             'this product is great',
             'this product is great and blue'
         ]
-   } 
+   }
 
 If you don't want to adjust the measure to your data, just leave 'corpus' out
 of the variable definition entirely.
 
 .. code:: python
 
-   {'field': 'Product description', 'type': 'Text'} 
+   {'field': 'Product description', 'type': 'Text'}
 
 
 Custom Types
@@ -99,12 +99,12 @@ For example, a custom comparator:
 
 .. code:: python
 
-  def sameOrNotComparator(field_1, field_2) :     
-    if field_1 and field_2 :         
-        if field_1 == field_2 :             
-            return 0         
-        else:             
-            return 1     
+  def sameOrNotComparator(field_1, field_2) :
+    if field_1 and field_2 :
+        if field_1 == field_2 :
+            return 0
+        else:
+            return 1
 
 The corresponding variable definition:
 
@@ -112,16 +112,16 @@ The corresponding variable definition:
 
     {
         'field': 'Zip',
-        'type': 'Custom', 
+        'type': 'Custom',
         'comparator': sameOrNotComparator
-     } 
+     }
 
 LatLong
 ^^^^^^^
 
 A ``LatLong`` type field must have as the name of a field and a type
 declaration of ``LatLong``. ``LatLong`` fields are compared using the `Haversine
-Formula <http://en.wikipedia.org/wiki/Haversine_formula>`__. 
+Formula <http://en.wikipedia.org/wiki/Haversine_formula>`__.
 
 A ``LatLong``
 type field must consist of tuples of floats corresponding to a latitude and a
@@ -149,7 +149,7 @@ type field has to be hashable sequences like tuples or frozensets.
                 ('steve edwards'),
                 ('steve edwards', 'steve jobs')
             ]
-     } 
+     }
 
 or
 
@@ -174,7 +174,7 @@ are good when the effect of two predictors is not simply additive.
 
     [
         { 'field': 'Name', 'variable name': 'name', 'type': 'String' },
-        { 'field': 'Zip', 'variable name': 'zip', 'type': 'Custom', 
+        { 'field': 'Zip', 'variable name': 'zip', 'type': 'Custom',
       'comparator' : sameOrNotComparator },
         {'type': 'Interaction', 'interaction variables': ['name', 'zip']}
     ]
@@ -198,7 +198,7 @@ something meaningful about the record.
 
 .. code:: python
 
-    {'field': 'first_name', 'type': 'Exists'} 
+    {'field': 'first_name', 'type': 'Exists'}
 
 
 
@@ -226,9 +226,9 @@ So if you data looks like this:-
 
 ::
 
-    'Name'          'Business Type' 
-    AAA Taxi        taxi 
-    AA1 Taxi        taxi 
+    'Name'          'Business Type'
+    AAA Taxi        taxi
+    AA1 Taxi        taxi
     Hindelbert Esq  lawyer
 
 You would create a definition such as:
@@ -361,9 +361,9 @@ Install the `dedupe-variable-fuzzycategory
 the ``FuzzyCategorical`` Type.
 
 
-Missing Data 
------------- 
-If the value of field is missing, that missing value should be represented as 
+Missing Data
+------------
+If the value of field is missing, that missing value should be represented as
 a ``None`` object.
 
 .. code:: python
@@ -414,7 +414,7 @@ Longer example of a variable definition:
     ]
 
 Multiple Variables comparing same field
---------------------------------------- 
+---------------------------------------
 It is possible to define multiple variables that all compare the same
 variable.
 
@@ -428,7 +428,7 @@ For example:-
     ]
 
 
-Will create two variables that both compare the 'name' field but 
+Will create two variables that both compare the 'name' field but
 in different ways.
 
 

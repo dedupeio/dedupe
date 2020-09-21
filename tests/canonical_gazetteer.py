@@ -74,7 +74,10 @@ if __name__ == '__main__':
 
     t0 = time.time()
 
-    print('number of known duplicate pairs', len(duplicates_s))
+    gazetteer = dedupe.Gazetteer(fields)
+    gazetteer.sample(data_1, data_2, 10000)
+    gazetteer.mark_pairs(training_pairs)
+    gazetteer.train()
 
     if os.path.exists(settings_file):
         with open(settings_file, 'rb') as f:

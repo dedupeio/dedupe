@@ -5,30 +5,29 @@ import collections
 import itertools
 import sys
 from typing import List, Tuple, Dict, Set
-
 import dedupe
+import logging
 from dedupe.core import randomPairs, randomPairsMatch, unique
 from dedupe.canonical import getCanonicalRep
 from dedupe._typing import Data, TrainingData, RecordDict, TrainingExample, Literal, RecordID
+logger = logging.getLogger(__name__)
 
 
 def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cover
-    '''
-   Train a matcher instance (Dedupe, RecordLink, or Gazetteer) from the command line.
-   Example
+    """Train a matcher instance (Dedupe, RecordLink, or Gazetteer) from the command line.
 
-   .. code:: python
-
-      > deduper = dedupe.Dedupe(variables)
-      > deduper.prepare_training(data)
-      > dedupe.console_label(deduper)
-    '''
+    Example
+    .. code:: python
+        > deduper = dedupe.Dedupe(variables)
+        > deduper.prepare_training(data)
+        > dedupe.console_label(deduper)
+    """
 
     finished = False
     use_previous = False
     fields = unique(field.field
                     for field
-                    in deduper.data_model.primary_fields)
+                    in deduper.distances.primary_fields)
 
     buffer_len = 1  # Max number of previous operations
     examples_buffer: List[Tuple[TrainingExample, Literal['match', 'distinct', 'uncertain']]] = []
@@ -55,12 +54,12 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         for pair in record_pair:
             for field in fields:
                 line = "%s : %s" % (field, pair[field])
-                print(line, file=sys.stderr)
-            print(file=sys.stderr)
+                logger.debug(line, file=sys.stderr)
+            logger.debug(file=sys.stderr)
 
-        print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
+        logger.debug("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct),
               file=sys.stderr)
-        print('Do these records refer to the same thing?', file=sys.stderr)
+        logger.debug('Do these records refer to the same thing?', file=sys.stderr)
 
         valid_response = False
         user_input = ''
@@ -72,7 +71,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
                 prompt = '(y)es / (n)o / (u)nsure / (f)inished'
                 valid_responses = {'y', 'n', 'u', 'f'}
 
-            print(prompt, file=sys.stderr)
+            logger.debug(prompt, file=sys.stderr)
             user_input = input()
             if user_input in valid_responses:
                 valid_response = True
@@ -84,7 +83,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         elif user_input == 'u':
             examples_buffer.insert(0, (record_pair, 'uncertain'))
         elif user_input == 'f':
-            print('Finished labeling', file=sys.stderr)
+            logger.debug('Finished labeling', file=sys.stderr)
             finished = True
         elif user_input == 'p':
             use_previous = True
@@ -92,20 +91,17 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
 
         if len(examples_buffer) > buffer_len:
             record_pair, label = examples_buffer.pop()
-            if label in {'distinct', 'match'}:
-
+            if label in ['distinct', 'match']:
                 examples: TrainingData
-                examples = {'distinct': [],
-                            'match': []}
-                examples[label].append(record_pair)  # type: ignore
+                examples = {'distinct': [], 'match': []}
+                examples[label].append(record_pair)
                 deduper.mark_pairs(examples)
 
     for record_pair, label in examples_buffer:
         if label in ['distinct', 'match']:
-
-            exmples: TrainingData
+            examples: TrainingData
             examples = {'distinct': [], 'match': []}
-            examples[label].append(record_pair)  # type: ignore
+            examples[label].append(record_pair)
             deduper.mark_pairs(examples)
 
 
@@ -113,28 +109,30 @@ def training_data_link(data_1: Data,
                        data_2: Data,
                        common_key: str,
                        training_size: int = 50000) -> TrainingData:  # pragma: nocover
-    '''
-    Construct training data for consumption by the func:`mark_pairs`
-    method from already linked datasets.
+    """
+    Construct training data for consumption by the ActiveLearning
+    markPairs method from already linked datasets.
 
-    Args:
+    Arguments :
+        data_1: Dictionary of records from first dataset, where the keys
+            are record_ids and the values are dictionaries with the
+            keys being field names
 
-        data_1: Dictionary of records from first dataset, where the
-                keys are record_ids and the values are dictionaries
-                with the keys being field names
         data_2: Dictionary of records from second dataset, same form as
-                data_1
+            data_1
+
         common_key: The name of the record field that uniquely identifies
-                    a match
+            a match
+
         training_size: the rough limit of the number of training examples,
-                       defaults to 50000
+            defaults to 50000
 
     .. note::
 
-         Every match must be identified by the sharing of a common key.
-         This function assumes that if two records do not share a common key
-         then they are distinct records.
-    '''
+    Every match must be identified by the sharing of a common key.
+    This function assumes that if two records do not share a common key
+    then they are distinct records.
+    """
 
     identified_records: Dict[str, Tuple[List[RecordID], List[RecordID]]]
     identified_records = collections.defaultdict(lambda: ([], []))
@@ -166,7 +164,6 @@ def training_data_link(data_1: Data,
                        for key_1, key_2 in matched_pairs]
     distinct_records = [(data_1[key_1], data_2[key_2])
                         for key_1, key_2 in distinct_pairs]
-
     training_pairs: TrainingData
     training_pairs = {'match': matched_records,
                       'distinct': distinct_records}
@@ -177,26 +174,26 @@ def training_data_link(data_1: Data,
 def training_data_dedupe(data: Data,
                          common_key: str,
                          training_size: int = 50000) -> TrainingData:  # pragma: nocover
-    '''
-    Construct training data for consumption by the func:`mark_pairs`
-    method from an already deduplicated dataset.
+    """Construct training data for consumption by the ActiveLearning
+    markPairs method from an already deduplicated dataset.
 
     Args:
+        data: Dictionary of records, where the keys are record_ids and
+            the values are dictionaries with the keys being
+            field names
 
-        data: Dictionary of records where the keys are record_ids and
-              the values are dictionaries with the keys being field names
         common_key: The name of the record field that uniquely identifies
-                    a match
+            a match
+
         training_size: the rough limit of the number of training examples,
-                       defaults to 50000
+            defaults to 50000
 
     .. note::
 
-         Every match must be identified by the sharing of a common key.
-         This function assumes that if two records do not share a common key
-         then they are distinct records.
-    '''
-
+        Every match must be identified by the sharing of a common key.
+        This function assumes that if two records do not share a common key
+        then they are distinct records.
+    """
     identified_records: Dict[str, List[RecordID]]
     identified_records = collections.defaultdict(list)
     matched_pairs: Set[Tuple[RecordID, RecordID]] = set()
@@ -229,7 +226,6 @@ def training_data_dedupe(data: Data,
 
     distinct_records = [(data[key_1], data[key_2])
                         for key_1, key_2 in distinct_pairs]
-
     training_pairs: TrainingData
     training_pairs = {'match': matched_records,
                       'distinct': distinct_records}
@@ -244,8 +240,8 @@ def canonicalize(record_cluster: List[RecordDict]) -> RecordDict:  # pragma: noc
 
     Args:
         record_cluster: A list of records within a duplicate cluster, where
-                        the records are dictionaries with field
-                        names as keys and field values as values
+            the records are dictionaries with field names as keys and field
+            values as values
 
     """
     return getCanonicalRep(record_cluster)

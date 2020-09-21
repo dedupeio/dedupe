@@ -1,24 +1,27 @@
-import pkgutil
+# -*- coding: future_fstrings -*-
 
+import pkgutil
 import numpy
 import copyreg
 import types
-
+import logging
 import dedupe.variables
 import dedupe.variables.base as base
 from dedupe.variables.base import MissingDataType
 from dedupe.variables.interaction import InteractionType
+from timebudget import timebudget
 
 for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,
                                          'dedupe.variables.'):
     __import__(module)
-# -*- coding: future_fstrings -*-
 
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 FIELD_CLASSES = {k: v for k, v in base.allSubclasses(base.FieldType) if k}
+timebudget.set_quiet()
 
 
-class DataModel(object):
+class Distances(object):
 
     def __init__(self, fields):
 
@@ -59,12 +62,13 @@ class DataModel(object):
     def predicates(self, index_predicates=True, canopies=True):
         """
         Returns:
-            :predicates: (set)[dudupe.predicates class]
+            predicates: (set)[dudupe.predicates class]
         """
-        print("datamodel.DataModel.predicates")
         predicates = set()
         for definition in self.primary_fields:
+            # logger.info(f"dedupe.distances L70: Definition: {definition}")
             for predicate in definition.predicates:
+                # logger.info(f"dedupe.distances L72: Predicates: {predicate}")
                 if hasattr(predicate, 'index'):
                     if index_predicates:
                         if hasattr(predicate, 'canopy'):
@@ -75,78 +79,101 @@ class DataModel(object):
                                 predicates.add(predicate)
                 else:
                     predicates.add(predicate)
+        logger.info(f"number of predicates: {len(predicates)}")
         return predicates
 
-    def distances(self, record_pairs):
+    # @timebudget
+    def compute_distance_matrix(self, record_pairs):
         """
+        Args:
+            record_pairs: (list)[list] ordered list of all the record pairs (distinct and match)
+                ::
+
+                    [
+                        [record_1, record_2],
+                        [record_1, record_3]
+                    ]
+
         Returns:
-            :distances: (np.Array) 2D matrix
+            distance_matrix: (np.Array) 2D matrix
                 # rows = # pairs
                 # columns = # fields
         """
         num_records = len(record_pairs)
-        distances = numpy.empty((num_records, len(self)), 'f4')
+        distance_matrix = numpy.empty((num_records, len(self)), 'f4')
         field_comparators = self._field_comparators
+        # ids_of_interest = {}
+
         for i, (record_1, record_2) in enumerate(record_pairs):
 
             for field, compare, weight, start, stop in field_comparators:
                 if record_1[field] is not None and record_2[field] is not None:
-                    distances[i, start:stop] = compare(record_1[field],
+                    distance_matrix[i, start:stop] = compare(record_1[field],
                                                        record_2[field])*weight
                 elif hasattr(compare, 'missing'):
-                    distances[i, start:stop] = compare(record_1[field],
+                    distance_matrix[i, start:stop] = compare(record_1[field],
                                                        record_2[field])*weight
                 else:
-                    distances[i, start:stop] = numpy.nan
-            #print(f"{record_1['id']}, {record_2['id']}: {distances[i, :]}")
+                    distance_matrix[i, start:stop] = numpy.nan
+            # if record_1['id'] in ['91', '92', '93'] and record_2['id'] in ['91', '92', '93']:
+            #     logger.info(f"Distance between {record_1['id']} and {record_2['id']}: {distance_matrix[i, :stop]}")
+            #     ids_of_interest[i] = (record_1['id'], record_2['id'])
 
-        if i>2:
-            print(f"Distances: {distances[0,:]}")
+        distance_matrix = self._compute_interaction_distances(distance_matrix)
+        # for i, pair in ids_of_interest.items():
+        #     logger.info(f"Distance between {pair[0]} and {pair[1]}: {distance_matrix[i, :]}")
+        #     logger.info(numpy.sum(distance_matrix[i, :]))
 
-            print(f"Distances: {distances[2,:]}")
+        return distance_matrix
 
-        distances = self._derivedDistances(distances)
-        if i>2:
-            print(f"Distances: {distances[0,:]}")
-            print(f"Distances: {distances[2,:]}")
-        return distances
-
-    def _derivedDistances(self, primary_distances):
-        distances = primary_distances
+    def _compute_interaction_distances(self, primary_distance_matrix):
+        distance_matrix = primary_distance_matrix
 
         current_column = self._derived_start
         for interaction, weight in zip(self._interaction_indices, self._interaction_weights):
-            distances[:, current_column] =\
-                numpy.prod(distances[:, interaction], axis=1)*weight
+            distance_matrix[:, current_column] =\
+                numpy.prod(distance_matrix[:, interaction], axis=1)*weight
             current_column += 1
 
-        missing_data = numpy.isnan(distances[:, :current_column])
+        missing_data = numpy.isnan(distance_matrix[:, :current_column])
 
-        distances[:, :current_column][missing_data] = 0.5
+        distance_matrix[:, :current_column][missing_data] = 0.5
 
         if self._missing_field_indices:
-            distances[:, current_column:] =\
+            distance_matrix[:, current_column:] =\
                 1 - missing_data[:, self._missing_field_indices]
 
-        return distances
+        return distance_matrix
 
     def check(self, record):
         """Check that a record has all the required fields.
 
         Args:
-            :record: (dict)
+            record: (dict)
         """
         for field_comparator in self._field_comparators:
             field = field_comparator[0]
             if field not in record:
                 raise ValueError("Records do not line up with data model. "
-                                 "The field '%s' is in data_model but not "
+                                 "The field '%s' is in distances but not "
                                  "in a record" % field)
 
 
 def typifyFields(fields):
+    """Given the field definitions, compute list of predicates for each field.
+    Args:
+        fields: (list)(dict) a dictionary of field definitions as supplied in the ``fields.json``
+            file, eg
+            ::
+
+                [
+                    {'field': 'middle_name', 'variable name': 'middle_name', 'type': 'String'},
+                    {'field': 'street_address', 'variable name': 'street_address',
+                        'type': 'String', 'weight': 0.5}
+                ]
+    """
     primary_fields = []
-    data_model = []
+    distance_matrix = []
 
     for definition in fields:
         try:
@@ -177,19 +204,21 @@ def typifyFields(fields):
                            % (definition['type'], ', '.join(FIELD_CLASSES)))
 
         field_object = field_class(definition)
+        # logger.info(f"dedupe.distances L193: field_object: {dir(field_object)}")
+        # logger.info(f"dedupe.distances L193: field_object: {field_object.predicates}")
         primary_fields.append(field_object)
 
         if hasattr(field_object, 'higher_vars'):
-            data_model.extend(field_object.higher_vars)
+            distance_matrix.extend(field_object.higher_vars)
         else:
-            data_model.append(field_object)
+            distance_matrix.append(field_object)
 
-    return primary_fields, data_model
+    return primary_fields, distance_matrix
 
 
-def missing(data_model):
+def missing(distance_matrix):
     missing_variables = []
-    for definition in data_model[:]:
+    for definition in distance_matrix[:]:
         if definition.has_missing:
             missing_variables.append(MissingDataType(definition.name))
 
