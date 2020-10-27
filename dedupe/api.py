@@ -71,7 +71,7 @@ class Matching(object):
         self._fingerprinter: Optional[blocking.Fingerprinter] = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
-        self.predicates: Sequence[dedupe.predicates.Predicate]
+        self.predicates: List[dedupe.predicates.Predicate]
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:

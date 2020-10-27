@@ -12,7 +12,7 @@ from dedupe.cpredicates import ngrams, initials
 import dedupe.tfidf as tfidf
 import dedupe.levenshtein as levenshtein
 
-from typing import Sequence, Callable, Any, Tuple, Set, Iterable
+from typing import Sequence, Callable, Any, Tuple, Set
 from dedupe._typing import RecordDict
 
 words = re.compile(r"[\w']+").findall
@@ -49,7 +49,7 @@ class Predicate(abc.ABC):
         return 1
 
     @abc.abstractmethod
-    def __call__(self, record, **kwargs):
+    def __call__(self, record, **kwargs) -> tuple:
         pass
 
     def __add__(self, other: 'Predicate') -> 'CompoundPredicate':
@@ -65,12 +65,12 @@ class Predicate(abc.ABC):
 class SimplePredicate(Predicate):
     type = "SimplePredicate"
 
-    def __init__(self, func: Callable[[Any], Sequence[str]], field: str):
+    def __init__(self, func: Callable[[Any], Tuple[str, ...]], field: str):
         self.func = func
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record: RecordDict, **kwargs) -> Iterable[str]:
+    def __call__(self, record: RecordDict, **kwargs) -> Tuple[str, ...]:
         column = record[self.field]
         if column:
             return self.func(column)

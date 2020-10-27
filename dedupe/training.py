@@ -38,19 +38,17 @@ class BlockLearner(ABC):
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
 
-        epsilon = int((1.0 - recall) * len(matches))
+        target_cover = int(recall * len(matches))
 
-        if len(uncoverable_dupes) > epsilon:
+        if len(coverable_dupes) < target_cover:
             logger.warning(OUT_OF_PREDICATES_WARNING)
             logger.debug(uncoverable_dupes)
-            epsilon = 0
-        else:
-            epsilon -= len(uncoverable_dupes)
+            target_cover = len(coverable_dupes)
 
         candidate_cover = self.generate_candidates(match_cover,
                                                    comparison_cover)
 
-        searcher = BranchBound(len(coverable_dupes) - epsilon, 2500)
+        searcher = BranchBound(target_cover, 2500)
         final_predicates = searcher.search(candidate_cover)
 
         logger.info('Final predicate set:')
@@ -128,6 +126,8 @@ class BlockLearner(ABC):
     @abstractmethod
     def estimate(self, comparisons) -> float:
         ...
+
+    blocker: blocking.Fingerprinter
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -236,12 +236,13 @@ class RecordLinkBlockLearner(BlockLearner):
 
 
 class BranchBound(object):
-    def __init__(self, target, max_calls):
-        self.calls: int = max_calls
+    def __init__(self, target: int, max_calls: int) -> None:
         self.target: int = target
-        self.cheapest_score = float('inf')
-        self.original_cover: Cover
-        self.cheapest: Tuple[Predicate, ...]
+        self.calls: int = max_calls
+
+        self.cheapest_score: float = float('inf')
+        self.original_cover: Cover = {}
+        self.cheapest: Tuple[Predicate, ...] = ()
 
     def search(self,
                candidates: Cover,
@@ -249,10 +250,8 @@ class BranchBound(object):
         if self.calls <= 0:
             return self.cheapest
 
-        if self.cheapest_score == float('inf'):
+        if not self.original_cover:
             self.original_cover = candidates.copy()
-            self.cheapest = tuple(candidates)
-            self.cheapest_score = self.score(candidates)
 
         self.calls -= 1
 
