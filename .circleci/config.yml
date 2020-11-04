@@ -12,15 +12,6 @@ jobs:
       - python/load-cache
       - python/install-deps
       - python/save-cache
-      - python/install-packages:
-          pkg-manager: pip
-      - python/install-packages:
-          pip-dependency-file: requirements.txt
-          pkg-manager: pip
-      - python/install-packages:
-          args: pytest
-          pkg-manager: pip
-          pypi-cache: false
       - run:
           command: |
             pytest --version
