@@ -6,13 +6,24 @@ orbs:
 jobs:
   build-and-test:
     executor: python/default
+    
     steps:
       - checkout
       - python/load-cache
       - python/install-deps
       - python/save-cache
+      - python/install-packages:
+          pkg-manager: pip
+      - python/install-packages:
+          pip-dependency-file: requirements.txt
+          pkg-manager: pip
+      - python/install-packages:
+          args: pytest
+          pkg-manager: pip
+          pypi-cache: false
       - run:
-          command: . venv/bin/activate && pytest -s tests/
+          command: |
+            pytest --version
           name: Test
 
 workflows:
