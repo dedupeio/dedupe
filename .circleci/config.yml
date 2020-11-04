@@ -14,7 +14,7 @@ jobs:
       - python/save-cache
       - run:
           command: |
-            python -m pytest -s tests/
+            python -m pytest -s -W ignore::pytest.PytestDeprecationWarning tests/
           name: Test
 
 workflows:
