@@ -1037,7 +1037,8 @@ class ActiveMatching(Matching):
                               and take substantial memory.
 
         """
-        assert self.active_learner, "Please initialize with the sample method"
+        assert self.active_learner is not None, \
+               "Please initialize with the sample method"
 
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)
@@ -1119,7 +1120,8 @@ class ActiveMatching(Matching):
           [({'name' : 'Georgie Porgie'}, {'name' : 'Georgette Porgette'})]
 
         '''
-        assert self.active_learner, "Please initialize with the sample method"
+        assert self.active_learner is not None, \
+               "Please initialize with the sample method"
         return [self.active_learner.pop()]
 
     def mark_pairs(self, labeled_pairs: TrainingData) -> None:

@@ -39,10 +39,10 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
             record_pair, _ = examples_buffer.pop(0)
             use_previous = False
         else:
-            if not uncertain_pairs:
-                uncertain_pairs = deduper.uncertain_pairs()
-
             try:
+                if not uncertain_pairs:
+                    uncertain_pairs = deduper.uncertain_pairs()
+
                 record_pair = uncertain_pairs.pop()
             except IndexError:
                 break
