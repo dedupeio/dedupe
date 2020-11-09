@@ -395,13 +395,15 @@ class DisagreementLearner(ActiveLearner):
             self.blocker.block_learner.blocker.predicates = no_index_predicates
 
             learned_preds = self.blocker.block_learner.learn(dupes,
-                                                             recall=recall)
+                                                             recall=recall,
+                                                             candidate_types='random forest')
 
             self.blocker.block_learner.blocker.predicates = old_preds
 
         else:
             learned_preds = self.blocker.block_learner.learn(dupes,
-                                                             recall=recall)
+                                                             recall=recall,
+                                                             candidate_types='random forest')
 
         return learned_preds
 

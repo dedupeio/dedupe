@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 import math
 
 from typing import (Dict, Sequence, Iterable, Tuple, List,
-                    FrozenSet)
+                    Union, FrozenSet)
 
 from . import blocking, core
 from .predicates import Predicate
@@ -23,13 +23,13 @@ Cover = Dict[Predicate, FrozenSet[int]]
 
 
 class BlockLearner(ABC):
-    def learn(self, matches, recall):
+    def learn(self, matches, recall, candidate_types='simple'):
         '''
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
-        comparison_cover = self.comparison_cover  # type: ignore
-        match_cover = self.cover(matches)  # type: ignore
+        comparison_cover = self.comparison_cover
+        match_cover = self.cover(matches)
 
         for key in list(match_cover.keys() - comparison_cover.keys()):
             del match_cover[key]
@@ -45,8 +45,14 @@ class BlockLearner(ABC):
             logger.debug(uncoverable_dupes)
             target_cover = len(coverable_dupes)
 
-        candidate_cover = self.generate_candidates(match_cover,
-                                                   comparison_cover)
+        if candidate_types == 'simple':
+            candidate_cover = self.simple_candidates(match_cover,
+                                                     comparison_cover)
+        elif candidate_types == 'random forest':
+            candidate_cover = self.random_forest_candidates(match_cover,
+                                                            comparison_cover)
+        else:
+            raise ValueError('candidate_type is not valid')
 
         searcher = BranchBound(target_cover, 2500)
         final_predicates = searcher.search(candidate_cover)
@@ -57,9 +63,19 @@ class BlockLearner(ABC):
 
         return final_predicates
 
-    def generate_candidates(self,
-                            match_cover: Cover,
-                            comparison_cover: Cover) -> Cover:
+    def simple_candidates(self,
+                          match_cover: Cover,
+                          comparison_cover: Cover) -> Cover:
+        candidates = {}
+        for predicate, coverage in match_cover.items():
+            predicate.count = self.estimate(comparison_cover[predicate])  # type: ignore
+            candidates[predicate] = coverage.copy()
+
+        return candidates
+
+    def random_forest_candidates(self,
+                                 match_cover: Cover,
+                                 comparison_cover: Cover) -> Cover:
         predicates = list(match_cover)
         matches = list(frozenset.union(*match_cover.values()))
         pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
@@ -79,7 +95,7 @@ class BlockLearner(ABC):
             # the base for the constructing k-conjunctions
             candidate = None
             covered_comparisons = InfiniteSet()
-            covered_matches = InfiniteSet()
+            covered_matches: Union[FrozenSet[int], InfiniteSet] = InfiniteSet()
             covered_sample_matches = InfiniteSet()
 
             def score(predicate: Predicate) -> float:
@@ -108,9 +124,9 @@ class BlockLearner(ABC):
 
                 sample_predicates.remove(next_predicate)
 
-        return candidates  # type: ignore
+        return candidates
 
-    def cover(self, pairs):
+    def cover(self, pairs) -> Cover:
         predicate_cover = {}
         for predicate in self.blocker.predicates:  # type: ignore
             coverage = frozenset(
@@ -128,6 +144,7 @@ class BlockLearner(ABC):
         ...
 
     blocker: blocking.Fingerprinter
+    comparison_cover: Cover
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -359,6 +376,7 @@ class Resampler(object):
                     self.replacements[k].append(max_value)
                     max_value += 1
 
+    @functools.lru_cache()
     def __call__(self, iterable: Iterable) -> frozenset:
 
         result = itertools.chain.from_iterable(self.replacements[k]
