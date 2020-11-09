@@ -1086,26 +1086,6 @@ class ActiveMatching(Matching):
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
 
-    def _writeIndices(self, file_obj: BinaryIO) -> None:
-        indices = {}
-        doc_to_ids = {}
-        canopies = {}
-        for full_predicate in self.predicates:
-            for predicate in full_predicate:
-                if hasattr(predicate, 'index') and predicate.index:  # type: ignore
-                    doc_to_ids[predicate] = dict(predicate.index._doc_to_id)  # type: ignore
-                    if hasattr(predicate, "canopy"):
-                        canopies[predicate] = predicate.canopy  # type: ignore
-                    else:
-                        try:
-                            indices[predicate] = predicate.index._index  # type: ignore
-                        except AttributeError:
-                            pass
-
-        pickle.dump(canopies, file_obj)
-        pickle.dump(indices, file_obj)
-        pickle.dump(doc_to_ids, file_obj)
-
     def uncertain_pairs(self) -> List[TrainingExample]:
         '''
         Returns a list of pairs of records from the sample of record pairs
