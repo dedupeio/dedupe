@@ -32,12 +32,12 @@ class TrainingTest(unittest.TestCase):
         self.simple = lambda x: set([str(k) for k in x
                                      if "CompoundPredicate" not in str(k)])
 
+        self.block_learner = training.BlockLearner
+        self.block_learner.blocker = dedupe.blocking.Fingerprinter(self.data_model.predicates())
+        self.block_learner.blocker.index_all({i: x for i, x in enumerate(self.training_records)})
+
     def test_dedupe_coverage(self):
-        predicates = self.data_model.predicates()
-        blocker = dedupe.blocking.Fingerprinter(predicates)
-        blocker.index_all({i: x for i, x in enumerate(self.training_records)})
-        coverage = training.Cover(blocker.predicates,
-                                  self.training)
+        coverage = self.block_learner.cover(self.block_learner, self.training)
         assert self.simple(coverage.keys()).issuperset(
             set(["SimplePredicate: (tokenFieldPredicate, name)",
                  "SimplePredicate: (commonSixGram, name)",
@@ -63,32 +63,12 @@ class TrainingTest(unittest.TestCase):
         assert training.BranchBound.uncovered_by(before, {3}) == after
         assert before == before_copy
 
-    def test_compound(self):
-        start = training.Cover({1: {1, 2, 3}, 2: {1, 2}, 3: {2}, 4: {5}})
-        before = start.copy()
-        after = before.copy()
-        after.update({(1, 2): {1, 2},
-                      (1, 3): {2},
-                      (2, 3): {2}})
-
-        before.compound(2)
-        assert before == after
-
-        before = start.copy()
-        after = start.copy()
-        after.update({(1, 2): {1, 2},
-                      (1, 3): {2},
-                      (2, 3): {2},
-                      (1, 2, 3): {2}})
-
-        before.compound(3)
-
-        assert before == after
-
     def test_covered_pairs(self):
         p1 = lambda x, target=None: (1,)  # noqa: E 731
 
-        cover = training.Cover((p1,), [('a', 'b')] * 2)
+        self.block_learner.blocker.predicates = (p1,)
+        cover = self.block_learner.cover(self.block_learner,
+                                         [('a', 'b')] * 2)
 
         assert cover[p1] == {0, 1}
 

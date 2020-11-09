@@ -71,7 +71,7 @@ class Matching(object):
         self._fingerprinter: Optional[blocking.Fingerprinter] = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
-        self.predicates: Sequence[dedupe.predicates.Predicate]
+        self.predicates: List[dedupe.predicates.Predicate]
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:
@@ -939,7 +939,9 @@ class StaticMatching(Matching):
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file")
 
-        logger.info(self.predicates)
+        logger.info('Predicate set:')
+        for predicate in self.predicates:
+            logger.info(predicate)
 
         self._fingerprinter = blocking.Fingerprinter(self.predicates)
 
@@ -1016,7 +1018,7 @@ class ActiveMatching(Matching):
                 raise
 
     def train(self,
-              recall: float = 0.95,
+              recall: float = 1.00,
               index_predicates: bool = True) -> None:  # pragma: no cover
         """
         Learn final pairwise classifier and fingerprinting rules. Requires that
@@ -1084,26 +1086,6 @@ class ActiveMatching(Matching):
         pickle.dump(self.data_model, file_obj)
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
-
-    def _writeIndices(self, file_obj: BinaryIO) -> None:
-        indices = {}
-        doc_to_ids = {}
-        canopies = {}
-        for full_predicate in self.predicates:
-            for predicate in full_predicate:
-                if hasattr(predicate, 'index') and predicate.index:  # type: ignore
-                    doc_to_ids[predicate] = dict(predicate.index._doc_to_id)  # type: ignore
-                    if hasattr(predicate, "canopy"):
-                        canopies[predicate] = predicate.canopy  # type: ignore
-                    else:
-                        try:
-                            indices[predicate] = predicate.index._index  # type: ignore
-                        except AttributeError:
-                            pass
-
-        pickle.dump(canopies, file_obj)
-        pickle.dump(indices, file_obj)
-        pickle.dump(doc_to_ids, file_obj)
 
     def uncertain_pairs(self) -> List[TrainingExample]:
         '''

@@ -7,45 +7,55 @@ import itertools
 import logging
 import collections
 import functools
+import random
 from abc import ABC, abstractmethod
+import math
 
-from . import blocking, predicates, core
+from typing import (Dict, Sequence, Iterable, Tuple, List,
+                    Union, FrozenSet)
+
+from . import blocking, core
+from .predicates import Predicate
 
 logger = logging.getLogger(__name__)
 
+Cover = Dict[Predicate, FrozenSet[int]]
+
 
 class BlockLearner(ABC):
-    def learn(self, matches, recall):
+    def learn(self, matches, recall, candidate_types='simple'):
         '''
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
-        comparison_count = self.comparison_count  # type: ignore
+        comparison_cover = self.comparison_cover
+        match_cover = self.cover(matches)
 
-        dupe_cover = Cover(self.blocker.predicates, matches)  # type: ignore
-        dupe_cover.compound(2)
-        dupe_cover.intersection_update(comparison_count)
+        for key in list(match_cover.keys() - comparison_cover.keys()):
+            del match_cover[key]
 
-        dupe_cover.dominators(cost=comparison_count)
-
-        coverable_dupes = set.union(*dupe_cover.values())
+        coverable_dupes = frozenset.union(*match_cover.values())
         uncoverable_dupes = [pair for i, pair in enumerate(matches)
                              if i not in coverable_dupes]
 
-        epsilon = int((1.0 - recall) * len(matches))
+        target_cover = int(recall * len(matches))
 
-        if len(uncoverable_dupes) > epsilon:
+        if len(coverable_dupes) < target_cover:
             logger.warning(OUT_OF_PREDICATES_WARNING)
             logger.debug(uncoverable_dupes)
-            epsilon = 0
+            target_cover = len(coverable_dupes)
+
+        if candidate_types == 'simple':
+            candidate_cover = self.simple_candidates(match_cover,
+                                                     comparison_cover)
+        elif candidate_types == 'random forest':
+            candidate_cover = self.random_forest_candidates(match_cover,
+                                                            comparison_cover)
         else:
-            epsilon -= len(uncoverable_dupes)
+            raise ValueError('candidate_type is not valid')
 
-        for pred in dupe_cover:
-            pred.count = comparison_count[pred]
-
-        searcher = BranchBound(len(coverable_dupes) - epsilon, 2500)
-        final_predicates = searcher.search(dupe_cover)
+        searcher = BranchBound(target_cover, 2500)
+        final_predicates = searcher.search(candidate_cover)
 
         logger.info('Final predicate set:')
         for predicate in final_predicates:
@@ -53,69 +63,93 @@ class BlockLearner(ABC):
 
         return final_predicates
 
-    def compound(self, simple_predicates, compound_length):
-        simple_predicates = sorted(simple_predicates, key=str)
+    def simple_candidates(self,
+                          match_cover: Cover,
+                          comparison_cover: Cover) -> Cover:
+        candidates = {}
+        for predicate, coverage in match_cover.items():
+            predicate.count = self.estimate(comparison_cover[predicate])  # type: ignore
+            candidates[predicate] = coverage.copy()
 
-        for pred in simple_predicates:
-            yield pred
+        return candidates
 
-        CP = predicates.CompoundPredicate
+    def random_forest_candidates(self,
+                                 match_cover: Cover,
+                                 comparison_cover: Cover) -> Cover:
+        predicates = list(match_cover)
+        matches = list(frozenset.union(*match_cover.values()))
+        pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
+        candidates = {}
+        K = 3
 
-        for i in range(2, compound_length + 1):
-            compound_predicates = itertools.combinations(simple_predicates, i)
-            for preds in compound_predicates:
-                compoundable = all((a.compounds_with(b) and
-                                    b.compounds_with(a))
-                                   for a, b
-                                   in itertools.combinations(preds, 2))
-                if compoundable:
-                    yield CP(preds)
+        n_samples = 5000
+        for _ in range(n_samples):
+            sample_predicates = random.sample(predicates,
+                                              pred_sample_size)
+            resampler = Resampler(matches)
+            sample_match_cover = {pred: resampler(pairs)
+                                  for pred, pairs
+                                  in match_cover.items()}
 
-    def comparisons(self, predicates, simple_cover):
-        compounder = self.Compounder(simple_cover)
-        comparison_count = {}
+            # initialize variables that will be
+            # the base for the constructing k-conjunctions
+            candidate = None
+            covered_comparisons = InfiniteSet()
+            covered_matches: Union[FrozenSet[int], InfiniteSet] = InfiniteSet()
+            covered_sample_matches = InfiniteSet()
 
-        for pred in predicates:
-            if len(pred) > 1:
-                estimate = self.estimate(compounder(pred))
-            else:
-                estimate = self.estimate(simple_cover[pred])
+            def score(predicate: Predicate) -> float:
+                try:
+                    return (len(covered_sample_matches &
+                                sample_match_cover[predicate]) /
+                            self.estimate(covered_comparisons &
+                                          comparison_cover[predicate]))
+                except ZeroDivisionError:
+                    return 0.
 
-            comparison_count[pred] = estimate
-
-        return comparison_count
-
-    class Compounder(object):
-        def __init__(self, cover):
-            self.cover = cover
-            self._cached_predicate = None
-            self._cached_cover = None
-
-        def __call__(self, compound_predicate):
-            a, b = compound_predicate[:-1], compound_predicate[-1]
-
-            if len(a) > 1:
-                if a == self._cached_predicate:
-                    a_cover = self._cached_cover
+            for _ in range(K):
+                next_predicate = max(sample_predicates, key=score)
+                if candidate:
+                    candidate += next_predicate
                 else:
-                    a_cover = self._cached_cover = self(a)
-                    self._cached_predicate = a
-            else:
-                a, = a
-                a_cover = self.cover[a]
+                    candidate = next_predicate
 
-            return a_cover & self.cover[b]
+                covered_comparisons &= comparison_cover[next_predicate]
+                candidate.count = self.estimate(covered_comparisons)  # type: ignore
+
+                covered_matches &= match_cover[next_predicate]
+                candidates[candidate] = covered_matches
+
+                covered_sample_matches &= sample_match_cover[next_predicate]
+
+                sample_predicates.remove(next_predicate)
+
+        return candidates
+
+    def cover(self, pairs) -> Cover:
+        predicate_cover = {}
+        for predicate in self.blocker.predicates:  # type: ignore
+            coverage = frozenset(
+                i for i, (record_1, record_2)
+                in enumerate(pairs)
+                if (set(predicate(record_1)) &
+                    set(predicate(record_2, target=True))))
+            if coverage:
+                predicate_cover[predicate] = coverage
+
+        return predicate_cover
 
     @abstractmethod
-    def estimate(self, comparisons):
+    def estimate(self, comparisons) -> float:
         ...
+
+    blocker: blocking.Fingerprinter
+    comparison_cover: Cover
 
 
 class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records, data):
-
-        compound_length = 2
 
         N = sampled_records.original_length
         N_s = len(sampled_records)
@@ -125,10 +159,7 @@ class DedupeBlockLearner(BlockLearner):
         self.blocker = blocking.Fingerprinter(predicates)
         self.blocker.index_all(data)
 
-        simple_cover = self.coveredPairs(self.blocker, sampled_records)
-        compound_predicates = self.compound(simple_cover, compound_length)
-        self.comparison_count = self.comparisons(compound_predicates,
-                                                 simple_cover)
+        self.comparison_cover = self.coveredPairs(self.blocker, sampled_records)
 
     @staticmethod
     def coveredPairs(blocker, records):
@@ -152,10 +183,10 @@ class DedupeBlockLearner(BlockLearner):
             if max_cover == n_records:
                 continue
 
-            pairs = {pair_enumerator[pair]
-                     for block in pred_cover.values()
-                     for pair in itertools.combinations(sorted(block), 2)}
-
+            pairs = frozenset(
+                pair_enumerator[pair]
+                for block in pred_cover.values()
+                for pair in itertools.combinations(sorted(block), 2))
             cover[predicate] = pairs
 
         return cover
@@ -174,8 +205,6 @@ class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2):
 
-        compound_length = 2
-
         r_a = ((sampled_records_1.original_length) /
                len(sampled_records_1))
         r_b = ((sampled_records_2.original_length) /
@@ -186,13 +215,9 @@ class RecordLinkBlockLearner(BlockLearner):
         self.blocker = blocking.Fingerprinter(predicates)
         self.blocker.index_all(data_2)
 
-        simple_cover = self.coveredPairs(self.blocker,
-                                         sampled_records_1,
-                                         sampled_records_2)
-        compound_predicates = self.compound(simple_cover, compound_length)
-
-        self.comparison_count = self.comparisons(compound_predicates,
-                                                 simple_cover)
+        self.comparison_cover = self.coveredPairs(self.blocker,
+                                                  sampled_records_1,
+                                                  sampled_records_2)
 
     def coveredPairs(self, blocker, records_1, records_2):
         cover = {}
@@ -213,9 +238,10 @@ class RecordLinkBlockLearner(BlockLearner):
                     cover[predicate][block][0].add(id)
 
         for predicate, blocks in cover.items():
-            pairs = {pair_enumerator[pair]
-                     for A, B in blocks.values()
-                     for pair in itertools.product(A, B)}
+            pairs = frozenset(
+                pair_enumerator[pair]
+                for A, B in blocks.values()
+                for pair in itertools.product(A, B))
             cover[predicate] = pairs
 
         return cover
@@ -227,19 +253,22 @@ class RecordLinkBlockLearner(BlockLearner):
 
 
 class BranchBound(object):
-    def __init__(self, target, max_calls):
-        self.calls = max_calls
-        self.target = target
-        self.cheapest_score = float('inf')
-        self.original_cover = None
+    def __init__(self, target: int, max_calls: int) -> None:
+        self.target: int = target
+        self.calls: int = max_calls
 
-    def search(self, candidates, partial=()):
+        self.cheapest_score: float = float('inf')
+        self.original_cover: Cover = {}
+        self.cheapest: Tuple[Predicate, ...] = ()
+
+    def search(self,
+               candidates: Cover,
+               partial: Tuple[Predicate, ...] = ()) -> Tuple[Predicate, ...]:
         if self.calls <= 0:
             return self.cheapest
 
-        if self.original_cover is None:
+        if not self.original_cover:
             self.original_cover = candidates.copy()
-            self.cheapest = candidates
 
         self.calls -= 1
 
@@ -256,7 +285,7 @@ class BranchBound(object):
 
             candidates = {p: cover
                           for p, cover in candidates.items()
-                          if p.count < window}
+                          if p.count < window}  # type: ignore
 
             reachable = self.reachable(candidates) + covered
 
@@ -278,40 +307,40 @@ class BranchBound(object):
         return self.cheapest
 
     @staticmethod
-    def order_by(candidates, p):
-        return (len(candidates[p]), -p.count)
+    def order_by(candidates: Cover, p: Predicate) -> Tuple[int, float]:
+        return (len(candidates[p]), -p.count)  # type: ignore
 
     @staticmethod
-    def score(partial):
-        return sum(p.count for p in partial)
+    def score(partial: Iterable[Predicate]) -> float:
+        return sum(p.count for p in partial)  # type: ignore
 
-    def covered(self, partial):
+    def covered(self, partial: Tuple[Predicate, ...]) -> int:
         if partial:
-            return len(set.union(*(self.original_cover[p]
-                                   for p in partial)))
+            return len(frozenset.union(*(self.original_cover[p]
+                                         for p in partial)))
         else:
             return 0
 
     @staticmethod
-    def reachable(dupe_cover):
+    def reachable(dupe_cover: Cover) -> int:
         if dupe_cover:
-            return len(set.union(*dupe_cover.values()))
+            return len(frozenset.union(*dupe_cover.values()))
         else:
             return 0
 
     @staticmethod
-    def remove_dominated(coverage, dominator):
+    def remove_dominated(coverage: Cover, dominator: Predicate) -> Cover:
         dominant_cover = coverage[dominator]
 
         for pred, cover in coverage.copy().items():
-            if (dominator.count <= pred.count and
+            if (dominator.count <= pred.count and  # type: ignore
                     dominant_cover >= cover):
                 del coverage[pred]
 
         return coverage
 
     @staticmethod
-    def uncovered_by(coverage, covered):
+    def uncovered_by(coverage: Cover, covered: frozenset) -> Cover:
         remaining = {}
         for predicate, uncovered in coverage.items():
             still_uncovered = uncovered - covered
@@ -321,93 +350,39 @@ class BranchBound(object):
         return remaining
 
 
-class Cover(object):
-    def __init__(self, *args):
-        if len(args) == 1:
-            self._d, = args
-        else:
-            self._d = {}
-            predicates, pairs = args
-            self._cover(predicates, pairs)
+class InfiniteSet(object):
 
-    def __repr__(self):
-        return 'Cover:' + str(self._d.keys())
+    def __and__(self, item):
+        return item
 
-    def _cover(self, predicates, pairs):
-        for predicate in predicates:
-            coverage = {i for i, (record_1, record_2)
-                        in enumerate(pairs)
-                        if (set(predicate(record_1)) &
-                            set(predicate(record_2, target=True)))}
-            if coverage:
-                self._d[predicate] = coverage
+    def __rand__(self, item):
+        return item
 
-    def compound(self, compound_length):
-        simple_predicates = sorted(self._d, key=str)
-        CP = predicates.CompoundPredicate
 
-        for i in range(2, compound_length + 1):
-            compound_predicates = itertools.combinations(simple_predicates, i)
+class Resampler(object):
 
-            for compound_predicate in compound_predicates:
-                a, b = compound_predicate[:-1], compound_predicate[-1]
-                if len(a) == 1:
-                    a = a[0]
+    def __init__(self, sequence: Sequence):
 
-                if a in self._d:
-                    compound_cover = self._d[a] & self._d[b]
-                    if compound_cover:
-                        self._d[CP(compound_predicate)] = compound_cover
+        sampled = random.choices(sequence, k=len(sequence))
 
-    def dominators(self, cost):
-        def sort_key(x):
-            return (-cost[x], len(self._d[x]))
+        c = collections.Counter(sampled)
+        max_value = len(sequence) + 1
 
-        ordered_predicates = sorted(self._d, key=sort_key)
-        dominants = {}
+        self.replacements: Dict[int, List[int]] = {}
+        for k, v in c.items():
+            self.replacements[k] = [v]
+            if v > 1:
+                for _ in range(v - 1):
+                    self.replacements[k].append(max_value)
+                    max_value += 1
 
-        for i, candidate in enumerate(ordered_predicates):
-            candidate_match = self._d[candidate]
-            candidate_cost = cost[candidate]
+    @functools.lru_cache()
+    def __call__(self, iterable: Iterable) -> frozenset:
 
-            for pred in ordered_predicates[(i + 1):]:
-                other_match = self._d[pred]
-                other_cost = cost[pred]
-                better_or_equal = (other_match >= candidate_match and
-                                   other_cost <= candidate_cost)
-                if better_or_equal:
-                    break
-            else:
-                dominants[candidate] = candidate_match
-
-        self._d = dominants
-
-    def __iter__(self):
-        return iter(self._d)
-
-    def keys(self):
-        return self._d.keys()
-
-    def values(self):
-        return self._d.values()
-
-    def items(self):
-        return self._d.items()
-
-    def __getitem__(self, k):
-        return self._d[k]
-
-    def copy(self):
-        return Cover(self._d.copy())
-
-    def update(self, *args, **kwargs):
-        self._d.update(*args, **kwargs)
-
-    def __eq__(self, other):
-        return self._d == other._d
-
-    def intersection_update(self, other):
-        self._d = {k: self._d[k] for k in set(self._d) & set(other)}
+        result = itertools.chain.from_iterable(self.replacements[k]
+                                               for k in iterable
+                                               if k in self.replacements)
+        return frozenset(result)
 
 
 OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501

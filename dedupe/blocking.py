@@ -22,7 +22,7 @@ def index_list():
 class Fingerprinter(object):
     '''Takes in a record and returns all blocks that record belongs to'''
 
-    def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
+    def __init__(self, predicates: List[dedupe.predicates.Predicate]) -> None:
 
         self.predicates = predicates
 
@@ -172,7 +172,7 @@ class Fingerprinter(object):
 
         for index_type, index, _ in indices:
 
-            index._index.initSearch()
+            index.initSearch()
 
             for predicate in self.index_fields[field][index_type]:
                 logger.debug("Canopy: %s", str(predicate))

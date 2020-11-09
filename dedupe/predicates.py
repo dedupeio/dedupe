@@ -12,7 +12,7 @@ from dedupe.cpredicates import ngrams, initials
 import dedupe.tfidf as tfidf
 import dedupe.levenshtein as levenshtein
 
-from typing import Sequence, Callable, Any, Tuple, Set, Iterable
+from typing import Sequence, Callable, Any, Tuple, Set
 from dedupe._typing import RecordDict
 
 words = re.compile(r"[\w']+").findall
@@ -49,28 +49,33 @@ class Predicate(abc.ABC):
         return 1
 
     @abc.abstractmethod
-    def __call__(self, record, **kwargs):
+    def __call__(self, record, **kwargs) -> tuple:
         pass
+
+    def __add__(self, other: 'Predicate') -> 'CompoundPredicate':
+
+        if isinstance(other, CompoundPredicate):
+            return CompoundPredicate((self,) + tuple(other))
+        elif isinstance(other, Predicate):
+            return CompoundPredicate((self, other))
+        else:
+            raise ValueError('Can only combine predicates')
 
 
 class SimplePredicate(Predicate):
     type = "SimplePredicate"
 
-    def __init__(self, func: Callable[[Any], Sequence[str]], field: str):
+    def __init__(self, func: Callable[[Any], Tuple[str, ...]], field: str):
         self.func = func
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record: RecordDict, **kwargs) -> Iterable[str]:
+    def __call__(self, record: RecordDict, **kwargs) -> Tuple[str, ...]:
         column = record[self.field]
         if column:
             return self.func(column)
         else:
             return ()
-
-    def compounds_with(self, other):
-
-        return True
 
 
 class StringPredicate(SimplePredicate):
@@ -81,15 +86,6 @@ class StringPredicate(SimplePredicate):
         else:
             return ()
 
-    def compounds_with(self, other):
-
-        if other.field == self.field:
-            return getattr(self.func,
-                           'compounds_with_same_field',
-                           True)
-
-        return True
-
 
 class ExistsPredicate(Predicate):
     type = "ExistsPredicate"
@@ -97,7 +93,6 @@ class ExistsPredicate(Predicate):
     def __init__(self, field):
         self.__name__ = "(Exists, %s)" % (field,)
         self.field = field
-        self.compounds_with_same_field = False
 
     @staticmethod
     def func(column):
@@ -110,13 +105,6 @@ class ExistsPredicate(Predicate):
         column = record[self.field]
         return self.func(column)
 
-    def compounds_with(self, other):
-
-        if self.field == other.field:
-            return False
-
-        return True
-
 
 class IndexPredicate(Predicate):
     def __init__(self, threshold, field):
@@ -124,7 +112,6 @@ class IndexPredicate(Predicate):
         self.field = field
         self.threshold = threshold
         self.index = None
-        self.compounds_with_same_field = False
 
     def __getstate__(self):
         odict = self.__dict__.copy()
@@ -137,14 +124,6 @@ class IndexPredicate(Predicate):
         # backwards compatibility
         if not hasattr(self, 'index'):
             self.index = None
-
-    def compounds_with(self, other):
-
-        if other.field == self.field:
-            if type(other) == type(self):
-                return False
-
-        return True
 
     def reset(self):
         ...
@@ -322,12 +301,18 @@ class LevenshteinSearchPredicate(SearchPredicate, LevenshteinPredicate):
     type = "LevenshteinSearchPredicate"
 
 
-class CompoundPredicate(tuple):
+class CompoundPredicate(tuple, Predicate):
     type = "CompoundPredicate"
 
-    @property
-    def __name__(self):
-        return u'(%s)' % u', '.join(str(pred) for pred in self)
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(frozenset(self))
+            return h
+
+    def __eq__(self, other):
+        return frozenset(self) == frozenset(other)
 
     def __call__(self, record, **kwargs):
         predicate_keys = [predicate(record, **kwargs)
@@ -341,13 +326,19 @@ class CompoundPredicate(tuple):
             in itertools.product(*predicate_keys)
         ]
 
+    def __add__(self, other: Predicate) -> 'CompoundPredicate':  # type: ignore
+
+        if isinstance(other, CompoundPredicate):
+            return CompoundPredicate(tuple(self) + tuple(other))
+        elif isinstance(other, Predicate):
+            return CompoundPredicate(tuple(self) + (other,))
+        else:
+            raise ValueError('Can only combine predicates')
+
 
 def wholeFieldPredicate(field: Any) -> Tuple[str]:
     """return the whole field"""
     return (str(field), )
-
-
-wholeFieldPredicate.compounds_with_same_field = False  # type: ignore
 
 
 def tokenFieldPredicate(field):
@@ -466,9 +457,6 @@ def suffixArray(field):
             yield field[i:]
 
 
-suffixArray.compounds_with_same_field = False  # type: ignore
-
-
 def sortedAcronym(field: str) -> Tuple[str]:
     return (''.join(sorted(each[0] for each in field.split())),)
 
@@ -486,9 +474,6 @@ def metaphoneToken(field):
 
 def wholeSetPredicate(field_set):
     return (str(field_set),)
-
-
-wholeSetPredicate.compounds_with_same_field = False  # type: ignore
 
 
 def commonSetElementPredicate(field_set):
