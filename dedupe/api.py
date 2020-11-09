@@ -1018,7 +1018,7 @@ class ActiveMatching(Matching):
                 raise
 
     def train(self,
-              recall: float = 0.95,
+              recall: float = 1.00,
               index_predicates: bool = True) -> None:  # pragma: no cover
         """
         Learn final pairwise classifier and fingerprinting rules. Requires that
