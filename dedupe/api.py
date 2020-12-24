@@ -93,7 +93,7 @@ class IntegralMatching(Matching):
               pairs: RecordPairs) -> numpy.ndarray:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
-        associated probabilites that the pair of records are match
+        associated probabilities that the pair of records are match
 
         Args:
             pairs: Iterator of pairs of records
