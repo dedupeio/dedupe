@@ -19,6 +19,10 @@ dedupe takes in human training data and comes up with the best rules for your da
 * Mailing list: https://groups.google.com/forum/#!forum/open-source-deduplication
 * Examples: https://github.com/dedupeio/dedupe-examples
 
+## dedupe library consulting
+
+If you or your organization would like professional assistance in working with the dedupe library, Dedupe.io LLC offers consulting services. [Read more about pricing and available services here](https://dedupe.io/pricing/#consulting).
+
 ## Tools built with dedupe
 
 ### [Dedupe.io](https://dedupe.io/)
