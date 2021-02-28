@@ -41,7 +41,7 @@ def connected_components(edgelist: numpy.ndarray,
     with tempfile.TemporaryDirectory() as path:
         filename = path + '/unlabeled_edgelist'
         edgelist = numpy.memmap(filename,
-                                dtype=(unlabeled_edgelist.dtype.descr
+                                dtype=(unlabeled_edgelist.dtype.descr  # type: ignore
                                        + [('label', 'int32')]),
                                 mode='w+',
                                 shape=unlabeled_edgelist.shape)
@@ -57,7 +57,7 @@ def connected_components(edgelist: numpy.ndarray,
 
         yield from _connected_components(edgelist, max_components)
 
-        edgelist._mmap.close()
+        edgelist._mmap.close()  # type: ignore
 
 
 def _connected_components(edgelist: numpy.ndarray,
@@ -98,7 +98,7 @@ def _connected_components(edgelist: numpy.ndarray,
             yield sub_graph[['pairs', 'score']]
 
 
-def union_find(scored_pairs: numpy.ndarray) -> Sequence[int]:
+def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
     root: Dict[RecordID, int] = {}
 

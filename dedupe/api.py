@@ -90,7 +90,7 @@ class IntegralMatching(Matching):
     """
 
     def score(self,
-              pairs: RecordPairs) -> numpy.ndarray:
+              pairs: RecordPairs) -> numpy.memmap:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilites that the pair of records are match

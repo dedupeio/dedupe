@@ -9,7 +9,7 @@ import dedupe.variables.base as base
 from dedupe.variables.base import MissingDataType
 from dedupe.variables.interaction import InteractionType
 
-for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,
+for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,  # type: ignore
                                          'dedupe.variables.'):
     __import__(module)
 

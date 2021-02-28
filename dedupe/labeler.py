@@ -350,11 +350,11 @@ class DisagreementLearner(ActiveLearner):
         probs = numpy.concatenate(probs_l, axis=1)
 
         # where do the classifers disagree?
-        disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)  # type: ignore
+        disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
 
         if disagreement.any():
-            conflicts = disagreement.nonzero()[0]
-            target = numpy.random.uniform(size=1)  # type: ignore
+            conflicts = disagreement.nonzero()[0]  # type: ignore
+            target = numpy.random.uniform(size=1)
             uncertain_index = conflicts[numpy.argmax(probs[conflicts][:, 0] - target)]
         else:
             uncertain_index = numpy.std(probs, axis=1).argmax()
