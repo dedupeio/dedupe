@@ -273,8 +273,6 @@ class DedupeBlockLearner(BlockLearner):
         records = core.unique((record for pair in candidates for record in pair))
 
         for field in blocker.index_fields:
-            print(field)
-            print([record[field] for record in records])
             unique_fields = {record[field] for record in records}
             blocker.index(unique_fields, field)
 

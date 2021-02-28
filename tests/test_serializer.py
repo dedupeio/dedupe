@@ -40,11 +40,10 @@ class SerializerTest(unittest.TestCase):
         assert loaded_training_pairs["distinct"][0][0] ==\
             dict(training_pairs["distinct"][0][0])
 
-        assert isinstance(loaded_training_pairs["distinct"][0][0]["bar"],                          
+        assert isinstance(loaded_training_pairs["distinct"][0][0]["bar"],
                           frozenset)
         assert isinstance(loaded_training_pairs["distinct"][0][0]["baz"],
                           tuple)
-
 
         deduper = dedupe.Dedupe([{'field': 'foo', 'type': 'String'}])
         deduper.classifier.cv = False
