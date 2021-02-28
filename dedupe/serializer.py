@@ -23,12 +23,12 @@ def hint_tuples(item):
 
 
 class TupleEncoder(json.JSONEncoder):
-    def encode(self, obj):            
+    def encode(self, obj):
         return super().encode(hint_tuples(obj))
-    
+
     def iterencode(self, obj):
         return super().iterencode(hint_tuples(obj))
-            
+
     def default(self, python_object):
         if isinstance(python_object, frozenset):
             return {'__class__': 'frozenset',

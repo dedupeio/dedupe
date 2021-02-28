@@ -113,21 +113,6 @@ class IntegralMatching(Matching):
 
         return matches
 
-class BlockingProcess:
-    def __init__(self, db_location, blocker, dtype, shape):
-        self.db_location = db_location
-        self.blocker = blocker
-        self.data = numpy.memmap('foomap', dtype=dtype, shape=shape)
-        
-    def __call__(self, offset):
-        data = [pickle.loads(row) for row in self.data[offset::4]]
-        con = sqlite3.connect(self.db_location)
-        con.executemany("INSERT INTO blocking_map values (?, ?)",
-                        self.blocker(data))
-        con.commit()
-                
- 
-
 
 class DedupeMatching(IntegralMatching):
     """
@@ -243,7 +228,7 @@ class DedupeMatching(IntegralMatching):
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
             con = sqlite3.connect(temp_dir + '/blocks.db')
-            
+
             # Set journal mode to WAL.
             con.execute('pragma journal_mode=wal')
 
@@ -251,36 +236,8 @@ class DedupeMatching(IntegralMatching):
                            (block_key text, record_id {id_type})
                         '''.format(id_type=id_type))
 
-            from multiprocessing import Pool
-            import pickle
-
-            pool = Pool(4)
-            npdata = numpy.array([pickle.dumps((k, d)) for k, d in data.items()])
-            
-            fp = numpy.memmap('foomap', dtype=npdata.dtype, mode='w+', shape=npdata.shape)
-            fp[:] = npdata[:]
-            fp.flush()
-            
-            import time
-            start = time.perf_counter()
-            parallel = True
-            if parallel:
-            
-
-                pool.map_async(BlockingProcess(temp_dir + '/blocks.db',
-                                               self.fingerprinter.__call__,
-                                               fp.dtype,
-                                               fp.shape,
-                                               ), 
-                               (0, 1, 2, 3))
-            
-                pool.close()
-                pool.join()
-            else:
-                con.executemany("INSERT INTO blocking_map values (?, ?)",
-                                self.fingerprinter(data.items()))
-            end = time.perf_counter()
-            print(end-start, 'time to block')
+            con.executemany("INSERT INTO blocking_map values (?, ?)",
+                            self.fingerprinter(data.items()))
 
             self.fingerprinter.reset_indices()
 
@@ -412,9 +369,9 @@ class RecordLinkMatching(IntegralMatching):
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
             con = sqlite3.connect(temp_dir + '/blocks.db')
-            
+
             # Set journal mode to WAL.
-            con.execute('pragma journal_mode=wal')            
+            con.execute('pragma journal_mode=wal')
 
             con.executescript('''CREATE TABLE blocking_map_a
                                  (block_key text, record_id {id_type_a});
@@ -694,10 +651,10 @@ class GazetteerMatching(Matching):
         id_type = core.sqlite_id_type(data)
 
         con = sqlite3.connect(self.db)
-        
+
         # Set journal mode to WAL.
         con.execute('pragma journal_mode=wal')
-        
+
         con.execute('''CREATE TABLE IF NOT EXISTS indexed_records
                        (block_key text,
                         record_id {id_type},
