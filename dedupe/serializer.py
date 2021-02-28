@@ -10,21 +10,27 @@ def _from_json(json_object):
     return json_object
 
 
-def _to_json(python_object):
-    if isinstance(python_object, frozenset):
-        python_object = {'__class__': 'frozenset',
-                         '__value__': list(python_object)}
-    elif isinstance(python_object, tuple):
-        python_object = {'__class__': 'tuple',
-                         '__value__': list(python_object)}
+def hint_tuples(item):
+    if isinstance(item, tuple):
+        return {'__class__': 'tuple',
+                '__value__': list(item)}
+    if isinstance(item, list):
+        return [hint_tuples(e) for e in item]
+    if isinstance(item, dict):
+        return {key: hint_tuples(value) for key, value in item.items()}
     else:
-        raise TypeError(repr(python_object) + ' is not JSON serializable')
-
-    return python_object
+        return item
 
 
-class dedupe_decoder(json.JSONDecoder):
-
-    def __init__(self, **kwargs):
-
-        json.JSONDecoder.__init__(self, object_hook=_from_json, **kwargs)
+class TupleEncoder(json.JSONEncoder):
+    def encode(self, obj):            
+        return super().encode(hint_tuples(obj))
+    
+    def iterencode(self, obj):
+        return super().iterencode(hint_tuples(obj))
+            
+    def default(self, python_object):
+        if isinstance(python_object, frozenset):
+            return {'__class__': 'frozenset',
+                    '__value__': list(python_object)}
+        return super().default(python_object)
