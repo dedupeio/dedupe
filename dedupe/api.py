@@ -256,15 +256,16 @@ class DedupeMatching(IntegralMatching):
             pairs.close()
             con.close()
 
-    def cluster(self,
-                scores: numpy.ndarray,
-                threshold: float = 0.5) -> Clusters:
+    def cluster(self, scores: numpy.ndarray,
+                threshold: float = 0.5,
+                return_confidence_scores: bool = True) -> Clusters:
         r"""From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
 
         Yields tuples containing a sequence of record ids and corresponding
-        sequence of confidence score as a float between 0 and 1. The
-        record_ids within each set should refer to the same entity and the
+        sequence of confidence score as a float between 0 and 1 (if return_confidence_scores
+        is set to True). Setting return_confidence_scores to False speeds up clustering.
+        The record_ids within each set should refer to the same entity and the
         confidence score is a measure of our confidence a particular entity
         belongs in the cluster.
 
@@ -322,7 +323,7 @@ class DedupeMatching(IntegralMatching):
 
         logger.debug("matching done, begin clustering")
 
-        yield from clustering.cluster(scores, threshold)
+        yield from clustering.cluster(scores, threshold, return_confidence_scores)
 
 
 class RecordLinkMatching(IntegralMatching):
