@@ -18,6 +18,7 @@ from dedupe._typing import RecordDict
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
+two_start_words = re.compile(r"^[\w']+(\s+[\w']+)?").match
 start_integer = re.compile(r"^(\d+)").match
 alpha_numeric = re.compile(r"(?=\w*\d)[a-zA-Z\d]+").findall
 
@@ -350,6 +351,14 @@ def firstTokenPredicate(field: str) -> Sequence[str]:
     first_token = start_word(field)
     if first_token:
         return first_token.groups()
+    else:
+        return ()
+
+
+def firstTwoTokensPredicate(field: str) -> Sequence[str]:
+    first_two_tokens = two_start_words(field)
+    if first_two_tokens:
+        return (first_two_tokens.group(),)
     else:
         return ()
 
