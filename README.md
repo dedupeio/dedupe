@@ -32,6 +32,9 @@ A cloud service powered by the dedupe library for de-duplicating and finding mat
 
 For more, see the [Dedupe.io product site](https://dedupe.io/), [tutorials on how to use it](https://dedupe.io/tutorial/intro-to-dedupe-io.html), and [differences between it and the dedupe library](https://dedupe.io/documentation/should-i-use-dedupeio-or-the-dedupe-python-library.html).
 
+Dedupe is well adopted by the Python community. Check out this [blogpost](https://medium.com/district-data-labs/basics-of-entity-resolution-with-python-and-dedupe-bc87440b64d4),
+a YouTube video on how to use [Dedupe with Python](https://youtu.be/McsTWXeURhA) and a Youtube video on how to apply [Dedupe at scale using Spark](https://youtu.be/q9HPUYmiwjE?t=2704).
+
 
 ### [csvdedupe](https://github.com/dedupeio/csvdedupe)
 Command line tool for de-duplicating and [linking](https://github.com/dedupeio/csvdedupe#csvlink-usage) CSV files. Read about it on [Source Knight-Mozilla OpenNews](https://source.opennews.org/en-US/articles/introducing-cvsdedupe/).
