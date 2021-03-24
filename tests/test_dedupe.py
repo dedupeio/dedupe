@@ -236,6 +236,10 @@ class PredicatesTest(unittest.TestCase):
         assert dedupe.predicates.firstTokenPredicate(field) == ('123',)
         assert dedupe.predicates.firstTokenPredicate('') == ()
         assert dedupe.predicates.firstTokenPredicate('123/') == ('123',)
+        assert dedupe.predicates.firstTwoTokensPredicate(field) == ('123 16th',)
+        assert dedupe.predicates.firstTwoTokensPredicate('oneword') == ()
+        assert dedupe.predicates.firstTwoTokensPredicate('') == ()
+        assert dedupe.predicates.firstTwoTokensPredicate('123 456/') == ('123 456',)
         assert dedupe.predicates.tokenFieldPredicate(' ') == set([])
         assert dedupe.predicates.tokenFieldPredicate(
             field) == set(['123', '16th', 'st'])
