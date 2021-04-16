@@ -11,6 +11,7 @@ crfEd = CRFEditDistance()
 
 base_predicates = (predicates.wholeFieldPredicate,
                    predicates.firstTokenPredicate,
+                   predicates.firstTwoTokensPredicate,
                    predicates.commonIntegerPredicate,
                    predicates.nearIntegersPredicate,
                    predicates.firstIntegerPredicate,
