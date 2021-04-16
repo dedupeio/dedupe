@@ -78,7 +78,7 @@ jobs:
       with:
         python-version: 3.8
     - name: Build manylinux Python wheels
-      uses: datamade/python-wheels-manylinux-build@248b22d
+      uses: datamade/python-wheels-manylinux-build@248b22d209488859bfdbf61b46175779adefb4a9
       with:
         python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
     - name: Build sdist
