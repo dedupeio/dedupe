@@ -329,7 +329,7 @@ def scoreGazette(record_pairs: Blocks,
 
     first, record_pairs = peek(record_pairs)
     if first is None:
-        raise ValueError("No records to match")
+        return  # terminate iteration
 
     imap, pool = appropriate_imap(num_cores)
 
