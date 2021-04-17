@@ -105,8 +105,8 @@ class DedupeTest(unittest.TestCase):
 
     def test_randomSample(self):
 
-        random.seed(6)
-        numpy.random.seed(6)
+        random.seed(7)
+        numpy.random.seed(7)
         self.deduper._sample(data_dict, 30, 1)
 
         correct_result = [({'age': '50', 'name': 'Linda'},
