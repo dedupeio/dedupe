@@ -8,7 +8,7 @@ import logging
 import collections
 import functools
 import random
-from abc import ABC, abstractmethod
+from abc import ABC
 import math
 
 from typing import (Dict, Sequence, Iterable, Tuple, List,
