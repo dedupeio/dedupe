@@ -248,12 +248,11 @@ class DedupeBlockLearner(BlockLearner):
     def __init__(self, data_model,
                  candidates,
                  data,
-                 original_length,
                  index_include):
         super().__init__(data_model, candidates)
 
-        index_data = Sample(data, 50000, original_length)
-        sampled_records = Sample(index_data, 5000, original_length)
+        index_data = Sample(data, 50000)
+        sampled_records = Sample(index_data, 5000)
         preds = self.data_model.predicates()
 
         self.block_learner = training.DedupeBlockLearner(preds,
@@ -287,15 +286,13 @@ class RecordLinkBlockLearner(BlockLearner):
                  candidates,
                  data_1,
                  data_2,
-                 original_length_1,
-                 original_length_2,
                  index_include):
 
         super().__init__(data_model, candidates)
 
-        sampled_records_1 = Sample(data_1, 600, original_length_1)
-        index_data = Sample(data_2, 50000, original_length_2)
-        sampled_records_2 = Sample(index_data, 600, original_length_2)
+        sampled_records_1 = Sample(data_1, 600)
+        index_data = Sample(data_2, 50000)
+        sampled_records_2 = Sample(index_data, 600)
 
         preds = self.data_model.predicates(canopies=False)
 
@@ -415,7 +412,6 @@ class DedupeDisagreementLearner(DedupeSampler, DisagreementLearner):
                  data,
                  blocked_proportion,
                  sample_size,
-                 original_length,
                  index_include):
 
         self.data_model = data_model
@@ -433,7 +429,6 @@ class DedupeDisagreementLearner(DedupeSampler, DisagreementLearner):
         self.blocker = DedupeBlockLearner(data_model,
                                           self.candidates,
                                           data,
-                                          original_length,
                                           index_include)
         self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
@@ -452,8 +447,6 @@ class RecordLinkDisagreementLearner(RecordLinkSampler, DisagreementLearner):
                  data_2,
                  blocked_proportion,
                  sample_size,
-                 original_length_1,
-                 original_length_2,
                  index_include):
 
         self.data_model = data_model
@@ -478,8 +471,6 @@ class RecordLinkDisagreementLearner(RecordLinkSampler, DisagreementLearner):
                                               self.candidates,
                                               data_1,
                                               data_2,
-                                              original_length_1,
-                                              original_length_2,
                                               index_include)
         self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
@@ -492,13 +483,9 @@ class RecordLinkDisagreementLearner(RecordLinkSampler, DisagreementLearner):
 
 class Sample(dict):
 
-    def __init__(self, d, sample_size, original_length):
+    def __init__(self, d, sample_size):
         if len(d) <= sample_size:
             super().__init__(d)
         else:
             sample = random.sample(d.keys(), sample_size)
             super().__init__({k: d[k] for k in sample})
-        if original_length is None:
-            self.original_length = len(d)
-        else:
-            self.original_length = original_length

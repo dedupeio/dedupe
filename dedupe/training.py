@@ -68,7 +68,7 @@ class BlockLearner(ABC):
                           comparison_cover: Cover) -> Cover:
         candidates = {}
         for predicate, coverage in match_cover.items():
-            predicate.count = self.estimate(comparison_cover[predicate])  # type: ignore
+            predicate.count = len(comparison_cover[predicate])  # type: ignore
             candidates[predicate] = coverage.copy()
 
         return candidates
@@ -102,8 +102,8 @@ class BlockLearner(ABC):
                 try:
                     return (len(covered_sample_matches &
                                 sample_match_cover[predicate]) /
-                            self.estimate(covered_comparisons &
-                                          comparison_cover[predicate]))
+                            len(covered_comparisons &
+                                comparison_cover[predicate]))
                 except ZeroDivisionError:
                     return 0.
 
@@ -115,7 +115,7 @@ class BlockLearner(ABC):
                     candidate = next_predicate
 
                 covered_comparisons &= comparison_cover[next_predicate]
-                candidate.count = self.estimate(covered_comparisons)  # type: ignore
+                candidate.count = len(covered_comparisons)  # type: ignore
 
                 covered_matches &= match_cover[next_predicate]
                 candidates[candidate] = covered_matches
@@ -139,10 +139,6 @@ class BlockLearner(ABC):
 
         return predicate_cover
 
-    @abstractmethod
-    def estimate(self, comparisons) -> float:
-        ...
-
     blocker: blocking.Fingerprinter
     comparison_cover: Cover
 
@@ -150,11 +146,6 @@ class BlockLearner(ABC):
 class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records, data):
-
-        N = sampled_records.original_length
-        N_s = len(sampled_records)
-
-        self.r = (N * (N - 1)) / (N_s * (N_s - 1))
 
         self.blocker = blocking.Fingerprinter(predicates)
         self.blocker.index_all(data)
@@ -191,26 +182,10 @@ class DedupeBlockLearner(BlockLearner):
 
         return cover
 
-    def estimate(self, comparisons):
-        # Result due to Stefano Allesina and Jacopo Grilli,
-        # details forthcoming
-        #
-        # This estimates the total number of comparisons a blocking
-        # rule will produce.
-
-        return self.r * len(comparisons)
-
 
 class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self, predicates, sampled_records_1, sampled_records_2, data_2):
-
-        r_a = ((sampled_records_1.original_length) /
-               len(sampled_records_1))
-        r_b = ((sampled_records_2.original_length) /
-               len(sampled_records_2))
-
-        self.r = r_a * r_b
 
         self.blocker = blocking.Fingerprinter(predicates)
         self.blocker.index_all(data_2)
@@ -246,11 +221,6 @@ class RecordLinkBlockLearner(BlockLearner):
 
         return cover
 
-    def estimate(self, comparisons):
-        # https://stats.stackexchange.com/a/465060/82
-
-        return self.r * len(comparisons)
-
 
 class BranchBound(object):
     def __init__(self, target: int, max_calls: int) -> None:
@@ -277,6 +247,7 @@ class BranchBound(object):
 
         if covered >= self.target:
             if score < self.cheapest_score:
+                print(score)
                 self.cheapest = partial
                 self.cheapest_score = score
 
