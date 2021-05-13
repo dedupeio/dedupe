@@ -2,8 +2,6 @@ import dedupe
 import dedupe.api
 import unittest
 import itertools
-import random
-import numpy
 import warnings
 from collections import OrderedDict
 
@@ -91,37 +89,6 @@ class ActiveMatch(unittest.TestCase):
             assert len(w) == 1
             assert str(
                 w[-1].message) == "Didn't return any labeled record pairs"
-
-
-class DedupeTest(unittest.TestCase):
-    def setUp(self):
-        random.seed(123)
-        numpy.random.seed(456)
-
-        field_definition = [{'field': 'name', 'type': 'String'},
-                            {'field': 'age', 'type': 'String'}]
-
-        self.deduper = dedupe.Dedupe(field_definition)
-
-    def test_randomSample(self):
-
-        random.seed(7)
-        numpy.random.seed(7)
-        self.deduper._sample(data_dict, 30, 1)
-
-        correct_result = [({'age': '50', 'name': 'Linda'},
-                           {'age': '51', 'name': 'bob belcher'}),
-                          ({'age': '51', 'name': 'Bob'},
-                           {'age': '51', 'name': 'Bob B.'}),
-                          ({'age': '51', 'name': 'Bob'},
-                           {'age': '51', 'name': 'bob belcher'}),
-                          ({'age': '51', 'name': 'Bob B.'},
-                           {'age': '51', 'name': 'bob belcher'}),
-                          ({'age': '50', 'name': 'Linda'},
-                           {'age': '50', 'name': 'linda '})]
-
-        for pair in correct_result:
-            assert pair in self.deduper.active_learner.candidates
 
 
 if __name__ == "__main__":
