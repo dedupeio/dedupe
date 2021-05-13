@@ -247,7 +247,6 @@ class BranchBound(object):
 
         if covered >= self.target:
             if score < self.cheapest_score:
-                print(score)
                 self.cheapest = partial
                 self.cheapest_score = score
 
