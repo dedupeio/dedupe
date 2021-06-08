@@ -395,9 +395,31 @@ def index(data: Mapping[Any, Any], offset: int = 0) -> Mapping[int, Any]:
                         data.values()))
         return data
 
-
+    
 def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
     return collections.defaultdict(itertools.count(start).__next__, initial)
+
+
+class DiagonalEnumerator(object):
+    def __init__(self, N : int):
+        self.N = N
+        self.C = N * (N - 1) / 2 - 1
+
+    def __getitem__(self, pair: Tuple[int, int]) -> int:
+        x, y = pair
+        N = self.N
+        C = self.C
+        z = C - (N - x) * (N - x - 1) / 2 + y - x
+        return int(z)
+
+
+class FullEnumerator(object):
+    def __init__(self, width : int):
+        self.width = width
+
+    def __getitem__(self, pair: Tuple[int, int]) -> int:
+        x, y = pair
+        return x * self.width + y
 
 
 def sniff_id_type(ids: Sequence[Tuple[RecordID, RecordID]]) -> Union[Type[int], Tuple[Type[str], int]]:

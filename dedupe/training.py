@@ -156,8 +156,8 @@ class DedupeBlockLearner(BlockLearner):
     def coveredPairs(blocker, records):
         cover = {}
 
-        pair_enumerator = core.Enumerator()
         n_records = len(records)
+        pair_enumerator = core.DiagonalEnumerator(n_records)
 
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
@@ -197,7 +197,7 @@ class RecordLinkBlockLearner(BlockLearner):
     def coveredPairs(self, blocker, records_1, records_2):
         cover = {}
 
-        pair_enumerator = core.Enumerator()
+        pair_enumerator = core.FullEnumerator(len(records_2))
 
         for predicate in blocker.predicates:
             cover[predicate] = collections.defaultdict(lambda: (set(), set()))
