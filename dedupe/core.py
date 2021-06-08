@@ -395,13 +395,13 @@ def index(data: Mapping[Any, Any], offset: int = 0) -> Mapping[int, Any]:
                         data.values()))
         return data
 
-    
+
 def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
     return collections.defaultdict(itertools.count(start).__next__, initial)
 
 
 class DiagonalEnumerator(object):
-    def __init__(self, N : int):
+    def __init__(self, N: int):
         self.N = N
         self.C = N * (N - 1) / 2 - 1
 
@@ -414,7 +414,7 @@ class DiagonalEnumerator(object):
 
 
 class FullEnumerator(object):
-    def __init__(self, width : int):
+    def __init__(self, width: int):
         self.width = width
 
     def __getitem__(self, pair: Tuple[int, int]) -> int:
