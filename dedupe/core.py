@@ -54,20 +54,19 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
     n: int = n_records * (n_records - 1) // 2
 
     if sample_size >= n:
-        random_pairs = numpy.arange(n, dtype='uint')
+        random_pairs = numpy.arange(n)
     else:
         try:
-            random_pairs = numpy.array(random.sample(range(n), sample_size),
-                                       dtype='uint')
+            random_pairs = numpy.array(random.sample(range(n), sample_size))
         except OverflowError:
             return randomPairsWithReplacement(n_records, sample_size)
 
     b: int = 1 - 2 * n_records
 
-    root = (-b - 2 * numpy.sqrt(2 * (n - random_pairs) + 0.25)) // 2
+    i = (-b - 2 * numpy.sqrt(2 * (n - random_pairs) + 0.25)) // 2
+    i = i.astype(int)
 
-    i = root.astype('uint')
-    j = (random_pairs + i * (b + i + 2) // 2 + 1).astype('uint')
+    j = random_pairs + i * (b + i + 2) // 2 + 1
 
     return zip(i, j)
 
@@ -402,14 +401,11 @@ def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
 
 class DiagonalEnumerator(object):
     def __init__(self, N: int):
-        self.N = N
-        self.C = N * (N - 1) // 2 - 1
+        self.C = 2 * N - 3
 
     def __getitem__(self, pair: Tuple[int, int]) -> int:
         x, y = pair
-        N = self.N
-        C = self.C
-        return C - (N - x) * (N - x - 1) // 2 + y - x
+        return x * (self.C - x) // 2 + y - 1
 
 
 class FullEnumerator(object):
