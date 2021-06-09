@@ -182,13 +182,13 @@ def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
     col = ids[:, 1]
 
     N = len(candidate_set)
-    matrix_length = N * (N - 1) / 2
+    matrix_length = N * (N - 1) // 2
 
-    row_step = (N - row) * (N - row - 1) / 2
+    row_step = (N - row) * (N - row - 1) // 2
     index = matrix_length - row_step + col - row - 1
 
-    condensed_distances = numpy.ones(int(matrix_length), 'f4')
-    condensed_distances[index.astype(int)] = 1 - dupes['score']
+    condensed_distances = numpy.ones(matrix_length, 'f4')
+    condensed_distances[index] = 1 - dupes['score']
 
     return i_to_id, condensed_distances, N
 
@@ -247,12 +247,11 @@ def confidences(cluster: Sequence[int],
     used to calculate the standard deviation of an entire cluster,
     which is a reasonable metric for clusters.
     '''
-
     scores_d = dict.fromkeys(cluster, 0.0)
     squared_distances = condensed_distances ** 2
     for i, j in itertools.combinations(cluster, 2):
-        index = d * (d - 1) / 2 - (d - i) * (d - i - 1) / 2 + j - i - 1
-        squared_dist = squared_distances[int(index)]
+        index = d * (d - 1) // 2 - (d - i) * (d - i - 1) // 2 + j - i - 1
+        squared_dist = squared_distances[index]
         scores_d[i] += squared_dist
         scores_d[j] += squared_dist
     scores = numpy.array([score for _, score in sorted(scores_d.items())])

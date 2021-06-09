@@ -51,7 +51,7 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
     http://stackoverflow.com/a/14839010/98080
 
     """
-    n: int = int(n_records * (n_records - 1) / 2)
+    n: int = n_records * (n_records - 1) // 2
 
     if sample_size >= n:
         random_pairs = numpy.arange(n, dtype='uint')
@@ -64,10 +64,10 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
 
     b: int = 1 - 2 * n_records
 
-    root = (-b - 2 * numpy.sqrt(2 * (n - random_pairs) + 0.25)) / 2
+    root = (-b - 2 * numpy.sqrt(2 * (n - random_pairs) + 0.25)) // 2
 
-    i = numpy.floor(root).astype('uint')
-    j = numpy.rint(random_pairs + i * (b + i + 2) / 2 + 1).astype('uint')
+    i = root.astype('uint')
+    j = (random_pairs + i * (b + i + 2) // 2 + 1).astype('uint')
 
     return zip(i, j)
 
@@ -76,7 +76,7 @@ def randomPairsMatch(n_records_A: int, n_records_B: int, sample_size: int) -> In
     """
     Return random combinations of indices for record list A and B
     """
-    n: int = int(n_records_A * n_records_B)
+    n: int = n_records_A * n_records_B
 
     if sample_size >= n:
         random_pairs = numpy.arange(n)
@@ -398,6 +398,27 @@ def index(data: Mapping[Any, Any], offset: int = 0) -> Mapping[int, Any]:
 
 def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
     return collections.defaultdict(itertools.count(start).__next__, initial)
+
+
+class DiagonalEnumerator(object):
+    def __init__(self, N: int):
+        self.N = N
+        self.C = N * (N - 1) // 2 - 1
+
+    def __getitem__(self, pair: Tuple[int, int]) -> int:
+        x, y = pair
+        N = self.N
+        C = self.C
+        return C - (N - x) * (N - x - 1) // 2 + y - x
+
+
+class FullEnumerator(object):
+    def __init__(self, width: int):
+        self.width = width
+
+    def __getitem__(self, pair: Tuple[int, int]) -> int:
+        x, y = pair
+        return x * self.width + y
 
 
 def sniff_id_type(ids: Sequence[Tuple[RecordID, RecordID]]) -> Union[Type[int], Tuple[Type[str], int]]:
