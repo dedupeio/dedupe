@@ -61,13 +61,17 @@ class Matching(object):
     Base Class for Record Matching Classes
     """
 
-    def __init__(self, num_cores: Optional[int], **kwargs) -> None:
+    def __init__(self, 
+                 num_cores: Optional[int],
+                 in_memory: bool = False,
+                 **kwargs) -> None:
 
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
             self.num_cores = num_cores
 
+        self.in_memory = in_memory
         self._fingerprinter: Optional[blocking.Fingerprinter] = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
@@ -128,8 +132,7 @@ class DedupeMatching(IntegralMatching):
 
     def partition(self,
                   data: Data,
-                  threshold: float = 0.5,
-                  in_memory: bool = False) -> Clusters:  # pragma: no cover
+                  threshold: float = 0.5) -> Clusters:  # pragma: no cover
         """
         Identifies records that all refer to the same entity, returns
         tuples containing a sequence of record ids and corresponding
@@ -157,9 +160,6 @@ class DedupeMatching(IntegralMatching):
 
                        Lowering the number will increase recall,
                        raising it will increase precision
-                    
-            in_memory: Boolean that if True will compute pairs using
-                       sqlite in RAM rather than writing to disk.
 
         .. code:: python
 
@@ -170,7 +170,7 @@ class DedupeMatching(IntegralMatching):
             ((10, 11), (0.899, 0.899))]
 
         """
-        pairs = self.pairs(data, in_memory=in_memory)
+        pairs = self.pairs(data)
         pair_scores = self.score(pairs)
         clusters = self.cluster(pair_scores, threshold)
 
@@ -198,7 +198,7 @@ class DedupeMatching(IntegralMatching):
         for singleton in singletons:
             yield (singleton, ), (1.0, )
 
-    def pairs(self, data, in_memory):
+    def pairs(self, data):
         '''
         Yield pairs of records that share common fingerprints.
 
@@ -211,8 +211,6 @@ class DedupeMatching(IntegralMatching):
             data: Dictionary of records, where the keys are record_ids
                   and the values are dictionaries with the keys being
                   field names
-            in_memory: Boolean that if True will compute pairs using
-                       sqlite in RAM rather than writing to disk.
 
         .. code:: python
 
@@ -233,7 +231,7 @@ class DedupeMatching(IntegralMatching):
         # Blocking and pair generation are typically the first memory
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
-            if in_memory:
+            if self.in_memory:
                 con = sqlite3.connect(':memory:')
             else:
                 con = sqlite3.connect(temp_dir + '/blocks.db')
@@ -341,7 +339,7 @@ class RecordLinkMatching(IntegralMatching):
     Use RecordLinkMatching when you have two datasets that you want to merge
     """
 
-    def pairs(self, data_1: Data, data_2: Data, in_memory=False) -> RecordPairs:
+    def pairs(self, data_1: Data, data_2: Data) -> RecordPairs:
         """
         Yield pairs of records that share common fingerprints.
 
@@ -357,8 +355,6 @@ class RecordLinkMatching(IntegralMatching):
                     with the keys being field names
             data_2: Dictionary of records from second dataset, same
                     form as data_1
-            in_memory: Boolean that if True will compute pairs using
-                       sqlite in RAM rather than writing to disk.
 
         .. code:: python
 
@@ -379,7 +375,7 @@ class RecordLinkMatching(IntegralMatching):
         # Blocking and pair generation are typically the first memory
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
-            if in_memory:
+            if self.in_memory:
                 con = sqlite3.connect(':memory:')
             else:
                 con = sqlite3.connect(temp_dir + '/blocks.db')
@@ -425,8 +421,7 @@ class RecordLinkMatching(IntegralMatching):
              data_1: Data,
              data_2: Data,
              threshold: float = 0.5,
-             constraint: JoinConstraint = "one-to-one",
-             in_memory: bool = False) -> Links:
+             constraint: JoinConstraint = "one-to-one") -> Links:
         """
         Identifies pairs of records that refer to the same entity.
 
@@ -481,9 +476,6 @@ class RecordLinkMatching(IntegralMatching):
                               multiple records in data_2 and vice
                               versa. This is like a SQL inner join.
 
-            in_memory: Boolean that if True will compute pairs using
-                       sqlite in RAM rather than writing to disk.
-
         .. code:: python
 
            > links = matcher.join(data_1, data_2, threshold=0.5)
@@ -500,7 +492,7 @@ class RecordLinkMatching(IntegralMatching):
             '%s is an invalid constraint option. Valid options include '
             'one-to-one, many-to-one, or many-to-many' % constraint)
 
-        pairs = self.pairs(data_1, data_2, in_memory=in_memory)
+        pairs = self.pairs(data_1, data_2)
         pair_scores = self.score(pairs)
 
         if constraint == 'one-to-one':
@@ -637,12 +629,11 @@ class GazetteerMatching(Matching):
 
     def __init__(self, 
                  num_cores: Optional[int],
-                 in_memory: Optional[bool],
                  **kwargs) -> None:
 
         super().__init__(num_cores, **kwargs)
 
-        if in_memory:
+        if self.in_memory:
             self.db = ':memory:'
         else:
           self.temp_dir = tempfile.TemporaryDirectory()
