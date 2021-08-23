@@ -18,6 +18,5 @@ hyperparameters. This work only contemplates categorical variables.
 To Read
 -------
 - Domingos and Domingos Multi-relational record linkage. http://homes.cs.washington.edu/~pedrod/papers/mrdm04.pdf
-- An Entity Based Model for Coreference Resolution http://people.cs.umass.edu/~mwick/MikeWeb/Publications_files/wick09entity.pdf
-
+- An Entity Based Model for Coreference Resolution http://cs.tulane.edu/~aculotta/pubs/wick09entity.pdf
 
