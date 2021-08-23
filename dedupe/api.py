@@ -61,7 +61,7 @@ class Matching(object):
     Base Class for Record Matching Classes
     """
 
-    def __init__(self, 
+    def __init__(self,
                  num_cores: Optional[int],
                  in_memory: bool = False,
                  **kwargs) -> None:
@@ -627,7 +627,7 @@ class RecordLinkMatching(IntegralMatching):
 
 class GazetteerMatching(Matching):
 
-    def __init__(self, 
+    def __init__(self,
                  num_cores: Optional[int],
                  **kwargs) -> None:
 
@@ -636,8 +636,8 @@ class GazetteerMatching(Matching):
         if self.in_memory:
             self.db = ':memory:'
         else:
-          self.temp_dir = tempfile.TemporaryDirectory()
-          self.db = self.temp_dir.name + '/blocks.db'
+            self.temp_dir = tempfile.TemporaryDirectory()
+            self.db = self.temp_dir.name + '/blocks.db'
 
         self.indexed_data: Dict[RecordID, RecordDict] = {}
 
