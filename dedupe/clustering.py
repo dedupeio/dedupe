@@ -212,7 +212,6 @@ def cluster(dupes: numpy.ndarray,
         if len(sub_graph) > 1:
 
             i_to_id, condensed_distances, N = condensedDistance(sub_graph)
-            squared_distances = condensed_distances**2
 
             linkage = fastcluster.linkage(condensed_distances,
                                           method='centroid',
@@ -227,6 +226,7 @@ def cluster(dupes: numpy.ndarray,
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
+            squared_distances = condensed_distances**2
             for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, squared_distances, N)
