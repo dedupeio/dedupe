@@ -158,6 +158,7 @@ class ScoreDupes(object):
                 temp_file, file_path = tempfile.mkstemp()
                 os.close(temp_file)
 
+                scored_pairs: numpy.memmap
                 scored_pairs = numpy.memmap(file_path,
                                             shape=len(scores),
                                             dtype=dtype)
@@ -194,6 +195,7 @@ def mergeScores(score_queue: _SimpleQueue,
 
             chunk_size = len(score_chunk)
 
+            fp: numpy.memmap
             fp = numpy.memmap(file_path, dtype=dtype,
                               offset=(end * dtype.itemsize),
                               shape=(chunk_size, ))
@@ -254,8 +256,11 @@ def scoreDuplicates(record_pairs: RecordPairs,
     if isinstance(result, Exception):
         raise ChildProcessError
 
+    scored_pairs: Union[numpy.memmap, numpy.ndarray]
+
     if result:
         scored_pairs_file, dtype, size = result
+
         scored_pairs = numpy.memmap(scored_pairs_file,
                                     dtype=dtype,
                                     shape=(size,))
