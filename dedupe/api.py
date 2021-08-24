@@ -929,6 +929,7 @@ class StaticMatching(Matching):
     def __init__(self,
                  settings_file: BinaryIO,
                  num_cores: Optional[int] = None,
+                 in_memory: bool = False,
                  **kwargs) -> None:  # pragma: no cover
         """
         Args:
@@ -940,6 +941,11 @@ class StaticMatching(Matching):
                        available on the machine. If set to 0, then
                        multiprocessing will be disabled.
 
+            in_memory: Boolean that if True will compute pairs using
+                       sqlite in RAM with the sqlite3 ':memory:' option
+                       rather than writing to disk. May be faster if
+                       sufficient memory is available.
+
         .. warning::
 
             If using multiprocessing on Windows or Mac OS X, then
@@ -948,7 +954,7 @@ class StaticMatching(Matching):
             https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 
         """
-        super().__init__(num_cores, **kwargs)
+        super().__init__(num_cores, in_memory, **kwargs)
 
         try:
             self.data_model = pickle.load(settings_file)
@@ -980,6 +986,7 @@ class ActiveMatching(Matching):
     def __init__(self,
                  variable_definition: Sequence[Mapping],
                  num_cores: Optional[int] = None,
+                 in_memory: bool = False,
                  **kwargs) -> None:
         """
         Args:
@@ -992,6 +999,11 @@ class ActiveMatching(Matching):
                        available on the machine. If set to 0, then
                        multiprocessing will be disabled.
 
+            in_memory: Boolean that if True will compute pairs using
+                       sqlite in RAM with the sqlite3 ':memory:' option
+                       rather than writing to disk. May be faster if
+                       sufficient memory is available.
+
         .. warning::
 
             If using multiprocessing on Windows or Mac OS X, then
@@ -1000,7 +1012,7 @@ class ActiveMatching(Matching):
             https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 
         """
-        super().__init__(num_cores, **kwargs)
+        super().__init__(num_cores, in_memory, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
 
