@@ -629,9 +629,10 @@ class GazetteerMatching(Matching):
 
     def __init__(self,
                  num_cores: Optional[int],
+                 in_memory: bool = False,
                  **kwargs) -> None:
 
-        super().__init__(num_cores, **kwargs)
+        super().__init__(num_cores, in_memory, **kwargs)
 
         if self.in_memory:
             self.db = ':memory:'
