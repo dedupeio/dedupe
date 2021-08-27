@@ -226,9 +226,10 @@ def cluster(dupes: numpy.ndarray,
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
 
+            squared_distances = condensed_distances**2
             for cluster in clusters.values():
                 if len(cluster) > 1:
-                    scores = confidences(cluster, condensed_distances, N)
+                    scores = confidences(cluster, squared_distances, N)
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
@@ -238,7 +239,7 @@ def cluster(dupes: numpy.ndarray,
 
 
 def confidences(cluster: Sequence[int],
-                condensed_distances: numpy.ndarray,
+                squared_distances: numpy.ndarray,
                 d: int) -> numpy.ndarray:
     '''
     We calculate a per record score that is similar to a standard
@@ -247,7 +248,6 @@ def confidences(cluster: Sequence[int],
     which is a reasonable metric for clusters.
     '''
     scores_d = dict.fromkeys(cluster, 0.0)
-    squared_distances = condensed_distances ** 2
     C = 2 * d - 3
     for i, j in itertools.combinations(cluster, 2):
         index = i * (C - i) // 2 + j - 1
