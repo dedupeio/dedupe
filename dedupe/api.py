@@ -61,13 +61,17 @@ class Matching(object):
     Base Class for Record Matching Classes
     """
 
-    def __init__(self, num_cores: Optional[int], **kwargs) -> None:
+    def __init__(self,
+                 num_cores: Optional[int],
+                 in_memory: bool = False,
+                 **kwargs) -> None:
 
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
             self.num_cores = num_cores
 
+        self.in_memory = in_memory
         self._fingerprinter: Optional[blocking.Fingerprinter] = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
@@ -227,7 +231,10 @@ class DedupeMatching(IntegralMatching):
         # Blocking and pair generation are typically the first memory
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
-            con = sqlite3.connect(temp_dir + '/blocks.db')
+            if self.in_memory:
+                con = sqlite3.connect(':memory:')
+            else:
+                con = sqlite3.connect(temp_dir + '/blocks.db')
 
             # Set journal mode to WAL.
             con.execute('pragma journal_mode=wal')
@@ -368,7 +375,10 @@ class RecordLinkMatching(IntegralMatching):
         # Blocking and pair generation are typically the first memory
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
-            con = sqlite3.connect(temp_dir + '/blocks.db')
+            if self.in_memory:
+                con = sqlite3.connect(':memory:')
+            else:
+                con = sqlite3.connect(temp_dir + '/blocks.db')
 
             # Set journal mode to WAL.
             con.execute('pragma journal_mode=wal')
@@ -617,18 +627,24 @@ class RecordLinkMatching(IntegralMatching):
 
 class GazetteerMatching(Matching):
 
-    def __init__(self, num_cores: Optional[int], **kwargs) -> None:
+    def __init__(self,
+                 num_cores: Optional[int],
+                 in_memory: bool = False,
+                 **kwargs) -> None:
 
-        super().__init__(num_cores, **kwargs)
+        super().__init__(num_cores, in_memory, **kwargs)
 
-        self.temp_dir = tempfile.TemporaryDirectory()
-
-        self.db = self.temp_dir.name + '/blocks.db'
+        if self.in_memory:
+            self.db = ':memory:'
+        else:
+            self.temp_dir = tempfile.TemporaryDirectory()
+            self.db = self.temp_dir.name + '/blocks.db'
 
         self.indexed_data: Dict[RecordID, RecordDict] = {}
 
     def _close(self):
-        self.temp_dir.cleanup()
+        if not self.in_memory:
+            self.temp_dir.cleanup()
 
     def __del__(self):
         self._close()
@@ -914,6 +930,7 @@ class StaticMatching(Matching):
     def __init__(self,
                  settings_file: BinaryIO,
                  num_cores: Optional[int] = None,
+                 in_memory: bool = False,
                  **kwargs) -> None:  # pragma: no cover
         """
         Args:
@@ -925,6 +942,11 @@ class StaticMatching(Matching):
                        available on the machine. If set to 0, then
                        multiprocessing will be disabled.
 
+            in_memory: Boolean that if True will compute pairs using
+                       sqlite in RAM with the sqlite3 ':memory:' option
+                       rather than writing to disk. May be faster if
+                       sufficient memory is available.
+
         .. warning::
 
             If using multiprocessing on Windows or Mac OS X, then
@@ -933,7 +955,7 @@ class StaticMatching(Matching):
             https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 
         """
-        super().__init__(num_cores, **kwargs)
+        super().__init__(num_cores, in_memory, **kwargs)
 
         try:
             self.data_model = pickle.load(settings_file)
@@ -965,6 +987,7 @@ class ActiveMatching(Matching):
     def __init__(self,
                  variable_definition: Sequence[Mapping],
                  num_cores: Optional[int] = None,
+                 in_memory: bool = False,
                  **kwargs) -> None:
         """
         Args:
@@ -977,6 +1000,11 @@ class ActiveMatching(Matching):
                        available on the machine. If set to 0, then
                        multiprocessing will be disabled.
 
+            in_memory: Boolean that if True will compute pairs using
+                       sqlite in RAM with the sqlite3 ':memory:' option
+                       rather than writing to disk. May be faster if
+                       sufficient memory is available.
+
         .. warning::
 
             If using multiprocessing on Windows or Mac OS X, then
@@ -985,7 +1013,7 @@ class ActiveMatching(Matching):
             https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 
         """
-        super().__init__(num_cores, **kwargs)
+        super().__init__(num_cores, in_memory, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
 
