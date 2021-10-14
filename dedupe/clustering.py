@@ -201,7 +201,7 @@ def cluster(dupes: numpy.ndarray,
     threshold
 
     Keyword arguments:
-    threshold -- number betweent 0 and 1 (default is .5). lowering the
+    threshold -- number between 0 and 1 (default is .5). lowering the
                  number will increase precision, raising it will increase
                  recall
     '''
