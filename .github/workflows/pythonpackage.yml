@@ -48,16 +48,6 @@ jobs:
     - name: Integration test, dedupe
       run: |
         python tests/canonical.py -vv
-    - name: Build and publish
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && runner.os != 'Linux'
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pip install twine wheel
-        pip wheel -w dist --no-deps .
-        twine upload dist/*
-      continue-on-error: true
   finish:
     needs: test
     runs-on: ubuntu-latest
@@ -73,24 +63,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
-    - name: Build manylinux Python wheels
-      uses: datamade/python-wheels-manylinux-build@248b22d209488859bfdbf61b46175779adefb4a9
-      with:
-        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38'
-    - name: Build sdist
-      run: |
-        pip install cython
-        python setup.py sdist
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.2.2        
     - name: Publish wheels to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         pip install twine
-        twine upload --skip-existing wheelhouse/*-manylinux1_x86_64.whl
+        twine upload --skip-existing wheelhouse/*.whl
         twine upload dist/*
       continue-on-error: true
