@@ -66,6 +66,7 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/setup-python@v2    
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.2.2        
     - name: Publish wheels to PyPI
