@@ -58,7 +58,6 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
   manylinux_sdist:
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     needs: test
     runs-on: ubuntu-latest
     steps:
