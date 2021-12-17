@@ -68,7 +68,9 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v2    
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.2.2        
+      uses: pypa/cibuildwheel@v2.2.2
+      env:
+        CIBW_ARCHS_MACOS: x86_64 arm64 universal2
     - name: Publish wheels to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
