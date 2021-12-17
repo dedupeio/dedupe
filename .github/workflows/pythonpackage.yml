@@ -57,9 +57,13 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
-  manylinux_sdist:
+  wheels:
     needs: test
-    runs-on: ubuntu-latest
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
     - uses: actions/checkout@v1
     - name: Build wheels
