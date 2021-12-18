@@ -58,6 +58,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
   wheels:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     needs: test
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
