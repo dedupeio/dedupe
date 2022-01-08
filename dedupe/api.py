@@ -250,6 +250,7 @@ class DedupeMatching(IntegralMatching):
 
             con.execute('''CREATE INDEX block_key_idx
                            ON blocking_map (block_key)''')
+            con.execute('''ANALYZE''')
             pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
                                    FROM blocking_map a
                                    INNER JOIN blocking_map b
@@ -404,6 +405,7 @@ class RecordLinkMatching(IntegralMatching):
 
                                  CREATE INDEX block_key_b_idx
                                  ON blocking_map_b (block_key);''')
+            con.execute('''ANALYZE''')
 
             pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
                                    FROM blocking_map_a a
@@ -684,6 +686,7 @@ class GazetteerMatching(Matching):
                        indexed_records_block_key_idx
                        ON indexed_records
                        (block_key)''')
+        con.execute('''ANALYZE''')
 
         con.commit()
         con.close()
