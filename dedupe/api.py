@@ -187,7 +187,6 @@ class DedupeMatching(IntegralMatching):
             if mmap_file:
                 os.remove(mmap_file)
 
-
         return clusters
 
     def _add_singletons(self, data, clusters):
