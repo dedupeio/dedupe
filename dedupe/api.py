@@ -180,10 +180,13 @@ class DedupeMatching(IntegralMatching):
 
         try:
             mmap_file = pair_scores.filename
-            del pair_scores
-            os.remove(mmap_file)
         except AttributeError:
             pass
+        else:
+            del pair_scores
+            if mmap_file:
+                os.remove(mmap_file)
+
 
         return clusters
 
@@ -248,6 +251,8 @@ class DedupeMatching(IntegralMatching):
 
             self.fingerprinter.reset_indices()
 
+            con.execute('''CREATE UNIQUE INDEX record_id_block_key_idx
+                           ON blocking_map (record_id, block_key)''')
             con.execute('''CREATE INDEX block_key_idx
                            ON blocking_map (block_key)''')
             con.execute('''ANALYZE''')
@@ -401,10 +406,10 @@ class RecordLinkMatching(IntegralMatching):
             self.fingerprinter.reset_indices()
 
             con.executescript('''CREATE INDEX block_key_a_idx
-                                 ON blocking_map_a (block_key);
+                                 ON blocking_map_a (record_id, block_key);
 
                                  CREATE INDEX block_key_b_idx
-                                 ON blocking_map_b (block_key);''')
+                                 ON blocking_map_b (block_key, record_id);''')
             con.execute('''ANALYZE''')
 
             pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
@@ -508,10 +513,12 @@ class RecordLinkMatching(IntegralMatching):
 
         try:
             mmap_file = pair_scores.filename
-            del pair_scores
-            os.remove(mmap_file)
         except AttributeError:
             pass
+        else:
+            del pair_scores
+            if mmap_file:
+                os.remove(mmap_file)
 
         return links
 
@@ -685,7 +692,7 @@ class GazetteerMatching(Matching):
         con.execute('''CREATE INDEX IF NOT EXISTS
                        indexed_records_block_key_idx
                        ON indexed_records
-                       (block_key)''')
+                       (block_key, record_id)''')
         con.execute('''ANALYZE''')
 
         con.commit()
