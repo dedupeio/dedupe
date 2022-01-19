@@ -57,7 +57,7 @@ def connected_components(edgelist: numpy.ndarray,
 
         yield from _connected_components(edgelist, max_components)
 
-        edgelist._mmap.close()
+        edgelist._mmap.close()  # type: ignore
 
 
 def _connected_components(edgelist: numpy.ndarray,
