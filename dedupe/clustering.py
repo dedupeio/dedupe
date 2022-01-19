@@ -41,7 +41,7 @@ def connected_components(edgelist: numpy.ndarray,
     with tempfile.TemporaryDirectory() as path:
         filename = path + '/unlabeled_edgelist'
         edgelist = numpy.memmap(filename,
-                                dtype=(unlabeled_edgelist.dtype.descr  # type: ignore
+                                dtype=(unlabeled_edgelist.dtype.descr
                                        + [('label', 'int32')]),
                                 mode='w+',
                                 shape=unlabeled_edgelist.shape)
@@ -57,7 +57,7 @@ def connected_components(edgelist: numpy.ndarray,
 
         yield from _connected_components(edgelist, max_components)
 
-        edgelist._mmap.close()  # type: ignore
+        edgelist._mmap.close()
 
 
 def _connected_components(edgelist: numpy.ndarray,
