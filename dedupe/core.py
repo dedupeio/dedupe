@@ -4,11 +4,11 @@
 import itertools
 import tempfile
 import os
-import random
 import collections
 import warnings
 import functools
-
+import multiprocessing
+import multiprocessing.dummy
 from typing import (Iterator,
                     Tuple,
                     Mapping,
@@ -20,15 +20,22 @@ from typing import (Iterator,
                     Type,
                     Iterable,
                     overload)
+
+import numpy
+
 from dedupe._typing import (RecordPairs,
                             RecordID,
                             Blocks,
                             Data,
                             Literal)
 
-import numpy
-import multiprocessing
-import multiprocessing.dummy
+from numpy.random import default_rng
+rng = default_rng()
+
+try:
+    rng_integers = rng.integers
+except AttributeError:
+    rng_integers = rng.randint
 
 
 class ChildProcessError(Exception):
@@ -57,8 +64,8 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
         random_pairs = numpy.arange(n)
     else:
         try:
-            random_pairs = numpy.array(random.sample(range(n), sample_size))
-        except OverflowError:
+            random_pairs = rng_integers(n, size=sample_size)
+        except (OverflowError, ValueError):
             return randomPairsWithReplacement(n_records, sample_size)
 
     b: int = 1 - 2 * n_records
@@ -80,8 +87,7 @@ def randomPairsMatch(n_records_A: int, n_records_B: int, sample_size: int) -> In
     if sample_size >= n:
         random_pairs = numpy.arange(n)
     else:
-        random_pairs = numpy.array(random.sample(range(n), sample_size),
-                                   dtype=int)
+        random_pairs = rng_integers(n, size=sample_size)
 
     i, j = numpy.unravel_index(random_pairs, (n_records_A, n_records_B))
 
@@ -94,14 +100,14 @@ def randomPairsWithReplacement(n_records: int, sample_size: int) -> IndicesItera
     warnings.warn("The same record pair may appear more than once in the sample")
 
     try:
-        random_indices = numpy.random.randint(n_records,
-                                              size=sample_size * 2)
+        random_indices = rng_integers(n_records,
+                                      size=sample_size * 2)
     except (OverflowError, ValueError):
         max_int: int = numpy.iinfo('int').max
         warnings.warn("Asked to sample pairs from %d records, will only sample pairs from first %d records" % (n_records, max_int))
 
-        random_indices = numpy.random.randint(max_int,
-                                              size=sample_size * 2)
+        random_indices = rng_integers(max_int,
+                                      size=sample_size * 2)
 
     random_indices = random_indices.reshape((-1, 2))
     random_indices.sort(axis=1)
