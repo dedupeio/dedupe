@@ -33,9 +33,9 @@ from numpy.random import default_rng
 rng = default_rng()
 
 try:
-    rng_integers = rng.integers
+    rng_integers = rng.integers  # type: ignore
 except AttributeError:
-    rng_integers = rng.randint
+    rng_integers = rng.randint  # type: ignore
 
 
 class ChildProcessError(Exception):
