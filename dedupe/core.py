@@ -18,10 +18,10 @@ from typing import (Iterator,
                     Optional,
                     Any,
                     Type,
-                    Iterable, cast)
+                    Iterable,
+                    overload)
 from dedupe._typing import (RecordPairs,
                             RecordID,
-                            RecordDict,
                             Blocks,
                             Data,
                             Literal)
@@ -139,9 +139,7 @@ class ScoreDupes(object):
 
     def fieldDistance(self, record_pairs: RecordPairs) -> Optional[Tuple]:
 
-        record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))  # type: ignore
-        record_ids = cast(Tuple[Tuple[RecordID, RecordID], ...], record_ids)
-        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records)
+        record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
 
         if records:
 
@@ -304,9 +302,7 @@ class ScoreGazette(object):
 
     def __call__(self, block: RecordPairs) -> numpy.ndarray:
 
-        record_ids, records = zip(*(zip(*each) for each in block))  # type: ignore
-        record_ids = cast(Tuple[Tuple[RecordID, RecordID], ...], record_ids)
-        records = cast(Tuple[Tuple[RecordDict, RecordDict], ...], records)
+        record_ids, records = zip(*(zip(*each) for each in block))
 
         distances = self.data_model.distances(records)
         scores = self.classifier.predict_proba(distances)[:, -1]
@@ -422,14 +418,25 @@ class FullEnumerator(object):
         return x * self.width + y
 
 
+@overload
+def sniff_id_type(ids: Sequence[Tuple[int, int]]) -> Type[int]:
+    ...
+
+
+@overload
+def sniff_id_type(ids: Sequence[Tuple[str, str]]) -> Tuple[Type[str], int]:
+    ...
+
+
 def sniff_id_type(ids: Sequence[Tuple[RecordID, RecordID]]) -> Union[Type[int], Tuple[Type[str], int]]:
     example = ids[0][0]
     python_type = type(example)
+    dtype: Union[Type[int], Tuple[Type[str], int]]
     if python_type is bytes or python_type is str:
-        dtype: Union[Type[int], Tuple[Type[str], int]] = (str, 256)
+        dtype = (str, 256)
     elif python_type is int:
         int(example)  # make sure we can cast to int
-        dtype: Union[Type[int], Tuple[Type[str], int]] = int  # type: ignore
+        dtype = int
     else:
         raise ValueError('Invalid type for record id')
 

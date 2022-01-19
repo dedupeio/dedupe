@@ -12,7 +12,7 @@ from abc import ABC
 import math
 
 from typing import (Dict, Sequence, Iterable, Tuple, List,
-                    Union, FrozenSet)
+                    Union, FrozenSet, Optional)
 
 from . import blocking, core
 from .predicates import Predicate
@@ -75,12 +75,14 @@ class BlockLearner(ABC):
 
     def random_forest_candidates(self,
                                  match_cover: Cover,
-                                 comparison_cover: Cover) -> Cover:
+                                 comparison_cover: Cover,
+                                 K: Optional[int] = None) -> Cover:
         predicates = list(match_cover)
         matches = list(frozenset.union(*match_cover.values()))
         pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
         candidates = {}
-        K = 3
+        if K is None:
+            K = max(math.floor(math.log10(len(match_cover))), 1)
 
         n_samples = 5000
         for _ in range(n_samples):

@@ -350,7 +350,7 @@ class DisagreementLearner(ActiveLearner):
         disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
 
         if disagreement.any():
-            conflicts = disagreement.nonzero()[0]  # type: ignore
+            conflicts = disagreement.nonzero()[0]
             target = numpy.random.uniform(size=1)
             uncertain_index = conflicts[numpy.argmax(probs[conflicts][:, 0] - target)]
         else:

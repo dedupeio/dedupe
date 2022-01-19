@@ -31,9 +31,13 @@ LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
 JoinConstraint = Literal['one-to-one', 'many-to-one', 'many-to-many']
 
 
-class TrainingData(TypedDict):
+class _TrainingData(TypedDict):
     match: List[TrainingExample]
     distinct: List[TrainingExample]
+
+
+class TrainingData(_TrainingData, total=False):
+    uncertain: List[TrainingExample]  # optional key
 
 
 class Classifier(Protocol):

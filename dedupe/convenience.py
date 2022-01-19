@@ -97,7 +97,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
                 examples: TrainingData
                 examples = {'distinct': [],
                             'match': []}
-                examples[label].append(record_pair)  # type: ignore
+                examples[label].append(record_pair)
                 deduper.mark_pairs(examples)
 
     for record_pair, label in examples_buffer:
@@ -105,7 +105,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
 
             exmples: TrainingData
             examples = {'distinct': [], 'match': []}
-            examples[label].append(record_pair)  # type: ignore
+            examples[label].append(record_pair)
             deduper.mark_pairs(examples)
 
 
@@ -211,7 +211,7 @@ def training_data_dedupe(data: Data,
     # all combinations of matched_pairs from each common_key group
     for record_ids in identified_records.values():
         if len(record_ids) > 1:
-            matched_pairs.update(itertools.combinations(sorted(record_ids), 2))  # type: ignore
+            matched_pairs.update(itertools.combinations(sorted(record_ids), 2))
 
     # calculate indices using dedupe.core.randomPairs to avoid
     # the memory cost of enumerating all possible pairs
