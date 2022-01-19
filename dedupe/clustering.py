@@ -109,7 +109,10 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
     it = numpy.nditer(edgelist, ['external_loop'])
 
-    for i, (a, b) in enumerate(it):
+    a: RecordID
+    b: RecordID
+
+    for i, (a, b) in enumerate(it):  # type: ignore
         root_a = root.get(a)
         root_b = root.get(b)
 
@@ -201,7 +204,7 @@ def cluster(dupes: numpy.ndarray,
     threshold
 
     Keyword arguments:
-    threshold -- number betweent 0 and 1 (default is .5). lowering the
+    threshold -- number between 0 and 1 (default is .5). lowering the
                  number will increase precision, raising it will increase
                  recall
     '''
