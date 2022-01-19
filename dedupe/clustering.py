@@ -113,7 +113,7 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
     array_type = 'H'
     for array_type in ('H', 'I', 'L', 'Q'):
-        if 2 ** (8 * array.array(array_type).itemsize) > n_edges:
+        if (2 ** (8 * array.array(array_type).itemsize) - 1) > n_edges:
             break
     else:
         raise ValueError("You are making more comparisons than your machine can handle, try raising the threshold")
