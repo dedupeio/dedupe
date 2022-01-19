@@ -269,11 +269,20 @@ class BranchBound(object):
 
                 remaining = self.uncovered_by(candidates,
                                               candidates[best])
-                self.search(remaining, partial + (best,))
+                try:
+                    self.search(remaining, partial + (best,))
+                except RecursionError:
+                    return self.cheapest
+
                 del remaining
 
                 reduced = self.remove_dominated(candidates, best)
-                self.search(reduced, partial)
+
+                try:
+                    self.search(reduced, partial)
+                except RecursionError:
+                    return self.cheapest
+
                 del reduced
 
         return self.cheapest
