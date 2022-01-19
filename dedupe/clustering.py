@@ -109,6 +109,19 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
     it = numpy.nditer(edgelist, ['external_loop'])
 
+    n_edges = len(scored_pairs)
+
+    if 2 ** (8 * array.array('H').itemsize) > n_edges:
+        array_type = 'H'
+    elif 2 ** (8 * array.array('I').itemsize) > n_edges:
+        array_type = 'I'
+    elif 2 ** (8 * array.array('L').itemsize) > n_edges:
+        array_type = 'L'
+    elif 2 ** (8 * array.array('Q').itemsize) > n_edges:
+        array_type = 'Q'
+    else:
+        raise ValueError("You are making more comparisons than your machine can handle, try raising the threshold")
+
     a: RecordID
     b: RecordID
 
@@ -118,7 +131,7 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
         if root_a is None and root_b is None:
             root[a] = root[b] = i
-            components[i] = array.array('I', [i])
+            components[i] = array.array(array_type, [i])
         elif root_a is None or root_b is None:
             if root_a is None:
                 b = a
