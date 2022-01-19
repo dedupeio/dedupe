@@ -1,6 +1,5 @@
 import unittest
 import random
-import sys
 
 import numpy
 
@@ -10,7 +9,7 @@ import dedupe
 class RandomPairsTest(unittest.TestCase):
     def test_random_pair(self):
 
-        random_pairs = list(dedupe.core.randomPairs(10**10, 1))
+        assert list(dedupe.core.randomPairs(10**10, 1))
 
     def test_random_pair_match(self):
 
