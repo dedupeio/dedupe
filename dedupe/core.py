@@ -9,6 +9,7 @@ import warnings
 import functools
 import multiprocessing
 import multiprocessing.dummy
+import queue
 from typing import (Iterator,
                     Tuple,
                     Mapping,
@@ -119,12 +120,14 @@ class ScoreDupes(object):
                  data_model,
                  classifier,
                  records_queue: _Queue,
+                 exception_queue: _Queue,
                  score_file_path: str,
                  dtype: numpy.dtype,
                  offset):
         self.data_model = data_model
         self.classifier = classifier
         self.records_queue = records_queue
+        self.exception_queue = exception_queue
         self.score_file_path = score_file_path
         self.dtype = dtype
         self.offset = offset
@@ -137,7 +140,11 @@ class ScoreDupes(object):
             if record_pairs is None:
                 break
 
-            empty = self.fieldDistance(record_pairs)
+            try:
+                empty = self.fieldDistance(record_pairs)
+            except Exception as e:
+                self.exception_queue.put(e)
+                raise
 
     def fieldDistance(self, record_pairs: RecordPairs) -> bool:
 
@@ -187,6 +194,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
                             "the data you trained on?")
 
     record_pairs_queue: _Queue = Queue(2)
+    exception_queue: _Queue = Queue(1)
     scored_pairs_file, score_file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
 
@@ -203,6 +211,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
     score_records = ScoreDupes(data_model,
                                classifier,
                                record_pairs_queue,
+                               exception_queue,
                                score_file_path,
                                dtype,
                                offset)
@@ -216,6 +225,13 @@ def scoreDuplicates(record_pairs: RecordPairs,
 
     for process in map_processes:
         process.join()
+
+    try:
+        exc = exception_queue.get_nowait()
+    except queue.Empty:
+        pass
+    else:
+        raise ChildProcessError from exc
 
     scored_pairs: Union[numpy.memmap, numpy.ndarray]
 
