@@ -187,6 +187,8 @@ def scoreDuplicates(record_pairs: RecordPairs,
     else:
         from .backport import Process, Queue  # type: ignore
 
+    from .backport import RLock
+
     first, record_pairs = peek(record_pairs)
     if first is None:
         raise BlockingError("No records have been blocked together. "
@@ -198,7 +200,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
     scored_pairs_file, score_file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
 
-    offset = multiprocessing.Value('Q')
+    offset = multiprocessing.Value('Q', lock=RLock())
 
     with offset.get_lock():
         offset.value = 0
