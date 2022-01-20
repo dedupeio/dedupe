@@ -203,7 +203,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
     offset = multiprocessing.Value('Q', lock=RLock())
 
     with offset.get_lock():
-        offset.value = 0
+        offset.value = 0  # type: ignore
 
     id_type = sniff_id_type(first)
     dtype = numpy.dtype([('pairs', id_type, 2),
@@ -237,7 +237,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
 
     scored_pairs: Union[numpy.memmap, numpy.ndarray]
 
-    if offset.value:
+    if offset.value:  # type: ignore
         scored_pairs = numpy.memmap(score_file_path,
                                     dtype=dtype)
     else:
