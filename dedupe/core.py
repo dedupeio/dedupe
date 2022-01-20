@@ -47,7 +47,6 @@ class BlockingError(Exception):
 
 
 _Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
-_SimpleQueue = Union[multiprocessing.dummy.Queue, multiprocessing.SimpleQueue]
 IndicesIterator = Iterator[Tuple[int, int]]
 
 
@@ -120,30 +119,27 @@ class ScoreDupes(object):
                  data_model,
                  classifier,
                  records_queue: _Queue,
-                 score_queue: _SimpleQueue):
+                 score_file_path: str,
+                 dtype: numpy.dtype,
+                 offset):
         self.data_model = data_model
         self.classifier = classifier
         self.records_queue = records_queue
-        self.score_queue = score_queue
+        self.score_file_path = score_file_path
+        self.dtype = dtype
+        self.offset = offset
 
     def __call__(self) -> None:
 
-        while True:
+        empty = False
+        while not empty:
             record_pairs: Optional[RecordPairs] = self.records_queue.get()
             if record_pairs is None:
                 break
 
-            try:
-                filtered_pairs: Optional[Tuple] = self.fieldDistance(record_pairs)
-                if filtered_pairs is not None:
-                    self.score_queue.put(filtered_pairs)
-            except Exception as e:
-                self.score_queue.put(e)
-                raise
+            empty = self.fieldDistance(record_pairs)
 
-        self.score_queue.put(None)
-
-    def fieldDistance(self, record_pairs: RecordPairs) -> Optional[Tuple]:
+    def fieldDistance(self, record_pairs: RecordPairs) -> bool:
 
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
 
@@ -153,68 +149,23 @@ class ScoreDupes(object):
             scores = self.classifier.predict_proba(distances)[:, -1]
 
             if scores.any():
-                id_type = sniff_id_type(record_ids)
-                ids = numpy.array(record_ids, dtype=id_type)
 
-                dtype = numpy.dtype([('pairs', id_type, 2),
-                                     ('score', 'f4')])
+                with self.offset.get_lock():
 
-                temp_file, file_path = tempfile.mkstemp()
-                os.close(temp_file)
+                    fp: numpy.memmap
+                    fp = numpy.memmap(self.score_file_path,
+                                      dtype=self.dtype,
+                                      offset=self.offset.value,
+                                      shape=(len(record_ids), ))
+                    fp['pairs'] = record_ids
+                    fp['score'] = scores
 
-                scored_pairs: numpy.memmap
-                scored_pairs = numpy.memmap(file_path,
-                                            shape=len(scores),
-                                            dtype=dtype)
+                    self.offset.value += len(record_ids) * self.dtype.itemsize
 
-                scored_pairs['pairs'] = ids
-                scored_pairs['score'] = scores
+            return False
 
-                return file_path, dtype
-
-        return None
-
-
-def mergeScores(score_queue: _SimpleQueue,
-                result_queue: _SimpleQueue,
-                stop_signals: int):
-    scored_pairs_file, file_path = tempfile.mkstemp()
-    os.close(scored_pairs_file)
-
-    seen_signals = 0
-    end = 0
-
-    while seen_signals < stop_signals:
-
-        score_chunk = score_queue.get()
-
-        if isinstance(score_chunk, Exception):
-            result_queue.put(score_chunk)
-            raise
-        elif score_chunk is None:
-            seen_signals += 1
         else:
-            score_file, dtype = score_chunk
-            score_chunk = numpy.memmap(score_file, mode='r', dtype=dtype)
-
-            chunk_size = len(score_chunk)
-
-            fp: numpy.memmap
-            fp = numpy.memmap(file_path, dtype=dtype,
-                              offset=(end * dtype.itemsize),
-                              shape=(chunk_size, ))
-
-            fp[:chunk_size] = score_chunk
-
-            end += chunk_size
-
-            del score_chunk
-            os.remove(score_file)
-
-    if end:
-        result_queue.put((file_path, dtype, end))
-    else:
-        result_queue.put(None)
+            return True
 
 
 def scoreDuplicates(record_pairs: RecordPairs,
@@ -223,9 +174,8 @@ def scoreDuplicates(record_pairs: RecordPairs,
                     num_cores: int = 1):
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
-        SimpleQueue = Queue
     else:
-        from .backport import Process, SimpleQueue, Queue  # type: ignore
+        from .backport import Process, Queue  # type: ignore
 
     first, record_pairs = peek(record_pairs)
     if first is None:
@@ -234,49 +184,38 @@ def scoreDuplicates(record_pairs: RecordPairs,
                             "the data you trained on?")
 
     record_pairs_queue: _Queue = Queue(2)
-    score_queue: _SimpleQueue = SimpleQueue()
-    result_queue: _SimpleQueue = SimpleQueue()
+    scored_pairs_file, score_file_path = tempfile.mkstemp()
+    os.close(scored_pairs_file)
+
+    offset = multiprocessing.Value('Q')
+
+    with offset.get_lock():
+        offset.value = 0
+
+    id_type = sniff_id_type(first)
+    dtype = numpy.dtype([('pairs', id_type, 2),
+                         ('score', 'f4')])
 
     n_map_processes = max(num_cores, 1)
     score_records = ScoreDupes(data_model,
                                classifier,
                                record_pairs_queue,
-                               score_queue)
+                               score_file_path,
+                               dtype,
+                               offset)
     map_processes = [Process(target=score_records)
                      for _ in range(n_map_processes)]
 
     for process in map_processes:
         process.start()
 
-    reduce_process = Process(target=mergeScores,
-                             args=(score_queue,
-                                   result_queue,
-                                   n_map_processes))
-    reduce_process.start()
-
     fillQueue(record_pairs_queue, record_pairs, n_map_processes)
-
-    result = result_queue.get()
-    if isinstance(result, Exception):
-        raise ChildProcessError
-
-    scored_pairs: Union[numpy.memmap, numpy.ndarray]
-
-    if result:
-        scored_pairs_file, dtype, size = result
-
-        scored_pairs = numpy.memmap(scored_pairs_file,
-                                    dtype=dtype,
-                                    shape=(size,))
-    else:
-        dtype = numpy.dtype([('pairs', object, 2),
-                             ('score', 'f4', 1)])
-        scored_pairs = numpy.array([], dtype=dtype)
-
-    reduce_process.join()
 
     for process in map_processes:
         process.join()
+
+    scored_pairs = numpy.memmap(score_file_path,
+                                dtype=dtype)
 
     return scored_pairs
 
