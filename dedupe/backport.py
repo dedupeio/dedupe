@@ -8,5 +8,7 @@ if platform.system() == 'Darwin':
     Process = ctx.Process  # type: ignore
     Pool = ctx.Pool
     SimpleQueue = ctx.SimpleQueue
+    Lock = ctx.Lock
+    RLock = ctx.RLock
 else:
-    from multiprocessing import Process, Pool, Queue, SimpleQueue  # type: ignore # noqa 
+    from multiprocessing import Process, Pool, Queue, SimpleQueue, Lock, RLock  # type: ignore # noqa 
