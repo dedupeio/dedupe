@@ -196,10 +196,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
 
     # explicitly defining the lock from the "spawn context" seems to
     # be necessary for python 3.7 on mac os.
-    offset = multiprocessing.Value('Q', lock=RLock())
-
-    with offset.get_lock():
-        offset.value = 0  # type: ignore
+    offset = multiprocessing.Value('Q', 0, lock=RLock())
 
     id_type = sniff_id_type(first)
     dtype = numpy.dtype([('pairs', id_type, 2),
