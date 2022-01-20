@@ -23,24 +23,22 @@ from typing import (Iterator,
                     overload)
 
 import numpy
+from numpy.random import default_rng
 
 from dedupe._typing import (RecordPairs,
                             RecordID,
                             Blocks,
                             Data,
                             Literal)
+from dedupe.backport import RLock
 
-from numpy.random import default_rng
+
 rng = default_rng()
 
 try:
     rng_integers = rng.integers  # type: ignore
 except AttributeError:
     rng_integers = rng.randint  # type: ignore
-
-
-class ChildProcessError(Exception):
-    pass
 
 
 class BlockingError(Exception):
@@ -181,13 +179,12 @@ def scoreDuplicates(record_pairs: RecordPairs,
     else:
         from .backport import Process, Queue  # type: ignore
 
-    from .backport import RLock
-
     first, record_pairs = peek(record_pairs)
     if first is None:
         raise BlockingError("No records have been blocked together. "
                             "Is the data you are trying to match like "
-                            "the data you trained on?")
+                            "the data you trained on? If so, try adding "
+                            "more training data.")
 
     record_pairs_queue: _Queue = Queue(2)
     exception_queue: _Queue = Queue()
