@@ -28,6 +28,8 @@ class BlockLearner(ABC):
         Takes in a set of training pairs and predicates and tries to find
         a good set of blocking rules.
         '''
+        assert matches, "You must supply at least one pair of matching records to learn blocking rules."
+
         comparison_cover = self.comparison_cover
         match_cover = self.cover(matches)
 
@@ -41,7 +43,6 @@ class BlockLearner(ABC):
         target_cover = int(recall * len(matches))
 
         if len(coverable_dupes) < target_cover:
-            logger.warning(OUT_OF_PREDICATES_WARNING)
             logger.debug(uncoverable_dupes)
             target_cover = len(coverable_dupes)
 
@@ -364,6 +365,3 @@ class Resampler(object):
                                                for k in iterable
                                                if k in self.replacements)
         return frozenset(result)
-
-
-OUT_OF_PREDICATES_WARNING = "Ran out of predicates: Dedupe tries to find blocking rules that will work well with your data. Sometimes it can't find great ones, and you'll get this warning. It means that there are some pairs of true records that dedupe may never compare. If you are getting bad results, try increasing the `max_comparison` argument to the train method"  # noqa: E501
