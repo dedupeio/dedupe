@@ -94,7 +94,7 @@ class IntegralMatching(Matching):
     """
 
     def score(self,
-              pairs: RecordPairs) -> numpy.memmap:
+              pairs: RecordPairs) -> Union[numpy.memmap, numpy.ndarray]:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilities that the pair of records are match
@@ -179,7 +179,7 @@ class DedupeMatching(IntegralMatching):
         clusters = list(clusters)
 
         try:
-            mmap_file = pair_scores.filename
+            mmap_file = pair_scores.filename  # type: ignore
         except AttributeError:
             pass
         else:
@@ -511,7 +511,7 @@ class RecordLinkMatching(IntegralMatching):
         links = list(links)
 
         try:
-            mmap_file = pair_scores.filename
+            mmap_file = pair_scores.filename  # type: ignore
         except AttributeError:
             pass
         else:
