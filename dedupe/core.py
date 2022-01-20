@@ -154,11 +154,14 @@ class ScoreDupes(object):
 
                     fp: numpy.memmap
                     fp = numpy.memmap(self.score_file_path,
+                                      mode='w+',
                                       dtype=self.dtype,
                                       offset=self.offset.value,
                                       shape=(len(record_ids), ))
                     fp['pairs'] = record_ids
                     fp['score'] = scores
+
+                    fp.flush()
 
                     self.offset.value += len(record_ids) * self.dtype.itemsize
 
