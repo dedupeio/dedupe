@@ -134,19 +134,18 @@ class ScoreDupes(object):
 
     def __call__(self) -> None:
 
-        empty = False
-        while not empty:
+        while True:
             record_pairs: Optional[RecordPairs] = self.records_queue.get()
             if record_pairs is None:
                 break
 
             try:
-                empty = self.fieldDistance(record_pairs)
+                self.fieldDistance(record_pairs)
             except Exception as e:
                 self.exception_queue.put(e)
                 raise
 
-    def fieldDistance(self, record_pairs: RecordPairs) -> bool:
+    def fieldDistance(self, record_pairs: RecordPairs) -> None:
 
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
 
@@ -171,11 +170,6 @@ class ScoreDupes(object):
                     fp.flush()
 
                     self.offset.value += len(record_ids) * self.dtype.itemsize
-
-            return False
-
-        else:
-            return True
 
 
 def scoreDuplicates(record_pairs: RecordPairs,
