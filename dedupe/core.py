@@ -190,7 +190,7 @@ def scoreDuplicates(record_pairs: RecordPairs,
                             "the data you trained on?")
 
     record_pairs_queue: _Queue = Queue(2)
-    exception_queue: _Queue = Queue(1)
+    exception_queue: _Queue = Queue()
     scored_pairs_file, score_file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
 
