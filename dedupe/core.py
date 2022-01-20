@@ -171,7 +171,7 @@ class ScoreDupes(object):
 def scoreDuplicates(record_pairs: RecordPairs,
                     data_model,
                     classifier,
-                    num_cores: int = 1):
+                    num_cores: int = 1) -> numpy.memmap:
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
     else:
@@ -214,8 +214,8 @@ def scoreDuplicates(record_pairs: RecordPairs,
     for process in map_processes:
         process.join()
 
-    scored_pairs = numpy.memmap(score_file_path,
-                                dtype=dtype)
+    scored_pairs: numpy.memmap = numpy.memmap(score_file_path,
+                                              dtype=dtype)
 
     return scored_pairs
 
