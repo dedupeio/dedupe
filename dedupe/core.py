@@ -217,8 +217,13 @@ def scoreDuplicates(record_pairs: RecordPairs,
     for process in map_processes:
         process.join()
 
-    scored_pairs: numpy.memmap = numpy.memmap(score_file_path,
-                                              dtype=dtype)
+    if offset.value:
+        scored_pairs: numpy.memmap = numpy.memmap(score_file_path,
+                                                  dtype=dtype)
+    else:
+        scored_pairs: numpy.memmap = numpy.memmap(score_file_path,
+                                                  dtype=dtype,
+                                                  shape=(0, ))
 
     return scored_pairs
 
