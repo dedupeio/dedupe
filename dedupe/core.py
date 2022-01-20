@@ -200,6 +200,8 @@ def scoreDuplicates(record_pairs: RecordPairs,
     scored_pairs_file, score_file_path = tempfile.mkstemp()
     os.close(scored_pairs_file)
 
+    # explicitly defining the lock from the "spawn context" seems to
+    # be necessary for python 3.7 on mac os.
     offset = multiprocessing.Value('Q', lock=RLock())
 
     with offset.get_lock():
