@@ -73,7 +73,9 @@ jobs:
       env:
         CIBW_ARCHS_MACOS: x86_64 arm64 universal2
     - name: Build sdist
-      run: python setup.py sdist
+      run: |
+        pip install build
+        python -m build --sdist
     - name: Publish wheels to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
