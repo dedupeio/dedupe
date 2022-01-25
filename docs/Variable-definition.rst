@@ -15,7 +15,7 @@ field specification. For example:-
     [
         {'field': 'Site name', 'type': 'String'},
         {'field': 'Address', 'type': 'String'},
-        {'field': 'Zip', 'type': 'String', 'has missing': True},
+        {'field': 'Zip', 'type': 'ShortString', 'has missing': True},
         {'field': 'Phone', 'type': 'String', 'has missing': True}
     ]
 
@@ -27,8 +27,10 @@ A ``String`` type field must declare the name of the record field to compare
 a ``String`` type declaration. The ``String`` type expects fields to be of
 class string.
 
-``String`` types are compared using `affine gap string
-distance <http://en.wikipedia.org/wiki/Gap_penalty#Affine>`__.
+``String`` types are compared using string edit distance, specifically
+`affine gap string distance <http://en.wikipedia.org/wiki/Gap_penalty#Affine>`__.
+This is a good metric for measuring fields that might have typos in them,
+such as "John" vs "Jon".
 
 For example:-
 
@@ -57,7 +59,7 @@ For example:-
 Text Types
 ^^^^^^^^^^
 
-If you want to compare fields containing long blocks of text e.g. product
+If you want to compare fields containing blocks of text e.g. product
 descriptions or article abstracts, you should use this type. ``Text`` type
 fields are compared using the `cosine similarity metric
 <http://en.wikipedia.org/wiki/Vector_space_model>`__.
@@ -65,6 +67,14 @@ fields are compared using the `cosine similarity metric
 This is a measurement of the amount of words that two documents have in
 common. This measure can be made more useful as the overlap of rare words
 counts more than the overlap of common words.
+
+Compare this to ``String`` and ``ShortString`` types: For strings containing
+occupations, "yoga teacher" might be fairly similar to "yoga instructor" when
+using the ``Text`` measurement, because they both contain the relatively
+rare word of "yoga". However, if you compared these two strings using the
+``String`` or ``ShortString`` measurements, they might be considered fairly
+dis-similar, because the actual string edit distance between them is large.
+
 
 If provided a sequence of example fields (i.e. a corpus) then dedupe will
 learn these weights for you. For example:-
@@ -213,7 +223,8 @@ Categorical
 different types of things. For example, you may have data on businesses and
 you find that taxi cab businesses tend to have very similar names but law
 firms don't. ``Categorical`` variables would let you indicate whether two records
-are both taxi companies, both law firms, or one of each.
+are both taxi companies, both law firms, or one of each. This is also a good choice
+for fields that are booleans, e.g. "True" or "False".
 
 Dedupe would represent these three possibilities using two dummy variables:
 
