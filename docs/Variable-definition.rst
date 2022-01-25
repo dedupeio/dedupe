@@ -40,7 +40,7 @@ ShortString Types
 ^^^^^^^^^^^^^^^^^
 
 A ``ShortString`` type field is just like ``String`` types except that dedupe
-will not try to learn a canopy blocking rule for these fields, which can
+will not try to learn an :ref:`index-block-label` rule for these fields, which can
 speed up the training phase considerably.
 
 Zip codes and city names are good candidates for this type. If in doubt,
