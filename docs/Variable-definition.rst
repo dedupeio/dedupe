@@ -99,7 +99,7 @@ For example, a custom comparator:
 
 .. code:: python
 
-  def sameOrNotComparator(field_1, field_2) :     
+  def same_or_not_comparator(field_1, field_2):     
     if field_1 and field_2 :         
         if field_1 == field_2 :             
             return 0         
@@ -113,7 +113,7 @@ The corresponding variable definition:
     {
         'field': 'Zip',
         'type': 'Custom', 
-        'comparator': sameOrNotComparator
+        'comparator': same_or_not_comparator
      }
 
 ``Custom`` fields do not have any blocking rules associated with them.
@@ -179,7 +179,7 @@ are good when the effect of two predictors is not simply additive.
     [
         { 'field': 'Name', 'variable name': 'name', 'type': 'String' },
         { 'field': 'Zip', 'variable name': 'zip', 'type': 'Custom', 
-      'comparator' : sameOrNotComparator },
+      'comparator' : same_or_not_comparator },
         {'type': 'Interaction', 'interaction variables': ['name', 'zip']}
     ]
 
@@ -412,7 +412,7 @@ Longer example of a variable definition:
         {'field': 'name', 'variable name' : 'name', 'type': 'String'},
         {'field': 'address', 'type': 'String'},
         {'field': 'city', 'variable name' : 'city', 'type': 'String'},
-        {'field': 'zip', 'type': 'Custom', 'comparator' : sameOrNotComparator},
+        {'field': 'zip', 'type': 'Custom', 'comparator' : same_or_not_comparator},
         {'field': 'cuisine', 'type': 'String', 'has missing': True}
         {'type': 'Interaction', 'interaction variables' : ['name', 'city']}
     ]
