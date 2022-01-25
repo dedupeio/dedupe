@@ -313,7 +313,8 @@ For example:-
 
 Install the `dedupe-variable-address
 <https://pypi.python.org/pypi/dedupe-variable-address>`__ package for
-``Address`` Type.
+``Address`` Type. For more info, see the `GitHub Repository
+<https://github.com/dedupeio/dedupe-variable-address>`__.
 
 Name Type
 ^^^^^^^^^
@@ -334,7 +335,8 @@ For example:-
 
 Install the `dedupe-variable-name
 <https://pypi.python.org/pypi/dedupe-variable-name>`__ package for ``Name``
-Type.
+Type. For more info, see the `GitHub Repository
+<https://github.com/dedupeio/dedupe-variable-name>`__.
 
 Fuzzy Category
 ^^^^^^^^^^^^^^
@@ -362,8 +364,15 @@ For example:-
 
 Install the `dedupe-variable-fuzzycategory
 <https://pypi.python.org/pypi/dedupe-variable-fuzzycategory>`__ package for
-the ``FuzzyCategorical`` Type.
+the ``FuzzyCategorical`` Type. For more info, see the `GitHub Repository
+<https://github.com/dedupeio/fuzzycategory>`__.
 
+
+Other Optional Variables
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+In addition to the several optional variables above, you can find `more optional
+variables on GitHub <https://github.com/search?q=org%3Adedupeio+dedupe-variable>`__.  
 
 Missing Data 
 ------------ 
