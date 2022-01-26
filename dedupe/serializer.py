@@ -13,7 +13,7 @@ def _from_json(json_object):
 def hint_tuples(item):
     if isinstance(item, tuple):
         return {'__class__': 'tuple',
-                '__value__': list(item)}
+                '__value__': [hint_tuples(e) for e in item]}
     if isinstance(item, list):
         return [hint_tuples(e) for e in item]
     if isinstance(item, dict):
