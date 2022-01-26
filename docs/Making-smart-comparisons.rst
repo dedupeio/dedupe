@@ -70,7 +70,7 @@ very few comparisons and still have confidence that will compare records
 that truly are duplicates.
 
 This task is called blocking, and we approach it in two ways: predicate
-blocks and canopies.
+blocks and index blocks.
 
 Predicate blocks
 ~~~~~~~~~~~~~~~~
@@ -123,6 +123,8 @@ Others simple predicates Dedupe uses include:
 * near integers 
 * common four gram 
 * common six gram
+
+.. _index-blocks-label:
 
 Index Blocks
 ~~~~~~~~~~~~
