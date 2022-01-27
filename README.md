@@ -128,4 +128,4 @@ Third-party copyright in this distribution is noted where applicable.
 ## Citing Dedupe
 If you use Dedupe in an academic work, please give this citation:
 
-Forest Gregg and Derek Eder. 2019. Dedupe. https://github.com/dedupeio/dedupe.
+Forest Gregg and Derek Eder. 2022. Dedupe. https://github.com/dedupeio/dedupe.
