@@ -11,7 +11,6 @@ import functools
 import multiprocessing
 import multiprocessing.dummy
 import queue
-
 from typing import (Iterator,
                     Tuple,
                     Mapping,
@@ -25,7 +24,6 @@ from typing import (Iterator,
                     overload)
 
 import numpy
-from numpy.random import default_rng
 
 from dedupe._typing import (RecordPairs,
                             RecordID,
@@ -52,7 +50,9 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
     """
     n: int = n_records * (n_records - 1) // 2
 
-    if sample_size >= n:
+    if not sample_size:
+        return iter([])
+    elif sample_size >= n:
         random_pairs = numpy.arange(n)
     else:
         try:
@@ -76,7 +76,9 @@ def randomPairsMatch(n_records_A: int, n_records_B: int, sample_size: int) -> In
     """
     n: int = n_records_A * n_records_B
 
-    if sample_size >= n:
+    if not sample_size:
+        return iter([])
+    elif sample_size >= n:
         random_pairs = numpy.arange(n)
     else:
         random_pairs = numpy.array(random.sample(range(n), sample_size))
