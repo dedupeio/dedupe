@@ -136,6 +136,7 @@ Dedupe and StaticDedupe
 .. currentmodule:: dedupe
 
 .. class:: Dedupe
+   :noindex:
 
     .. attribute:: fingerprinter
     
@@ -147,6 +148,7 @@ Dedupe and StaticDedupe
     .. automethod:: cluster
 
 .. class:: StaticDedupe
+   :noindex:
 
     .. attribute:: fingerprinter
     
@@ -169,6 +171,7 @@ RecordLink and StaticRecordLink
 *******************************
 
 .. class:: RecordLink
+   :noindex:
 
     .. attribute:: fingerprinter
     
@@ -181,6 +184,7 @@ RecordLink and StaticRecordLink
     .. automethod:: many_to_one		    
 
 .. class:: StaticRecordLink
+   :noindex:
 
    .. attribute:: fingerprinter
     
@@ -207,6 +211,7 @@ Gazetteer and StaticGazetteer
 *****************************
 
 .. class:: Gazetteer
+   :noindex:
 
     .. attribute:: fingerprinter
     
@@ -218,6 +223,7 @@ Gazetteer and StaticGazetteer
     .. automethod:: many_to_n
 
 .. class:: StaticGazeteer
+   :noindex:
 
     .. attribute:: fingerprinter
     
@@ -240,8 +246,7 @@ Gazetteer and StaticGazetteer
 .. autoclass:: dedupe.blocking.Fingerprinter
 
    .. automethod:: __call__
-   .. autoinstanceattribute:: index_fields
-       :annotation:
+   .. autoattribute:: index_fields
    .. automethod:: index
    .. automethod:: unindex	       
    .. automethod:: reset_indices
