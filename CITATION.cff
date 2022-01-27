@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Gregg"
+  given-names: "Forest"
+- family-names: "Eder"
+  given-names: "Derek"
+title: "dedupe"
+version: 2.0.11
+date-released: 2022-01-27
+url: "https://github.com/dedupeio/dedupe"
