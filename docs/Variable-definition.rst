@@ -392,7 +392,8 @@ the ``FuzzyCategorical`` Type. For more info, see the `GitHub Repository
 Missing Data 
 ------------ 
 If the value of field is missing, that missing value should be represented as 
-a ``None`` object.
+a ``None`` object. You should also use ``None`` to represent empty strings
+(eg ``''``).
 
 .. code:: python
 
