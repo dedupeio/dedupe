@@ -267,6 +267,15 @@ prices. The values of ``Price`` field must be a positive float. If the value is
 
     {'field': 'cost', 'type': 'Price'}
 
+Optional Variables
+------------------
+
+These variables aren't included in the core of dedupe, but are available to
+install separately if you want to use them.
+
+In addition to the several variables below, you can find `more optional
+variables on GitHub <https://github.com/search?q=org%3Adedupeio+dedupe-variable>`__.  
+
 DateTime
 ^^^^^^^^
 
@@ -303,9 +312,10 @@ and :code:`type`:
 
     {'field': 'time_of_sale', 'type': 'DateTime'}
 
-
-Optional Variables
-------------------
+Install the `dedupe-variable-datetime
+<https://pypi.python.org/pypi/dedupe-variable-datetime>`__ package for
+``DateTime`` Type. For more info, see the `GitHub Repository
+<https://github.com/dedupeio/dedupe-variable-datetime>`__.
 
 Address Type
 ^^^^^^^^^^^^
@@ -379,16 +389,11 @@ the ``FuzzyCategorical`` Type. For more info, see the `GitHub Repository
 <https://github.com/dedupeio/fuzzycategory>`__.
 
 
-Other Optional Variables
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-In addition to the several optional variables above, you can find `more optional
-variables on GitHub <https://github.com/search?q=org%3Adedupeio+dedupe-variable>`__.  
-
 Missing Data 
 ------------ 
 If the value of field is missing, that missing value should be represented as 
-a ``None`` object.
+a ``None`` object. You should also use ``None`` to represent empty strings
+(eg ``''``).
 
 .. code:: python
 
