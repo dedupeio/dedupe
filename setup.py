@@ -8,8 +8,8 @@ except ImportError:
 
 from Cython.Build import cythonize
 
-install_requires = ["fastcluster; python_version<'3.10'",
-                    "fastcluster @ https://github.com/dmuellner/fastcluster/archive/dbbf09361745c422517095fe783960782f7cc370.zip; python_version>='3.10'",
+install_requires = ["fastcluster; python_version < '3.10'",
+                    "fastcluster @ https://github.com/dmuellner/fastcluster/archive/dbbf09361745c422517095fe783960782f7cc370.zip ; python_version >= '3.10'",
                     'dedupe-hcluster',
                     'affinegap>=1.3',
                     'categorical-distance>=1.9',
