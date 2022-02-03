@@ -21,7 +21,10 @@ class RandomPairsTest(unittest.TestCase):
         random_pairs = list(dedupe.core.randomPairs(10**4, 1))
         assert random_pairs == target
 
-        assert list(dedupe.core.randomPairs(10**10, 1))
+        random.seed(123)
+        numpy.random.seed(123)
+        target = [(2489768049, 2967327842)]
+        assert list(dedupe.core.randomPairs(10**10, 1)) == target
 
     def test_random_pair_match(self):
 

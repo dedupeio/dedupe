@@ -56,7 +56,8 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
         random_pairs = numpy.arange(n)
     else:
         try:
-            random_pairs = numpy.array(random.sample(range(n), sample_size))
+            random_pairs = numpy.array(random.sample(range(n), sample_size),
+                                       dtype=numpy.uint)
         except OverflowError:
             return randomPairsWithReplacement(n_records, sample_size)
 
