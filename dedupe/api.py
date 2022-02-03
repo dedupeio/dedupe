@@ -1195,13 +1195,15 @@ class ActiveMatching(Matching):
 
             try:
                 self.active_learner.mark(examples, y)
-            except dedupe.predicates.NoIndexError:
-                raise UserWarning('Training data has records not known '
-                                  'to the active learner. Make sure data '
-                                  'are in the data arguments of '
-                                  'prepare_training method or use '
-                                  'the training_file argument of '
-                                  'prepare_training')
+            except dedupe.predicates.NoIndexError as e:
+                raise UserWarning(
+                    ('The record\n'
+                     '{unknown}\n'
+                     'is not known to to the active learner. '
+                     'Make sure all `labeled_pairs` '
+                     'are in the data or training file '
+                     'of the `prepare_training()` method').format(
+                         unknown=e.failing_record))
 
     def _checkTrainingPairs(self, labeled_pairs: TrainingData) -> None:
         try:

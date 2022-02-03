@@ -26,7 +26,12 @@ PUNCTABLE = str.maketrans("", "", string.punctuation)
 
 
 class NoIndexError(AttributeError):
-    pass
+    def __init__(self, *args):
+        super().__init__(args[0])
+
+        self.failing_record = None
+        if len(args) > 1:
+            self.failing_record = args[1]
 
 
 def strip_punc(s):
@@ -167,7 +172,8 @@ class CanopyPredicate(object):
                 doc_id = self.index._doc_to_id[doc]
             except AttributeError:
                 raise NoIndexError("Attempting to block with an index "
-                                   "predicate without indexing records")
+                                   "predicate without indexing records",
+                                   record)
 
             if doc_id in self.canopy:
                 block_key = self.canopy[doc_id]
@@ -221,7 +227,8 @@ class SearchPredicate(object):
                         centers = self.index.search(doc, self.threshold)
                 except AttributeError:
                     raise NoIndexError("Attempting to block with an index "
-                                       "predicate without indexing records")
+                                       "predicate without indexing records",
+                                       record)
                 result = [str(center) for center in centers]
                 self._cache[(column, target)] = result
                 return result
