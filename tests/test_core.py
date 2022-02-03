@@ -23,7 +23,10 @@ class RandomPairsTest(unittest.TestCase):
 
         random.seed(123)
         numpy.random.seed(123)
-        target = [(3624216819017203053, 5278339153051796802)]
+        if numpy.iinfo(numpy.uint).max == 2147483647:
+            target = [(843828734, 914636141)]
+        else:
+            target = [(3624216819017203053, 5278339153051796802)]
         assert list(dedupe.core.randomPairs(10**20, 1)) == target
 
     def test_random_pair_match(self):
