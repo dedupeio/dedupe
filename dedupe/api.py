@@ -1052,17 +1052,7 @@ class ActiveMatching(Matching):
         training_pairs = json.load(training_file,
                                    object_hook=serializer._from_json)
 
-        try:
-            self.mark_pairs(training_pairs)
-        except AttributeError as e:
-            if "Attempting to fingerprint with an index predicate without indexing records" in str(e):
-                raise UserWarning('Training data has records not known '
-                                  'to the active learner. Read training '
-                                  'in before initializing the active '
-                                  'learner with the sample method, or '
-                                  'use the prepare_training method.')
-            else:
-                raise
+        self.mark_pairs(training_pairs)
 
     def train(self,
               recall: float = 1.00,
@@ -1177,6 +1167,23 @@ class ActiveMatching(Matching):
                                 }
             matcher.mark_pairs(labeled_examples)
 
+        .. note::
+           `mark_pairs()` is primarily designed to be used with
+           :func:`~uncertain_pairs` to incrementally build a training
+           set.
+
+           If you have existing training data, you should likely
+           format the data into the right form and supply the training
+           data to the :func:`~prepare_training` method with the
+           `training_file` argument.
+
+           If that is not possible or desirable, you can use
+           `mark_pairs()` to train a linker with existing data.
+           However, you must ensure that every record that
+           appears in the `labeled_pairs` argument appears in either
+           the data or training file supplied to the
+           :func:`~prepare_training` method.
+
         '''
         self._checkTrainingPairs(labeled_pairs)
 
@@ -1185,7 +1192,18 @@ class ActiveMatching(Matching):
 
         if self.active_learner:
             examples, y = flatten_training(labeled_pairs)
-            self.active_learner.mark(examples, y)
+
+            try:
+                self.active_learner.mark(examples, y)
+            except dedupe.predicates.NoIndexError as e:
+                raise UserWarning(
+                    ('The record\n'
+                     '{unknown}\n'
+                     'is not known to to the active learner. '
+                     'Make sure all `labeled_pairs` '
+                     'are in the data or training file '
+                     'of the `prepare_training()` method').format(
+                         unknown=e.failing_record))
 
     def _checkTrainingPairs(self, labeled_pairs: TrainingData) -> None:
         try:
@@ -1272,6 +1290,9 @@ class Dedupe(ActiveMatching, DedupeMatching):
 
         '''
 
+        # Reset active learner
+        self.active_learner = None
+
         if training_file:
             self._read_training(training_file)
         self._sample(data, sample_size, blocked_proportion)
@@ -1357,6 +1378,8 @@ class Link(ActiveMatching):
                matcher.prepare_training(data_1, data_2, training_file=f)
 
         '''
+        # Reset active learner
+        self.active_learner = None
 
         if training_file:
             self._read_training(training_file)

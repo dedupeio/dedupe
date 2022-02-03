@@ -25,6 +25,15 @@ alpha_numeric = re.compile(r"(?=\w*\d)[a-zA-Z\d]+").findall
 PUNCTABLE = str.maketrans("", "", string.punctuation)
 
 
+class NoIndexError(AttributeError):
+    def __init__(self, *args):
+        super().__init__(args[0])
+
+        self.failing_record = None
+        if len(args) > 1:
+            self.failing_record = args[1]
+
+
 def strip_punc(s):
     return s.translate(PUNCTABLE)
 
@@ -162,8 +171,9 @@ class CanopyPredicate(object):
             try:
                 doc_id = self.index._doc_to_id[doc]
             except AttributeError:
-                raise AttributeError("Attempting to block with an index "
-                                     "predicate without indexing records")
+                raise NoIndexError("Attempting to block with an index "
+                                   "predicate without indexing records",
+                                   record)
 
             if doc_id in self.canopy:
                 block_key = self.canopy[doc_id]
@@ -216,8 +226,9 @@ class SearchPredicate(object):
                     else:
                         centers = self.index.search(doc, self.threshold)
                 except AttributeError:
-                    raise AttributeError("Attempting to block with an index "
-                                         "predicate without indexing records")
+                    raise NoIndexError("Attempting to block with an index "
+                                       "predicate without indexing records",
+                                       record)
                 result = [str(center) for center in centers]
                 self._cache[(column, target)] = result
                 return result
