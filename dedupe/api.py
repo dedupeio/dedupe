@@ -1073,7 +1073,10 @@ class ActiveMatching(Matching):
             index_predicates: Should dedupe consider predicates
                               that rely upon indexing the
                               data. Index predicates can be slower
-                              and take substantial memory.
+                              and take substantial memory. Without
+                              index predicates, you may get lower
+                              recall when true-dupes are not blocked
+                              together.
 
         """
         assert self.active_learner is not None, \

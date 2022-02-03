@@ -8,7 +8,8 @@ except ImportError:
 
 from Cython.Build import cythonize
 
-install_requires = ['fastcluster',
+install_requires = ["fastcluster; python_version < '3.10'",
+                    "fastcluster @ https://github.com/dmuellner/fastcluster/archive/dbbf09361745c422517095fe783960782f7cc370.zip ; python_version >= '3.10'",
                     'dedupe-hcluster',
                     'affinegap>=1.3',
                     'categorical-distance>=1.9',
@@ -28,7 +29,7 @@ install_requires = ['fastcluster',
 setup(
     name='dedupe',
     url='https://github.com/dedupeio/dedupe',
-    version='2.0.10',
+    version='2.0.11',
     author='Forest Gregg',
     author_email='fgregg@datamade.us',
     description='A python library for accurate and scaleable data deduplication and entity-resolution',
