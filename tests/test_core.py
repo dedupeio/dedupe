@@ -23,7 +23,7 @@ class RandomPairsTest(unittest.TestCase):
 
         random.seed(123)
         numpy.random.seed(123)
-        if numpy.iinfo(numpy.uint).max == 2147483647:
+        if numpy.iinfo(numpy.int).max == 2147483647:
             target = [(843828734, 914636141)]
         else:
             target = [(3624216819017203053, 5278339153051796802)]
