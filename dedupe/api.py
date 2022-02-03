@@ -1168,20 +1168,21 @@ class ActiveMatching(Matching):
             matcher.mark_pairs(labeled_examples)
 
         .. note::
-           `mark_pairs` is primarily designed to be used with `uncertain_pairs`
-           to incrementally build a training set.
+           `mark_pairs` is primarily designed to be used with
+           :func:`~uncertain_pairs` to incrementally build a training
+           set.
 
            If you have existing training data, you should likely
            format the data into the right form and supply the training
-           data with the `training_file` argument of the
-           `prepare_training` method.
+           data to the :func:`~prepare_training` method with the
+           `training_file` argument.
 
            If that is not possible or desirable, you can use
-           `mark_pairs` to train a linker using the `mark_pairs`
-           method. However, you must ensure that every record that
+           `mark_pairs` to train a linker with existing data.
+           However, you must ensure that every record that
            appears in the `labeled_pairs` argument appears in either
-           the data or `training_file` supplied to the
-           `prepare_method` argument.
+           the data or training file supplied to the
+           :func:`!prepare_training` method.
 
         '''
         self._checkTrainingPairs(labeled_pairs)
