@@ -28,6 +28,12 @@ class Variable(object):
         else:
             self.has_missing = False
 
+    def __getstate__(self):
+        odict = self.__dict__.copy()
+        odict['predicates'] = None
+
+        return odict
+
 
 class DerivedType(Variable):
     type = "Derived"

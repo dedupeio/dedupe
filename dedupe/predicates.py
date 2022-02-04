@@ -126,6 +126,9 @@ class IndexPredicate(Predicate):
     def __getstate__(self):
         odict = self.__dict__.copy()
         odict['index'] = None
+        odict['_cache'] = {}
+        if 'canopy' in odict:
+            odict['canopy'] = {}
         return odict
 
     def __setstate__(self, d):
