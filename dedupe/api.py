@@ -1277,7 +1277,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
                   with the keys being field names
             training_file: file object containing training data
             sample_size: Size of the sample to draw
-            blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs. Defaults to 0.9.
+            blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs.
 
         .. code:: python
 
@@ -1349,8 +1349,8 @@ class Link(ActiveMatching):
                          data_1: Data,
                          data_2: Data,
                          training_file: Optional[TextIO] = None,
-                         sample_size: int = 15000,
-                         blocked_proportion: float = 0.5) -> None:
+                         sample_size: int = 1500,
+                         blocked_proportion: float = 0.9) -> None:
         '''
         Initialize the active learner with your data and, optionally,
         existing training data.
@@ -1363,12 +1363,12 @@ class Link(ActiveMatching):
                     form as data_1
             training_file: file object containing training data
 
-            sample_size: The size of the sample to draw. Defaults to 150,000
+            sample_size: The size of the sample to draw.
 
             blocked_proportion: The proportion of record pairs to
                                 be sampled from similar records,
                                 as opposed to randomly selected
-                                pairs. Defaults to 0.5.
+                                pairs.
 
         .. code:: python
 
