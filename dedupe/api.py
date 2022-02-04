@@ -152,7 +152,7 @@ class DedupeMatching(IntegralMatching):
                   and the values are dictionaries with the keys being
                   field names
 
-            threshold: Number between 0 and 1 (Default is 0.5).  We
+            threshold: Number between 0 and 1.  We
                        will only consider put together records into
                        clusters if the `cophenetic similarity
                        <https://en.wikipedia.org/wiki/Cophenetic>`_ of
@@ -318,8 +318,6 @@ class DedupeMatching(IntegralMatching):
                        Lowering the number will increase recall,
                        raising it will increase precision
 
-                       Defaults to 0.5.
-
         .. code:: python
 
            > pairs = matcher.pairs(data)
@@ -448,7 +446,7 @@ class RecordLinkMatching(IntegralMatching):
             data_2: Dictionary of records from second dataset, same form
                     as data_1
 
-            threshold: Number between 0 and 1 (default is .5). We
+            threshold: Number between 0 and 1. We
                        will consider records as potential
                        duplicates if the predicted probability of
                        being a duplicate is above the threshold.
@@ -551,7 +549,7 @@ class RecordLinkMatching(IntegralMatching):
                     should contains the similarity score for that
                     pair of records.
 
-            threshold: Number between 0 and 1 (default is 0.0). We
+            threshold: Number between 0 and 1. We
                        will consider records as potential
                        duplicates if the predicted probability of
                        being a duplicate is above the threshold.
@@ -607,7 +605,7 @@ class RecordLinkMatching(IntegralMatching):
                     should contains the similarity score for that
                     pair of records.
 
-            threshold: Number between 0 and 1 (default is 0.0). We
+            threshold: Number between 0 and 1. We
                        will consider records as potential
                        duplicates if the predicted probability of
                        being a duplicate is above the threshold.
@@ -829,7 +827,7 @@ class GazetteerMatching(Matching):
                           should contains the similarity score for that
                           pair of records.
 
-            threshold: Number between 0 and 1 (default is 0.0). We
+            threshold: Number between 0 and 1. We
                        will consider records as potential
                        duplicates if the predicted probability of
                        being a duplicate is above the threshold.
@@ -866,9 +864,8 @@ class GazetteerMatching(Matching):
                   the values are dictionaries with the keys
                   being field names.
 
-            threshold: a number between 0 and 1 (default is
-                       0.5). We will consider records as
-                       potential duplicates if the predicted
+            threshold: a number between 0 and 1. We will consider
+                       records as potential duplicates if the predicted
                        probability of being a duplicate is
                        above the threshold.
 
@@ -879,10 +876,9 @@ class GazetteerMatching(Matching):
                        canonical_data to return for each record in
                        data. If set to `None` all possible
                        matches above the threshold will be
-                       returned. Defaults to 1
+                       returned.
             generator: when `True`, match will generate a sequence of
-                       possible matches, instead of a list. Defaults
-                       to `False` This makes `match` a lazy method.
+                       possible matches, instead of a list.
 
         .. code:: python
 
