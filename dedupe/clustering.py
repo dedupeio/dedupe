@@ -83,11 +83,11 @@ def _connected_components(edgelist: numpy.ndarray,
                                                 max_components,
                                                 threshold))
             # slices of memmaped arrays are also memmaped arrays,
-            # which is what we want. So, we sort and slice as oppose
+            # which is what we want. The components should
+            # already sorted by score so we can slice as oppose
             # to selecting like `sub_graph[sub_graph['score'] >
             # threshold]`, which would lead to an in memory copy being
             # made
-            sub_graph.sort(order='score')
             cut_point = numpy.searchsorted(sub_graph['score'], threshold)
             filtered_sub_graph = sub_graph[max(cut_point, 2):]
 
@@ -159,7 +159,7 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
     # change. This will allow us to slice pieces of the
     # memmapped array. Those slices will also be memmaped
     # arrays.
-    scored_pairs.sort(order='label')
+    scored_pairs.sort(order=('label', 'score'))
     return numpy.cumsum(numpy.unique(scored_pairs['label'],
                                      return_counts=True)[1])
 
