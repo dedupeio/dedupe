@@ -83,7 +83,7 @@ class BlockLearner(ABC):
         pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
         candidates = {}
         if K is None:
-            K = max(math.floor(math.log10(len(match_cover))), 1)
+            K = max(math.floor(math.log10(len(matches))), 1)
 
         n_samples = 5000
         for _ in range(n_samples):
