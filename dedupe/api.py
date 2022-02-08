@@ -942,13 +942,14 @@ class StaticMatching(Matching):
             settings_file: A file object containing settings
                            info produced from the
                            :func:`~dedupe.api.ActiveMatching.write_settings` method.
-            num_cores: the number of cpus to use for parallel
+
+            num_cores: The number of cpus to use for parallel
                        processing, defaults to the number of cpus
                        available on the machine. If set to 0, then
                        multiprocessing will be disabled.
 
-            in_memory: Boolean that if True will compute pairs using
-                       sqlite in RAM with the sqlite3 ':memory:' option
+            in_memory: If True, :meth:`dedupe.Dedupe.pairs` will generate
+                       pairs in RAM with the sqlite3 ':memory:' option
                        rather than writing to disk. May be faster if
                        sufficient memory is available.
 
@@ -1000,13 +1001,13 @@ class ActiveMatching(Matching):
                                  the variables will be used for
                                  training a model. See :ref:`variable_definitions`
 
-            num_cores: the number of cpus to use for parallel
+            num_cores: The number of cpus to use for parallel
                        processing. If set to `None`, uses all cpus
                        available on the machine. If set to 0, then
                        multiprocessing will be disabled.
 
-            in_memory: Boolean that if True will compute pairs using
-                       sqlite in RAM with the sqlite3 ':memory:' option
+            in_memory: If True, :meth:`dedupe.Dedupe.pairs` will generate
+                       pairs in RAM with the sqlite3 ':memory:' option
                        rather than writing to disk. May be faster if
                        sufficient memory is available.
 
