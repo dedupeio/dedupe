@@ -46,7 +46,7 @@ Contents
 
    API-documentation
    Variable-definition
-   How-it-works
+   how-it-works/How-it-works
    Bibliography
 
 
