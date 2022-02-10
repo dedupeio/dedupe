@@ -52,11 +52,12 @@ Contents
 
 Features
 ========
- * **machine learning** - reads in human labeled data to automatically create optimum weights and blocking rules
- * **runs on a laptop** - makes intelligent comparisons so you don't need a powerful server to run it
- * **built as a library** - so it can be integrated in to your applications or import scripts
- * **extensible** - supports adding custom data types, string comparators and blocking rules
- * **open source** - anyone can use, modify or add to it
+
+* **machine learning** - reads in human labeled data to automatically create optimum weights and blocking rules
+* **runs on a laptop** - makes intelligent comparisons so you don't need a powerful server to run it
+* **built as a library** - so it can be integrated in to your applications or import scripts
+* **extensible** - supports adding custom data types, string comparators and blocking rules
+* **open source** - anyone can use, modify or add to it
 
 Installation
 ============
