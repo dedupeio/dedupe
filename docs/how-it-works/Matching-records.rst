@@ -130,6 +130,6 @@ Other field distances
 ~~~~~~~~~~~~~~~~~~~~~
 
 We have implemented a number of field distance measures. See :doc:`the
-details about variables <Variable-definition>`.
+details about variables </Variable-definition>`.
 
 
