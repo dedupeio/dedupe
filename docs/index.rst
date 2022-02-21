@@ -48,7 +48,7 @@ Contents
    Variable-definition
    Examples
    how-it-works/How-it-works
-   User-guide
+   Troubleshooting
    Bibliography
 
 
