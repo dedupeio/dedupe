@@ -108,38 +108,6 @@ h4:before, h4:before, h6:before {
     pointer-events: none;
 }
 
-/* Padding for method/class permalinks, which require more finesse */
-/* (Use fake padding instead of an invisible ::before pseudo-element) */
-.rst-content dl:not(.docutils) dt,
-.rst-content dl:not(.docutils) dl dt,
-.rst-content dl:not(.docutils) dt:first-child {
-    padding-top: 55px;
-    margin-top: -55px;
-    background: none;
-    border-top: none;
-    border-left: none;
-    margin-bottom: 10px;
-}
-
-/* Use ::before pseudo-elements to style the method/class permalinks */
-.rst-content dl:not(.docutils) dt:before,
-.rst-content dl:not(.docutils) dl dt:before {
-    display: block;
-    content: " ";
-    margin-bottom: -23px;
-    height: 28px;
-    background: #e7f2fa;
-    border-top: solid 3px #6ab0de;
-}
-
-/* Methods should be grey */
-.rst-content dl:not(.docutils) dl dt:before {
-    background: #f0f0f0;
-    border-top: none;
-    border-left: solid 3px #ccc;
-    margin-left: -5px;
-}
-
 /* =================== */
 /* RTD theme overrides */
 /* =================== */
