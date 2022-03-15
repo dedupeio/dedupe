@@ -249,15 +249,19 @@ class DedupeBlockLearner(BlockLearner):
                  index_include):
         super().__init__(data_model)
 
+        N_SAMPLED_RECORDS = 5000
+        N_SAMPLED_RECORD_PAIRS = 5000
+
         index_data = Sample(data, 50000)
-        sampled_records = Sample(index_data, 5000)
+        sampled_records = Sample(index_data, N_SAMPLED_RECORDS)
         preds = self.data_model.predicates()
 
         self.block_learner = training.DedupeBlockLearner(preds,
                                                          sampled_records,
                                                          index_data)
 
-        self.candidates = self._candidates(sampled_records, 5000)
+        self.candidates = self._candidates(sampled_records,
+                                           N_SAMPLED_RECORD_PAIRS)
         examples_to_index = self.candidates.copy()
 
         if index_include:
@@ -278,18 +282,25 @@ class DedupeBlockLearner(BlockLearner):
         for pred in blocker.index_predicates:
             pred.freeze(records)
 
-    def _candidates(self, data, n):
+    def _candidates(self, data, sample_size):
 
         weights = {}
         for predicate, covered in self.block_learner.comparison_cover.items():
-            weight = 1 / (len(covered) / (5000 * 4999)/2)
+            # each predicate gets to vote for every record pair it covers. the
+            # strength of that vote is in inverse proportion to the number of
+            # records the predicate covers.
+            #
+            # if a predicate only covers a few record pairs, the value of
+            # the vote it puts on those few pairs will be worth more than
+            # a predicate that covers almost all the record pairs
+            weight = 1 / len(covered)
             for pair in covered:
                 weights[pair] = weights.get(pair, 0) + weight
 
         # sample with replacement (fix this up to sample w/o replacement)
         sample_ids = random.choices(list(weights.keys()),
                                     weights=weights.values(),
-                                    k=n)
+                                    k=sample_size)
         return [(data[k_1], data[k_2]) for k_1, k_2 in sample_ids]
 
 
