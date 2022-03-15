@@ -297,11 +297,16 @@ class DedupeBlockLearner(BlockLearner):
             for pair in covered:
                 weights[pair] = weights.get(pair, 0) + weight
 
-        # sample with replacement (fix this up to sample w/o replacement)
-        sample_ids = random.choices(list(weights.keys()),
-                                    weights=weights.values(),
-                                    k=sample_size)
-        return [(data[k_1], data[k_2]) for k_1, k_2 in sample_ids]
+        # consider using a reservoir sampling strategy, which would
+        # be more memory efficient and probably about as fast
+        normalized_weights = numpy.fromiter(weights.values(), dtype=float)/sum(weights.values())
+        sample_indices = numpy.random.choice(len(weights),
+                                             size=sample_size,
+                                             replace=False,
+                                             p=normalized_weights)
+        keys = list(weights.keys())
+        return [(data[keys[i][0]], data[keys[i][1]])
+                for i in sample_indices]
 
 
 class RecordLinkBlockLearner(BlockLearner):
