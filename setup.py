@@ -8,8 +8,7 @@ except ImportError:
 
 from Cython.Build import cythonize
 
-install_requires = ["fastcluster; python_version < '3.10'",
-                    "fastcluster @ https://github.com/dmuellner/fastcluster/archive/dbbf09361745c422517095fe783960782f7cc370.zip ; python_version >= '3.10'",
+install_requires = ["fastcluster",
                     'dedupe-hcluster',
                     'affinegap>=1.3',
                     'categorical-distance>=1.9',
@@ -36,6 +35,7 @@ setup(
     packages=['dedupe', 'dedupe.variables'],
     ext_modules=cythonize([Extension('dedupe.cpredicates', ['dedupe/cpredicates.pyx'])]),
     install_requires=install_requires,
+    python_requires='>3.6',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
