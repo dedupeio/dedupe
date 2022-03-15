@@ -55,7 +55,6 @@ from dedupe._typing import (Data,
 
 logger = logging.getLogger(__name__)
 
-
 class Matching(object):
     """
     Base Class for Record Matching Classes
@@ -239,7 +238,7 @@ class DedupeMatching(IntegralMatching):
                 con = sqlite3.connect(temp_dir + '/blocks.db')
 
             # Set journal mode to WAL.
-            con.execute('pragma journal_mode=wal')
+            con.execute('pragma journal_mode=off')
 
             con.execute('''CREATE TABLE blocking_map
                            (block_key text, record_id {id_type})
@@ -383,8 +382,7 @@ class RecordLinkMatching(IntegralMatching):
             else:
                 con = sqlite3.connect(temp_dir + '/blocks.db')
 
-            # Set journal mode to WAL.
-            con.execute('pragma journal_mode=wal')
+            con.execute('pragma journal_mode=off')
 
             con.executescript('''CREATE TABLE blocking_map_a
                                  (block_key text, record_id {id_type_a});
