@@ -191,9 +191,8 @@ class RecordLinkRLRLearner(RecordLinkSampler, RLRLearner):
 
 class BlockLearner(object):
 
-    def __init__(self, data_model, candidates, *args):
+    def __init__(self, data_model, *args):
         self.data_model = data_model
-        self.candidates = candidates
 
         self.current_predicates = ()
 
@@ -246,10 +245,9 @@ class BlockLearner(object):
 class DedupeBlockLearner(BlockLearner):
 
     def __init__(self, data_model,
-                 candidates,
                  data,
                  index_include):
-        super().__init__(data_model, candidates)
+        super().__init__(data_model)
 
         index_data = Sample(data, 50000)
         sampled_records = Sample(index_data, 5000)
@@ -259,7 +257,9 @@ class DedupeBlockLearner(BlockLearner):
                                                          sampled_records,
                                                          index_data)
 
-        examples_to_index = candidates.copy()
+        self.candidates = self._candidates(sampled_records, 5000)
+        examples_to_index = self.candidates.copy()
+
         if index_include:
             examples_to_index += index_include
 
@@ -277,6 +277,20 @@ class DedupeBlockLearner(BlockLearner):
 
         for pred in blocker.index_predicates:
             pred.freeze(records)
+
+    def _candidates(self, data, n):
+
+        weights = {}
+        for predicate, covered in self.block_learner.comparison_cover.items():
+            weight = 1 / (len(covered) / (5000 * 4999)/2)
+            for pair in covered:
+                weights[pair] = weights.get(pair, 0) + weight
+
+        # sample with replacement (fix this up to sample w/o replacement)
+        sample_ids = random.choices(list(weights.keys()),
+                                    weights=weights.values(),
+                                    k=n)
+        return [(data[k_1], data[k_2]) for k_1, k_2 in sample_ids]
 
 
 class RecordLinkBlockLearner(BlockLearner):
@@ -418,18 +432,19 @@ class DedupeDisagreementLearner(DedupeSampler, DisagreementLearner):
 
         data = core.index(data)
 
-        self.candidates = self._sample(data, blocked_proportion, sample_size)
-
-        random_pair = random.choice(self.candidates)
+        random_pair = (random.choice(list(data.values())),
+                       random.choice(list(data.values())))
         exact_match = (random_pair[0], random_pair[0])
 
         index_include = index_include.copy()
         index_include.append(exact_match)
 
         self.blocker = DedupeBlockLearner(data_model,
-                                          self.candidates,
                                           data,
                                           index_include)
+
+        self.candidates = self.blocker.candidates
+
         self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
 

@@ -160,7 +160,6 @@ class DedupeBlockLearner(BlockLearner):
         cover = {}
 
         n_records = len(records)
-        pair_enumerator = core.DiagonalEnumerator(n_records)
 
         for predicate in blocker.predicates:
             pred_cover = collections.defaultdict(set)
@@ -178,7 +177,7 @@ class DedupeBlockLearner(BlockLearner):
                 continue
 
             pairs = frozenset(
-                pair_enumerator[pair]
+                pair
                 for block in pred_cover.values()
                 for pair in itertools.combinations(sorted(block), 2))
             cover[predicate] = pairs
