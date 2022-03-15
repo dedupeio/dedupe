@@ -51,6 +51,7 @@ if __name__ == '__main__':
             log_level = logging.INFO
         elif opts.verbose >= 2:
             log_level = logging.DEBUG
+    logging.basicConfig()
     logging.getLogger().setLevel(log_level)
 
     settings_file = 'canonical_learned_settings'

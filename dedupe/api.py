@@ -55,6 +55,7 @@ from dedupe._typing import (Data,
 
 logger = logging.getLogger(__name__)
 
+
 class Matching(object):
     """
     Base Class for Record Matching Classes
