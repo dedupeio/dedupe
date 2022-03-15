@@ -180,7 +180,8 @@ class DedupeBlockLearner(BlockLearner):
                 pair
                 for block in pred_cover.values()
                 for pair in itertools.combinations(sorted(block), 2))
-            cover[predicate] = pairs
+            if pairs:
+                cover[predicate] = pairs
 
         return cover
 
