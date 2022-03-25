@@ -14,7 +14,7 @@ import math
 from typing import (Dict, Sequence, Iterable, Tuple, List,
                     Union, FrozenSet, Optional)
 
-from . import blocking, core
+from . import blocking
 from .predicates import Predicate
 
 logger = logging.getLogger(__name__)
@@ -199,8 +199,7 @@ class RecordLinkBlockLearner(BlockLearner):
 
     def coveredPairs(self, blocker, records_1, records_2):
         cover = {}
-
-        pair_enumerator = core.FullEnumerator(len(records_2))
+        pair_cover = {}
 
         for predicate in blocker.predicates:
             cover[predicate] = collections.defaultdict(lambda: (set(), set()))
@@ -217,12 +216,13 @@ class RecordLinkBlockLearner(BlockLearner):
 
         for predicate, blocks in cover.items():
             pairs = frozenset(
-                pair_enumerator[pair]
+                pair
                 for A, B in blocks.values()
                 for pair in itertools.product(A, B))
-            cover[predicate] = pairs
+            if pairs:
+                pair_cover[predicate] = pairs
 
-        return cover
+        return pair_cover
 
 
 class BranchBound(object):

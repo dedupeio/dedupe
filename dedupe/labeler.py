@@ -250,7 +250,7 @@ class DedupeBlockLearner(BlockLearner):
         super().__init__(data_model)
 
         N_SAMPLED_RECORDS = 5000
-        N_SAMPLED_RECORD_PAIRS = 5000
+        N_SAMPLED_RECORD_PAIRS = 10000
 
         index_data = Sample(data, 50000)
         sampled_records = Sample(index_data, N_SAMPLED_RECORDS)
@@ -260,8 +260,8 @@ class DedupeBlockLearner(BlockLearner):
                                                          sampled_records,
                                                          index_data)
 
-        self.candidates = self._candidates(sampled_records,
-                                           N_SAMPLED_RECORD_PAIRS)
+        self.candidates = self._sample(sampled_records,
+                                       N_SAMPLED_RECORD_PAIRS)
         examples_to_index = self.candidates.copy()
 
         if index_include:
@@ -282,7 +282,7 @@ class DedupeBlockLearner(BlockLearner):
         for pred in blocker.index_predicates:
             pred.freeze(records)
 
-    def _candidates(self, data, sample_size):
+    def _sample(self, data, sample_size):
 
         weights = {}
         for predicate, covered in self.block_learner.comparison_cover.items():
@@ -299,11 +299,14 @@ class DedupeBlockLearner(BlockLearner):
 
         # consider using a reservoir sampling strategy, which would
         # be more memory efficient and probably about as fast
-        normalized_weights = numpy.fromiter(weights.values(), dtype=float)/sum(weights.values())
-        sample_indices = numpy.random.choice(len(weights),
-                                             size=sample_size,
-                                             replace=False,
-                                             p=normalized_weights)
+        normalized_weights = (numpy.fromiter(weights.values(),
+                                             dtype=float)
+                              / sum(weights.values()))
+        rng = numpy.random.default_rng()
+        sample_indices = rng.choice(len(weights),
+                                    size=sample_size,
+                                    replace=False,
+                                    p=normalized_weights)
         keys = list(weights.keys())
         return [(data[keys[i][0]], data[keys[i][1]])
                 for i in sample_indices]
@@ -313,16 +316,18 @@ class RecordLinkBlockLearner(BlockLearner):
 
     def __init__(self,
                  data_model,
-                 candidates,
                  data_1,
                  data_2,
                  index_include):
 
-        super().__init__(data_model, candidates)
+        super().__init__(data_model)
 
-        sampled_records_1 = Sample(data_1, 600)
+        N_SAMPLED_RECORDS = 1000
+        N_SAMPLED_RECORD_PAIRS = 5000
+
+        sampled_records_1 = Sample(data_1, N_SAMPLED_RECORDS)
         index_data = Sample(data_2, 50000)
-        sampled_records_2 = Sample(index_data, 600)
+        sampled_records_2 = Sample(index_data, N_SAMPLED_RECORDS)
 
         preds = self.data_model.predicates(canopies=False)
 
@@ -331,7 +336,11 @@ class RecordLinkBlockLearner(BlockLearner):
                                                              sampled_records_2,
                                                              index_data)
 
-        examples_to_index = candidates.copy()
+        self.candidates = self._sample(sampled_records_1,
+                                       sampled_records_2,
+                                       N_SAMPLED_RECORD_PAIRS)
+        examples_to_index = self.candidates.copy()
+
         if index_include:
             examples_to_index += index_include
 
@@ -351,6 +360,37 @@ class RecordLinkBlockLearner(BlockLearner):
 
         for pred in blocker.index_predicates:
             pred.freeze(A, B)
+
+    def _sample(self, data_1, data_2, sample_size):
+
+        weights = {}
+        for predicate, covered in self.block_learner.comparison_cover.items():
+            # each predicate gets to vote for every record pair it covers. the
+            # strength of that vote is in inverse proportion to the number of
+            # records the predicate covers.
+            #
+            # if a predicate only covers a few record pairs, the value of
+            # the vote it puts on those few pairs will be worth more than
+            # a predicate that covers almost all the record pairs
+            if not len(covered):
+                print(predicate)
+            weight = 1 / len(covered)
+            for pair in covered:
+                weights[pair] = weights.get(pair, 0) + weight
+
+        # consider using a reservoir sampling strategy, which would
+        # be more memory efficient and probably about as fast
+        normalized_weights = (numpy.fromiter(weights.values(),
+                                             dtype=float)
+                              / sum(weights.values()))
+        rng = numpy.random.default_rng()
+        sample_indices = rng.choice(len(weights),
+                                    size=sample_size,
+                                    replace=False,
+                                    p=normalized_weights)
+        keys = list(weights.keys())
+        return [(data_1[keys[i][0]], data_2[keys[i][1]])
+                for i in sample_indices]
 
 
 class DisagreementLearner(ActiveLearner):
@@ -487,22 +527,19 @@ class RecordLinkDisagreementLearner(RecordLinkSampler, DisagreementLearner):
         offset = len(data_1)
         data_2 = core.index(data_2, offset)
 
-        self.candidates = self._sample(data_1,
-                                       data_2,
-                                       blocked_proportion,
-                                       sample_size)
-
-        random_pair = random.choice(self.candidates)
+        random_pair = (random.choice(list(data_1.values())),
+                       random.choice(list(data_2.values())))
         exact_match = (random_pair[0], random_pair[0])
 
         index_include = index_include.copy()
         index_include.append(exact_match)
 
         self.blocker = RecordLinkBlockLearner(data_model,
-                                              self.candidates,
                                               data_1,
                                               data_2,
                                               index_include)
+        self.candidates = self.blocker.candidates
+
         self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
