@@ -7,7 +7,6 @@ import rlr
 from typing import List
 from typing_extensions import Protocol
 
-import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.datamodel as datamodel
@@ -38,56 +37,6 @@ class ActiveLearner(ABC):
 class HasDataModel(Protocol):
 
     data_model: datamodel.DataModel
-
-
-class DedupeSampler(object):
-
-    def _sample(self: HasDataModel, data, blocked_proportion, sample_size) -> List[TrainingExample]:
-        blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
-
-        data = sampling.randomDeque(data)
-        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
-                                                           predicates,
-                                                           data)
-
-        random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = set(core.randomPairs(len(data),
-                                                  random_sample_size))
-        data = dict(data)
-
-        return [(data[k1], data[k2])
-                for k1, k2
-                in blocked_sample_keys | random_sample_keys]
-
-
-class RecordLinkSampler(object):
-
-    def _sample(self: HasDataModel, data_1, data_2, blocked_proportion, sample_size) -> List[TrainingExample]:
-        offset = len(data_1)
-
-        blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
-
-        deque_1 = sampling.randomDeque(data_1)
-        deque_2 = sampling.randomDeque(data_2)
-
-        blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
-                                                         predicates,
-                                                         deque_1,
-                                                         deque_2)
-
-        random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = core.randomPairsMatch(len(deque_1),
-                                                   len(deque_2),
-                                                   random_sample_size)
-
-        unique_random_sample_keys = {(a, b + offset)
-                                     for a, b in random_sample_keys}
-
-        return [(data_1[k1], data_2[k2])
-                for k1, k2
-                in blocked_sample_keys | unique_random_sample_keys]
 
 
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
@@ -175,18 +124,6 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
     def __len__(self):
         return len(self.candidates)
-
-
-class DedupeRLRLearner(DedupeSampler, RLRLearner):
-    def __init__(self, data_model, data, blocked_proportion, sample_size):
-        super().__init__(data_model)
-        self.candidates = self._sample(data, blocked_proportion, sample_size)
-
-
-class RecordLinkRLRLearner(RecordLinkSampler, RLRLearner):
-    def __init__(self, data_model, data_1, data_2, blocked_proportion, sample_size):
-        super.__init__(data_model)
-        self.candidates = self._sample(data_1, data_2, blocked_proportion, sample_size)
 
 
 class BlockLearner(object):
@@ -475,7 +412,7 @@ class DisagreementLearner(ActiveLearner):
         return learned_preds
 
 
-class DedupeDisagreementLearner(DedupeSampler, DisagreementLearner):
+class DedupeDisagreementLearner(DisagreementLearner):
 
     def __init__(self,
                  data_model,
@@ -510,7 +447,7 @@ class DedupeDisagreementLearner(DedupeSampler, DisagreementLearner):
                   [1] * 4 + [0])
 
 
-class RecordLinkDisagreementLearner(RecordLinkSampler, DisagreementLearner):
+class RecordLinkDisagreementLearner(DisagreementLearner):
 
     def __init__(self,
                  data_model,
