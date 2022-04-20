@@ -6,45 +6,6 @@ import numpy
 import dedupe
 
 
-class RandomPairsTest(unittest.TestCase):
-    def test_random_pair(self):
-        random.seed(123)
-
-        target = [(0, 4), (2, 3), (0, 6), (3, 6), (0, 7)]
-
-        random_pairs = list(dedupe.core.randomPairs(10, 5))
-        assert random_pairs == target
-
-        random.seed(123)
-        target = [(357, 8322)]
-
-        random_pairs = list(dedupe.core.randomPairs(10**4, 1))
-        assert random_pairs == target
-
-        random.seed(123)
-        numpy.random.seed(123)
-        if numpy.iinfo(numpy.int).max == 2147483647:
-            target = [(843828734, 914636141)]
-        else:
-            target = [(3624216819017203053, 5278339153051796802)]
-        assert list(dedupe.core.randomPairs(10**20, 1)) == target
-
-    def test_random_pair_match(self):
-
-        assert len(list(dedupe.core.randomPairsMatch(100, 100, 100))) == 100
-        assert len(list(dedupe.core.randomPairsMatch(10, 10, 99))) == 99
-
-        random.seed(123)
-        target = [(0, 6), (3, 4), (1, 1), (9, 8), (5, 2),
-                  (1, 3), (0, 4), (4, 8), (6, 8), (7, 1)]
-
-        pairs = list(dedupe.core.randomPairsMatch(10, 10, 10))
-        assert pairs == target
-
-        pairs = list(dedupe.core.randomPairsMatch(10, 10, 0))
-        assert pairs == []
-
-
 class ScoreDuplicates(unittest.TestCase):
     def setUp(self):
         random.seed(123)
