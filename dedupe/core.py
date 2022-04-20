@@ -285,24 +285,6 @@ def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
     return collections.defaultdict(itertools.count(start).__next__, initial)
 
 
-class DiagonalEnumerator(object):
-    def __init__(self, N: int):
-        self.C = 2 * N - 3
-
-    def __getitem__(self, pair: Tuple[int, int]) -> int:
-        x, y = pair
-        return x * (self.C - x) // 2 + y - 1
-
-
-class FullEnumerator(object):
-    def __init__(self, width: int):
-        self.width = width
-
-    def __getitem__(self, pair: Tuple[int, int]) -> int:
-        x, y = pair
-        return x * self.width + y
-
-
 @overload
 def sniff_id_type(ids: Sequence[Tuple[int, int]]) -> Type[int]:
     ...
