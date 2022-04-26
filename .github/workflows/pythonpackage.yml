@@ -10,6 +10,7 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         python-version: [3.7, 3.8, 3.9, "3.10", "3.11-dev"]
+    continue-on-error: ${{ matrix.python-version == '3.11-dev' }}      
         
     steps:
     - uses: actions/checkout@v1
