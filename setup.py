@@ -11,12 +11,10 @@ except ImportError:
 from Cython.Build import cythonize
 
 install_requires = [
-    "fastcluster",
-    "dedupe-hcluster",
+    "scikit-learn",
     "affinegap>=1.3",
     "categorical-distance>=1.9",
     "dedupe-variable-datetime",
-    "rlr>=2.4.3",
     "numpy>=1.13",
     "doublemetaphone",
     "highered>=0.2.0",

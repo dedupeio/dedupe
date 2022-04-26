@@ -16,7 +16,7 @@ import tempfile
 
 import numpy
 import json
-import rlr
+import sklearn.ensemble
 
 import dedupe.core as core
 import dedupe.serializer as serializer
@@ -1034,8 +1034,7 @@ class ActiveMatching(Matching):
     """
     Class for training a matcher.
     """
-
-    classifier = rlr.RegularizedLogisticRegression()
+    classifier = sklearn.ensemble.RandomForestClassifier()
 
     def __init__(
         self,

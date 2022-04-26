@@ -8,8 +8,7 @@ import logging
 import tempfile
 
 import numpy
-import fastcluster
-import hcluster
+import scipy.cluster.hierarchy
 
 from typing import Iterable, Dict, cast, List, Set, Generator, Sequence, Tuple
 from dedupe._typing import Clusters, RecordID, Links
@@ -217,11 +216,11 @@ def cluster(
 
             i_to_id, condensed_distances, N = condensedDistance(sub_graph)
 
-            linkage = fastcluster.linkage(
-                condensed_distances, method="centroid", preserve_input=True
+            linkage = scipy.cluster.hierarchy.linkage(
+                condensed_distances, method="centroid"
             )
 
-            partition = hcluster.fcluster(
+            partition = scipy.cluster.hierarchy.fcluster(
                 linkage, distance_threshold, criterion="distance"
             )
 
