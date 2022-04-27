@@ -88,8 +88,8 @@ def randomPairsWithReplacement(n_records: int, sample_size: int) -> IndicesItera
     return ((p.item(), q.item()) for p, q in random_indices)
 
 
-def _print(message: str) -> None:
-    print(message, file=sys.stderr)
+def _print(*args) -> None:
+    print(*args, file=sys.stderr)
 
 
 LabeledPair = Tuple[TrainingExample, Literal["match", "distinct"]]
