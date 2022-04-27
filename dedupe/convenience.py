@@ -168,6 +168,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         elif user_input == 'n':
             labeled.insert(0, (record_pair, 'distinct'))
         elif user_input == 'u':
+            # See https://github.com/dedupeio/dedupe/issues/984 for reasoning
             labeled.insert(0, (record_pair, 'match'))
             labeled.insert(0, (record_pair, 'distinct'))
         elif user_input == 'f':
