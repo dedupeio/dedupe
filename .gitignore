@@ -32,3 +32,6 @@ ENV
 dist
 .coverage
 src/*.c
+
+!benchmarks/asv.conf.json
+benchmarks/.asv/*
