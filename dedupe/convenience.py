@@ -92,13 +92,19 @@ def _print(*args) -> None:
     print(*args, file=sys.stderr)
 
 
-LabeledPair = Tuple[TrainingExample, Literal["match", "distinct"]]
+LabeledPair = Tuple[TrainingExample, Literal["match", "distinct", "unsure"]]
 
 
 def _mark_pair(deduper: dedupe.api.ActiveMatching, labeled_pair: LabeledPair) -> None:
     record_pair, label = labeled_pair
     examples: TrainingData = {"distinct": [], "match": []}
-    examples[label].append(record_pair)
+    if label == "unsure":
+        # See https://github.com/dedupeio/dedupe/issues/984 for reasoning
+        examples["match"].append(record_pair)
+        examples["distinct"].append(record_pair)
+    else:
+        # label is either "match" or "distinct"
+        examples[label].append(record_pair)
     deduper.mark_pairs(examples)
 
 
@@ -168,9 +174,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         elif user_input == 'n':
             labeled.insert(0, (record_pair, 'distinct'))
         elif user_input == 'u':
-            # See https://github.com/dedupeio/dedupe/issues/984 for reasoning
-            labeled.insert(0, (record_pair, 'match'))
-            labeled.insert(0, (record_pair, 'distinct'))
+            labeled.insert(0, (record_pair, 'unsure'))
         elif user_input == 'f':
             _print('Finished labeling')
             finished = True
