@@ -15,7 +15,6 @@ import sqlite3
 import tempfile
 
 import numpy
-import json
 import rlr
 
 import dedupe.core as core
