@@ -1076,7 +1076,7 @@ class ActiveMatching(Matching):
 
         """
         assert self.active_learner is not None, \
-               "Please initialize with the sample method"
+               "Please initialize with the prepare_training method"
 
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)
@@ -1139,7 +1139,7 @@ class ActiveMatching(Matching):
 
         '''
         assert self.active_learner is not None, \
-               "Please initialize with the sample method"
+               "Please initialize with the prepare_training method"
         return [self.active_learner.pop()]
 
     def mark_pairs(self, labeled_pairs: TrainingData) -> None:
@@ -1282,36 +1282,14 @@ class Dedupe(ActiveMatching, DedupeMatching):
            # or
            with open('training_file.json') as f:
                matcher.prepare_training(data_d, training_file=f)
-
-
         '''
+        self._checkData(data)
 
         # Reset active learner
         self.active_learner = None
 
         if training_file:
             self._read_training(training_file)
-        self._sample(data, sample_size, blocked_proportion)
-
-    def _sample(self,
-                data: Data,
-                sample_size: int = 15000,
-                blocked_proportion: float = 0.5) -> None:
-        '''Draw a sample of record pairs from the dataset
-        (a mix of random pairs & pairs of similar records)
-        and initialize active learning with this sample
-
-
-        :param data: Dictionary of records, where the keys are
-                     record_ids and the values are dictionaries
-                     with the keys being field names
-
-        :param sample_size: Size of the sample to draw
-
-        :param blocked_proportion: Proportion of the sample that will be blocked
-
-        '''
-        self._checkData(data)
 
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionary
@@ -1370,38 +1348,17 @@ class Link(ActiveMatching):
 
            matcher.prepare_training(data_1, data_2, 150000)
 
+           # or
            with open('training_file.json') as f:
                matcher.prepare_training(data_1, data_2, training_file=f)
-
         '''
+        self._checkData(data_1, data_2)
+
         # Reset active learner
         self.active_learner = None
 
         if training_file:
             self._read_training(training_file)
-        self._sample(data_1,
-                     data_2,
-                     sample_size,
-                     blocked_proportion)
-
-    def _sample(self,
-                data_1: Data,
-                data_2: Data,
-                sample_size: int = 15000,
-                blocked_proportion: float = 0.5) -> None:
-        '''
-        Draws a random sample of combinations of records from
-        the first and second datasets, and initializes active
-        learning with this sample
-
-        :param data_1: Dictionary of records from first dataset, where the
-                       keys are record_ids and the values are dictionaries
-                       with the keys being field names
-        :param data_2: Dictionary of records from second dataset, same
-                       form as data_1
-        :param sample_size: Size of the sample to draw
-        '''
-        self._checkData(data_1, data_2)
 
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionaries
