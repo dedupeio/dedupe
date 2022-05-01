@@ -1291,7 +1291,6 @@ class Dedupe(ActiveMatching, DedupeMatching):
         if training_file:
             self._read_training(training_file)
 
-
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionary
         examples, y = flatten_training(self.training_pairs)
@@ -1354,13 +1353,12 @@ class Link(ActiveMatching):
                matcher.prepare_training(data_1, data_2, training_file=f)
         '''
         self._checkData(data_1, data_2)
-        
+
         # Reset active learner
         self.active_learner = None
 
         if training_file:
             self._read_training(training_file)
-
 
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionaries
