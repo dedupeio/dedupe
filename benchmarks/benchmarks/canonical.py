@@ -7,15 +7,31 @@ import dedupe
 import common
 
 
-def load():
+class Canonical:
     settings_file = common.DATASETS_DIR / "canonical_learned_settings"
     data_file = common.DATASETS_DIR / "restaurant-nophone-training.csv"
 
-    data_d = common.load_data(data_file)
-    training_pairs = dedupe.training_data_dedupe(data_d, "unique_id", 5000)
-    true_dupes = common.get_true_dupes(data_d)
+    def setup(self):
+        self.data = common.load_data(self.data_file)
+        self.training_pairs = dedupe.training_data_dedupe(self.data, "unique_id", 5000)
 
-    return data_d, settings_file, training_pairs, true_dupes
+    def run(self):
+        return run(self.data, self.settings_file, self.training_pairs)
+
+    def make_report(self, clustering):
+        return make_report(self.data, clustering)
+
+    def time_run(self):
+        return self.run()
+
+    def peakmem_run(self):
+        return self.run()
+
+    def track_precision(self):
+        return self.make_report(self.run()).precision
+
+    def track_recall(self):
+        return self.make_report(self.run()).recall
 
 
 def run(data: dict, settings_file, training_pairs):
@@ -43,8 +59,9 @@ def run(data: dict, settings_file, training_pairs):
     return deduper.partition(data, threshold=0.5)
 
 
-def make_report(true_dupes, clustering):
+def make_report(data, clustering):
     print("Evaluate Clustering")
+    true_dupes = common.get_true_dupes(data)
     predicted_dupes = set([])
     for cluser_id, _ in clustering:
         for pair in combinations(cluser_id, 2):
@@ -56,13 +73,14 @@ def make_report(true_dupes, clustering):
 def cli():
     common.configure_logging()
 
-    data, settings_file, training_pairs, true_dupes = load()
+    can = Canonical()
+    can.setup()
 
     t0 = time.time()
-    clustering = run(data, settings_file, training_pairs)
+    clustering = can.run()
     elapsed = time.time() - t0
 
-    print(make_report(true_dupes, clustering))
+    print(can.make_report(clustering))
     print(f"ran in {elapsed} seconds")
 
 
