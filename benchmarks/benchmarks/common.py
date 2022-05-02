@@ -1,4 +1,5 @@
 import csv
+from dataclasses import dataclass
 import logging
 import optparse
 from pathlib import Path
@@ -47,15 +48,19 @@ def configure_logging() -> None:
     logging.getLogger().setLevel(log_level)
 
 
-def print_report(found_dupes, true_dupes):
-    true_positives = found_dupes.intersection(true_dupes)
-    false_positives = found_dupes.difference(true_dupes)
+@dataclass
+class Report:
+    # TODO add more and replace calculations with sklearn
+    n_found: int
+    precision: float
+    recall: float
 
-    print("found duplicate")
-    print(len(found_dupes))
+    @classmethod
+    def from_scores(cls, true_dupes: set, found_dupes: set):
+        true_positives = found_dupes.intersection(true_dupes)
 
-    print("precision")
-    print(1 - len(false_positives) / float(len(found_dupes)))
+        n_found = len(found_dupes)
+        precision = len(true_positives) / n_found
+        recall = len(true_positives) / n_true
 
-    print("recall")
-    print(len(true_positives) / float(len(true_dupes)))
+        return cls(n_found, precision, recall)

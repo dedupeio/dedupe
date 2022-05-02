@@ -60,7 +60,7 @@ if __name__ == "__main__":
     print("Evaluate Clustering")
     confirm_dupes = set(frozenset(pair) for pair, score in clustered_dupes)
 
-    common.print_report(confirm_dupes, duplicates_s)
+    print(common.Report.from_scores(duplicates_s, confirm_dupes))
 
     print("ran in ", time.time() - t0, "seconds")
 
@@ -73,6 +73,6 @@ if __name__ == "__main__":
     print("Evaluate Clustering")
     confirm_dupes = set(frozenset(pair) for pair, score in clustered_dupes)
 
-    common.print_report(confirm_dupes, duplicates_s)
+    print(common.Report.from_scores(duplicates_s, confirm_dupes))
 
     print("ran in ", time.time() - t0, "seconds")

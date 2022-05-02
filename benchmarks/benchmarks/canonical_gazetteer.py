@@ -65,4 +65,4 @@ if __name__ == "__main__":
         frozenset([a, b]) for a, result in results for b, score in result
     )
 
-    common.print_report(confirm_dupes_a, duplicates_s)
+    print(common.Report.from_scores(duplicates_s, confirm_dupes_a))

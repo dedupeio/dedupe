@@ -61,6 +61,6 @@ if __name__ == "__main__":
         for pair in combinations(dupes, 2):
             confirm_dupes.add(frozenset(pair))
 
-    common.print_report(confirm_dupes, duplicates)
+    print(common.Report.from_scores(duplicates, confirm_dupes))
 
     print("ran in ", time.time() - t0, "seconds")
