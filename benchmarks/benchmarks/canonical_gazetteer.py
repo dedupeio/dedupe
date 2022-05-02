@@ -14,9 +14,8 @@ def load():
     data_2 = common.load_data(common.DATASETS_DIR / "restaurant-2.csv")
 
     training_pairs = dedupe.training_data_link(data_1, data_2, "unique_id", 5000)
-    true_dupes = canonical_matching.get_true_dupes(data_1, data_2)
 
-    return (data_1, data_2), settings_file, training_pairs, true_dupes
+    return (data_1, data_2), settings_file, training_pairs
 
 
 def run(data: tuple[dict, dict], settings_file, training_pairs):
@@ -49,8 +48,9 @@ def run(data: tuple[dict, dict], settings_file, training_pairs):
     return gazetteer.search(data_1, n_matches=1, generator=True)
 
 
-def make_report(true_dupes, clustering):
+def make_report(data, clustering):
     print("Evaluate Clustering")
+    true_dupes = canonical_matching.get_true_dupes(data)
     predicted_dupes = set(
         frozenset([a, b]) for a, result in clustering for b, score in result
     )
@@ -60,13 +60,13 @@ def make_report(true_dupes, clustering):
 def cli():
     common.configure_logging()
 
-    data, settings_file, training_pairs, true_dupes = load()
+    data, settings_file, training_pairs = load()
 
     t0 = time.time()
     clustering = run(data, settings_file, training_pairs)
     elapsed = time.time() - t0
 
-    print(make_report(true_dupes, clustering))
+    print(make_report(data, clustering))
     print(f"ran in {elapsed} seconds")
 
 

@@ -13,12 +13,12 @@ def load():
     data_2 = common.load_data(common.DATASETS_DIR / "restaurant-2.csv")
 
     training_pairs = dedupe.training_data_link(data_1, data_2, "unique_id", 5000)
-    true_dupes = get_true_dupes(data_1, data_2)
 
-    return (data_1, data_2), settings_file, training_pairs, true_dupes
+    return (data_1, data_2), settings_file, training_pairs
 
 
-def get_true_dupes(data_1, data_2):
+def get_true_dupes(data):
+    data_1, data_2 = data
     all_data = data_1.copy()
     all_data.update(data_2)
 
@@ -51,7 +51,8 @@ def run(data: tuple[dict, dict], settings_file, training_pairs, kwargs):
     return deduper.join(data_1, data_2, **kwargs)
 
 
-def make_report(true_dupes, clustering):
+def make_report(data, clustering):
+    true_dupes = get_true_dupes(data)
     print("Evaluate Clustering")
     predicted_dupes = set(frozenset(pair) for pair, _ in clustering)
     return common.Report.from_scores(true_dupes, predicted_dupes)
@@ -60,7 +61,7 @@ def make_report(true_dupes, clustering):
 def cli():
     common.configure_logging()
 
-    data, settings_file, training_pairs, true_dupes = load()
+    data, settings_file, training_pairs = load()
 
     for kwargs in [
         {"threshold": 0.5},
@@ -72,7 +73,7 @@ def cli():
         clustering = run(data, settings_file, training_pairs, kwargs=kwargs)
         elapsed = time.time() - t0
 
-        print(make_report(true_dupes, clustering))
+        print(make_report(data, clustering))
         print(f"ran in {elapsed} seconds")
 
 
