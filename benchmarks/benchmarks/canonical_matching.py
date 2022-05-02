@@ -1,4 +1,3 @@
-import itertools
 import os
 import time
 
@@ -10,8 +9,8 @@ import common
 def load():
     settings_file = common.DATASETS_DIR / "canonical_data_matching_learned_settings"
 
-    data_1, _ = common.load_data(common.DATASETS_DIR / "restaurant-1.csv")
-    data_2, _ = common.load_data(common.DATASETS_DIR / "restaurant-2.csv")
+    data_1 = common.load_data(common.DATASETS_DIR / "restaurant-1.csv")
+    data_2 = common.load_data(common.DATASETS_DIR / "restaurant-2.csv")
 
     training_pairs = dedupe.training_data_link(data_1, data_2, "unique_id", 5000)
     true_dupes = get_true_dupes(data_1, data_2)

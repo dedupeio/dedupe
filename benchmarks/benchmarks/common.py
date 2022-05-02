@@ -27,7 +27,7 @@ def load_data(pathlike):
             clean_row = {k: pre_process(v) for (k, v) in row.items()}
             data_d[str(pathlike) + str(i)] = clean_row
 
-    return data_d, reader.fieldnames
+    return data_d
 
 
 def configure_logging() -> None:
@@ -39,7 +39,7 @@ def configure_logging() -> None:
         action="count",
         help="Increase verbosity (specify multiple times for more)",
     )
-    (opts, args) = optp.parse_args()
+    opts, _ = optp.parse_args()
     log_level = logging.WARNING
     if opts.verbose:
         if opts.verbose == 1:

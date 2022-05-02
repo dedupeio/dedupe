@@ -11,7 +11,7 @@ def load():
     settings_file = common.DATASETS_DIR / "canonical_learned_settings"
     data_file = common.DATASETS_DIR / "restaurant-nophone-training.csv"
 
-    data_d, _ = common.load_data(data_file)
+    data_d = common.load_data(data_file)
     training_pairs = dedupe.training_data_dedupe(data_d, "unique_id", 5000)
     true_dupes = common.get_true_dupes(data_d)
 
@@ -46,8 +46,8 @@ def run(data: dict, settings_file, training_pairs):
 def make_report(true_dupes, clustering):
     print("Evaluate Clustering")
     predicted_dupes = set([])
-    for dupes, score in clustering:
-        for pair in combinations(dupes, 2):
+    for cluser_id, _ in clustering:
+        for pair in combinations(cluser_id, 2):
             predicted_dupes.add(frozenset(pair))
 
     return common.Report.from_scores(true_dupes, predicted_dupes)
