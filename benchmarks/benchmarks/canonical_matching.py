@@ -3,7 +3,7 @@ import time
 
 import dedupe
 
-import common
+from benchmarks import common
 
 
 def get_true_dupes(data):

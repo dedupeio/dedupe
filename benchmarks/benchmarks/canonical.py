@@ -4,7 +4,7 @@ import time
 
 import dedupe
 
-import common
+from benchmarks import common
 
 
 def make_report(data, clustering):

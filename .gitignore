@@ -26,8 +26,7 @@ possible_classifiers
 .DS_Store
 mysql.cnf
 *settings
-Dedupe.egg-info/
-dedupe.egg-info/
+*.egg-info
 ENV
 dist
 .coverage
