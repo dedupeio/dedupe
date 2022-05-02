@@ -1,66 +1,19 @@
 from itertools import combinations, groupby
-import csv
 import os
 import time
-import optparse
-import logging
 
 import dedupe
 
-import exampleIO
-
-
-def canonicalImport(filename):
-    preProcess = exampleIO.preProcess
-
-    data_d = {}
-
-    with open(filename) as f:
-        reader = csv.DictReader(f)
-        for (i, row) in enumerate(reader):
-            clean_row = {k: preProcess(v) for (k, v) in row.items()}
-            data_d[i] = clean_row
-
-    return data_d, reader.fieldnames
-
-
-def evaluateDuplicates(found_dupes, true_dupes):
-    true_positives = found_dupes.intersection(true_dupes)
-    false_positives = found_dupes.difference(true_dupes)
-
-    print("found duplicate")
-    print(len(found_dupes))
-
-    print("precision")
-    print(1 - len(false_positives) / float(len(found_dupes)))
-
-    print("recall")
-    print(len(true_positives) / float(len(true_dupes)))
+import common
 
 
 if __name__ == "__main__":
-    optp = optparse.OptionParser()
-    optp.add_option(
-        "-v",
-        "--verbose",
-        dest="verbose",
-        action="count",
-        help="Increase verbosity (specify multiple times for more)",
-    )
-    (opts, args) = optp.parse_args()
-    log_level = logging.WARNING
-    if opts.verbose is not None:
-        if opts.verbose == 1:
-            log_level = logging.INFO
-        elif opts.verbose >= 2:
-            log_level = logging.DEBUG
-    logging.basicConfig()
-    logging.getLogger().setLevel(log_level)
+    common.configure_logging()
 
-    settings_file = "canonical_learned_settings"
-    raw_data = "tests/datasets/restaurant-nophone-training.csv"
+    settings_file = common.DATASETS_DIR / "canonical_learned_settings"
+    raw_data = common.DATASETS_DIR / "restaurant-nophone-training.csv"
 
-    data_d, header = canonicalImport(raw_data)
+    data_d, header = common.load_data(raw_data)
 
     training_pairs = dedupe.training_data_dedupe(data_d, "unique_id", 5000)
 
@@ -108,6 +61,6 @@ if __name__ == "__main__":
         for pair in combinations(dupes, 2):
             confirm_dupes.add(frozenset(pair))
 
-    evaluateDuplicates(confirm_dupes, duplicates)
+    common.print_report(confirm_dupes, duplicates)
 
     print("ran in ", time.time() - t0, "seconds")

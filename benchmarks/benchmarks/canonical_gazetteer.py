@@ -1,65 +1,19 @@
 import itertools
-import csv
 import os
 import time
-import optparse
-import logging
 
 import dedupe
 
-import exampleIO
-
-
-def canonicalImport(filename):
-    preProcess = exampleIO.preProcess
-    data_d = {}
-
-    with open(filename) as f:
-        reader = csv.DictReader(f)
-        for i, row in enumerate(reader):
-            clean_row = {k: preProcess(v) for (k, v) in row.items()}
-            data_d[filename + str(i)] = clean_row
-
-    return data_d, reader.fieldnames
-
-
-def evaluateDuplicates(found_dupes, true_dupes):
-    true_positives = found_dupes.intersection(true_dupes)
-    false_positives = found_dupes.difference(true_dupes)
-
-    print("found duplicate")
-    print(len(found_dupes))
-
-    print("precision")
-    print(1 - len(false_positives) / float(len(found_dupes)))
-
-    print("recall")
-    print(len(true_positives) / float(len(true_dupes)))
+import common
 
 
 if __name__ == "__main__":
+    common.configure_logging()
 
-    optp = optparse.OptionParser()
-    optp.add_option(
-        "-v",
-        "--verbose",
-        dest="verbose",
-        action="count",
-        help="Increase verbosity (specify multiple times for more)",
-    )
-    (opts, args) = optp.parse_args()
-    log_level = logging.WARNING
-    if opts.verbose:
-        if opts.verbose == 1:
-            log_level = logging.INFO
-        elif opts.verbose >= 2:
-            log_level = logging.DEBUG
-    logging.getLogger().setLevel(log_level)
+    settings_file = common.DATASETS_DIR / "canonical_gazetteer_learned_settings"
 
-    settings_file = "canonical_gazetteer_learned_settings"
-
-    data_1, header = canonicalImport("tests/datasets/restaurant-1.csv")
-    data_2, _ = canonicalImport("tests/datasets/restaurant-2.csv")
+    data_1, header = common.load_data(common.DATASETS_DIR / "restaurant-1.csv")
+    data_2, _ = common.load_data(common.DATASETS_DIR / "restaurant-2.csv")
 
     training_pairs = dedupe.training_data_link(data_1, data_2, "unique_id", 5000)
 
@@ -103,7 +57,6 @@ if __name__ == "__main__":
     gazetteer.unindex(data_2)
     gazetteer.index(data_2)
 
-    # print candidates
     print("clustering...")
     results = gazetteer.search(data_1, n_matches=1, generator=True)
 
@@ -112,4 +65,4 @@ if __name__ == "__main__":
         frozenset([a, b]) for a, result in results for b, score in result
     )
 
-    evaluateDuplicates(confirm_dupes_a, duplicates_s)
+    common.print_report(confirm_dupes_a, duplicates_s)

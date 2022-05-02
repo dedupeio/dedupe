@@ -62,17 +62,17 @@ jobs:
         coveralls
     - name: flake8
       run: |
-         flake8 dedupe tests
+         flake8 dedupe tests benchmarks/benchmarks
     - name: Static Testing
       run: |        
         mypy --ignore-missing-imports dedupe
     - name: Integration test, record link
       run: |
-        python tests/canonical_gazetteer.py -vv
-        python tests/canonical_matching.py -vv
+        python benchmarks/benchmarks/canonical_gazetteer.py -vv
+        python benchmarks/benchmarks/canonical_matching.py -vv
     - name: Integration test, dedupe
       run: |
-        python tests/canonical.py -vv
+        python benchmarks/benchmarks/canonical.py -vv
   finish:
     needs: test
     runs-on: ubuntu-latest

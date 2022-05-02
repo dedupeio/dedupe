@@ -7,6 +7,7 @@ class TimeSuite:
     An example benchmark that times the performance of various kinds
     of iterating over dictionaries in Python.
     """
+
     def setup(self):
         self.d = {}
         for x in range(500):
@@ -23,7 +24,7 @@ class TimeSuite:
     def time_range(self):
         d = self.d
         for key in range(500):
-            x = d[key]
+            x = d[key]  # noqa: F841
 
 
 class MemSuite:
