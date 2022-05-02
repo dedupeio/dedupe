@@ -1,4 +1,4 @@
-from itertools import combinations, groupby
+from itertools import combinations
 import os
 import time
 
@@ -7,30 +7,18 @@ import dedupe
 import common
 
 
-if __name__ == "__main__":
-    common.configure_logging()
-
+def load():
     settings_file = common.DATASETS_DIR / "canonical_learned_settings"
-    raw_data = common.DATASETS_DIR / "restaurant-nophone-training.csv"
+    data_file = common.DATASETS_DIR / "restaurant-nophone-training.csv"
 
-    data_d, header = common.load_data(raw_data)
-
+    data_d, _ = common.load_data(data_file)
     training_pairs = dedupe.training_data_dedupe(data_d, "unique_id", 5000)
+    true_dupes = common.get_true_dupes(data_d)
 
-    duplicates = set()
-    for _, pair in groupby(
-        sorted(data_d.items(), key=lambda x: x[1]["unique_id"]),
-        key=lambda x: x[1]["unique_id"],
-    ):
-        pair = list(pair)
-        if len(pair) == 2:
-            a, b = pair
-            duplicates.add(frozenset((a[0], b[0])))
+    return data_d, settings_file, training_pairs, true_dupes
 
-    t0 = time.time()
 
-    print("number of known duplicate pairs", len(duplicates))
-
+def run(data: dict, settings_file, training_pairs):
     if os.path.exists(settings_file):
         with open(settings_file, "rb") as f:
             deduper = dedupe.StaticDedupe(f)
@@ -45,22 +33,38 @@ if __name__ == "__main__":
         ]
 
         deduper = dedupe.Dedupe(fields, num_cores=5)
-        deduper.prepare_training(data_d, sample_size=10000)
+        deduper.prepare_training(data, sample_size=10000)
         deduper.mark_pairs(training_pairs)
         deduper.train(index_predicates=True)
         with open(settings_file, "wb") as f:
             deduper.write_settings(f)
 
-    # print candidates
     print("clustering...")
-    clustered_dupes = deduper.partition(data_d, threshold=0.5)
+    return deduper.partition(data, threshold=0.5)
 
+
+def make_report(true_dupes, clustering):
     print("Evaluate Clustering")
-    confirm_dupes = set([])
-    for dupes, score in clustered_dupes:
+    predicted_dupes = set([])
+    for dupes, score in clustering:
         for pair in combinations(dupes, 2):
-            confirm_dupes.add(frozenset(pair))
+            predicted_dupes.add(frozenset(pair))
 
-    print(common.Report.from_scores(duplicates, confirm_dupes))
+    return common.Report.from_scores(true_dupes, predicted_dupes)
 
-    print("ran in ", time.time() - t0, "seconds")
+
+def cli():
+    common.configure_logging()
+
+    data, settings_file, training_pairs, true_dupes = load()
+
+    t0 = time.time()
+    clustering = run(data, settings_file, training_pairs)
+    elapsed = time.time() - t0
+
+    print(make_report(true_dupes, clustering))
+    print(f"ran in {elapsed} seconds")
+
+
+if __name__ == "__main__":
+    cli()

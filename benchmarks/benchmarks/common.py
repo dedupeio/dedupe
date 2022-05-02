@@ -1,5 +1,6 @@
 import csv
 from dataclasses import dataclass
+from itertools import groupby
 import logging
 import optparse
 from pathlib import Path
@@ -46,6 +47,20 @@ def configure_logging() -> None:
         elif opts.verbose >= 2:
             log_level = logging.DEBUG
     logging.getLogger().setLevel(log_level)
+
+
+def get_true_dupes(data: dict) -> set:
+    duplicates = set()
+    for _, pair in groupby(
+        sorted(data.items(), key=lambda x: x[1]["unique_id"]),
+        key=lambda x: x[1]["unique_id"],
+    ):
+        pair = list(pair)
+        if len(pair) == 2:
+            a, b = pair
+            duplicates.add(frozenset((a[0], b[0])))
+    print(f"number of known duplicate pairs: {len(duplicates)}")
+    return duplicates
 
 
 @dataclass

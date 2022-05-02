@@ -4,35 +4,23 @@ import time
 
 import dedupe
 
-import common
+import common, canonical_matching
 
 
-if __name__ == "__main__":
-    common.configure_logging()
-
+def load():
     settings_file = common.DATASETS_DIR / "canonical_gazetteer_learned_settings"
 
-    data_1, header = common.load_data(common.DATASETS_DIR / "restaurant-1.csv")
+    data_1, _ = common.load_data(common.DATASETS_DIR / "restaurant-1.csv")
     data_2, _ = common.load_data(common.DATASETS_DIR / "restaurant-2.csv")
 
     training_pairs = dedupe.training_data_link(data_1, data_2, "unique_id", 5000)
+    true_dupes = canonical_matching.get_true_dupes(data_1, data_2)
 
-    all_data = data_1.copy()
-    all_data.update(data_2)
+    return (data_1, data_2), settings_file, training_pairs, true_dupes
 
-    duplicates_s = set()
-    for _, pair in itertools.groupby(
-        sorted(all_data.items(), key=lambda x: x[1]["unique_id"]),
-        key=lambda x: x[1]["unique_id"],
-    ):
-        pair = list(pair)
-        if len(pair) == 2:
-            a, b = pair
-            duplicates_s.add(frozenset((a[0], b[0])))
 
-    t0 = time.time()
-
-    print("number of known duplicate pairs", len(duplicates_s))
+def run(data: tuple[dict, dict], settings_file, training_pairs):
+    data_1, data_2 = data
 
     if os.path.exists(settings_file):
         with open(settings_file, "rb") as f:
@@ -58,11 +46,29 @@ if __name__ == "__main__":
     gazetteer.index(data_2)
 
     print("clustering...")
-    results = gazetteer.search(data_1, n_matches=1, generator=True)
+    return gazetteer.search(data_1, n_matches=1, generator=True)
 
+
+def make_report(true_dupes, clustering):
     print("Evaluate Clustering")
-    confirm_dupes_a = set(
-        frozenset([a, b]) for a, result in results for b, score in result
+    predicted_dupes = set(
+        frozenset([a, b]) for a, result in clustering for b, score in result
     )
+    return common.Report.from_scores(true_dupes, predicted_dupes)
 
-    print(common.Report.from_scores(duplicates_s, confirm_dupes_a))
+
+def cli():
+    common.configure_logging()
+
+    data, settings_file, training_pairs, true_dupes = load()
+
+    t0 = time.time()
+    clustering = run(data, settings_file, training_pairs)
+    elapsed = time.time() - t0
+
+    print(make_report(true_dupes, clustering))
+    print(f"ran in {elapsed} seconds")
+
+
+if __name__ == "__main__":
+    cli()
