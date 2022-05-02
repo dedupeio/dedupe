@@ -8,7 +8,6 @@ import common
 
 
 def make_report(data, clustering):
-    print("Evaluate Clustering")
     true_dupes = common.get_true_dupes(data)
     predicted_dupes = set([])
     for cluser_id, _ in clustering:
@@ -50,7 +49,6 @@ class Canonical:
             with open(self.settings_file, "wb") as f:
                 deduper.write_settings(f)
 
-        print("clustering...")
         return deduper.partition(self.data, threshold=0.5)
 
     def time_run(self):

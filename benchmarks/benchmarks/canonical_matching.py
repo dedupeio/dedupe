@@ -15,7 +15,6 @@ def get_true_dupes(data):
 
 def make_report(data, clustering):
     true_dupes = get_true_dupes(data)
-    print("Evaluate Clustering")
     predicted_dupes = set(frozenset(pair) for pair, _ in clustering)
     return common.Report.from_scores(true_dupes, predicted_dupes)
 
@@ -60,7 +59,6 @@ class Matching:
             with open(self.settings_file, "wb") as f:
                 deduper.write_settings(f)
 
-        print("clustering...")
         return deduper.join(data_1, data_2, **kwargs)
 
     def make_report(self, clustering):

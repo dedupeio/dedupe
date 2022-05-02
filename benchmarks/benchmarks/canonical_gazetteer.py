@@ -8,7 +8,6 @@ import common
 
 
 def make_report(data, clustering):
-    print("Evaluate Clustering")
     true_dupes = canonical_matching.get_true_dupes(data)
     predicted_dupes = set(
         frozenset([a, b]) for a, result in clustering for b, score in result
@@ -52,7 +51,6 @@ class Gazetteer(canonical_matching.Matching):
         gazetteer.unindex(data_2)
         gazetteer.index(data_2)
 
-        print("clustering...")
         return gazetteer.search(data_1, n_matches=1, generator=True)
 
 

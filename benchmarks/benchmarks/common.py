@@ -59,13 +59,13 @@ def get_true_dupes(data: dict) -> set:
         if len(pair) == 2:
             a, b = pair
             duplicates.add(frozenset((a[0], b[0])))
-    print(f"number of known duplicate pairs: {len(duplicates)}")
     return duplicates
 
 
 @dataclass
 class Report:
     # TODO add more and replace calculations with sklearn
+    n_true: int
     n_found: int
     precision: float
     recall: float
@@ -74,8 +74,9 @@ class Report:
     def from_scores(cls, true_dupes: set, found_dupes: set):
         true_positives = found_dupes.intersection(true_dupes)
 
+        n_true = len(true_dupes)
         n_found = len(found_dupes)
         precision = len(true_positives) / n_found
         recall = len(true_positives) / n_true
 
-        return cls(n_found, precision, recall)
+        return cls(n_true, n_found, precision, recall)
