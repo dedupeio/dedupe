@@ -1,6 +1,5 @@
 asv
 black
-cython
 flake8
 mock
 mypy
