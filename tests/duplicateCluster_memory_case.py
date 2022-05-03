@@ -24,8 +24,7 @@ import dedupe.dedupe  # noqa: F401
 def candidates_gen():
     candidate_set = set([])
     for _ in range(10**5):
-        block = [((random.randint(0, 1000), 'a'),
-                  (random.randint(0, 1000), 'b'))]
+        block = [((random.randint(0, 1000), "a"), (random.randint(0, 1000), "b"))]
         for candidate in block:
             pair_ids = (candidate[0][0], candidate[1][0])
             if pair_ids not in candidate_set:

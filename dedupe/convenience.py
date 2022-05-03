@@ -13,7 +13,14 @@ import numpy
 import dedupe
 from dedupe.core import unique
 from dedupe.canonical import getCanonicalRep
-from dedupe._typing import Data, TrainingData, RecordDict, TrainingExample, Literal, RecordID
+from dedupe._typing import (
+    Data,
+    TrainingData,
+    RecordDict,
+    TrainingExample,
+    Literal,
+    RecordID,
+)
 
 IndicesIterator = Iterator[Tuple[int, int]]
 
@@ -33,8 +40,9 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
         random_pairs = numpy.arange(n)
     else:
         try:
-            random_pairs = numpy.array(random.sample(range(n), sample_size),
-                                       dtype=numpy.uint)
+            random_pairs = numpy.array(
+                random.sample(range(n), sample_size), dtype=numpy.uint
+            )
         except OverflowError:
             return randomPairsWithReplacement(n_records, sample_size)
 
@@ -49,7 +57,9 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
     return zip(i, j)
 
 
-def randomPairsMatch(n_records_A: int, n_records_B: int, sample_size: int) -> IndicesIterator:
+def randomPairsMatch(
+    n_records_A: int, n_records_B: int, sample_size: int
+) -> IndicesIterator:
     """
     Return random combinations of indices for record list A and B
     """
@@ -73,14 +83,15 @@ def randomPairsWithReplacement(n_records: int, sample_size: int) -> IndicesItera
     warnings.warn("The same record pair may appear more than once in the sample")
 
     try:
-        random_indices = numpy.random.randint(n_records,
-                                              size=sample_size * 2)
+        random_indices = numpy.random.randint(n_records, size=sample_size * 2)
     except (OverflowError, ValueError):
-        max_int: int = numpy.iinfo('int').max
-        warnings.warn("Asked to sample pairs from %d records, will only sample pairs from first %d records" % (n_records, max_int))
+        max_int: int = numpy.iinfo("int").max
+        warnings.warn(
+            "Asked to sample pairs from %d records, will only sample pairs from first %d records"
+            % (n_records, max_int)
+        )
 
-        random_indices = numpy.random.randint(max_int,
-                                              size=sample_size * 2)
+        random_indices = numpy.random.randint(max_int, size=sample_size * 2)
 
     random_indices = random_indices.reshape((-1, 2))
     random_indices.sort(axis=1)
@@ -109,7 +120,7 @@ def _mark_pair(deduper: dedupe.api.ActiveMatching, labeled_pair: LabeledPair) ->
 
 
 def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cover
-    '''
+    """
     Train a matcher instance (Dedupe, RecordLink, or Gazetteer) from the command line.
     Example
 
@@ -118,7 +129,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
        > deduper = dedupe.Dedupe(variables)
        > deduper.prepare_training(data)
        > dedupe.console_label(deduper)
-    '''
+    """
 
     finished = False
     use_previous = False
@@ -141,44 +152,44 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
             except IndexError:
                 break
 
-        n_match = len(deduper.training_pairs['match']) + sum(
-            label == 'match' for _, label in labeled
+        n_match = len(deduper.training_pairs["match"]) + sum(
+            label == "match" for _, label in labeled
         )
-        n_distinct = len(deduper.training_pairs['distinct']) + sum(
-            label == 'distinct' for _, label in labeled
+        n_distinct = len(deduper.training_pairs["distinct"]) + sum(
+            label == "distinct" for _, label in labeled
         )
 
         for record in record_pair:
             for field in fields:
-                line = '%s : %s' % (field, record[field])
+                line = "%s : %s" % (field, record[field])
                 _print(line)
             _print()
-        _print('{0}/10 positive, {1}/10 negative'.format(n_match, n_distinct))
-        _print('Do these records refer to the same thing?')
+        _print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct))
+        _print("Do these records refer to the same thing?")
 
         valid_response = False
-        user_input = ''
+        user_input = ""
         while not valid_response:
             if labeled:
-                _print('(y)es / (n)o / (u)nsure / (f)inished / (p)revious')
-                valid_responses = {'y', 'n', 'u', 'f', 'p'}
+                _print("(y)es / (n)o / (u)nsure / (f)inished / (p)revious")
+                valid_responses = {"y", "n", "u", "f", "p"}
             else:
-                _print('(y)es / (n)o / (u)nsure / (f)inished')
-                valid_responses = {'y', 'n', 'u', 'f'}
+                _print("(y)es / (n)o / (u)nsure / (f)inished")
+                valid_responses = {"y", "n", "u", "f"}
             user_input = input()
             if user_input in valid_responses:
                 valid_response = True
 
-        if user_input == 'y':
-            labeled.insert(0, (record_pair, 'match'))
-        elif user_input == 'n':
-            labeled.insert(0, (record_pair, 'distinct'))
-        elif user_input == 'u':
-            labeled.insert(0, (record_pair, 'unsure'))
-        elif user_input == 'f':
-            _print('Finished labeling')
+        if user_input == "y":
+            labeled.insert(0, (record_pair, "match"))
+        elif user_input == "n":
+            labeled.insert(0, (record_pair, "distinct"))
+        elif user_input == "u":
+            labeled.insert(0, (record_pair, "unsure"))
+        elif user_input == "f":
+            _print("Finished labeling")
             finished = True
-        elif user_input == 'p':
+        elif user_input == "p":
             use_previous = True
             unlabeled.append(record_pair)
 
@@ -189,11 +200,10 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         _mark_pair(deduper, labeled_pair)
 
 
-def training_data_link(data_1: Data,
-                       data_2: Data,
-                       common_key: str,
-                       training_size: int = 50000) -> TrainingData:  # pragma: nocover
-    '''
+def training_data_link(
+    data_1: Data, data_2: Data, common_key: str, training_size: int = 50000
+) -> TrainingData:  # pragma: nocover
+    """
     Construct training data for consumption by the func:`mark_pairs`
     method from already linked datasets.
 
@@ -214,7 +224,7 @@ def training_data_link(data_1: Data,
          Every match must be identified by the sharing of a common key.
          This function assumes that if two records do not share a common key
          then they are distinct records.
-    '''
+    """
 
     identified_records: Dict[str, Tuple[List[RecordID], List[RecordID]]]
     identified_records = collections.defaultdict(lambda: ([], []))
@@ -234,30 +244,28 @@ def training_data_link(data_1: Data,
     keys_1 = list(data_1.keys())
     keys_2 = list(data_2.keys())
 
-    random_pairs = [(keys_1[i], keys_2[j])
-                    for i, j
-                    in randomPairsMatch(len(data_1), len(data_2),
-                                        training_size)]
+    random_pairs = [
+        (keys_1[i], keys_2[j])
+        for i, j in randomPairsMatch(len(data_1), len(data_2), training_size)
+    ]
 
-    distinct_pairs = {
-        pair for pair in random_pairs if pair not in matched_pairs}
+    distinct_pairs = {pair for pair in random_pairs if pair not in matched_pairs}
 
-    matched_records = [(data_1[key_1], data_2[key_2])
-                       for key_1, key_2 in matched_pairs]
-    distinct_records = [(data_1[key_1], data_2[key_2])
-                        for key_1, key_2 in distinct_pairs]
+    matched_records = [(data_1[key_1], data_2[key_2]) for key_1, key_2 in matched_pairs]
+    distinct_records = [
+        (data_1[key_1], data_2[key_2]) for key_1, key_2 in distinct_pairs
+    ]
 
     training_pairs: TrainingData
-    training_pairs = {'match': matched_records,
-                      'distinct': distinct_records}
+    training_pairs = {"match": matched_records, "distinct": distinct_records}
 
     return training_pairs
 
 
-def training_data_dedupe(data: Data,
-                         common_key: str,
-                         training_size: int = 50000) -> TrainingData:  # pragma: nocover
-    '''
+def training_data_dedupe(
+    data: Data, common_key: str, training_size: int = 50000
+) -> TrainingData:  # pragma: nocover
+    """
     Construct training data for consumption by the func:`mark_pairs`
     method from an already deduplicated dataset.
 
@@ -275,7 +283,7 @@ def training_data_dedupe(data: Data,
          Every match must be identified by the sharing of a common key.
          This function assumes that if two records do not share a common key
          then they are distinct records.
-    '''
+    """
 
     identified_records: Dict[str, List[RecordID]]
     identified_records = collections.defaultdict(list)
@@ -299,20 +307,16 @@ def training_data_dedupe(data: Data,
     pair_indices = randomPairs(len(unique_record_ids), training_size)
     distinct_pairs = set()
     for i, j in pair_indices:
-        distinct_pairs.add((unique_record_ids_l[i],
-                            unique_record_ids_l[j]))
+        distinct_pairs.add((unique_record_ids_l[i], unique_record_ids_l[j]))
 
     distinct_pairs -= matched_pairs
 
-    matched_records = [(data[key_1], data[key_2])
-                       for key_1, key_2 in matched_pairs]
+    matched_records = [(data[key_1], data[key_2]) for key_1, key_2 in matched_pairs]
 
-    distinct_records = [(data[key_1], data[key_2])
-                        for key_1, key_2 in distinct_pairs]
+    distinct_records = [(data[key_1], data[key_2]) for key_1, key_2 in distinct_pairs]
 
     training_pairs: TrainingData
-    training_pairs = {'match': matched_records,
-                      'distinct': distinct_records}
+    training_pairs = {"match": matched_records, "distinct": distinct_records}
 
     return training_pairs
 

@@ -1,3 +1,4 @@
+black
 pytest
 pytest-cov
 mock
