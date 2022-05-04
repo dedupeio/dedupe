@@ -1,6 +1,8 @@
+asv
 black
-pytest
-pytest-cov
+flake8
 mock
 mypy
-flake8
+pytest
+pytest-cov
+virtualenv

@@ -62,17 +62,19 @@ jobs:
         coveralls
     - name: flake8
       run: |
-         flake8 dedupe tests
-    - name: Static Testing
+         flake8 dedupe tests benchmarks/benchmarks
+    - name: mypy
       run: |        
         mypy --ignore-missing-imports dedupe
-    - name: Integration test, record link
+    - name: Benchmarking & Integration tests
+      # From https://github.com/pandas-dev/pandas/blob/60ac973e64ba364b345aea22bf988272536aa42f/.github/workflows/asv-bot.yml
       run: |
-        python tests/canonical_gazetteer.py -vv
-        python tests/canonical_matching.py -vv
-    - name: Integration test, dedupe
-      run: |
-        python tests/canonical.py -vv
+        cd benchmarks
+        asv check -E existing
+        git remote add upstream https://github.com/dedupeio/dedupe.git
+        git fetch upstream
+        asv machine --yes
+        asv continuous -f 1.1 upstream/main HEAD
   finish:
     needs: test
     runs-on: ubuntu-latest

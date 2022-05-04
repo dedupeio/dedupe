@@ -73,7 +73,7 @@ setup(
         "Documentation": "https://docs.dedupe.io/en/latest/",
         "Examples": "https://github.com/dedupeio/dedupe-examples",
         "Twitter": "https://twitter.com/DedupeIo",
-        "Changelog": "https://github.com/dedupeio/dedupe/blob/master/CHANGELOG.md",
+        "Changelog": "https://github.com/dedupeio/dedupe/blob/main/CHANGELOG.md",
         "Mailing List": "https://groups.google.com/forum/#!forum/open-source-deduplication",
     },
 )
