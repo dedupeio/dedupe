@@ -74,7 +74,7 @@ jobs:
         git remote add upstream https://github.com/dedupeio/dedupe.git
         git fetch upstream
         asv machine --yes
-        asv continuous -f 1.1 upstream/master HEAD
+        asv continuous -f 1.1 upstream/main HEAD
   finish:
     needs: test
     runs-on: ubuntu-latest
