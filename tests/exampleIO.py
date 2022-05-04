@@ -3,8 +3,8 @@ import re
 
 
 def preProcess(column):
-    column = re.sub('  +', ' ', column)
-    column = re.sub('\n', ' ', column)
+    column = re.sub("  +", " ", column)
+    column = re.sub("\n", " ", column)
     column = column.strip().strip('"').strip("'").lower()
     if not column:
         column = None
@@ -38,5 +38,5 @@ def print_csv(input_file, output_file, header, clustered_dupes):
         for id in orig_data:
             if id not in set(dupe_id_list):
                 row = orig_data[id]
-                row.insert(0, 'x')
+                row.insert(0, "x")
                 writer.writerow(row)

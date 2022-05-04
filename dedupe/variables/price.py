@@ -4,9 +4,11 @@ from .base import FieldType
 
 
 class PriceType(FieldType):
-    _predicate_functions = [predicates.orderOfMagnitude,
-                            predicates.wholeFieldPredicate,
-                            predicates.roundTo1]
+    _predicate_functions = [
+        predicates.orderOfMagnitude,
+        predicates.wholeFieldPredicate,
+        predicates.roundTo1,
+    ]
     type = "Price"
 
     @staticmethod

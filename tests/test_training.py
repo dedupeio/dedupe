@@ -6,52 +6,60 @@ import unittest
 class TrainingTest(unittest.TestCase):
     def setUp(self):
 
-        field_definition = [{'field': 'name', 'type': 'String'}]
+        field_definition = [{"field": "name", "type": "String"}]
         self.data_model = dedupe.Dedupe(field_definition).data_model
         self.training_pairs = {
-            'match': [({"name": "Bob", "age": "50"},
-                       {"name": "Bob", "age": "75"}),
-                      ({"name": "Meredith", "age": "40"},
-                       {"name": "Sue", "age": "10"})],
-            'distinct': [({"name": "Jimmy", "age": "20"},
-                          {"name": "Jimbo", "age": "21"}),
-                         ({"name": "Willy", "age": "35"},
-                          {"name": "William", "age": "35"}),
-                         ({"name": "William", "age": "36"},
-                          {"name": "William", "age": "35"})]
+            "match": [
+                ({"name": "Bob", "age": "50"}, {"name": "Bob", "age": "75"}),
+                ({"name": "Meredith", "age": "40"}, {"name": "Sue", "age": "10"}),
+            ],
+            "distinct": [
+                ({"name": "Jimmy", "age": "20"}, {"name": "Jimbo", "age": "21"}),
+                ({"name": "Willy", "age": "35"}, {"name": "William", "age": "35"}),
+                ({"name": "William", "age": "36"}, {"name": "William", "age": "35"}),
+            ],
         }
 
-        self.training = self.training_pairs['match'] + \
-            self.training_pairs['distinct']
+        self.training = self.training_pairs["match"] + self.training_pairs["distinct"]
         self.training_records = []
         for pair in self.training:
             for record in pair:
                 if record not in self.training_records:
                     self.training_records.append(record)
 
-        self.simple = lambda x: set([str(k) for k in x
-                                     if "CompoundPredicate" not in str(k)])
+        self.simple = lambda x: set(
+            [str(k) for k in x if "CompoundPredicate" not in str(k)]
+        )
 
         self.block_learner = training.BlockLearner
-        self.block_learner.blocker = dedupe.blocking.Fingerprinter(self.data_model.predicates())
-        self.block_learner.blocker.index_all({i: x for i, x in enumerate(self.training_records)})
+        self.block_learner.blocker = dedupe.blocking.Fingerprinter(
+            self.data_model.predicates()
+        )
+        self.block_learner.blocker.index_all(
+            {i: x for i, x in enumerate(self.training_records)}
+        )
 
     def test_dedupe_coverage(self):
         coverage = self.block_learner.cover(self.block_learner, self.training)
         assert self.simple(coverage.keys()).issuperset(
-            set(["SimplePredicate: (tokenFieldPredicate, name)",
-                 "SimplePredicate: (commonSixGram, name)",
-                 "TfidfTextCanopyPredicate: (0.4, name)",
-                 "SimplePredicate: (sortedAcronym, name)",
-                 "SimplePredicate: (sameThreeCharStartPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.2, name)",
-                 "SimplePredicate: (sameFiveCharStartPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.6, name)",
-                 "SimplePredicate: (wholeFieldPredicate, name)",
-                 "TfidfTextCanopyPredicate: (0.8, name)",
-                 "SimplePredicate: (commonFourGram, name)",
-                 "SimplePredicate: (firstTokenPredicate, name)",
-                 "SimplePredicate: (sameSevenCharStartPredicate, name)"]))
+            set(
+                [
+                    "SimplePredicate: (tokenFieldPredicate, name)",
+                    "SimplePredicate: (commonSixGram, name)",
+                    "TfidfTextCanopyPredicate: (0.4, name)",
+                    "SimplePredicate: (sortedAcronym, name)",
+                    "SimplePredicate: (sameThreeCharStartPredicate, name)",
+                    "TfidfTextCanopyPredicate: (0.2, name)",
+                    "SimplePredicate: (sameFiveCharStartPredicate, name)",
+                    "TfidfTextCanopyPredicate: (0.6, name)",
+                    "SimplePredicate: (wholeFieldPredicate, name)",
+                    "TfidfTextCanopyPredicate: (0.8, name)",
+                    "SimplePredicate: (commonFourGram, name)",
+                    "SimplePredicate: (firstTokenPredicate, name)",
+                    "SimplePredicate: (sameSevenCharStartPredicate, name)",
+                ]
+            )
+        )
 
     def test_uncovered_by(self):
         before = {1: {1, 2, 3}, 2: {1, 2}, 3: {3}}
@@ -67,8 +75,7 @@ class TrainingTest(unittest.TestCase):
         p1 = lambda x, target=None: (1,)  # noqa: E 731
 
         self.block_learner.blocker.predicates = (p1,)
-        cover = self.block_learner.cover(self.block_learner,
-                                         [('a', 'b')] * 2)
+        cover = self.block_learner.cover(self.block_learner, [("a", "b")] * 2)
 
         assert cover[p1] == {0, 1}
 
