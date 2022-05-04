@@ -17,8 +17,7 @@
     // uninstalling the project. See asv.conf.json documentation.
     //
     "install_command": [
-        "python -m pip install -r requirements.txt",
-        "python -m pip install -e benchmarks",
+        "python -m pip install ./benchmarks",
         "in-dir={env_dir} python -mpip install {wheel_file}"
     ],
     // "uninstall_command": ["return-code=any python -mpip uninstall -y {project}"],
