@@ -68,6 +68,7 @@ jobs:
         mypy --ignore-missing-imports dedupe
     - name: Benchmarking & Integration tests
       # From https://github.com/pandas-dev/pandas/blob/60ac973e64ba364b345aea22bf988272536aa42f/.github/workflows/asv-bot.yml
+      continue-on-error: true
       run: |
         cd benchmarks
         asv check -E existing
