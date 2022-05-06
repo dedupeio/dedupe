@@ -66,15 +66,16 @@ jobs:
     - name: mypy
       run: |        
         mypy --ignore-missing-imports dedupe
-    - name: Benchmarking & Integration tests
-      # From https://github.com/pandas-dev/pandas/blob/60ac973e64ba364b345aea22bf988272536aa42f/.github/workflows/asv-bot.yml
+    - name: Integration tests
+      # Do everything twice: The first time is training and generates settings,
+      # the second time it tests using a static settings file.
       run: |
-        cd benchmarks
-        asv check -E existing
-        git remote add upstream https://github.com/dedupeio/dedupe.git
-        git fetch upstream
-        asv machine --yes
-        asv continuous -f 1.1 upstream/main HEAD
+        python benchmarks/benchmarks/canonical.py
+        python benchmarks/benchmarks/canonical.py
+        python benchmarks/benchmarks/canonical_matching.py
+        python benchmarks/benchmarks/canonical_matching.py
+        python benchmarks/benchmarks/canonical_gazetteer.py
+        python benchmarks/benchmarks/canonical_gazetteer.py
   finish:
     needs: test
     runs-on: ubuntu-latest
