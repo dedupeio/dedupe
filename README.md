@@ -89,12 +89,14 @@ pytest
   
 Using Deduplication
 ```bash
-python tests/canonical.py
+python -m pip install -e ./benchmarks
+python benchmarks/benchmarks/canonical.py
 ```
 
 Using Record Linkage
 ```bash
-python tests/canonical_matching.py
+python -m pip install -e ./benchmarks
+python benchmarks/benchmarks/canonical_matching.py
 ```
 
 
