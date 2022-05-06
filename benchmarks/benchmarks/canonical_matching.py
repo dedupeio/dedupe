@@ -39,10 +39,10 @@ class Matching:
             data_1, data_2, "unique_id", 5000
         )
 
-    def run(self, kwargs):
+    def run(self, kwargs, use_settings=False):
         data_1, data_2 = self.data
 
-        if os.path.exists(self.settings_file):
+        if use_settings and os.path.exists(self.settings_file):
             with open(self.settings_file, "rb") as f:
                 deduper = dedupe.StaticRecordLink(f)
         else:
@@ -86,7 +86,7 @@ def cli():
         print()
         print(f"running with kwargs: {kwargs}")
         t0 = time.time()
-        clustering = m.run(kwargs=kwargs)
+        clustering = m.run(kwargs=kwargs, use_settings=True)
         elapsed = time.time() - t0
 
         print(m.make_report(clustering))

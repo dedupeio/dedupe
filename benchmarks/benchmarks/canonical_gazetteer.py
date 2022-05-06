@@ -25,10 +25,10 @@ class Gazetteer(canonical_matching.Matching):
     def make_report(self, clustering):
         return make_report(self.data, clustering)
 
-    def run(self, kwargs):
+    def run(self, kwargs, use_settings=False):
         data_1, data_2 = self.data
 
-        if os.path.exists(self.settings_file):
+        if use_settings and os.path.exists(self.settings_file):
             with open(self.settings_file, "rb") as f:
                 gazetteer = dedupe.StaticGazetteer(f)
         else:
@@ -61,7 +61,7 @@ def cli():
     gaz.setup(None)
 
     t0 = time.time()
-    clustering = gaz.run(None)
+    clustering = gaz.run(None, use_settings=True)
     elapsed = time.time() - t0
 
     print(gaz.make_report(clustering))

@@ -28,8 +28,8 @@ class Canonical:
     def make_report(self, clustering):
         return make_report(self.data, clustering)
 
-    def run(self):
-        if os.path.exists(self.settings_file):
+    def run(self, use_settings=False):
+        if use_settings and os.path.exists(self.settings_file):
             with open(self.settings_file, "rb") as f:
                 deduper = dedupe.StaticDedupe(f)
 
@@ -71,7 +71,7 @@ def cli():
     can.setup()
 
     t0 = time.time()
-    clustering = can.run()
+    clustering = can.run(use_settings=True)
     elapsed = time.time() - t0
 
     print(can.make_report(clustering))
