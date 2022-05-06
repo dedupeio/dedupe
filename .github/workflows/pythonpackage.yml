@@ -32,7 +32,7 @@ jobs:
           git push
   test:
     needs: format
-    timeout-minutes: 30
+    timeout-minutes: 40
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
