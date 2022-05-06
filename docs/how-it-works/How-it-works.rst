@@ -1,3 +1,5 @@
+.. _how-it-works-label:
+
 ############
 How it works
 ############

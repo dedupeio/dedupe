@@ -46,17 +46,20 @@ Contents
 
    API-documentation
    Variable-definition
-   How-it-works
+   Examples
+   how-it-works/How-it-works
+   Troubleshooting
    Bibliography
 
 
 Features
 ========
- * **machine learning** - reads in human labeled data to automatically create optimum weights and blocking rules
- * **runs on a laptop** - makes intelligent comparisons so you don't need a powerful server to run it
- * **built as a library** - so it can be integrated in to your applications or import scripts
- * **extensible** - supports adding custom data types, string comparators and blocking rules
- * **open source** - anyone can use, modify or add to it
+
+* **machine learning** - reads in human labeled data to automatically create optimum weights and blocking rules
+* **runs on a laptop** - makes intelligent comparisons so you don't need a powerful server to run it
+* **built as a library** - so it can be integrated in to your applications or import scripts
+* **extensible** - supports adding custom data types, string comparators and blocking rules
+* **open source** - anyone can use, modify or add to it
 
 Installation
 ============
@@ -64,23 +67,6 @@ Installation
 .. code-block:: bash
 
    pip install dedupe
-
-Using dedupe
-============
-
-Dedupe is a library and not a stand-alone command line tool. To
-demonstrate its usage, we have come up with a `few example recipes for
-different sized datasets for you
-<https://github.com/dedupeio/dedupe-examples/archive/0.5.zip>`__
-(`repo <https://github.com/dedupeio/dedupe-examples>`__, as well as
-annotated source code:
-
-* `Small data deduplication <http://dedupeio.github.io/dedupe-examples/docs/csv_example.html>`__
-* `Record Linkage <https://dedupeio.github.io/dedupe-examples/docs/record_linkage_example.html>`__
-* `Gazetter example <https://dedupeio.github.io/dedupe-examples/docs/gazetteer_example.html>`__
-* `MySQL example <https://dedupeio.github.io/dedupe-examples/docs/mysql_example.html>`__
-* `Postgres big dedupe example <https://dedupeio.github.io/dedupe-examples/docs/pgsql_big_dedupe_example.html>`__
-* `Patent Author Disambiguation <https://dedupeio.github.io/dedupe-examples/docs/patent_example.html>`__
 
 Errors / Bugs
 =============
@@ -110,6 +96,4 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

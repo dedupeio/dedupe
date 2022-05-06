@@ -4,32 +4,28 @@
 import itertools
 import tempfile
 import os
-import random
 import collections
-import warnings
 import functools
 import multiprocessing
 import multiprocessing.dummy
 import queue
-from typing import (Iterator,
-                    Tuple,
-                    Mapping,
-                    Sequence,
-                    Union,
-                    Generator,
-                    Optional,
-                    Any,
-                    Type,
-                    Iterable,
-                    overload)
+from typing import (
+    Iterator,
+    Tuple,
+    Mapping,
+    Sequence,
+    Union,
+    Generator,
+    Optional,
+    Any,
+    Type,
+    Iterable,
+    overload,
+)
 
 import numpy
 
-from dedupe._typing import (RecordPairs,
-                            RecordID,
-                            Blocks,
-                            Data,
-                            Literal)
+from dedupe._typing import RecordPairs, RecordID, Blocks, Data, Literal
 from dedupe.backport import RLock
 
 
@@ -38,88 +34,19 @@ class BlockingError(Exception):
 
 
 _Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
-IndicesIterator = Iterator[Tuple[int, int]]
-
-
-def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
-    """
-    Return random combinations of indices for a square matrix of size n
-    records. For a discussion of how this works see
-    http://stackoverflow.com/a/14839010/98080
-
-    """
-    n: int = n_records * (n_records - 1) // 2
-
-    if not sample_size:
-        return iter([])
-    elif sample_size >= n:
-        random_pairs = numpy.arange(n)
-    else:
-        try:
-            random_pairs = numpy.array(random.sample(range(n), sample_size),
-                                       dtype=numpy.uint)
-        except OverflowError:
-            return randomPairsWithReplacement(n_records, sample_size)
-
-    b: int = 1 - 2 * n_records
-
-    i = (-b - 2 * numpy.sqrt(2 * (n - random_pairs) + 0.25)) // 2
-    i = i.astype(numpy.uint)
-
-    j = random_pairs + i * (b + i + 2) // 2 + 1
-    j = j.astype(numpy.uint)
-
-    return zip(i, j)
-
-
-def randomPairsMatch(n_records_A: int, n_records_B: int, sample_size: int) -> IndicesIterator:
-    """
-    Return random combinations of indices for record list A and B
-    """
-    n: int = n_records_A * n_records_B
-
-    if not sample_size:
-        return iter([])
-    elif sample_size >= n:
-        random_pairs = numpy.arange(n)
-    else:
-        random_pairs = numpy.array(random.sample(range(n), sample_size))
-
-    i, j = numpy.unravel_index(random_pairs, (n_records_A, n_records_B))
-
-    return zip(i, j)
-
-
-def randomPairsWithReplacement(n_records: int, sample_size: int) -> IndicesIterator:
-    # If the population is very large relative to the sample
-    # size than we'll get very few duplicates by chance
-    warnings.warn("The same record pair may appear more than once in the sample")
-
-    try:
-        random_indices = numpy.random.randint(n_records,
-                                              size=sample_size * 2)
-    except (OverflowError, ValueError):
-        max_int: int = numpy.iinfo('int').max
-        warnings.warn("Asked to sample pairs from %d records, will only sample pairs from first %d records" % (n_records, max_int))
-
-        random_indices = numpy.random.randint(max_int,
-                                              size=sample_size * 2)
-
-    random_indices = random_indices.reshape((-1, 2))
-    random_indices.sort(axis=1)
-
-    return ((p.item(), q.item()) for p, q in random_indices)
 
 
 class ScoreDupes(object):
-    def __init__(self,
-                 data_model,
-                 classifier,
-                 records_queue: _Queue,
-                 exception_queue: _Queue,
-                 score_file_path: str,
-                 dtype: numpy.dtype,
-                 offset):
+    def __init__(
+        self,
+        data_model,
+        classifier,
+        records_queue: _Queue,
+        exception_queue: _Queue,
+        score_file_path: str,
+        dtype: numpy.dtype,
+        offset,
+    ):
         self.data_model = data_model
         self.classifier = classifier
         self.records_queue = records_queue
@@ -155,22 +82,23 @@ class ScoreDupes(object):
                 with self.offset.get_lock():
 
                     fp: numpy.memmap
-                    fp = numpy.memmap(self.score_file_path,
-                                      dtype=self.dtype,
-                                      offset=self.offset.value,
-                                      shape=(len(record_ids), ))
-                    fp['pairs'] = record_ids
-                    fp['score'] = scores
+                    fp = numpy.memmap(
+                        self.score_file_path,
+                        dtype=self.dtype,
+                        offset=self.offset.value,
+                        shape=(len(record_ids),),
+                    )
+                    fp["pairs"] = record_ids
+                    fp["score"] = scores
 
                     fp.flush()
 
                     self.offset.value += len(record_ids) * self.dtype.itemsize
 
 
-def scoreDuplicates(record_pairs: RecordPairs,
-                    data_model,
-                    classifier,
-                    num_cores: int = 1) -> Union[numpy.memmap, numpy.ndarray]:
+def scoreDuplicates(
+    record_pairs: RecordPairs, data_model, classifier, num_cores: int = 1
+) -> Union[numpy.memmap, numpy.ndarray]:
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
     else:
@@ -178,10 +106,12 @@ def scoreDuplicates(record_pairs: RecordPairs,
 
     first, record_pairs = peek(record_pairs)
     if first is None:
-        raise BlockingError("No records have been blocked together. "
-                            "Is the data you are trying to match like "
-                            "the data you trained on? If so, try adding "
-                            "more training data.")
+        raise BlockingError(
+            "No records have been blocked together. "
+            "Is the data you are trying to match like "
+            "the data you trained on? If so, try adding "
+            "more training data."
+        )
 
     record_pairs_queue: _Queue = Queue(2)
     exception_queue: _Queue = Queue()
@@ -190,22 +120,22 @@ def scoreDuplicates(record_pairs: RecordPairs,
 
     # explicitly defining the lock from the "spawn context" seems to
     # be necessary for python 3.7 on mac os.
-    offset = multiprocessing.Value('Q', 0, lock=RLock())
+    offset = multiprocessing.Value("Q", 0, lock=RLock())
 
     id_type = sniff_id_type(first)
-    dtype = numpy.dtype([('pairs', id_type, 2),
-                         ('score', 'f4')])
+    dtype = numpy.dtype([("pairs", id_type, 2), ("score", "f4")])
 
     n_map_processes = max(num_cores, 1)
-    score_records = ScoreDupes(data_model,
-                               classifier,
-                               record_pairs_queue,
-                               exception_queue,
-                               score_file_path,
-                               dtype,
-                               offset)
-    map_processes = [Process(target=score_records)
-                     for _ in range(n_map_processes)]
+    score_records = ScoreDupes(
+        data_model,
+        classifier,
+        record_pairs_queue,
+        exception_queue,
+        score_file_path,
+        dtype,
+        offset,
+    )
+    map_processes = [Process(target=score_records) for _ in range(n_map_processes)]
 
     for process in map_processes:
         process.start()
@@ -225,18 +155,16 @@ def scoreDuplicates(record_pairs: RecordPairs,
     scored_pairs: Union[numpy.memmap, numpy.ndarray]
 
     if offset.value:  # type: ignore
-        scored_pairs = numpy.memmap(score_file_path,
-                                    dtype=dtype)
+        scored_pairs = numpy.memmap(score_file_path, dtype=dtype)
     else:
         scored_pairs = numpy.array([], dtype=dtype)
 
     return scored_pairs
 
 
-def fillQueue(queue: _Queue,
-              iterable: RecordPairs,
-              stop_signals: int,
-              chunk_size: int = 20000) -> None:
+def fillQueue(
+    queue: _Queue, iterable: RecordPairs, stop_signals: int, chunk_size: int = 20000
+) -> None:
     iterable = iter(iterable)
 
     while True:
@@ -268,22 +196,19 @@ class ScoreGazette(object):
         id_type = sniff_id_type(record_ids)
         ids = numpy.array(record_ids, dtype=id_type)
 
-        dtype = numpy.dtype([('pairs', id_type, 2),
-                             ('score', 'f4')])
+        dtype = numpy.dtype([("pairs", id_type, 2), ("score", "f4")])
 
-        scored_pairs = numpy.empty(shape=len(scores),
-                                   dtype=dtype)
+        scored_pairs = numpy.empty(shape=len(scores), dtype=dtype)
 
-        scored_pairs['pairs'] = ids
-        scored_pairs['score'] = scores
+        scored_pairs["pairs"] = ids
+        scored_pairs["score"] = scores
 
         return scored_pairs
 
 
-def scoreGazette(record_pairs: Blocks,
-                 data_model,
-                 classifier,
-                 num_cores: int = 1) -> Generator[numpy.ndarray, None, None]:
+def scoreGazette(
+    record_pairs: Blocks, data_model, classifier, num_cores: int = 1
+) -> Generator[numpy.ndarray, None, None]:
 
     first, record_pairs = peek(record_pairs)
     if first is None:
@@ -315,9 +240,11 @@ def appropriate_imap(num_cores):
 
             def join(self):
                 pass
+
         pool = MockPool()
     else:
         from .backport import Pool
+
         pool = Pool(processes=num_cores)
         imap = functools.partial(pool.imap_unordered, chunksize=20000)
 
@@ -349,31 +276,12 @@ def index(data: Mapping[Any, Any], offset: int = 0) -> Mapping[int, Any]:
     if isIndexed(data, offset):
         return data
     else:
-        data = dict(zip(itertools.count(offset),
-                        data.values()))
+        data = dict(zip(itertools.count(offset), data.values()))
         return data
 
 
 def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
     return collections.defaultdict(itertools.count(start).__next__, initial)
-
-
-class DiagonalEnumerator(object):
-    def __init__(self, N: int):
-        self.C = 2 * N - 3
-
-    def __getitem__(self, pair: Tuple[int, int]) -> int:
-        x, y = pair
-        return x * (self.C - x) // 2 + y - 1
-
-
-class FullEnumerator(object):
-    def __init__(self, width: int):
-        self.width = width
-
-    def __getitem__(self, pair: Tuple[int, int]) -> int:
-        x, y = pair
-        return x * self.width + y
 
 
 @overload
@@ -386,7 +294,9 @@ def sniff_id_type(ids: Sequence[Tuple[str, str]]) -> Tuple[Type[str], int]:
     ...
 
 
-def sniff_id_type(ids: Sequence[Tuple[RecordID, RecordID]]) -> Union[Type[int], Tuple[Type[str], int]]:
+def sniff_id_type(
+    ids: Sequence[Tuple[RecordID, RecordID]]
+) -> Union[Type[int], Tuple[Type[str], int]]:
     example = ids[0][0]
     python_type = type(example)
     dtype: Union[Type[int], Tuple[Type[str], int]]
@@ -396,27 +306,27 @@ def sniff_id_type(ids: Sequence[Tuple[RecordID, RecordID]]) -> Union[Type[int], 
         int(example)  # make sure we can cast to int
         dtype = int
     else:
-        raise ValueError('Invalid type for record id')
+        raise ValueError("Invalid type for record id")
 
     return dtype
 
 
-def sqlite_id_type(data: Data) -> Literal['text', 'integer']:
+def sqlite_id_type(data: Data) -> Literal["text", "integer"]:
 
     example = next(iter(data.keys()))
     python_type = type(example)
 
     if python_type is bytes or python_type is str:
-        return 'text'
+        return "text"
     elif python_type is int:
-        return 'integer'
+        return "integer"
     else:
-        raise ValueError('Invalid type for record id')
+        raise ValueError("Invalid type for record id")
 
 
 def unique(seq: Iterable) -> list:
     """Return the unique elements of a collection even if those elements are
-       unhashable and unsortable, like dicts and sets"""
+    unhashable and unsortable, like dicts and sets"""
     cleaned: list = []
     for each in seq:
         if each not in cleaned:

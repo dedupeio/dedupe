@@ -32,8 +32,9 @@ class TfIdfIndex(Index):
         query_list = self._parseTerms(doc)
 
         if query_list:
-            results = [center for score, center
-                       in self._index.apply(query_list, threshold)]
+            results = [
+                center for score, center in self._index.apply(query_list, threshold)
+            ]
         else:
             results = []
 

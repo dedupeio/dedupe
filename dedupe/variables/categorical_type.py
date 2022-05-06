@@ -25,9 +25,9 @@ class CategoricalType(FieldType):
 
         self.higher_vars = []
         for higher_var in self.comparator.dummy_names:
-            dummy_var = DerivedType({'name': higher_var,
-                                     'type': 'Dummy',
-                                     'has missing': self.has_missing})
+            dummy_var = DerivedType(
+                {"name": higher_var, "type": "Dummy", "has missing": self.has_missing}
+            )
             self.higher_vars.append(dummy_var)
 
     def __len__(self):

@@ -4,52 +4,59 @@
 try:
     from setuptools import setup, Extension
 except ImportError:
-    raise ImportError("setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools")
+    raise ImportError(
+        "setuptools module required, please go to https://pypi.python.org/pypi/setuptools and follow the instructions for installing setuptools"
+    )
 
 from Cython.Build import cythonize
 
-install_requires = ["fastcluster; python_version < '3.10'",
-                    "fastcluster @ https://github.com/dmuellner/fastcluster/archive/dbbf09361745c422517095fe783960782f7cc370.zip ; python_version >= '3.10'",
-                    'dedupe-hcluster',
-                    'affinegap>=1.3',
-                    'categorical-distance>=1.9',
-                    'dedupe-variable-datetime',
-                    'rlr>=2.4.3',
-                    'numpy>=1.13',
-                    'doublemetaphone',
-                    'highered>=0.2.0',
-                    'simplecosine>=1.2',
-                    'haversine>=0.4.1',
-                    'BTrees>=4.1.4',
-                    'zope.index',
-                    'Levenshtein_search==1.4.5',
-                    'typing_extensions']
+install_requires = [
+    "fastcluster",
+    "dedupe-hcluster",
+    "affinegap>=1.3",
+    "categorical-distance>=1.9",
+    "dedupe-variable-datetime",
+    "rlr>=2.4.3",
+    "numpy>=1.13",
+    "doublemetaphone",
+    "highered>=0.2.0",
+    "simplecosine>=1.2",
+    "haversine>=0.4.1",
+    "BTrees>=4.1.4",
+    "zope.index",
+    "Levenshtein_search==1.4.5",
+    "typing_extensions",
+]
 
 
 setup(
-    name='dedupe',
-    url='https://github.com/dedupeio/dedupe',
-    version='2.0.13',
-    author='Forest Gregg',
-    author_email='fgregg@datamade.us',
-    description='A python library for accurate and scaleable data deduplication and entity-resolution',
-    packages=['dedupe', 'dedupe.variables'],
-    ext_modules=cythonize([Extension('dedupe.cpredicates', ['dedupe/cpredicates.pyx'])]),
+    name="dedupe",
+    url="https://github.com/dedupeio/dedupe",
+    version="2.0.14",
+    author="Forest Gregg",
+    author_email="fgregg@datamade.us",
+    description="A python library for accurate and scaleable data deduplication and entity-resolution",
+    packages=["dedupe", "dedupe.variables"],
+    ext_modules=cythonize(
+        [Extension("dedupe.cpredicates", ["dedupe/cpredicates.pyx"])]
+    ),
     install_requires=install_requires,
+    python_requires=">3.6",
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: MIT License',
-        'Natural Language :: English',
-        'Operating System :: MacOS :: MacOS X',
-        'Operating System :: Microsoft :: Windows',
-        'Operating System :: POSIX',
-        'Programming Language :: Cython',
-        'Programming Language :: Python :: 3',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Information Analysis'],
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX",
+        "Programming Language :: Cython",
+        "Programming Language :: Python :: 3",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Information Analysis",
+    ],
     long_description="""
     dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data. dedupe is the open source engine for `dedupe.io <https://dedupe.io>`_
 
@@ -66,7 +73,7 @@ setup(
         "Documentation": "https://docs.dedupe.io/en/latest/",
         "Examples": "https://github.com/dedupeio/dedupe-examples",
         "Twitter": "https://twitter.com/DedupeIo",
-        "Changelog": "https://github.com/dedupeio/dedupe/blob/master/CHANGELOG.md",
+        "Changelog": "https://github.com/dedupeio/dedupe/blob/main/CHANGELOG.md",
         "Mailing List": "https://groups.google.com/forum/#!forum/open-source-deduplication",
-    }
+    },
 )

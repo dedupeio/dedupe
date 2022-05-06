@@ -8,31 +8,30 @@ from future.utils import viewitems, viewvalues
 class BlockingTest(unittest.TestCase):
     def setUp(self):
 
-        field_definition = [{'field': 'name', 'type': 'String'}]
+        field_definition = [{"field": "name", "type": "String"}]
         self.data_model = dedupe.Dedupe(field_definition).data_model
         self.training_pairs = {
-            'match': [({"name": "Bob", "age": "50"},
-                       {"name": "Bob", "age": "75"}),
-                      ({"name": "Meredith", "age": "40"},
-                       {"name": "Sue", "age": "10"})],
-            'distinct': [({"name": "Jimmy", "age": "20"},
-                          {"name": "Jimbo", "age": "21"}),
-                         ({"name": "Willy", "age": "35"},
-                          {"name": "William", "age": "35"}),
-                         ({"name": "William", "age": "36"},
-                          {"name": "William", "age": "35"})]
+            "match": [
+                ({"name": "Bob", "age": "50"}, {"name": "Bob", "age": "75"}),
+                ({"name": "Meredith", "age": "40"}, {"name": "Sue", "age": "10"}),
+            ],
+            "distinct": [
+                ({"name": "Jimmy", "age": "20"}, {"name": "Jimbo", "age": "21"}),
+                ({"name": "Willy", "age": "35"}, {"name": "William", "age": "35"}),
+                ({"name": "William", "age": "36"}, {"name": "William", "age": "35"}),
+            ],
         }
 
-        self.training = self.training_pairs['match'] + \
-            self.training_pairs['distinct']
+        self.training = self.training_pairs["match"] + self.training_pairs["distinct"]
         self.training_records = []
         for pair in self.training:
             for record in pair:
                 if record not in self.training_records:
                     self.training_records.append(record)
 
-        self.simple = lambda x: set([str(k) for k in x
-                                     if "CompoundPredicate" not in str(k)])
+        self.simple = lambda x: set(
+            [str(k) for k in x if "CompoundPredicate" not in str(k)]
+        )
 
 
 class TfidfTest(unittest.TestCase):
@@ -53,23 +52,19 @@ class TfidfTest(unittest.TestCase):
     def test_unconstrained_inverted_index(self):
 
         blocker = dedupe.blocking.Fingerprinter(
-            [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")])
+            [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")]
+        )
 
-        blocker.index(set(record["name"]
-                          for record
-                          in viewvalues(self.data_d)),
-                      "name")
+        blocker.index(set(record["name"] for record in viewvalues(self.data_d)), "name")
 
         blocks = defaultdict(set)
 
         for block_key, record_id in blocker(self.data_d.items()):
             blocks[block_key].add(record_id)
 
-        blocks = set([frozenset(block) for block in blocks.values()
-                      if len(block) > 1])
+        blocks = set([frozenset(block) for block in blocks.values() if len(block) > 1])
 
-        assert blocks ==\
-            set([frozenset([120, 125]), frozenset([130, 135])])
+        assert blocks == set([frozenset([120, 125]), frozenset([130, 135])])
 
 
 class TfIndexUnindex(unittest.TestCase):
@@ -88,17 +83,20 @@ class TfIndexUnindex(unittest.TestCase):
         }
 
         self.blocker = dedupe.blocking.Fingerprinter(
-            [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")])
+            [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")]
+        )
 
-        self.records_1 = dict((record_id, record)
-                              for record_id, record
-                              in viewitems(data_d)
-                              if record["dataset"] == 0)
+        self.records_1 = dict(
+            (record_id, record)
+            for record_id, record in viewitems(data_d)
+            if record["dataset"] == 0
+        )
 
-        self.fields_2 = dict((record_id, record["name"])
-                             for record_id, record
-                             in viewitems(data_d)
-                             if record["dataset"] == 1)
+        self.fields_2 = dict(
+            (record_id, record["name"])
+            for record_id, record in viewitems(data_d)
+            if record["dataset"] == 1
+        )
 
     def test_index(self):
         self.blocker.index(set(self.fields_2.values()), "name")

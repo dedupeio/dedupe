@@ -7,7 +7,6 @@ import rlr
 from typing import List
 from typing_extensions import Protocol
 
-import dedupe.sampling as sampling
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.datamodel as datamodel
@@ -17,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class ActiveLearner(ABC):
-
     @abstractmethod
     def transform(self) -> None:
         pass
@@ -40,56 +38,6 @@ class HasDataModel(Protocol):
     data_model: datamodel.DataModel
 
 
-class DedupeSampler(object):
-
-    def _sample(self: HasDataModel, data, blocked_proportion, sample_size) -> List[TrainingExample]:
-        blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
-
-        data = sampling.randomDeque(data)
-        blocked_sample_keys = sampling.dedupeBlockedSample(blocked_sample_size,
-                                                           predicates,
-                                                           data)
-
-        random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = set(core.randomPairs(len(data),
-                                                  random_sample_size))
-        data = dict(data)
-
-        return [(data[k1], data[k2])
-                for k1, k2
-                in blocked_sample_keys | random_sample_keys]
-
-
-class RecordLinkSampler(object):
-
-    def _sample(self: HasDataModel, data_1, data_2, blocked_proportion, sample_size) -> List[TrainingExample]:
-        offset = len(data_1)
-
-        blocked_sample_size = int(blocked_proportion * sample_size)
-        predicates = list(self.data_model.predicates(index_predicates=False))
-
-        deque_1 = sampling.randomDeque(data_1)
-        deque_2 = sampling.randomDeque(data_2)
-
-        blocked_sample_keys = sampling.linkBlockedSample(blocked_sample_size,
-                                                         predicates,
-                                                         deque_1,
-                                                         deque_2)
-
-        random_sample_size = sample_size - len(blocked_sample_keys)
-        random_sample_keys = core.randomPairsMatch(len(deque_1),
-                                                   len(deque_2),
-                                                   random_sample_size)
-
-        unique_random_sample_keys = {(a, b + offset)
-                                     for a, b in random_sample_keys}
-
-        return [(data_1[k1], data_2[k2])
-                for k1, k2
-                in blocked_sample_keys | unique_random_sample_keys]
-
-
 class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
     def __init__(self, data_model):
         super().__init__(alpha=1)
@@ -108,8 +56,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
 
         random_pair = random.choice(self._candidates)
         exact_match = (random_pair[0], random_pair[0])
-        self.fit_transform([exact_match, random_pair],
-                           [1, 0])
+        self.fit_transform([exact_match, random_pair], [1, 0])
 
     def transform(self, pairs):
         return self.data_model.distances(pairs)
@@ -177,23 +124,9 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         return len(self.candidates)
 
 
-class DedupeRLRLearner(DedupeSampler, RLRLearner):
-    def __init__(self, data_model, data, blocked_proportion, sample_size):
-        super().__init__(data_model)
-        self.candidates = self._sample(data, blocked_proportion, sample_size)
-
-
-class RecordLinkRLRLearner(RecordLinkSampler, RLRLearner):
-    def __init__(self, data_model, data_1, data_2, blocked_proportion, sample_size):
-        super.__init__(data_model)
-        self.candidates = self._sample(data_1, data_2, blocked_proportion, sample_size)
-
-
 class BlockLearner(object):
-
-    def __init__(self, data_model, candidates, *args):
+    def __init__(self, data_model, *args):
         self.data_model = data_model
-        self.candidates = candidates
 
         self.current_predicates = ()
 
@@ -206,11 +139,10 @@ class BlockLearner(object):
         dupes = [pair for label, pair in zip(y, pairs) if label]
 
         new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
-        new_uncovered = (not all(self.predict(new_dupes)))
+        new_uncovered = not all(self.predict(new_dupes))
 
         if new_uncovered:
-            self.current_predicates = self.block_learner.learn(dupes,
-                                                               recall=1.0)
+            self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
             self._cached_labels = None
             self._old_dupes = dupes
 
@@ -238,28 +170,27 @@ class BlockLearner(object):
 
     def _remove(self, index):
         if self._cached_labels is not None:
-            self._cached_labels = numpy.delete(self._cached_labels,
-                                               index,
-                                               axis=0)
+            self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
 
 
 class DedupeBlockLearner(BlockLearner):
+    def __init__(self, data_model, data, index_include):
+        super().__init__(data_model)
 
-    def __init__(self, data_model,
-                 candidates,
-                 data,
-                 index_include):
-        super().__init__(data_model, candidates)
+        N_SAMPLED_RECORDS = 5000
+        N_SAMPLED_RECORD_PAIRS = 10000
 
         index_data = Sample(data, 50000)
-        sampled_records = Sample(index_data, 5000)
+        sampled_records = Sample(index_data, N_SAMPLED_RECORDS)
         preds = self.data_model.predicates()
 
-        self.block_learner = training.DedupeBlockLearner(preds,
-                                                         sampled_records,
-                                                         index_data)
+        self.block_learner = training.DedupeBlockLearner(
+            preds, sampled_records, index_data
+        )
 
-        examples_to_index = candidates.copy()
+        self.candidates = self._sample(sampled_records, N_SAMPLED_RECORD_PAIRS)
+        examples_to_index = self.candidates.copy()
+
         if index_include:
             examples_to_index += index_include
 
@@ -278,30 +209,57 @@ class DedupeBlockLearner(BlockLearner):
         for pred in blocker.index_predicates:
             pred.freeze(records)
 
+    def _sample(self, data, sample_size):
+
+        weights = {}
+        for predicate, covered in self.block_learner.comparison_cover.items():
+            # each predicate gets to vote for every record pair it covers. the
+            # strength of that vote is in inverse proportion to the number of
+            # records the predicate covers.
+            #
+            # if a predicate only covers a few record pairs, the value of
+            # the vote it puts on those few pairs will be worth more than
+            # a predicate that covers almost all the record pairs
+            weight = 1 / len(covered)
+            for pair in covered:
+                weights[pair] = weights.get(pair, 0) + weight
+
+        # consider using a reservoir sampling strategy, which would
+        # be more memory efficient and probably about as fast
+        normalized_weights = numpy.fromiter(weights.values(), dtype=float) / sum(
+            weights.values()
+        )
+        rng = numpy.random.default_rng()
+        sample_indices = rng.choice(
+            len(weights), size=sample_size, replace=False, p=normalized_weights
+        )
+        keys = list(weights.keys())
+        return [(data[keys[i][0]], data[keys[i][1]]) for i in sample_indices]
+
 
 class RecordLinkBlockLearner(BlockLearner):
+    def __init__(self, data_model, data_1, data_2, index_include):
 
-    def __init__(self,
-                 data_model,
-                 candidates,
-                 data_1,
-                 data_2,
-                 index_include):
+        super().__init__(data_model)
 
-        super().__init__(data_model, candidates)
+        N_SAMPLED_RECORDS = 1000
+        N_SAMPLED_RECORD_PAIRS = 5000
 
-        sampled_records_1 = Sample(data_1, 600)
+        sampled_records_1 = Sample(data_1, N_SAMPLED_RECORDS)
         index_data = Sample(data_2, 50000)
-        sampled_records_2 = Sample(index_data, 600)
+        sampled_records_2 = Sample(index_data, N_SAMPLED_RECORDS)
 
         preds = self.data_model.predicates(canopies=False)
 
-        self.block_learner = training.RecordLinkBlockLearner(preds,
-                                                             sampled_records_1,
-                                                             sampled_records_2,
-                                                             index_data)
+        self.block_learner = training.RecordLinkBlockLearner(
+            preds, sampled_records_1, sampled_records_2, index_data
+        )
 
-        examples_to_index = candidates.copy()
+        self.candidates = self._sample(
+            sampled_records_1, sampled_records_2, N_SAMPLED_RECORD_PAIRS
+        )
+        examples_to_index = self.candidates.copy()
+
         if index_include:
             examples_to_index += index_include
 
@@ -321,6 +279,35 @@ class RecordLinkBlockLearner(BlockLearner):
 
         for pred in blocker.index_predicates:
             pred.freeze(A, B)
+
+    def _sample(self, data_1, data_2, sample_size):
+
+        weights = {}
+        for predicate, covered in self.block_learner.comparison_cover.items():
+            # each predicate gets to vote for every record pair it covers. the
+            # strength of that vote is in inverse proportion to the number of
+            # records the predicate covers.
+            #
+            # if a predicate only covers a few record pairs, the value of
+            # the vote it puts on those few pairs will be worth more than
+            # a predicate that covers almost all the record pairs
+            if not len(covered):
+                print(predicate)
+            weight = 1 / len(covered)
+            for pair in covered:
+                weights[pair] = weights.get(pair, 0) + weight
+
+        # consider using a reservoir sampling strategy, which would
+        # be more memory efficient and probably about as fast
+        normalized_weights = numpy.fromiter(weights.values(), dtype=float) / sum(
+            weights.values()
+        )
+        rng = numpy.random.default_rng()
+        sample_indices = rng.choice(
+            len(weights), size=sample_size, replace=False, p=normalized_weights
+        )
+        keys = list(weights.keys())
+        return [(data_1[keys[i][0]], data_2[keys[i][1]]) for i in sample_indices]
 
 
 class DisagreementLearner(ActiveLearner):
@@ -356,9 +343,11 @@ class DisagreementLearner(ActiveLearner):
         else:
             uncertain_index = numpy.std(probs, axis=1).argmax()
 
-        logger.debug("Classifier: %.2f, Covered: %s",
-                     probs[uncertain_index][0],
-                     bool(probs[uncertain_index][1]))
+        logger.debug(
+            "Classifier: %.2f, Covered: %s",
+            probs[uncertain_index][0],
+            bool(probs[uncertain_index][1]),
+        )
 
         uncertain_pair = self.candidates.pop(uncertain_index)
 
@@ -387,67 +376,59 @@ class DisagreementLearner(ActiveLearner):
         if not index_predicates:
             old_preds = self.blocker.block_learner.blocker.predicates.copy()
 
-            no_index_predicates = [pred for pred in old_preds
-                                   if not hasattr(pred, 'index')]
+            no_index_predicates = [
+                pred for pred in old_preds if not hasattr(pred, "index")
+            ]
             self.blocker.block_learner.blocker.predicates = no_index_predicates
 
-            learned_preds = self.blocker.block_learner.learn(dupes,
-                                                             recall=recall,
-                                                             candidate_types='random forest')
+            learned_preds = self.blocker.block_learner.learn(
+                dupes, recall=recall, candidate_types="random forest"
+            )
 
             self.blocker.block_learner.blocker.predicates = old_preds
 
         else:
-            learned_preds = self.blocker.block_learner.learn(dupes,
-                                                             recall=recall,
-                                                             candidate_types='random forest')
+            learned_preds = self.blocker.block_learner.learn(
+                dupes, recall=recall, candidate_types="random forest"
+            )
 
         return learned_preds
 
 
-class DedupeDisagreementLearner(DedupeSampler, DisagreementLearner):
-
-    def __init__(self,
-                 data_model,
-                 data,
-                 blocked_proportion,
-                 sample_size,
-                 index_include):
+class DedupeDisagreementLearner(DisagreementLearner):
+    def __init__(
+        self, data_model, data, blocked_proportion, sample_size, index_include
+    ):
 
         self.data_model = data_model
 
         data = core.index(data)
 
-        self.candidates = self._sample(data, blocked_proportion, sample_size)
-
-        random_pair = random.choice(self.candidates)
+        random_pair = (
+            random.choice(list(data.values())),
+            random.choice(list(data.values())),
+        )
         exact_match = (random_pair[0], random_pair[0])
 
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = DedupeBlockLearner(data_model,
-                                          self.candidates,
-                                          data,
-                                          index_include)
+        self.blocker = DedupeBlockLearner(data_model, data, index_include)
+
+        self.candidates = self.blocker.candidates
+
         self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
 
-        self.mark([exact_match] * 4 + [random_pair],
-                  [1] * 4 + [0])
+        self.mark([exact_match] * 4 + [random_pair], [1] * 4 + [0])
 
 
-class RecordLinkDisagreementLearner(RecordLinkSampler, DisagreementLearner):
-
-    def __init__(self,
-                 data_model,
-                 data_1,
-                 data_2,
-                 blocked_proportion,
-                 sample_size,
-                 index_include):
+class RecordLinkDisagreementLearner(DisagreementLearner):
+    def __init__(
+        self, data_model, data_1, data_2, blocked_proportion, sample_size, index_include
+    ):
 
         self.data_model = data_model
 
@@ -456,33 +437,27 @@ class RecordLinkDisagreementLearner(RecordLinkSampler, DisagreementLearner):
         offset = len(data_1)
         data_2 = core.index(data_2, offset)
 
-        self.candidates = self._sample(data_1,
-                                       data_2,
-                                       blocked_proportion,
-                                       sample_size)
-
-        random_pair = random.choice(self.candidates)
+        random_pair = (
+            random.choice(list(data_1.values())),
+            random.choice(list(data_2.values())),
+        )
         exact_match = (random_pair[0], random_pair[0])
 
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = RecordLinkBlockLearner(data_model,
-                                              self.candidates,
-                                              data_1,
-                                              data_2,
-                                              index_include)
+        self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
+        self.candidates = self.blocker.candidates
+
         self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
 
-        self.mark([exact_match] * 4 + [random_pair],
-                  [1] * 4 + [0])
+        self.mark([exact_match] * 4 + [random_pair], [1] * 4 + [0])
 
 
 class Sample(dict):
-
     def __init__(self, d, sample_size):
         if len(d) <= sample_size:
             super().__init__(d)
