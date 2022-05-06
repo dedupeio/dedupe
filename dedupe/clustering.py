@@ -70,13 +70,13 @@ def _connected_components(
         if upper_bound_components > max_components:
             # which we can refine using a more expensive operation
             # if it's possible we have too many components
-            n_components = len(numpy.unique(sub_graph['pairs']))
+            n_components = len(numpy.unique(sub_graph["pairs"]))
             if n_components > max_components:
                 needs_filtering = True
-                
+
         if needs_filtering:
-            
-            min_score = numpy.min(sub_graph['score'])
+
+            min_score = numpy.min(sub_graph["score"])
             min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
             logger.warning(
@@ -170,12 +170,11 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
     # stable sorts in numpy take about n / 2 work space so we won't
     # tod it if scored_pairs is too big
     if True or len(scored_pairs) > 2500000:
-        scored_pairs.sort(order=('label', 'score'))
+        scored_pairs.sort(order=("label", "score"))
     else:
-        scored_pairs.sort(order=('label', 'score'), kind='stable')
-        
-    return numpy.cumsum(numpy.unique(scored_pairs['label'],
-                                     return_counts=True)[1])
+        scored_pairs.sort(order=("label", "score"), kind="stable")
+
+    return numpy.cumsum(numpy.unique(scored_pairs["label"], return_counts=True)[1])
 
 
 def condensedDistance(
