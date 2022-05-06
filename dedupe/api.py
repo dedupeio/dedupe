@@ -1034,6 +1034,7 @@ class ActiveMatching(Matching):
     """
     Class for training a matcher.
     """
+
     classifier = sklearn.ensemble.RandomForestClassifier()
 
     def __init__(
