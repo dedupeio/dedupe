@@ -3,7 +3,9 @@ from dedupe import predicates
 
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
-from simplecosine.cosine import CosineTextSimilarity
+
+import sklearn.feature_extraction.text
+import sklearn.metrics.pairwise
 
 from typing import Optional
 
@@ -103,4 +105,15 @@ class TextType(BaseStringType):
         if "corpus" not in definition:
             definition["corpus"] = []
 
-        self.comparator = CosineTextSimilarity(definition["corpus"])
+        corpus = (doc for doc in definition["corpus"] if doc)
+
+        self.vectorizer = sklearn.feature_extraction.text.TfidfVectorizer()
+        self.vectorizer.fit(corpus)
+
+        self._cosine = sklearn.metrics.pairwise.cosine_similarity
+
+    def comparator(self, field_1, field_2):
+
+        return self._cosine(
+            self.vectorizer.transform([field_1]), self.vectorizer.transform([field_2])
+        )

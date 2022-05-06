@@ -18,7 +18,6 @@ install_requires = [
     "numpy>=1.13",
     "doublemetaphone",
     "highered>=0.2.0",
-    "simplecosine>=1.2",
     "haversine>=0.4.1",
     "BTrees>=4.1.4",
     "zope.index",
