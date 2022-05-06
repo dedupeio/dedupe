@@ -161,15 +161,15 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
     # we want our selections to remain memmapped arrays so we sort and
     # get the indices where the components change. This will allow us
     # to slice pieces of the memmapped array, and have those slices
-    # will also be memmaped arrays.
+    # also be memmaped arrays.
     #
     # Since we we might be calling union_find recursively it would be
-    # good to use a stable sort to take advantage of sorting does in a
+    # good to use a stable sort to take advantage of sorting done in a
     # previous recursion.
     #
     # stable sorts in numpy take about n / 2 work space so we won't
-    # tod it if scored_pairs is too big
-    if True or len(scored_pairs) > 2500000:
+    # do it if scored_pairs is too big
+    if len(scored_pairs) > 2500000:
         scored_pairs.sort(order=("label", "score"))
     else:
         scored_pairs.sort(order=("label", "score"), kind="stable")
