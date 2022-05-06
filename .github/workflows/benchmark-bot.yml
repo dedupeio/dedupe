@@ -48,7 +48,7 @@ jobs:
         continue-on-error: true # This is a fake failure, asv will exit code 1 for regressions
         run: |
           # extracting the regex, see https://stackoverflow.com/a/36798723
-          REGEX=$(echo "$COMMENT" | sed -n "s/^.*-b\s*\(\S*\).*$/\1/p")
+          REGEX=$(echo "$COMMENT" | sed -n "s/^@benchmark\s\+-b\s*\(\S*\).*$/\1/p")
           if [ -z "$REGEX" ]; then
             BENCHMARKS=""
           else
