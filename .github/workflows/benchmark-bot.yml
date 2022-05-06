@@ -42,6 +42,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install .
 
       - name: Run benchmarks
         id: bench
