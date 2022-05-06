@@ -70,6 +70,7 @@ jobs:
       # Do everything twice: The first time is training and generates settings,
       # the second time it tests using a static settings file.
       run: |
+        python -m pip install ./benchmarks
         python benchmarks/benchmarks/canonical.py
         python benchmarks/benchmarks/canonical.py
         python benchmarks/benchmarks/canonical_matching.py
