@@ -1,17 +1,6 @@
 from .base import FieldType
 from dedupe import predicates
-
-import sklearn.feature_extraction.text
-import sklearn.metrics.pairwise
-
-
-def no_op(x):
-    return x
-
-
-class TfidfSetVectorizer(sklearn.feature_extraction.text.TfidfVectorizer):
-    def build_analyzer(self):
-        return no_op
+from simplecosine.cosine import CosineSetSimilarity
 
 
 class SetType(FieldType):
@@ -39,15 +28,4 @@ class SetType(FieldType):
         if "corpus" not in definition:
             definition["corpus"] = []
 
-        corpus = (doc for doc in definition["corpus"] if doc)
-
-        self.vectorizer = TfidfSetVectorizer()
-        self.vectorizer.fit(corpus)
-
-        self._cosine = sklearn.metrics.pairwise.cosine_similarity
-
-    def comparator(self, field_1, field_2):
-
-        return self._cosine(
-            self.vectorizer.transform([field_1]), self.vectorizer.transform([field_2])
-        )
+        self.comparator = CosineSetSimilarity(definition["corpus"])
