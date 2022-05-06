@@ -52,7 +52,7 @@ jobs:
           if [ -z "$REGEX" ]; then
             BENCHMARKS=""
           else
-            BENCHMARKS="--benchmarks $REGEX"
+            BENCHMARKS="-b $REGEX"
           fi
           cd benchmarks
           asv check -E existing
