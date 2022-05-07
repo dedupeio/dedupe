@@ -27,10 +27,20 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - name: Checkout
+      - name: Setup git
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+
+      # Since this was triggered by a comment, not a PR,
+      # the `actions/checkout` action will pull
+      # the default branch (AKA main). We need to checkout the PR branch.
+      # From https://github.com/actions/checkout/issues/331#issuecomment-925405415
+      - name: Checkout Pull Request
+        run: |
+          hub pr checkout ${{ github.event.issue.number }}
+          echo "Checked out SHA:"
+          git log -1 --format='%H'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v3
