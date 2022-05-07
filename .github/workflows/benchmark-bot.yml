@@ -64,16 +64,18 @@ jobs:
           else
             BENCHMARKS="-b $REGEX"
           fi
+          echo "REGEX=$REGEX" >> $GITHUB_ENV
           cd benchmarks
           asv check -E existing
           git remote add upstream https://github.com/dedupeio/dedupe.git
           git fetch upstream
           asv machine --yes
           asv continuous -f 1.1 $BENCHMARKS upstream/main HEAD
+      - name: Save comparisons to env
+        run: |
           echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
           asv compare -f 1.1 upstream/main HEAD >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
-          echo "REGEX=$REGEX" >> $GITHUB_ENV
 
       - name: Add comment with results
         uses: actions/github-script@v6
