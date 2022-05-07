@@ -74,7 +74,7 @@ jobs:
       - name: Save comparisons to env
         run: |
           echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
-          asv compare -f 1.1 upstream/main HEAD >> $GITHUB_ENV
+          asv compare upstream/main HEAD >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
       - name: Add comment with results
