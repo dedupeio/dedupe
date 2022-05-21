@@ -172,6 +172,38 @@ class BlockLearner(object):
         if self._cached_labels is not None:
             self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
 
+    def _sample_indices(self, sample_size):
+
+        weights = {}
+        for predicate, covered in self.block_learner.comparison_cover.items():
+            # each predicate gets to vote for every record pair it covers. the
+            # strength of that vote is in inverse proportion to the number of
+            # records the predicate covers.
+            #
+            # if a predicate only covers a few record pairs, the value of
+            # the vote it puts on those few pairs will be worth more than
+            # a predicate that covers almost all the record pairs
+            weight = 1 / len(covered)
+            for pair in covered:
+                weights[pair] = weights.get(pair, 0) + weight
+
+        if sample_size < len(weights):
+            # consider using a reservoir sampling strategy, which would
+            # be more memory efficient and probably about as fast
+            normalized_weights = numpy.fromiter(weights.values(), dtype=float) / sum(
+                weights.values()
+            )
+            rng = numpy.random.default_rng()
+            sample_indices = rng.choice(
+                len(weights), size=sample_size, replace=False, p=normalized_weights
+            )
+            keys = list(weights.keys())
+            sample_ids = ((keys[i][0], keys[i][1]) for i in sample_indices)
+        else:
+            sample_ids = weight.keys()
+
+        return sample_ids
+
 
 class DedupeBlockLearner(BlockLearner):
     def __init__(self, data_model, data, index_include):
@@ -211,30 +243,11 @@ class DedupeBlockLearner(BlockLearner):
 
     def _sample(self, data, sample_size):
 
-        weights = {}
-        for predicate, covered in self.block_learner.comparison_cover.items():
-            # each predicate gets to vote for every record pair it covers. the
-            # strength of that vote is in inverse proportion to the number of
-            # records the predicate covers.
-            #
-            # if a predicate only covers a few record pairs, the value of
-            # the vote it puts on those few pairs will be worth more than
-            # a predicate that covers almost all the record pairs
-            weight = 1 / len(covered)
-            for pair in covered:
-                weights[pair] = weights.get(pair, 0) + weight
+        sample_indices = self._sample_indices(sample_size)
 
-        # consider using a reservoir sampling strategy, which would
-        # be more memory efficient and probably about as fast
-        normalized_weights = numpy.fromiter(weights.values(), dtype=float) / sum(
-            weights.values()
-        )
-        rng = numpy.random.default_rng()
-        sample_indices = rng.choice(
-            len(weights), size=sample_size, replace=False, p=normalized_weights
-        )
-        keys = list(weights.keys())
-        return [(data[keys[i][0]], data[keys[i][1]]) for i in sample_indices]
+        sample = [(data[id_1], data[id_2]) for id_1, id_2 in sample_indices]
+
+        return sample
 
 
 class RecordLinkBlockLearner(BlockLearner):
@@ -282,32 +295,11 @@ class RecordLinkBlockLearner(BlockLearner):
 
     def _sample(self, data_1, data_2, sample_size):
 
-        weights = {}
-        for predicate, covered in self.block_learner.comparison_cover.items():
-            # each predicate gets to vote for every record pair it covers. the
-            # strength of that vote is in inverse proportion to the number of
-            # records the predicate covers.
-            #
-            # if a predicate only covers a few record pairs, the value of
-            # the vote it puts on those few pairs will be worth more than
-            # a predicate that covers almost all the record pairs
-            if not len(covered):
-                print(predicate)
-            weight = 1 / len(covered)
-            for pair in covered:
-                weights[pair] = weights.get(pair, 0) + weight
+        sample_indices = self._sample_indices(sample_size)
 
-        # consider using a reservoir sampling strategy, which would
-        # be more memory efficient and probably about as fast
-        normalized_weights = numpy.fromiter(weights.values(), dtype=float) / sum(
-            weights.values()
-        )
-        rng = numpy.random.default_rng()
-        sample_indices = rng.choice(
-            len(weights), size=sample_size, replace=False, p=normalized_weights
-        )
-        keys = list(weights.keys())
-        return [(data_1[keys[i][0]], data_2[keys[i][1]]) for i in sample_indices]
+        sample = [(data_1[id_1], data_2[id_2]) for id_1, id_2 in sample_indices]
+
+        return sample
 
 
 class DisagreementLearner(ActiveLearner):
