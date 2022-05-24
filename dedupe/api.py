@@ -25,32 +25,36 @@ import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
 import dedupe.predicates
 
-from typing import (Mapping,
-                    Optional,
-                    List,
-                    Tuple,
-                    Set,
-                    Dict,
-                    Union,
-                    Generator,
-                    Iterable,
-                    Sequence,
-                    BinaryIO,
-                    cast,
-                    TextIO)
+from typing import (
+    Mapping,
+    Optional,
+    List,
+    Tuple,
+    Set,
+    Dict,
+    Union,
+    Generator,
+    Iterable,
+    Sequence,
+    BinaryIO,
+    cast,
+    TextIO,
+)
 from typing_extensions import Literal
-from dedupe._typing import (Data,
-                            Clusters,
-                            RecordPairs,
-                            RecordID,
-                            RecordDict,
-                            Blocks,
-                            TrainingExample,
-                            LookupResults,
-                            Links,
-                            TrainingData,
-                            Classifier,
-                            JoinConstraint)
+from dedupe._typing import (
+    Data,
+    Clusters,
+    RecordPairs,
+    RecordID,
+    RecordDict,
+    Blocks,
+    TrainingExample,
+    LookupResults,
+    Links,
+    TrainingData,
+    Classifier,
+    JoinConstraint,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +64,9 @@ class Matching(object):
     Base Class for Record Matching Classes
     """
 
-    def __init__(self,
-                 num_cores: Optional[int],
-                 in_memory: bool = False,
-                 **kwargs) -> None:
+    def __init__(
+        self, num_cores: Optional[int], in_memory: bool = False, **kwargs
+    ) -> None:
 
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
@@ -80,8 +83,10 @@ class Matching(object):
     def fingerprinter(self) -> blocking.Fingerprinter:
 
         if self._fingerprinter is None:
-            raise ValueError('the record fingerprinter is not intialized, '
-                             'please run the train method')
+            raise ValueError(
+                "the record fingerprinter is not intialized, "
+                "please run the train method"
+            )
 
         return self._fingerprinter
 
@@ -92,8 +97,7 @@ class IntegralMatching(Matching):
     pairs before deciding on any matches
     """
 
-    def score(self,
-              pairs: RecordPairs) -> Union[numpy.memmap, numpy.ndarray]:
+    def score(self, pairs: RecordPairs) -> Union[numpy.memmap, numpy.ndarray]:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilities that the pair of records are match
@@ -103,16 +107,17 @@ class IntegralMatching(Matching):
 
         """
         try:
-            matches = core.scoreDuplicates(pairs,
-                                           self.data_model,
-                                           self.classifier,
-                                           self.num_cores)
+            matches = core.scoreDuplicates(
+                pairs, self.data_model, self.classifier, self.num_cores
+            )
         except RuntimeError:
-            raise RuntimeError('''
+            raise RuntimeError(
+                """
                 You need to either turn off multiprocessing or protect
                 the calls to the Dedupe methods with a
                 `if __name__ == '__main__'` in your main module, see
-                https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods''')
+                https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods"""
+            )
 
         return matches
 
@@ -129,9 +134,9 @@ class DedupeMatching(IntegralMatching):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def partition(self,
-                  data: Data,
-                  threshold: float = 0.5) -> Clusters:  # pragma: no cover
+    def partition(
+        self, data: Data, threshold: float = 0.5
+    ) -> Clusters:  # pragma: no cover
         """
         Identifies records that all refer to the same entity, returns
         tuples containing a sequence of record ids and corresponding
@@ -197,10 +202,10 @@ class DedupeMatching(IntegralMatching):
             yield (record_ids, score)
 
         for singleton in singletons:
-            yield (singleton, ), (1.0, )
+            yield (singleton,), (1.0,)
 
     def pairs(self, data):
-        '''
+        """
         Yield pairs of records that share common fingerprints.
 
         Each pair will occur at most once. If you override this
@@ -223,7 +228,7 @@ class DedupeMatching(IntegralMatching):
               (3, {'name' : 'Sam', 'address' : '123 Main'}))
              ]
 
-        '''
+        """
 
         self.fingerprinter.index_all(data)
 
@@ -233,43 +238,55 @@ class DedupeMatching(IntegralMatching):
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
             if self.in_memory:
-                con = sqlite3.connect(':memory:')
+                con = sqlite3.connect(":memory:")
             else:
-                con = sqlite3.connect(temp_dir + '/blocks.db')
+                con = sqlite3.connect(temp_dir + "/blocks.db")
 
             # Set journal mode to WAL.
-            con.execute('pragma journal_mode=off')
+            con.execute("pragma journal_mode=off")
 
-            con.execute('''CREATE TABLE blocking_map
+            con.execute(
+                """CREATE TABLE blocking_map
                            (block_key text, record_id {id_type})
-                        '''.format(id_type=id_type))
+                        """.format(
+                    id_type=id_type
+                )
+            )
 
-            con.executemany("INSERT INTO blocking_map values (?, ?)",
-                            self.fingerprinter(data.items()))
+            con.executemany(
+                "INSERT INTO blocking_map values (?, ?)",
+                self.fingerprinter(data.items()),
+            )
 
             self.fingerprinter.reset_indices()
 
-            con.execute('''CREATE UNIQUE INDEX record_id_block_key_idx
-                           ON blocking_map (record_id, block_key)''')
-            con.execute('''CREATE INDEX block_key_idx
-                           ON blocking_map (block_key)''')
-            con.execute('''ANALYZE''')
-            pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+            con.execute(
+                """CREATE UNIQUE INDEX record_id_block_key_idx
+                           ON blocking_map (record_id, block_key)"""
+            )
+            con.execute(
+                """CREATE INDEX block_key_idx
+                           ON blocking_map (block_key)"""
+            )
+            con.execute("""ANALYZE""")
+            pairs = con.execute(
+                """SELECT DISTINCT a.record_id, b.record_id
                                    FROM blocking_map a
                                    INNER JOIN blocking_map b
                                    USING (block_key)
-                                   WHERE a.record_id < b.record_id''')
+                                   WHERE a.record_id < b.record_id"""
+            )
 
             for a_record_id, b_record_id in pairs:
-                yield ((a_record_id, data[a_record_id]),
-                       (b_record_id, data[b_record_id]))
+                yield (
+                    (a_record_id, data[a_record_id]),
+                    (b_record_id, data[b_record_id]),
+                )
 
             pairs.close()
             con.close()
 
-    def cluster(self,
-                scores: numpy.ndarray,
-                threshold: float = 0.5) -> Clusters:
+    def cluster(self, scores: numpy.ndarray, threshold: float = 0.5) -> Clusters:
         r"""From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
 
@@ -378,52 +395,67 @@ class RecordLinkMatching(IntegralMatching):
         # bottlenecks, so we'll use sqlite3 to avoid doing them in memory
         with tempfile.TemporaryDirectory() as temp_dir:
             if self.in_memory:
-                con = sqlite3.connect(':memory:')
+                con = sqlite3.connect(":memory:")
             else:
-                con = sqlite3.connect(temp_dir + '/blocks.db')
+                con = sqlite3.connect(temp_dir + "/blocks.db")
 
-            con.execute('pragma journal_mode=off')
+            con.execute("pragma journal_mode=off")
 
-            con.executescript('''CREATE TABLE blocking_map_a
+            con.executescript(
+                """CREATE TABLE blocking_map_a
                                  (block_key text, record_id {id_type_a});
 
                                  CREATE TABLE blocking_map_b
                                  (block_key text, record_id {id_type_b});
-                              '''.format(id_type_a=id_type_a,
-                                         id_type_b=id_type_b))
+                              """.format(
+                    id_type_a=id_type_a, id_type_b=id_type_b
+                )
+            )
 
-            con.executemany("INSERT INTO blocking_map_a values (?, ?)",
-                            self.fingerprinter(data_1.items()))
+            con.executemany(
+                "INSERT INTO blocking_map_a values (?, ?)",
+                self.fingerprinter(data_1.items()),
+            )
 
-            con.executemany("INSERT INTO blocking_map_b values (?, ?)",
-                            self.fingerprinter(data_2.items(), target=True))
+            con.executemany(
+                "INSERT INTO blocking_map_b values (?, ?)",
+                self.fingerprinter(data_2.items(), target=True),
+            )
 
             self.fingerprinter.reset_indices()
 
-            con.executescript('''CREATE INDEX block_key_a_idx
+            con.executescript(
+                """CREATE INDEX block_key_a_idx
                                  ON blocking_map_a (record_id, block_key);
 
                                  CREATE INDEX block_key_b_idx
-                                 ON blocking_map_b (block_key, record_id);''')
-            con.execute('''ANALYZE''')
+                                 ON blocking_map_b (block_key, record_id);"""
+            )
+            con.execute("""ANALYZE""")
 
-            pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+            pairs = con.execute(
+                """SELECT DISTINCT a.record_id, b.record_id
                                    FROM blocking_map_a a
                                    INNER JOIN blocking_map_b b
-                                   USING (block_key)''')
+                                   USING (block_key)"""
+            )
 
             for a_record_id, b_record_id in pairs:
-                yield ((a_record_id, data_1[a_record_id]),
-                       (b_record_id, data_2[b_record_id]))
+                yield (
+                    (a_record_id, data_1[a_record_id]),
+                    (b_record_id, data_2[b_record_id]),
+                )
 
             pairs.close()
             con.close()
 
-    def join(self,
-             data_1: Data,
-             data_2: Data,
-             threshold: float = 0.5,
-             constraint: JoinConstraint = "one-to-one") -> Links:
+    def join(
+        self,
+        data_1: Data,
+        data_2: Data,
+        threshold: float = 0.5,
+        constraint: JoinConstraint = "one-to-one",
+    ) -> Links:
         """
         Identifies pairs of records that refer to the same entity.
 
@@ -490,19 +522,20 @@ class RecordLinkMatching(IntegralMatching):
 
         """
 
-        assert constraint in {'one-to-one', 'many-to-one', 'many-to-many'}, (
-            '%s is an invalid constraint option. Valid options include '
-            'one-to-one, many-to-one, or many-to-many' % constraint)
+        assert constraint in {"one-to-one", "many-to-one", "many-to-many"}, (
+            "%s is an invalid constraint option. Valid options include "
+            "one-to-one, many-to-one, or many-to-many" % constraint
+        )
 
         pairs = self.pairs(data_1, data_2)
         pair_scores = self.score(pairs)
 
-        if constraint == 'one-to-one':
+        if constraint == "one-to-one":
             links = self.one_to_one(pair_scores, threshold)
-        elif constraint == 'many-to-one':
+        elif constraint == "many-to-one":
             links = self.many_to_one(pair_scores, threshold)
         else:
-            links = pair_scores[pair_scores['score'] > threshold]
+            links = pair_scores[pair_scores["score"] > threshold]
 
         links = list(links)
 
@@ -517,9 +550,7 @@ class RecordLinkMatching(IntegralMatching):
 
         return links
 
-    def one_to_one(self,
-                   scores: numpy.ndarray,
-                   threshold: float = 0.0) -> Links:
+    def one_to_one(self, scores: numpy.ndarray, threshold: float = 0.0) -> Links:
         """From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
 
@@ -568,15 +599,13 @@ class RecordLinkMatching(IntegralMatching):
 
         """
         if threshold:
-            scores = scores[scores['score'] > threshold]
+            scores = scores[scores["score"] > threshold]
 
         logger.debug("matching done, begin clustering")
 
         yield from clustering.greedyMatching(scores)
 
-    def many_to_one(self,
-                    scores: numpy.ndarray,
-                    threshold: float = 0.0) -> Links:
+    def many_to_one(self, scores: numpy.ndarray, threshold: float = 0.0) -> Links:
         """
         From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
@@ -630,19 +659,17 @@ class RecordLinkMatching(IntegralMatching):
 
 
 class GazetteerMatching(Matching):
-
-    def __init__(self,
-                 num_cores: Optional[int],
-                 in_memory: bool = False,
-                 **kwargs) -> None:
+    def __init__(
+        self, num_cores: Optional[int], in_memory: bool = False, **kwargs
+    ) -> None:
 
         super().__init__(num_cores, in_memory, **kwargs)
 
         if self.in_memory:
-            self.db = ':memory:'
+            self.db = ":memory:"
         else:
             self.temp_dir = tempfile.TemporaryDirectory()
-            self.db = self.temp_dir.name + '/blocks.db'
+            self.db = self.temp_dir.name + "/blocks.db"
 
         self.indexed_data: Dict[RecordID, RecordDict] = {}
 
@@ -673,22 +700,30 @@ class GazetteerMatching(Matching):
         con = sqlite3.connect(self.db)
 
         # Set journal mode to WAL.
-        con.execute('pragma journal_mode=wal')
+        con.execute("pragma journal_mode=wal")
 
-        con.execute('''CREATE TABLE IF NOT EXISTS indexed_records
+        con.execute(
+            """CREATE TABLE IF NOT EXISTS indexed_records
                        (block_key text,
                         record_id {id_type},
                         UNIQUE(block_key, record_id))
-                    '''.format(id_type=id_type))
+                    """.format(
+                id_type=id_type
+            )
+        )
 
-        con.executemany("REPLACE INTO indexed_records VALUES (?, ?)",
-                        self.fingerprinter(data.items(), target=True))
+        con.executemany(
+            "REPLACE INTO indexed_records VALUES (?, ?)",
+            self.fingerprinter(data.items(), target=True),
+        )
 
-        con.execute('''CREATE INDEX IF NOT EXISTS
+        con.execute(
+            """CREATE INDEX IF NOT EXISTS
                        indexed_records_block_key_idx
                        ON indexed_records
-                       (block_key, record_id)''')
-        con.execute('''ANALYZE''')
+                       (block_key, record_id)"""
+        )
+        con.execute("""ANALYZE""")
 
         con.commit()
         con.close()
@@ -707,15 +742,16 @@ class GazetteerMatching(Matching):
         """
 
         for field in self.fingerprinter.index_fields:
-            self.fingerprinter.unindex({record[field]
-                                        for record
-                                        in data.values()},
-                                       field)
+            self.fingerprinter.unindex(
+                {record[field] for record in data.values()}, field
+            )
 
         con = sqlite3.connect(self.db)
-        con.executemany('''DELETE FROM indexed_records
-                           WHERE record_id = ?''',
-                        ((k, ) for k in data.keys()))
+        con.executemany(
+            """DELETE FROM indexed_records
+                           WHERE record_id = ?""",
+            ((k,) for k in data.keys()),
+        )
 
         con.commit()
         con.close()
@@ -761,36 +797,44 @@ class GazetteerMatching(Matching):
 
         con = sqlite3.connect(self.db, check_same_thread=False)
 
-        con.execute('BEGIN')
+        con.execute("BEGIN")
 
-        con.execute('''CREATE TEMPORARY TABLE blocking_map
+        con.execute(
+            """CREATE TEMPORARY TABLE blocking_map
                        (block_key text, record_id {id_type})
-                    '''.format(id_type=id_type))
-        con.executemany("INSERT INTO blocking_map VALUES (?, ?)",
-                        self.fingerprinter(data.items()))
+                    """.format(
+                id_type=id_type
+            )
+        )
+        con.executemany(
+            "INSERT INTO blocking_map VALUES (?, ?)", self.fingerprinter(data.items())
+        )
 
-        pairs = con.execute('''SELECT DISTINCT a.record_id, b.record_id
+        pairs = con.execute(
+            """SELECT DISTINCT a.record_id, b.record_id
                                FROM blocking_map a
                                INNER JOIN indexed_records b
                                USING (block_key)
-                               ORDER BY a.record_id''')
+                               ORDER BY a.record_id"""
+        )
 
-        pair_blocks = itertools.groupby(pairs,
-                                        lambda x: x[0])
+        pair_blocks = itertools.groupby(pairs, lambda x: x[0])
 
         for _, pair_block in pair_blocks:
 
-            yield [((a_record_id, data[a_record_id]),
-                    (b_record_id, self.indexed_data[b_record_id]))
-                   for a_record_id, b_record_id
-                   in pair_block]
+            yield [
+                (
+                    (a_record_id, data[a_record_id]),
+                    (b_record_id, self.indexed_data[b_record_id]),
+                )
+                for a_record_id, b_record_id in pair_block
+            ]
 
         pairs.close()
         con.execute("ROLLBACK")
         con.close()
 
-    def score(self,
-              blocks: Blocks) -> Generator[numpy.ndarray, None, None]:
+    def score(self, blocks: Blocks) -> Generator[numpy.ndarray, None, None]:
         """
         Scores groups of pairs of records. Yields structured numpy arrays
         representing pairs of records in the group and the associated
@@ -801,17 +845,18 @@ class GazetteerMatching(Matching):
 
         """
 
-        matches = core.scoreGazette(blocks,
-                                    self.data_model,
-                                    self.classifier,
-                                    self.num_cores)
+        matches = core.scoreGazette(
+            blocks, self.data_model, self.classifier, self.num_cores
+        )
 
         return matches
 
-    def many_to_n(self,
-                  score_blocks: Iterable[numpy.ndarray],
-                  threshold: float = 0.0,
-                  n_matches: int = 1) -> Links:
+    def many_to_n(
+        self,
+        score_blocks: Iterable[numpy.ndarray],
+        threshold: float = 0.0,
+        n_matches: int = 1,
+    ) -> Links:
         """
         For each group of scored pairs, yield the highest scoring N pairs
 
@@ -837,15 +882,15 @@ class GazetteerMatching(Matching):
 
         """
 
-        yield from clustering.gazetteMatching(score_blocks,
-                                              threshold,
-                                              n_matches)
+        yield from clustering.gazetteMatching(score_blocks, threshold, n_matches)
 
-    def search(self,
-               data: Data,
-               threshold: float = 0.0,
-               n_matches: int = 1,
-               generator: bool = False) -> LookupResults:  # pragma: no cover
+    def search(
+        self,
+        data: Data,
+        threshold: float = 0.0,
+        n_matches: int = 1,
+        generator: bool = False,
+    ) -> LookupResults:  # pragma: no cover
         """
         Identifies pairs of records that could refer to the same entity,
         returns tuples containing tuples of possible matches, with a
@@ -902,9 +947,7 @@ class GazetteerMatching(Matching):
         else:
             return list(results)
 
-    def _format_search_results(self,
-                               search_d: Data,
-                               results: Links) -> LookupResults:
+    def _format_search_results(self, search_d: Data, results: Links) -> LookupResults:
 
         seen: Set[RecordID] = set()
 
@@ -921,7 +964,7 @@ class GazetteerMatching(Matching):
             yield a, tuple(prepared_result)
             seen.add(a)
 
-        for k in (search_d.keys() - seen):
+        for k in search_d.keys() - seen:
             yield k, ()
 
 
@@ -930,11 +973,13 @@ class StaticMatching(Matching):
     Class for initializing a dedupe object from a settings file.
     """
 
-    def __init__(self,
-                 settings_file: BinaryIO,
-                 num_cores: Optional[int] = None,
-                 in_memory: bool = False,
-                 **kwargs) -> None:  # pragma: no cover
+    def __init__(
+        self,
+        settings_file: BinaryIO,
+        num_cores: Optional[int] = None,
+        in_memory: bool = False,
+        **kwargs
+    ) -> None:  # pragma: no cover
         """
         Args:
             settings_file: A file object containing settings
@@ -969,13 +1014,15 @@ class StaticMatching(Matching):
             raise SettingsFileLoadingException(
                 "This settings file is not compatible with "
                 "the current version of dedupe. This can happen "
-                "if you have recently upgraded dedupe.")
+                "if you have recently upgraded dedupe."
+            )
         except:  # noqa: E722
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
-                "Try deleting the file")
+                "Try deleting the file"
+            )
 
-        logger.info('Predicate set:')
+        logger.info("Predicate set:")
         for predicate in self.predicates:
             logger.info(predicate)
 
@@ -986,13 +1033,16 @@ class ActiveMatching(Matching):
     """
     Class for training a matcher.
     """
+
     classifier = rlr.RegularizedLogisticRegression()
 
-    def __init__(self,
-                 variable_definition: Sequence[Mapping],
-                 num_cores: Optional[int] = None,
-                 in_memory: bool = False,
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        variable_definition: Sequence[Mapping],
+        num_cores: Optional[int] = None,
+        in_memory: bool = False,
+        **kwargs
+    ) -> None:
         """
         Args:
             variable_definition: A list of dictionaries describing
@@ -1022,34 +1072,36 @@ class ActiveMatching(Matching):
         self.data_model = datamodel.DataModel(variable_definition)
 
         self.training_pairs: TrainingData
-        self.training_pairs = {'distinct': [],
-                               'match': []}
-        self.active_learner: Optional[Union[labeler.DedupeDisagreementLearner,
-                                            labeler.RecordLinkDisagreementLearner]]
+        self.training_pairs = {"distinct": [], "match": []}
+        self.active_learner: Optional[
+            Union[
+                labeler.DedupeDisagreementLearner, labeler.RecordLinkDisagreementLearner
+            ]
+        ]
         self.active_learner = None
 
     def cleanup_training(self) -> None:  # pragma: no cover
-        '''
+        """
         Clean up data we used for training. Free up memory.
-        '''
+        """
         del self.training_pairs
         del self.active_learner
 
     def _read_training(self, training_file: TextIO) -> None:
-        '''
+        """
         Read training from previously built training data file object
 
         Args:
             training_file: file object containing the training data
-        '''
+        """
 
         logger.info("reading training from file")
         training_pairs = serializer.read_training(training_file)
         self.mark_pairs(training_pairs)
 
-    def train(self,
-              recall: float = 1.00,
-              index_predicates: bool = True) -> None:  # pragma: no cover
+    def train(
+        self, recall: float = 1.00, index_predicates: bool = True
+    ) -> None:  # pragma: no cover
         """
         Learn final pairwise classifier and fingerprinting rules. Requires that
         adequate training data has been already been provided.
@@ -1072,14 +1124,14 @@ class ActiveMatching(Matching):
                               together.
 
         """
-        assert self.active_learner is not None, \
-               "Please initialize with the sample method"
+        assert (
+            self.active_learner is not None
+        ), "Please initialize with the prepare_training method"
 
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)
 
-        self.predicates = self.active_learner.learn_predicates(
-            recall, index_predicates)
+        self.predicates = self.active_learner.learn_predicates(recall, index_predicates)
         self._fingerprinter = blocking.Fingerprinter(self.predicates)
         self.fingerprinter.reset_indices()
 
@@ -1097,8 +1149,7 @@ class ActiveMatching(Matching):
         """
         serializer.write_training(self.training_pairs, file_obj)
 
-    def write_settings(self,
-                       file_obj: BinaryIO) -> None:  # pragma: no cover
+    def write_settings(self, file_obj: BinaryIO) -> None:  # pragma: no cover
         """
         Write a settings file containing the
         data model and predicates to a file object
@@ -1117,26 +1168,27 @@ class ActiveMatching(Matching):
         pickle.dump(self.predicates, file_obj)
 
     def uncertain_pairs(self) -> List[TrainingExample]:
-        '''
-        Returns a list of pairs of records from the sample of record pairs
-        tuples that Dedupe is most curious to have labeled.
+        """
+         Returns a list of pairs of records from the sample of record pairs
+         tuples that Dedupe is most curious to have labeled.
 
-        This method is mainly useful for building a user interface for training
-        a matching model.
+         This method is mainly useful for building a user interface for training
+         a matching model.
 
-       .. code:: python
+        .. code:: python
 
-          > pair = matcher.uncertain_pairs()
-          > print(pair)
-          [({'name' : 'Georgie Porgie'}, {'name' : 'Georgette Porgette'})]
+           > pair = matcher.uncertain_pairs()
+           > print(pair)
+           [({'name' : 'Georgie Porgie'}, {'name' : 'Georgette Porgette'})]
 
-        '''
-        assert self.active_learner is not None, \
-               "Please initialize with the sample method"
+        """
+        assert (
+            self.active_learner is not None
+        ), "Please initialize with the prepare_training method"
         return [self.active_learner.pop()]
 
     def mark_pairs(self, labeled_pairs: TrainingData) -> None:
-        '''
+        """
         Add users labeled pairs of records to training data and update the
         matching model
 
@@ -1173,11 +1225,11 @@ class ActiveMatching(Matching):
            the data or training file supplied to the
            :func:`~prepare_training` method.
 
-        '''
+        """
         self._checkTrainingPairs(labeled_pairs)
 
-        self.training_pairs['match'].extend(labeled_pairs['match'])
-        self.training_pairs['distinct'].extend(labeled_pairs['distinct'])
+        self.training_pairs["match"].extend(labeled_pairs["match"])
+        self.training_pairs["distinct"].extend(labeled_pairs["distinct"])
 
         if self.active_learner:
             examples, y = flatten_training(labeled_pairs)
@@ -1186,45 +1238,50 @@ class ActiveMatching(Matching):
                 self.active_learner.mark(examples, y)
             except dedupe.predicates.NoIndexError as e:
                 raise UserWarning(
-                    ('The record\n'
-                     '{unknown}\n'
-                     'is not known to to the active learner. '
-                     'Make sure all `labeled_pairs` '
-                     'are in the data or training file '
-                     'of the `prepare_training()` method').format(
-                         unknown=e.failing_record))
+                    (
+                        "The record\n"
+                        "{unknown}\n"
+                        "is not known to to the active learner. "
+                        "Make sure all `labeled_pairs` "
+                        "are in the data or training file "
+                        "of the `prepare_training()` method"
+                    ).format(unknown=e.failing_record)
+                )
 
     def _checkTrainingPairs(self, labeled_pairs: TrainingData) -> None:
         try:
             labeled_pairs.items()
-            labeled_pairs['match']
-            labeled_pairs['distinct']
+            labeled_pairs["match"]
+            labeled_pairs["distinct"]
         except (AttributeError, KeyError):
-            raise ValueError('labeled_pairs must be a dictionary with keys '
-                             '"distinct" and "match"')
+            raise ValueError(
+                "labeled_pairs must be a dictionary with keys " '"distinct" and "match"'
+            )
 
-        if labeled_pairs['match']:
-            pair = labeled_pairs['match'][0]
+        if labeled_pairs["match"]:
+            pair = labeled_pairs["match"][0]
             self._checkRecordPair(pair)
 
-        if labeled_pairs['distinct']:
-            pair = labeled_pairs['distinct'][0]
+        if labeled_pairs["distinct"]:
+            pair = labeled_pairs["distinct"][0]
             self._checkRecordPair(pair)
 
-        if not labeled_pairs['distinct'] and not labeled_pairs['match']:
+        if not labeled_pairs["distinct"] and not labeled_pairs["match"]:
             warnings.warn("Didn't return any labeled record pairs")
 
     def _checkRecordPair(self, record_pair: TrainingExample) -> None:
         try:
             a, b = record_pair
         except ValueError:
-            raise ValueError("The elements of data_sample must be pairs "
-                             "of record_pairs")
+            raise ValueError(
+                "The elements of data_sample must be pairs " "of record_pairs"
+            )
         try:
             record_pair[0].keys() and record_pair[1].keys()
         except AttributeError:
-            raise ValueError("A pair of record_pairs must be made up of two "
-                             "dictionaries ")
+            raise ValueError(
+                "A pair of record_pairs must be made up of two " "dictionaries "
+            )
 
         self.data_model.check(record_pair[0])
         self.data_model.check(record_pair[1])
@@ -1249,12 +1306,14 @@ class Dedupe(ActiveMatching, DedupeMatching):
     canopies = True
     ActiveLearner = labeler.DedupeDisagreementLearner
 
-    def prepare_training(self,
-                         data: Data,
-                         training_file: TextIO = None,
-                         sample_size: int = 1500,
-                         blocked_proportion: float = 0.9) -> None:
-        '''
+    def prepare_training(
+        self,
+        data: Data,
+        training_file: TextIO = None,
+        sample_size: int = 1500,
+        blocked_proportion: float = 0.9,
+    ) -> None:
+        """
         Initialize the active learner with your data and, optionally,
         existing training data.
 
@@ -1275,53 +1334,32 @@ class Dedupe(ActiveMatching, DedupeMatching):
            # or
            with open('training_file.json') as f:
                matcher.prepare_training(data_d, training_file=f)
-
-
-        '''
+        """
+        self._checkData(data)
 
         # Reset active learner
         self.active_learner = None
 
         if training_file:
             self._read_training(training_file)
-        self._sample(data, sample_size, blocked_proportion)
-
-    def _sample(self,
-                data: Data,
-                sample_size: int = 15000,
-                blocked_proportion: float = 0.5) -> None:
-        '''Draw a sample of record pairs from the dataset
-        (a mix of random pairs & pairs of similar records)
-        and initialize active learning with this sample
-
-
-        :param data: Dictionary of records, where the keys are
-                     record_ids and the values are dictionaries
-                     with the keys being field names
-
-        :param sample_size: Size of the sample to draw
-
-        :param blocked_proportion: Proportion of the sample that will be blocked
-
-        '''
-        self._checkData(data)
 
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionary
         examples, y = flatten_training(self.training_pairs)
 
-        self.active_learner = self.ActiveLearner(self.data_model,
-                                                 data,
-                                                 blocked_proportion,
-                                                 sample_size,
-                                                 index_include=examples)
+        self.active_learner = self.ActiveLearner(
+            self.data_model,
+            data,
+            blocked_proportion,
+            sample_size,
+            index_include=examples,
+        )
 
         self.active_learner.mark(examples, y)
 
     def _checkData(self, data: Data) -> None:
         if len(data) == 0:
-            raise ValueError(
-                'Dictionary of records is empty.')
+            raise ValueError("Dictionary of records is empty.")
 
         self.data_model.check(next(iter(data.values())))
 
@@ -1334,13 +1372,15 @@ class Link(ActiveMatching):
     canopies = False
     ActiveLearner = labeler.RecordLinkDisagreementLearner
 
-    def prepare_training(self,
-                         data_1: Data,
-                         data_2: Data,
-                         training_file: Optional[TextIO] = None,
-                         sample_size: int = 1500,
-                         blocked_proportion: float = 0.9) -> None:
-        '''
+    def prepare_training(
+        self,
+        data_1: Data,
+        data_2: Data,
+        training_file: Optional[TextIO] = None,
+        sample_size: int = 1500,
+        blocked_proportion: float = 0.9,
+    ) -> None:
+        """
         Initialize the active learner with your data and, optionally,
         existing training data.
 
@@ -1363,59 +1403,38 @@ class Link(ActiveMatching):
 
            matcher.prepare_training(data_1, data_2, 150000)
 
+           # or
            with open('training_file.json') as f:
                matcher.prepare_training(data_1, data_2, training_file=f)
+        """
+        self._checkData(data_1, data_2)
 
-        '''
         # Reset active learner
         self.active_learner = None
 
         if training_file:
             self._read_training(training_file)
-        self._sample(data_1,
-                     data_2,
-                     sample_size,
-                     blocked_proportion)
-
-    def _sample(self,
-                data_1: Data,
-                data_2: Data,
-                sample_size: int = 15000,
-                blocked_proportion: float = 0.5) -> None:
-        '''
-        Draws a random sample of combinations of records from
-        the first and second datasets, and initializes active
-        learning with this sample
-
-        :param data_1: Dictionary of records from first dataset, where the
-                       keys are record_ids and the values are dictionaries
-                       with the keys being field names
-        :param data_2: Dictionary of records from second dataset, same
-                       form as data_1
-        :param sample_size: Size of the sample to draw
-        '''
-        self._checkData(data_1, data_2)
 
         # We need the active learner to know about all our
         # existing training data, so add them to data dictionaries
         examples, y = flatten_training(self.training_pairs)
 
-        self.active_learner = self.ActiveLearner(self.data_model,
-                                                 data_1,
-                                                 data_2,
-                                                 blocked_proportion,
-                                                 sample_size,
-                                                 index_include=examples)
+        self.active_learner = self.ActiveLearner(
+            self.data_model,
+            data_1,
+            data_2,
+            blocked_proportion,
+            sample_size,
+            index_include=examples,
+        )
 
         self.active_learner.mark(examples, y)
 
     def _checkData(self, data_1: Data, data_2: Data) -> None:
         if len(data_1) == 0:
-            raise ValueError(
-                'Dictionary of records from first dataset is empty.')
+            raise ValueError("Dictionary of records from first dataset is empty.")
         elif len(data_2) == 0:
-            raise ValueError(
-                'Dictionary of records from second dataset is empty.')
+            raise ValueError("Dictionary of records from second dataset is empty.")
 
         self.data_model.check(next(iter(data_1.values())))
         self.data_model.check(next(iter(data_2.values())))
@@ -1465,16 +1484,18 @@ class SettingsFileLoadingException(Exception):
     pass
 
 
-def flatten_training(training_pairs: TrainingData) -> Tuple[List[TrainingExample], numpy.ndarray]:
+def flatten_training(
+    training_pairs: TrainingData,
+) -> Tuple[List[TrainingExample], numpy.ndarray]:
     examples: List[TrainingExample] = []
     y = []
 
-    for label in ('match', 'distinct'):
-        label = cast(Literal['match', 'distinct'], label)
+    for label in ("match", "distinct"):
+        label = cast(Literal["match", "distinct"], label)
 
         pairs = training_pairs[label]
         examples.extend(pairs)
-        encoded_y = 1 if label == 'match' else 0
+        encoded_y = 1 if label == "match" else 0
         y.extend([encoded_y] * len(pairs))
 
     return examples, numpy.array(y)

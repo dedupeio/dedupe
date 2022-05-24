@@ -1,13 +1,7 @@
 import numpy
 import sys
 
-from typing import (Iterator,
-                    Tuple,
-                    Mapping,
-                    Union,
-                    Iterable,
-                    List,
-                    Any)
+from typing import Iterator, Tuple, Mapping, Union, Iterable, List, Any
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict, Protocol, Literal
@@ -25,19 +19,14 @@ Cluster = Tuple[Tuple[RecordID, ...], Union[numpy.ndarray, Tuple]]
 Clusters = Iterable[Cluster]
 Data = Mapping[RecordID, RecordDict]
 TrainingExample = Tuple[RecordDict, RecordDict]
-Links = Iterable[Union[numpy.ndarray,
-                       Tuple[Tuple[RecordID, RecordID], float]]]
+Links = Iterable[Union[numpy.ndarray, Tuple[Tuple[RecordID, RecordID], float]]]
 LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
-JoinConstraint = Literal['one-to-one', 'many-to-one', 'many-to-many']
+JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 
 
-class _TrainingData(TypedDict):
+class TrainingData(TypedDict):
     match: List[TrainingExample]
     distinct: List[TrainingExample]
-
-
-class TrainingData(_TrainingData, total=False):
-    uncertain: List[TrainingExample]  # optional key
 
 
 class Classifier(Protocol):

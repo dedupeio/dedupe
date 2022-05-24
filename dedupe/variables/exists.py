@@ -17,9 +17,9 @@ class ExistsType(CategoricalType):
 
         self.higher_vars = []
         for higher_var in self.cat_comparator.dummy_names:
-            dummy_var = DerivedType({'name': higher_var,
-                                     'type': 'Dummy',
-                                     'has missing': self.has_missing})
+            dummy_var = DerivedType(
+                {"name": higher_var, "type": "Dummy", "has missing": self.has_missing}
+            )
             self.higher_vars.append(dummy_var)
 
     def comparator(self, field_1, field_2):

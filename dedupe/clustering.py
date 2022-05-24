@@ -11,21 +11,15 @@ import numpy
 import fastcluster
 import hcluster
 
-from typing import (Iterable,
-                    Dict,
-                    cast,
-                    List,
-                    Set,
-                    Generator,
-                    Sequence,
-                    Tuple)
+from typing import Iterable, Dict, cast, List, Set, Generator, Sequence, Tuple
 from dedupe._typing import Clusters, RecordID, Links
 
 logger = logging.getLogger(__name__)
 
 
-def connected_components(edgelist: numpy.ndarray,
-                         max_components: int) -> Generator[numpy.ndarray, None, None]:
+def connected_components(
+    edgelist: numpy.ndarray, max_components: int
+) -> Generator[numpy.ndarray, None, None]:
 
     if len(edgelist) == 0:
         raise StopIteration()
@@ -39,63 +33,71 @@ def connected_components(edgelist: numpy.ndarray,
     # have to create a new memmapped array with all the fields
     # we want and copy things over.
     with tempfile.TemporaryDirectory() as path:
-        filename = path + '/unlabeled_edgelist'
-        edgelist = numpy.memmap(filename,
-                                dtype=(unlabeled_edgelist.dtype.descr
-                                       + [('label', 'int32')]),
-                                mode='w+',
-                                shape=unlabeled_edgelist.shape)
+        filename = path + "/unlabeled_edgelist"
+        edgelist = numpy.memmap(
+            filename,
+            dtype=(unlabeled_edgelist.dtype.descr + [("label", "int32")]),
+            mode="w+",
+            shape=unlabeled_edgelist.shape,
+        )
 
-        if hasattr(unlabeled_edgelist, 'filename'):
-            copy_mmap_record_arrays(unlabeled_edgelist,
-                                    edgelist,
-                                    ['pairs', 'score'])
+        if hasattr(unlabeled_edgelist, "filename"):
+            copy_mmap_record_arrays(unlabeled_edgelist, edgelist, ["pairs", "score"])
         else:
-            copy_to_mmap_record_array(unlabeled_edgelist,
-                                      edgelist,
-                                      ['pairs', 'score'])
+            copy_to_mmap_record_array(unlabeled_edgelist, edgelist, ["pairs", "score"])
 
         yield from _connected_components(edgelist, max_components)
 
         edgelist._mmap.close()  # type: ignore
 
 
-def _connected_components(edgelist: numpy.ndarray,
-                          max_components: int) -> Generator[numpy.ndarray, None, None]:
+def _connected_components(
+    edgelist: numpy.ndarray, max_components: int
+) -> Generator[numpy.ndarray, None, None]:
     component_stops = union_find(edgelist)
 
     start = 0
     for stop in component_stops:
 
         sub_graph = edgelist[start:stop]
+        n_edges = stop - start
         start = stop
 
-        n_components = len(numpy.unique(sub_graph['pairs']))
+        needs_filtering = False
+        # first we find the upper bound of the
+        # number of components given the edgelist
+        upper_bound_components = n_edges + 1
+        if upper_bound_components > max_components:
+            # which we can refine using a more expensive operation
+            # if it's possible we have too many components
+            n_components = len(numpy.unique(sub_graph["pairs"]))
+            if n_components > max_components:
+                needs_filtering = True
 
-        if n_components > max_components:
-            min_score = numpy.min(sub_graph['score'])
+        if needs_filtering:
+
+            min_score = numpy.min(sub_graph["score"])
             min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
-            logger.warning('A component contained %s elements. '
-                           'Components larger than %s are '
-                           're-filtered. The threshold for this '
-                           'filtering is %s' % (n_components,
-                                                max_components,
-                                                threshold))
+            logger.warning(
+                "A component contained %s elements. "
+                "Components larger than %s are "
+                "re-filtered. The threshold for this "
+                "filtering is %s" % (n_components, max_components, threshold)
+            )
             # slices of memmaped arrays are also memmaped arrays,
             # which is what we want. The components should
             # already sorted by score so we can slice as oppose
             # to selecting like `sub_graph[sub_graph['score'] >
             # threshold]`, which would lead to an in memory copy being
             # made
-            cut_point = numpy.searchsorted(sub_graph['score'], threshold)
-            filtered_sub_graph = sub_graph[max(cut_point, 2):]
+            cut_point = numpy.searchsorted(sub_graph["score"], threshold)
+            filtered_sub_graph = sub_graph[max(cut_point, 2) :]
 
-            for sub_graph in _connected_components(filtered_sub_graph,
-                                                   max_components):
-                yield sub_graph[['pairs', 'score']]
+            for sub_graph in _connected_components(filtered_sub_graph, max_components):
+                yield sub_graph[["pairs", "score"]]
         else:
-            yield sub_graph[['pairs', 'score']]
+            yield sub_graph[["pairs", "score"]]
 
 
 def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
@@ -104,19 +106,21 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
     components = {}
 
-    edgelist = scored_pairs['pairs']
-    labels = scored_pairs['label']
+    edgelist = scored_pairs["pairs"]
+    labels = scored_pairs["label"]
 
-    it = numpy.nditer(edgelist, ['external_loop'])
+    it = numpy.nditer(edgelist, ["external_loop"])
 
     n_edges = len(scored_pairs)
 
-    array_type = 'H'
-    for array_type in ('H', 'I', 'L', 'Q'):
+    array_type = "H"
+    for array_type in ("H", "I", "L", "Q"):
         if (2 ** (8 * array.array(array_type).itemsize) - 1) > n_edges:
             break
     else:
-        raise ValueError("You are making more comparisons than your machine can handle, try raising the threshold")
+        raise ValueError(
+            "You are making more comparisons than your machine can handle, try raising the threshold"
+        )
 
     a: RecordID
     b: RecordID
@@ -154,20 +158,29 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
     for label, component in components.items():
         labels[component] = label
 
-    # we want our selections to remain memmapped arrays
-    # so we sort and get the indices where the components
-    # change. This will allow us to slice pieces of the
-    # memmapped array. Those slices will also be memmaped
-    # arrays.
-    scored_pairs.sort(order=('label', 'score'))
-    return numpy.cumsum(numpy.unique(scored_pairs['label'],
-                                     return_counts=True)[1])
+    # we want our selections to remain memmapped arrays so we sort and
+    # get the indices where the components change. This will allow us
+    # to slice pieces of the memmapped array, and have those slices
+    # also be memmaped arrays.
+    #
+    # Since we we might be calling union_find recursively it would be
+    # good to use a stable sort to take advantage of sorting done in a
+    # previous recursion.
+    #
+    # stable sorts in numpy take about n / 2 work space so we won't
+    # do it if scored_pairs is too big
+    if len(scored_pairs) > 2500000:
+        scored_pairs.sort(order=("label", "score"))
+    else:
+        scored_pairs.sort(order=("label", "score"), kind="stable")
+
+    return numpy.cumsum(numpy.unique(scored_pairs["label"], return_counts=True)[1])
 
 
-def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
-                                                     numpy.ndarray,
-                                                     int]:
-    '''
+def condensedDistance(
+    dupes: numpy.ndarray,
+) -> Tuple[Dict[int, RecordID], numpy.ndarray, int]:
+    """
     Convert the pairwise list of distances in dupes to "condensed
     distance matrix" required by the hierarchical clustering
     algorithms. Also return a dictionary that maps the distance matrix
@@ -183,13 +196,13 @@ def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
     where (row,col) is index of an uncondensed square N X N distance matrix.
 
     See http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
-    '''
+    """
 
-    candidate_set = numpy.unique(dupes['pairs'])
+    candidate_set = numpy.unique(dupes["pairs"])
 
     i_to_id = dict(enumerate(candidate_set))
 
-    ids = candidate_set.searchsorted(dupes['pairs'])
+    ids = candidate_set.searchsorted(dupes["pairs"])
     row = ids[:, 0]
     col = ids[:, 1]
 
@@ -198,16 +211,16 @@ def condensedDistance(dupes: numpy.ndarray) -> Tuple[Dict[int, RecordID],
     # alternate form thanks to wolfram alpa
     index = row * (2 * N - row - 3) // 2 + col - 1
 
-    condensed_distances = numpy.ones(N * (N-1) // 2, 'f4')
-    condensed_distances[index] = 1 - dupes['score']
+    condensed_distances = numpy.ones(N * (N - 1) // 2, "f4")
+    condensed_distances[index] = 1 - dupes["score"]
 
     return i_to_id, condensed_distances, N
 
 
-def cluster(dupes: numpy.ndarray,
-            threshold: float = .5,
-            max_components: int = 30000) -> Clusters:
-    '''
+def cluster(
+    dupes: numpy.ndarray, threshold: float = 0.5, max_components: int = 30000
+) -> Clusters:
+    """
     Takes in a list of duplicate pairs and clusters them in to a
     list records that all refer to the same entity based on a given
     threshold
@@ -216,7 +229,7 @@ def cluster(dupes: numpy.ndarray,
     threshold -- number between 0 and 1 (default is .5). lowering the
                  number will increase precision, raising it will increase
                  recall
-    '''
+    """
     distance_threshold = 1 - threshold
     dupe_sub_graphs = connected_components(dupes, max_components)
 
@@ -225,13 +238,13 @@ def cluster(dupes: numpy.ndarray,
 
             i_to_id, condensed_distances, N = condensedDistance(sub_graph)
 
-            linkage = fastcluster.linkage(condensed_distances,
-                                          method='centroid',
-                                          preserve_input=True)
+            linkage = fastcluster.linkage(
+                condensed_distances, method="centroid", preserve_input=True
+            )
 
-            partition = hcluster.fcluster(linkage,
-                                          distance_threshold,
-                                          criterion='distance')
+            partition = hcluster.fcluster(
+                linkage, distance_threshold, criterion="distance"
+            )
 
             clusters: Dict[int, List[int]] = defaultdict(list)
 
@@ -245,20 +258,20 @@ def cluster(dupes: numpy.ndarray,
                     yield tuple(i_to_id[i] for i in cluster), scores
 
         else:
-            (ids, score), = sub_graph
+            ((ids, score),) = sub_graph
             if score > threshold:
                 yield tuple(ids), (score,) * 2
 
 
-def confidences(cluster: Sequence[int],
-                squared_distances: numpy.ndarray,
-                d: int) -> numpy.ndarray:
-    '''
+def confidences(
+    cluster: Sequence[int], squared_distances: numpy.ndarray, d: int
+) -> numpy.ndarray:
+    """
     We calculate a per record score that is similar to a standard
     deviation.  The main reason is that these record scores can be
     used to calculate the standard deviation of an entire cluster,
     which is a reasonable metric for clusters.
-    '''
+    """
     scores_d = dict.fromkeys(cluster, 0.0)
     C = 2 * d - 3
     for i, j in itertools.combinations(cluster, 2):
@@ -277,7 +290,7 @@ def greedyMatching(dupes: numpy.ndarray) -> Links:
     A: Set[RecordID] = set()
     B: Set[RecordID] = set()
 
-    dupes.sort(order='score')
+    dupes.sort(order="score")
     dupes = dupes[::-1]
 
     for (a, b), score in dupes:
@@ -288,13 +301,13 @@ def greedyMatching(dupes: numpy.ndarray) -> Links:
             yield (a, b), score
 
 
-def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
-                    threshold: float = 0,
-                    n_matches: int = 1) -> Links:
+def gazetteMatching(
+    scored_blocks: Iterable[numpy.ndarray], threshold: float = 0, n_matches: int = 1
+) -> Links:
 
     for block in scored_blocks:
-        block = block[block['score'] > threshold]
-        block.sort(order='score')
+        block = block[block["score"] > threshold]
+        block.sort(order="score")
         block = block[::-1]
 
         if len(block):
@@ -304,13 +317,13 @@ def gazetteMatching(scored_blocks: Iterable[numpy.ndarray],
                 yield block.copy()
 
 
-def pair_gazette_matching(scored_pairs: numpy.ndarray,
-                          threshold: float = 0.0,
-                          n_matches: int = 1) -> Links:
+def pair_gazette_matching(
+    scored_pairs: numpy.ndarray, threshold: float = 0.0, n_matches: int = 1
+) -> Links:
 
-    scored_pairs.sort(order='pairs')
+    scored_pairs.sort(order="pairs")
 
-    group_key = scored_pairs['pairs'][:, 0]
+    group_key = scored_pairs["pairs"][:, 0]
     change_points = numpy.where(numpy.roll(group_key, 1) != group_key)[0]
     scored_blocks = numpy.split(scored_pairs, change_points)
 
@@ -320,46 +333,50 @@ def pair_gazette_matching(scored_pairs: numpy.ndarray,
 
 
 def copy_to_mmap_record_array(source, target, fields, chunksize=100000):
-    '''
+    """
     Writing into a memmapped array allocates memory equivalent to the
     amount that you are writing. With big arrays this is undesirable
     so we write in chunks
-    '''
+    """
 
     start = 0
-    stops = itertools.chain(range(chunksize, source.size, chunksize),
-                            [source.size])
+    stops = itertools.chain(range(chunksize, source.size, chunksize), [source.size])
     for stop in stops:
         shape = (stop - start,)
         source_slice = source[start:stop]
-        target_slice = numpy.memmap(target.filename,
-                                    dtype=target.dtype,
-                                    offset=(start * target.dtype.itemsize),
-                                    shape=shape)
+        target_slice = numpy.memmap(
+            target.filename,
+            dtype=target.dtype,
+            offset=(start * target.dtype.itemsize),
+            shape=shape,
+        )
         target_slice[fields] = source_slice[fields]
         start = stop
 
 
 def copy_mmap_record_arrays(source, target, fields, chunksize=100000):
-    '''
+    """
     Writing into a memmapped array allocates memory equivalent to the
     amount that you are writing. With big arrays this is undesirable
     so we write in chunks
-    '''
+    """
 
     start = 0
-    stops = itertools.chain(range(chunksize, source.size, chunksize),
-                            [source.size])
+    stops = itertools.chain(range(chunksize, source.size, chunksize), [source.size])
     for stop in stops:
         shape = (stop - start,)
-        source_slice = numpy.memmap(source.filename,
-                                    dtype=source.dtype,
-                                    offset=(start * source.dtype.itemsize),
-                                    shape=shape)
-        target_slice = numpy.memmap(target.filename,
-                                    dtype=target.dtype,
-                                    offset=(start * target.dtype.itemsize),
-                                    shape=shape)
+        source_slice = numpy.memmap(
+            source.filename,
+            dtype=source.dtype,
+            offset=(start * source.dtype.itemsize),
+            shape=shape,
+        )
+        target_slice = numpy.memmap(
+            target.filename,
+            dtype=target.dtype,
+            offset=(start * target.dtype.itemsize),
+            shape=shape,
+        )
         target_slice[fields] = source_slice[fields]
 
         start = stop

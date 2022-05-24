@@ -9,8 +9,9 @@ import dedupe.variables.base as base
 from dedupe.variables.base import MissingDataType
 from dedupe.variables.interaction import InteractionType
 
-for _, module, _ in pkgutil.iter_modules(dedupe.variables.__path__,  # type: ignore
-                                         'dedupe.variables.'):
+for _, module, _ in pkgutil.iter_modules(  # type: ignore
+    dedupe.variables.__path__, "dedupe.variables."
+):
     __import__(module)
 
 
@@ -18,11 +19,10 @@ FIELD_CLASSES = {k: v for k, v in base.allSubclasses(base.FieldType) if k}
 
 
 class DataModel(object):
-
     def __init__(self, fields):
 
         if not fields:
-            raise ValueError('The field definitions cannot be empty')
+            raise ValueError("The field definitions cannot be empty")
         primary_fields, variables = typifyFields(fields)
         self.primary_fields = primary_fields
         self._derived_start = len(variables)
@@ -58,9 +58,9 @@ class DataModel(object):
         predicates = set()
         for definition in self.primary_fields:
             for predicate in definition.predicates:
-                if hasattr(predicate, 'index'):
+                if hasattr(predicate, "index"):
                     if index_predicates:
-                        if hasattr(predicate, 'canopy'):
+                        if hasattr(predicate, "canopy"):
                             if canopies:
                                 predicates.add(predicate)
                         else:
@@ -74,18 +74,16 @@ class DataModel(object):
     def distances(self, record_pairs):
         num_records = len(record_pairs)
 
-        distances = numpy.empty((num_records, len(self)), 'f4')
+        distances = numpy.empty((num_records, len(self)), "f4")
         field_comparators = self._field_comparators
 
         for i, (record_1, record_2) in enumerate(record_pairs):
 
             for field, compare, start, stop in field_comparators:
                 if record_1[field] is not None and record_2[field] is not None:
-                    distances[i, start:stop] = compare(record_1[field],
-                                                       record_2[field])
-                elif hasattr(compare, 'missing'):
-                    distances[i, start:stop] = compare(record_1[field],
-                                                       record_2[field])
+                    distances[i, start:stop] = compare(record_1[field], record_2[field])
+                elif hasattr(compare, "missing"):
+                    distances[i, start:stop] = compare(record_1[field], record_2[field])
                 else:
                     distances[i, start:stop] = numpy.nan
 
@@ -99,8 +97,7 @@ class DataModel(object):
         current_column = self._derived_start
 
         for interaction in self._interaction_indices:
-            distances[:, current_column] =\
-                numpy.prod(distances[:, interaction], axis=1)
+            distances[:, current_column] = numpy.prod(distances[:, interaction], axis=1)
 
             current_column += 1
 
@@ -109,8 +106,9 @@ class DataModel(object):
         distances[:, :current_column][missing_data] = 0
 
         if self._missing_field_indices:
-            distances[:, current_column:] =\
+            distances[:, current_column:] = (
                 1 - missing_data[:, self._missing_field_indices]
+            )
 
         return distances
 
@@ -118,9 +116,11 @@ class DataModel(object):
         for field_comparator in self._field_comparators:
             field = field_comparator[0]
             if field not in record:
-                raise ValueError("Records do not line up with data model. "
-                                 "The field '%s' is in data_model but not "
-                                 "in a record" % field)
+                raise ValueError(
+                    "Records do not line up with data model. "
+                    "The field '%s' is in data_model but not "
+                    "in a record" % field
+                )
 
 
 def typifyFields(fields):
@@ -130,47 +130,57 @@ def typifyFields(fields):
 
     for definition in fields:
         try:
-            field_type = definition['type']
+            field_type = definition["type"]
         except TypeError:
-            raise TypeError("Incorrect field specification: field "
-                            "specifications are dictionaries that must "
-                            "include a type definition, ex. "
-                            "{'field' : 'Phone', type: 'String'}")
+            raise TypeError(
+                "Incorrect field specification: field "
+                "specifications are dictionaries that must "
+                "include a type definition, ex. "
+                "{'field' : 'Phone', type: 'String'}"
+            )
         except KeyError:
-            raise KeyError("Missing field type: fields "
-                           "specifications are dictionaries that must "
-                           "include a type definition, ex. "
-                           "{'field' : 'Phone', type: 'String'}")
+            raise KeyError(
+                "Missing field type: fields "
+                "specifications are dictionaries that must "
+                "include a type definition, ex. "
+                "{'field' : 'Phone', type: 'String'}"
+            )
 
-        if field_type != 'Custom':
+        if field_type != "Custom":
             only_custom = False
 
-        if field_type == 'Interaction':
+        if field_type == "Interaction":
             continue
 
-        if field_type == 'FuzzyCategorical' and 'other fields' not in definition:
-            definition['other fields'] = [d['field'] for d in fields
-                                          if ('field' in d and
-                                              d['field'] != definition['field'])]
+        if field_type == "FuzzyCategorical" and "other fields" not in definition:
+            definition["other fields"] = [
+                d["field"]
+                for d in fields
+                if ("field" in d and d["field"] != definition["field"])
+            ]
 
         try:
             field_class = FIELD_CLASSES[field_type]
         except KeyError:
-            raise KeyError("Field type %s not valid. Valid types include %s"
-                           % (definition['type'], ', '.join(FIELD_CLASSES)))
+            raise KeyError(
+                "Field type %s not valid. Valid types include %s"
+                % (definition["type"], ", ".join(FIELD_CLASSES))
+            )
 
         field_object = field_class(definition)
         primary_fields.append(field_object)
 
-        if hasattr(field_object, 'higher_vars'):
+        if hasattr(field_object, "higher_vars"):
             data_model.extend(field_object.higher_vars)
         else:
             data_model.append(field_object)
 
     if only_custom:
-        raise ValueError("At least one of the field types needs to be a type"
-                         "other than 'Custom'. 'Custom' types have no associated"
-                         "blocking rules")
+        raise ValueError(
+            "At least one of the field types needs to be a type"
+            "other than 'Custom'. 'Custom' types have no associated"
+            "blocking rules"
+        )
 
     return primary_fields, data_model
 
@@ -191,7 +201,7 @@ def interactions(definitions, primary_fields):
     interactions = []
 
     for definition in definitions:
-        if definition['type'] == 'Interaction':
+        if definition["type"] == "Interaction":
             field = interaction_class(definition)
             field.expandInteractions(field_d)
             interactions.extend(field.higher_vars)
@@ -200,9 +210,7 @@ def interactions(definitions, primary_fields):
 
 
 def missing_field_indices(variables):
-    return [i for i, definition
-            in enumerate(variables)
-            if definition.has_missing]
+    return [i for i, definition in enumerate(variables) if definition.has_missing]
 
 
 def interaction_indices(variables):
@@ -211,11 +219,10 @@ def interaction_indices(variables):
     field_names = [field.name for field in variables]
 
     for definition in variables:
-        if hasattr(definition, 'interaction_fields'):
+        if hasattr(definition, "interaction_fields"):
             interaction_indices = []
             for interaction_field in definition.interaction_fields:
-                interaction_indices.append(
-                    field_names.index(interaction_field))
+                interaction_indices.append(field_names.index(interaction_field))
             indices.append(interaction_indices)
 
     return indices

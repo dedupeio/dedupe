@@ -89,12 +89,14 @@ pytest
   
 Using Deduplication
 ```bash
-python tests/canonical.py
+python -m pip install -e ./benchmarks
+python benchmarks/benchmarks/canonical.py
 ```
 
 Using Record Linkage
 ```bash
-python tests/canonical_matching.py
+python -m pip install -e ./benchmarks
+python benchmarks/benchmarks/canonical_matching.py
 ```
 
 
@@ -121,7 +123,7 @@ If something is not behaving intuitively, it is a bug, and should be reported.
 
 ## Copyright
 
-Copyright (c) 2022 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/dedupeio/dedupe/blob/master/LICENSE).
+Copyright (c) 2022 Forest Gregg and Derek Eder. Released under the [MIT License](https://github.com/dedupeio/dedupe/blob/main/LICENSE).
 
 Third-party copyright in this distribution is noted where applicable.
 

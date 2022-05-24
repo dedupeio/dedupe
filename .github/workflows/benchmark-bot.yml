@@ -1,0 +1,92 @@
+# from https://github.com/pandas-dev/pandas/blob/d42a148cd83e06b5e5ef1fb6424e337d5b5efaa5/.github/workflows/asv-bot.yml
+name: "Benchmark Bot"
+
+on:
+  issue_comment: # Pull requests are also issues
+    types:
+      - created
+
+env:
+  COMMENT: ${{github.event.comment.body}}
+
+jobs:
+  benchmarks:
+    name: "Run benchmarks"
+    if: startsWith(github.event.comment.body, '@benchmark')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    concurrency:
+      # Set concurrency to prevent abuse(full runs are ~5.5 hours !!!)
+      # each user can only run one concurrent benchmark bot at a time
+      # We don't cancel in progress jobs, but if you want to benchmark multiple PRs,
+      # you're gonna have to wait
+      group: ${{ github.actor }}-benchmarks
+      cancel-in-progress: false
+
+    steps:
+      - name: Setup git
+        uses: actions/checkout@v3
+
+      # Since this was triggered by a comment, not a PR,
+      # the `actions/checkout` action will pull
+      # the default branch (AKA main). We need to checkout the PR branch.
+      # From https://github.com/actions/checkout/issues/331#issuecomment-925405415
+      - name: Checkout Pull Request
+        run: |
+          hub pr checkout ${{ github.event.issue.number }}
+          echo "Checked out SHA:"
+          git log -1 --format='%H'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install .
+
+      - name: Run benchmarks
+        id: bench
+        continue-on-error: true # This is a fake failure, asv will exit code 1 for regressions
+        run: |
+          # extracting the regex, see https://stackoverflow.com/a/36798723
+          REGEX=$(echo "$COMMENT" | sed -n "s/^@benchmark\s\+-b\s*\(\S*\).*$/\1/p")
+          if [ -z "$REGEX" ]; then
+            BENCHMARKS=""
+          else
+            BENCHMARKS="-b $REGEX"
+          fi
+          cd benchmarks
+          asv check -E existing
+          git remote add upstream https://github.com/dedupeio/dedupe.git
+          git fetch upstream
+          asv machine --yes
+          asv continuous -f 1.1 $BENCHMARKS upstream/main HEAD | cat
+          echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
+          asv compare -f 1.1 upstream/main HEAD | cat >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo "REGEX=$REGEX" >> $GITHUB_ENV
+
+      - name: Add comment with results
+        uses: actions/github-script@v6
+        env:
+          BENCH_OUTPUT: ${{env.BENCH_OUTPUT}}
+          REGEX: ${{env.REGEX}}
+        with:
+          script: |
+            const ENV_VARS = process.env
+            const run_url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '\nBenchmarks completed. View runner logs here: ' + run_url + '\nRegex used: "' + ENV_VARS["REGEX"] + '"\n```\n' + ENV_VARS["BENCH_OUTPUT"] + '\n```'
+            })

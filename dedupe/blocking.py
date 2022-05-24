@@ -20,35 +20,32 @@ def index_list():
 
 
 class Fingerprinter(object):
-    '''Takes in a record and returns all blocks that record belongs to'''
+    """Takes in a record and returns all blocks that record belongs to"""
 
     def __init__(self, predicates: List[dedupe.predicates.Predicate]) -> None:
 
         self.predicates = predicates
 
-        self.index_fields: Dict[str,
-                                Dict[str,
-                                     List[dedupe.predicates.IndexPredicate]]]
+        self.index_fields: Dict[str, Dict[str, List[dedupe.predicates.IndexPredicate]]]
         self.index_fields = defaultdict(index_list)
-        '''
+        """
         A dictionary of all the fingerprinter methods that use an
         index of data field values. The keys are the field names,
         which can be useful to know for indexing the data.
-        '''
+        """
 
         self.index_predicates = []
 
         for full_predicate in predicates:
             for predicate in full_predicate:
-                if hasattr(predicate, 'index'):
-                    self.index_fields[predicate.field][predicate.type].append(
-                        predicate)
+                if hasattr(predicate, "index"):
+                    self.index_fields[predicate.field][predicate.type].append(predicate)
                     self.index_predicates.append(predicate)
 
-    def __call__(self,
-                 records: Iterable[Record],
-                 target: bool = False) -> Generator[Tuple[str, RecordID], None, None]:
-        '''
+    def __call__(
+        self, records: Iterable[Record], target: bool = False
+    ) -> Generator[Tuple[str, RecordID], None, None]:
+        """
         Generate the predicates for records. Yields tuples of (predicate,
         record_id).
 
@@ -83,12 +80,12 @@ class Fingerprinter(object):
            > print list(blocked_ids)
            [('foo:1', 1), ..., ('bar:1', 100)]
 
-        '''
+        """
 
         start_time = time.perf_counter()
-        predicates = [(':' + str(i), predicate)
-                      for i, predicate
-                      in enumerate(self.predicates)]
+        predicates = [
+            (":" + str(i), predicate) for i, predicate in enumerate(self.predicates)
+        ]
 
         for i, record in enumerate(records):
             record_id, instance = record
@@ -99,23 +96,22 @@ class Fingerprinter(object):
                     yield block_key + pred_id, record_id
 
             if i and i % 10000 == 0:
-                logger.info('%(iteration)d, %(elapsed)f2 seconds',
-                            {'iteration': i,
-                             'elapsed': time.perf_counter() - start_time})
+                logger.info(
+                    "%(iteration)d, %(elapsed)f2 seconds",
+                    {"iteration": i, "elapsed": time.perf_counter() - start_time},
+                )
 
     def reset_indices(self) -> None:
-        '''
+        """
         Fingeprinter indicdes can take up a lot of memory. If you are
         done with blocking, the method will reset the indices to free up.
         If you need to block again, the data will need to be re-indexed.
-        '''
+        """
         for predicate in self.index_predicates:
             predicate.reset()
 
-    def index(self,
-              docs: Docs,
-              field: str) -> None:
-        '''
+    def index(self, docs: Docs, field: str) -> None:
+        """
         Add docs to the indices used by fingerprinters.
 
         Some fingerprinter methods depend upon having an index of
@@ -131,7 +127,7 @@ class Fingerprinter(object):
             field: fieldname or key associated with the values you are
                    indexing
 
-        '''
+        """
         indices = extractIndices(self.index_fields[field])
 
         for doc in docs:
@@ -149,7 +145,7 @@ class Fingerprinter(object):
                 predicate.bust_cache()
 
     def unindex(self, docs: Docs, field: str) -> None:
-        '''Remove docs from indices used by fingerprinters
+        """Remove docs from indices used by fingerprinters
 
         Args:
             docs: an iterator of values from your data to remove. While
@@ -158,7 +154,7 @@ class Fingerprinter(object):
                   operation.
             field: fieldname or key associated with the values you are
                    unindexing
-        '''
+        """
 
         indices = extractIndices(self.index_fields[field])
 
@@ -181,10 +177,7 @@ class Fingerprinter(object):
 
     def index_all(self, data: Data):
         for field in self.index_fields:
-            unique_fields = {record[field]
-                             for record
-                             in data.values()
-                             if record[field]}
+            unique_fields = {record[field] for record in data.values() if record[field]}
             self.index(unique_fields, field)
 
 
