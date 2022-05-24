@@ -60,11 +60,22 @@ def _connected_components(
     for stop in component_stops:
 
         sub_graph = edgelist[start:stop]
+        n_edges = stop - start
         start = stop
 
-        n_components = len(numpy.unique(sub_graph["pairs"]))
+        needs_filtering = False
+        # first we find the upper bound of the
+        # number of components given the edgelist
+        upper_bound_components = n_edges + 1
+        if upper_bound_components > max_components:
+            # which we can refine using a more expensive operation
+            # if it's possible we have too many components
+            n_components = len(numpy.unique(sub_graph["pairs"]))
+            if n_components > max_components:
+                needs_filtering = True
 
-        if n_components > max_components:
+        if needs_filtering:
+
             min_score = numpy.min(sub_graph["score"])
             min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
@@ -147,12 +158,22 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
     for label, component in components.items():
         labels[component] = label
 
-    # we want our selections to remain memmapped arrays
-    # so we sort and get the indices where the components
-    # change. This will allow us to slice pieces of the
-    # memmapped array. Those slices will also be memmaped
-    # arrays.
-    scored_pairs.sort(order=("label", "score"))
+    # we want our selections to remain memmapped arrays so we sort and
+    # get the indices where the components change. This will allow us
+    # to slice pieces of the memmapped array, and have those slices
+    # also be memmaped arrays.
+    #
+    # Since we we might be calling union_find recursively it would be
+    # good to use a stable sort to take advantage of sorting done in a
+    # previous recursion.
+    #
+    # stable sorts in numpy take about n / 2 work space so we won't
+    # do it if scored_pairs is too big
+    if len(scored_pairs) > 2500000:
+        scored_pairs.sort(order=("label", "score"))
+    else:
+        scored_pairs.sort(order=("label", "score"), kind="stable")
+
     return numpy.cumsum(numpy.unique(scored_pairs["label"], return_counts=True)[1])
 
 
