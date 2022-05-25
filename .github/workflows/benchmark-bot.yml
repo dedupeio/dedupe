@@ -12,8 +12,7 @@ env:
 jobs:
   benchmarks:
     name: "Run benchmarks"
-    # TODO: Support more benchmarking options later, against different branches, against self, etc
-    if: startsWith(github.event.comment.body, '@github-actions benchmark')
+    if: startsWith(github.event.comment.body, '@benchmark')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,10 +27,20 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - name: Checkout
+      - name: Setup git
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+
+      # Since this was triggered by a comment, not a PR,
+      # the `actions/checkout` action will pull
+      # the default branch (AKA main). We need to checkout the PR branch.
+      # From https://github.com/actions/checkout/issues/331#issuecomment-925405415
+      - name: Checkout Pull Request
+        run: |
+          hub pr checkout ${{ github.event.issue.number }}
+          echo "Checked out SHA:"
+          git log -1 --format='%H'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v3
@@ -42,21 +51,27 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install .
 
       - name: Run benchmarks
         id: bench
         continue-on-error: true # This is a fake failure, asv will exit code 1 for regressions
         run: |
           # extracting the regex, see https://stackoverflow.com/a/36798723
-          REGEX=$(echo "$COMMENT" | sed -n "s/^.*-b\s*\(\S*\).*$/\1/p")
+          REGEX=$(echo "$COMMENT" | sed -n "s/^@benchmark\s\+-b\s*\(\S*\).*$/\1/p")
+          if [ -z "$REGEX" ]; then
+            BENCHMARKS=""
+          else
+            BENCHMARKS="-b $REGEX"
+          fi
           cd benchmarks
           asv check -E existing
           git remote add upstream https://github.com/dedupeio/dedupe.git
           git fetch upstream
           asv machine --yes
-          asv continuous -f 1.1 -b $REGEX upstream/main HEAD
+          asv continuous -f 1.1 $BENCHMARKS upstream/main HEAD | cat
           echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
-          asv compare -f 1.1 upstream/main HEAD >> $GITHUB_ENV
+          asv compare -f 1.1 upstream/main HEAD | python ./.github/asv_markdown.py >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
           echo "REGEX=$REGEX" >> $GITHUB_ENV
 
@@ -73,5 +88,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '\nBenchmarks completed. View runner logs here.' + run_url + '\nRegex used: '+ 'regex ' + ENV_VARS["REGEX"] + '\n' + ENV_VARS["BENCH_OUTPUT"]
+              body: '\nBenchmarks completed. View runner logs here: ' + run_url + '\nRegex used: "' + ENV_VARS["REGEX"] + '"\n```\n' + ENV_VARS["BENCH_OUTPUT"] + '\n```'
             })

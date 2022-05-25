@@ -7,3 +7,4 @@ from dedupe.convenience import (  # noqa: F401
     training_data_link,
     canonicalize,
 )
+from dedupe.serializer import read_training, write_training  # noqa: F401
