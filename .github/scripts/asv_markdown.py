@@ -21,7 +21,7 @@ def to_markdown(data):
 def parse(asv_input):
 
     result = re.match(
-        r"^\n(?P<tests>.+?)\n\n       before           after         ratio\n     \[(?P<base_commit>.+)\]       \[(?P<head_commit>.+)\]\n     <(?P<base_branch>.+)>           <(?P<head_branch>.+)>\n(?P<raw_comparisons>.*)",
+        r"^       before           after         ratio\n     \[(?P<base_commit>.+)\]       \[(?P<head_commit>.+)\]\n     <(?P<base_branch>.+)>           <(?P<head_branch>.+)>\n(?P<raw_comparisons>.*)",
         asv_input,
         re.DOTALL,
     )
