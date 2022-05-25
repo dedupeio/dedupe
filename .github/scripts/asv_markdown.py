@@ -3,8 +3,7 @@ import re
 
 def to_markdown(data):
 
-    preamble = """{tests}
-|  |       before       |    after  |       ratio | benchmark  |
+    preamble = """|  |       before       |    after  |       ratio | benchmark  |
 |- |-: |-: |-|-|
 ||     {base_commit}    |    {head_commit} | | |
 ||     `{base_branch}`        |   `{head_branch}` | ||\n""".format(
