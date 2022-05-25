@@ -69,7 +69,7 @@ jobs:
           git remote add upstream https://github.com/dedupeio/dedupe.git
           git fetch upstream
           asv machine --yes
-          asv continuous -f 1.1 $BENCHMARKS upstream/main HEAD
+          asv continuous -f 1.1 $BENCHMARKS upstream/main HEAD | cat
           echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
           asv compare -f 1.1 upstream/main HEAD | cat >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
