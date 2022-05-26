@@ -15,7 +15,6 @@ import sqlite3
 import tempfile
 
 import numpy
-import json
 import sklearn.ensemble
 
 import dedupe.core as core
@@ -1097,8 +1096,7 @@ class ActiveMatching(Matching):
         """
 
         logger.info("reading training from file")
-        training_pairs = json.load(training_file, object_hook=serializer._from_json)
-
+        training_pairs = serializer.read_training(training_file)
         self.mark_pairs(training_pairs)
 
     def train(
@@ -1149,13 +1147,7 @@ class ActiveMatching(Matching):
                 matcher.write_training(f)
 
         """
-
-        json.dump(
-            self.training_pairs,
-            file_obj,
-            cls=serializer.TupleEncoder,
-            ensure_ascii=True,
-        )
+        serializer.write_training(self.training_pairs, file_obj)
 
     def write_settings(self, file_obj: BinaryIO) -> None:  # pragma: no cover
         """

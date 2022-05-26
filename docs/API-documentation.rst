@@ -259,3 +259,5 @@ Convenience Functions
 .. autofunction:: dedupe.training_data_dedupe
 .. autofunction:: dedupe.training_data_link
 .. autofunction:: dedupe.canonicalize
+.. autofunction:: dedupe.read_training
+.. autofunction:: dedupe.write_training
