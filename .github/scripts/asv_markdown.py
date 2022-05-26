@@ -3,7 +3,8 @@ import re
 
 def to_markdown(data):
 
-    preamble = """|  |       before       |    after  |       ratio | benchmark  |
+    preamble = """# {tests}
+|  |       before       |    after  |       ratio | benchmark  |
 |- |-: |-: |-|-|
 ||     {base_commit}    |    {head_commit} | | |
 ||     `{base_branch}`        |   `{head_branch}` | ||\n""".format(
@@ -20,7 +21,7 @@ def to_markdown(data):
 def parse(asv_input):
 
     result = re.match(
-        r"^       before           after         ratio\n     \[(?P<base_commit>.+)\]       \[(?P<head_commit>.+)\]\n     <(?P<base_branch>.+)>           <(?P<head_branch>.+)>\n(?P<raw_comparisons>.*)",
+        r"^\n(?P<tests>.*?)\n       before           after         ratio\n     \[(?P<base_commit>.+)\]       \[(?P<head_commit>.+)\]\n     <(?P<base_branch>.+)>           <(?P<head_branch>.+)>\n(?P<raw_comparisons>.*)",
         asv_input,
         re.DOTALL,
     )
