@@ -38,5 +38,6 @@ if __name__ == "__main__":
     import sys
 
     asv_input = sys.stdin.read()
+    print(asv_input, file=sys.stderr)
 
     print(to_markdown(parse(asv_input)))
