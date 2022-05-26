@@ -71,7 +71,7 @@ jobs:
           asv machine --yes
           asv continuous -f 1.1 $BENCHMARKS upstream/main HEAD | cat
           echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
-          asv compare -f 1.1 upstream/main HEAD | python ../.github/scripts/asv_markdown.py >> $GITHUB_ENV
+          asv compare --show-stderr -f 1.1 upstream/main HEAD | python ../.github/scripts/asv_markdown.py >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
           echo "REGEX=$REGEX" >> $GITHUB_ENV
 
