@@ -37,6 +37,8 @@ def parse(asv_input):
 if __name__ == "__main__":
     import sys
 
+    print('hello', file=sys.stderr)
     asv_input = sys.stdin.read()
+    print(asv_input, file=sys.stderr)
 
     print(to_markdown(parse(asv_input)))
