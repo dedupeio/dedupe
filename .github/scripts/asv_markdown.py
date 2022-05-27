@@ -27,7 +27,7 @@ def to_markdown(data):
 
     preamble = """# {tests} [(diff)](https://github.com/dedupeio/dedupe/compare/{base_commit}...{head_commit})
 |  |       before       |    after  |       ratio | benchmark  |
-|- |-: |-: |-|-|
+|- |-: |-: |-: |-|
 ||     `{base_branch}`        |   `{head_branch}` | ||\n""".format(
         **data
     )
