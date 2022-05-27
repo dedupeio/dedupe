@@ -1037,11 +1037,12 @@ class ActiveMatching(Matching):
 
     classifier = sklearn.model_selection.RandomizedSearchCV(
         estimator=sklearn.ensemble.RandomForestClassifier(),
-        param_distributions={'n_estimators': [200, 400, 600, 1000]},
-        n_iter = 100,
-        cv = 3,
-        verbose = 2,
-        n_jobs = -1)
+        param_distributions={"n_estimators": [200, 400, 600, 1000]},
+        n_iter=100,
+        cv=3,
+        verbose=2,
+        n_jobs=-1,
+    )
 
     def __init__(
         self,
