@@ -16,6 +16,7 @@ import tempfile
 
 import numpy
 import sklearn.ensemble
+import sklearn.model_selection
 
 import dedupe.core as core
 import dedupe.serializer as serializer
@@ -1034,7 +1035,13 @@ class ActiveMatching(Matching):
     Class for training a matcher.
     """
 
-    classifier = sklearn.ensemble.RandomForestClassifier()
+    classifier = sklearn.model_selection.RandomizedSearchCV(
+        estimator=sklearn.ensemble.RandomForestClassifier(),
+        param_distributions={'n_estimators': [200, 400, 600, 1000]},
+        n_iter = 100,
+        cv = 3,
+        verbose = 2,
+        n_jobs = -1)
 
     def __init__(
         self,
