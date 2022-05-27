@@ -1,6 +1,28 @@
 import re
 
 
+def format(element):
+
+    if is_float(element):
+
+        f = float(element)
+
+        return "{0:.3}".format(f)
+
+    else:
+        return element
+
+
+def is_float(element):
+
+    try:
+        float(element)
+    except ValueError:
+        return False
+    else:
+        return True
+
+
 def to_markdown(data):
 
     preamble = """# {tests}
@@ -29,8 +51,13 @@ def parse(asv_input):
     test_details = result.groupdict()
 
     raw_comparisons = test_details.pop("raw_comparisons").splitlines()
-    test_details["comparisons"] = [
+    comparisons = (
         [row[:2].strip()] + row[2:].split(maxsplit=3) for row in raw_comparisons
+    )
+    print(comparisons)
+    test_details["comparisons"] = [
+        [indicator, format(value_a), format(value_b), ratio, test]
+        for indicator, value_a, value_b, ratio, test in comparisons
     ]
     return test_details
 
