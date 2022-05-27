@@ -25,10 +25,9 @@ def is_float(element):
 
 def to_markdown(data):
 
-    preamble = """# {tests}
+    preamble = """# {tests} [(diff)](https://github.com/dedupeio/dedupe/compare/{base_commit}...{head_commit})
 |  |       before       |    after  |       ratio | benchmark  |
 |- |-: |-: |-|-|
-||     {base_commit}    |    {head_commit} | | |
 ||     `{base_branch}`        |   `{head_branch}` | ||\n""".format(
         **data
     )
@@ -54,7 +53,6 @@ def parse(asv_input):
     comparisons = (
         [row[:2].strip()] + row[2:].split(maxsplit=3) for row in raw_comparisons
     )
-    print(comparisons)
     test_details["comparisons"] = [
         [indicator, format(value_a), format(value_b), ratio, test]
         for indicator, value_a, value_b, ratio, test in comparisons

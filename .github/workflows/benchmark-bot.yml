@@ -88,5 +88,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '\nBenchmarks completed. View runner logs here: ' + run_url + '\nRegex used: "' + ENV_VARS["REGEX"] + '"\n' + ENV_VARS["BENCH_OUTPUT"]
+              body: ENV_VARS["BENCH_OUTPUT"] + '\n[(logs)](run_url)
             })
