@@ -25,10 +25,9 @@ def is_float(element):
 
 def to_markdown(data):
 
-    preamble = """# {tests} [(diff)](https://github.com/dedupeio/dedupe/compare/{base_commit}...{head_commit})
+    preamble = """# {tests} ([diff](https://github.com/dedupeio/dedupe/compare/{base_commit}...{head_commit})):
 |  |       before       |    after  |       ratio | benchmark  |
-|- |-: |-: |-: |-|
-||     `{base_branch}`        |   `{head_branch}` | ||\n""".format(
+|- |-: |-: |-: |-|\n""".format(
         **data
     )
 
@@ -42,7 +41,7 @@ def to_markdown(data):
 def parse(asv_input):
 
     result = re.match(
-        r"^\n(?P<tests>.*?)\n       before           after         ratio\n     \[(?P<base_commit>.+)\]       \[(?P<head_commit>.+)\]\n     <(?P<base_branch>.+)>           <(?P<head_branch>.+)>\n(?P<raw_comparisons>.*)",
+        r"^\n(?P<tests>.*?):\n\n       before           after         ratio\n     \[(?P<base_commit>.+)\]       \[(?P<head_commit>.+)\]\n     <(?P<base_branch>.+)>           <(?P<head_branch>.+)>\n(?P<raw_comparisons>.*)",
         asv_input,
         re.DOTALL,
     )
