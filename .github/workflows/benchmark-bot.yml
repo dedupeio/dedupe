@@ -13,7 +13,7 @@ jobs:
   benchmarks:
     name: "Run benchmarks"
     if: startsWith(github.event.comment.body, '@benchmark')
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -el {0}
