@@ -21,14 +21,13 @@ class CanopyIndex(TextIndex):  # pragma: no cover
         N = len(self.index._docweight)
         threshold = int(max(1000, N * 0.05))
 
+        stop_words = []
         self._wids_dict = {}
 
         bucket = self.index.family.IF.Bucket
         for wid, docs in self.index._wordinfo.items():
             if len(docs) > threshold:
-                word = self.lexicon._words[wid]
-                logger.info("Removing stop word {}".format(word))
-                del self.index._wordinfo[wid]
+                stop_words.append(wid)
                 continue
             if isinstance(docs, dict):
                 docs = bucket(docs)
@@ -36,6 +35,11 @@ class CanopyIndex(TextIndex):  # pragma: no cover
             self.index._wordinfo[wid] = docs
             term = self.lexicon._words[wid]
             self._wids_dict[term] = (wid, idf)
+
+        for wid in stop_words:
+            word = self.lexicon._words.pop(wid)
+            logger.info("Removing stop word {}".format(word))
+            del self.index._wordinfo[wid]
 
     def apply(self, query_list, threshold, start=0, count=None):
         _wids_dict = self._wids_dict
