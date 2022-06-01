@@ -22,9 +22,9 @@ class CanopyIndex(TextIndex):  # pragma: no cover
         threshold = int(max(1000, N * 0.05))
 
         stop_words = []
+        self._wids_dict = {}
 
         bucket = self.index.family.IF.Bucket
-        self._wids_dict = {}
         for wid, docs in self.index._wordinfo.items():
             if len(docs) > threshold:
                 stop_words.append(wid)
