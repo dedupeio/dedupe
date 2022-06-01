@@ -37,9 +37,8 @@ class CanopyIndex(TextIndex):  # pragma: no cover
             self._wids_dict[term] = (wid, idf)
 
         for wid in stop_words:
-            word = self.lexicon._words[wid]
+            word = self.lexicon._words.pop(wid)
             logger.info("Removing stop word {}".format(word))
-            del self.lexicon._words[wid]
             del self.index._wordinfo[wid]
 
     def apply(self, query_list, threshold, start=0, count=None):
