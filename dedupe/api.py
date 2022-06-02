@@ -1048,13 +1048,6 @@ class ActiveMatching(Matching):
     Class for training a matcher.
     """
 
-    classifier = sklearn.model_selection.GridSearchCV(
-        estimator=sklearn.linear_model.LogisticRegression(),
-        param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
-        scoring="f1",
-        n_jobs=-1,
-    )
-
     def __init__(
         self,
         variable_definition: Sequence[Mapping],
@@ -1097,6 +1090,12 @@ class ActiveMatching(Matching):
                 labeler.DedupeDisagreementLearner, labeler.RecordLinkDisagreementLearner
             ]
         ]
+        self.classifier = sklearn.model_selection.GridSearchCV(
+            estimator=sklearn.linear_model.LogisticRegression(),
+            param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
+            scoring="f1",
+            n_jobs=-1,
+        )
         self.active_learner = None
 
     def cleanup_training(self) -> None:  # pragma: no cover
