@@ -1052,7 +1052,6 @@ class ActiveMatching(Matching):
         estimator=sklearn.linear_model.LogisticRegression(),
         param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
         scoring="f1",
-        verbose=3,
         n_jobs=-1,
     )
 
