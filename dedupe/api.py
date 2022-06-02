@@ -1017,6 +1017,19 @@ class StaticMatching(Matching):
                 "the current version of dedupe. This can happen "
                 "if you have recently upgraded dedupe."
             )
+        except ModuleNotFoundError as exc:
+            if "No module named 'rlr'" in str(exc):
+                raise SettingsFileLoadingException(
+                    "This settings file was created with a previous "
+                    "version of dedupe that used the 'rlr' library. "
+                    "To continue to use this settings file, you need "
+                    "install that library: `pip install rlr`"
+                )
+            else:
+                raise SettingsFileLoadingException(
+                    "Something has gone wrong with loading the settings file. "
+                    "Try deleting the file"
+                ) from exc
         except:  # noqa: E722
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
