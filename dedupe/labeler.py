@@ -409,7 +409,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
         self.candidates = self.blocker.candidates
 
-        self.classifier = RFLearner(self.data_model)
+        self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
@@ -441,7 +441,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
         self.candidates = self.blocker.candidates
 
-        self.classifier = RFLearner(self.data_model)
+        self.classifier = RLRLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
