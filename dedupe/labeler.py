@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 import logging
 
 import numpy
-import rlr
 from typing import List
 from typing_extensions import Protocol
+import sklearn.linear_model
 
 import dedupe.core as core
 import dedupe.training as training
@@ -38,9 +38,9 @@ class HasDataModel(Protocol):
     data_model: datamodel.DataModel
 
 
-class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
+class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
     def __init__(self, data_model):
-        super().__init__(alpha=1)
+        super().__init__()
         self.data_model = data_model
         self._candidates: List[TrainingExample]
 
@@ -66,7 +66,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         self.y = numpy.array(y)
         self.X = X
 
-        super().fit(self.X, self.y, cv=False)
+        super().fit(self.X, self.y)
 
     def fit_transform(self, pairs, y):
         self.fit(self.transform(pairs), y)
@@ -118,7 +118,7 @@ class RLRLearner(ActiveLearner, rlr.RegularizedLogisticRegression):
         return weighted_bias
 
     def candidate_scores(self):
-        return self.predict_proba(self.distances)
+        return self.predict_proba(self.distances)[:, 1].reshape(-1, 1)
 
     def __len__(self):
         return len(self.candidates)

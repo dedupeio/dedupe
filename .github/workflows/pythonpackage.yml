@@ -8,28 +8,31 @@ jobs:
     # so run this before anything else.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.10"
-      - name: Install Black
-        run: pip install black
-      - name: Run black --check .
-        run: black --check .
+      - uses: actions/checkout@v2
+        with:  # https://github.com/stefanzweifel/git-auto-commit-action#checkout-the-correct-branch
+            ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v2
+      - run: pip install black
+      - run: black --check .
       - name: If needed, commit black changes to the pull request
         if: failure()
         run: |
-          black .
-          git config --global user.name 'autoblack'
-          git config --global user.email 'cclauss@users.noreply.github.com'
+          printenv | grep GITHUB
+          git config --global user.name 'fgregg'
+          git config --global user.email 'fgregg@users.noreply.github.com'          
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git checkout $GITHUB_HEAD_REF
-          git commit -am "fixup: Format Python code with Black"
+          git remote -v
+          git branch
+          git status
+          black .
+          git status
+          echo ready to commit
+          git commit -am "fixup! Format Python code with psf/black pull_request"
+          echo ready to push
           git push
   test:
     needs: format
-    timeout-minutes: 30
+    timeout-minutes: 40
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

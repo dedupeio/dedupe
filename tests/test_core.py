@@ -2,8 +2,19 @@ import unittest
 import random
 
 import numpy
+import scipy.special
 
 import dedupe
+
+
+class MockClassifier:
+    def __init__(self):
+
+        self.weight = 0
+        self.bias = 0
+
+    def predict_proba(self, examples):
+        return scipy.special.expit(examples * self.weight + self.bias)
 
 
 class ScoreDuplicates(unittest.TestCase):
@@ -39,8 +50,9 @@ class ScoreDuplicates(unittest.TestCase):
 
         deduper = dedupe.Dedupe([{"field": "name", "type": "String"}])
         self.data_model = deduper.data_model
-        self.classifier = deduper.classifier
-        self.classifier.weights = [-1.0302742719650269]
+        self.classifier = MockClassifier()
+
+        self.classifier.weight = -1.0302742719650269
         self.classifier.bias = 4.76
 
         score_dtype = [("pairs", "<U192", 2), ("score", "f4")]
@@ -68,7 +80,7 @@ class ScoreDuplicates(unittest.TestCase):
         )
 
     def test_score_duplicates_with_zeros(self):
-        self.classifier.weights = [-1000]
+        self.classifier.weight = -1000
         self.classifier.bias = 1000
         self.records = iter(
             [

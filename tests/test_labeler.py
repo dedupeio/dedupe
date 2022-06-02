@@ -23,23 +23,14 @@ class ActiveLearningTest(unittest.TestCase):
         active_learner = dedupe.labeler.RLRLearner(self.data_model)
         active_learner.candidates = SAMPLE
         assert len(active_learner) == original_N
-        pair = active_learner.pop()
-        print(pair)
-        assert pair == (
-            {"name": "Willy", "age": "35"},
-            {"name": "William", "age": "35"},
-        )
 
+        active_learner.pop()
         assert len(active_learner) == original_N - 1
 
-        pair = active_learner.pop()
-        print(pair)
-        assert pair == ({"name": "Jimmy", "age": "20"}, {"name": "Jimbo", "age": "21"})
+        active_learner.pop()
         assert len(active_learner) == original_N - 2
 
-        pair = active_learner.pop()
-        assert pair == ({"name": "Meredith", "age": "40"}, {"name": "Sue", "age": "10"})
-
+        active_learner.pop()
         assert len(active_learner) == original_N - 3
 
         active_learner.pop()

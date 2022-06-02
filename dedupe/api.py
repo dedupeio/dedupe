@@ -15,7 +15,8 @@ import sqlite3
 import tempfile
 
 import numpy
-import rlr
+import sklearn.linear_model
+import sklearn.model_selection
 
 import dedupe.core as core
 import dedupe.serializer as serializer
@@ -1016,6 +1017,19 @@ class StaticMatching(Matching):
                 "the current version of dedupe. This can happen "
                 "if you have recently upgraded dedupe."
             )
+        except ModuleNotFoundError as exc:
+            if "No module named 'rlr'" in str(exc):
+                raise SettingsFileLoadingException(
+                    "This settings file was created with a previous "
+                    "version of dedupe that used the 'rlr' library. "
+                    "To continue to use this settings file, you need "
+                    "install that library: `pip install rlr`"
+                )
+            else:
+                raise SettingsFileLoadingException(
+                    "Something has gone wrong with loading the settings file. "
+                    "Try deleting the file"
+                ) from exc
         except:  # noqa: E722
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
@@ -1034,7 +1048,13 @@ class ActiveMatching(Matching):
     Class for training a matcher.
     """
 
-    classifier = rlr.RegularizedLogisticRegression()
+    classifier = sklearn.model_selection.GridSearchCV(
+        estimator=sklearn.linear_model.LogisticRegression(),
+        param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
+        scoring="f1",
+        verbose=3,
+        n_jobs=-1,
+    )
 
     def __init__(
         self,
