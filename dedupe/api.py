@@ -1092,7 +1092,7 @@ class ActiveMatching(Matching):
         ]
         self.classifier = sklearn.model_selection.GridSearchCV(
             estimator=sklearn.ensemble.RandomForestClassifier(),
-            param_grid={"n_estimators": [100, 200, 400, 800, 1600]},
+            param_grid={"n_estimators": [100, 200, 400, 800]},
             scoring="f1",
             n_jobs=-1,
         )
