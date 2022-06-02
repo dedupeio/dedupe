@@ -15,7 +15,7 @@ import sqlite3
 import tempfile
 
 import numpy
-import sklearn.ensemble
+import sklearn.linear_model
 import sklearn.model_selection
 
 import dedupe.core as core
@@ -1035,12 +1035,11 @@ class ActiveMatching(Matching):
     Class for training a matcher.
     """
 
-    classifier = sklearn.model_selection.RandomizedSearchCV(
-        estimator=sklearn.ensemble.RandomForestClassifier(),
-        param_distributions={"n_estimators": [200, 400, 600, 1000]},
-        n_iter=100,
-        cv=3,
-        verbose=2,
+    classifier = sklearn.model_selection.GridSearchCV(
+        estimator=sklearn.linear_model.LogisticRegression(),
+        param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
+        scoring="f1",
+        verbose=3,
         n_jobs=-1,
     )
 
