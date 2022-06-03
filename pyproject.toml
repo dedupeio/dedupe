@@ -2,3 +2,7 @@
 requires = ["setuptools",
             "wheel",
             "cython"]
+
+[tool.mypy]
+ignore_missing_imports = true
+files = "dedupe"
