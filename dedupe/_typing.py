@@ -24,6 +24,12 @@ LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 
 
+class VariableDefinition(TypedDict, total=False):
+    field: str
+    type: str
+    # Others also allowed
+
+
 class TrainingData(TypedDict):
     match: List[TrainingExample]
     distinct: List[TrainingExample]

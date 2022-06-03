@@ -27,7 +27,6 @@ import dedupe.labeler as labeler
 import dedupe.predicates
 
 from typing import (
-    Mapping,
     Optional,
     List,
     Tuple,
@@ -55,6 +54,7 @@ from dedupe._typing import (
     TrainingData,
     Classifier,
     JoinConstraint,
+    VariableDefinition,
 )
 
 logger = logging.getLogger(__name__)
@@ -1050,7 +1050,7 @@ class ActiveMatching(Matching):
 
     def __init__(
         self,
-        variable_definition: Sequence[Mapping],
+        variable_definition: Sequence[VariableDefinition],
         num_cores: Optional[int] = None,
         in_memory: bool = False,
         **kwargs
