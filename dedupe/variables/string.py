@@ -5,8 +5,6 @@ from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
-from typing import Optional
-
 crfEd = CRFEditDistance()
 
 base_predicates = (
@@ -32,7 +30,6 @@ base_predicates = (
 
 
 class BaseStringType(FieldType):
-    type: Optional[str] = None
     _Predicate = predicates.StringPredicate
 
     def __init__(self, definition):

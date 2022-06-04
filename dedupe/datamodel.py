@@ -14,8 +14,7 @@ for _, module, _ in pkgutil.iter_modules(  # type: ignore
 ):
     __import__(module)
 
-
-FIELD_CLASSES = {k: v for k, v in base.allSubclasses(base.FieldType) if k}
+FIELD_CLASSES = {k: v for k, v in base.FieldType.all_subclasses() if k}
 
 
 class DataModel(object):

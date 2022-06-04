@@ -4,6 +4,10 @@ from dedupe import predicates
 
 
 class Variable(object):
+    name: str
+    type: str
+    predicates: Sequence[Callable[[Any], Any]]
+
     def __len__(self):
         return 1
 
@@ -33,6 +37,13 @@ class Variable(object):
         odict["predicates"] = None
 
         return odict
+
+    @classmethod
+    def all_subclasses(cls):
+        for q in cls.__subclasses__():
+            yield getattr(q, "type", None), q
+            for p in q.all_subclasses():
+                yield p
 
 
 class DerivedType(Variable):
@@ -99,13 +110,6 @@ class CustomType(FieldType):
                 self.type,
                 self.comparator.__name__,
             )
-
-
-def allSubclasses(cls):
-    for q in cls.__subclasses__():
-        yield q.type, q
-        for p in allSubclasses(q):
-            yield p
 
 
 def indexPredicates(predicates, thresholds, field):
