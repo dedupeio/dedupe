@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Callable, Sequence, Type, Any, Iterable
+from typing import Callable, ClassVar, Sequence, Type, Any, Iterable
 
 from dedupe import predicates
 
 
 class Variable(object):
     name: str
-    type: str
-    predicates: Sequence[Callable[[Any], Any]]
+    type: ClassVar[str]
+    predicates: list[Callable[[Any], Any]]
 
     def __len__(self):
         return 1
