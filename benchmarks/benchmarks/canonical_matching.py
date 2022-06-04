@@ -46,13 +46,13 @@ class Matching:
             with open(self.settings_file, "rb") as f:
                 deduper = dedupe.StaticRecordLink(f)
         else:
-            fields = [
+            variables = [
                 {"field": "name", "type": "String"},
                 {"field": "address", "type": "String"},
                 {"field": "cuisine", "type": "String"},
                 {"field": "city", "type": "String"},
             ]
-            deduper = dedupe.RecordLink(fields)
+            deduper = dedupe.RecordLink(variables)
             deduper.prepare_training(data_1, data_2, sample_size=10000)
             deduper.mark_pairs(self.training_pairs)
             deduper.train()

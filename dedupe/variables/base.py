@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable, Sequence, Type, Any, Iterable
 
 from dedupe import predicates
@@ -69,6 +71,7 @@ class FieldType(Variable):
     _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
     _predicate_functions: Sequence[Callable[[Any], Iterable[str]]] = ()
     _Predicate = predicates.SimplePredicate
+    comparator: Callable[[Any, Any], int | float]
 
     def __init__(self, definition):
         self.field = definition["field"]
