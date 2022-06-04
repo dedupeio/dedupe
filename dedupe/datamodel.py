@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import pkgutil
 from typing import Container, Iterable
-
-import numpy
 import copyreg
 import types
+
+import numpy
 
 import dedupe.variables
 from dedupe.variables.base import (
