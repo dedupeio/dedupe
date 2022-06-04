@@ -1,5 +1,6 @@
-from .base import Variable
 import itertools
+
+from dedupe.variables.base import Variable
 
 
 class InteractionType(Variable):

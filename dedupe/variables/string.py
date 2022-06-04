@@ -1,9 +1,9 @@
-from .base import FieldType, indexPredicates
-from dedupe import predicates
-
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
+
+from dedupe.variables.base import FieldType, indexPredicates
+from dedupe import predicates
 
 crfEd = CRFEditDistance()
 

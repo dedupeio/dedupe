@@ -1,6 +1,7 @@
-from .base import FieldType
-from dedupe import predicates
 from simplecosine.cosine import CosineSetSimilarity
+
+from dedupe import predicates
+from dedupe.variables.base import FieldType
 
 
 class SetType(FieldType):

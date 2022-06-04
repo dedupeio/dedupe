@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from .canopy_index import CanopyIndex
-from .index import Index
-from .core import Enumerator
+from dedupe.canopy_index import CanopyIndex
+from dedupe.index import Index
+from dedupe.core import Enumerator
 
 logger = logging.getLogger(__name__)
 

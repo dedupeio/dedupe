@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import random
 from abc import ABC, abstractmethod
 import logging
 
 import numpy
-from typing import List
 from typing_extensions import Protocol
 import sklearn.linear_model
 
@@ -42,10 +43,10 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
     def __init__(self, data_model):
         super().__init__()
         self.data_model = data_model
-        self._candidates: List[TrainingExample]
+        self._candidates: list[TrainingExample]
 
     @property
-    def candidates(self) -> List[TrainingExample]:
+    def candidates(self) -> list[TrainingExample]:
         return self._candidates
 
     @candidates.setter
@@ -306,7 +307,7 @@ class DisagreementLearner(ActiveLearner):
 
     classifier: RLRLearner
     blocker: BlockLearner
-    candidates: List[TrainingExample]
+    candidates: list[TrainingExample]
 
     def _common_init(self):
 
