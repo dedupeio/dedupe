@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
   test:
-    needs: format
     timeout-minutes: 40
     runs-on: ${{ matrix.os }}
     strategy:
