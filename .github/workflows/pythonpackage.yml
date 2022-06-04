@@ -10,7 +10,7 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         python-version: [3.7, 3.8, 3.9, "3.10"]
-        
+
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
@@ -22,11 +22,11 @@ jobs:
         pip install --upgrade pip
         pip install -e .
     - name: Install test dependencies
-      run: |        
+      run: |
         pip install -r requirements.txt
     - name: pytest
       run: |
-         pytest tests dedupe --cov dedupe
+        pytest
     - env:
         COVERALLS_PARALLEL: true
         COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -35,12 +35,15 @@ jobs:
       run: |
         pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
         coveralls
+    - name: flake8
+      run: |
+        flake8 dedupe tests benchmarks/benchmarks
     - name: black
       run: |
-         black . --check
+        black . --check
     - name: mypy
-      run: |        
-        mypy --ignore-missing-imports dedupe
+      run: |
+        mypy
     - name: Integration tests
       # Do everything twice: The first time is training and generates settings,
       # the second time it tests using a static settings file.
@@ -70,22 +73,22 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v2    
-    - name: Build wheels
-      uses: pypa/cibuildwheel@2.6.0
-      env:
-        CIBW_ARCHS_MACOS: x86_64 arm64 universal2
-    - name: Build sdist
-      run: |
-        pip install build
-        python -m build --sdist
-    - name: Publish wheels to PyPI
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pip install twine
-        twine upload --skip-existing wheelhouse/*.whl
-        twine upload dist/*
-      continue-on-error: true
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v2
+      - name: Build wheels
+        uses: pypa/cibuildwheel@2.6.0
+        env:
+          CIBW_ARCHS_MACOS: x86_64 arm64 universal2
+      - name: Build sdist
+        run: |
+          pip install build
+          python -m build --sdist
+      - name: Publish wheels to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          pip install twine
+          twine upload --skip-existing wheelhouse/*.whl
+          twine upload dist/*
+        continue-on-error: true
