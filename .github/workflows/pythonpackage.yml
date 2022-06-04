@@ -3,33 +3,6 @@ name: tests
 on: [push, pull_request]
 
 jobs:
-  format:
-    # We want all subsequent steps of CI to refer to the fresh version of code,
-    # so run this before anything else.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:  # https://github.com/stefanzweifel/git-auto-commit-action#checkout-the-correct-branch
-            ref: ${{ github.head_ref }}
-      - uses: actions/setup-python@v2
-      - run: pip install black
-      - run: black --check .
-      - name: If needed, commit black changes to the pull request
-        if: failure()
-        run: |
-          printenv | grep GITHUB
-          git config --global user.name 'fgregg'
-          git config --global user.email 'fgregg@users.noreply.github.com'          
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git remote -v
-          git branch
-          git status
-          black .
-          git status
-          echo ready to commit
-          git commit -am "fixup! Format Python code with psf/black pull_request"
-          echo ready to push
-          git push
   test:
     needs: format
     timeout-minutes: 40
@@ -63,9 +36,9 @@ jobs:
       run: |
         pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
         coveralls
-    - name: flake8
+    - name: black
       run: |
-         flake8 dedupe tests benchmarks/benchmarks
+         black . --check
     - name: mypy
       run: |        
         mypy --ignore-missing-imports dedupe
