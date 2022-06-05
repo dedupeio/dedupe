@@ -8,7 +8,7 @@ from dedupe import predicates
 class Variable(object):
     name: str
     type: ClassVar[str]
-    predicates: list[Callable[[Any], Any]]
+    predicates: list[Callable[[Any], Iterable[str]]]
 
     def __len__(self):
         return 1
