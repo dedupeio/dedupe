@@ -30,7 +30,7 @@ base_predicates = (
 
 
 class BaseStringType(FieldType):
-    _Predicate = predicates.StringPredicate
+    _Predicate: predicates.StringPredicate = predicates.StringPredicate
 
     def __init__(self, definition):
         super(BaseStringType, self).__init__(definition)
