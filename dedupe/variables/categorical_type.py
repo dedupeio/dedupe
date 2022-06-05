@@ -1,4 +1,4 @@
-from .base import FieldType, DerivedType
+from dedupe.variables.base import FieldType, DerivedType
 from dedupe import predicates
 from categorical import CategoricalComparator
 

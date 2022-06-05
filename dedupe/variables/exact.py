@@ -1,4 +1,4 @@
-from .base import FieldType
+from dedupe.variables.base import FieldType
 from dedupe import predicates
 
 

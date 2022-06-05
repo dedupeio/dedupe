@@ -34,7 +34,7 @@ class Canonical:
                 deduper = dedupe.StaticDedupe(f)
 
         else:
-            fields = [
+            variables = [
                 {"field": "name", "type": "String"},
                 {"field": "name", "type": "Exact"},
                 {"field": "address", "type": "String"},
@@ -42,7 +42,7 @@ class Canonical:
                 {"field": "city", "type": "ShortString"},
             ]
 
-            deduper = dedupe.Dedupe(fields, num_cores=5)
+            deduper = dedupe.Dedupe(variables, num_cores=5)
             deduper.prepare_training(self.data, sample_size=10000)
             deduper.mark_pairs(self.training_pairs)
             deduper.train(index_predicates=True)

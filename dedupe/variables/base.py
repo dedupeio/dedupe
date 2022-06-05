@@ -1,9 +1,15 @@
-from typing import Callable, Sequence, Type, Any, Iterable
+from __future__ import annotations
+
+from typing import Callable, ClassVar, Sequence, Type, Any, Iterable
 
 from dedupe import predicates
 
 
 class Variable(object):
+    name: str
+    type: ClassVar[str]
+    predicates: list[Callable[[Any], Any]]
+
     def __len__(self):
         return 1
 
@@ -34,6 +40,13 @@ class Variable(object):
 
         return odict
 
+    @classmethod
+    def all_subclasses(cls):
+        for q in cls.__subclasses__():
+            yield getattr(q, "type", None), q
+            for p in q.all_subclasses():
+                yield p
+
 
 class DerivedType(Variable):
     type = "Derived"
@@ -58,6 +71,7 @@ class FieldType(Variable):
     _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
     _predicate_functions: Sequence[Callable[[Any], Iterable[str]]] = ()
     _Predicate = predicates.SimplePredicate
+    comparator: Callable[[Any, Any], int | float]
 
     def __init__(self, definition):
         self.field = definition["field"]
@@ -99,13 +113,6 @@ class CustomType(FieldType):
                 self.type,
                 self.comparator.__name__,
             )
-
-
-def allSubclasses(cls):
-    for q in cls.__subclasses__():
-        yield q.type, q
-        for p in allSubclasses(q):
-            yield p
 
 
 def indexPredicates(predicates, thresholds, field):

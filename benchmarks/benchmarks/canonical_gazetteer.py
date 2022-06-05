@@ -5,6 +5,7 @@ import dedupe
 
 from benchmarks import canonical_matching
 from benchmarks import common
+from dedupe import variables
 
 
 def make_report(data, clustering):
@@ -32,14 +33,14 @@ class Gazetteer(canonical_matching.Matching):
             with open(self.settings_file, "rb") as f:
                 gazetteer = dedupe.StaticGazetteer(f)
         else:
-            fields = [
+            variables = [
                 {"field": "name", "type": "String"},
                 {"field": "address", "type": "String"},
                 {"field": "cuisine", "type": "String"},
                 {"field": "city", "type": "String"},
             ]
 
-            gazetteer = dedupe.Gazetteer(fields)
+            gazetteer = dedupe.Gazetteer(variables)
             gazetteer.prepare_training(data_1, data_2, sample_size=10000)
             gazetteer.mark_pairs(self.training_pairs)
             gazetteer.train()

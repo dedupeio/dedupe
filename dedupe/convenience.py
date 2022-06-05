@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import collections
 import itertools
 import sys
-from typing import List, Tuple, Dict, Set, Iterator
+from typing import Tuple, Iterator
 import random
 import warnings
 
@@ -133,11 +134,11 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
 
     finished = False
     use_previous = False
-    fields = unique(field.field for field in deduper.data_model.primary_fields)
+    fields = unique(var.field for var in deduper.data_model.primary_variables)
 
     buffer_len = 1  # Max number of previous operations
-    unlabeled: List[TrainingExample] = []
-    labeled: List[LabeledPair] = []
+    unlabeled: list[TrainingExample] = []
+    labeled: list[LabeledPair] = []
 
     while not finished:
         if use_previous:
@@ -226,10 +227,10 @@ def training_data_link(
          then they are distinct records.
     """
 
-    identified_records: Dict[str, Tuple[List[RecordID], List[RecordID]]]
+    identified_records: dict[str, tuple[list[RecordID], list[RecordID]]]
     identified_records = collections.defaultdict(lambda: ([], []))
-    matched_pairs: Set[Tuple[RecordID, RecordID]] = set()
-    distinct_pairs: Set[Tuple[RecordID, RecordID]] = set()
+    matched_pairs: set[tuple[RecordID, RecordID]] = set()
+    distinct_pairs: set[tuple[RecordID, RecordID]] = set()
 
     for record_id, record in data_1.items():
         identified_records[record[common_key]][0].append(record_id)
@@ -285,11 +286,11 @@ def training_data_dedupe(
          then they are distinct records.
     """
 
-    identified_records: Dict[str, List[RecordID]]
+    identified_records: dict[str, list[RecordID]]
     identified_records = collections.defaultdict(list)
-    matched_pairs: Set[Tuple[RecordID, RecordID]] = set()
-    distinct_pairs: Set[Tuple[RecordID, RecordID]] = set()
-    unique_record_ids: Set[RecordID] = set()
+    matched_pairs: set[tuple[RecordID, RecordID]] = set()
+    distinct_pairs: set[tuple[RecordID, RecordID]] = set()
+    unique_record_ids: set[RecordID] = set()
 
     # a list of record_ids associated with each common_key
     for record_id, record in data.items():
@@ -321,7 +322,7 @@ def training_data_dedupe(
     return training_pairs
 
 
-def canonicalize(record_cluster: List[RecordDict]) -> RecordDict:  # pragma: nocover
+def canonicalize(record_cluster: list[RecordDict]) -> RecordDict:  # pragma: nocover
     """
     Constructs a canonical representation of a duplicate cluster by
     finding canonical values for each field

@@ -1,13 +1,16 @@
-from .base import DerivedType
-from categorical import CategoricalComparator
-from .categorical_type import CategoricalType
+from __future__ import annotations
 
-from typing import List, Callable
+from typing import Callable
+
+from categorical import CategoricalComparator
+
+from dedupe.variables.base import DerivedType
+from dedupe.variables.categorical_type import CategoricalType
 
 
 class ExistsType(CategoricalType):
     type = "Exists"
-    _predicate_functions: List[Callable] = []
+    _predicate_functions: list[Callable] = []
 
     def __init__(self, definition):
 

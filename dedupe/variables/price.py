@@ -1,6 +1,7 @@
 import numpy
+
 from dedupe import predicates
-from .base import FieldType
+from dedupe.variables.base import FieldType
 
 
 class PriceType(FieldType):

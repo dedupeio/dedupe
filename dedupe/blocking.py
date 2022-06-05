@@ -1,11 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 from collections import defaultdict
 import logging
 import time
 
-from typing import Generator, Tuple, Iterable, Dict, List, Union
+from typing import Generator, Iterable, Union
 from dedupe._typing import Record, RecordID, Data
 
 import dedupe.predicates
@@ -22,11 +23,11 @@ def index_list():
 class Fingerprinter(object):
     """Takes in a record and returns all blocks that record belongs to"""
 
-    def __init__(self, predicates: List[dedupe.predicates.Predicate]) -> None:
+    def __init__(self, predicates: list[dedupe.predicates.Predicate]) -> None:
 
         self.predicates = predicates
 
-        self.index_fields: Dict[str, Dict[str, List[dedupe.predicates.IndexPredicate]]]
+        self.index_fields: dict[str, dict[str, list[dedupe.predicates.IndexPredicate]]]
         self.index_fields = defaultdict(index_list)
         """
         A dictionary of all the fingerprinter methods that use an
@@ -44,7 +45,7 @@ class Fingerprinter(object):
 
     def __call__(
         self, records: Iterable[Record], target: bool = False
-    ) -> Generator[Tuple[str, RecordID], None, None]:
+    ) -> Generator[tuple[str, RecordID], None, None]:
         """
         Generate the predicates for records. Yields tuples of (predicate,
         record_id).

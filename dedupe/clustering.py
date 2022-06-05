@@ -1,16 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import itertools
 from collections import defaultdict
 import array
 import logging
 import tempfile
+from typing import Iterable, cast, Generator, Sequence
 
 import numpy
 import scipy.cluster.hierarchy
 
-from typing import Iterable, Dict, cast, List, Set, Generator, Sequence, Tuple
 from dedupe._typing import Clusters, RecordID, Links
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ def _connected_components(
 
 def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
-    root: Dict[RecordID, int] = {}
+    root: dict[RecordID, int] = {}
 
     components = {}
 
@@ -178,7 +179,7 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
 def condensedDistance(
     dupes: numpy.ndarray,
-) -> Tuple[Dict[int, RecordID], numpy.ndarray, int]:
+) -> tuple[dict[int, RecordID], numpy.ndarray, int]:
     """
     Convert the pairwise list of distances in dupes to "condensed
     distance matrix" required by the hierarchical clustering
@@ -245,7 +246,7 @@ def cluster(
                 linkage, distance_threshold, criterion="distance"
             )
 
-            clusters: Dict[int, List[int]] = defaultdict(list)
+            clusters: dict[int, list[int]] = defaultdict(list)
 
             for i, cluster_id in enumerate(partition):
                 clusters[cluster_id].append(i)
@@ -286,8 +287,8 @@ def confidences(
 
 
 def greedyMatching(dupes: numpy.ndarray) -> Links:
-    A: Set[RecordID] = set()
-    B: Set[RecordID] = set()
+    A: set[RecordID] = set()
+    B: set[RecordID] = set()
 
     dupes.sort(order="score")
     dupes = dupes[::-1]

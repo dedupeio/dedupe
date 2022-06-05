@@ -1,8 +1,9 @@
 from math import sqrt
 
-from .base import FieldType
-from dedupe import predicates
 from haversine import haversine
+
+from dedupe import predicates
+from dedupe.variables.base import FieldType
 
 
 class LatLongType(FieldType):
