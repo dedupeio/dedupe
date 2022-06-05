@@ -90,7 +90,7 @@ class SimplePredicate(Predicate):
 
 
 class StringPredicate(SimplePredicate):
-    def __call__(self, record: RecordDict, **kwargs):
+    def __call__(self, record: RecordDict, **kwargs) -> tuple[str, ...]:
         column = record[self.field]
         if column:
             return self.func(" ".join(strip_punc(column).split()))
