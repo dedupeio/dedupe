@@ -5,7 +5,6 @@ import dedupe
 
 from benchmarks import canonical_matching
 from benchmarks import common
-from dedupe import variables
 
 
 def make_report(data, clustering):
