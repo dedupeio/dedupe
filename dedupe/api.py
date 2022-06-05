@@ -15,7 +15,7 @@ import sqlite3
 import tempfile
 
 import numpy
-import sklearn.linear_model
+import sklearn.ensemble
 import sklearn.model_selection
 
 import dedupe.core as core
@@ -1091,8 +1091,8 @@ class ActiveMatching(Matching):
             ]
         ]
         self.classifier = sklearn.model_selection.GridSearchCV(
-            estimator=sklearn.linear_model.LogisticRegression(),
-            param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
+            estimator=sklearn.ensemble.RandomForestClassifier(),
+            param_grid={"n_estimators": [100, 200, 400, 800]},
             scoring="f1",
             n_jobs=-1,
         )

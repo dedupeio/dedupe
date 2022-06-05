@@ -5,7 +5,7 @@ import logging
 import numpy
 from typing import List
 from typing_extensions import Protocol
-import sklearn.linear_model
+import sklearn.ensemble
 
 import dedupe.core as core
 import dedupe.training as training
@@ -38,7 +38,7 @@ class HasDataModel(Protocol):
     data_model: datamodel.DataModel
 
 
-class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
+class RFLearner(sklearn.ensemble.RandomForestClassifier, ActiveLearner):
     def __init__(self, data_model):
         super().__init__()
         self.data_model = data_model
@@ -304,7 +304,7 @@ class RecordLinkBlockLearner(BlockLearner):
 
 class DisagreementLearner(ActiveLearner):
 
-    classifier: RLRLearner
+    classifier: RFLearner
     blocker: BlockLearner
     candidates: List[TrainingExample]
 
@@ -409,7 +409,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
         self.candidates = self.blocker.candidates
 
-        self.classifier = RLRLearner(self.data_model)
+        self.classifier = RFLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
@@ -441,7 +441,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
         self.candidates = self.blocker.candidates
 
-        self.classifier = RLRLearner(self.data_model)
+        self.classifier = RFLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
