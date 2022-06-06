@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import itertools
 import tempfile
@@ -11,7 +12,6 @@ import multiprocessing.dummy
 import queue
 from typing import (
     Iterator,
-    Tuple,
     Mapping,
     Sequence,
     Union,
@@ -251,7 +251,7 @@ def appropriate_imap(num_cores):
     return imap, pool
 
 
-def peek(seq: Iterator) -> Tuple[Optional[Any], Iterator]:
+def peek(seq: Iterator) -> tuple[Optional[Any], Iterator]:
     try:
         first = next(seq)
     except TypeError as e:
@@ -285,21 +285,21 @@ def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
 
 
 @overload
-def sniff_id_type(ids: Sequence[Tuple[int, int]]) -> Type[int]:
+def sniff_id_type(ids: Sequence[tuple[int, int]]) -> Type[int]:
     ...
 
 
 @overload
-def sniff_id_type(ids: Sequence[Tuple[str, str]]) -> Tuple[Type[str], int]:
+def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[Type[str], int]:
     ...
 
 
 def sniff_id_type(
-    ids: Sequence[Tuple[RecordID, RecordID]]
-) -> Union[Type[int], Tuple[Type[str], int]]:
+    ids: Sequence[tuple[RecordID, RecordID]]
+) -> Union[Type[int], tuple[Type[str], int]]:
     example = ids[0][0]
     python_type = type(example)
-    dtype: Union[Type[int], Tuple[Type[str], int]]
+    dtype: Union[Type[int], tuple[Type[str], int]]
     if python_type is bytes or python_type is str:
         dtype = (str, 256)
     elif python_type is int:

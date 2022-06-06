@@ -1,15 +1,19 @@
-from .base import DerivedType
-from categorical import CategoricalComparator
-from .categorical_type import CategoricalType
+from __future__ import annotations
 
-from typing import List, Callable
+from typing import Callable
+
+from categorical import CategoricalComparator
+
+from dedupe.variables.base import DerivedType
+from dedupe.variables.categorical_type import CategoricalType
+from dedupe._typing import VariableDefinition
 
 
 class ExistsType(CategoricalType):
     type = "Exists"
-    _predicate_functions: List[Callable] = []
+    _predicate_functions: list[Callable] = []
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
 
         super(CategoricalType, self).__init__(definition)
 
@@ -22,7 +26,7 @@ class ExistsType(CategoricalType):
             )
             self.higher_vars.append(dummy_var)
 
-    def comparator(self, field_1, field_2):
+    def comparator(self, field_1, field_2) -> list[int]:
         if field_1 and field_2:
             return self.cat_comparator(1, 1)
         elif field_1 or field_2:

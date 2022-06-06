@@ -4,6 +4,7 @@
 dedupe provides the main user interface for the library the
 Dedupe class
 """
+from __future__ import annotations
 
 import itertools
 import logging
@@ -15,7 +16,8 @@ import sqlite3
 import tempfile
 
 import numpy
-import rlr
+import sklearn.linear_model
+import sklearn.model_selection
 
 import dedupe.core as core
 import dedupe.serializer as serializer
@@ -26,13 +28,6 @@ import dedupe.labeler as labeler
 import dedupe.predicates
 
 from typing import (
-    Mapping,
-    Optional,
-    List,
-    Tuple,
-    Set,
-    Dict,
-    Union,
     Generator,
     Iterable,
     Sequence,
@@ -54,6 +49,7 @@ from dedupe._typing import (
     TrainingData,
     Classifier,
     JoinConstraint,
+    VariableDefinition,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,7 +61,7 @@ class Matching(object):
     """
 
     def __init__(
-        self, num_cores: Optional[int], in_memory: bool = False, **kwargs
+        self, num_cores: int | None, in_memory: bool = False, **kwargs
     ) -> None:
 
         if num_cores is None:
@@ -74,10 +70,10 @@ class Matching(object):
             self.num_cores = num_cores
 
         self.in_memory = in_memory
-        self._fingerprinter: Optional[blocking.Fingerprinter] = None
+        self._fingerprinter: blocking.Fingerprinter | None = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
-        self.predicates: List[dedupe.predicates.Predicate]
+        self.predicates: list[dedupe.predicates.Predicate]
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:
@@ -97,7 +93,7 @@ class IntegralMatching(Matching):
     pairs before deciding on any matches
     """
 
-    def score(self, pairs: RecordPairs) -> Union[numpy.memmap, numpy.ndarray]:
+    def score(self, pairs: RecordPairs) -> numpy.memmap | numpy.ndarray:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilities that the pair of records are match
@@ -660,7 +656,7 @@ class RecordLinkMatching(IntegralMatching):
 
 class GazetteerMatching(Matching):
     def __init__(
-        self, num_cores: Optional[int], in_memory: bool = False, **kwargs
+        self, num_cores: int | None, in_memory: bool = False, **kwargs
     ) -> None:
 
         super().__init__(num_cores, in_memory, **kwargs)
@@ -671,7 +667,7 @@ class GazetteerMatching(Matching):
             self.temp_dir = tempfile.TemporaryDirectory()
             self.db = self.temp_dir.name + "/blocks.db"
 
-        self.indexed_data: Dict[RecordID, RecordDict] = {}
+        self.indexed_data: dict[RecordID, RecordDict] = {}
 
     def _close(self):
         if not self.in_memory:
@@ -949,13 +945,13 @@ class GazetteerMatching(Matching):
 
     def _format_search_results(self, search_d: Data, results: Links) -> LookupResults:
 
-        seen: Set[RecordID] = set()
+        seen: set[RecordID] = set()
 
         for result in results:
-            a: Optional[RecordID] = None
+            a: RecordID | None = None
             b: RecordID
             score: float
-            prepared_result: List[Tuple[RecordID, float]] = []
+            prepared_result: list[tuple[RecordID, float]] = []
             for (a, b), score in result:  # type: ignore
                 prepared_result.append((b, score))
 
@@ -976,9 +972,9 @@ class StaticMatching(Matching):
     def __init__(
         self,
         settings_file: BinaryIO,
-        num_cores: Optional[int] = None,
+        num_cores: int | None = None,
         in_memory: bool = False,
-        **kwargs
+        **kwargs,
     ) -> None:  # pragma: no cover
         """
         Args:
@@ -1016,6 +1012,19 @@ class StaticMatching(Matching):
                 "the current version of dedupe. This can happen "
                 "if you have recently upgraded dedupe."
             )
+        except ModuleNotFoundError as exc:
+            if "No module named 'rlr'" in str(exc):
+                raise SettingsFileLoadingException(
+                    "This settings file was created with a previous "
+                    "version of dedupe that used the 'rlr' library. "
+                    "To continue to use this settings file, you need "
+                    "install that library: `pip install rlr`"
+                )
+            else:
+                raise SettingsFileLoadingException(
+                    "Something has gone wrong with loading the settings file. "
+                    "Try deleting the file"
+                ) from exc
         except:  # noqa: E722
             raise SettingsFileLoadingException(
                 "Something has gone wrong with loading the settings file. "
@@ -1034,14 +1043,12 @@ class ActiveMatching(Matching):
     Class for training a matcher.
     """
 
-    classifier = rlr.RegularizedLogisticRegression()
-
     def __init__(
         self,
-        variable_definition: Sequence[Mapping],
-        num_cores: Optional[int] = None,
+        variable_definition: Sequence[VariableDefinition],
+        num_cores: int | None = None,
         in_memory: bool = False,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -1073,11 +1080,13 @@ class ActiveMatching(Matching):
 
         self.training_pairs: TrainingData
         self.training_pairs = {"distinct": [], "match": []}
-        self.active_learner: Optional[
-            Union[
-                labeler.DedupeDisagreementLearner, labeler.RecordLinkDisagreementLearner
-            ]
-        ]
+        self.active_learner: labeler.DedupeDisagreementLearner | labeler.RecordLinkDisagreementLearner | None
+        self.classifier = sklearn.model_selection.GridSearchCV(
+            estimator=sklearn.linear_model.LogisticRegression(),
+            param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
+            scoring="f1",
+            n_jobs=-1,
+        )
         self.active_learner = None
 
     def cleanup_training(self) -> None:  # pragma: no cover
@@ -1167,7 +1176,7 @@ class ActiveMatching(Matching):
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
 
-    def uncertain_pairs(self) -> List[TrainingExample]:
+    def uncertain_pairs(self) -> list[TrainingExample]:
         """
          Returns a list of pairs of records from the sample of record pairs
          tuples that Dedupe is most curious to have labeled.
@@ -1376,7 +1385,7 @@ class Link(ActiveMatching):
         self,
         data_1: Data,
         data_2: Data,
-        training_file: Optional[TextIO] = None,
+        training_file: TextIO | None = None,
         sample_size: int = 1500,
         blocked_proportion: float = 0.9,
     ) -> None:
@@ -1486,8 +1495,8 @@ class SettingsFileLoadingException(Exception):
 
 def flatten_training(
     training_pairs: TrainingData,
-) -> Tuple[List[TrainingExample], numpy.ndarray]:
-    examples: List[TrainingExample] = []
+) -> tuple[list[TrainingExample], numpy.ndarray]:
+    examples: list[TrainingExample] = []
     y = []
 
     for label in ("match", "distinct"):

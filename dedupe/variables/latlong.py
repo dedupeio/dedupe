@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from math import sqrt
 
-from .base import FieldType
-from dedupe import predicates
 from haversine import haversine
+
+from dedupe import predicates
+from dedupe.variables.base import FieldType
 
 
 class LatLongType(FieldType):
@@ -11,5 +14,5 @@ class LatLongType(FieldType):
     _predicate_functions = [predicates.latLongGridPredicate]
 
     @staticmethod
-    def comparator(x, y):
+    def comparator(x: tuple[float, float], y: tuple[float, float]) -> float:
         return sqrt(haversine(x, y))

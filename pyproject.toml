@@ -2,3 +2,12 @@
 requires = ["setuptools",
             "wheel",
             "cython"]
+
+[tool.mypy]
+ignore_missing_imports = true
+files = "dedupe"
+
+[tool.pytest.ini_options]
+minversion = "7.1"
+addopts = "--cov dedupe"
+testpaths = ["tests", "dedupe"]

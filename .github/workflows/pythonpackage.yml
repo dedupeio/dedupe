@@ -3,39 +3,15 @@ name: tests
 on: [push, pull_request]
 
 jobs:
-  format:
-    # We want all subsequent steps of CI to refer to the fresh version of code,
-    # so run this before anything else.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.10"
-      - name: Install Black
-        run: pip install black
-      - name: Run black --check .
-        run: black --check .
-      - name: If needed, commit black changes to the pull request
-        if: failure()
-        run: |
-          black .
-          git config --global user.name 'autoblack'
-          git config --global user.email 'cclauss@users.noreply.github.com'
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git checkout $GITHUB_HEAD_REF
-          git commit -am "fixup: Format Python code with Black"
-          git push
   test:
-    needs: format
-    timeout-minutes: 30
+    timeout-minutes: 40
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         python-version: [3.7, 3.8, 3.9, "3.10"]
-        
+
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
@@ -47,11 +23,11 @@ jobs:
         pip install --upgrade pip
         pip install -e .
     - name: Install test dependencies
-      run: |        
+      run: |
         pip install -r requirements.txt
     - name: pytest
       run: |
-         pytest tests dedupe --cov dedupe
+        pytest
     - env:
         COVERALLS_PARALLEL: true
         COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -62,10 +38,13 @@ jobs:
         coveralls
     - name: flake8
       run: |
-         flake8 dedupe tests benchmarks/benchmarks
+        flake8 dedupe tests benchmarks/benchmarks
+    - name: black
+      run: |
+        black . --check
     - name: mypy
-      run: |        
-        mypy --ignore-missing-imports dedupe
+      run: |
+        mypy
     - name: Integration tests
       # Do everything twice: The first time is training and generates settings,
       # the second time it tests using a static settings file.
@@ -95,22 +74,22 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v2    
-    - name: Build wheels
-      uses: pypa/cibuildwheel@2.5.0
-      env:
-        CIBW_ARCHS_MACOS: x86_64 arm64 universal2
-    - name: Build sdist
-      run: |
-        pip install build
-        python -m build --sdist
-    - name: Publish wheels to PyPI
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pip install twine
-        twine upload --skip-existing wheelhouse/*.whl
-        twine upload dist/*
-      continue-on-error: true
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v2
+      - name: Build wheels
+        uses: pypa/cibuildwheel@2.6.0
+        env:
+          CIBW_ARCHS_MACOS: x86_64 arm64 universal2
+      - name: Build sdist
+        run: |
+          pip install build
+          python -m build --sdist
+      - name: Publish wheels to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          pip install twine
+          twine upload --skip-existing wheelhouse/*.whl
+          twine upload dist/*
+        continue-on-error: true

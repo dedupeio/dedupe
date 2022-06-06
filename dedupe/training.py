@@ -1,7 +1,4 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-# provides functions for selecting a sample of training data
+from __future__ import annotations
 
 import itertools
 import logging
@@ -11,14 +8,16 @@ import random
 from abc import ABC
 import math
 
-from typing import Dict, Sequence, Iterable, Tuple, List, Union, FrozenSet, Optional
+from typing import Sequence, Iterable, Dict, FrozenSet, Tuple
 
 from . import blocking
 from .predicates import Predicate
+from ._typing import Data, RecordID
 
 logger = logging.getLogger(__name__)
 
 Cover = Dict[Predicate, FrozenSet[int]]
+ComparisonCover = Dict[Predicate, FrozenSet[Tuple[RecordID, RecordID]]]
 
 
 class BlockLearner(ABC):
@@ -66,7 +65,9 @@ class BlockLearner(ABC):
 
         return final_predicates
 
-    def simple_candidates(self, match_cover: Cover, comparison_cover: Cover) -> Cover:
+    def simple_candidates(
+        self, match_cover: Cover, comparison_cover: ComparisonCover
+    ) -> Cover:
         candidates = {}
         for predicate, coverage in match_cover.items():
             predicate.count = len(comparison_cover[predicate])  # type: ignore
@@ -75,7 +76,10 @@ class BlockLearner(ABC):
         return candidates
 
     def random_forest_candidates(
-        self, match_cover: Cover, comparison_cover: Cover, K: Optional[int] = None
+        self,
+        match_cover: Cover,
+        comparison_cover: ComparisonCover,
+        K: int | None = None,
     ) -> Cover:
         predicates = list(match_cover)
         matches = list(frozenset.union(*match_cover.values()))
@@ -96,7 +100,7 @@ class BlockLearner(ABC):
             # the base for the constructing k-conjunctions
             candidate = None
             covered_comparisons = InfiniteSet()
-            covered_matches: Union[FrozenSet[int], InfiniteSet] = InfiniteSet()
+            covered_matches: frozenset[int] | InfiniteSet = InfiniteSet()
             covered_sample_matches = InfiniteSet()
 
             def score(predicate: Predicate) -> float:
@@ -140,7 +144,7 @@ class BlockLearner(ABC):
         return predicate_cover
 
     blocker: blocking.Fingerprinter
-    comparison_cover: Cover
+    comparison_cover: ComparisonCover
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -152,7 +156,9 @@ class DedupeBlockLearner(BlockLearner):
         self.comparison_cover = self.coveredPairs(self.blocker, sampled_records)
 
     @staticmethod
-    def coveredPairs(blocker, records):
+    def coveredPairs(
+        blocker, records: Data
+    ) -> dict[Predicate, frozenset[tuple[RecordID, RecordID]]]:
         cover = {}
 
         n_records = len(records)
@@ -193,8 +199,8 @@ class RecordLinkBlockLearner(BlockLearner):
             self.blocker, sampled_records_1, sampled_records_2
         )
 
-    def coveredPairs(self, blocker, records_1, records_2):
-        cover = {}
+    def coveredPairs(self, blocker, records_1: Data, records_2: Data):
+        cover: dict[Predicate, dict[str, tuple[set[RecordID], set[RecordID]]]] = {}
         pair_cover = {}
 
         for predicate in blocker.predicates:
@@ -227,11 +233,11 @@ class BranchBound(object):
 
         self.cheapest_score: float = float("inf")
         self.original_cover: Cover = {}
-        self.cheapest: Tuple[Predicate, ...] = ()
+        self.cheapest: tuple[Predicate, ...] = ()
 
     def search(
-        self, candidates: Cover, partial: Tuple[Predicate, ...] = ()
-    ) -> Tuple[Predicate, ...]:
+        self, candidates: Cover, partial: tuple[Predicate, ...] = ()
+    ) -> tuple[Predicate, ...]:
         if self.calls <= 0:
             return self.cheapest
 
@@ -283,14 +289,14 @@ class BranchBound(object):
         return self.cheapest
 
     @staticmethod
-    def order_by(candidates: Cover, p: Predicate) -> Tuple[int, float]:
+    def order_by(candidates: Cover, p: Predicate) -> tuple[int, float]:
         return (len(candidates[p]), -p.count)  # type: ignore
 
     @staticmethod
     def score(partial: Iterable[Predicate]) -> float:
         return sum(p.count for p in partial)  # type: ignore
 
-    def covered(self, partial: Tuple[Predicate, ...]) -> int:
+    def covered(self, partial: tuple[Predicate, ...]) -> int:
         if partial:
             return len(frozenset.union(*(self.original_cover[p] for p in partial)))
         else:
@@ -343,7 +349,7 @@ class Resampler(object):
         c = collections.Counter(sampled)
         max_value = len(sequence) + 1
 
-        self.replacements: Dict[int, List[int]] = {}
+        self.replacements: dict[int, list[int]] = {}
         for k, v in c.items():
             self.replacements[k] = [v]
             if v > 1:

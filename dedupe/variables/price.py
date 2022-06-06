@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import numpy
+
 from dedupe import predicates
-from .base import FieldType
+from dedupe.variables.base import FieldType
 
 
 class PriceType(FieldType):
@@ -12,7 +15,7 @@ class PriceType(FieldType):
     type = "Price"
 
     @staticmethod
-    def comparator(price_1, price_2):
+    def comparator(price_1: int | float, price_2: int | float) -> float:
         if price_1 <= 0:
             return numpy.nan
         elif price_2 <= 0:
