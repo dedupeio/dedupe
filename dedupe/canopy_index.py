@@ -47,7 +47,7 @@ class CanopyIndex(TextIndex):  # pragma: no cover
         l_pow = float.__pow__
 
         L = []
-        qw = 0
+        qw = 0.0
 
         for term in query_list:
             wid, weight = _wids_dict.get(term, (None, None))

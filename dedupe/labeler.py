@@ -201,7 +201,7 @@ class BlockLearner(object):
             keys = list(weights.keys())
             sample_ids = ((keys[i][0], keys[i][1]) for i in sample_indices)
         else:
-            sample_ids = weight.keys()
+            sample_ids = weights.keys()
 
         return sample_ids
 
