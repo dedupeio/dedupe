@@ -41,7 +41,9 @@ VariableDefinition = TypedDict(
         "field": str,
         "variable name": str,
         "corpus": Iterable,
-        "comparator": Comparator,
+        "comparator": Callable[
+            [Any, Any], Union[int, float]
+        ],  # a custom comparator can only return a single float or int, not a sequence of numbers
         "categories": list[str],
         "interaction variables": list[str],
         "has missing": bool,
