@@ -7,7 +7,7 @@ class ExactType(FieldType):
     type = "Exact"
 
     @staticmethod
-    def comparator(field_1, field_2):
+    def comparator(field_1, field_2) -> int:
         if field_1 == field_2:
             return 1
         else:

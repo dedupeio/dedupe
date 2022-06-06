@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import Callable, ClassVar, Sequence, Type, Any, Iterable
 
 from dedupe import predicates
+from dedupe._typing import VariableDefinition, Comparator
 
 
 class Variable(object):
     name: str
     type: ClassVar[str]
-    predicates: list[Callable[[Any], Iterable[str]]]
+    predicates: list[predicates.Predicate]
 
     def __len__(self):
         return 1
@@ -70,10 +71,10 @@ class FieldType(Variable):
     _index_thresholds: Sequence[float] = []
     _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
     _predicate_functions: Sequence[Callable[[Any], Iterable[str]]] = ()
-    _Predicate = predicates.SimplePredicate
-    comparator: Callable[[Any, Any], int | float]
+    _Predicate: Type[predicates.SimplePredicate] = predicates.SimplePredicate
+    comparator: Comparator
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
         self.field = definition["field"]
 
         if "variable name" in definition:
@@ -95,11 +96,11 @@ class FieldType(Variable):
 class CustomType(FieldType):
     type = "Custom"
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
         super(CustomType, self).__init__(definition)
 
         try:
-            self.comparator = definition["comparator"]
+            self.comparator = definition["comparator"]  # type: ignore[assignment]
         except KeyError:
             raise KeyError(
                 "For 'Custom' field types you must define "
@@ -115,7 +116,11 @@ class CustomType(FieldType):
             )
 
 
-def indexPredicates(predicates, thresholds, field):
+def indexPredicates(
+    predicates: Iterable[Type[predicates.IndexPredicate]],
+    thresholds: Sequence[float],
+    field: str,
+) -> list[predicates.IndexPredicate]:
     index_predicates = []
     for predicate in predicates:
         for threshold in thresholds:
