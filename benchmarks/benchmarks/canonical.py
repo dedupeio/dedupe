@@ -1,10 +1,10 @@
-from itertools import combinations
 import os
 import time
-
-import dedupe
+from itertools import combinations
 
 from benchmarks import common
+
+import dedupe
 
 
 def make_report(data, clustering):

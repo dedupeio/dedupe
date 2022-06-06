@@ -1,9 +1,9 @@
 import os
 import time
 
-import dedupe
-
 from benchmarks import common
+
+import dedupe
 
 
 def get_true_dupes(data):
