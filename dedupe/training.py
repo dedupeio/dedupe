@@ -8,7 +8,7 @@ import random
 from abc import ABC
 import math
 
-from typing import Sequence, Iterable, Dict, FrozenSet
+from typing import Sequence, Iterable, Dict, FrozenSet, Tuple
 
 from . import blocking
 from .predicates import Predicate
@@ -17,7 +17,7 @@ from ._typing import Data, RecordID
 logger = logging.getLogger(__name__)
 
 Cover = Dict[Predicate, FrozenSet[int]]
-ComparisonCover = Dict[Predicate, FrozenSet[tuple[RecordID, RecordID]]]
+ComparisonCover = Dict[Predicate, FrozenSet[Tuple[RecordID, RecordID]]]
 
 
 class BlockLearner(ABC):
