@@ -11,4 +11,11 @@ if platform.system() == "Darwin":
     Lock = ctx.Lock
     RLock = ctx.RLock
 else:
-    from multiprocessing import Process, Pool, Queue, SimpleQueue, Lock, RLock  # type: ignore # noqa
+    from multiprocessing import (  # type: ignore # noqa
+        Lock,
+        Pool,
+        Process,
+        Queue,
+        RLock,
+        SimpleQueue,
+    )

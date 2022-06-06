@@ -1,5 +1,5 @@
-import unittest
 import random
+import unittest
 
 import numpy
 import scipy.special

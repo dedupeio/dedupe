@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Callable, ClassVar, Sequence, Type, Any, Iterable
+from typing import Any, Callable, ClassVar, Iterable, Sequence, Type
 
 from dedupe import predicates
-from dedupe._typing import VariableDefinition, Comparator
+from dedupe._typing import Comparator, VariableDefinition
 
 
 class Variable(object):

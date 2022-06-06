@@ -1,11 +1,10 @@
 import csv
-from dataclasses import dataclass
-from itertools import groupby
 import logging
 import optparse
-from pathlib import Path
 import re
-
+from dataclasses import dataclass
+from itertools import groupby
+from pathlib import Path
 
 DATASETS_DIR = Path(__file__).parent / "datasets"
 

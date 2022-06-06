@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-import pkgutil
-from typing import Iterable, Sequence
 import copyreg
+import pkgutil
 import types
+from typing import Iterable, Sequence
 
 import numpy
 
 import dedupe.variables
-from dedupe.variables.base import (
-    FieldType as FieldVariable,
-    MissingDataType,
-    Variable,
-)
-from dedupe.variables.interaction import InteractionType
+from dedupe._typing import RecordDict, VariableDefinition
 from dedupe.predicates import Predicate
-from dedupe._typing import VariableDefinition, RecordDict
+from dedupe.variables.base import FieldType as FieldVariable
+from dedupe.variables.base import MissingDataType, Variable
+from dedupe.variables.interaction import InteractionType
 
 for _, module, _ in pkgutil.iter_modules(  # type: ignore
     dedupe.variables.__path__, "dedupe.variables."

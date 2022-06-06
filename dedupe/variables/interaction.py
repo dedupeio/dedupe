@@ -3,8 +3,9 @@ from __future__ import annotations
 import itertools
 from typing import Mapping
 
-from dedupe.variables.base import Variable, FieldType as FieldVariable
 from dedupe._typing import VariableDefinition
+from dedupe.variables.base import FieldType as FieldVariable
+from dedupe.variables.base import Variable
 
 
 class InteractionType(Variable):

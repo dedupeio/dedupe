@@ -1,9 +1,10 @@
-import dedupe
-import dedupe.api
-import unittest
 import itertools
+import unittest
 import warnings
 from collections import OrderedDict
+
+import dedupe
+import dedupe.api
 
 
 def icfi(x):

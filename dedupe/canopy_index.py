@@ -1,12 +1,12 @@
-from zope.index.text.lexicon import Lexicon
-from zope.index.text.textindex import TextIndex
-from zope.index.text.cosineindex import CosineIndex
-from zope.index.text.setops import mass_weightedUnion
-
-from BTrees.Length import Length
-import math
-import numpy
 import logging
+import math
+
+import numpy
+from BTrees.Length import Length
+from zope.index.text.cosineindex import CosineIndex
+from zope.index.text.lexicon import Lexicon
+from zope.index.text.setops import mass_weightedUnion
+from zope.index.text.textindex import TextIndex
 
 logger = logging.getLogger(__name__)
 

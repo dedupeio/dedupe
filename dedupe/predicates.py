@@ -2,19 +2,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import re
-import math
-import itertools
-import string
 import abc
-from typing import Sequence, Callable, Any, Iterable
+import itertools
+import math
+import re
+import string
+from typing import Any, Callable, Iterable, Sequence
 
 from doublemetaphone import doublemetaphone
 
-from dedupe.cpredicates import ngrams, initials
-import dedupe.tfidf as tfidf
 import dedupe.levenshtein as levenshtein
+import dedupe.tfidf as tfidf
 from dedupe._typing import RecordDict
+from dedupe.cpredicates import initials, ngrams
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall

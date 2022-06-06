@@ -1,5 +1,5 @@
-from dedupe.variables.base import FieldType
 from dedupe import predicates
+from dedupe.variables.base import FieldType
 
 
 class ExactType(FieldType):

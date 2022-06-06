@@ -1,6 +1,8 @@
 import unittest
-from dedupe import predicates
+
 from future.builtins import str
+
+from dedupe import predicates
 
 
 class TestPuncStrip(unittest.TestCase):

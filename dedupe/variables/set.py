@@ -1,8 +1,8 @@
 from simplecosine.cosine import CosineSetSimilarity
 
 from dedupe import predicates
-from dedupe.variables.base import FieldType
 from dedupe._typing import VariableDefinition
+from dedupe.variables.base import FieldType
 
 
 class SetType(FieldType):
