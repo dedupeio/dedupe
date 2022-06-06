@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dedupe.variables.base import FieldType, DerivedType
 from dedupe import predicates
 from dedupe._typing import VariableDefinition
