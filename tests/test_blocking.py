@@ -1,8 +1,9 @@
-import dedupe
-from collections import defaultdict
 import unittest
+from collections import defaultdict
 
 from future.utils import viewitems, viewvalues
+
+import dedupe
 
 
 class BlockingTest(unittest.TestCase):

@@ -39,6 +39,9 @@ jobs:
     - name: flake8
       run: |
         flake8 dedupe tests benchmarks/benchmarks
+    - name: isort
+      run: |
+        isort --check-only .
     - name: black
       run: |
         black . --check

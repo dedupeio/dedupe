@@ -8,47 +8,39 @@ from __future__ import annotations
 
 import itertools
 import logging
-import pickle
 import multiprocessing
-import warnings
 import os
+import pickle
 import sqlite3
 import tempfile
+import warnings
+from typing import BinaryIO, Generator, Iterable, Sequence, TextIO, cast
 
 import numpy
 import sklearn.linear_model
 import sklearn.model_selection
+from typing_extensions import Literal
 
-import dedupe.core as core
-import dedupe.serializer as serializer
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
+import dedupe.core as core
 import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
 import dedupe.predicates
-
-from typing import (
-    Generator,
-    Iterable,
-    Sequence,
-    BinaryIO,
-    cast,
-    TextIO,
-)
-from typing_extensions import Literal
+import dedupe.serializer as serializer
 from dedupe._typing import (
-    Data,
-    Clusters,
-    RecordPairs,
-    RecordID,
-    RecordDict,
     Blocks,
-    TrainingExample,
-    LookupResults,
-    Links,
-    TrainingData,
     Classifier,
+    Clusters,
+    Data,
     JoinConstraint,
+    Links,
+    LookupResults,
+    RecordDict,
+    RecordID,
+    RecordPairs,
+    TrainingData,
+    TrainingExample,
     VariableDefinition,
 )
 

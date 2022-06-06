@@ -1,12 +1,12 @@
-from typing import Sequence, Callable, Iterable
+from typing import Callable, Iterable, Sequence
 
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
-from dedupe.variables.base import FieldType, indexPredicates
 from dedupe import predicates
 from dedupe._typing import VariableDefinition
+from dedupe.variables.base import FieldType, indexPredicates
 
 crfEd = CRFEditDistance()
 

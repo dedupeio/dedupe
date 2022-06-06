@@ -1,7 +1,9 @@
-import dedupe
-import unittest
 import random
+import unittest
+
 import pytest
+
+import dedupe
 
 SAMPLE = [
     ({"name": "Bob", "age": "50"}, {"name": "Charlie", "age": "75"}),

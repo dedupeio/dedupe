@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-import dedupe
-import unittest
 import codecs
 import json
-
 import sys
+import unittest
+
+import dedupe
 
 
 class SerializerTest(unittest.TestCase):

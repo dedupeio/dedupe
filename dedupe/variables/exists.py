@@ -4,9 +4,9 @@ from typing import Callable
 
 from categorical import CategoricalComparator
 
+from dedupe._typing import VariableDefinition
 from dedupe.variables.base import DerivedType
 from dedupe.variables.categorical_type import CategoricalType
-from dedupe._typing import VariableDefinition
 
 
 class ExistsType(CategoricalType):
