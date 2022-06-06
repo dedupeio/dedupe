@@ -1,7 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-# provides functions for selecting a sample of training data
-
 from __future__ import annotations
 
 import itertools
