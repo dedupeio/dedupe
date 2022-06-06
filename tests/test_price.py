@@ -1,4 +1,5 @@
 import unittest
+
 from dedupe.variables.price import PriceType
 
 

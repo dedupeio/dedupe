@@ -1,31 +1,34 @@
-import numpy.typing
-import numpy
 import sys
-
 from typing import (
-    Iterator,
-    Tuple,
-    Mapping,
-    Union,
-    Iterable,
-    List,
     Any,
     Callable,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
     Sequence,
+    Tuple,
+    Type,
+    Union,
 )
 
+import numpy
+import numpy.typing
+
 if sys.version_info >= (3, 8):
-    from typing import TypedDict, Protocol, Literal
+    from typing import Literal, Protocol, TypedDict
 else:
-    from typing_extensions import TypedDict, Protocol, Literal
+    from typing_extensions import Literal, Protocol, TypedDict
 
 
 RecordDict = Mapping[str, Any]
 RecordID = Union[int, str]
+RecordIDDType = Union[Type[int], tuple[Type[str], Literal[256]]]
 Record = Tuple[RecordID, RecordDict]
 RecordPair = Tuple[Record, Record]
 RecordPairs = Iterator[RecordPair]
-Blocks = Iterator[List[RecordPair]]
+Block = List[RecordPair]
+Blocks = Iterator[Block]
 Cluster = Tuple[
     Tuple[RecordID, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
 ]
@@ -66,3 +69,15 @@ class Classifier(Protocol):
 
     def predict_proba(self, X: object) -> numpy.typing.NDArray[numpy.float_]:
         ...
+
+class ClosableJoinable(Protocol):
+    
+    def close(self):
+        ...
+    
+    def join(self):
+        ...
+    
+
+MapLike = Callable[[Callable, Iterable], Iterable]
+    

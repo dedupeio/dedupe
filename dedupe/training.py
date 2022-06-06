@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-import itertools
-import logging
 import collections
 import functools
+import itertools
+import logging
+import math
 import random
 from abc import ABC
-import math
-
-from typing import Sequence, Iterable, Dict, FrozenSet, Tuple
+from typing import Dict, FrozenSet, Iterable, Sequence, Tuple
 
 from . import blocking
-from .predicates import Predicate
 from ._typing import Data, RecordID
+from .predicates import Predicate
 
 logger = logging.getLogger(__name__)
 

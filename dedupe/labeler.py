@@ -1,18 +1,18 @@
 from __future__ import annotations
 
+import logging
 import random
 from abc import ABC, abstractmethod
-import logging
-from typing import Iterable, Dict
+from typing import Dict, Iterable
 
 import numpy
-from typing_extensions import Protocol
 import sklearn.linear_model
+from typing_extensions import Protocol
 
 import dedupe.core as core
-import dedupe.training as training
 import dedupe.datamodel as datamodel
-from dedupe._typing import TrainingExample, RecordID, RecordDict
+import dedupe.training as training
+from dedupe._typing import RecordDict, RecordID, TrainingExample
 from dedupe.predicates import Predicate
 
 logger = logging.getLogger(__name__)

@@ -2,7 +2,6 @@ import os
 import time
 
 import dedupe
-
 from benchmarks import common
 
 

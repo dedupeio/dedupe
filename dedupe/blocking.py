@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from collections import defaultdict
 import logging
 import time
-
+from collections import defaultdict
 from typing import Generator, Iterable, Union
-from dedupe._typing import Record, RecordID, Data
 
 import dedupe.predicates
+from dedupe._typing import Data, Record, RecordID
 
 logger = logging.getLogger(__name__)
 

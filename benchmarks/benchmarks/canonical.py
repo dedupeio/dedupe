@@ -1,9 +1,8 @@
-from itertools import combinations
 import os
 import time
+from itertools import combinations
 
 import dedupe
-
 from benchmarks import common
 
 

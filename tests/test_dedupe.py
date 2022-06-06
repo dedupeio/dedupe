@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import unittest
 import itertools
+import unittest
 
 import numpy
 
