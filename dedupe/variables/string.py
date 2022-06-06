@@ -1,9 +1,12 @@
+from typing import Sequence, Callable, Iterable
+
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
 from dedupe.variables.base import FieldType, indexPredicates
 from dedupe import predicates
+from dedupe._typing import VariableDefinition
 
 crfEd = CRFEditDistance()
 
@@ -30,9 +33,10 @@ base_predicates = (
 
 
 class BaseStringType(FieldType):
-    _Predicate: predicates.StringPredicate = predicates.StringPredicate
+    _Predicate = predicates.StringPredicate
+    _predicate_functions: Sequence[Callable[[str], Iterable[str]]] = ()
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
         super(BaseStringType, self).__init__(definition)
 
         self.predicates += indexPredicates(
@@ -63,13 +67,13 @@ class ShortStringType(BaseStringType):
     ]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
         super(ShortStringType, self).__init__(definition)
 
         if definition.get("crf", False) is True:
-            self.comparator = crfEd
+            self.comparator = crfEd  # type: ignore[assignment]
         else:
-            self.comparator = affineGap
+            self.comparator = affineGap  # type: ignore[assignment]
 
 
 class StringType(ShortStringType):
@@ -94,10 +98,10 @@ class TextType(BaseStringType):
     ]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
         super(TextType, self).__init__(definition)
 
         if "corpus" not in definition:
             definition["corpus"] = []
 
-        self.comparator = CosineTextSimilarity(definition["corpus"])
+        self.comparator = CosineTextSimilarity(definition["corpus"])  # type: ignore[assignment]

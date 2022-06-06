@@ -7,7 +7,7 @@ import math
 import itertools
 import string
 import abc
-from typing import Sequence, Callable, Any
+from typing import Sequence, Callable, Any, Iterable
 
 from doublemetaphone import doublemetaphone
 
@@ -60,7 +60,7 @@ class Predicate(abc.ABC):
         return 1
 
     @abc.abstractmethod
-    def __call__(self, record, **kwargs) -> tuple:
+    def __call__(self, record: RecordDict, **kwargs) -> Iterable[str]:
         pass
 
     def __add__(self, other: "Predicate") -> "CompoundPredicate":
@@ -76,12 +76,12 @@ class Predicate(abc.ABC):
 class SimplePredicate(Predicate):
     type = "SimplePredicate"
 
-    def __init__(self, func: Callable[[Any], tuple[str, ...]], field: str):
+    def __init__(self, func: Callable[[Any], Iterable[str]], field: str):
         self.func = func
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record: RecordDict, **kwargs) -> tuple[str, ...]:
+    def __call__(self, record: RecordDict, **kwargs) -> Iterable[str]:
         column = record[self.field]
         if column:
             return self.func(column)
@@ -90,8 +90,8 @@ class SimplePredicate(Predicate):
 
 
 class StringPredicate(SimplePredicate):
-    def __call__(self, record: RecordDict, **kwargs) -> tuple[str, ...]:
-        column = record[self.field]
+    def __call__(self, record: RecordDict, **kwargs) -> Iterable[str]:
+        column: str = record[self.field]
         if column:
             return self.func(" ".join(strip_punc(column).split()))
         else:

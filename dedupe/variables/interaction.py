@@ -1,12 +1,14 @@
 import itertools
+from typing import Mapping
 
-from dedupe.variables.base import Variable
+from dedupe.variables.base import Variable, FieldType as FieldVariable
+from dedupe._typing import VariableDefinition
 
 
 class InteractionType(Variable):
     type = "Interaction"
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
 
         self.interactions = definition["interaction variables"]
 
@@ -15,7 +17,7 @@ class InteractionType(Variable):
 
         super(InteractionType, self).__init__(definition)
 
-    def expandInteractions(self, field_model):
+    def expandInteractions(self, field_model: Mapping[str, FieldVariable]):
 
         self.interaction_fields = self.atomicInteractions(
             self.interactions, field_model
@@ -26,7 +28,7 @@ class InteractionType(Variable):
 
         self.categorical(field_model)
 
-    def categorical(self, field_model):
+    def categorical(self, field_model: Mapping[str, FieldVariable]):
         categoricals = [
             field
             for field in self.interaction_fields
@@ -38,7 +40,7 @@ class InteractionType(Variable):
             if not hasattr(field_model[field], "higher_vars")
         ]
 
-        dummies = [field_model[field].higher_vars for field in categoricals]
+        dummies = [field_model[field].higher_vars for field in categoricals]  # type: ignore[attr-defined]
 
         self.higher_vars = []
         for combo in itertools.product(*dummies):
@@ -48,7 +50,9 @@ class InteractionType(Variable):
             )
             self.higher_vars.append(higher_var)
 
-    def atomicInteractions(self, interactions, field_model):
+    def atomicInteractions(
+        self, interactions: list[str], field_model: Mapping[str, FieldVariable]
+    ) -> list[str]:
         atomic_interactions = []
 
         for field in interactions:
@@ -62,7 +66,7 @@ class InteractionType(Variable):
                 )
 
             if hasattr(field_model[field], "interaction_fields"):
-                sub_interactions = field_model[field].interaction_fields
+                sub_interactions = field_model[field].interaction_fields  # type: ignore[attr-defined]
                 atoms = self.atomicInteractions(sub_interactions, field_model)
                 atomic_interactions.extend(atoms)
             else:

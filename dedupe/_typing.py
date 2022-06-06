@@ -1,7 +1,17 @@
 import numpy
 import sys
 
-from typing import Iterator, Tuple, Mapping, Union, Iterable, List, Any
+from typing import (
+    Iterator,
+    Tuple,
+    Mapping,
+    Union,
+    Iterable,
+    List,
+    Any,
+    Callable,
+    Sequence,
+)
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict, Protocol, Literal
@@ -22,12 +32,22 @@ TrainingExample = Tuple[RecordDict, RecordDict]
 Links = Iterable[Union[numpy.ndarray, Tuple[Tuple[RecordID, RecordID], float]]]
 LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
+Comparator = Callable[[Any, Any], Union[Union[int, float], Sequence[Union[int, float]]]]
 
-
-class VariableDefinition(TypedDict, total=False):
-    field: str
-    type: str
-    # Others also allowed
+VariableDefinition = TypedDict(
+    "VariableDefinition",
+    {
+        "type": str,
+        "field": str,
+        "variable name": str,
+        "corpus": Iterable,
+        "comparator": Comparator,
+        "categories": list[str],
+        "interaction variables": list[str],
+        "has missing": bool,
+    },
+    total=False,
+)
 
 
 class TrainingData(TypedDict):
