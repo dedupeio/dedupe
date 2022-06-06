@@ -12,7 +12,7 @@ import sklearn.linear_model
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.datamodel as datamodel
-from dedupe._typing import TrainingExample, RecordID
+from dedupe._typing import TrainingExample, RecordID, RecordDict
 from dedupe.predicates import Predicate
 
 logger = logging.getLogger(__name__)
@@ -134,7 +134,7 @@ class BlockLearner(object):
         self.current_predicates: tuple[Predicate, ...] = ()
 
         self._cached_labels: numpy.ndarray | None = None
-        self._old_dupes = []
+        self._old_dupes: list[tuple[RecordDict, RecordDict]] = []
 
         self.block_learner: training.BlockLearner
 
@@ -190,6 +190,7 @@ class BlockLearner(object):
             for pair in covered:
                 weights[pair] = weights.get(pair, 0.0) + weight
 
+        sample_ids: Iterable[tuple[RecordID, RecordID]]
         if sample_size < len(weights):
             # consider using a reservoir sampling strategy, which would
             # be more memory efficient and probably about as fast
