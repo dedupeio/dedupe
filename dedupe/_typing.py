@@ -1,3 +1,4 @@
+import numpy.typing
 import numpy
 import sys
 
@@ -25,7 +26,7 @@ Record = Tuple[RecordID, RecordDict]
 RecordPair = Tuple[Record, Record]
 RecordPairs = Iterator[RecordPair]
 Blocks = Iterator[List[RecordPair]]
-Cluster = Tuple[Tuple[RecordID, ...], Union[numpy.ndarray, Tuple]]
+Cluster = Tuple[Tuple[RecordID, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]]
 Clusters = Iterable[Cluster]
 Data = Mapping[RecordID, RecordDict]
 TrainingExample = Tuple[RecordDict, RecordDict]
@@ -40,7 +41,7 @@ VariableDefinition = TypedDict(
         "type": str,
         "field": str,
         "variable name": str,
-        "corpus": Iterable,
+        "corpus": Iterable[Union[str, Sequence[str]]],
         "comparator": Callable[
             [Any, Any], Union[int, float]
         ],  # a custom comparator can only return a single float or int, not a sequence of numbers
@@ -61,5 +62,5 @@ class Classifier(Protocol):
     def fit(self, X: object, y: object) -> None:
         ...
 
-    def predict_proba(self, X: object) -> Any:
+    def predict_proba(self, X: object) -> numpy.typing.NDArray[numpy.float_]:
         ...

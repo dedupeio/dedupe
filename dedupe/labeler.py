@@ -42,7 +42,7 @@ class HasDataModel(Protocol):
 
 
 class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
-    def __init__(self, data_model):
+    def __init__(self, data_model: datamodel.DataModel):
         super().__init__()
         self.data_model = data_model
         self._candidates: list[TrainingExample]
