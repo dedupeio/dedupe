@@ -40,6 +40,10 @@ def strip_punc(s):
 
 
 class Predicate(abc.ABC):
+    type: str
+    __name__: str
+    _cached_hash: int
+
     def __iter__(self):
         yield self
 
@@ -147,6 +151,10 @@ class IndexPredicate(Predicate):
 
 
 class CanopyPredicate(object):
+    field: str
+    preprocess: Callable
+    threshold: float
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.canopy = {}
@@ -202,6 +210,10 @@ class CanopyPredicate(object):
 
 
 class SearchPredicate(object):
+    field: str
+    preprocess: Callable
+    threshold: float
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cache = {}
