@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 # provides functions for selecting a sample of training data
+
 from __future__ import annotations
 
 import itertools
@@ -12,7 +12,7 @@ import random
 from abc import ABC
 import math
 
-from typing import Sequence, Iterable
+from typing import Sequence, Iterable, Dict
 
 from . import blocking
 from .predicates import Predicate
@@ -20,8 +20,8 @@ from ._typing import Data, RecordID
 
 logger = logging.getLogger(__name__)
 
-Cover = dict[Predicate, frozenset[int]]
-ComparisonCover = dict[Predicate, frozenset[tuple[RecordID, RecordID]]]
+Cover = Dict[Predicate, frozenset[int]]
+ComparisonCover = Dict[Predicate, frozenset[tuple[RecordID, RecordID]]]
 
 
 class BlockLearner(ABC):
