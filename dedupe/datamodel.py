@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pkgutil
-from typing import Container, Iterable
+from typing import Iterable, Sequence
 import copyreg
 import types
 
@@ -14,7 +14,8 @@ from dedupe.variables.base import (
     Variable,
 )
 from dedupe.variables.interaction import InteractionType
-from dedupe._typing import VariableDefinition
+from dedupe.predicates import Predicate
+from dedupe._typing import VariableDefinition, RecordDict
 
 for _, module, _ in pkgutil.iter_modules(  # type: ignore
     dedupe.variables.__path__, "dedupe.variables."
@@ -57,7 +58,9 @@ class DataModel(object):
             yield (var.field, var.comparator, start, stop)
             start = stop
 
-    def predicates(self, index_predicates=True, canopies=True) -> set:
+    def predicates(
+        self, index_predicates: bool = True, canopies: bool = True
+    ) -> set[Predicate]:
         predicates = set()
         for var in self.primary_variables:
             for predicate in var.predicates:
@@ -74,7 +77,9 @@ class DataModel(object):
 
         return predicates
 
-    def distances(self, record_pairs) -> numpy.ndarray:
+    def distances(
+        self, record_pairs: Sequence[tuple[RecordDict, RecordDict]]
+    ) -> numpy.ndarray:
         num_records = len(record_pairs)
 
         distances = numpy.empty((num_records, len(self)), "f4")
@@ -111,7 +116,7 @@ class DataModel(object):
 
         return distances
 
-    def check(self, record: Container) -> None:
+    def check(self, record: RecordDict) -> None:
         for field, _, _, _ in self._field_comparators:
             if field not in record:
                 raise ValueError(
