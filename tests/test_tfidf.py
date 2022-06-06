@@ -1,5 +1,6 @@
-import dedupe
 import unittest
+
+import dedupe
 
 
 class ParsingTest(unittest.TestCase):

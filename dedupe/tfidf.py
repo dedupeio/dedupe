@@ -3,8 +3,8 @@
 import logging
 
 from dedupe.canopy_index import CanopyIndex
-from dedupe.index import Index
 from dedupe.core import Enumerator
+from dedupe.index import Index
 
 logger = logging.getLogger(__name__)
 

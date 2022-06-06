@@ -1,7 +1,7 @@
 import Levenshtein_search
 
-from .index import Index
 from .core import Enumerator
+from .index import Index
 
 
 class LevenshteinIndex(Index):

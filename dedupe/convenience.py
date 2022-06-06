@@ -4,24 +4,24 @@ from __future__ import annotations
 
 import collections
 import itertools
-import sys
-from typing import Tuple, Iterator
 import random
+import sys
 import warnings
+from typing import Iterator, Tuple
 
 import numpy
 
 import dedupe
-from dedupe.core import unique
-from dedupe.canonical import getCanonicalRep
 from dedupe._typing import (
     Data,
-    TrainingData,
-    RecordDict,
-    TrainingExample,
     Literal,
+    RecordDict,
     RecordID,
+    TrainingData,
+    TrainingExample,
 )
+from dedupe.canonical import getCanonicalRep
+from dedupe.core import unique
 
 IndicesIterator = Iterator[Tuple[int, int]]
 

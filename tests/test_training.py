@@ -1,6 +1,7 @@
+import unittest
+
 import dedupe
 import dedupe.training as training
-import unittest
 
 
 class TrainingTest(unittest.TestCase):

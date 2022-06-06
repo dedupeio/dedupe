@@ -2,30 +2,30 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import itertools
-import tempfile
-import os
 import collections
 import functools
+import itertools
 import multiprocessing
 import multiprocessing.dummy
+import os
 import queue
+import tempfile
 from typing import (
+    Any,
+    Generator,
+    Iterable,
     Iterator,
     Mapping,
-    Sequence,
-    Union,
-    Generator,
     Optional,
-    Any,
+    Sequence,
     Type,
-    Iterable,
+    Union,
     overload,
 )
 
 import numpy
 
-from dedupe._typing import RecordPairs, RecordID, Blocks, Data, Literal
+from dedupe._typing import Blocks, Data, Literal, RecordID, RecordPairs
 from dedupe.backport import RLock
 
 

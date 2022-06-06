@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import itertools
-from collections import defaultdict
 import array
+import itertools
 import logging
 import tempfile
-from typing import Iterable, cast, Generator, Sequence
+from collections import defaultdict
+from typing import Generator, Iterable, Sequence, cast
 
 import numpy
 import scipy.cluster.hierarchy
 
-from dedupe._typing import Clusters, RecordID, Links
+from dedupe._typing import Clusters, Links, RecordID
 
 logger = logging.getLogger(__name__)
 

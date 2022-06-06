@@ -11,3 +11,7 @@ files = "dedupe"
 minversion = "7.1"
 addopts = "--cov dedupe"
 testpaths = ["tests", "dedupe"]
+
+[tool.isort]
+profile = "black"
+src_paths = ["dedupe", "test"]
