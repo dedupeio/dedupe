@@ -6,6 +6,7 @@ from typing import Mapping
 from dedupe.variables.base import Variable, FieldType as FieldVariable
 from dedupe._typing import VariableDefinition
 
+
 class InteractionType(Variable):
     type = "Interaction"
 
@@ -51,7 +52,9 @@ class InteractionType(Variable):
             )
             self.higher_vars.append(higher_var)
 
-    def atomicInteractions(self, interactions: list[str], field_model: Mapping[str, FieldVariable]) -> list[str]:
+    def atomicInteractions(
+        self, interactions: list[str], field_model: Mapping[str, FieldVariable]
+    ) -> list[str]:
         atomic_interactions = []
 
         for field in interactions:

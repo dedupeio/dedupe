@@ -71,7 +71,7 @@ class FieldType(Variable):
     _index_thresholds: Sequence[float] = []
     _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
     _predicate_functions: Sequence[Callable[[Any], Iterable[str]]] = ()
-    _Predicate: Type[predicates.SimplePredicate]
+    _Predicate: Type[predicates.SimplePredicate] = predicates.SimplePredicate
     comparator: Comparator
 
     def __init__(self, definition: VariableDefinition):
