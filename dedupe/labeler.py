@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from abc import ABC, abstractmethod
 import logging
+from typing import Iterable, Dict
 
 import numpy
 from typing_extensions import Protocol
@@ -11,7 +12,8 @@ import sklearn.linear_model
 import dedupe.core as core
 import dedupe.training as training
 import dedupe.datamodel as datamodel
-from dedupe._typing import TrainingExample
+from dedupe._typing import TrainingExample, RecordID
+from dedupe.predicates import Predicate
 
 logger = logging.getLogger(__name__)
 
@@ -126,12 +128,12 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
 
 
 class BlockLearner(object):
-    def __init__(self, data_model, *args):
+    def __init__(self, data_model: datamodel.DataModel, *args):
         self.data_model = data_model
 
-        self.current_predicates = ()
+        self.current_predicates: tuple[Predicate, ...] = ()
 
-        self._cached_labels = None
+        self._cached_labels: numpy.ndarray | None = None
         self._old_dupes = []
 
         self.block_learner: training.BlockLearner
@@ -173,9 +175,9 @@ class BlockLearner(object):
         if self._cached_labels is not None:
             self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
 
-    def _sample_indices(self, sample_size):
+    def _sample_indices(self, sample_size: int) -> Iterable[tuple[RecordID, RecordID]]:
 
-        weights = {}
+        weights: Dict[tuple[RecordID, RecordID], float] = {}
         for predicate, covered in self.block_learner.comparison_cover.items():
             # each predicate gets to vote for every record pair it covers. the
             # strength of that vote is in inverse proportion to the number of
@@ -184,9 +186,9 @@ class BlockLearner(object):
             # if a predicate only covers a few record pairs, the value of
             # the vote it puts on those few pairs will be worth more than
             # a predicate that covers almost all the record pairs
-            weight = 1 / len(covered)
+            weight: float = 1 / len(covered)
             for pair in covered:
-                weights[pair] = weights.get(pair, 0) + weight
+                weights[pair] = weights.get(pair, 0.0) + weight
 
         if sample_size < len(weights):
             # consider using a reservoir sampling strategy, which would
@@ -207,7 +209,7 @@ class BlockLearner(object):
 
 
 class DedupeBlockLearner(BlockLearner):
-    def __init__(self, data_model, data, index_include):
+    def __init__(self, data_model: datamodel.DataModel, data, index_include):
         super().__init__(data_model)
 
         N_SAMPLED_RECORDS = 5000

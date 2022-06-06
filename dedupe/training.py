@@ -12,14 +12,16 @@ import random
 from abc import ABC
 import math
 
-from typing import Dict, Sequence, Iterable, FrozenSet
+from typing import Sequence, Iterable
 
 from . import blocking
 from .predicates import Predicate
+from ._typing import Data, RecordID
 
 logger = logging.getLogger(__name__)
 
-Cover = Dict[Predicate, FrozenSet[int]]
+Cover = dict[Predicate, frozenset[int]]
+ComparisonCover = dict[Predicate, frozenset[tuple[RecordID, RecordID]]]
 
 
 class BlockLearner(ABC):
@@ -67,7 +69,9 @@ class BlockLearner(ABC):
 
         return final_predicates
 
-    def simple_candidates(self, match_cover: Cover, comparison_cover: Cover) -> Cover:
+    def simple_candidates(
+        self, match_cover: Cover, comparison_cover: ComparisonCover
+    ) -> Cover:
         candidates = {}
         for predicate, coverage in match_cover.items():
             predicate.count = len(comparison_cover[predicate])  # type: ignore
@@ -76,7 +80,10 @@ class BlockLearner(ABC):
         return candidates
 
     def random_forest_candidates(
-        self, match_cover: Cover, comparison_cover: Cover, K: int | None = None
+        self,
+        match_cover: Cover,
+        comparison_cover: ComparisonCover,
+        K: int | None = None,
     ) -> Cover:
         predicates = list(match_cover)
         matches = list(frozenset.union(*match_cover.values()))
@@ -141,7 +148,7 @@ class BlockLearner(ABC):
         return predicate_cover
 
     blocker: blocking.Fingerprinter
-    comparison_cover: Cover
+    comparison_cover: ComparisonCover
 
 
 class DedupeBlockLearner(BlockLearner):
@@ -153,7 +160,9 @@ class DedupeBlockLearner(BlockLearner):
         self.comparison_cover = self.coveredPairs(self.blocker, sampled_records)
 
     @staticmethod
-    def coveredPairs(blocker, records):
+    def coveredPairs(
+        blocker, records: Data
+    ) -> dict[Predicate, frozenset[tuple[RecordID, RecordID]]]:
         cover = {}
 
         n_records = len(records)
@@ -194,8 +203,8 @@ class RecordLinkBlockLearner(BlockLearner):
             self.blocker, sampled_records_1, sampled_records_2
         )
 
-    def coveredPairs(self, blocker, records_1, records_2):
-        cover = {}
+    def coveredPairs(self, blocker, records_1: Data, records_2: Data):
+        cover: dict[Predicate, dict[str, tuple[set[RecordID], set[RecordID]]]] = {}
         pair_cover = {}
 
         for predicate in blocker.predicates:
