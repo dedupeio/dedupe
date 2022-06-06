@@ -1,9 +1,8 @@
 import os
 import time
 
-from benchmarks import canonical_matching, common
-
 import dedupe
+from benchmarks import canonical_matching, common
 
 
 def make_report(data, clustering):

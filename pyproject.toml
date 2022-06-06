@@ -14,4 +14,4 @@ testpaths = ["tests", "dedupe"]
 
 [tool.isort]
 profile = "black"
-src_paths = ["dedupe", "test"]
+src_paths = ["dedupe", "tests", "benchmarks"]
