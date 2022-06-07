@@ -10,16 +10,17 @@ from collections import defaultdict
 from typing import Generator, Iterable, Sequence, cast
 
 import numpy
+import numpy.typing
 import scipy.cluster.hierarchy
 
-from dedupe._typing import Clusters, Links, RecordID
+from dedupe._typing import Clusters, Links, RecordID, Scores
 
 logger = logging.getLogger(__name__)
 
 
 def connected_components(
-    edgelist: numpy.ndarray, max_components: int
-) -> Generator[numpy.ndarray, None, None]:
+    edgelist: Scores, max_components: int
+) -> Generator[Scores, None, None]:
 
     if len(edgelist) == 0:
         raise StopIteration()
@@ -52,8 +53,8 @@ def connected_components(
 
 
 def _connected_components(
-    edgelist: numpy.ndarray, max_components: int
-) -> Generator[numpy.ndarray, None, None]:
+    edgelist: Scores, max_components: int
+) -> Generator[Scores, None, None]:
     component_stops = union_find(edgelist)
 
     start = 0
@@ -100,7 +101,7 @@ def _connected_components(
             yield sub_graph[["pairs", "score"]]
 
 
-def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
+def union_find(scored_pairs: Scores) -> numpy.typing.NDArray[numpy.int_]:
 
     root: dict[RecordID, int] = {}
 
@@ -178,8 +179,8 @@ def union_find(scored_pairs: numpy.ndarray) -> numpy.ndarray:
 
 
 def condensedDistance(
-    dupes: numpy.ndarray,
-) -> tuple[dict[int, RecordID], numpy.ndarray, int]:
+    dupes: Scores,
+) -> tuple[dict[int, RecordID], numpy.typing.NDArray[numpy.float_], int]:
     """
     Convert the pairwise list of distances in dupes to "condensed
     distance matrix" required by the hierarchical clustering
@@ -218,7 +219,7 @@ def condensedDistance(
 
 
 def cluster(
-    dupes: numpy.ndarray, threshold: float = 0.5, max_components: int = 30000
+    dupes: Scores, threshold: float = 0.5, max_components: int = 30000
 ) -> Clusters:
     """
     Takes in a list of duplicate pairs and clusters them in to a
@@ -264,14 +265,17 @@ def cluster(
 
 
 def confidences(
-    cluster: Sequence[int], squared_distances: numpy.ndarray, d: int
-) -> numpy.ndarray:
+    cluster: Sequence[int],
+    squared_distances: numpy.typing.NDArray[numpy.float_],
+    d: int,
+) -> numpy.typing.NDArray[numpy.float_]:
     """
     We calculate a per record score that is similar to a standard
     deviation.  The main reason is that these record scores can be
     used to calculate the standard deviation of an entire cluster,
     which is a reasonable metric for clusters.
     """
+    scores: numpy.typing.NDArray[numpy.float_]
     scores_d = dict.fromkeys(cluster, 0.0)
     C = 2 * d - 3
     for i, j in itertools.combinations(cluster, 2):
@@ -286,7 +290,7 @@ def confidences(
     return scores
 
 
-def greedyMatching(dupes: numpy.ndarray) -> Links:
+def greedyMatching(dupes: Scores) -> Links:
     A: set[RecordID] = set()
     B: set[RecordID] = set()
 
@@ -302,7 +306,7 @@ def greedyMatching(dupes: numpy.ndarray) -> Links:
 
 
 def gazetteMatching(
-    scored_blocks: Iterable[numpy.ndarray], threshold: float = 0, n_matches: int = 1
+    scored_blocks: Iterable[Scores], threshold: float = 0, n_matches: int = 1
 ) -> Links:
 
     for block in scored_blocks:
@@ -318,7 +322,7 @@ def gazetteMatching(
 
 
 def pair_gazette_matching(
-    scored_pairs: numpy.ndarray, threshold: float = 0.0, n_matches: int = 1
+    scored_pairs: Scores, threshold: float = 0.0, n_matches: int = 1
 ) -> Links:
 
     scored_pairs.sort(order="pairs")
