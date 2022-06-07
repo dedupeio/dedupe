@@ -40,10 +40,10 @@ from dedupe._typing import (
     RecordDict,
     RecordID,
     RecordPairs,
+    Scores,
     TrainingData,
     TrainingExample,
     VariableDefinition,
-    Scores,
 )
 
 logger = logging.getLogger(__name__)
@@ -530,7 +530,7 @@ class RecordLinkMatching(IntegralMatching):
         links = list(links)
 
         try:
-            mmap_file = pair_scores.filename # type: ignore
+            mmap_file = pair_scores.filename  # type: ignore
         except AttributeError:
             pass
         else:

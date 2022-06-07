@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, Sequence, List, Literal, Mapping
+from typing import Dict, Iterable, List, Literal, Mapping
 
 import numpy
 import numpy.typing
@@ -13,7 +13,15 @@ from typing_extensions import Protocol
 import dedupe.core as core
 import dedupe.datamodel as datamodel
 import dedupe.training as training
-from dedupe._typing import RecordDict, RecordID, TrainingExample, TrainingExamples, Labels, Data, LabelsLike
+from dedupe._typing import (
+    Data,
+    Labels,
+    LabelsLike,
+    RecordDict,
+    RecordID,
+    TrainingExample,
+    TrainingExamples,
+)
 from dedupe.predicates import Predicate
 
 logger = logging.getLogger(__name__)
@@ -27,7 +35,7 @@ class Learner(ABC):
         pass
 
     @abstractmethod
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:   
+    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
         pass
 
     @abstractmethod
@@ -39,16 +47,13 @@ class Learner(ABC):
 
 
 class ActiveLearner(Learner):
-
     @abstractmethod
     def pop(self) -> TrainingExample:
         pass
 
     @abstractmethod
-    def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:    
+    def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         pass
-
-
 
 
 class HasDataModel(Protocol):
@@ -57,13 +62,12 @@ class HasDataModel(Protocol):
 
 
 class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
-    
     def __init__(self, data_model: datamodel.DataModel):
         super().__init__()
         self.data_model = data_model
         self._candidates: TrainingExamples = []
 
-    @property # type: ignore[override]
+    @property  # type: ignore[override]
     def candidates(self) -> TrainingExamples:  # type: ignore[override]
         return self._candidates
 
@@ -137,13 +141,15 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
         return weighted_bias
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        scores: numpy.typing.NDArray[numpy.float_] = self.predict_proba(self.distances)[:, 1].reshape(-1, 1)
+        scores: numpy.typing.NDArray[numpy.float_] = self.predict_proba(self.distances)[
+            :, 1
+        ].reshape(-1, 1)
         return scores
 
 
 class BlockLearner(Learner):
     candidates: TrainingExamples
-    
+
     def __init__(self, data_model: datamodel.DataModel, *args):
         self.data_model = data_model
 
@@ -226,7 +232,12 @@ class BlockLearner(Learner):
 
 
 class DedupeBlockLearner(BlockLearner):
-    def __init__(self, data_model: datamodel.DataModel, data: Data, index_include: List[TrainingExample]):
+    def __init__(
+        self,
+        data_model: datamodel.DataModel,
+        data: Data,
+        index_include: List[TrainingExample],
+    ):
         super().__init__(data_model)
 
         N_SAMPLED_RECORDS = 5000
@@ -271,7 +282,13 @@ class DedupeBlockLearner(BlockLearner):
 
 
 class RecordLinkBlockLearner(BlockLearner):
-    def __init__(self, data_model: datamodel.DataModel, data_1: Data, data_2: Data, index_include: TrainingExamples):
+    def __init__(
+        self,
+        data_model: datamodel.DataModel,
+        data_1: Data,
+        data_2: Data,
+        index_include: TrainingExamples,
+    ):
 
         super().__init__(data_model)
 
@@ -321,6 +338,7 @@ class RecordLinkBlockLearner(BlockLearner):
 
         return sample
 
+
 class DisagreementLearner(ActiveLearner):
 
     classifier: RLRLearner
@@ -338,7 +356,7 @@ class DisagreementLearner(ActiveLearner):
             raise IndexError("No more unlabeled examples to label")
 
         probs = self.candidate_scores()
-        
+
         # where do the classifers disagree?
         disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
 
@@ -369,7 +387,6 @@ class DisagreementLearner(ActiveLearner):
 
         return numpy.concatenate(probs_l, axis=1)
 
-
     def _remove(self, index: int) -> None:
         for learner in self.learners:
             learner._remove(index)
@@ -386,7 +403,9 @@ class DisagreementLearner(ActiveLearner):
         for learner in self.learners:
             learner.fit_transform(pairs, y)
 
-    def learn_predicates(self, recall: float, index_predicates: bool) -> tuple[Predicate, ...]:
+    def learn_predicates(
+        self, recall: float, index_predicates: bool
+    ) -> tuple[Predicate, ...]:
 
         learned_preds: tuple[Predicate, ...]
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
@@ -415,7 +434,12 @@ class DisagreementLearner(ActiveLearner):
 
 class DedupeDisagreementLearner(DisagreementLearner):
     def __init__(
-        self, data_model: datamodel.DataModel, data: Data, blocked_proportion: float, sample_size: int, index_include: TrainingExamples
+        self,
+        data_model: datamodel.DataModel,
+        data: Data,
+        blocked_proportion: float,
+        sample_size: int,
+        index_include: TrainingExamples,
     ):
 
         self.data_model = data_model
@@ -447,7 +471,13 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
 class RecordLinkDisagreementLearner(DisagreementLearner):
     def __init__(
-        self, data_model: datamodel.DataModel, data_1: Data, data_2: Data, blocked_proportion: float, sample_size: int, index_include: TrainingExamples
+        self,
+        data_model: datamodel.DataModel,
+        data_1: Data,
+        data_2: Data,
+        blocked_proportion: float,
+        sample_size: int,
+        index_include: TrainingExamples,
     ):
 
         self.data_model = data_model
@@ -480,7 +510,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
 
 
 class Sample(dict):  # type: ignore[type-arg]
-    def __init__(self, d: Mapping, sample_size: int): #type: ignore[type-arg]
+    def __init__(self, d: Mapping, sample_size: int):  # type: ignore[type-arg]
         if len(d) <= sample_size:
             super().__init__(d)
         else:

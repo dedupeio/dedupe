@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from typing import Generator, Iterable, Union, Sequence
+from typing import Generator, Iterable, Sequence, Union
 
 import dedupe.predicates
 from dedupe._typing import Data, Record, RecordID

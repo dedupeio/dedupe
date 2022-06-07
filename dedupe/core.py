@@ -12,12 +12,10 @@ import queue
 import tempfile
 from typing import (
     Any,
-    Callable,
     Generator,
     Iterable,
     Iterator,
     Literal,
-    Mapping,
     Optional,
     Sequence,
     Type,
@@ -28,7 +26,17 @@ from typing import (
 import numpy
 
 import dedupe
-from dedupe._typing import Block, Blocks, Data, RecordID, RecordIDDType, RecordPairs, Classifier, ClosableJoinable, MapLike
+from dedupe._typing import (
+    Block,
+    Blocks,
+    Classifier,
+    ClosableJoinable,
+    Data,
+    MapLike,
+    RecordID,
+    RecordIDDType,
+    RecordPairs,
+)
 from dedupe.backport import RLock
 
 
@@ -100,7 +108,10 @@ class ScoreDupes(object):
 
 
 def scoreDuplicates(
-    record_pairs: RecordPairs, data_model: dedupe.datamodel.DataModel, classifier: Classifier, num_cores: int = 1
+    record_pairs: RecordPairs,
+    data_model: dedupe.datamodel.DataModel,
+    classifier: Classifier,
+    num_cores: int = 1,
 ) -> Union[numpy.memmap, numpy.ndarray]:
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
@@ -210,7 +221,10 @@ class ScoreGazette(object):
 
 
 def scoreGazette(
-    record_pairs: Blocks, data_model: dedupe.datamodel.DataModel, classifier: Classifier, num_cores: int = 1
+    record_pairs: Blocks,
+    data_model: dedupe.datamodel.DataModel,
+    classifier: Classifier,
+    num_cores: int = 1,
 ) -> Generator[numpy.ndarray, None, None]:
 
     first, record_pairs = peek(record_pairs)
@@ -231,17 +245,16 @@ def scoreGazette(
     pool.join()
 
 
-    
 class MockPool(object):
     def close(self) -> None:
         pass
-    
+
     def join(self) -> None:
         pass
-    
+
 
 def appropriate_imap(num_cores: int) -> tuple[MapLike, ClosableJoinable]:
-    
+
     if num_cores < 2:
         imap: MapLike = map
 
@@ -300,10 +313,8 @@ def sniff_id_type(ids: Sequence[tuple[int, int]]) -> Type[int]:
 def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[Type[str], Literal[256]]:
     ...
 
-    
-def sniff_id_type(
-    ids: Sequence[tuple[RecordID, RecordID]]
-) -> RecordIDDType:
+
+def sniff_id_type(ids: Sequence[tuple[RecordID, RecordID]]) -> RecordIDDType:
     example = ids[0][0]
     python_type = type(example)
     dtype: RecordIDDType

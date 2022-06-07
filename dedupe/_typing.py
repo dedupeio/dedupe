@@ -74,13 +74,13 @@ class Classifier(Protocol):
     def predict_proba(self, X: object) -> numpy.typing.NDArray[numpy.float_]:
         ...
 
+
 class ClosableJoinable(Protocol):
-    
     def close(self):
         ...
-    
+
     def join(self):
         ...
 
+
 MapLike = Callable[[Callable, Iterable], Iterable]
-    
