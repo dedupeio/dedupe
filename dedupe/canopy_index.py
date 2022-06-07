@@ -69,7 +69,7 @@ class CanopyLexicon(Lexicon):  # pragma: no cover
     def sourceToWordIds(self, last):
         if last is None:
             last = []
-        if not isinstance(self.wordCount, Length):
-            self.wordCount = Length(self.wordCount())
+        if not isinstance(self.wordCount, Length):  # type: ignore[has-type]
+            self.wordCount = Length(self.wordCount())  # type: ignore[has-type]
         self.wordCount._p_deactivate()
         return list(map(self._getWordIdCreate, last))

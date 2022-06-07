@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 
 class Index(ABC):
+    _doc_to_id: dict
+
     @abstractmethod
     def __init__(self):  # pragma: no cover
         pass

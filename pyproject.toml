@@ -8,7 +8,6 @@ plugins = "numpy.typing.mypy_plugin"
 ignore_missing_imports = true
 files = "dedupe"
 check_untyped_defs = true
-disallow_any_generics = true
 
 [tool.pytest.ini_options]
 minversion = "7.1"

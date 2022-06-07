@@ -14,6 +14,7 @@ from doublemetaphone import doublemetaphone
 import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
 from dedupe._typing import RecordDict
+from dedupe.index import Index
 from dedupe.cpredicates import initials, ngrams
 
 words = re.compile(r"[\w']+").findall
@@ -154,6 +155,7 @@ class CanopyPredicate(object):
     field: str
     preprocess: Callable
     threshold: float
+    index: Index | None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -171,6 +173,15 @@ class CanopyPredicate(object):
         self.index = None
 
     def __call__(self, record, **kwargs):
+        try:
+            assert self.index is not None
+        except AssertionError:
+            raise NoIndexError(
+                "Attempting to block with an index "
+                "predicate without indexing records",
+                record,
+            )
+
         block_key = None
         column = record[self.field]
 
@@ -180,14 +191,7 @@ class CanopyPredicate(object):
 
             doc = self.preprocess(column)
 
-            try:
-                doc_id = self.index._doc_to_id[doc]
-            except AttributeError:
-                raise NoIndexError(
-                    "Attempting to block with an index "
-                    "predicate without indexing records",
-                    record,
-                )
+            doc_id = self.index._doc_to_id[doc]
 
             if doc_id in self.canopy:
                 block_key = self.canopy[doc_id]
@@ -213,6 +217,7 @@ class SearchPredicate(object):
     field: str
     preprocess: Callable
     threshold: float
+    index: Index | None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -232,6 +237,15 @@ class SearchPredicate(object):
         self.index = None
 
     def __call__(self, record, target=False, **kwargs):
+        try:
+            assert self.index is not None
+        except AssertionError:
+            raise NoIndexError(
+                "Attempting to block with an index "
+                "predicate without indexing records",
+                record,
+            )
+
         column = record[self.field]
         if column:
             if (column, target) in self._cache:
@@ -239,17 +253,10 @@ class SearchPredicate(object):
             else:
                 doc = self.preprocess(column)
 
-                try:
-                    if target:
-                        centers = [self.index._doc_to_id[doc]]
-                    else:
-                        centers = self.index.search(doc, self.threshold)
-                except AttributeError:
-                    raise NoIndexError(
-                        "Attempting to block with an index "
-                        "predicate without indexing records",
-                        record,
-                    )
+                if target:
+                    centers = [self.index._doc_to_id[doc]]
+                else:
+                    centers = self.index.search(doc, self.threshold)
                 result = [str(center) for center in centers]
                 self._cache[(column, target)] = result
                 return result
