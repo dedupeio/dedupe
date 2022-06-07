@@ -35,10 +35,14 @@ Cluster = Tuple[
 Clusters = Iterable[Cluster]
 Data = Mapping[RecordID, RecordDict]
 TrainingExample = Tuple[RecordDict, RecordDict]
+TrainingExamples = List[TrainingExample]
 Links = Iterable[Union[numpy.ndarray, Tuple[Tuple[RecordID, RecordID], float]]]
 LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 Comparator = Callable[[Any, Any], Union[Union[int, float], Sequence[Union[int, float]]]]
+Scores = Union[numpy.memmap, numpy.ndarray]
+Labels = List[Literal[0, 1]]
+LabelsLike = Iterable[Literal[0, 1]]
 
 VariableDefinition = TypedDict(
     "VariableDefinition",
@@ -77,7 +81,6 @@ class ClosableJoinable(Protocol):
     
     def join(self):
         ...
-    
 
 MapLike = Callable[[Callable, Iterable], Iterable]
     

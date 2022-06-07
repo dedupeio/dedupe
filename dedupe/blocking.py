@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from typing import Generator, Iterable, Union
+from typing import Generator, Iterable, Union, Sequence
 
 import dedupe.predicates
 from dedupe._typing import Data, Record, RecordID
@@ -22,7 +22,7 @@ def index_list():
 class Fingerprinter(object):
     """Takes in a record and returns all blocks that record belongs to"""
 
-    def __init__(self, predicates: list[dedupe.predicates.Predicate]) -> None:
+    def __init__(self, predicates: Sequence[dedupe.predicates.Predicate]) -> None:
 
         self.predicates = predicates
 

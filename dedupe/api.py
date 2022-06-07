@@ -17,6 +17,7 @@ import warnings
 from typing import BinaryIO, Generator, Iterable, Sequence, TextIO, cast
 
 import numpy
+import numpy.typing
 import sklearn.linear_model
 import sklearn.model_selection
 from typing_extensions import Literal
@@ -42,6 +43,7 @@ from dedupe._typing import (
     TrainingData,
     TrainingExample,
     VariableDefinition,
+    Scores,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,7 +67,7 @@ class Matching(object):
         self._fingerprinter: blocking.Fingerprinter | None = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
-        self.predicates: list[dedupe.predicates.Predicate]
+        self.predicates: Sequence[dedupe.predicates.Predicate]
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:
@@ -85,7 +87,7 @@ class IntegralMatching(Matching):
     pairs before deciding on any matches
     """
 
-    def score(self, pairs: RecordPairs) -> numpy.memmap | numpy.ndarray:
+    def score(self, pairs: RecordPairs) -> Scores:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilities that the pair of records are match
@@ -181,7 +183,7 @@ class DedupeMatching(IntegralMatching):
 
         return clusters
 
-    def _add_singletons(self, data, clusters):
+    def _add_singletons(self, data: Data, clusters: Clusters) -> Clusters:
 
         singletons = set(data.keys())
 
@@ -192,7 +194,7 @@ class DedupeMatching(IntegralMatching):
         for singleton in singletons:
             yield (singleton,), (1.0,)
 
-    def pairs(self, data):
+    def pairs(self, data: Data) -> RecordPairs:
         """
         Yield pairs of records that share common fingerprints.
 
@@ -274,7 +276,7 @@ class DedupeMatching(IntegralMatching):
             pairs.close()
             con.close()
 
-    def cluster(self, scores: numpy.ndarray, threshold: float = 0.5) -> Clusters:
+    def cluster(self, scores: Scores, threshold: float = 0.5) -> Clusters:
         r"""From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
 
@@ -528,7 +530,7 @@ class RecordLinkMatching(IntegralMatching):
         links = list(links)
 
         try:
-            mmap_file = pair_scores.filename  # type: ignore
+            mmap_file = pair_scores.filename # type: ignore
         except AttributeError:
             pass
         else:
@@ -538,7 +540,7 @@ class RecordLinkMatching(IntegralMatching):
 
         return links
 
-    def one_to_one(self, scores: numpy.ndarray, threshold: float = 0.0) -> Links:
+    def one_to_one(self, scores: Scores, threshold: float = 0.0) -> Links:
         """From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
 
@@ -593,7 +595,7 @@ class RecordLinkMatching(IntegralMatching):
 
         yield from clustering.greedyMatching(scores)
 
-    def many_to_one(self, scores: numpy.ndarray, threshold: float = 0.0) -> Links:
+    def many_to_one(self, scores: Scores, threshold: float = 0.0) -> Links:
         """
         From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
@@ -661,11 +663,11 @@ class GazetteerMatching(Matching):
 
         self.indexed_data: dict[RecordID, RecordDict] = {}
 
-    def _close(self):
+    def _close(self) -> None:
         if not self.in_memory:
             self.temp_dir.cleanup()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._close()
 
     def index(self, data: Data) -> None:  # pragma: no cover
@@ -806,7 +808,9 @@ class GazetteerMatching(Matching):
                                ORDER BY a.record_id"""
         )
 
-        pair_blocks = itertools.groupby(pairs, lambda x: x[0])
+        pair_blocks: Iterable[
+            tuple[RecordID, Iterable[tuple[RecordID, RecordID]]]
+        ] = itertools.groupby(pairs, lambda x: x[0])
 
         for _, pair_block in pair_blocks:
 
@@ -822,7 +826,7 @@ class GazetteerMatching(Matching):
         con.execute("ROLLBACK")
         con.close()
 
-    def score(self, blocks: Blocks) -> Generator[numpy.ndarray, None, None]:
+    def score(self, blocks: Blocks) -> Generator[Scores, None, None]:
         """
         Scores groups of pairs of records. Yields structured numpy arrays
         representing pairs of records in the group and the associated
@@ -841,7 +845,7 @@ class GazetteerMatching(Matching):
 
     def many_to_n(
         self,
-        score_blocks: Iterable[numpy.ndarray],
+        score_blocks: Iterable[Scores],
         threshold: float = 0.0,
         n_matches: int = 1,
     ) -> Links:
@@ -1310,7 +1314,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
     def prepare_training(
         self,
         data: Data,
-        training_file: TextIO = None,
+        training_file: TextIO | None = None,
         sample_size: int = 1500,
         blocked_proportion: float = 0.9,
     ) -> None:
@@ -1487,7 +1491,7 @@ class SettingsFileLoadingException(Exception):
 
 def flatten_training(
     training_pairs: TrainingData,
-) -> tuple[list[TrainingExample], numpy.ndarray]:
+) -> tuple[list[TrainingExample], numpy.typing.NDArray[numpy.int_]]:
     examples: list[TrainingExample] = []
     y = []
 

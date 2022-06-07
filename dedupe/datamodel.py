@@ -40,7 +40,10 @@ class DataModel(object):
         self._len = len(all_variables)
 
     def __len__(self):
-        return self._len
+        try:
+            return self._len
+        except AttributeError:
+            return len(self._variables)
 
     # Changing this from a property to just a normal attribute causes
     # pickling problems, because we are removing static methods from
