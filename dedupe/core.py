@@ -10,48 +10,50 @@ import multiprocessing.dummy
 import os
 import queue
 import tempfile
-from typing import (
-    Any,
-    Generator,
-    Iterable,
-    Iterator,
-    Literal,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, overload
 
 import numpy
 
-import dedupe
-from dedupe._typing import (
-    Block,
-    Blocks,
-    Classifier,
-    ClosableJoinable,
-    Data,
-    MapLike,
-    RecordID,
-    RecordIDDType,
-    RecordPairs,
-    Scores,
-)
 from dedupe.backport import RLock
+
+if TYPE_CHECKING:
+    from typing import (
+        Any,
+        Generator,
+        Iterable,
+        Iterator,
+        Literal,
+        Optional,
+        Sequence,
+        Type,
+        Union,
+    )
+
+    from dedupe._typing import (
+        Block,
+        Blocks,
+        Classifier,
+        ClosableJoinable,
+        Data,
+        MapLike,
+        RecordID,
+        RecordIDDType,
+        RecordPairs,
+        Scores,
+    )
+    from dedupe.datamodel import DataModel
+
+    _Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
 
 
 class BlockingError(Exception):
     pass
 
 
-_Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
-
-
 class ScoreDupes(object):
     def __init__(
         self,
-        data_model: dedupe.datamodel.DataModel,
+        data_model: DataModel,
         classifier: Classifier,
         records_queue: _Queue,
         exception_queue: _Queue,
@@ -110,7 +112,7 @@ class ScoreDupes(object):
 
 def scoreDuplicates(
     record_pairs: RecordPairs,
-    data_model: dedupe.datamodel.DataModel,
+    data_model: DataModel,
     classifier: Classifier,
     num_cores: int = 1,
 ) -> Scores:
@@ -178,7 +180,7 @@ def scoreDuplicates(
 
 
 def fillQueue(
-    queue: _Queue, iterable: RecordPairs, stop_signals: int, chunk_size: int = 20000
+    queue: _Queue, iterable: Iterable, stop_signals: int, chunk_size: int = 20000
 ) -> None:
     iterable = iter(iterable)
 
@@ -197,7 +199,7 @@ def fillQueue(
 
 
 class ScoreGazette(object):
-    def __init__(self, data_model: dedupe.datamodel.DataModel, classifier: Classifier):
+    def __init__(self, data_model: DataModel, classifier: Classifier):
         self.data_model = data_model
         self.classifier = classifier
 
@@ -223,7 +225,7 @@ class ScoreGazette(object):
 
 def scoreGazette(
     record_pairs: Blocks,
-    data_model: dedupe.datamodel.DataModel,
+    data_model: DataModel,
     classifier: Classifier,
     num_cores: int = 1,
 ) -> Generator[Scores, None, None]:
@@ -301,7 +303,7 @@ def index(data: Data, offset: int = 0) -> Data:
         return data
 
 
-def Enumerator(start: int = 0) -> collections.defaultdict[int, Any]:
+def Enumerator(start: int = 0) -> collections.defaultdict[Any, int]:
     return collections.defaultdict(itertools.count(start).__next__, ())
 
 

@@ -3,26 +3,25 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, List, Literal, Mapping
+from typing import TYPE_CHECKING
 
 import numpy
 import numpy.typing
 import sklearn.linear_model
-from typing_extensions import Protocol
 
 import dedupe.core as core
-import dedupe.datamodel as datamodel
 import dedupe.training as training
-from dedupe._typing import (
-    Data,
-    Labels,
-    LabelsLike,
-    RecordDict,
-    RecordID,
-    TrainingExample,
-    TrainingExamples,
-)
-from dedupe.predicates import Predicate
+
+if TYPE_CHECKING:
+    from typing import Dict, Iterable, Mapping
+
+    from dedupe._typing import Data, Labels, LabelsLike
+    from dedupe._typing import RecordDictPair as TrainingExample
+    from dedupe._typing import RecordDictPairs as TrainingExamples
+    from dedupe._typing import RecordIDPair
+    from dedupe.datamodel.DataModel import DataModel
+    from dedupe.predicates import Predicate
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +55,8 @@ class ActiveLearner(Learner):
         pass
 
 
-class HasDataModel(Protocol):
-
-    data_model: datamodel.DataModel
-
-
 class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
-    def __init__(self, data_model: datamodel.DataModel):
+    def __init__(self, data_model: DataModel):
         super().__init__()
         self.data_model = data_model
         self._candidates: TrainingExamples = []
@@ -150,13 +144,13 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
 class BlockLearner(Learner):
     candidates: TrainingExamples
 
-    def __init__(self, data_model: datamodel.DataModel, *args):
+    def __init__(self, data_model: DataModel, *args):
         self.data_model = data_model
 
         self.current_predicates: tuple[Predicate, ...] = ()
 
         self._cached_labels: numpy.typing.NDArray[numpy.float_] | None = None
-        self._old_dupes: list[tuple[RecordDict, RecordDict]] = []
+        self._old_dupes: TrainingExamples = []
 
         self.block_learner: training.BlockLearner
 
@@ -179,7 +173,7 @@ class BlockLearner(Learner):
         return self._cached_labels
 
     def predict(self, candidates: TrainingExamples) -> Labels:
-        labels: List[Literal[0, 1]] = []
+        labels: Labels = []
         for record_1, record_2 in candidates:
 
             for predicate in self.current_predicates:
@@ -197,9 +191,9 @@ class BlockLearner(Learner):
         if self._cached_labels is not None:
             self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
 
-    def _sample_indices(self, sample_size: int) -> Iterable[tuple[RecordID, RecordID]]:
+    def _sample_indices(self, sample_size: int) -> Iterable[RecordIDPair]:
 
-        weights: Dict[tuple[RecordID, RecordID], float] = {}
+        weights: Dict[RecordIDPair, float] = {}
         for predicate, covered in self.block_learner.comparison_cover.items():
             # each predicate gets to vote for every record pair it covers. the
             # strength of that vote is in inverse proportion to the number of
@@ -212,7 +206,7 @@ class BlockLearner(Learner):
             for pair in covered:
                 weights[pair] = weights.get(pair, 0.0) + weight
 
-        sample_ids: Iterable[tuple[RecordID, RecordID]]
+        sample_ids: Iterable[RecordIDPair]
         if sample_size < len(weights):
             # consider using a reservoir sampling strategy, which would
             # be more memory efficient and probably about as fast
@@ -234,9 +228,9 @@ class BlockLearner(Learner):
 class DedupeBlockLearner(BlockLearner):
     def __init__(
         self,
-        data_model: datamodel.DataModel,
+        data_model: DataModel,
         data: Data,
-        index_include: List[TrainingExample],
+        index_include: TrainingExamples,
     ):
         super().__init__(data_model)
 
@@ -272,7 +266,7 @@ class DedupeBlockLearner(BlockLearner):
         for pred in blocker.index_predicates:
             pred.freeze(records)
 
-    def _sample(self, data: Data, sample_size: int) -> List[TrainingExample]:
+    def _sample(self, data: Data, sample_size: int) -> TrainingExamples:
 
         sample_indices = self._sample_indices(sample_size)
 
@@ -284,7 +278,7 @@ class DedupeBlockLearner(BlockLearner):
 class RecordLinkBlockLearner(BlockLearner):
     def __init__(
         self,
-        data_model: datamodel.DataModel,
+        data_model: DataModel,
         data_1: Data,
         data_2: Data,
         index_include: TrainingExamples,
@@ -435,7 +429,7 @@ class DisagreementLearner(ActiveLearner):
 class DedupeDisagreementLearner(DisagreementLearner):
     def __init__(
         self,
-        data_model: datamodel.DataModel,
+        data_model: DataModel,
         data: Data,
         blocked_proportion: float,
         sample_size: int,
@@ -472,7 +466,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
 class RecordLinkDisagreementLearner(DisagreementLearner):
     def __init__(
         self,
-        data_model: datamodel.DataModel,
+        data_model: DataModel,
         data_1: Data,
         data_2: Data,
         blocked_proportion: float,

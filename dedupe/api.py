@@ -14,13 +14,11 @@ import pickle
 import sqlite3
 import tempfile
 import warnings
-from typing import BinaryIO, Generator, Iterable, Sequence, TextIO, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy
-import numpy.typing
 import sklearn.linear_model
 import sklearn.model_selection
-from typing_extensions import Literal
 
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
@@ -29,22 +27,33 @@ import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
 import dedupe.predicates
 import dedupe.serializer as serializer
-from dedupe._typing import (
-    Blocks,
-    Classifier,
-    Clusters,
-    Data,
-    JoinConstraint,
-    Links,
-    LookupResults,
-    RecordDict,
-    RecordID,
-    RecordPairs,
-    Scores,
-    TrainingData,
-    TrainingExample,
-    VariableDefinition,
-)
+
+if TYPE_CHECKING:
+    from typing import BinaryIO, Collection, Generator, Iterable, MutableMapping, TextIO
+
+    import numpy.typing
+
+    from dedupe._typing import (
+        Blocks,
+        Classifier,
+        Clusters,
+        Data,
+        JoinConstraint,
+        LabelsLike,
+        Links,
+        Literal,
+        LookupResults,
+        RecordDict,
+    )
+    from dedupe._typing import RecordDictPair as TrainingExample
+    from dedupe._typing import RecordDictPairs as TrainingExamples
+    from dedupe._typing import (
+        RecordID,
+        RecordPairs,
+        Scores,
+        TrainingData,
+        VariableDefinition,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +76,7 @@ class Matching(object):
         self._fingerprinter: blocking.Fingerprinter | None = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
-        self.predicates: Sequence[dedupe.predicates.Predicate]
+        self.predicates: Collection[dedupe.predicates.Predicate]
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:
@@ -661,7 +670,7 @@ class GazetteerMatching(Matching):
             self.temp_dir = tempfile.TemporaryDirectory()
             self.db = self.temp_dir.name + "/blocks.db"
 
-        self.indexed_data: dict[RecordID, RecordDict] = {}
+        self.indexed_data: MutableMapping[RecordID, RecordDict] = {}
 
     def _close(self) -> None:
         if not self.in_memory:
@@ -1041,7 +1050,7 @@ class ActiveMatching(Matching):
 
     def __init__(
         self,
-        variable_definition: Sequence[VariableDefinition],
+        variable_definition: Collection[VariableDefinition],
         num_cores: int | None = None,
         in_memory: bool = False,
         **kwargs,
@@ -1172,7 +1181,7 @@ class ActiveMatching(Matching):
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
 
-    def uncertain_pairs(self) -> list[TrainingExample]:
+    def uncertain_pairs(self) -> TrainingExamples:
         """
          Returns a list of pairs of records from the sample of record pairs
          tuples that Dedupe is most curious to have labeled.
@@ -1491,8 +1500,8 @@ class SettingsFileLoadingException(Exception):
 
 def flatten_training(
     training_pairs: TrainingData,
-) -> tuple[list[TrainingExample], numpy.typing.NDArray[numpy.int_]]:
-    examples: list[TrainingExample] = []
+) -> tuple[TrainingExamples, LabelsLike]:
+    examples: TrainingExamples = []
     y = []
 
     for label in ("match", "distinct"):

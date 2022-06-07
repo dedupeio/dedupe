@@ -14,8 +14,8 @@ from doublemetaphone import doublemetaphone
 import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
 from dedupe._typing import RecordDict
-from dedupe.index import Index
 from dedupe.cpredicates import initials, ngrams
+from dedupe.index import Index
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall

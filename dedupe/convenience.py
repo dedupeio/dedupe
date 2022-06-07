@@ -16,9 +16,9 @@ from dedupe._typing import (
     Data,
     Literal,
     RecordDict,
+    RecordDictPair,
     RecordID,
     TrainingData,
-    TrainingExample,
 )
 from dedupe.canonical import getCanonicalRep
 from dedupe.core import unique
@@ -104,7 +104,7 @@ def _print(*args) -> None:
     print(*args, file=sys.stderr)
 
 
-LabeledPair = Tuple[TrainingExample, Literal["match", "distinct", "unsure"]]
+LabeledPair = Tuple[RecordDictPair, Literal["match", "distinct", "unsure"]]
 
 
 def _mark_pair(deduper: dedupe.api.ActiveMatching, labeled_pair: LabeledPair) -> None:
@@ -137,7 +137,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
     fields = unique(var.field for var in deduper.data_model.primary_variables)
 
     buffer_len = 1  # Max number of previous operations
-    unlabeled: list[TrainingExample] = []
+    unlabeled: list[RecordDictPair] = []
     labeled: list[LabeledPair] = []
 
     while not finished:
