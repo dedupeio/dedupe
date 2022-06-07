@@ -36,6 +36,7 @@ from dedupe._typing import (
     RecordID,
     RecordIDDType,
     RecordPairs,
+    Scores,
 )
 from dedupe.backport import RLock
 
@@ -92,7 +93,7 @@ class ScoreDupes(object):
 
                 with self.offset.get_lock():
 
-                    fp: numpy.memmap
+                    fp: Scores
                     fp = numpy.memmap(
                         self.score_file_path,
                         dtype=self.dtype,
@@ -112,7 +113,7 @@ def scoreDuplicates(
     data_model: dedupe.datamodel.DataModel,
     classifier: Classifier,
     num_cores: int = 1,
-) -> Union[numpy.memmap, numpy.ndarray]:
+) -> Scores:
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
     else:
@@ -166,7 +167,7 @@ def scoreDuplicates(
     else:
         raise ChildProcessError from exc
 
-    scored_pairs: Union[numpy.memmap, numpy.ndarray]
+    scored_pairs: Scores
 
     if offset.value:  # type: ignore
         scored_pairs = numpy.memmap(score_file_path, dtype=dtype)
@@ -200,7 +201,7 @@ class ScoreGazette(object):
         self.data_model = data_model
         self.classifier = classifier
 
-    def __call__(self, block: Block) -> numpy.ndarray:
+    def __call__(self, block: Block) -> Scores:
 
         record_ids, records = zip(*(zip(*each) for each in block))
 
@@ -212,7 +213,7 @@ class ScoreGazette(object):
 
         dtype = numpy.dtype([("pairs", id_type, 2), ("score", "f4")])
 
-        scored_pairs = numpy.empty(shape=len(scores), dtype=dtype)
+        scored_pairs: Scores = numpy.empty(shape=len(scores), dtype=dtype)
 
         scored_pairs["pairs"] = ids
         scored_pairs["score"] = scores
@@ -225,7 +226,7 @@ def scoreGazette(
     data_model: dedupe.datamodel.DataModel,
     classifier: Classifier,
     num_cores: int = 1,
-) -> Generator[numpy.ndarray, None, None]:
+) -> Generator[Scores, None, None]:
 
     first, record_pairs = peek(record_pairs)
     if first is None:
@@ -334,7 +335,7 @@ def sqlite_id_type(data: Data) -> Literal["text", "integer"]:
     example = next(iter(data.keys()))
     python_type = type(example)
 
-    if python_type is bytes or python_type is str:
+    if python_type is str:
         return "text"
     elif python_type is int:
         return "integer"
