@@ -1076,7 +1076,7 @@ class ActiveMatching(Matching):
 
         self.training_pairs: TrainingData
         self.training_pairs = {"distinct": [], "match": []}
-        self.active_learner: labeler.ActiveLearner | None
+        self.active_learner: labeler.DisagreementLearner | None
         self.classifier = sklearn.model_selection.GridSearchCV(
             estimator=sklearn.linear_model.LogisticRegression(),
             param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
