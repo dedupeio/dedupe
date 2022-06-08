@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
-from typing import Tuple, List
+from typing import List, Tuple
 
 from dedupe.canopy_index import CanopyIndex
 from dedupe.core import Enumerator

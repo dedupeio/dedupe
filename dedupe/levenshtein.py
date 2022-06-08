@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Dict
 
 import Levenshtein_search
 
@@ -7,7 +7,7 @@ from .index import Index
 
 
 class LevenshteinIndex(Index):
-    _doc_to_id: dict[str, int]  # type: ignore[assignment]
+    _doc_to_id: Dict[str, int]  # type: ignore[assignment]
 
     def __init__(self) -> None:
         self.index_key = Levenshtein_search.populate_wordset(-1, [])

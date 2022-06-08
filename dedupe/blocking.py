@@ -5,7 +5,16 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Callable, Generator, Iterable, List, Sequence, Union, DefalutDict
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Generator,
+    Iterable,
+    List,
+    Sequence,
+    Union,
+)
 
 import dedupe.predicates
 from dedupe._typing import Data, Record, RecordID
