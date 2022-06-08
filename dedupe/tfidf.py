@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
-from typing import Tuple
+from typing import Tuple, List
 
 from dedupe.canopy_index import CanopyIndex
 from dedupe.core import Enumerator
@@ -31,7 +31,7 @@ class TfIdfIndex(Index):
     def initSearch(self) -> None:
         self._index.initSearch()
 
-    def search(self, doc: Doc, threshold: float = 0) -> list[int]:
+    def search(self, doc: Doc, threshold: float = 0) -> List[int]:
         query_list = self._parseTerms(doc)
 
         if query_list:
