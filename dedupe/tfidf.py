@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import logging
 
 from dedupe.canopy_index import CanopyIndex

@@ -1,10 +1,10 @@
-from typing import Sequence, Mapping
+from typing import Mapping, Sequence
 
 import numpy
 import numpy.typing
 from affinegap import normalizedAffineGapDistance as affine
 
-from dedupe._typing import RecordDict, Comparator
+from dedupe._typing import Comparator, RecordDict
 
 
 def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> str:
@@ -38,7 +38,10 @@ def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> st
     return centroid
 
 
-def breakCentroidTie(attribute_variants: Sequence[str], min_dist_indices: numpy.typing.NDArray[numpy.int_]) -> str:
+def breakCentroidTie(
+    attribute_variants: Sequence[str],
+    min_dist_indices: numpy.typing.NDArray[numpy.int_],
+) -> str:
     """
     Finds centroid when there are multiple values w/ min avg distance
     (e.g. any dupe cluster of 2) right now this selects the first

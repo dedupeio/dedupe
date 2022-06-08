@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import Levenshtein_search
 
 from .core import Enumerator
