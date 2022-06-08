@@ -18,7 +18,7 @@ from dedupe.cpredicates import initials, ngrams
 if TYPE_CHECKING:
     from typing import Any, Callable, Iterable, Mapping, Sequence
 
-    from dedupe._typing import RecordDict, Literal
+    from dedupe._typing import Literal, RecordDict
     from dedupe.index import Index
 
 
