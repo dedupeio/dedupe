@@ -355,7 +355,7 @@ def copy_to_mmap_record_array(
     for stop in stops:
         shape = (stop - start,)
         source_slice = source[start:stop]
-        target_slice = numpy.memmap(
+        target_slice: numpy.memmap = numpy.memmap(
             target.filename,
             dtype=target.dtype,
             offset=(start * target.dtype.itemsize),
@@ -383,13 +383,13 @@ def copy_mmap_record_arrays(
     stops = itertools.chain(range(chunksize, source.size, chunksize), [source.size])
     for stop in stops:
         shape = (stop - start,)
-        source_slice = numpy.memmap(
+        source_slice: numpy.memmap = numpy.memmap(
             source.filename,
             dtype=source.dtype,
             offset=(start * source.dtype.itemsize),
             shape=shape,
         )
-        target_slice = numpy.memmap(
+        target_slice: numpy.memmap = numpy.memmap(
             target.filename,
             dtype=target.dtype,
             offset=(start * target.dtype.itemsize),
