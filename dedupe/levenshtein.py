@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 import Levenshtein_search
 
@@ -26,7 +26,7 @@ class LevenshteinIndex(Index):
     def initSearch(self) -> None:
         pass
 
-    def search(self, doc: str, threshold: int = 0) -> list[int]:  # type: ignore[override]
+    def search(self, doc: str, threshold: int = 0) -> List[int]:  # type: ignore[override]
         matching_docs = Levenshtein_search.lookup(self.index_key, doc, threshold)
         if matching_docs:
             return [self._doc_to_id[match] for match, _, _ in matching_docs]
