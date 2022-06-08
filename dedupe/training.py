@@ -12,11 +12,11 @@ from typing import TYPE_CHECKING
 from . import blocking
 
 if TYPE_CHECKING:
-    from typing import Iterable, Literal, Sequence
+    from typing import Any, Iterable, Literal, Mapping, Sequence
 
     from ._typing import ComparisonCover, Cover, Data
     from ._typing import RecordDictPairs as TrainingExamples
-    from ._typing import RecordID
+    from ._typing import RecordID, RecordIDPair
     from .predicates import Predicate
 
 
@@ -78,7 +78,7 @@ class BlockLearner(ABC):
     ) -> Cover:
         candidates = {}
         for predicate, coverage in match_cover.items():
-            predicate.count = len(comparison_cover[predicate])  # type: ignore[attr-defined]
+            predicate.cover_count = len(comparison_cover[predicate])
             candidates[predicate] = coverage.copy()
 
         return candidates
@@ -107,7 +107,7 @@ class BlockLearner(ABC):
             # initialize variables that will be
             # the base for the constructing k-conjunctions
             candidate = None
-            covered_comparisons = InfiniteSet()
+            covered_comparisons: frozenset[RecordIDPair] | InfiniteSet = InfiniteSet()
             covered_matches: frozenset[int] | InfiniteSet = InfiniteSet()
             covered_sample_matches = InfiniteSet()
 
@@ -127,7 +127,7 @@ class BlockLearner(ABC):
                     candidate = next_predicate
 
                 covered_comparisons &= comparison_cover[next_predicate]
-                candidate.count = len(covered_comparisons)  # type: ignore
+                candidate.cover_count = len(covered_comparisons)
 
                 covered_matches &= match_cover[next_predicate]
                 candidates[candidate] = covered_matches
@@ -274,7 +274,7 @@ class BranchBound(object):
             window = self.cheapest_score - score
 
             candidates = {
-                p: cover for p, cover in candidates.items() if p.count < window  # type: ignore
+                p: cover for p, cover in candidates.items() if p.cover_count < window
             }
 
             reachable = self.reachable(candidates) + covered
@@ -305,12 +305,14 @@ class BranchBound(object):
         return self.cheapest
 
     @staticmethod
-    def order_by(candidates: Cover, p: Predicate) -> tuple[int, float]:
-        return (len(candidates[p]), -p.count)  # type: ignore
+    def order_by(
+        candidates: Mapping[Predicate, Sequence[Any]], p: Predicate
+    ) -> tuple[int, float]:
+        return (len(candidates[p]), -p.cover_count)
 
     @staticmethod
     def score(partial: Iterable[Predicate]) -> float:
-        return sum(p.count for p in partial)  # type: ignore
+        return sum(p.cover_count for p in partial)
 
     def covered(self, partial: tuple[Predicate, ...]) -> int:
         if partial:
@@ -319,7 +321,7 @@ class BranchBound(object):
             return 0
 
     @staticmethod
-    def reachable(dupe_cover: Cover) -> int:
+    def reachable(dupe_cover: Mapping[Any, frozenset[int]]) -> int:
         if dupe_cover:
             return len(frozenset.union(*dupe_cover.values()))
         else:
@@ -330,16 +332,15 @@ class BranchBound(object):
         dominant_cover = coverage[dominator]
 
         for pred, cover in coverage.copy().items():
-            if (
-                dominator.count <= pred.count  # type: ignore
-                and dominant_cover >= cover
-            ):
+            if dominator.cover_count <= pred.cover_count and dominant_cover >= cover:
                 del coverage[pred]
 
         return coverage
 
     @staticmethod
-    def uncovered_by(coverage: Cover, covered: frozenset[int]) -> Cover:
+    def uncovered_by(
+        coverage: Mapping[Any, frozenset[int]], covered: frozenset[int]
+    ) -> dict[Any, frozenset[int]]:
         remaining = {}
         for predicate, uncovered in coverage.items():
             still_uncovered = uncovered - covered

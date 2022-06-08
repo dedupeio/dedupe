@@ -61,20 +61,20 @@ class ActiveMatch(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching(
-                [{"field": "name", "type": "Custom", "comparator": lambda x: 1}],
+                [{"field": "name", "type": "Custom", "comparator": lambda x, y: 1}],
             )
 
         with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching(
                 [
-                    {"field": "name", "type": "Custom", "comparator": lambda x: 1},
-                    {"field": "age", "type": "Custom", "comparator": lambda x: 1},
+                    {"field": "name", "type": "Custom", "comparator": lambda x, y: 1},
+                    {"field": "age", "type": "Custom", "comparator": lambda x, y: 1},
                 ],
             )
 
         dedupe.api.ActiveMatching(
             [
-                {"field": "name", "type": "Custom", "comparator": lambda x: 1},
+                {"field": "name", "type": "Custom", "comparator": lambda x, y: 1},
                 {"field": "age", "type": "String"},
             ],
         )

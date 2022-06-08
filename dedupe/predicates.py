@@ -7,15 +7,20 @@ import itertools
 import math
 import re
 import string
-from typing import Any, Callable, Iterable, Sequence
+from typing import TYPE_CHECKING
 
 from doublemetaphone import doublemetaphone
 
 import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
-from dedupe._typing import RecordDict
 from dedupe.cpredicates import initials, ngrams
-from dedupe.index import Index
+
+if TYPE_CHECKING:
+    from typing import Any, Callable, Iterable, Literal, Mapping, Sequence
+
+    from dedupe._typing import RecordDict
+    from dedupe.index import Index
+
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
@@ -28,7 +33,7 @@ PUNCTABLE = str.maketrans("", "", string.punctuation)
 
 
 class NoIndexError(AttributeError):
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         super().__init__(args[0])
 
         self.failing_record = None
@@ -36,7 +41,7 @@ class NoIndexError(AttributeError):
             self.failing_record = args[1]
 
 
-def strip_punc(s):
+def strip_punc(s: str) -> str:
     return s.translate(PUNCTABLE)
 
 
@@ -44,24 +49,25 @@ class Predicate(abc.ABC):
     type: str
     __name__: str
     _cached_hash: int
+    cover_count: int
 
     def __iter__(self):
         yield self
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s: %s" % (self.type, self.__name__)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         try:
             return self._cached_hash
         except AttributeError:
             h = self._cached_hash = hash(repr(self))
             return h
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return repr(self) == repr(other)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return 1
 
     @abc.abstractmethod
@@ -106,30 +112,35 @@ class StringPredicate(SimplePredicate):
 class ExistsPredicate(Predicate):
     type = "ExistsPredicate"
 
-    def __init__(self, field):
+    def __init__(self, field: str):
         self.__name__ = "(Exists, %s)" % (field,)
         self.field = field
 
     @staticmethod
-    def func(column):
+    def func(column: Any) -> tuple[Literal["0", "1"]]:
         if column:
             return ("1",)
         else:
             return ("0",)
 
-    def __call__(self, record, **kwargs):
+    def __call__(self, record: RecordDict, **kwargs) -> tuple[Literal["0", "1"]]:
         column = record[self.field]
         return self.func(column)
 
 
 class IndexPredicate(Predicate):
-    def __init__(self, threshold, field):
+    field: str
+    threshold: float
+    index: Index | None
+    _cache: dict[Any, list[str]]
+
+    def __init__(self, threshold: float, field: str):
         self.__name__ = "(%s, %s)" % (threshold, field)
         self.field = field
         self.threshold = threshold
         self.index = None
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         odict = self.__dict__.copy()
         odict["index"] = None
         odict["_cache"] = {}
@@ -137,42 +148,46 @@ class IndexPredicate(Predicate):
             odict["canopy"] = {}
         return odict
 
-    def __setstate__(self, d):
+    def __setstate__(self, d: Mapping[str, Any]) -> None:
         self.__dict__.update(d)
 
         # backwards compatibility
         if not hasattr(self, "index"):
             self.index = None
 
-    def reset(self):
+    @abc.abstractmethod
+    def reset(self) -> None:
         ...
 
-    def bust_cache(self):
+    @abc.abstractmethod
+    def initIndex(self) -> Index:
+        ...
+
+    def bust_cache(self) -> None:
         self._cache = {}
 
+    @abc.abstractmethod
+    def preprocess(self, doc: Any) -> Any:
+        ...
 
-class CanopyPredicate(object):
-    field: str
-    preprocess: Callable
-    threshold: float
-    index: Index | None
 
-    def __init__(self, *args, **kwargs):
+class CanopyPredicate(IndexPredicate):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.canopy = {}
+        self.canopy: dict[Any, int | None] = {}
         self._cache = {}
 
-    def freeze(self, records):
+    def freeze(self, records: Iterable[RecordDict]) -> None:
         self._cache = {record[self.field]: self(record) for record in records}
         self.canopy = {}
         self.index = None
 
-    def reset(self):
+    def reset(self) -> None:
         self._cache = {}
         self.canopy = {}
         self.index = None
 
-    def __call__(self, record, **kwargs):
+    def __call__(self, record: RecordDict, **kwargs) -> list[str]:
         try:
             assert self.index is not None
         except AssertionError:
@@ -213,17 +228,14 @@ class CanopyPredicate(object):
             return [str(block_key)]
 
 
-class SearchPredicate(object):
-    field: str
-    preprocess: Callable
-    threshold: float
-    index: Index | None
-
-    def __init__(self, *args, **kwargs):
+class SearchPredicate(IndexPredicate):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._cache = {}
 
-    def freeze(self, records_1, records_2):
+    def freeze(
+        self, records_1: Iterable[RecordDict], records_2: Iterable[RecordDict]
+    ) -> None:
         self._cache = {
             (record[self.field], False): self(record, False) for record in records_1
         }
@@ -232,11 +244,11 @@ class SearchPredicate(object):
         )
         self.index = None
 
-    def reset(self):
+    def reset(self) -> None:
         self._cache = {}
         self.index = None
 
-    def __call__(self, record, target=False, **kwargs):
+    def __call__(self, record: RecordDict, target: bool = False, **kwargs) -> list[str]:
         try:
             assert self.index is not None
         except AssertionError:
@@ -261,11 +273,11 @@ class SearchPredicate(object):
                 self._cache[(column, target)] = result
                 return result
         else:
-            return ()
+            return []
 
 
 class TfidfPredicate(IndexPredicate):
-    def initIndex(self):
+    def initIndex(self) -> Index:
         self.reset()
         return tfidf.TfIdfIndex()
 
@@ -278,18 +290,18 @@ class TfidfSearchPredicate(SearchPredicate, TfidfPredicate):
     pass
 
 
-class TfidfTextPredicate(object):
-    def preprocess(self, doc):
+class TfidfTextPredicate(IndexPredicate):
+    def preprocess(self, doc: str) -> Sequence[str]:
         return tuple(words(doc))
 
 
-class TfidfSetPredicate(object):
-    def preprocess(self, doc):
+class TfidfSetPredicate(IndexPredicate):
+    def preprocess(self, doc: Any) -> Any:
         return doc
 
 
-class TfidfNGramPredicate(object):
-    def preprocess(self, doc):
+class TfidfNGramPredicate(IndexPredicate):
+    def preprocess(self, doc: str) -> Sequence[str]:
         return tuple(sorted(ngrams(" ".join(strip_punc(doc).split()), 2)))
 
 
@@ -318,11 +330,11 @@ class TfidfNGramCanopyPredicate(TfidfNGramPredicate, TfidfCanopyPredicate):
 
 
 class LevenshteinPredicate(IndexPredicate):
-    def initIndex(self):
+    def initIndex(self) -> Index:
         self.reset()
         return levenshtein.LevenshteinIndex()
 
-    def preprocess(self, doc):
+    def preprocess(self, doc: str) -> str:
         return " ".join(strip_punc(doc).split())
 
 
@@ -337,17 +349,17 @@ class LevenshteinSearchPredicate(SearchPredicate, LevenshteinPredicate):
 class CompoundPredicate(tuple, Predicate):
     type = "CompoundPredicate"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         try:
             return self._cached_hash
         except AttributeError:
             h = self._cached_hash = hash(frozenset(self))
             return h
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return frozenset(self) == frozenset(other)
 
-    def __call__(self, record, **kwargs):
+    def __call__(self, record: RecordDict, **kwargs) -> list[str]:
         predicate_keys = [predicate(record, **kwargs) for predicate in self]
         return [
             ":".join(
@@ -373,7 +385,7 @@ def wholeFieldPredicate(field: Any) -> tuple[str]:
     return (str(field),)
 
 
-def tokenFieldPredicate(field):
+def tokenFieldPredicate(field: str) -> set[str]:
     """returns the tokens"""
     return set(words(field))
 
@@ -493,7 +505,7 @@ def sameSevenCharStartPredicate(field: str) -> tuple[str]:
     return initials(field.replace(" ", ""), 7)
 
 
-def suffixArray(field):
+def suffixArray(field: str) -> Iterable[str]:
     n = len(field) - 4
     if n > 0:
         for i in range(0, n):
@@ -504,11 +516,11 @@ def sortedAcronym(field: str) -> tuple[str]:
     return ("".join(sorted(each[0] for each in field.split())),)
 
 
-def doubleMetaphone(field):
+def doubleMetaphone(field: str) -> set[str]:
     return {metaphone for metaphone in doublemetaphone(field) if metaphone}
 
 
-def metaphoneToken(field):
+def metaphoneToken(field: str) -> set[str]:
     return {
         metaphone_token
         for metaphone_token in itertools.chain(
@@ -518,38 +530,38 @@ def metaphoneToken(field):
     }
 
 
-def wholeSetPredicate(field_set):
+def wholeSetPredicate(field_set: Any) -> tuple[str]:
     return (str(field_set),)
 
 
-def commonSetElementPredicate(field_set):
+def commonSetElementPredicate(field_set: str) -> tuple[str, ...]:
     """return set as individual elements"""
     return tuple([str(each) for each in field_set])
 
 
-def commonTwoElementsPredicate(field):
+def commonTwoElementsPredicate(field: str) -> set[str]:
     sequence = sorted(field)
     return ngramsTokens(sequence, 2)
 
 
-def commonThreeElementsPredicate(field):
+def commonThreeElementsPredicate(field: str) -> set[str]:
     sequence = sorted(field)
     return ngramsTokens(sequence, 3)
 
 
-def lastSetElementPredicate(field_set):
+def lastSetElementPredicate(field_set: Sequence[Any]) -> tuple[str]:
     return (str(max(field_set)),)
 
 
-def firstSetElementPredicate(field_set):
+def firstSetElementPredicate(field_set: Sequence[Any]) -> tuple[str]:
     return (str(min(field_set)),)
 
 
-def magnitudeOfCardinality(field_set):
+def magnitudeOfCardinality(field_set: Sequence[Any]) -> tuple[str, ...]:
     return orderOfMagnitude(len(field_set))
 
 
-def latLongGridPredicate(field, digits=1):
+def latLongGridPredicate(field: tuple[float], digits: int = 1) -> tuple[str, ...]:
     """
     Given a lat / long pair, return the grid coordinates at the
     nearest base value.  e.g., (42.3, -5.4) returns a grid at 0.1
@@ -565,7 +577,7 @@ def latLongGridPredicate(field, digits=1):
         return ()
 
 
-def orderOfMagnitude(field):
+def orderOfMagnitude(field: int | float) -> tuple[str, ...]:
     if field > 0:
         return (str(int(round(math.log10(field)))),)
     else:
@@ -573,8 +585,10 @@ def orderOfMagnitude(field):
 
 
 def roundTo1(
-    field,
-):  # thanks http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
+    field: float,
+) -> tuple[
+    str
+]:  # thanks http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
     abs_num = abs(field)
     order = int(math.floor(math.log10(abs_num)))
     rounded = round(abs_num, -order)

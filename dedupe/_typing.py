@@ -54,6 +54,7 @@ Labels = List[Literal[0, 1]]
 LabelsLike = Iterable[Literal[0, 1]]
 Cover = Dict["Predicate", FrozenSet[int]]
 ComparisonCover = Dict["Predicate", FrozenSet[Tuple[RecordID, RecordID]]]
+PredicateFunction = Callable[[Any], Iterable[str]]
 
 VariableDefinition = TypedDict(
     "VariableDefinition",
@@ -88,11 +89,11 @@ class Classifier(Protocol):
 
 
 class ClosableJoinable(Protocol):
-    def close(self):
+    def close(self) -> None:
         ...
 
-    def join(self):
+    def join(self) -> None:
         ...
 
 
-MapLike = Callable[[Callable, Iterable], Iterable]
+MapLike = Callable[[Callable[[Any], Any], Iterable], Iterable]

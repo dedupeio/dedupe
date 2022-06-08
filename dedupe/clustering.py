@@ -43,6 +43,7 @@ def connected_components(
         )
 
         if hasattr(unlabeled_edgelist, "filename"):
+            assert isinstance(unlabeled_edgelist, numpy.memmap)
             copy_mmap_record_arrays(unlabeled_edgelist, edgelist, ["pairs", "score"])
         else:
             copy_to_mmap_record_array(unlabeled_edgelist, edgelist, ["pairs", "score"])
@@ -336,12 +337,18 @@ def pair_gazette_matching(
             yield from match
 
 
-def copy_to_mmap_record_array(source, target, fields, chunksize=100000):
+def copy_to_mmap_record_array(
+    source: numpy.ndarray,
+    target: numpy.memmap,
+    fields: list[str],
+    chunksize: int = 100000,
+) -> None:
     """
     Writing into a memmapped array allocates memory equivalent to the
     amount that you are writing. With big arrays this is undesirable
     so we write in chunks
     """
+    assert target.filename is not None
 
     start = 0
     stops = itertools.chain(range(chunksize, source.size, chunksize), [source.size])
@@ -358,12 +365,19 @@ def copy_to_mmap_record_array(source, target, fields, chunksize=100000):
         start = stop
 
 
-def copy_mmap_record_arrays(source, target, fields, chunksize=100000):
+def copy_mmap_record_arrays(
+    source: numpy.memmap,
+    target: numpy.memmap,
+    fields: list[str],
+    chunksize: int = 100000,
+) -> None:
     """
     Writing into a memmapped array allocates memory equivalent to the
     amount that you are writing. With big arrays this is undesirable
     so we write in chunks
     """
+    assert source.filename is not None
+    assert target.filename is not None
 
     start = 0
     stops = itertools.chain(range(chunksize, source.size, chunksize), [source.size])

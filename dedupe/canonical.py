@@ -1,8 +1,13 @@
+from typing import Sequence, Mapping
+
 import numpy
-from affinegap import normalizedAffineGapDistance as comparator
+import numpy.typing
+from affinegap import normalizedAffineGapDistance as affine
+
+from dedupe._typing import RecordDict, Comparator
 
 
-def getCentroid(attribute_variants, comparator):
+def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> str:
     """
     Takes in a list of attribute values for a field,
     evaluates the centroid using the comparator,
@@ -33,7 +38,7 @@ def getCentroid(attribute_variants, comparator):
     return centroid
 
 
-def breakCentroidTie(attribute_variants, min_dist_indices):
+def breakCentroidTie(attribute_variants: Sequence[str], min_dist_indices: numpy.typing.NDArray[numpy.int_]) -> str:
     """
     Finds centroid when there are multiple values w/ min avg distance
     (e.g. any dupe cluster of 2) right now this selects the first
@@ -44,7 +49,7 @@ def breakCentroidTie(attribute_variants, min_dist_indices):
     return attribute_variants[min_dist_indices[0]]
 
 
-def getCanonicalRep(record_cluster):
+def getCanonicalRep(record_cluster: Sequence[RecordDict]) -> Mapping[str, str]:
     """
     Given a list of records within a duplicate cluster, constructs a
     canonical representation of the cluster by finding canonical
@@ -63,7 +68,7 @@ def getCanonicalRep(record_cluster):
             if record.get(key):
                 key_values.append(record[key])
         if key_values:
-            canonical_rep[key] = getCentroid(key_values, comparator)
+            canonical_rep[key] = getCentroid(key_values, affine)
         else:
             canonical_rep[key] = ""
 

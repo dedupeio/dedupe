@@ -8,27 +8,29 @@ from dedupe.index import Index
 
 logger = logging.getLogger(__name__)
 
+Doc = tuple[str, ...]
+
 
 class TfIdfIndex(Index):
-    def __init__(self):
+    def __init__(self) -> None:
         self._index = CanopyIndex()
         self._doc_to_id = Enumerator(start=1)
         self._parseTerms = self._index.lexicon.parseTerms
 
-    def index(self, doc):
+    def index(self, doc: Doc) -> None:
         if doc not in self._doc_to_id:
             i = self._doc_to_id[doc]
             self._index.index_doc(i, doc)
 
-    def unindex(self, doc):
+    def unindex(self, doc) -> None:
         i = self._doc_to_id.pop(doc)
         self._index.unindex_doc(i)
         self.initSearch()
 
-    def initSearch(self):
+    def initSearch(self) -> None:
         self._index.initSearch()
 
-    def search(self, doc, threshold=0):
+    def search(self, doc: Doc, threshold: float = 0) -> list[int]:
         query_list = self._parseTerms(doc)
 
         if query_list:

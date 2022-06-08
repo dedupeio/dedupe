@@ -180,7 +180,7 @@ def scoreDuplicates(
 
 
 def fillQueue(
-    queue: _Queue, iterable: Iterable, stop_signals: int, chunk_size: int = 20000
+    queue: _Queue, iterable: Iterable[Any], stop_signals: int, chunk_size: int = 20000
 ) -> None:
     iterable = iter(iterable)
 
@@ -274,7 +274,7 @@ def appropriate_imap(num_cores: int) -> tuple[MapLike, ClosableJoinable]:
     return imap, pool
 
 
-def peek(seq: Iterator) -> tuple[Optional[Any], Iterator]:
+def peek(seq: Iterator[Any]) -> tuple[Optional[Any], Iterator[Any]]:
     try:
         first = next(seq)
     except TypeError as e:
@@ -345,10 +345,10 @@ def sqlite_id_type(data: Data) -> Literal["text", "integer"]:
         raise ValueError("Invalid type for record id")
 
 
-def unique(seq: Iterable) -> list:
+def unique(seq: Iterable[Any]) -> list[Any]:
     """Return the unique elements of a collection even if those elements are
     unhashable and unsortable, like dicts and sets"""
-    cleaned: list = []
+    cleaned: list[Any] = []
     for each in seq:
         if each not in cleaned:
             cleaned.append(each)

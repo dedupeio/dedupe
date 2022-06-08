@@ -5,17 +5,21 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from typing import Generator, Iterable, Union
+from typing import Any, Callable, Generator, Iterable, Sequence, Union
 
 import dedupe.predicates
 from dedupe._typing import Data, Record, RecordID
+from dedupe.index import Index
 
 logger = logging.getLogger(__name__)
 
 Docs = Union[Iterable[str], Iterable[Iterable[str]]]
 
 
-def index_list():
+IndexList = defaultdict[str, list[dedupe.predicates.IndexPredicate]]
+
+
+def index_list() -> IndexList:
     return defaultdict(list)
 
 
@@ -26,7 +30,7 @@ class Fingerprinter(object):
 
         self.predicates = predicates
 
-        self.index_fields: dict[str, dict[str, list[dedupe.predicates.IndexPredicate]]]
+        self.index_fields: dict[str, IndexList]
         self.index_fields = defaultdict(index_list)
         """
         A dictionary of all the fingerprinter methods that use an
@@ -175,13 +179,15 @@ class Fingerprinter(object):
                 predicate.index = index
                 predicate.bust_cache()
 
-    def index_all(self, data: Data):
+    def index_all(self, data: Data) -> None:
         for field in self.index_fields:
             unique_fields = {record[field] for record in data.values() if record[field]}
             self.index(unique_fields, field)
 
 
-def extractIndices(index_fields):
+def extractIndices(
+    index_fields: IndexList,
+) -> Sequence[tuple[str, Index, Callable[[Any], Any]]]:
 
     indices = []
     for index_type, predicates in index_fields.items():
@@ -190,6 +196,7 @@ def extractIndices(index_fields):
         preprocess = predicate.preprocess
         if predicate.index is None:
             index = predicate.initIndex()
+        assert index is not None
         indices.append((index_type, index, preprocess))
 
     return indices

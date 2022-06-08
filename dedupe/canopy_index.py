@@ -75,7 +75,7 @@ class CanopyIndex(TextIndex):  # pragma: no cover
 
 
 class CanopyLexicon(Lexicon):  # pragma: no cover
-    def sourceToWordIds(self, last: list | None = None) -> list:
+    def sourceToWordIds(self, last: list | None = None) -> list[int]:
         if last is None:
             last = []
         if not isinstance(self.wordCount, Length):  # type: ignore[has-type]

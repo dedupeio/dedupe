@@ -3,13 +3,13 @@ from __future__ import annotations
 from categorical import CategoricalComparator
 
 from dedupe import predicates
-from dedupe._typing import VariableDefinition
+from dedupe._typing import PredicateFunction, VariableDefinition
 from dedupe.variables.base import DerivedType, FieldType
 
 
 class CategoricalType(FieldType):
     type = "Categorical"
-    _predicate_functions = [predicates.wholeFieldPredicate]
+    _predicate_functions: list[PredicateFunction] = [predicates.wholeFieldPredicate]
 
     def _categories(self, definition: VariableDefinition) -> list[str]:
         try:

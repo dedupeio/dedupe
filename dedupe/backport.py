@@ -5,7 +5,7 @@ if platform.system() == "Darwin":
 
     ctx = multiprocessing.get_context("spawn")
     Queue = ctx.Queue
-    Process = ctx.Process  # type: ignore
+    Process = ctx.Process
     Pool = ctx.Pool
     SimpleQueue = ctx.SimpleQueue
     Lock = ctx.Lock

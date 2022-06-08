@@ -140,8 +140,8 @@ class DataModel(object):
 def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> tuple[list[FieldVariable], list[Variable]]:
-    primary_variables = []
-    all_variables = []
+    primary_variables: list[FieldVariable] = []
+    all_variables: list[Variable] = []
     only_custom = True
 
     for definition in variable_definitions:
@@ -184,11 +184,14 @@ def typify_variables(
             )
 
         variable_object = variable_class(definition)
+        assert isinstance(variable_object, FieldVariable)
+
         primary_variables.append(variable_object)
 
         if hasattr(variable_object, "higher_vars"):
             all_variables.extend(variable_object.higher_vars)
         else:
+            variable_object = cast(Variable, variable_object)
             all_variables.append(variable_object)
 
     if only_custom:
