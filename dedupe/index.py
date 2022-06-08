@@ -4,9 +4,9 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import MutableMapping
+    from typing import MutableMapping, Tuple
 
-    Doc = tuple[str, ...]
+    Doc = Tuple[str, ...]
 
 
 class Index(ABC):

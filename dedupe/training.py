@@ -12,9 +12,9 @@ from typing import TYPE_CHECKING
 from . import blocking
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Literal, Mapping, Sequence
+    from typing import Any, Iterable, Mapping, Sequence
 
-    from ._typing import ComparisonCover, Cover, Data
+    from ._typing import ComparisonCover, Cover, Data, Literal
     from ._typing import RecordDictPairs as TrainingExamples
     from ._typing import RecordID, RecordIDPair
     from .predicates import Predicate

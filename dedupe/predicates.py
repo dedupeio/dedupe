@@ -16,9 +16,9 @@ import dedupe.tfidf as tfidf
 from dedupe.cpredicates import initials, ngrams
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Iterable, Literal, Mapping, Sequence
+    from typing import Any, Callable, Iterable, Mapping, Sequence
 
-    from dedupe._typing import RecordDict
+    from dedupe._typing import RecordDict, Literal
     from dedupe.index import Index
 
 
