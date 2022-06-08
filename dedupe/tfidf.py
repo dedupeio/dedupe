@@ -1,8 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from __future__ import annotations
-
 import logging
+from typing import Tuple
 
 from dedupe.canopy_index import CanopyIndex
 from dedupe.core import Enumerator
@@ -10,7 +9,7 @@ from dedupe.index import Index
 
 logger = logging.getLogger(__name__)
 
-Doc = tuple[str, ...]
+Doc = Tuple[str, ...]
 
 
 class TfIdfIndex(Index):
