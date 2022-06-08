@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 RecordDict = Mapping[str, Any]
 RecordID = Union[int, str]
-RecordIDDType = Union[Type[int], tuple[Type[str], Literal[256]]]
+RecordIDDType = Union[Type[int], Tuple[Type[str], Literal[256]]]
 RecordIDPair = Tuple[RecordID, RecordID]
 Record = Tuple[RecordID, RecordDict]
 RecordPair = Tuple[Record, Record]
