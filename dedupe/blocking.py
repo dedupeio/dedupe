@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Callable, Generator, Iterable, Sequence, Union
+from typing import Any, Callable, Generator, Iterable, Sequence, Union, List
 
 import dedupe.predicates
 from dedupe._typing import Data, Record, RecordID
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 Docs = Union[Iterable[str], Iterable[Iterable[str]]]
 
 
-IndexList = defaultdict[str, list[dedupe.predicates.IndexPredicate]]
+IndexList = defaultdict[str, List[dedupe.predicates.IndexPredicate]]
 
 
 def index_list() -> IndexList:
