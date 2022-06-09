@@ -27,6 +27,7 @@ def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> st
     average_distance = distance_matrix.mean(0)
 
     # there can be ties for minimum, average distance string
+    min_dist_indices: numpy.typing.NDArray[numpy.int_]
     min_dist_indices = numpy.where(average_distance == average_distance.min())[0]
 
     if len(min_dist_indices) > 1:
