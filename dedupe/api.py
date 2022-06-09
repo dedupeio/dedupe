@@ -1301,7 +1301,6 @@ class Dedupe(ActiveMatching, DedupeMatching):
     entity.
     """
 
-    canopies = True
     ActiveLearner = labeler.DedupeDisagreementLearner
 
     def prepare_training(
@@ -1367,7 +1366,6 @@ class Link(ActiveMatching):
     Mixin Class for Active Learning Record Linkage
     """
 
-    canopies = False
     ActiveLearner = labeler.RecordLinkDisagreementLearner
 
     def prepare_training(
