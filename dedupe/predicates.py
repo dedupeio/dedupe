@@ -252,14 +252,6 @@ class SearchPredicate(IndexPredicate):
         self.index = None
 
     def __call__(self, record: RecordDict, target: bool = False, **kwargs) -> list[str]:
-        try:
-            assert self.index is not None
-        except AssertionError:
-            raise NoIndexError(
-                "Attempting to block with an index "
-                "predicate without indexing records",
-                record,
-            )
 
         column = record[self.field]
         if column:
