@@ -1032,6 +1032,9 @@ class ActiveMatching(Matching):
     Class for training a matcher.
     """
 
+    active_learner: labeler.DisagreementLearner | None
+    training_pairs: TrainingData
+
     def __init__(
         self,
         variable_definition: Collection[VariableDefinition],
@@ -1066,10 +1069,7 @@ class ActiveMatching(Matching):
         super().__init__(num_cores, in_memory, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
-
-        self.training_pairs: TrainingData
         self.training_pairs = {"distinct": [], "match": []}
-        self.active_learner: labeler.DisagreementLearner | None
         self.classifier = sklearn.model_selection.GridSearchCV(
             estimator=sklearn.linear_model.LogisticRegression(),
             param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
