@@ -130,9 +130,6 @@ class DedupeMatching(IntegralMatching):
 
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
     def partition(
         self, data: Data, threshold: float = 0.5
     ) -> Clusters:  # pragma: no cover
