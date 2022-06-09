@@ -188,14 +188,6 @@ class CanopyPredicate(IndexPredicate):
         self.index = None
 
     def __call__(self, record: RecordDict, **kwargs) -> list[str]:
-        try:
-            assert self.index is not None
-        except AssertionError:
-            raise NoIndexError(
-                "Attempting to block with an index "
-                "predicate without indexing records",
-                record,
-            )
 
         block_key = None
         column = record[self.field]
@@ -203,6 +195,17 @@ class CanopyPredicate(IndexPredicate):
         if column:
             if column in self._cache:
                 return self._cache[column]
+
+            # we need to check for the index here, instead of the very
+            # beginning because freezing predicates removes the index
+            try:
+                assert self.index is not None
+            except AssertionError:
+                raise NoIndexError(
+                    "Attempting to block with an index "
+                    "predicate without indexing records",
+                    record,
+                )
 
             doc = self.preprocess(column)
 
@@ -262,16 +265,27 @@ class SearchPredicate(IndexPredicate):
         if column:
             if (column, target) in self._cache:
                 return self._cache[(column, target)]
-            else:
-                doc = self.preprocess(column)
 
-                if target:
-                    centers = [self.index._doc_to_id[doc]]
-                else:
-                    centers = self.index.search(doc, self.threshold)
-                result = [str(center) for center in centers]
-                self._cache[(column, target)] = result
-                return result
+            # we need to check for the index here, instead of the very
+            # beginning because freezing predicates removes the index
+            try:
+                assert self.index is not None
+            except AssertionError:
+                raise NoIndexError(
+                    "Attempting to block with an index "
+                    "predicate without indexing records",
+                    record,
+                )
+
+            doc = self.preprocess(column)
+
+            if target:
+                centers = [self.index._doc_to_id[doc]]
+            else:
+                centers = self.index.search(doc, self.threshold)
+            result = [str(center) for center in centers]
+            self._cache[(column, target)] = result
+            return result
         else:
             return []
 
