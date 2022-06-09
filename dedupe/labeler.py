@@ -431,8 +431,6 @@ class DedupeDisagreementLearner(DisagreementLearner):
         self,
         data_model: DataModel,
         data: Data,
-        blocked_proportion: float,
-        sample_size: int,
         index_include: TrainingExamples,
     ):
 
@@ -469,8 +467,6 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         data_model: DataModel,
         data_1: Data,
         data_2: Data,
-        blocked_proportion: float,
-        sample_size: int,
         index_include: TrainingExamples,
     ):
 

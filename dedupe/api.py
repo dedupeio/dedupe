@@ -1347,8 +1347,6 @@ class Dedupe(ActiveMatching, DedupeMatching):
         self.active_learner = self.ActiveLearner(
             self.data_model,
             data,
-            blocked_proportion,
-            sample_size,
             index_include=examples,
         )
 
@@ -1419,8 +1417,6 @@ class Link(ActiveMatching):
             self.data_model,
             data_1,
             data_2,
-            blocked_proportion,
-            sample_size,
             index_include=examples,
         )
 
