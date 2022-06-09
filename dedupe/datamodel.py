@@ -69,20 +69,17 @@ class DataModel(object):
             yield (var.field, comparator, start, stop)
             start = stop
 
-    def predicates(
-        self, index_predicates: bool = True, canopies: bool = True
-    ) -> set[Predicate]:
+    def predicates(self, canopies: bool = True) -> set[Predicate]:
         predicates = set()
         for var in self.primary_variables:
             for predicate in var.predicates:
                 if hasattr(predicate, "index"):
-                    if index_predicates:
-                        if hasattr(predicate, "canopy"):
-                            if canopies:
-                                predicates.add(predicate)
-                        else:
-                            if not canopies:
-                                predicates.add(predicate)
+                    if hasattr(predicate, "canopy"):
+                        if canopies:
+                            predicates.add(predicate)
+                    else:
+                        if not canopies:
+                            predicates.add(predicate)
                 else:
                     predicates.add(predicate)
 
