@@ -7,13 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies
+      - name: Checkout code
         uses: actions/setup-python@v2
         with:
           python-version: "3.10"
       - name: Install dependencies
         run: |
           pip install --upgrade pip
+          pip install -e .
           pip install -r requirements.txt
       - name: flake8
         run: flake8 dedupe tests benchmarks/benchmarks
