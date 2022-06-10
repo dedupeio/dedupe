@@ -1,4 +1,4 @@
-from typing import Mapping, Sequence, cast
+from typing import Mapping, Sequence
 
 import numpy
 import numpy.typing
