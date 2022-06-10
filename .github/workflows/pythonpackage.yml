@@ -78,7 +78,6 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
   settings_file_persists:
-    if: "github.ref != main"
     needs: [test, lint]
     runs-on: ubuntu-latest
     steps:
