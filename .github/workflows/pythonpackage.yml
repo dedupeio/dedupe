@@ -102,7 +102,7 @@ jobs:
         run: python benchmarks/benchmarks/canonical.py      
   wheels:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-    needs: [test, lint, settings_file_persist]
+    needs: [test, lint, settings_file_persists]
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
