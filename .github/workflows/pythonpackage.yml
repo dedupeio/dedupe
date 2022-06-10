@@ -83,7 +83,7 @@ jobs:
       - name: checkout main
         uses: actions/checkout@v2
         with:
-          ref: main
+          ref: 94cf8add0defd278f86121454ea9bd14a17d9199
       - uses: actions/setup-python@v2
       - name: Install dependencies
         run: |
