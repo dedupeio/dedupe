@@ -32,6 +32,8 @@ VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
 
 
 class DataModel(object):
+    version = 1
+
     def __init__(self, variable_definitions: Iterable[VariableDefinition]):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
@@ -135,6 +137,20 @@ class DataModel(object):
                     "The field '%s' is in data_model but not "
                     "in a record" % field
                 )
+
+    def __getstate__(self):
+        d = self.__dict__
+        d["object_version"] = self.version
+        return d
+
+    def __setstate__(self, d):
+
+        version = d.pop("version", None)
+        if version is None and "_variables" in d:
+            d["_len"] = len(d.pop("_variables"))
+            d["primary_variables"] = d.pop("primary_fields")
+
+        self.__dict__ = d
 
 
 def typify_variables(
