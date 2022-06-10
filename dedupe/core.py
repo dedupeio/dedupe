@@ -10,37 +10,51 @@ import multiprocessing.dummy
 import os
 import queue
 import tempfile
-from typing import (
-    Any,
-    Generator,
-    Iterable,
-    Iterator,
-    Mapping,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, overload
 
 import numpy
 
-from dedupe._typing import Blocks, Data, Literal, RecordID, RecordPairs
 from dedupe.backport import RLock
+
+if TYPE_CHECKING:
+    from typing import (
+        Any,
+        Generator,
+        Iterable,
+        Iterator,
+        Optional,
+        Sequence,
+        Type,
+        Union,
+    )
+
+    from dedupe._typing import (
+        Block,
+        Blocks,
+        Classifier,
+        ClosableJoinable,
+        Data,
+        Literal,
+        MapLike,
+        RecordID,
+        RecordIDDType,
+        RecordPairs,
+        Scores,
+    )
+    from dedupe.datamodel import DataModel
+
+    _Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
 
 
 class BlockingError(Exception):
     pass
 
 
-_Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
-
-
 class ScoreDupes(object):
     def __init__(
         self,
-        data_model,
-        classifier,
+        data_model: DataModel,
+        classifier: Classifier,
         records_queue: _Queue,
         exception_queue: _Queue,
         score_file_path: str,
@@ -81,7 +95,7 @@ class ScoreDupes(object):
 
                 with self.offset.get_lock():
 
-                    fp: numpy.memmap
+                    fp: Scores
                     fp = numpy.memmap(
                         self.score_file_path,
                         dtype=self.dtype,
@@ -97,8 +111,11 @@ class ScoreDupes(object):
 
 
 def scoreDuplicates(
-    record_pairs: RecordPairs, data_model, classifier, num_cores: int = 1
-) -> Union[numpy.memmap, numpy.ndarray]:
+    record_pairs: RecordPairs,
+    data_model: DataModel,
+    classifier: Classifier,
+    num_cores: int = 1,
+) -> Scores:
     if num_cores < 2:
         from multiprocessing.dummy import Process, Queue
     else:
@@ -152,7 +169,7 @@ def scoreDuplicates(
     else:
         raise ChildProcessError from exc
 
-    scored_pairs: Union[numpy.memmap, numpy.ndarray]
+    scored_pairs: Scores
 
     if offset.value:  # type: ignore
         scored_pairs = numpy.memmap(score_file_path, dtype=dtype)
@@ -163,7 +180,7 @@ def scoreDuplicates(
 
 
 def fillQueue(
-    queue: _Queue, iterable: RecordPairs, stop_signals: int, chunk_size: int = 20000
+    queue: _Queue, iterable: Iterable[Any], stop_signals: int, chunk_size: int = 20000
 ) -> None:
     iterable = iter(iterable)
 
@@ -182,11 +199,11 @@ def fillQueue(
 
 
 class ScoreGazette(object):
-    def __init__(self, data_model, classifier):
+    def __init__(self, data_model: DataModel, classifier: Classifier):
         self.data_model = data_model
         self.classifier = classifier
 
-    def __call__(self, block: RecordPairs) -> numpy.ndarray:
+    def __call__(self, block: Block) -> Scores:
 
         record_ids, records = zip(*(zip(*each) for each in block))
 
@@ -198,7 +215,7 @@ class ScoreGazette(object):
 
         dtype = numpy.dtype([("pairs", id_type, 2), ("score", "f4")])
 
-        scored_pairs = numpy.empty(shape=len(scores), dtype=dtype)
+        scored_pairs: Scores = numpy.empty(shape=len(scores), dtype=dtype)
 
         scored_pairs["pairs"] = ids
         scored_pairs["score"] = scores
@@ -207,8 +224,11 @@ class ScoreGazette(object):
 
 
 def scoreGazette(
-    record_pairs: Blocks, data_model, classifier, num_cores: int = 1
-) -> Generator[numpy.ndarray, None, None]:
+    record_pairs: Blocks,
+    data_model: DataModel,
+    classifier: Classifier,
+    num_cores: int = 1,
+) -> Generator[Scores, None, None]:
 
     first, record_pairs = peek(record_pairs)
     if first is None:
@@ -228,20 +248,23 @@ def scoreGazette(
     pool.join()
 
 
-def appropriate_imap(num_cores):
+class MockPool(object):
+    def close(self) -> None:
+        pass
+
+    def join(self) -> None:
+        pass
+
+
+def appropriate_imap(num_cores: int) -> tuple[MapLike, ClosableJoinable]:
+
     if num_cores < 2:
-        imap = map
+        imap: MapLike = map
 
         # in order to make it simpler to cleanup a pool of processes
         # always return something that we can close and join
-        class MockPool(object):
-            def close(self):
-                pass
 
-            def join(self):
-                pass
-
-        pool = MockPool()
+        pool: ClosableJoinable = MockPool()
     else:
         from .backport import Pool
 
@@ -251,7 +274,7 @@ def appropriate_imap(num_cores):
     return imap, pool
 
 
-def peek(seq: Iterator) -> tuple[Optional[Any], Iterator]:
+def peek(seq: Iterator[Any]) -> tuple[Optional[Any], Iterator[Any]]:
     try:
         first = next(seq)
     except TypeError as e:
@@ -268,11 +291,11 @@ def peek(seq: Iterator) -> tuple[Optional[Any], Iterator]:
     return first, itertools.chain([first], seq)
 
 
-def isIndexed(data: Mapping, offset: int) -> bool:
+def isIndexed(data: Data, offset: int) -> bool:
     return all(i in data for i in range(offset, offset + len(data)))
 
 
-def index(data: Mapping[Any, Any], offset: int = 0) -> Mapping[int, Any]:
+def index(data: Data, offset: int = 0) -> Data:
     if isIndexed(data, offset):
         return data
     else:
@@ -280,8 +303,8 @@ def index(data: Mapping[Any, Any], offset: int = 0) -> Mapping[int, Any]:
         return data
 
 
-def Enumerator(start: int = 0, initial: tuple = ()) -> collections.defaultdict:
-    return collections.defaultdict(itertools.count(start).__next__, initial)
+def Enumerator(start: int = 0) -> collections.defaultdict[Any, int]:
+    return collections.defaultdict(itertools.count(start).__next__, ())
 
 
 @overload
@@ -290,17 +313,15 @@ def sniff_id_type(ids: Sequence[tuple[int, int]]) -> Type[int]:
 
 
 @overload
-def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[Type[str], int]:
+def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[Type[str], Literal[256]]:
     ...
 
 
-def sniff_id_type(
-    ids: Sequence[tuple[RecordID, RecordID]]
-) -> Union[Type[int], tuple[Type[str], int]]:
+def sniff_id_type(ids: Sequence[tuple[RecordID, RecordID]]) -> RecordIDDType:
     example = ids[0][0]
     python_type = type(example)
-    dtype: Union[Type[int], tuple[Type[str], int]]
-    if python_type is bytes or python_type is str:
+    dtype: RecordIDDType
+    if python_type is str:
         dtype = (str, 256)
     elif python_type is int:
         int(example)  # make sure we can cast to int
@@ -316,7 +337,7 @@ def sqlite_id_type(data: Data) -> Literal["text", "integer"]:
     example = next(iter(data.keys()))
     python_type = type(example)
 
-    if python_type is bytes or python_type is str:
+    if python_type is str:
         return "text"
     elif python_type is int:
         return "integer"
@@ -324,10 +345,10 @@ def sqlite_id_type(data: Data) -> Literal["text", "integer"]:
         raise ValueError("Invalid type for record id")
 
 
-def unique(seq: Iterable) -> list:
+def unique(seq: Iterable[Any]) -> list[Any]:
     """Return the unique elements of a collection even if those elements are
     unhashable and unsortable, like dicts and sets"""
-    cleaned: list = []
+    cleaned: list[Any] = []
     for each in seq:
         if each not in cleaned:
             cleaned.append(each)

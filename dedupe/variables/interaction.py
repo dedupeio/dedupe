@@ -10,6 +10,7 @@ from dedupe.variables.base import Variable
 
 class InteractionType(Variable):
     type = "Interaction"
+    higher_vars: list["InteractionType"]
 
     def __init__(self, definition: VariableDefinition):
 
@@ -18,9 +19,9 @@ class InteractionType(Variable):
         self.name = "(Interaction: %s)" % str(self.interactions)
         self.interaction_fields = self.interactions
 
-        super(InteractionType, self).__init__(definition)
+        super().__init__(definition)
 
-    def expandInteractions(self, field_model: Mapping[str, FieldVariable]):
+    def expandInteractions(self, field_model: Mapping[str, FieldVariable]) -> None:
 
         self.interaction_fields = self.atomicInteractions(
             self.interactions, field_model
@@ -31,7 +32,7 @@ class InteractionType(Variable):
 
         self.categorical(field_model)
 
-    def categorical(self, field_model: Mapping[str, FieldVariable]):
+    def categorical(self, field_model: Mapping[str, FieldVariable]) -> None:
         categoricals = [
             field
             for field in self.interaction_fields
@@ -43,7 +44,7 @@ class InteractionType(Variable):
             if not hasattr(field_model[field], "higher_vars")
         ]
 
-        dummies = [field_model[field].higher_vars for field in categoricals]  # type: ignore[attr-defined]
+        dummies = [field_model[field].higher_vars for field in categoricals]
 
         self.higher_vars = []
         for combo in itertools.product(*dummies):

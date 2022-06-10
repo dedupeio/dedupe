@@ -1,10 +1,10 @@
 import json
-from typing import TextIO
+from typing import Any, Iterator, TextIO
 
 from dedupe._typing import TrainingData
 
 
-def _from_json(json_object):
+def _from_json(json_object: Any) -> Any:
     if "__class__" in json_object:
         if json_object["__class__"] == "frozenset":
             return frozenset(json_object["__value__"])
@@ -13,7 +13,7 @@ def _from_json(json_object):
     return json_object
 
 
-def hint_tuples(item):
+def hint_tuples(item: Any) -> Any:
     if isinstance(item, tuple):
         return {"__class__": "tuple", "__value__": [hint_tuples(e) for e in item]}
     if isinstance(item, list):
@@ -25,19 +25,19 @@ def hint_tuples(item):
 
 
 class TupleEncoder(json.JSONEncoder):
-    def encode(self, obj):
+    def encode(self, obj: Any) -> Any:
         return super().encode(hint_tuples(obj))
 
-    def iterencode(self, obj):
+    def iterencode(self, obj: Any, _one_shot: bool = False) -> Iterator[str]:
         return super().iterencode(hint_tuples(obj))
 
-    def default(self, python_object):
+    def default(self, python_object: Any) -> Any:
         if isinstance(python_object, frozenset):
             return {"__class__": "frozenset", "__value__": list(python_object)}
         return super().default(python_object)
 
 
-def read_training(training_file: TextIO) -> TrainingData:
+def read_training(training_file: TextIO) -> Any:
     """
     Read training from previously built training data file object
 

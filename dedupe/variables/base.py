@@ -1,29 +1,35 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable, Sequence, Type
+from typing import TYPE_CHECKING
 
 from dedupe import predicates
-from dedupe._typing import Comparator, VariableDefinition
+
+if TYPE_CHECKING:
+    from typing import Any, ClassVar, Generator, Iterable, Optional, Sequence, Type
+
+    from dedupe._typing import Comparator, PredicateFunction, VariableDefinition
 
 
 class Variable(object):
     name: str
     type: ClassVar[str]
     predicates: list[predicates.Predicate]
+    higher_vars: Sequence["Variable"]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
-    def __eq__(self, other):
-        return self.name == other.name
+    def __eq__(self, other: Any) -> bool:
+        other_name: str = other.name
+        return self.name == other_name
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
 
         if definition.get("has missing", False):
             self.has_missing = True
@@ -35,14 +41,16 @@ class Variable(object):
         else:
             self.has_missing = False
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         odict = self.__dict__.copy()
         odict["predicates"] = None
 
         return odict
 
     @classmethod
-    def all_subclasses(cls):
+    def all_subclasses(
+        cls,
+    ) -> Generator[tuple[Optional[str], Type["Variable"]], None, None]:
         for q in cls.__subclasses__():
             yield getattr(q, "type", None), q
             for p in q.all_subclasses():
@@ -52,7 +60,7 @@ class Variable(object):
 class DerivedType(Variable):
     type = "Derived"
 
-    def __init__(self, definition):
+    def __init__(self, definition: VariableDefinition):
         self.name = "(%s: %s)" % (str(definition["name"]), str(definition["type"]))
         super(DerivedType, self).__init__(definition)
 
@@ -60,7 +68,7 @@ class DerivedType(Variable):
 class MissingDataType(Variable):
     type = "MissingData"
 
-    def __init__(self, name):
+    def __init__(self, name: str):
 
         self.name = "(%s: Not Missing)" % name
 
@@ -70,7 +78,7 @@ class MissingDataType(Variable):
 class FieldType(Variable):
     _index_thresholds: Sequence[float] = []
     _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
-    _predicate_functions: Sequence[Callable[[Any], Iterable[str]]] = ()
+    _predicate_functions: Sequence[PredicateFunction] = ()
     _Predicate: Type[predicates.SimplePredicate] = predicates.SimplePredicate
     comparator: Comparator
 

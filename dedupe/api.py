@@ -14,12 +14,11 @@ import pickle
 import sqlite3
 import tempfile
 import warnings
-from typing import BinaryIO, Generator, Iterable, Sequence, TextIO, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy
 import sklearn.linear_model
 import sklearn.model_selection
-from typing_extensions import Literal
 
 import dedupe.blocking as blocking
 import dedupe.clustering as clustering
@@ -28,21 +27,33 @@ import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
 import dedupe.predicates
 import dedupe.serializer as serializer
-from dedupe._typing import (
-    Blocks,
-    Classifier,
-    Clusters,
-    Data,
-    JoinConstraint,
-    Links,
-    LookupResults,
-    RecordDict,
-    RecordID,
-    RecordPairs,
-    TrainingData,
-    TrainingExample,
-    VariableDefinition,
-)
+from dedupe._typing import Literal
+
+if TYPE_CHECKING:
+    from typing import BinaryIO, Collection, Generator, Iterable, MutableMapping, TextIO
+
+    import numpy.typing
+
+    from dedupe._typing import (
+        Blocks,
+        Classifier,
+        Clusters,
+        Data,
+        JoinConstraint,
+        LabelsLike,
+        Links,
+        LookupResults,
+        RecordDict,
+    )
+    from dedupe._typing import RecordDictPair as TrainingExample
+    from dedupe._typing import RecordDictPairs as TrainingExamples
+    from dedupe._typing import (
+        RecordID,
+        RecordPairs,
+        Scores,
+        TrainingData,
+        VariableDefinition,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +76,7 @@ class Matching(object):
         self._fingerprinter: blocking.Fingerprinter | None = None
         self.data_model: datamodel.DataModel
         self.classifier: Classifier
-        self.predicates: list[dedupe.predicates.Predicate]
+        self.predicates: Collection[dedupe.predicates.Predicate]
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:
@@ -85,7 +96,7 @@ class IntegralMatching(Matching):
     pairs before deciding on any matches
     """
 
-    def score(self, pairs: RecordPairs) -> numpy.memmap | numpy.ndarray:
+    def score(self, pairs: RecordPairs) -> Scores:
         """
         Scores pairs of records. Returns pairs of tuples of records id and
         associated probabilities that the pair of records are match
@@ -181,7 +192,7 @@ class DedupeMatching(IntegralMatching):
 
         return clusters
 
-    def _add_singletons(self, data, clusters):
+    def _add_singletons(self, data: Data, clusters: Clusters) -> Clusters:
 
         singletons = set(data.keys())
 
@@ -192,7 +203,7 @@ class DedupeMatching(IntegralMatching):
         for singleton in singletons:
             yield (singleton,), (1.0,)
 
-    def pairs(self, data):
+    def pairs(self, data: Data) -> RecordPairs:
         """
         Yield pairs of records that share common fingerprints.
 
@@ -232,15 +243,9 @@ class DedupeMatching(IntegralMatching):
 
             # Set journal mode to WAL.
             con.execute("pragma journal_mode=off")
-
             con.execute(
-                """CREATE TABLE blocking_map
-                           (block_key text, record_id {id_type})
-                        """.format(
-                    id_type=id_type
-                )
+                f"CREATE TABLE blocking_map (block_key text, record_id {id_type})"
             )
-
             con.executemany(
                 "INSERT INTO blocking_map values (?, ?)",
                 self.fingerprinter(data.items()),
@@ -274,7 +279,7 @@ class DedupeMatching(IntegralMatching):
             pairs.close()
             con.close()
 
-    def cluster(self, scores: numpy.ndarray, threshold: float = 0.5) -> Clusters:
+    def cluster(self, scores: Scores, threshold: float = 0.5) -> Clusters:
         r"""From the similarity scores of pairs of records, decide which groups
         of records are all referring to the same entity.
 
@@ -390,14 +395,11 @@ class RecordLinkMatching(IntegralMatching):
             con.execute("pragma journal_mode=off")
 
             con.executescript(
-                """CREATE TABLE blocking_map_a
+                f"""CREATE TABLE blocking_map_a
                                  (block_key text, record_id {id_type_a});
 
                                  CREATE TABLE blocking_map_b
-                                 (block_key text, record_id {id_type_b});
-                              """.format(
-                    id_type_a=id_type_a, id_type_b=id_type_b
-                )
+                                 (block_key text, record_id {id_type_b});"""
             )
 
             con.executemany(
@@ -538,7 +540,7 @@ class RecordLinkMatching(IntegralMatching):
 
         return links
 
-    def one_to_one(self, scores: numpy.ndarray, threshold: float = 0.0) -> Links:
+    def one_to_one(self, scores: Scores, threshold: float = 0.0) -> Links:
         """From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
 
@@ -593,7 +595,7 @@ class RecordLinkMatching(IntegralMatching):
 
         yield from clustering.greedyMatching(scores)
 
-    def many_to_one(self, scores: numpy.ndarray, threshold: float = 0.0) -> Links:
+    def many_to_one(self, scores: Scores, threshold: float = 0.0) -> Links:
         """
         From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
@@ -659,13 +661,13 @@ class GazetteerMatching(Matching):
             self.temp_dir = tempfile.TemporaryDirectory()
             self.db = self.temp_dir.name + "/blocks.db"
 
-        self.indexed_data: dict[RecordID, RecordDict] = {}
+        self.indexed_data: MutableMapping[RecordID, RecordDict] = {}
 
-    def _close(self):
+    def _close(self) -> None:
         if not self.in_memory:
             self.temp_dir.cleanup()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._close()
 
     def index(self, data: Data) -> None:  # pragma: no cover
@@ -691,13 +693,10 @@ class GazetteerMatching(Matching):
         con.execute("pragma journal_mode=wal")
 
         con.execute(
-            """CREATE TABLE IF NOT EXISTS indexed_records
+            f"""CREATE TABLE IF NOT EXISTS indexed_records
                        (block_key text,
                         record_id {id_type},
-                        UNIQUE(block_key, record_id))
-                    """.format(
-                id_type=id_type
-            )
+                        UNIQUE(block_key, record_id))"""
         )
 
         con.executemany(
@@ -788,11 +787,7 @@ class GazetteerMatching(Matching):
         con.execute("BEGIN")
 
         con.execute(
-            """CREATE TEMPORARY TABLE blocking_map
-                       (block_key text, record_id {id_type})
-                    """.format(
-                id_type=id_type
-            )
+            f"CREATE TEMPORARY TABLE blocking_map (block_key text, record_id {id_type})"
         )
         con.executemany(
             "INSERT INTO blocking_map VALUES (?, ?)", self.fingerprinter(data.items())
@@ -806,7 +801,9 @@ class GazetteerMatching(Matching):
                                ORDER BY a.record_id"""
         )
 
-        pair_blocks = itertools.groupby(pairs, lambda x: x[0])
+        pair_blocks: Iterable[
+            tuple[RecordID, Iterable[tuple[RecordID, RecordID]]]
+        ] = itertools.groupby(pairs, lambda x: x[0])
 
         for _, pair_block in pair_blocks:
 
@@ -822,7 +819,7 @@ class GazetteerMatching(Matching):
         con.execute("ROLLBACK")
         con.close()
 
-    def score(self, blocks: Blocks) -> Generator[numpy.ndarray, None, None]:
+    def score(self, blocks: Blocks) -> Generator[Scores, None, None]:
         """
         Scores groups of pairs of records. Yields structured numpy arrays
         representing pairs of records in the group and the associated
@@ -841,7 +838,7 @@ class GazetteerMatching(Matching):
 
     def many_to_n(
         self,
-        score_blocks: Iterable[numpy.ndarray],
+        score_blocks: Iterable[Scores],
         threshold: float = 0.0,
         n_matches: int = 1,
     ) -> Links:
@@ -1037,7 +1034,7 @@ class ActiveMatching(Matching):
 
     def __init__(
         self,
-        variable_definition: Sequence[VariableDefinition],
+        variable_definition: Collection[VariableDefinition],
         num_cores: int | None = None,
         in_memory: bool = False,
         **kwargs,
@@ -1072,7 +1069,7 @@ class ActiveMatching(Matching):
 
         self.training_pairs: TrainingData
         self.training_pairs = {"distinct": [], "match": []}
-        self.active_learner: labeler.DedupeDisagreementLearner | labeler.RecordLinkDisagreementLearner | None
+        self.active_learner: labeler.DisagreementLearner | None
         self.classifier = sklearn.model_selection.GridSearchCV(
             estimator=sklearn.linear_model.LogisticRegression(),
             param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
@@ -1168,7 +1165,7 @@ class ActiveMatching(Matching):
         pickle.dump(self.classifier, file_obj)
         pickle.dump(self.predicates, file_obj)
 
-    def uncertain_pairs(self) -> list[TrainingExample]:
+    def uncertain_pairs(self) -> TrainingExamples:
         """
          Returns a list of pairs of records from the sample of record pairs
          tuples that Dedupe is most curious to have labeled.
@@ -1241,12 +1238,12 @@ class ActiveMatching(Matching):
                 raise UserWarning(
                     (
                         "The record\n"
-                        "{unknown}\n"
+                        f"{e.failing_record}\n"
                         "is not known to to the active learner. "
                         "Make sure all `labeled_pairs` "
                         "are in the data or training file "
                         "of the `prepare_training()` method"
-                    ).format(unknown=e.failing_record)
+                    )
                 )
 
     def _checkTrainingPairs(self, labeled_pairs: TrainingData) -> None:
@@ -1310,7 +1307,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
     def prepare_training(
         self,
         data: Data,
-        training_file: TextIO = None,
+        training_file: TextIO | None = None,
         sample_size: int = 1500,
         blocked_proportion: float = 0.9,
     ) -> None:
@@ -1487,8 +1484,8 @@ class SettingsFileLoadingException(Exception):
 
 def flatten_training(
     training_pairs: TrainingData,
-) -> tuple[list[TrainingExample], numpy.ndarray]:
-    examples: list[TrainingExample] = []
+) -> tuple[TrainingExamples, LabelsLike]:
+    examples: TrainingExamples = []
     y = []
 
     for label in ("match", "distinct"):

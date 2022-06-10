@@ -3,13 +3,11 @@ from __future__ import annotations
 import copyreg
 import pkgutil
 import types
-from typing import Iterable, Sequence
+from typing import TYPE_CHECKING, cast
 
 import numpy
 
 import dedupe.variables
-from dedupe._typing import RecordDict, VariableDefinition
-from dedupe.predicates import Predicate
 from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
@@ -18,6 +16,17 @@ for _, module, _ in pkgutil.iter_modules(  # type: ignore
     dedupe.variables.__path__, "dedupe.variables."
 ):
     __import__(module)
+
+if TYPE_CHECKING:
+    from typing import Generator, Iterable
+
+    from dedupe._typing import (
+        Comparator,
+        RecordDict,
+        RecordDictPairs,
+        VariableDefinition,
+    )
+    from dedupe.predicates import Predicate
 
 VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
 
@@ -39,7 +48,7 @@ class DataModel(object):
 
         self._len = len(all_variables)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._len
 
     # Changing this from a property to just a normal attribute causes
@@ -47,12 +56,15 @@ class DataModel(object):
     # their class context. This could be fixed by defining comparators
     # outside of classes in fieldclasses
     @property
-    def _field_comparators(self):
+    def _field_comparators(
+        self,
+    ) -> Generator[tuple[str, Comparator, int, int], None, None]:
         start = 0
         stop = 0
         for var in self.primary_variables:
             stop = start + len(var)
-            yield (var.field, var.comparator, start, stop)
+            comparator = cast("Comparator", var.comparator)
+            yield (var.field, comparator, start, stop)
             start = stop
 
     def predicates(
@@ -75,8 +87,8 @@ class DataModel(object):
         return predicates
 
     def distances(
-        self, record_pairs: Sequence[tuple[RecordDict, RecordDict]]
-    ) -> numpy.ndarray:
+        self, record_pairs: RecordDictPairs
+    ) -> numpy.typing.NDArray[numpy.float_]:
         num_records = len(record_pairs)
 
         distances = numpy.empty((num_records, len(self)), "f4")
@@ -95,7 +107,9 @@ class DataModel(object):
 
         return distances
 
-    def _add_derived_distances(self, distances: numpy.ndarray) -> numpy.ndarray:
+    def _add_derived_distances(
+        self, distances: numpy.typing.NDArray[numpy.float_]
+    ) -> numpy.typing.NDArray[numpy.float_]:
         current_column = self._derived_start
 
         for indices in self._interaction_indices:
@@ -126,8 +140,8 @@ class DataModel(object):
 def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> tuple[list[FieldVariable], list[Variable]]:
-    primary_variables = []
-    all_variables = []
+    primary_variables: list[FieldVariable] = []
+    all_variables: list[Variable] = []
     only_custom = True
 
     for definition in variable_definitions:
@@ -170,11 +184,14 @@ def typify_variables(
             )
 
         variable_object = variable_class(definition)
+        assert isinstance(variable_object, FieldVariable)
+
         primary_variables.append(variable_object)
 
         if hasattr(variable_object, "higher_vars"):
-            all_variables.extend(variable_object.higher_vars)  # type: ignore
+            all_variables.extend(variable_object.higher_vars)
         else:
+            variable_object = cast(Variable, variable_object)
             all_variables.append(variable_object)
 
     if only_custom:
@@ -223,7 +240,7 @@ def interaction_indices(variables: list[Variable]) -> list[list[int]]:
     return indices
 
 
-def reduce_method(m):
+def reduce_method(m):  # type: ignore[no-untyped-def]
     return (getattr, (m.__self__, m.__func__.__name__))
 
 

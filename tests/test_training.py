@@ -63,13 +63,13 @@ class TrainingTest(unittest.TestCase):
         )
 
     def test_uncovered_by(self):
-        before = {1: {1, 2, 3}, 2: {1, 2}, 3: {3}}
-        after = {1: {1, 2}, 2: {1, 2}}
+        before = {1: frozenset({1, 2, 3}), 2: frozenset({1, 2}), 3: frozenset({3})}
+        after = {1: frozenset({1, 2}), 2: frozenset({1, 2})}
 
         before_copy = before.copy()
 
-        assert training.BranchBound.uncovered_by(before, set()) == before
-        assert training.BranchBound.uncovered_by(before, {3}) == after
+        assert training.BranchBound.uncovered_by(before, frozenset()) == before
+        assert training.BranchBound.uncovered_by(before, frozenset({3})) == after
         assert before == before_copy
 
     def test_covered_pairs(self):
