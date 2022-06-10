@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import math
+from typing import Iterable
 
 import numpy
 from BTrees.Length import Length
@@ -12,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class CanopyIndex(TextIndex):  # pragma: no cover
-    def __init__(self):
+    def __init__(self) -> None:
         lexicon = CanopyLexicon()
         self.index = CosineIndex(lexicon)
         self.lexicon = lexicon
 
-    def initSearch(self):
+    def initSearch(self) -> None:
         N = len(self.index._docweight)
         threshold = int(max(1000, N * 0.05))
 
@@ -41,7 +44,13 @@ class CanopyIndex(TextIndex):  # pragma: no cover
             logger.info("Removing stop word {}".format(word))
             del self.index._wordinfo[wid]
 
-    def apply(self, query_list, threshold, start=0, count=None):
+    def apply(
+        self,
+        query_list: Iterable[str],
+        threshold: float,
+        start: int = 0,
+        count: int | None = None,
+    ) -> list[tuple[float, int]]:
         _wids_dict = self._wids_dict
         _wordinfo = self.index._wordinfo
         l_pow = float.__pow__
@@ -60,16 +69,16 @@ class CanopyIndex(TextIndex):  # pragma: no cover
         results = mass_weightedUnion(L)
 
         qw = math.sqrt(qw)
-        results = results.byValue(qw * threshold)
+        filtered_results: list[tuple[float, int]] = results.byValue(qw * threshold)
 
-        return results
+        return filtered_results
 
 
 class CanopyLexicon(Lexicon):  # pragma: no cover
-    def sourceToWordIds(self, last):
+    def sourceToWordIds(self, last: list | None = None) -> list[int]:
         if last is None:
             last = []
-        if not isinstance(self.wordCount, Length):
-            self.wordCount = Length(self.wordCount())
+        if not isinstance(self.wordCount, Length):  # type: ignore[has-type]
+            self.wordCount = Length(self.wordCount())  # type: ignore[has-type]
         self.wordCount._p_deactivate()
         return list(map(self._getWordIdCreate, last))

@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Iterable, Sequence, Type
 
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
@@ -61,7 +61,7 @@ class ShortStringType(BaseStringType):
         predicates.metaphoneToken,
     )
 
-    _index_predicates = [
+    _index_predicates: Sequence[Type[predicates.IndexPredicate]] = [
         predicates.TfidfNGramCanopyPredicate,
         predicates.TfidfNGramSearchPredicate,
     ]
