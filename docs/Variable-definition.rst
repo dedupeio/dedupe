@@ -206,9 +206,13 @@ Exact
 Exists
 ^^^^^^
 
-``Exists`` variables measure whether both, one, or neither of the fields are
-defined. This can be useful if the presence or absence of a field tells you
-something meaningful about the record.
+``Exists`` variables are useful if the presence or absence of a field tells you
+something meaningful about a pair of records. It differentiates between three
+different cases:
+
+    1. The field is missing in both records.
+    2. The field is missing in one of the records.
+    3. The field is present in neither of the records.
 
 .. code:: python
 
