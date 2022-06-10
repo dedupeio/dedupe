@@ -92,14 +92,14 @@ jobs:
           pip install --upgrade pip
           pip install -e .
           python -m pip install -e ./benchmarks          
-    - name: Run on canonical on main
-      run: python benchmarks/benchmarks/canonical.py
-    - name: checkout this PR branch
-      uses: actions/checkout@v2
-    - name: Install any new dependencies
-      run: pip install -e .
-    - name: Run on canonical with setting file created on main
-      run: python benchmarks/benchmarks/canonical.py      
+      - name: Run on canonical on main
+        run: python benchmarks/benchmarks/canonical.py
+      - name: checkout this PR branch
+        uses: actions/checkout@v2
+      - name: Install any new dependencies
+        run: pip install -e .
+      - name: Run on canonical with setting file created on main
+        run: python benchmarks/benchmarks/canonical.py      
   wheels:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     needs: [test, lint, settings_file_persist]
