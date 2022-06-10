@@ -243,15 +243,9 @@ class DedupeMatching(IntegralMatching):
 
             # Set journal mode to WAL.
             con.execute("pragma journal_mode=off")
-
             con.execute(
-                """CREATE TABLE blocking_map
-                           (block_key text, record_id {id_type})
-                        """.format(
-                    id_type=id_type
-                )
+                f"CREATE TABLE blocking_map (block_key text, record_id {id_type})"
             )
-
             con.executemany(
                 "INSERT INTO blocking_map values (?, ?)",
                 self.fingerprinter(data.items()),
@@ -401,14 +395,11 @@ class RecordLinkMatching(IntegralMatching):
             con.execute("pragma journal_mode=off")
 
             con.executescript(
-                """CREATE TABLE blocking_map_a
+                f"""CREATE TABLE blocking_map_a
                                  (block_key text, record_id {id_type_a});
 
                                  CREATE TABLE blocking_map_b
-                                 (block_key text, record_id {id_type_b});
-                              """.format(
-                    id_type_a=id_type_a, id_type_b=id_type_b
-                )
+                                 (block_key text, record_id {id_type_b});"""
             )
 
             con.executemany(
@@ -702,13 +693,10 @@ class GazetteerMatching(Matching):
         con.execute("pragma journal_mode=wal")
 
         con.execute(
-            """CREATE TABLE IF NOT EXISTS indexed_records
+            f"""CREATE TABLE IF NOT EXISTS indexed_records
                        (block_key text,
                         record_id {id_type},
-                        UNIQUE(block_key, record_id))
-                    """.format(
-                id_type=id_type
-            )
+                        UNIQUE(block_key, record_id))"""
         )
 
         con.executemany(
@@ -799,11 +787,7 @@ class GazetteerMatching(Matching):
         con.execute("BEGIN")
 
         con.execute(
-            """CREATE TEMPORARY TABLE blocking_map
-                       (block_key text, record_id {id_type})
-                    """.format(
-                id_type=id_type
-            )
+            f"CREATE TEMPORARY TABLE blocking_map (block_key text, record_id {id_type})"
         )
         con.executemany(
             "INSERT INTO blocking_map VALUES (?, ?)", self.fingerprinter(data.items())
@@ -1254,12 +1238,12 @@ class ActiveMatching(Matching):
                 raise UserWarning(
                     (
                         "The record\n"
-                        "{unknown}\n"
+                        f"{e.failing_record}\n"
                         "is not known to to the active learner. "
                         "Make sure all `labeled_pairs` "
                         "are in the data or training file "
                         "of the `prepare_training()` method"
-                    ).format(unknown=e.failing_record)
+                    )
                 )
 
     def _checkTrainingPairs(self, labeled_pairs: TrainingData) -> None:

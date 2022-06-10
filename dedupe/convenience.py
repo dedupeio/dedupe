@@ -165,7 +165,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
                 line = "%s : %s" % (field, record[field])
                 _print(line)
             _print()
-        _print("{0}/10 positive, {1}/10 negative".format(n_match, n_distinct))
+        _print(f"{n_match}/10 positive, {n_distinct}/10 negative")
         _print("Do these records refer to the same thing?")
 
         valid_response = False
