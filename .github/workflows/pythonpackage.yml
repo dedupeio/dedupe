@@ -14,9 +14,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e .
-      - name: Install test dependencies
-        run: pip install -r requirements.txt
+          pip install -r requirements.txt
       - name: flake8
         run: flake8 dedupe tests benchmarks/benchmarks
       - name: isort
