@@ -94,6 +94,8 @@ jobs:
         run: python benchmarks/benchmarks/canonical.py
       - name: checkout this PR branch
         uses: actions/checkout@v2
+        with:
+          clean: false
       - name: Install any new dependencies
         run: pip install -e .
       - name: Run on canonical with setting file created on main
