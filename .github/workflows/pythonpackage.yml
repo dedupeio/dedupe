@@ -7,8 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Checkout code
-        uses: actions/setup-python@v2
+      - uses: actions/setup-python@v2
         with:
           python-version: "3.10"
       - name: Install dependencies
@@ -69,7 +68,7 @@ jobs:
         python benchmarks/benchmarks/canonical_matching.py
         python benchmarks/benchmarks/canonical_gazetteer.py
         python benchmarks/benchmarks/canonical_gazetteer.py
-  finish:
+  coveralls_finish:
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -78,9 +77,32 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
+  settings_file_persists:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout main
+        uses: actions/checkout@v2
+        with:
+          ref: main
+      - uses: actions/setup-python@v2
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+          python -m pip install -e ./benchmarks          
+      - name: Run on canonical on main
+        run: python benchmarks/benchmarks/canonical.py
+      - name: checkout this PR branch
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Install any new dependencies
+        run: pip install -e .
+      - name: Run on canonical with setting file created on main
+        run: python benchmarks/benchmarks/canonical.py      
   wheels:
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-    needs: [test, lint]
+    needs: [test, lint, settings_file_persists]
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
