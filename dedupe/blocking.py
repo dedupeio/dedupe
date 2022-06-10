@@ -5,27 +5,29 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Generator,
-    Iterable,
-    List,
-    Sequence,
-    Union,
-)
+from typing import TYPE_CHECKING
 
-import dedupe.predicates
-from dedupe._typing import Data, Record, RecordID
-from dedupe.index import Index
+if TYPE_CHECKING:
+    from typing import (
+        Any,
+        Callable,
+        DefaultDict,
+        Generator,
+        Iterable,
+        List,
+        Sequence,
+        Union,
+    )
+
+    import dedupe.predicates
+    from dedupe._typing import Data, Record, RecordID
+    from dedupe.index import Index
+
+    Docs = Union[Iterable[str], Iterable[Iterable[str]]]
+    IndexList = DefaultDict[str, List[dedupe.predicates.IndexPredicate]]
+
 
 logger = logging.getLogger(__name__)
-
-Docs = Union[Iterable[str], Iterable[Iterable[str]]]
-
-
-IndexList = DefaultDict[str, List[dedupe.predicates.IndexPredicate]]
 
 
 def index_list() -> IndexList:
