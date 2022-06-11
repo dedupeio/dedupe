@@ -68,6 +68,20 @@ class TestLatLongGrid(unittest.TestCase):
         assert block_val == ()
 
 
+class TestAlpaNumeric(unittest.TestCase):
+    def test_alphanumeric(self):
+
+        assert predicates.alphaNumericPredicate("a1") == set(["a1"])
+        assert predicates.alphaNumericPredicate("1a") == set(["1a"])
+        assert predicates.alphaNumericPredicate("a1b") == set(["a1b"])
+        assert predicates.alphaNumericPredicate("1 a") == set(["1"])
+        assert predicates.alphaNumericPredicate("a1 b1") == set(["a1", "b1"])
+        assert predicates.alphaNumericPredicate("asdf") == set()
+        assert predicates.alphaNumericPredicate("a_1") == set(["a_1"])
+        assert predicates.alphaNumericPredicate("a$1") == set(["a$1"])
+        assert predicates.alphaNumericPredicate("a 1") == set(["1"])
+
+
 class TestNumericPredicates(unittest.TestCase):
     def test_order_of_magnitude(self):
         assert predicates.orderOfMagnitude(10) == ("1",)
