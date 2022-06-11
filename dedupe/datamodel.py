@@ -18,12 +18,12 @@ for _, module, _ in pkgutil.iter_modules(  # type: ignore
     __import__(module)
 
 if TYPE_CHECKING:
-    from typing import Generator, Iterable
+    from typing import Generator, Iterable, Sequence
 
     from dedupe._typing import (
         Comparator,
         RecordDict,
-        RecordDictPairs,
+        RecordDictPair,
         VariableDefinition,
     )
     from dedupe.predicates import Predicate
@@ -89,7 +89,7 @@ class DataModel(object):
         return predicates
 
     def distances(
-        self, record_pairs: RecordDictPairs
+        self, record_pairs: Sequence[RecordDictPair]
     ) -> numpy.typing.NDArray[numpy.float_]:
         num_records = len(record_pairs)
 

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from dedupe._typing import RecordDictPair as TrainingExample
     from dedupe._typing import RecordDictPairs as TrainingExamples
     from dedupe._typing import RecordIDPair
-    from dedupe.datamodel.DataModel import DataModel
+    from dedupe.datamodel import DataModel
     from dedupe.predicates import Predicate
 
 
