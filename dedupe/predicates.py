@@ -27,7 +27,7 @@ integers = re.compile(r"\d+").findall
 start_word = re.compile(r"^([\w']+)").match
 two_start_words = re.compile(r"^([\w']+\s+[\w']+)").match
 start_integer = re.compile(r"^(\d+)").match
-alpha_numeric = re.compile(r"(?=\w*\d)[a-zA-Z\d]+").findall
+alpha_numeric = re.compile(r"(?=[a-zA-Z]*\d)[a-zA-Z\d]+").findall
 
 PUNCTABLE = str.maketrans("", "", string.punctuation)
 
