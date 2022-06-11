@@ -80,6 +80,7 @@ class TestAlpaNumeric(unittest.TestCase):
         assert predicates.alphaNumericPredicate("a_1") == set(["a_1"])
         assert predicates.alphaNumericPredicate("a$1") == set(["a$1"])
         assert predicates.alphaNumericPredicate("a 1") == set(["1"])
+        assert predicates.alphaNumericPredicate("773-555-1676") == set(["773-555-1676"])
 
 
 class TestNumericPredicates(unittest.TestCase):
