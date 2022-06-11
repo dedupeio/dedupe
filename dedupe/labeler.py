@@ -237,8 +237,8 @@ class DedupeBlockLearner(BlockLearner):
         N_SAMPLED_RECORDS = 5000
         N_SAMPLED_RECORD_PAIRS = 10000
 
-        index_data = Sample(data, 50000)
-        sampled_records = Sample(index_data, N_SAMPLED_RECORDS)
+        index_data = sample_records(data, 50000)
+        sampled_records = sample_records(index_data, N_SAMPLED_RECORDS)
         preds = self.data_model.predicates()
 
         self.block_learner = training.DedupeBlockLearner(
@@ -289,9 +289,9 @@ class RecordLinkBlockLearner(BlockLearner):
         N_SAMPLED_RECORDS = 1000
         N_SAMPLED_RECORD_PAIRS = 5000
 
-        sampled_records_1 = Sample(data_1, N_SAMPLED_RECORDS)
-        index_data = Sample(data_2, 50000)
-        sampled_records_2 = Sample(index_data, N_SAMPLED_RECORDS)
+        sampled_records_1 = sample_records(data_1, N_SAMPLED_RECORDS)
+        index_data = sample_records(data_2, 50000)
+        sampled_records_2 = sample_records(index_data, N_SAMPLED_RECORDS)
 
         preds = self.data_model.predicates(canopies=False)
 
@@ -431,8 +431,6 @@ class DedupeDisagreementLearner(DisagreementLearner):
         self,
         data_model: DataModel,
         data: Data,
-        blocked_proportion: float,
-        sample_size: int,
         index_include: TrainingExamples,
     ):
 
@@ -469,8 +467,6 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         data_model: DataModel,
         data_1: Data,
         data_2: Data,
-        blocked_proportion: float,
-        sample_size: int,
         index_include: TrainingExamples,
     ):
 
@@ -503,10 +499,9 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         self.mark(examples, labels)
 
 
-class Sample(dict):  # type: ignore[type-arg]
-    def __init__(self, d: Mapping, sample_size: int):  # type: ignore[type-arg]
-        if len(d) <= sample_size:
-            super().__init__(d)
-        else:
-            sample = random.sample(d.keys(), sample_size)
-            super().__init__({k: d[k] for k in sample})
+def sample_records(data: Mapping, sample_size: int) -> Mapping:
+    if len(data) <= sample_size:
+        return data
+    else:
+        sample = random.sample(data.keys(), sample_size)
+        return {k: data[k] for k in sample}

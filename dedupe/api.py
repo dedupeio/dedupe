@@ -130,9 +130,6 @@ class DedupeMatching(IntegralMatching):
 
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
     def partition(
         self, data: Data, threshold: float = 0.5
     ) -> Clusters:  # pragma: no cover
@@ -1032,6 +1029,9 @@ class ActiveMatching(Matching):
     Class for training a matcher.
     """
 
+    active_learner: labeler.DisagreementLearner | None
+    training_pairs: TrainingData
+
     def __init__(
         self,
         variable_definition: Collection[VariableDefinition],
@@ -1066,10 +1066,7 @@ class ActiveMatching(Matching):
         super().__init__(num_cores, in_memory, **kwargs)
 
         self.data_model = datamodel.DataModel(variable_definition)
-
-        self.training_pairs: TrainingData
         self.training_pairs = {"distinct": [], "match": []}
-        self.active_learner: labeler.DisagreementLearner | None
         self.classifier = sklearn.model_selection.GridSearchCV(
             estimator=sklearn.linear_model.LogisticRegression(),
             param_grid={"C": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10]},
@@ -1301,7 +1298,6 @@ class Dedupe(ActiveMatching, DedupeMatching):
     entity.
     """
 
-    canopies = True
     ActiveLearner = labeler.DedupeDisagreementLearner
 
     def prepare_training(
@@ -1348,8 +1344,6 @@ class Dedupe(ActiveMatching, DedupeMatching):
         self.active_learner = self.ActiveLearner(
             self.data_model,
             data,
-            blocked_proportion,
-            sample_size,
             index_include=examples,
         )
 
@@ -1367,7 +1361,6 @@ class Link(ActiveMatching):
     Mixin Class for Active Learning Record Linkage
     """
 
-    canopies = False
     ActiveLearner = labeler.RecordLinkDisagreementLearner
 
     def prepare_training(
@@ -1421,8 +1414,6 @@ class Link(ActiveMatching):
             self.data_model,
             data_1,
             data_2,
-            blocked_proportion,
-            sample_size,
             index_include=examples,
         )
 
