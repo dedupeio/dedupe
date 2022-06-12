@@ -30,7 +30,7 @@ class Learner(ABC):
     candidates: TrainingExamples
 
     @abstractmethod
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         pass
 
     @abstractmethod
@@ -69,24 +69,22 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
     def candidates(self, new_candidates: TrainingExamples) -> None:
         self._candidates = new_candidates
 
-        self.distances = self.transform(self._candidates)
+        self.distances = self._distances(self._candidates)
 
         random_pair = random.choice(self._candidates)
         exact_match = (random_pair[0], random_pair[0])
-        self.fit_transform([exact_match, random_pair], [1, 0])
+        self.fit([exact_match, random_pair], [1, 0])
 
-    def transform(self, pairs: TrainingExamples) -> numpy.typing.NDArray[numpy.float_]:
+    def _distances(self, pairs: TrainingExamples) -> numpy.typing.NDArray[numpy.float_]:
         return self.data_model.distances(pairs)
 
-    def fit(self, X: numpy.typing.NDArray[numpy.float_], y: LabelsLike) -> None:
-
+    def _fit(self, X: numpy.typing.NDArray[numpy.float_], y: LabelsLike) -> None:
         self.y: numpy.typing.NDArray[numpy.int_] = numpy.array(y)
         self.X = X
+        sklearn.linear_model.LogisticRegression.fit(self, self.X, self.y)
 
-        super().fit(self.X, self.y)
-
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-        self.fit(self.transform(pairs), y)
+    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+        self._fit(self._distances(pairs), y)
 
     def pop(self) -> TrainingExample:
         if not len(self.candidates):
@@ -111,9 +109,9 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
 
         self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
-        self.X = numpy.vstack([self.X, self.transform(pairs)])
+        self.X = numpy.vstack([self.X, self._distances(pairs)])
 
-        self.fit(self.X, self.y)
+        self._fit(self.X, self.y)
 
     def _bias(self) -> float:
         positive: int = numpy.sum(self.y == 1)
@@ -154,7 +152,7 @@ class BlockLearner(Learner):
 
         self.block_learner: training.BlockLearner
 
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         dupes = [pair for label, pair in zip(y, pairs) if label]
 
         new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
@@ -390,12 +388,11 @@ class DisagreementLearner(ActiveLearner):
         self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
         self.pairs.extend(pairs)
 
-        self.fit_transform(self.pairs, self.y)
+        self.fit(self.pairs, self.y)
 
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-
+    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         for learner in self.learners:
-            learner.fit_transform(pairs, y)
+            learner.fit(pairs, y)
 
     def learn_predicates(
         self, recall: float, index_predicates: bool
