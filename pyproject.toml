@@ -5,8 +5,9 @@ requires = ["setuptools",
 
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
-ignore_missing_imports = true
 files = "dedupe"
+show_error_codes = true
+ignore_missing_imports = true
 check_untyped_defs = true
 
 [tool.pytest.ini_options]
