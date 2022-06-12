@@ -32,8 +32,6 @@ from dedupe._typing import Literal
 if TYPE_CHECKING:
     from typing import BinaryIO, Collection, Generator, Iterable, MutableMapping, TextIO
 
-    import numpy.typing
-
     from dedupe._typing import (
         Blocks,
         Classifier,

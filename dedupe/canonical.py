@@ -1,7 +1,7 @@
 from typing import Mapping, Sequence
 
 import numpy
-import numpy.typing
+import numpy.typing as npt
 from affinegap import normalizedAffineGapDistance as affine
 
 from dedupe._typing import Comparator, RecordDict
@@ -27,7 +27,7 @@ def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> st
     average_distance = distance_matrix.mean(0)
 
     # there can be ties for minimum, average distance string
-    min_dist_indices: numpy.typing.NDArray[numpy.int_]
+    min_dist_indices: npt.NDArray[numpy.int_]
     min_dist_indices = numpy.where(average_distance == average_distance.min())[0]  # type: ignore
 
     if len(min_dist_indices) > 1:
@@ -41,7 +41,7 @@ def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> st
 
 def breakCentroidTie(
     attribute_variants: Sequence[str],
-    min_dist_indices: numpy.typing.NDArray[numpy.int_],
+    min_dist_indices: npt.NDArray[numpy.int_],
 ) -> str:
     """
     Finds centroid when there are multiple values w/ min avg distance

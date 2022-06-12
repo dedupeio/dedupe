@@ -6,6 +6,7 @@ import types
 from typing import TYPE_CHECKING, cast
 
 import numpy
+import numpy.typing as npt
 
 import dedupe.variables
 from dedupe.variables.base import FieldType as FieldVariable
@@ -87,7 +88,7 @@ class DataModel(object):
 
     def distances(
         self, record_pairs: Sequence[RecordDictPair]
-    ) -> numpy.typing.NDArray[numpy.float_]:
+    ) -> npt.NDArray[numpy.float_]:
         num_records = len(record_pairs)
 
         distances = numpy.empty((num_records, len(self)), "f4")
@@ -107,8 +108,8 @@ class DataModel(object):
         return distances
 
     def _add_derived_distances(
-        self, distances: numpy.typing.NDArray[numpy.float_]
-    ) -> numpy.typing.NDArray[numpy.float_]:
+        self, distances: npt.NDArray[numpy.float_]
+    ) -> npt.NDArray[numpy.float_]:
         current_column = self._derived_start
 
         for indices in self._interaction_indices:

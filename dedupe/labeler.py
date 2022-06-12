@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 import numpy
-import numpy.typing
+import numpy.typing as npt
 import sklearn.linear_model
 
 import dedupe.core as core
@@ -34,7 +34,7 @@ class Learner(ABC):
         pass
 
     @abstractmethod
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
         pass
 
     @abstractmethod
@@ -75,12 +75,12 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
         exact_match = (random_pair[0], random_pair[0])
         self.fit_transform([exact_match, random_pair], [1, 0])
 
-    def transform(self, pairs: TrainingExamples) -> numpy.typing.NDArray[numpy.float_]:
+    def transform(self, pairs: TrainingExamples) -> npt.NDArray[numpy.float_]:
         return self.data_model.distances(pairs)
 
-    def fit(self, X: numpy.typing.NDArray[numpy.float_], y: LabelsLike) -> None:
+    def fit(self, X: npt.NDArray[numpy.float_], y: LabelsLike) -> None:
 
-        self.y: numpy.typing.NDArray[numpy.int_] = numpy.array(y)
+        self.y: npt.NDArray[numpy.int_] = numpy.array(y)
         self.X = X
 
         super().fit(self.X, self.y)
@@ -134,8 +134,8 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
 
         return weighted_bias
 
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        scores: numpy.typing.NDArray[numpy.float_] = self.predict_proba(self.distances)[
+    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
+        scores: npt.NDArray[numpy.float_] = self.predict_proba(self.distances)[
             :, 1
         ].reshape(-1, 1)
         return scores
@@ -149,7 +149,7 @@ class BlockLearner(Learner):
 
         self.current_predicates: tuple[Predicate, ...] = ()
 
-        self._cached_labels: numpy.typing.NDArray[numpy.float_] | None = None
+        self._cached_labels: npt.NDArray[numpy.float_] | None = None
         self._old_dupes: TrainingExamples = []
 
         self.block_learner: training.BlockLearner
@@ -165,7 +165,7 @@ class BlockLearner(Learner):
             self._cached_labels = None
             self._old_dupes = dupes
 
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
         if self._cached_labels is None:
             labels = self.predict(self.candidates)
             self._cached_labels = numpy.array(labels).reshape(-1, 1)
@@ -342,7 +342,7 @@ class DisagreementLearner(ActiveLearner):
     def _common_init(self) -> None:
 
         self.learners: tuple[Learner, ...] = (self.classifier, self.blocker)
-        self.y: numpy.typing.NDArray[numpy.int_] = numpy.array([])
+        self.y: npt.NDArray[numpy.int_] = numpy.array([])
         self.pairs: TrainingExamples = []
 
     def pop(self) -> TrainingExample:
@@ -352,7 +352,7 @@ class DisagreementLearner(ActiveLearner):
         probs = self.candidate_scores()
 
         # where do the classifers disagree?
-        disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
+        disagreement: numpy.ndarray = numpy.std(probs > 0.5, axis=1).astype(bool)
 
         if disagreement.any():
             conflicts = disagreement.nonzero()[0]
@@ -373,7 +373,7 @@ class DisagreementLearner(ActiveLearner):
 
         return uncertain_pair
 
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
         probs_l = []
         for learner in self.learners:
             probabilities = learner.candidate_scores()

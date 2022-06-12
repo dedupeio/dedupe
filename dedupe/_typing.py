@@ -17,7 +17,7 @@ from typing import (
 )
 
 import numpy
-import numpy.typing
+import numpy.typing as npt
 
 if sys.version_info >= (3, 8):
     from typing import Literal, Protocol, TypedDict
@@ -39,7 +39,7 @@ RecordPairs = Iterator[RecordPair]
 Block = List[RecordPair]
 Blocks = Iterator[Block]
 Cluster = Tuple[
-    Tuple[RecordID, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
+    Tuple[RecordID, ...], Union[npt.NDArray[numpy.float_], Tuple[float, ...]]
 ]
 Clusters = Iterable[Cluster]
 Data = Mapping[RecordID, RecordDict]
@@ -84,7 +84,7 @@ class Classifier(Protocol):
     def fit(self, X: object, y: object) -> None:
         ...
 
-    def predict_proba(self, X: object) -> numpy.typing.NDArray[numpy.float_]:
+    def predict_proba(self, X: object) -> npt.NDArray[numpy.float_]:
         ...
 
 
