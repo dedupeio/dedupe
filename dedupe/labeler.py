@@ -139,16 +139,13 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
 
 class BlockLearner(Learner):
     candidates: TrainingExamples
+    block_learner: training.BlockLearner
 
     def __init__(self, data_model: DataModel, *args):
         self.data_model = data_model
-
         self.current_predicates: tuple[Predicate, ...] = ()
-
         self._cached_labels: numpy.typing.NDArray[numpy.float_] | None = None
         self._old_dupes: TrainingExamples = []
-
-        self.block_learner: training.BlockLearner
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         dupes = [pair for label, pair in zip(y, pairs) if label]
