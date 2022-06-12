@@ -12,7 +12,7 @@ import queue
 import tempfile
 from typing import TYPE_CHECKING, overload
 
-import numpy
+import numpy as np
 
 from dedupe.backport import RLock
 
@@ -58,7 +58,7 @@ class ScoreDupes(object):
         records_queue: _Queue,
         exception_queue: _Queue,
         score_file_path: str,
-        dtype: numpy.dtype,
+        dtype: np.dtype,
         offset,
     ):
         self.data_model = data_model
@@ -96,7 +96,7 @@ class ScoreDupes(object):
                 with self.offset.get_lock():
 
                     fp: Scores
-                    fp = numpy.memmap(
+                    fp = np.memmap(
                         self.score_file_path,
                         dtype=self.dtype,
                         offset=self.offset.value,
@@ -140,7 +140,7 @@ def scoreDuplicates(
     offset = multiprocessing.Value("Q", 0, lock=RLock())
 
     id_type = sniff_id_type(first)
-    dtype = numpy.dtype([("pairs", id_type, 2), ("score", "f4")])
+    dtype = np.dtype([("pairs", id_type, 2), ("score", "f4")])
 
     n_map_processes = max(num_cores, 1)
     score_records = ScoreDupes(
@@ -172,9 +172,9 @@ def scoreDuplicates(
     scored_pairs: Scores
 
     if offset.value:  # type: ignore
-        scored_pairs = numpy.memmap(score_file_path, dtype=dtype)
+        scored_pairs = np.memmap(score_file_path, dtype=dtype)
     else:
-        scored_pairs = numpy.array([], dtype=dtype)
+        scored_pairs = np.array([], dtype=dtype)
 
     return scored_pairs
 
@@ -211,11 +211,11 @@ class ScoreGazette(object):
         scores = self.classifier.predict_proba(distances)[:, -1]
 
         id_type = sniff_id_type(record_ids)
-        ids = numpy.array(record_ids, dtype=id_type)
+        ids = np.array(record_ids, dtype=id_type)
 
-        dtype = numpy.dtype([("pairs", id_type, 2), ("score", "f4")])
+        dtype = np.dtype([("pairs", id_type, 2), ("score", "f4")])
 
-        scored_pairs: Scores = numpy.empty(shape=len(scores), dtype=dtype)
+        scored_pairs: Scores = np.empty(shape=len(scores), dtype=dtype)
 
         scored_pairs["pairs"] = ids
         scored_pairs["score"] = scores

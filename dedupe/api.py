@@ -16,7 +16,7 @@ import tempfile
 import warnings
 from typing import TYPE_CHECKING, cast
 
-import numpy
+import numpy as np
 import sklearn.linear_model
 import sklearn.model_selection
 
@@ -1485,4 +1485,4 @@ def flatten_training(
         encoded_y = 1 if label == "match" else 0
         y.extend([encoded_y] * len(pairs))
 
-    return examples, numpy.array(y)
+    return examples, np.array(y)

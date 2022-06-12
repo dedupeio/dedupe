@@ -9,7 +9,7 @@ import tempfile
 from collections import defaultdict
 from typing import Generator, Iterable, Sequence, cast
 
-import numpy
+import numpy as np
 import numpy.typing as npt
 import scipy.cluster.hierarchy
 
@@ -35,7 +35,7 @@ def connected_components(
     # we want and copy things over.
     with tempfile.TemporaryDirectory() as path:
         filename = path + "/unlabeled_edgelist"
-        edgelist = numpy.memmap(
+        edgelist = np.memmap(
             filename,
             dtype=(unlabeled_edgelist.dtype.descr + [("label", "int32")]),
             mode="w+",
@@ -43,7 +43,7 @@ def connected_components(
         )
 
         if hasattr(unlabeled_edgelist, "filename"):
-            assert isinstance(unlabeled_edgelist, numpy.memmap)
+            assert isinstance(unlabeled_edgelist, np.memmap)
             copy_mmap_record_arrays(unlabeled_edgelist, edgelist, ["pairs", "score"])
         else:
             copy_to_mmap_record_array(unlabeled_edgelist, edgelist, ["pairs", "score"])
@@ -72,15 +72,15 @@ def _connected_components(
         if upper_bound_components > max_components:
             # which we can refine using a more expensive operation
             # if it's possible we have too many components
-            n_components = len(numpy.unique(sub_graph["pairs"]))
+            n_components = len(np.unique(sub_graph["pairs"]))
             if n_components > max_components:
                 needs_filtering = True
 
         if needs_filtering:
 
-            min_score = numpy.min(sub_graph["score"])
-            min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
-            threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
+            min_score = np.min(sub_graph["score"])
+            min_score_logit = np.log(min_score) - np.log(1 - min_score)
+            threshold = 1 / (1 + np.exp(-min_score_logit - 1))
             logger.warning(
                 "A component contained %s elements. "
                 "Components larger than %s are "
@@ -93,7 +93,7 @@ def _connected_components(
             # to selecting like `sub_graph[sub_graph['score'] >
             # threshold]`, which would lead to an in memory copy being
             # made
-            cut_point = numpy.searchsorted(sub_graph["score"], threshold)
+            cut_point = np.searchsorted(sub_graph["score"], threshold)
             filtered_sub_graph = sub_graph[max(cut_point, 2) :]
 
             for sub_graph in _connected_components(filtered_sub_graph, max_components):
@@ -102,7 +102,7 @@ def _connected_components(
             yield sub_graph[["pairs", "score"]]
 
 
-def union_find(scored_pairs: Scores) -> npt.NDArray[numpy.int_]:
+def union_find(scored_pairs: Scores) -> npt.NDArray[np.int_]:
 
     root: dict[RecordID, int] = {}
 
@@ -111,7 +111,7 @@ def union_find(scored_pairs: Scores) -> npt.NDArray[numpy.int_]:
     edgelist = scored_pairs["pairs"]
     labels = scored_pairs["label"]
 
-    it = numpy.nditer(edgelist, ["external_loop"])
+    it = np.nditer(edgelist, ["external_loop"])
 
     n_edges = len(scored_pairs)
 
@@ -148,7 +148,7 @@ def union_find(scored_pairs: Scores) -> npt.NDArray[numpy.int_]:
             components[root_a].extend(components[root_b])
             components[root_a].append(i)
 
-            component_b = numpy.unique(edgelist[components[root_b]])
+            component_b = np.unique(edgelist[components[root_b]])
             for node in component_b:
                 root[node] = root_a
 
@@ -176,12 +176,12 @@ def union_find(scored_pairs: Scores) -> npt.NDArray[numpy.int_]:
     else:
         scored_pairs.sort(order=("label", "score"), kind="stable")
 
-    return numpy.cumsum(numpy.unique(scored_pairs["label"], return_counts=True)[1])
+    return np.cumsum(np.unique(scored_pairs["label"], return_counts=True)[1])
 
 
 def condensedDistance(
     dupes: Scores,
-) -> tuple[dict[int, RecordID], npt.NDArray[numpy.float_], int]:
+) -> tuple[dict[int, RecordID], npt.NDArray[np.float_], int]:
     """
     Convert the pairwise list of distances in dupes to "condensed
     distance matrix" required by the hierarchical clustering
@@ -200,7 +200,7 @@ def condensedDistance(
     See http://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
     """
 
-    candidate_set = numpy.unique(dupes["pairs"])
+    candidate_set = np.unique(dupes["pairs"])
 
     i_to_id = dict(enumerate(candidate_set))
 
@@ -213,7 +213,7 @@ def condensedDistance(
     # alternate form thanks to wolfram alpa
     index = row * (2 * N - row - 3) // 2 + col - 1
 
-    condensed_distances = numpy.ones(N * (N - 1) // 2, "f4")
+    condensed_distances = np.ones(N * (N - 1) // 2, "f4")
     condensed_distances[index] = 1 - dupes["score"]
 
     return i_to_id, condensed_distances, N
@@ -267,16 +267,16 @@ def cluster(
 
 def confidences(
     cluster: Sequence[int],
-    squared_distances: npt.NDArray[numpy.float_],
+    squared_distances: npt.NDArray[np.float_],
     d: int,
-) -> npt.NDArray[numpy.float_]:
+) -> npt.NDArray[np.float_]:
     """
     We calculate a per record score that is similar to a standard
     deviation.  The main reason is that these record scores can be
     used to calculate the standard deviation of an entire cluster,
     which is a reasonable metric for clusters.
     """
-    scores: npt.NDArray[numpy.float_]
+    scores: npt.NDArray[np.float_]
     scores_d = dict.fromkeys(cluster, 0.0)
     C = 2 * d - 3
     for i, j in itertools.combinations(cluster, 2):
@@ -284,9 +284,9 @@ def confidences(
         squared_dist = squared_distances[index]
         scores_d[i] += squared_dist
         scores_d[j] += squared_dist
-    scores = numpy.array([score for _, score in sorted(scores_d.items())])
+    scores = np.array([score for _, score in sorted(scores_d.items())])
     scores /= len(cluster) - 1
-    scores = numpy.sqrt(scores)
+    scores = np.sqrt(scores)
     scores = 1 - scores
     return scores
 
@@ -329,8 +329,8 @@ def pair_gazette_matching(
     scored_pairs.sort(order="pairs")
 
     group_key = scored_pairs["pairs"][:, 0]
-    change_points = numpy.where(numpy.roll(group_key, 1) != group_key)[0]
-    scored_blocks = numpy.split(scored_pairs, change_points)
+    change_points = np.where(np.roll(group_key, 1) != group_key)[0]
+    scored_blocks = np.split(scored_pairs, change_points)
 
     for match in gazetteMatching(scored_blocks, threshold, n_matches):
         if match:
@@ -338,8 +338,8 @@ def pair_gazette_matching(
 
 
 def copy_to_mmap_record_array(
-    source: numpy.ndarray,
-    target: numpy.memmap,
+    source: np.ndarray,
+    target: np.memmap,
     fields: list[str],
     chunksize: int = 100000,
 ) -> None:
@@ -355,7 +355,7 @@ def copy_to_mmap_record_array(
     for stop in stops:
         shape = (stop - start,)
         source_slice = source[start:stop]
-        target_slice: numpy.memmap = numpy.memmap(
+        target_slice: np.memmap = np.memmap(
             target.filename,
             dtype=target.dtype,
             offset=(start * target.dtype.itemsize),
@@ -366,8 +366,8 @@ def copy_to_mmap_record_array(
 
 
 def copy_mmap_record_arrays(
-    source: numpy.memmap,
-    target: numpy.memmap,
+    source: np.memmap,
+    target: np.memmap,
     fields: list[str],
     chunksize: int = 100000,
 ) -> None:
@@ -383,13 +383,13 @@ def copy_mmap_record_arrays(
     stops = itertools.chain(range(chunksize, source.size, chunksize), [source.size])
     for stop in stops:
         shape = (stop - start,)
-        source_slice: numpy.memmap = numpy.memmap(
+        source_slice: np.memmap = np.memmap(
             source.filename,
             dtype=source.dtype,
             offset=(start * source.dtype.itemsize),
             shape=shape,
         )
-        target_slice: numpy.memmap = numpy.memmap(
+        target_slice: np.memmap = np.memmap(
             target.filename,
             dtype=target.dtype,
             offset=(start * target.dtype.itemsize),

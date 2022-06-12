@@ -5,7 +5,7 @@ import pkgutil
 import types
 from typing import TYPE_CHECKING, cast
 
-import numpy
+import numpy as np
 import numpy.typing as npt
 
 import dedupe.variables
@@ -88,10 +88,10 @@ class DataModel(object):
 
     def distances(
         self, record_pairs: Sequence[RecordDictPair]
-    ) -> npt.NDArray[numpy.float_]:
+    ) -> npt.NDArray[np.float_]:
         num_records = len(record_pairs)
 
-        distances = numpy.empty((num_records, len(self)), "f4")
+        distances = np.empty((num_records, len(self)), "f4")
 
         for i, (record_1, record_2) in enumerate(record_pairs):
 
@@ -101,22 +101,22 @@ class DataModel(object):
                 elif hasattr(compare, "missing"):
                     distances[i, start:stop] = compare(record_1[field], record_2[field])
                 else:
-                    distances[i, start:stop] = numpy.nan
+                    distances[i, start:stop] = np.nan
 
         distances = self._add_derived_distances(distances)
 
         return distances
 
     def _add_derived_distances(
-        self, distances: npt.NDArray[numpy.float_]
-    ) -> npt.NDArray[numpy.float_]:
+        self, distances: npt.NDArray[np.float_]
+    ) -> npt.NDArray[np.float_]:
         current_column = self._derived_start
 
         for indices in self._interaction_indices:
-            distances[:, current_column] = numpy.prod(distances[:, indices], axis=1)
+            distances[:, current_column] = np.prod(distances[:, indices], axis=1)
             current_column += 1
 
-        is_missing = numpy.isnan(distances[:, :current_column])
+        is_missing = np.isnan(distances[:, :current_column])
 
         distances[:, :current_column][is_missing] = 0
 

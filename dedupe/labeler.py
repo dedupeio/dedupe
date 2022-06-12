@@ -5,7 +5,7 @@ import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-import numpy
+import numpy as np
 import numpy.typing as npt
 import sklearn.linear_model
 
@@ -34,7 +34,7 @@ class Learner(ABC):
         pass
 
     @abstractmethod
-    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
+    def candidate_scores(self) -> npt.NDArray[np.float_]:
         pass
 
     @abstractmethod
@@ -75,12 +75,12 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
         exact_match = (random_pair[0], random_pair[0])
         self.fit_transform([exact_match, random_pair], [1, 0])
 
-    def transform(self, pairs: TrainingExamples) -> npt.NDArray[numpy.float_]:
+    def transform(self, pairs: TrainingExamples) -> npt.NDArray[np.float_]:
         return self.data_model.distances(pairs)
 
-    def fit(self, X: npt.NDArray[numpy.float_], y: LabelsLike) -> None:
+    def fit(self, X: npt.NDArray[np.float_], y: LabelsLike) -> None:
 
-        self.y: npt.NDArray[numpy.int_] = numpy.array(y)
+        self.y: npt.NDArray[np.int_] = np.array(y)
         self.X = X
 
         super().fit(self.X, self.y)
@@ -96,27 +96,27 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
 
         probabilities = self.candidate_scores()
 
-        distance_to_target = numpy.abs(target_uncertainty - probabilities)
+        distance_to_target = np.abs(target_uncertainty - probabilities)
         uncertain_index = distance_to_target.argmin()
 
-        self.distances = numpy.delete(self.distances, uncertain_index, axis=0)
+        self.distances = np.delete(self.distances, uncertain_index, axis=0)
 
         uncertain_pair: TrainingExample = self.candidates.pop(uncertain_index)
 
         return uncertain_pair
 
     def _remove(self, index: int) -> None:
-        self.distances = numpy.delete(self.distances, index, axis=0)
+        self.distances = np.delete(self.distances, index, axis=0)
 
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
 
-        self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
-        self.X = numpy.vstack([self.X, self.transform(pairs)])
+        self.y = np.concatenate([self.y, y])  # type: ignore[arg-type]
+        self.X = np.vstack([self.X, self.transform(pairs)])
 
         self.fit(self.X, self.y)
 
     def _bias(self) -> float:
-        positive: int = numpy.sum(self.y == 1)
+        positive: int = np.sum(self.y == 1)
         n_examples = len(self.y)
 
         bias = 1 - (positive / n_examples if positive else 0)
@@ -134,8 +134,8 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
 
         return weighted_bias
 
-    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
-        scores: npt.NDArray[numpy.float_] = self.predict_proba(self.distances)[
+    def candidate_scores(self) -> npt.NDArray[np.float_]:
+        scores: npt.NDArray[np.float_] = self.predict_proba(self.distances)[
             :, 1
         ].reshape(-1, 1)
         return scores
@@ -149,7 +149,7 @@ class BlockLearner(Learner):
 
         self.current_predicates: tuple[Predicate, ...] = ()
 
-        self._cached_labels: npt.NDArray[numpy.float_] | None = None
+        self._cached_labels: npt.NDArray[np.float_] | None = None
         self._old_dupes: TrainingExamples = []
 
         self.block_learner: training.BlockLearner
@@ -165,10 +165,10 @@ class BlockLearner(Learner):
             self._cached_labels = None
             self._old_dupes = dupes
 
-    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
+    def candidate_scores(self) -> npt.NDArray[np.float_]:
         if self._cached_labels is None:
             labels = self.predict(self.candidates)
-            self._cached_labels = numpy.array(labels).reshape(-1, 1)
+            self._cached_labels = np.array(labels).reshape(-1, 1)
 
         return self._cached_labels
 
@@ -189,7 +189,7 @@ class BlockLearner(Learner):
 
     def _remove(self, index: int) -> None:
         if self._cached_labels is not None:
-            self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
+            self._cached_labels = np.delete(self._cached_labels, index, axis=0)
 
     def _sample_indices(self, sample_size: int) -> Iterable[RecordIDPair]:
 
@@ -210,10 +210,10 @@ class BlockLearner(Learner):
         if sample_size < len(weights):
             # consider using a reservoir sampling strategy, which would
             # be more memory efficient and probably about as fast
-            normalized_weights = numpy.fromiter(weights.values(), dtype=float) / sum(
+            normalized_weights = np.fromiter(weights.values(), dtype=float) / sum(
                 weights.values()
             )
-            rng = numpy.random.default_rng()
+            rng = np.random.default_rng()
             sample_indices = rng.choice(
                 len(weights), size=sample_size, replace=False, p=normalized_weights
             )
@@ -342,7 +342,7 @@ class DisagreementLearner(ActiveLearner):
     def _common_init(self) -> None:
 
         self.learners: tuple[Learner, ...] = (self.classifier, self.blocker)
-        self.y: npt.NDArray[numpy.int_] = numpy.array([])
+        self.y: npt.NDArray[np.int_] = np.array([])
         self.pairs: TrainingExamples = []
 
     def pop(self) -> TrainingExample:
@@ -352,14 +352,14 @@ class DisagreementLearner(ActiveLearner):
         probs = self.candidate_scores()
 
         # where do the classifers disagree?
-        disagreement: numpy.ndarray = numpy.std(probs > 0.5, axis=1).astype(bool)
+        disagreement: np.ndarray = np.std(probs > 0.5, axis=1).astype(bool)
 
         if disagreement.any():
             conflicts = disagreement.nonzero()[0]
-            target = numpy.random.uniform(size=1)
-            uncertain_index = conflicts[numpy.argmax(probs[conflicts][:, 0] - target)]
+            target = np.random.uniform(size=1)
+            uncertain_index = conflicts[np.argmax(probs[conflicts][:, 0] - target)]
         else:
-            uncertain_index = numpy.std(probs, axis=1).argmax()
+            uncertain_index = np.std(probs, axis=1).argmax()
 
         logger.debug(
             "Classifier: %.2f, Covered: %s",
@@ -373,13 +373,13 @@ class DisagreementLearner(ActiveLearner):
 
         return uncertain_pair
 
-    def candidate_scores(self) -> npt.NDArray[numpy.float_]:
+    def candidate_scores(self) -> npt.NDArray[np.float_]:
         probs_l = []
         for learner in self.learners:
             probabilities = learner.candidate_scores()
             probs_l.append(probabilities)
 
-        return numpy.concatenate(probs_l, axis=1)
+        return np.concatenate(probs_l, axis=1)
 
     def _remove(self, index: int) -> None:
         for learner in self.learners:
@@ -387,7 +387,7 @@ class DisagreementLearner(ActiveLearner):
 
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
 
-        self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
+        self.y = np.concatenate([self.y, y])  # type: ignore[arg-type]
         self.pairs.extend(pairs)
 
         self.fit_transform(self.pairs, self.y)

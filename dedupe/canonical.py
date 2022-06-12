@@ -1,6 +1,6 @@
 from typing import Mapping, Sequence
 
-import numpy
+import numpy as np
 import numpy.typing as npt
 from affinegap import normalizedAffineGapDistance as affine
 
@@ -16,7 +16,7 @@ def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> st
 
     n = len(attribute_variants)
 
-    distance_matrix = numpy.zeros([n, n])
+    distance_matrix = np.zeros([n, n])
 
     # populate distance matrix by looping through elements of matrix triangle
     for i in range(0, n):
@@ -27,8 +27,8 @@ def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> st
     average_distance = distance_matrix.mean(0)
 
     # there can be ties for minimum, average distance string
-    min_dist_indices: npt.NDArray[numpy.int_]
-    min_dist_indices = numpy.where(average_distance == average_distance.min())[0]  # type: ignore
+    min_dist_indices: npt.NDArray[np.int_]
+    min_dist_indices = np.where(average_distance == average_distance.min())[0]  # type: ignore
 
     if len(min_dist_indices) > 1:
         centroid = breakCentroidTie(attribute_variants, min_dist_indices)
@@ -41,7 +41,7 @@ def getCentroid(attribute_variants: Sequence[str], comparator: Comparator) -> st
 
 def breakCentroidTie(
     attribute_variants: Sequence[str],
-    min_dist_indices: npt.NDArray[numpy.int_],
+    min_dist_indices: npt.NDArray[np.int_],
 ) -> str:
     """
     Finds centroid when there are multiple values w/ min avg distance

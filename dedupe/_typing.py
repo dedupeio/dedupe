@@ -16,7 +16,7 @@ from typing import (
     Union,
 )
 
-import numpy
+import numpy as np
 import numpy.typing as npt
 
 if sys.version_info >= (3, 8):
@@ -38,18 +38,16 @@ RecordPair = Tuple[Record, Record]
 RecordPairs = Iterator[RecordPair]
 Block = List[RecordPair]
 Blocks = Iterator[Block]
-Cluster = Tuple[
-    Tuple[RecordID, ...], Union[npt.NDArray[numpy.float_], Tuple[float, ...]]
-]
+Cluster = Tuple[Tuple[RecordID, ...], Union[npt.NDArray[np.float_], Tuple[float, ...]]]
 Clusters = Iterable[Cluster]
 Data = Mapping[RecordID, RecordDict]
 RecordDictPair = Tuple[RecordDict, RecordDict]
 RecordDictPairs = List[RecordDictPair]
-Links = Iterable[Union[numpy.ndarray, Tuple[Tuple[RecordID, RecordID], float]]]
+Links = Iterable[Union[np.ndarray, Tuple[Tuple[RecordID, RecordID], float]]]
 LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 Comparator = Callable[[Any, Any], Union[Union[int, float], Sequence[Union[int, float]]]]
-Scores = Union[numpy.memmap, numpy.ndarray]
+Scores = Union[np.memmap, np.ndarray]
 Labels = List[Literal[0, 1]]
 LabelsLike = Iterable[Literal[0, 1]]
 Cover = Dict["Predicate", FrozenSet[int]]
@@ -84,7 +82,7 @@ class Classifier(Protocol):
     def fit(self, X: object, y: object) -> None:
         ...
 
-    def predict_proba(self, X: object) -> npt.NDArray[numpy.float_]:
+    def predict_proba(self, X: object) -> npt.NDArray[np.float_]:
         ...
 
 

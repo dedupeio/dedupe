@@ -9,7 +9,7 @@ import sys
 import warnings
 from typing import Iterator, Tuple
 
-import numpy
+import numpy as np
 
 import dedupe
 from dedupe._typing import (
@@ -38,22 +38,20 @@ def randomPairs(n_records: int, sample_size: int) -> IndicesIterator:
     if not sample_size:
         return iter([])
     elif sample_size >= n:
-        random_pairs = numpy.arange(n)
+        random_pairs = np.arange(n)
     else:
         try:
-            random_pairs = numpy.array(
-                random.sample(range(n), sample_size), dtype=numpy.uint
-            )
+            random_pairs = np.array(random.sample(range(n), sample_size), dtype=np.uint)
         except OverflowError:
             return randomPairsWithReplacement(n_records, sample_size)
 
     b: int = 1 - 2 * n_records
 
-    i = (-b - 2 * numpy.sqrt(2 * (n - random_pairs) + 0.25)) // 2
-    i = i.astype(numpy.uint)
+    i = (-b - 2 * np.sqrt(2 * (n - random_pairs) + 0.25)) // 2
+    i = i.astype(np.uint)
 
     j = random_pairs + i * (b + i + 2) // 2 + 1
-    j = j.astype(numpy.uint)
+    j = j.astype(np.uint)
 
     return zip(i, j)
 
@@ -69,11 +67,11 @@ def randomPairsMatch(
     if not sample_size:
         return iter([])
     elif sample_size >= n:
-        random_pairs = numpy.arange(n)
+        random_pairs = np.arange(n)
     else:
-        random_pairs = numpy.array(random.sample(range(n), sample_size))
+        random_pairs = np.array(random.sample(range(n), sample_size))
 
-    i, j = numpy.unravel_index(random_pairs, (n_records_A, n_records_B))
+    i, j = np.unravel_index(random_pairs, (n_records_A, n_records_B))
 
     return zip(i, j)
 
@@ -84,15 +82,15 @@ def randomPairsWithReplacement(n_records: int, sample_size: int) -> IndicesItera
     warnings.warn("The same record pair may appear more than once in the sample")
 
     try:
-        random_indices = numpy.random.randint(n_records, size=sample_size * 2)
+        random_indices = np.random.randint(n_records, size=sample_size * 2)
     except (OverflowError, ValueError):
-        max_int: int = numpy.iinfo("int").max
+        max_int: int = np.iinfo("int").max
         warnings.warn(
             "Asked to sample pairs from %d records, will only sample pairs from first %d records"
             % (n_records, max_int)
         )
 
-        random_indices = numpy.random.randint(max_int, size=sample_size * 2)
+        random_indices = np.random.randint(max_int, size=sample_size * 2)
 
     random_indices = random_indices.reshape((-1, 2))
     random_indices.sort(axis=1)

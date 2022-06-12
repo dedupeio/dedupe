@@ -3,7 +3,7 @@
 import itertools
 import unittest
 
-import numpy
+import numpy as np
 
 import dedupe
 
@@ -78,7 +78,7 @@ class DataModelTest(unittest.TestCase):
 
 class ConnectedComponentsTest(unittest.TestCase):
     def test_components(self):
-        G = numpy.array(
+        G = np.array(
             [
                 ((1, 2), 0.1),
                 ((2, 3), 0.2),
@@ -109,7 +109,7 @@ class ConnectedComponentsTest(unittest.TestCase):
 class ClusteringTest(unittest.TestCase):
     def setUp(self):
         # Fully connected star network
-        self.dupes = numpy.array(
+        self.dupes = np.array(
             [
                 ((1, 2), 0.86),
                 ((1, 3), 0.72),
@@ -127,7 +127,7 @@ class ClusteringTest(unittest.TestCase):
         )
 
         # Dupes with Ids as String
-        self.str_dupes = numpy.array(
+        self.str_dupes = np.array(
             [
                 (("1", "2"), 0.86),
                 (("1", "3"), 0.72),
@@ -211,7 +211,7 @@ class ClusteringTest(unittest.TestCase):
     def test_greedy_matching(self):
         greedyMatch = dedupe.clustering.greedyMatching
 
-        bipartite_dupes = numpy.array(
+        bipartite_dupes = np.array(
             list(self.bipartite_dupes), dtype=[("ids", int, 2), ("score", float)]
         )
 
@@ -228,7 +228,7 @@ class ClusteringTest(unittest.TestCase):
         blocked_dupes = itertools.groupby(self.bipartite_dupes, key=lambda x: x[0][0])
 
         def to_numpy(x):
-            return numpy.array(x, dtype=[("ids", int, 2), ("score", float)])
+            return np.array(x, dtype=[("ids", int, 2), ("score", float)])
 
         blocked_dupes = [to_numpy(list(block)) for _, block in blocked_dupes]
 

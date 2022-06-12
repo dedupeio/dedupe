@@ -1,7 +1,7 @@
 import random
 import unittest
 
-import numpy
+import numpy as np
 import scipy.special
 
 import dedupe
@@ -57,7 +57,7 @@ class ScoreDuplicates(unittest.TestCase):
 
         score_dtype = [("pairs", "<U192", 2), ("score", "f4")]
 
-        self.desired_scored_pairs = numpy.array(
+        self.desired_scored_pairs = np.array(
             [
                 ((long_string, "2"), 0.96),
                 (["2", "3"], 0.96),
@@ -73,9 +73,9 @@ class ScoreDuplicates(unittest.TestCase):
             self.records, self.data_model, self.classifier, 2
         )
 
-        numpy.testing.assert_equal(scores["pairs"], self.desired_scored_pairs["pairs"])
+        np.testing.assert_equal(scores["pairs"], self.desired_scored_pairs["pairs"])
 
-        numpy.testing.assert_allclose(
+        np.testing.assert_allclose(
             scores["score"], self.desired_scored_pairs["score"], 2
         )
 
@@ -94,13 +94,13 @@ class ScoreDuplicates(unittest.TestCase):
 
         score_dtype = [("pairs", "<U1", 2), ("score", "f4")]
 
-        self.desired_scored_pairs = numpy.array(
+        self.desired_scored_pairs = np.array(
             [(["1", "2"], 0), (["3", "4"], 1)], dtype=score_dtype
         )
 
-        numpy.testing.assert_equal(scores["pairs"], self.desired_scored_pairs["pairs"])
+        np.testing.assert_equal(scores["pairs"], self.desired_scored_pairs["pairs"])
 
-        numpy.testing.assert_allclose(
+        np.testing.assert_allclose(
             scores["score"], self.desired_scored_pairs["score"], 2
         )
 
@@ -114,8 +114,8 @@ class FieldDistances(unittest.TestCase):
             ({"name": "Shmoo"}, {"name": "Shmoo"}),
         )
 
-        numpy.testing.assert_array_almost_equal(
-            deduper.data_model.distances(record_pairs), numpy.array([[0.0], [1.0]]), 3
+        np.testing.assert_array_almost_equal(
+            deduper.data_model.distances(record_pairs), np.array([[0.0], [1.0]]), 3
         )
 
     def test_comparator(self):
@@ -125,9 +125,9 @@ class FieldDistances(unittest.TestCase):
 
         record_pairs = (({"type": "a"}, {"type": "b"}), ({"type": "a"}, {"type": "c"}))
 
-        numpy.testing.assert_array_almost_equal(
+        np.testing.assert_array_almost_equal(
             deduper.data_model.distances(record_pairs),
-            numpy.array([[0, 0, 1, 0, 0], [0, 0, 0, 1, 0]]),
+            np.array([[0, 0, 1, 0, 0], [0, 0, 0, 1, 0]]),
             3,
         )
 
@@ -150,9 +150,9 @@ class FieldDistances(unittest.TestCase):
             ({"name": "steven", "type": "b"}, {"name": "steven", "type": "b"}),
         )
 
-        numpy.testing.assert_array_almost_equal(
+        np.testing.assert_array_almost_equal(
             deduper.data_model.distances(record_pairs),
-            numpy.array([[0, 1, 1, 0, 1], [1, 0, 1, 1, 0]]),
+            np.array([[0, 1, 1, 0, 1], [1, 0, 1, 1, 0]]),
             3,
         )
 

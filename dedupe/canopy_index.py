@@ -4,7 +4,7 @@ import logging
 import math
 from typing import Iterable
 
-import numpy
+import numpy as np
 from BTrees.Length import Length
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
@@ -34,7 +34,7 @@ class CanopyIndex(TextIndex):  # pragma: no cover
                 continue
             if isinstance(docs, dict):
                 docs = bucket(docs)
-            idf = numpy.log1p(N / len(docs))
+            idf = np.log1p(N / len(docs))
             self.index._wordinfo[wid] = docs
             term = self.lexicon._words[wid]
             self._wids_dict[term] = (wid, idf)
