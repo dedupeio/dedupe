@@ -107,7 +107,7 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
         self.distances = numpy.delete(self.distances, index, axis=0)
 
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-        y = numpy.concatenate([self.y, y])
+        y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
         X = numpy.vstack([self.X, self._distances(pairs)])
         self._fit(X, y)
 
