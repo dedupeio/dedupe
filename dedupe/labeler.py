@@ -150,7 +150,7 @@ class BlockLearner(Learner):
         dupes = [pair for label, pair in zip(y, pairs) if label]
 
         new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
-        new_uncovered = not all(self.predict(new_dupes))
+        new_uncovered = not all(self._predict(new_dupes))
 
         if new_uncovered:
             self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
@@ -159,14 +159,14 @@ class BlockLearner(Learner):
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
         if self._cached_labels is None:
-            labels = self.predict(self.candidates)
+            labels = self._predict(self.candidates)
             self._cached_labels = numpy.array(labels).reshape(-1, 1)
 
         return self._cached_labels
 
-    def predict(self, candidates: TrainingExamples) -> Labels:
+    def _predict(self, pairs: TrainingExamples) -> Labels:
         labels: Labels = []
-        for record_1, record_2 in candidates:
+        for record_1, record_2 in pairs:
 
             for predicate in self.current_predicates:
                 keys = predicate(record_2, target=True)
