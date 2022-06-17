@@ -141,8 +141,7 @@ class BlockLearner(Learner):
     candidates: TrainingExamples
     block_learner: training.BlockLearner
 
-    def __init__(self, data_model: DataModel, *args):
-        self.data_model = data_model
+    def __init__(self):
         self.current_predicates: tuple[Predicate, ...] = ()
         self._cached_labels: numpy.typing.NDArray[numpy.float_] | None = None
         self._old_dupes: TrainingExamples = []
@@ -225,17 +224,17 @@ class DedupeBlockLearner(BlockLearner):
         data: Data,
         index_include: TrainingExamples,
     ):
-        super().__init__(data_model)
+        super().__init__()
 
         N_SAMPLED_RECORDS = 5000
         N_SAMPLED_RECORD_PAIRS = 10000
 
         index_data = sample_records(data, 50000)
         sampled_records = sample_records(index_data, N_SAMPLED_RECORDS)
-        preds = self.data_model.predicates()
+        pred_candidates = data_model.predicates()
 
         self.block_learner = training.DedupeBlockLearner(
-            preds, sampled_records, index_data
+            pred_candidates, sampled_records, index_data
         )
 
         self.candidates = self._sample(sampled_records, N_SAMPLED_RECORD_PAIRS)
@@ -276,8 +275,7 @@ class RecordLinkBlockLearner(BlockLearner):
         data_2: Data,
         index_include: TrainingExamples,
     ):
-
-        super().__init__(data_model)
+        super().__init__()
 
         N_SAMPLED_RECORDS = 1000
         N_SAMPLED_RECORD_PAIRS = 5000
@@ -286,10 +284,10 @@ class RecordLinkBlockLearner(BlockLearner):
         index_data = sample_records(data_2, 50000)
         sampled_records_2 = sample_records(index_data, N_SAMPLED_RECORDS)
 
-        preds = self.data_model.predicates(canopies=False)
+        pred_candidates = data_model.predicates(canopies=False)
 
         self.block_learner = training.RecordLinkBlockLearner(
-            preds, sampled_records_1, sampled_records_2, index_data
+            pred_candidates, sampled_records_1, sampled_records_2, index_data
         )
 
         self.candidates = self._sample(
