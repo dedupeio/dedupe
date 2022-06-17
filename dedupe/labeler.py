@@ -341,9 +341,8 @@ class DisagreementLearner(ActiveLearner):
     blocker: BlockLearner
     candidates: TrainingExamples
 
-    def _common_init(self) -> None:
-
-        self.learners: tuple[Learner, ...] = (self.classifier, self.blocker)
+    def __init__(self, data_model: DataModel) -> None:
+        self.data_model = data_model
         self.y: numpy.typing.NDArray[numpy.int_] = numpy.array([])
         self.pairs: TrainingExamples = []
 
@@ -383,6 +382,10 @@ class DisagreementLearner(ActiveLearner):
 
         return numpy.concatenate(probs_l, axis=1)
 
+    @property
+    def learners(self) -> tuple[Learner, ...]:
+        return (self.classifier, self.blocker)
+
     def _remove(self, index: int) -> None:
         for learner in self.learners:
             learner._remove(index)
@@ -409,8 +412,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
         data: Data,
         index_include: TrainingExamples,
     ):
-
-        self.data_model = data_model
+        super().__init__(data_model)
 
         data = core.index(data)
 
@@ -430,8 +432,6 @@ class DedupeDisagreementLearner(DisagreementLearner):
         self.classifier = MatchLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
-        self._common_init()
-
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
         self.mark(examples, labels)
@@ -445,8 +445,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         data_2: Data,
         index_include: TrainingExamples,
     ):
-
-        self.data_model = data_model
+        super().__init__(data_model)
 
         data_1 = core.index(data_1)
 
@@ -467,8 +466,6 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
 
         self.classifier = MatchLearner(self.data_model)
         self.classifier.candidates = self.candidates
-
-        self._common_init()
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
