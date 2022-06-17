@@ -152,7 +152,9 @@ class BlockLearner(Learner):
         new_uncovered = not all(self._predict(new_dupes))
 
         if new_uncovered:
-            self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
+            self.current_predicates = self.block_learner.learn(
+                dupes, recall=1.0, index_predicates=True, candidate_types="simple"
+            )
             self._cached_labels = None
             self._old_dupes = dupes
 
@@ -162,6 +164,16 @@ class BlockLearner(Learner):
             self._cached_labels = numpy.array(labels).reshape(-1, 1)
 
         return self._cached_labels
+
+    def learn_predicates(
+        self, dupes: TrainingExamples, recall: float, index_predicates: bool
+    ) -> tuple[Predicate, ...]:
+        return self.block_learner.learn(
+            dupes,
+            recall=recall,
+            index_predicates=index_predicates,
+            candidate_types="random forest",
+        )
 
     def _predict(self, pairs: TrainingExamples) -> Labels:
         labels: Labels = []
@@ -389,30 +401,10 @@ class DisagreementLearner(ActiveLearner):
     def learn_predicates(
         self, recall: float, index_predicates: bool
     ) -> tuple[Predicate, ...]:
-
-        learned_preds: tuple[Predicate, ...]
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
-
-        if not index_predicates:
-            old_preds = self.blocker.block_learner.blocker.predicates.copy()  # type: ignore[attr-defined]
-
-            no_index_predicates = [
-                pred for pred in old_preds if not hasattr(pred, "index")
-            ]
-            self.blocker.block_learner.blocker.predicates = no_index_predicates
-
-            learned_preds = self.blocker.block_learner.learn(
-                dupes, recall=recall, candidate_types="random forest"
-            )
-
-            self.blocker.block_learner.blocker.predicates = old_preds
-
-        else:
-            learned_preds = self.blocker.block_learner.learn(
-                dupes, recall=recall, candidate_types="random forest"
-            )
-
-        return learned_preds
+        return self.blocker.learn_predicates(
+            dupes, recall=recall, index_predicates=index_predicates
+        )
 
 
 class DedupeDisagreementLearner(DisagreementLearner):

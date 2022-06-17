@@ -28,6 +28,7 @@ class BlockLearner(ABC):
         self,
         matches: TrainingExamples,
         recall: float,
+        index_predicates: bool,
         candidate_types: Literal["simple", "random forest"] = "simple",
     ) -> tuple[Predicate, ...]:
         """
@@ -39,7 +40,7 @@ class BlockLearner(ABC):
         ), "You must supply at least one pair of matching records to learn blocking rules."
 
         comparison_cover = self.comparison_cover
-        match_cover = self.cover(matches)
+        match_cover = self.cover(matches, index_predicates=index_predicates)
 
         for key in list(match_cover.keys() - comparison_cover.keys()):
             del match_cover[key]
@@ -138,9 +139,15 @@ class BlockLearner(ABC):
 
         return candidates
 
-    def cover(self, pairs: TrainingExamples) -> Cover:
+    def cover(self, pairs: TrainingExamples, index_predicates: bool = True) -> Cover:
         predicate_cover = {}
-        for predicate in self.blocker.predicates:
+        if index_predicates:
+            predicates = self.blocker.predicates
+        else:
+            predicates = [
+                pred for pred in self.blocker.predicates if not hasattr(pred, "index")
+            ]
+        for predicate in predicates:
             coverage = frozenset(
                 i
                 for i, (record_1, record_2) in enumerate(pairs)
