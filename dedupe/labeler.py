@@ -375,12 +375,8 @@ class DisagreementLearner(ActiveLearner):
         return uncertain_pair
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        probs_l = []
-        for learner in self.learners:
-            probabilities = learner.candidate_scores()
-            probs_l.append(probabilities)
-
-        return numpy.concatenate(probs_l, axis=1)
+        probs = [learner.candidate_scores() for learner in self.learners]
+        return numpy.concatenate(probs, axis=1)
 
     @property
     def learners(self) -> tuple[Learner, ...]:
