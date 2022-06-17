@@ -388,15 +388,10 @@ class DisagreementLearner(ActiveLearner):
             learner._remove(index)
 
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-
         self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
         self.pairs.extend(pairs)
-
-        self.fit(self.pairs, self.y)
-
-    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         for learner in self.learners:
-            learner.fit(pairs, y)
+            learner.fit(self.pairs, self.y)
 
     def learn_predicates(
         self, recall: float, index_predicates: bool
