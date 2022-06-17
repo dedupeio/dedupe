@@ -1298,8 +1298,6 @@ class Dedupe(ActiveMatching, DedupeMatching):
     entity.
     """
 
-    ActiveLearner = labeler.DedupeDisagreementLearner
-
     def prepare_training(
         self,
         data: Data,
@@ -1341,7 +1339,7 @@ class Dedupe(ActiveMatching, DedupeMatching):
         # existing training data, so add them to data dictionary
         examples, y = flatten_training(self.training_pairs)
 
-        self.active_learner = self.ActiveLearner(
+        self.active_learner = labeler.DedupeDisagreementLearner(
             self.data_model,
             data,
             index_include=examples,
@@ -1360,8 +1358,6 @@ class Link(ActiveMatching):
     """
     Mixin Class for Active Learning Record Linkage
     """
-
-    ActiveLearner = labeler.RecordLinkDisagreementLearner
 
     def prepare_training(
         self,
@@ -1410,7 +1406,7 @@ class Link(ActiveMatching):
         # existing training data, so add them to data dictionaries
         examples, y = flatten_training(self.training_pairs)
 
-        self.active_learner = self.ActiveLearner(
+        self.active_learner = labeler.RecordLinkDisagreementLearner(
             self.data_model,
             data_1,
             data_2,
