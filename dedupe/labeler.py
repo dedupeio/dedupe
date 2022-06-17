@@ -138,7 +138,6 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
 
 
 class BlockLearner(Learner):
-    candidates: TrainingExamples
     block_learner: training.BlockLearner
 
     def __init__(self):
