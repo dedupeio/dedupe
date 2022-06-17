@@ -55,11 +55,11 @@ class ActiveLearner(Learner):
         pass
 
 
-class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
+class MatchLearner(ActiveLearner):
     def __init__(self, data_model: DataModel):
-        super().__init__()
         self.data_model = data_model
         self._candidates: TrainingExamples = []
+        self._classifier = sklearn.linear_model.LogisticRegression()
 
     @property  # type: ignore[override]
     def candidates(self) -> TrainingExamples:  # type: ignore[override]
@@ -81,7 +81,7 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
     def _fit(self, X: numpy.typing.NDArray[numpy.float_], y: LabelsLike) -> None:
         self.y: numpy.typing.NDArray[numpy.int_] = numpy.array(y)
         self.X = X
-        sklearn.linear_model.LogisticRegression.fit(self, self.X, self.y)
+        self._classifier.fit(self.X, self.y)
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         self._fit(self._distances(pairs), y)
@@ -131,9 +131,9 @@ class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
         return weighted_bias
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        scores: numpy.typing.NDArray[numpy.float_] = self.predict_proba(self.distances)[
-            :, 1
-        ].reshape(-1, 1)
+        scores: numpy.typing.NDArray[numpy.float_] = self._classifier.predict_proba(
+            self.distances
+        )[:, 1].reshape(-1, 1)
         return scores
 
 
@@ -337,7 +337,7 @@ class RecordLinkBlockLearner(BlockLearner):
 
 class DisagreementLearner(ActiveLearner):
 
-    classifier: RLRLearner
+    classifier: MatchLearner
     blocker: BlockLearner
     candidates: TrainingExamples
 
@@ -432,7 +432,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
         self.candidates = self.blocker.candidates
 
-        self.classifier = RLRLearner(self.data_model)
+        self.classifier = MatchLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
@@ -470,7 +470,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
         self.candidates = self.blocker.candidates
 
-        self.classifier = RLRLearner(self.data_model)
+        self.classifier = MatchLearner(self.data_model)
         self.classifier.candidates = self.candidates
 
         self._common_init()
