@@ -337,7 +337,7 @@ class RecordLinkBlockLearner(BlockLearner):
 
 class DisagreementLearner(ActiveLearner):
 
-    classifier: MatchLearner
+    matcher: MatchLearner
     blocker: BlockLearner
     candidates: TrainingExamples
 
@@ -384,7 +384,7 @@ class DisagreementLearner(ActiveLearner):
 
     @property
     def learners(self) -> tuple[Learner, ...]:
-        return (self.classifier, self.blocker)
+        return (self.matcher, self.blocker)
 
     def _remove(self, index: int) -> None:
         for learner in self.learners:
@@ -429,8 +429,8 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
         self.candidates = self.blocker.candidates
 
-        self.classifier = MatchLearner(self.data_model)
-        self.classifier.candidates = self.candidates
+        self.matcher = MatchLearner(self.data_model)
+        self.matcher.candidates = self.candidates
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
@@ -464,8 +464,8 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
         self.candidates = self.blocker.candidates
 
-        self.classifier = MatchLearner(self.data_model)
-        self.classifier.candidates = self.candidates
+        self.matcher = MatchLearner(self.data_model)
+        self.matcher.candidates = self.candidates
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
