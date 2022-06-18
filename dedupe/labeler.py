@@ -142,7 +142,7 @@ class BlockLearner(Learner):
 
     def __init__(self):
         self.current_predicates: tuple[Predicate, ...] = ()
-        self._cached_labels: numpy.typing.NDArray[numpy.float_] | None = None
+        self._cached_scores: numpy.typing.NDArray[numpy.float_] | None = None
         self._old_dupes: TrainingExamples = []
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
@@ -155,15 +155,15 @@ class BlockLearner(Learner):
             self.current_predicates = self.block_learner.learn(
                 dupes, recall=1.0, index_predicates=True, candidate_types="simple"
             )
-            self._cached_labels = None
+            self._cached_scores = None
             self._old_dupes = dupes
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        if self._cached_labels is None:
+        if self._cached_scores is None:
             labels = self._predict(self.candidates)
-            self._cached_labels = numpy.array(labels).reshape(-1, 1)
+            self._cached_scores = numpy.array(labels).reshape(-1, 1)
 
-        return self._cached_labels
+        return self._cached_scores
 
     def learn_predicates(
         self, dupes: TrainingExamples, recall: float, index_predicates: bool
