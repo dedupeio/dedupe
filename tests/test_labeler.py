@@ -3,9 +3,7 @@ import unittest
 
 import pytest
 
-from dedupe import datamodel
-from dedupe import labeler
-
+from dedupe import datamodel, labeler
 from dedupe._typing import RecordDictPair
 
 SAMPLE = {

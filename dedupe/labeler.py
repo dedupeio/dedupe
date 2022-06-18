@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Hashable, Sequence
+from typing import TYPE_CHECKING
 
 import numpy
 import numpy.typing
