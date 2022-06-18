@@ -297,7 +297,7 @@ class DisagreementLearner(HasCandidates):
         if not len(self.candidates):
             raise IndexError("No more unlabeled examples to label")
 
-        prob_l = [learner.candidate_scores() for learner in self.learners]
+        prob_l = [learner.candidate_scores() for learner in self._learners]
         probs = numpy.concatenate(prob_l, axis=1)
 
         # where do the classifers disagree?
@@ -321,18 +321,18 @@ class DisagreementLearner(HasCandidates):
         return uncertain_pair
 
     @property
-    def learners(self) -> tuple[Learner, ...]:
+    def _learners(self) -> tuple[Learner, ...]:
         return (self.matcher, self.blocker)
 
     def _remove(self, index: int) -> None:
         self._candidates.pop(index)
-        for learner in self.learners:
+        for learner in self._learners:
             learner.remove(index)
 
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
         self.pairs.extend(pairs)
-        for learner in self.learners:
+        for learner in self._learners:
             learner.fit(self.pairs, self.y)
 
     def learn_predicates(
