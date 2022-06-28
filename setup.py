@@ -39,7 +39,7 @@ setup(
         [Extension("dedupe.cpredicates", ["dedupe/cpredicates.pyx"])]
     ),
     install_requires=install_requires,
-    python_requires=">3.6",
+    python_requires=">=3.7",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
