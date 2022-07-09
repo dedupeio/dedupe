@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy
 import numpy.typing
@@ -56,6 +56,18 @@ class Learner(ABC, HasCandidates):
     def remove(self, index: int) -> None:
         """Remove a pair from self.candidates."""
 
+    @staticmethod
+    def _verify_fit_args(pairs: TrainingExample, y: LabelsLike) -> list[Literal[0, 1]]:
+        """Helper method to verify the arguments given to fit()"""
+        if len(pairs) == 0:
+            raise ValueError("pairs must have length of at least 1")
+        y = list(y)
+        if len(pairs) != len(y):
+            raise ValueError(
+                f"pairs and y must be same length. Got {len(pairs)} and {len(y)}"
+            )
+        return y
+
 
 class MatchLearner(Learner):
     def __init__(self, data_model: DataModel, candidates: TrainingExamples):
@@ -65,6 +77,7 @@ class MatchLearner(Learner):
         self._distances = self._calc_distances(self.candidates)
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+        y = self._verify_fit_args(pairs, y)
         self._classifier.fit(self._calc_distances(pairs), numpy.array(y))
         self._fitted = True
 
@@ -95,6 +108,7 @@ class BlockLearner(Learner):
         self._old_dupes: TrainingExamples = []
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+        y = self._verify_fit_args(pairs, y)
         dupes = [pair for label, pair in zip(y, pairs) if label]
 
         new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
