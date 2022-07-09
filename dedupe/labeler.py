@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class HasCandidates:
-    """Has a read-only list of pairs that we could ask the user to label."""
+    """Has a list of pairs that we could ask the user to label."""
 
     _candidates: TrainingExamples
 
