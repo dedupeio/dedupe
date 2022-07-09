@@ -1,5 +1,6 @@
 .env
 .coverage*
+htmlcov
 cpredicates.c
 *.code-workspace
 libdistance-0.2.1
@@ -29,7 +30,6 @@ mysql.cnf
 *.egg-info
 ENV
 dist
-.coverage
 src/*.c
 
 !benchmarks/asv.conf.json
