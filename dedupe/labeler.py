@@ -42,6 +42,8 @@ class HasCandidates:
 class Learner(ABC, HasCandidates):
     """A single learner that is used by DisagreementLearner."""
 
+    _fitted: bool = False
+
     @abstractmethod
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         """Train on the given data."""
@@ -61,10 +63,10 @@ class MatchLearner(Learner):
         self._candidates = candidates.copy()
         self._classifier = sklearn.linear_model.LogisticRegression()
         self._distances = self._calc_distances(self.candidates)
-        self._fitted = False
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         self._classifier.fit(self._calc_distances(pairs), numpy.array(y))
+        self._fitted = True
 
     def remove(self, index: int) -> None:
         self._candidates.pop(index)
@@ -72,9 +74,7 @@ class MatchLearner(Learner):
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
         if not self._fitted:
-            random_pair = random.choice(self.candidates)
-            exact_match = (random_pair[0], random_pair[0])
-            self.fit([exact_match, random_pair], [1, 0])
+            raise ValueError("Must call fit() before candidate_scores()")
         scores: numpy.typing.NDArray[numpy.float_] = self._classifier.predict_proba(
             self._distances
         )[:, 1].reshape(-1, 1)
@@ -106,8 +106,11 @@ class BlockLearner(Learner):
             )
             self._cached_scores = None
             self._old_dupes = dupes
+        self._fitted = True
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+        if not self._fitted:
+            raise ValueError("Must call fit() before candidate_scores()")
         if self._cached_scores is None:
             labels = self._predict(self.candidates)
             self._cached_scores = numpy.array(labels).reshape(-1, 1)
