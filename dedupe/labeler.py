@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy
 import numpy.typing
@@ -13,7 +13,7 @@ import dedupe.core as core
 import dedupe.training as training
 
 if TYPE_CHECKING:
-    from typing import Dict, Iterable, Mapping
+    from typing import Dict, Iterable, Literal, Mapping
 
     from dedupe._typing import Data, Labels, LabelsLike
     from dedupe._typing import RecordDictPair as TrainingExample
@@ -57,7 +57,7 @@ class Learner(ABC, HasCandidates):
         """Remove a pair from self.candidates."""
 
     @staticmethod
-    def _verify_fit_args(pairs: TrainingExample, y: LabelsLike) -> list[Literal[0, 1]]:
+    def _verify_fit_args(pairs: TrainingExamples, y: LabelsLike) -> list[Literal[0, 1]]:
         """Helper method to verify the arguments given to fit()"""
         if len(pairs) == 0:
             raise ValueError("pairs must have length of at least 1")
