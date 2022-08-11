@@ -7,7 +7,6 @@ except ImportError:
 
 from Cython.Build import cythonize
 
-
 setup(
     ext_modules=cythonize([Extension("dedupe.cpredicates", ["dedupe/cpredicates.pyx"])])
 )
