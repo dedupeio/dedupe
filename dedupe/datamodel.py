@@ -69,17 +69,12 @@ class DataModel(object):
             yield (var.field, comparator, start, stop)
             start = stop
 
-    def predicates(self, canopies: bool = True) -> set[Predicate]:
+    @property
+    def predicates(self) -> set[Predicate]:
         predicates = set()
         for var in self.primary_variables:
             for predicate in var.predicates:
-                if hasattr(predicate, "index"):
-                    is_canopy = hasattr(predicate, "canopy")
-                    if is_canopy == canopies:
-                        predicates.add(predicate)
-                else:
-                    predicates.add(predicate)
-
+                predicates.add(predicate)
         return predicates
 
     def distances(

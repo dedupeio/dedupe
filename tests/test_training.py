@@ -34,7 +34,7 @@ class TrainingTest(unittest.TestCase):
 
         self.block_learner = training.BlockLearner
         self.block_learner.blocker = dedupe.blocking.Fingerprinter(
-            self.data_model.predicates()
+            self.data_model.predicates
         )
         self.block_learner.blocker.index_all(
             {i: x for i, x in enumerate(self.training_records)}
