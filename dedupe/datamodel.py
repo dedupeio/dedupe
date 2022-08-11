@@ -74,12 +74,9 @@ class DataModel(object):
         for var in self.primary_variables:
             for predicate in var.predicates:
                 if hasattr(predicate, "index"):
-                    if hasattr(predicate, "canopy"):
-                        if canopies:
-                            predicates.add(predicate)
-                    else:
-                        if not canopies:
-                            predicates.add(predicate)
+                    is_canopy = hasattr(predicate, "canopy")
+                    if is_canopy == canopies:
+                        predicates.add(predicate)
                 else:
                     predicates.add(predicate)
 
