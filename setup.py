@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 try:
     from setuptools import Extension, setup
 except ImportError:
@@ -10,68 +7,7 @@ except ImportError:
 
 from Cython.Build import cythonize
 
-install_requires = [
-    "scikit-learn",
-    "affinegap>=1.3",
-    "categorical-distance>=1.9",
-    "dedupe-variable-datetime",
-    "numpy>=1.13",
-    "doublemetaphone",
-    "highered>=0.2.0",
-    "simplecosine>=1.2",
-    "haversine>=0.4.1",
-    "BTrees>=4.1.4",
-    "zope.index",
-    "Levenshtein_search==1.4.5",
-    "typing_extensions",
-]
-
 
 setup(
-    name="dedupe",
-    url="https://github.com/dedupeio/dedupe",
-    version="2.0.17",
-    author="Forest Gregg",
-    author_email="fgregg@datamade.us",
-    description="A python library for accurate and scaleable data deduplication and entity-resolution",
-    packages=["dedupe", "dedupe.variables"],
-    ext_modules=cythonize(
-        [Extension("dedupe.cpredicates", ["dedupe/cpredicates.pyx"])]
-    ),
-    install_requires=install_requires,
-    python_requires=">=3.7",
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: MIT License",
-        "Natural Language :: English",
-        "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: POSIX",
-        "Programming Language :: Cython",
-        "Programming Language :: Python :: 3",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: Scientific/Engineering",
-        "Topic :: Scientific/Engineering :: Information Analysis",
-    ],
-    long_description="""
-    dedupe is a library that uses machine learning to perform de-duplication and entity resolution quickly on structured data. dedupe is the open source engine for `dedupe.io <https://dedupe.io>`_
-
-    **dedupe** will help you:
-
-    * **remove duplicate entries** from a spreadsheet of names and addresses
-    * **link a list** with customer information to another with order history, even without unique customer id's
-    * take a database of campaign contributions and **figure out which ones were made by the same person**, even if the names were entered slightly differently for each record
-
-    dedupe takes in human training data and comes up with the best rules for your dataset to quickly and automatically find similar records, even with very large databases.
-    """,  # noqa: E501
-    project_urls={
-        "Issues": "https://github.com/dedupeio/dedupe/issues",
-        "Documentation": "https://docs.dedupe.io/en/latest/",
-        "Examples": "https://github.com/dedupeio/dedupe-examples",
-        "Twitter": "https://twitter.com/DedupeIo",
-        "Changelog": "https://github.com/dedupeio/dedupe/blob/main/CHANGELOG.md",
-        "Mailing List": "https://groups.google.com/forum/#!forum/open-source-deduplication",
-    },
+    ext_modules=cythonize([Extension("dedupe.cpredicates", ["dedupe/cpredicates.pyx"])])
 )
