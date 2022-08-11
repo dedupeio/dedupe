@@ -1,7 +1,63 @@
+[project]
+name = "dedupe"
+description = "A python library for accurate and scaleable data deduplication and entity-resolution"
+version = "2.0.17"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE"}
+keywords = []
+authors = [
+  { name = "Forest Gregg", email = "fgregg@datamade.us" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "scikit-learn",
+    "affinegap>=1.3",
+    "categorical-distance>=1.9",
+    "dedupe-variable-datetime",
+    "numpy>=1.13",
+    "doublemetaphone",
+    "highered>=0.2.0",
+    "simplecosine>=1.2",
+    "haversine>=0.4.1",
+    "BTrees>=4.1.4",
+    "zope.index",
+    "Levenshtein_search==1.4.5",
+    "typing_extensions",
+]
+
+[project.urls]
+Homepage = "https://github.com/dedupeio/dedupe"
+Issues = "https://github.com/dedupeio/dedupe/issues"
+Documentation = "https://docs.dedupe.io/en/latest/"
+Examples = "https://github.com/dedupeio/dedupe-examples"
+Twitter = "https://twitter.com/DedupeIo"
+Changelog = "https://github.com/dedupeio/dedupe/blob/main/CHANGELOG.md"
+MailingList = "https://groups.google.com/forum/#!forum/open-source-deduplication"
+
+
 [build-system]
-requires = ["setuptools",
+requires = ["setuptools>=64",
             "wheel",
             "cython"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["dedupe", "dedupe.variables"]
 
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
