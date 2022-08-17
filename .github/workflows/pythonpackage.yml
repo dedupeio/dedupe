@@ -97,7 +97,7 @@ jobs:
         with:
           clean: false
       - name: Install any new dependencies
-        run: pip install -e .--config-settings editable_mode=compat
+        run: pip install -e . --config-settings editable_mode=compat
       - name: Run on canonical with setting file created on main
         run: python benchmarks/benchmarks/canonical.py      
   wheels:
