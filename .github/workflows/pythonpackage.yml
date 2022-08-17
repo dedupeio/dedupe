@@ -89,7 +89,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -e . --config-settings editable_mode=compat
-          python -m pip install -e ./benchmarks          
+          python -m pip install -e ./benchmarks --config-settings editable_mode=compat
       - name: Run on canonical on main
         run: python benchmarks/benchmarks/canonical.py
       - name: checkout this PR branch
