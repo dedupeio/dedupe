@@ -401,10 +401,10 @@ class RecordLinkMatching(IntegralMatching):
             self.fingerprinter.reset_indices()
 
             con.executescript(
-                """CREATE INDEX block_key_a_idx
+                """CREATE UNIQUE INDEX block_key_a_idx
                                  ON blocking_map_a (record_id, block_key);
 
-                                 CREATE INDEX block_key_b_idx
+                   CREATE UNIQUE INDEX block_key_b_idx
                                  ON blocking_map_b (block_key, record_id);"""
             )
             con.execute("""ANALYZE""")
@@ -682,7 +682,7 @@ class GazetteerMatching(Matching):
         )
 
         con.execute(
-            """CREATE INDEX IF NOT EXISTS
+            """CREATE UNIQUE INDEX IF NOT EXISTS
                        indexed_records_block_key_idx
                        ON indexed_records
                        (block_key, record_id)"""

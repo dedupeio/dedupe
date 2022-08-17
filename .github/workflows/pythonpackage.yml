@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e .
+          pip install -e . --config-settings editable_mode=compat
           pip install -r requirements.txt
       - name: flake8
         run: flake8 dedupe tests benchmarks/benchmarks

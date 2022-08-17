@@ -61,10 +61,8 @@ Once you have virtualenvwrapper set up,
 mkvirtualenv dedupe
 git clone git://github.com/dedupeio/dedupe.git
 cd dedupe
-pip install "numpy>=1.9"
+pip install -e . --config-settings editable_mode=compat
 pip install -r requirements.txt
-cython src/*.pyx
-pip install -e .
 ```
 
 If these tests pass, then everything should have been installed correctly!
