@@ -44,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -e .
+        pip install -e . --config-settings editable_mode=compat
     - name: Install test dependencies
       run: pip install -r requirements.txt
     - name: pytest
@@ -88,7 +88,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e .
+          pip install -e . --config-settings editable_mode=compat
           python -m pip install -e ./benchmarks          
       - name: Run on canonical on main
         run: python benchmarks/benchmarks/canonical.py
