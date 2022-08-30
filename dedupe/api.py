@@ -97,12 +97,27 @@ class IntegralMatching(Matching):
 
     def score(self, pairs: RecordPairs) -> Scores:
         """
-        Scores pairs of records. Returns pairs of tuples of records id and
-        associated probabilities that the pair of records are match
+        Scores pairs of records. Returns a numpy structured array of scores.
 
         Args:
-            pairs: Iterator of pairs of records
+            pairs: Iterator of pairs of records, such as from the output of :func:`pairs`
 
+        Returns:
+            A numpy
+            `structured array <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`_
+            with a with a dtype of `[('pairs', id_type, 2), ('score', 'f4')]`
+            where dtype is either a str or int,
+            and score is a 32-bit float in the range (0, 1].
+            The 'pairs' column contains pairs of ids of
+            the records compared and the 'score' column contains
+            the similarity score for that pair of records.
+
+            This array will be a numpy.array when self.num_cores is 1,
+            and a numpy.memmap when self.num_cores is greater than 1.
+            This memmap will automatically clean itself up, you don't
+            have to worry about it.
+
+            For each pair, the smaller id will be first.
         """
         try:
             matches = core.scoreDuplicates(
@@ -802,6 +817,8 @@ class GazetteerMatching(Matching):
         Args:
             blocks: Iterator of blocks of records
 
+        Yields:
+            Structured numpy arrays. See :meth:`dedupe.Dedupe.score` for more info.
         """
 
         matches = core.scoreGazette(
@@ -943,7 +960,7 @@ class StaticMatching(Matching):
         Args:
             settings_file: A file object containing settings
                            info produced from the
-                           :func:`~dedupe.api.ActiveMatching.write_settings` method.
+                           :meth:`dedupe.Dedupe.write_settings` method.
 
             num_cores: The number of cpus to use for parallel
                        processing, defaults to the number of cpus
