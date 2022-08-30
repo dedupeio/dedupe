@@ -9,7 +9,6 @@ from __future__ import annotations
 import itertools
 import logging
 import multiprocessing
-import os
 import pickle
 import sqlite3
 import tempfile
@@ -175,7 +174,6 @@ class DedupeMatching(IntegralMatching):
         clusters = self.cluster(pair_scores, threshold)
         clusters = self._add_singletons(data, clusters)
         clusters = list(clusters)
-        _cleanup_scores(pair_scores)
         return clusters
 
     def _add_singletons(self, data: Data, clusters: Clusters) -> Clusters:
@@ -514,7 +512,6 @@ class RecordLinkMatching(IntegralMatching):
             links = pair_scores[pair_scores["score"] > threshold]
 
         links = list(links)
-        _cleanup_scores(pair_scores)
         return links
 
     def one_to_one(self, scores: Scores, threshold: float = 0.0) -> Links:
@@ -1468,14 +1465,3 @@ def flatten_training(
         y.extend([encoded_y] * len(pairs))
 
     return examples, numpy.array(y)
-
-
-def _cleanup_scores(arr: Scores) -> None:
-    try:
-        mmap_file = arr.filename  # type: ignore
-    except AttributeError:
-        pass
-    else:
-        del arr
-        if mmap_file:
-            os.remove(mmap_file)

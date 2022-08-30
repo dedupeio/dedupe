@@ -10,6 +10,7 @@ import multiprocessing.dummy
 import os
 import queue
 import tempfile
+import weakref
 from typing import TYPE_CHECKING, overload
 
 import numpy
@@ -176,7 +177,27 @@ def scoreDuplicates(
     else:
         scored_pairs = numpy.array([], dtype=dtype)
 
+    # Monkeypatch in these extra methods and attributes.
+    # See https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
+    scored_pairs.remove = weakref.finalize(scored_pairs, _cleanup_scores, scored_pairs)  # type: ignore[union-attr]
+    scored_pairs.removed = property(_is_removed)  # type: ignore[union-attr]
+
     return scored_pairs
+
+
+def _cleanup_scores(arr: Scores) -> None:
+    try:
+        mmap_file = arr.filename  # type: ignore
+    except AttributeError:
+        pass
+    else:
+        del arr
+        if mmap_file:
+            os.remove(mmap_file)
+
+
+def _is_removed(self):
+    return not self.remove.alive
 
 
 def fillQueue(
