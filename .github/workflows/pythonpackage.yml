@@ -49,14 +49,12 @@ jobs:
       run: pip install -r requirements.txt
     - name: pytest
       run: pytest
-    - env:
+    - name: Submit to coveralls
+      run: coveralls --service=github
+      env:
         COVERALLS_PARALLEL: true
-        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_FLAG_NAME: job-${{ matrix.os}}-${{ matrix.python-version }}
-      name: Submit to coveralls
-      run: |
-        pip install https://github.com/bboe/coveralls-python/archive/github_actions.zip
-        coveralls
     - name: Integration tests
       # Do everything twice: The first time is training and generates settings,
       # the second time it tests using a static settings file.
@@ -69,14 +67,17 @@ jobs:
         python benchmarks/benchmarks/canonical_gazetteer.py
         python benchmarks/benchmarks/canonical_gazetteer.py
   coveralls_finish:
+    name: Indicate completion to coveralls.io
     needs: test
     runs-on: ubuntu-latest
+    container: python:3-slim
     steps:
-    - name: Coveralls Finished
-      uses: coverallsapp/github-action@57daa114ba54fd8e1c8563e8027325c0bf2f5e80
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
+    - name: Finished
+      run: |
+        pip3 install --upgrade coveralls
+        coveralls --service=github --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   settings_file_persists:
     runs-on: ubuntu-latest
     steps:

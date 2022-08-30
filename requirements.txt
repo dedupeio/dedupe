@@ -1,5 +1,6 @@
 asv
 black
+coveralls
 flake8
 mock
 mypy
