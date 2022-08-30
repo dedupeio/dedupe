@@ -225,6 +225,20 @@ class BlockLearner(Learner):
         return sample_ids
 
 
+def _filter_canopy_predicates(
+    predicates: Iterable[Predicate], canopies: bool
+) -> set[Predicate]:
+    result = set()
+    for predicate in predicates:
+        if hasattr(predicate, "index"):
+            is_canopy = hasattr(predicate, "canopy")
+            if is_canopy == canopies:
+                result.add(predicate)
+        else:
+            result.add(predicate)
+    return result
+
+
 class DedupeBlockLearner(BlockLearner):
     def __init__(
         self,
@@ -239,7 +253,8 @@ class DedupeBlockLearner(BlockLearner):
 
         index_data = sample_records(data, 50000)
         sampled_records = sample_records(index_data, N_SAMPLED_RECORDS)
-        preds = self.data_model.predicates()
+        preds = self.data_model.predicates
+        preds = _filter_canopy_predicates(preds, canopies=True)
 
         self.block_learner = training.DedupeBlockLearner(
             preds, sampled_records, index_data
@@ -293,7 +308,8 @@ class RecordLinkBlockLearner(BlockLearner):
         index_data = sample_records(data_2, 50000)
         sampled_records_2 = sample_records(index_data, N_SAMPLED_RECORDS)
 
-        preds = self.data_model.predicates(canopies=False)
+        preds = self.data_model.predicates
+        preds = _filter_canopy_predicates(preds, canopies=False)
 
         self.block_learner = training.RecordLinkBlockLearner(
             preds, sampled_records_1, sampled_records_2, index_data
