@@ -80,29 +80,27 @@ class ScoreDuplicates(unittest.TestCase):
         )
 
     def test_score_duplicates_with_zeros(self):
+        # Pairs with scores of 0s shouldn't be included
+        # https://github.com/dedupeio/dedupe/issues/1072
         self.classifier.weight = -1000
         self.classifier.bias = 1000
-        self.records = iter(
+        records = iter(
             [
                 (("1", {"name": "ABCD"}), ("2", {"name": "EFGH"})),
                 (("3", {"name": "IJKL"}), ("4", {"name": "IJKL"})),
             ]
         )
+        dtype = [("pairs", "<U256", 2), ("score", "f4")]
+        expected = numpy.array([(["3", "4"], 1)], dtype=dtype)
+
         scores = dedupe.core.scoreDuplicates(
-            self.records, self.data_model, self.classifier, 2
+            records, self.data_model, self.classifier, 2
         )
 
-        score_dtype = [("pairs", "<U1", 2), ("score", "f4")]
-
-        self.desired_scored_pairs = numpy.array(
-            [(["1", "2"], 0), (["3", "4"], 1)], dtype=score_dtype
-        )
-
-        numpy.testing.assert_equal(scores["pairs"], self.desired_scored_pairs["pairs"])
-
-        numpy.testing.assert_allclose(
-            scores["score"], self.desired_scored_pairs["score"], 2
-        )
+        assert isinstance(scores, numpy.memmap)
+        assert scores.dtype == expected.dtype
+        numpy.testing.assert_equal(scores["pairs"], expected["pairs"])
+        numpy.testing.assert_allclose(scores["score"], expected["score"], 2)
 
 
 class FieldDistances(unittest.TestCase):
