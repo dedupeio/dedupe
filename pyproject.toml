@@ -11,9 +11,13 @@ check_untyped_defs = true
 
 [tool.pytest.ini_options]
 minversion = "7.1"
-addopts = "--cov dedupe"
+addopts = "--cov dedupe --cov-report html"
 testpaths = ["tests", "dedupe"]
 
 [tool.isort]
 profile = "black"
 src_paths = ["dedupe", "tests", "benchmarks"]
+
+[tool.coverage.run]
+omit = ["dedupe/backport.py"]
+source = ["dedupe"]
