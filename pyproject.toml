@@ -4,10 +4,12 @@ requires = ["setuptools",
             "cython"]
 
 [tool.mypy]
+python_version = "3.10"
 plugins = "numpy.typing.mypy_plugin"
 ignore_missing_imports = true
 files = "dedupe"
 check_untyped_defs = true
+show_error_codes = true
 
 [tool.pytest.ini_options]
 minversion = "7.1"
