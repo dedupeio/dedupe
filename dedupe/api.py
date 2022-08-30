@@ -161,14 +161,14 @@ class DedupeMatching(IntegralMatching):
                        Lowering the number will increase recall,
                        raising it will increase precision
 
-        .. code:: python
-
-           > clusters = matcher.partition(data, threshold=0.5)
-           > print(duplicates)
-           [((1, 2, 3), (0.790, 0.860, 0.790)),
-            ((4, 5), (0.720, 0.720)),
-            ((10, 11), (0.899, 0.899))]
-
+        Examples:
+            >>> duplicates = matcher.partition(data, threshold=0.5)
+            >>> duplicates
+            [
+                ((1, 2, 3), (0.790, 0.860, 0.790)),
+                ((4, 5), (0.720, 0.720)),
+                ((10, 11), (0.899, 0.899)),
+            ]
         """
         pairs = self.pairs(data)
         pair_scores = self.score(pairs)
@@ -203,16 +203,19 @@ class DedupeMatching(IntegralMatching):
                   and the values are dictionaries with the keys being
                   field names
 
-        .. code:: python
-
-            > pairs = matcher.pairs(data)
-            > print(list(pairs))
-            [((1, {'name' : 'Pat', 'address' : '123 Main'}),
-              (2, {'name' : 'Pat', 'address' : '123 Main'})),
-             ((1, {'name' : 'Pat', 'address' : '123 Main'}),
-              (3, {'name' : 'Sam', 'address' : '123 Main'}))
-             ]
-
+        Examples:
+            >>> pairs = matcher.pairs(data)
+            >>> list(pairs)
+            [
+                (
+                    (1, {"name": "Pat", "address": "123 Main"}),
+                    (2, {"name": "Pat", "address": "123 Main"}),
+                ),
+                (
+                    (1, {"name": "Pat", "address": "123 Main"}),
+                    (3, {"name": "Sam", "address": "123 Main"}),
+                ),
+            ]
         """
 
         self.fingerprinter.index_all(data)
@@ -313,15 +316,16 @@ class DedupeMatching(IntegralMatching):
                        Lowering the number will increase recall,
                        raising it will increase precision
 
-        .. code:: python
-
-           > pairs = matcher.pairs(data)
-           > scores = matcher.scores(pairs)
-           > clusters = matcher.cluster(scores)
-           > print(list(clusters))
-           [((1, 2, 3), (0.790, 0.860, 0.790)),
-            ((4, 5), (0.720, 0.720)),
-            ((10, 11), (0.899, 0.899))]
+        Examples:
+            >>> pairs = matcher.pairs(data)
+            >>> scores = matcher.scores(pairs)
+            >>> clusters = matcher.cluster(scores)
+            >>> list(clusters)
+            [
+                ((1, 2, 3), (0.790, 0.860, 0.790)),
+                ((4, 5), (0.720, 0.720)),
+                ((10, 11), (0.899, 0.899)),
+            ]
 
         """
 
@@ -354,14 +358,18 @@ class RecordLinkMatching(IntegralMatching):
             data_2: Dictionary of records from second dataset, same
                     form as data_1
 
-        .. code:: python
-
-           > pairs = matcher.pairs(data_1, data_2)
-           > print(list(pairs))
-           [((1, {'name' : 'Pat', 'address' : '123 Main'}),
-             (2, {'name' : 'Pat', 'address' : '123 Main'})),
-            ((1, {'name' : 'Pat', 'address' : '123 Main'}),
-             (3, {'name' : 'Sam', 'address' : '123 Main'}))
+        Examples:
+            >>> pairs = matcher.pairs(data_1, data_2)
+            >>> list(pairs)
+            [
+                (
+                    (1, {"name": "Pat", "address": "123 Main"}),
+                    (2, {"name": "Pat", "address": "123 Main"}),
+                ),
+                (
+                    (1, {"name": "Pat", "address": "123 Main"}),
+                    (3, {"name": "Sam", "address": "123 Main"}),
+                ),
             ]
         """
 
@@ -486,16 +494,14 @@ class RecordLinkMatching(IntegralMatching):
                               multiple records in data_2 and vice
                               versa. This is like a SQL inner join.
 
-        .. code:: python
-
-           > links = matcher.join(data_1, data_2, threshold=0.5)
-           > print(list(links))
-           [((1, 2), 0.790),
-            ((4, 5), 0.720),
-            ((10, 11), 0.899)]
-
-
-
+        Examples:
+            >>> links = matcher.join(data_1, data_2, threshold=0.5)
+            >>> list(links)
+            [
+                ((1, 2), 0.790),
+                ((4, 5), 0.720),
+                ((10, 11), 0.899)
+            ]
         """
 
         assert constraint in {"one-to-one", "many-to-one", "many-to-many"}, (
@@ -554,16 +560,16 @@ class RecordLinkMatching(IntegralMatching):
                        will increase precision
 
 
-        .. code:: python
-
-           > pairs = matcher.pairs(data)
-           > scores = matcher.scores(pairs, threshold=0.5)
-           > links = matcher.one_to_one(scores)
-           > print(list(links))
-           [((1, 2), 0.790),
-            ((4, 5), 0.720),
-            ((10, 11), 0.899)]
-
+        Examples:
+            >>> pairs = matcher.pairs(data)
+            >>> scores = matcher.scores(pairs, threshold=0.5)
+            >>> links = matcher.one_to_one(scores)
+            >>> list(links)
+            [
+                ((1, 2), 0.790),
+                ((4, 5), 0.720),
+                ((10, 11), 0.899)
+            ]
         """
         if threshold:
             scores = scores[scores["score"] > threshold]
@@ -607,17 +613,17 @@ class RecordLinkMatching(IntegralMatching):
                        Lowering the number will increase recall, raising it
                        will increase precision
 
-        .. code:: python
-
-           > pairs = matcher.pairs(data)
-           > scores = matcher.scores(pairs, threshold=0.5)
-           > links = matcher.many_to_one(scores)
-           > print(list(links))
-           [((1, 2), 0.790),
-            ((4, 5), 0.720),
-            ((7, 2), 0.623),
-            ((10, 11), 0.899)]
-
+        Examples:
+            >>> pairs = matcher.pairs(data)
+            >>> scores = matcher.scores(pairs, threshold=0.5)
+            >>> links = matcher.many_to_one(scores)
+            >>> print(list(links))
+            [
+                ((1, 2), 0.790),
+                ((4, 5), 0.720),
+                ((7, 2), 0.623),
+                ((10, 11), 0.899)
+             ]
         """
 
         logger.debug("matching done, begin clustering")
@@ -741,20 +747,31 @@ class GazetteerMatching(Matching):
                   and the values are dictionaries with the keys being
                   field names
 
-        .. code:: python
-
-            > pairs = matcher.pairs(data)
-            > print(list(pairs))
-            [[((1, {'name' : 'Pat', 'address' : '123 Main'}),
-               (8, {'name' : 'Pat', 'address' : '123 Main'})),
-              ((1, {'name' : 'Pat', 'address' : '123 Main'}),
-               (9, {'name' : 'Sam', 'address' : '123 Main'}))
-              ],
-             [((2, {'name' : 'Sam', 'address' : '2600 State'}),
-               (5, {'name' : 'Pam', 'address' : '2600 Stat'})),
-              ((2, {'name' : 'Sam', 'address' : '123 State'}),
-               (7, {'name' : 'Sammy', 'address' : '123 Main'}))
-             ]]
+        Examples:
+            >>> blocks = matcher.pairs(data)
+            >>> print(list(blocks)
+            [
+                [
+                    (
+                        (1, {"name": "Pat", "address": "123 Main"}),
+                        (8, {"name": "Pat", "address": "123 Main"}),
+                    ),
+                    (
+                        (1, {"name": "Pat", "address": "123 Main"}),
+                        (9, {"name": "Sam", "address": "123 Main"}),
+                    ),
+                ],
+                [
+                    (
+                        (2, {"name": "Sam", "address": "2600 State"}),
+                        (5, {"name": "Pam", "address": "2600 Stat"}),
+                    ),
+                    (
+                        (2, {"name": "Sam", "address": "123 State"}),
+                        (7, {"name": "Sammy", "address": "123 Main"}),
+                    ),
+                ],
+            ]
         """
 
         id_type = core.sqlite_id_type(data)
@@ -804,7 +821,6 @@ class GazetteerMatching(Matching):
 
         Args:
             blocks: Iterator of blocks of records
-
         """
 
         matches = core.scoreGazette(
@@ -841,7 +857,6 @@ class GazetteerMatching(Matching):
                        will increase precision
 
             n_matches: How many top scoring pairs to select per group
-
         """
 
         yield from clustering.gazetteMatching(score_blocks, threshold, n_matches)
@@ -863,7 +878,6 @@ class GazetteerMatching(Matching):
         entity.
 
         Args:
-
             data: a dictionary of records from a messy
                   dataset, where the keys are record_ids and
                   the values are dictionaries with the keys
@@ -885,18 +899,15 @@ class GazetteerMatching(Matching):
             generator: when `True`, match will generate a sequence of
                        possible matches, instead of a list.
 
-        .. code:: python
-
-            > matches = gazetteer.search(data, threshold=0.5, n_matches=2)
-            > print(matches)
-            [(((1, 6), 0.72),
-              ((1, 8), 0.6)),
-             (((2, 7), 0.72),),
-             (((3, 6), 0.72),
-              ((3, 8), 0.65)),
-             (((4, 6), 0.96),
-              ((4, 5), 0.63))]
-
+        Examples:
+            >>> matches = gazetteer.search(data, threshold=0.5, n_matches=2)
+            >>> print(matches)
+            [
+                (((1, 6), 0.72), ((1, 8), 0.6)),
+                (((2, 7), 0.72),),
+                (((3, 6), 0.72), ((3, 8), 0.65)),
+                (((4, 6), 0.96), ((4, 5), 0.63)),
+            ]
         """
         blocks = self.blocks(data)
         pair_scores = self.score(blocks)
@@ -964,7 +975,6 @@ class StaticMatching(Matching):
             you must protect calls to the Dedupe methods with a
             `if __name__ == '__main__'` in your main module, see
             https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
-
         """
         super().__init__(num_cores, in_memory, **kwargs)
 
@@ -1097,7 +1107,6 @@ class ActiveMatching(Matching):
                               index predicates, you may get lower
                               recall when true-dupes are not blocked
                               together.
-
         """
         assert (
             self.active_learner is not None
@@ -1114,13 +1123,12 @@ class ActiveMatching(Matching):
         """
         Write a JSON file that contains labeled examples
 
-        :param file_obj: file object to write training data to
+        Args:
+            file_obj: file object to write training data to
 
-        .. code:: python
-
-            with open('training.json', 'w') as f:
-                matcher.write_training(f)
-
+        Examples:
+            >>> with open('training.json', 'w') as f:
+            >>>     matcher.write_training(f)
         """
         serializer.write_training(self.training_pairs, file_obj)
 
@@ -1129,13 +1137,12 @@ class ActiveMatching(Matching):
         Write a settings file containing the
         data model and predicates to a file object
 
-        :param file_obj: file object to write settings data into
+        Args:
+            file_obj: file object to write settings data into
 
-        .. code:: python
-
-           with open('learned_settings', 'wb') as f:
-               matcher.write_settings(f)
-
+        Examples:
+            >>> with open('learned_settings', 'wb') as f:
+            >>>     matcher.write_settings(f)
         """
 
         pickle.dump(self.data_model, file_obj)
@@ -1150,12 +1157,10 @@ class ActiveMatching(Matching):
          This method is mainly useful for building a user interface for training
          a matching model.
 
-        .. code:: python
-
-           > pair = matcher.uncertain_pairs()
-           > print(pair)
-           [({'name' : 'Georgie Porgie'}, {'name' : 'Georgette Porgette'})]
-
+        Examples:
+            >>> pair = matcher.uncertain_pairs()
+            >>> print(pair)
+            [({'name' : 'Georgie Porgie'}, {'name' : 'Georgette Porgette'})]
         """
         assert (
             self.active_learner is not None
@@ -1175,13 +1180,17 @@ class ActiveMatching(Matching):
                            the values are lists that can contain pairs of
                            records
 
-        .. code:: python
-
-            labeled_examples = {'match'    : [],
-                                'distinct' : [({'name' : 'Georgie Porgie'},
-                                               {'name' : 'Georgette Porgette'})]
-                                }
-            matcher.mark_pairs(labeled_examples)
+        Examples:
+            >>> labeled_examples = {
+            >>>     "match": [],
+            >>>     "distinct": [
+            >>>         (
+            >>>             {"name": "Georgie Porgie"},
+            >>>             {"name": "Georgette Porgette"},
+            >>>         )
+            >>>     ],
+            >>> }
+            >>> matcher.mark_pairs(labeled_examples)
 
         .. note::
            `mark_pairs()` is primarily designed to be used with
@@ -1199,7 +1208,6 @@ class ActiveMatching(Matching):
            appears in the `labeled_pairs` argument appears in either
            the data or training file supplied to the
            :func:`~prepare_training` method.
-
         """
         self._checkTrainingPairs(labeled_pairs)
 
@@ -1267,7 +1275,6 @@ class StaticDedupe(StaticMatching, DedupeMatching):
     Class for deduplication using saved settings. If you have already
     trained a :class:`Dedupe` object and saved the settings, you can
     load the saved settings with StaticDedupe.
-
     """
 
 
@@ -1301,13 +1308,11 @@ class Dedupe(ActiveMatching, DedupeMatching):
             sample_size: Size of the sample to draw
             blocked_proportion: The proportion of record pairs to be sampled from similar records, as opposed to randomly selected pairs.
 
-        .. code:: python
+        Examples:
+            >>> matcher.prepare_training(data_d, 150000, .5)
 
-           matcher.prepare_training(data_d, 150000, .5)
-
-           # or
-           with open('training_file.json') as f:
-               matcher.prepare_training(data_d, training_file=f)
+            >>> with open('training_file.json') as f:
+            >>>     matcher.prepare_training(data_d, training_file=f)
         """
         self._checkData(data)
 
@@ -1370,13 +1375,13 @@ class Link(ActiveMatching):
                                 as opposed to randomly selected
                                 pairs.
 
-        .. code:: python
+        Examples:
+            >>> matcher.prepare_training(data_1, data_2, 150000)
 
-           matcher.prepare_training(data_1, data_2, 150000)
+            or
 
-           # or
-           with open('training_file.json') as f:
-               matcher.prepare_training(data_1, data_2, training_file=f)
+            >>> with open('training_file.json') as f:
+            >>>     matcher.prepare_training(data_1, data_2, training_file=f)
         """
         self._checkData(data_1, data_2)
 
