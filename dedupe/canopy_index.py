@@ -32,15 +32,19 @@ class CanopyIndex(TextIndex):  # pragma: no cover
             if len(docs) > threshold:
                 stop_words.append(wid)
                 continue
+
             if isinstance(docs, dict):
                 docs = bucket(docs)
+                self.index._wordinfo[wid] = docs
+
             idf = numpy.log1p(N / len(docs))
-            self.index._wordinfo[wid] = docs
             term = self.lexicon._words[wid]
+
             self._wids_dict[term] = (wid, idf)
 
         for wid in stop_words:
             word = self.lexicon._words.pop(wid)
+            del self.lexicon._wids[word]
             logger.info(f"Removing stop word {word}")
             del self.index._wordinfo[wid]
 

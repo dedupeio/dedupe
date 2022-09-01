@@ -30,7 +30,7 @@ install_requires = [
 setup(
     name="dedupe",
     url="https://github.com/dedupeio/dedupe",
-    version="2.0.16",
+    version="2.0.17",
     author="Forest Gregg",
     author_email="fgregg@datamade.us",
     description="A python library for accurate and scaleable data deduplication and entity-resolution",
@@ -39,7 +39,7 @@ setup(
         [Extension("dedupe.cpredicates", ["dedupe/cpredicates.pyx"])]
     ),
     install_requires=install_requires,
-    python_requires=">3.6",
+    python_requires=">=3.7",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

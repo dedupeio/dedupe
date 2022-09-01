@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e .
+          pip install -e . --config-settings editable_mode=compat
           pip install -r requirements.txt
       - name: flake8
         run: flake8 dedupe tests benchmarks/benchmarks
@@ -44,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -e .
+        pip install -e . --config-settings editable_mode=compat
     - name: Install test dependencies
       run: pip install -r requirements.txt
     - name: pytest
@@ -88,8 +88,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e .
-          python -m pip install -e ./benchmarks          
+          pip install -e . --config-settings editable_mode=compat
+          python -m pip install -e ./benchmarks
       - name: Run on canonical on main
         run: python benchmarks/benchmarks/canonical.py
       - name: checkout this PR branch
@@ -97,7 +97,7 @@ jobs:
         with:
           clean: false
       - name: Install any new dependencies
-        run: pip install -e .
+        run: pip install -e . --config-settings editable_mode=compat
       - name: Run on canonical with setting file created on main
         run: python benchmarks/benchmarks/canonical.py      
   wheels:
@@ -112,7 +112,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
       - name: Build wheels
-        uses: pypa/cibuildwheel@2.6.1
+        uses: pypa/cibuildwheel@v2.9.0
         env:
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
       - name: Build sdist
