@@ -7,16 +7,16 @@ Library Documentation
 .. autoclass:: dedupe.Dedupe
 
     .. code:: python
-    
-         # initialize from a defined set of fields
-         variables = [{'field' : 'Site name', 'type': 'String'},
-                      {'field' : 'Address', 'type': 'String'},
-                      {'field' : 'Zip', 'type': 'String', 'has missing':True},
-                      {'field' : 'Phone', 'type': 'String', 'has missing':True}
-                      ]
-         
-         deduper = dedupe.Dedupe(variables)
-	       
+
+        # initialize from a defined set of fields
+        variables = [
+            {'field' : 'Site name', 'type': 'String'},
+            {'field' : 'Address', 'type': 'String'},
+            {'field' : 'Zip', 'type': 'String', 'has missing':True},
+            {'field' : 'Phone', 'type': 'String', 'has missing':True},
+        ]
+        deduper = dedupe.Dedupe(variables)
+
     .. automethod:: prepare_training
     .. automethod:: uncertain_pairs
     .. automethod:: mark_pairs
@@ -33,26 +33,26 @@ Library Documentation
 .. autoclass:: dedupe.StaticDedupe
 
     .. code:: python
-    
+
         with open('learned_settings', 'rb') as f:
             matcher = StaticDedupe(f)
 
     .. automethod:: partition
-    
+
 
 :class:`RecordLink` Objects
 ---------------------------
 .. autoclass:: dedupe.RecordLink
 
     .. code:: python
-     
+
         # initialize from a defined set of fields
-        variables = [{'field' : 'Site name', 'type': 'String'},
-                     {'field' : 'Address', 'type': 'String'},
-                     {'field' : 'Zip', 'type': 'String', 'has missing':True},
-                     {'field' : 'Phone', 'type': 'String', 'has missing':True}
-                     ]
-        
+        variables = [
+            {'field' : 'Site name', 'type': 'String'},
+            {'field' : 'Address', 'type': 'String'},
+            {'field' : 'Zip', 'type': 'String', 'has missing':True},
+            {'field' : 'Phone', 'type': 'String', 'has missing':True},
+        ]
         deduper = dedupe.RecordLink(variables)
 
     .. automethod:: prepare_training
@@ -70,26 +70,26 @@ Library Documentation
 .. autoclass:: dedupe.StaticRecordLink
 
     .. code:: python
-    
+
         with open('learned_settings', 'rb') as f:
             matcher = StaticRecordLink(f)
 
     .. automethod:: join
-       
+
 
 :class:`Gazetteer` Objects
 --------------------------
 .. autoclass:: dedupe.Gazetteer
 
     .. code:: python
-     
+
         # initialize from a defined set of fields
-        variables = [{'field' : 'Site name', 'type': 'String'},
-                     {'field' : 'Address', 'type': 'String'},
-                     {'field' : 'Zip', 'type': 'String', 'has missing':True},
-                     {'field' : 'Phone', 'type': 'String', 'has missing':True}
-                     ]
-        
+        variables = [
+            {'field' : 'Site name', 'type': 'String'},
+            {'field' : 'Address', 'type': 'String'},
+            {'field' : 'Zip', 'type': 'String', 'has missing':True},
+            {'field' : 'Phone', 'type': 'String', 'has missing':True},
+        ]
         matcher = dedupe.Gazetteer(variables)
 
     .. automethod:: prepare_training
@@ -102,14 +102,14 @@ Library Documentation
     .. automethod:: index
     .. automethod:: unindex
     .. automethod:: search
-       
+
 
 :class:`StaticGazetteer` Objects
 --------------------------------
 .. autoclass:: dedupe.StaticGazetteer
 
     .. code:: python
-    
+
         with open('learned_settings', 'rb') as f:
             matcher = StaticGazetteer(f)
 
@@ -139,10 +139,10 @@ Dedupe and StaticDedupe
    :noindex:
 
     .. attribute:: fingerprinter
-    
+
        Instance of :class:`dedupe.blocking.Fingerprinter` class if
        the :func:`train` has been run, else `None`.
-    
+
     .. automethod:: pairs
     .. automethod:: score
     .. automethod:: cluster
@@ -151,13 +151,13 @@ Dedupe and StaticDedupe
    :noindex:
 
     .. attribute:: fingerprinter
-    
+
        Instance of :class:`dedupe.blocking.Fingerprinter` class
-    
+
     .. method:: pairs(data)
 
        Same as :func:`dedupe.Dedupe.pairs`
-		
+
     .. method:: score(pairs)
 
        Same as :func:`dedupe.Dedupe.score`
@@ -165,8 +165,8 @@ Dedupe and StaticDedupe
     .. method:: cluster(scores, threshold=0.5)
 
        Same as :func:`dedupe.Dedupe.cluster`
-		    
-    
+
+
 RecordLink and StaticRecordLink
 *******************************
 
@@ -174,20 +174,20 @@ RecordLink and StaticRecordLink
    :noindex:
 
     .. attribute:: fingerprinter
-    
+
        Instance of :class:`dedupe.blocking.Fingerprinter` class if
        the :func:`train` has been run, else `None`.
 
     .. automethod:: pairs
     .. automethod:: score
     .. automethod:: one_to_one
-    .. automethod:: many_to_one		    
+    .. automethod:: many_to_one
 
 .. class:: StaticRecordLink
    :noindex:
 
    .. attribute:: fingerprinter
-    
+
        Instance of :class:`dedupe.blocking.Fingerprinter` class
 
    .. method:: pairs(data_1, data_2)
@@ -214,7 +214,7 @@ Gazetteer and StaticGazetteer
    :noindex:
 
     .. attribute:: fingerprinter
-    
+
        Instance of :class:`dedupe.blocking.Fingerprinter` class if
        the :func:`train` has been run, else `None`.
 
@@ -226,9 +226,9 @@ Gazetteer and StaticGazetteer
    :noindex:
 
     .. attribute:: fingerprinter
-    
+
        Instance of :class:`dedupe.blocking.Fingerprinter` class
-	   
+
     .. method:: blocks(data)
 
 	Same as :func:`dedupe.Gazetteer.blocks`
@@ -239,8 +239,8 @@ Gazetteer and StaticGazetteer
 
     .. method:: many_to_n(score_blocks, threshold=0.0, n_matches=1)
 
-	Same as :func:`dedupe.Gazetteer.many_to_n`		
-		    
+	Same as :func:`dedupe.Gazetteer.many_to_n`
+
 :class:`Fingerprinter` Objects
 ******************************
 .. autoclass:: dedupe.blocking.Fingerprinter
@@ -248,7 +248,7 @@ Gazetteer and StaticGazetteer
    .. automethod:: __call__
    .. autoattribute:: index_fields
    .. automethod:: index
-   .. automethod:: unindex	       
+   .. automethod:: unindex
    .. automethod:: reset_indices
 
 

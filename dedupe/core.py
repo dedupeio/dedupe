@@ -83,31 +83,32 @@ class ScoreDupes(object):
                 raise
 
     def fieldDistance(self, record_pairs: RecordPairs) -> None:
-
         record_ids, records = zip(*(zip(*record_pair) for record_pair in record_pairs))
+        if not records:
+            return
 
-        if records:
+        distances = self.data_model.distances(records)
+        scores = self.classifier.predict_proba(distances)[:, -1]
 
-            distances = self.data_model.distances(records)
-            scores = self.classifier.predict_proba(distances)[:, -1]
+        mask = scores > 0
+        if not mask.any():
+            return
+        scores = scores[mask]
+        record_ids = numpy.array(record_ids)[mask]
 
-            if scores.any():
+        with self.offset.get_lock():
+            fp: Scores
+            fp = numpy.memmap(
+                self.score_file_path,
+                dtype=self.dtype,
+                offset=self.offset.value,
+                shape=(len(record_ids),),
+            )
+            fp["pairs"] = record_ids
+            fp["score"] = scores
+            fp.flush()
 
-                with self.offset.get_lock():
-
-                    fp: Scores
-                    fp = numpy.memmap(
-                        self.score_file_path,
-                        dtype=self.dtype,
-                        offset=self.offset.value,
-                        shape=(len(record_ids),),
-                    )
-                    fp["pairs"] = record_ids
-                    fp["score"] = scores
-
-                    fp.flush()
-
-                    self.offset.value += len(record_ids) * self.dtype.itemsize
+            self.offset.value += len(record_ids) * self.dtype.itemsize
 
 
 def scoreDuplicates(
@@ -204,7 +205,6 @@ class ScoreGazette(object):
         self.classifier = classifier
 
     def __call__(self, block: Block) -> Scores:
-
         record_ids, records = zip(*(zip(*each) for each in block))
 
         distances = self.data_model.distances(records)
@@ -213,10 +213,12 @@ class ScoreGazette(object):
         id_type = sniff_id_type(record_ids)
         ids = numpy.array(record_ids, dtype=id_type)
 
+        mask = scores > 0
+        scores = scores[mask]
+        ids = ids[mask]
+
         dtype = numpy.dtype([("pairs", id_type, 2), ("score", "f4")])
-
         scored_pairs: Scores = numpy.empty(shape=len(scores), dtype=dtype)
-
         scored_pairs["pairs"] = ids
         scored_pairs["score"] = scores
 

@@ -1,5 +1,7 @@
 asv
 black
+coverage[toml]
+coveralls
 flake8
 mock
 mypy

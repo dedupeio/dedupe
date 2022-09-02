@@ -29,8 +29,10 @@ mysql.cnf
 *.egg-info
 ENV
 dist
-.coverage
 src/*.c
+
+.coverage
+htmlcov
 
 !benchmarks/asv.conf.json
 benchmarks/.asv/*
