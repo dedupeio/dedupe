@@ -13,7 +13,7 @@ import dedupe.core as core
 import dedupe.training as training
 
 if TYPE_CHECKING:
-    from typing import Dict, Iterable, Mapping
+    from typing import Dict, Iterable, Literal, Mapping
 
     from dedupe._typing import Data, Labels, LabelsLike
     from dedupe._typing import RecordDictPair as TrainingExample
@@ -26,155 +26,124 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Learner(ABC):
-    candidates: TrainingExamples
+class HasCandidates:
+    """Has a list of pairs that we could ask the user to label."""
 
-    @abstractmethod
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-        pass
+    _candidates: TrainingExamples
 
-    @abstractmethod
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        pass
-
-    @abstractmethod
-    def _remove(self, index: int) -> None:
-        pass
+    @property
+    def candidates(self) -> TrainingExamples:
+        return self._candidates
 
     def __len__(self) -> int:
         return len(self.candidates)
 
 
-class ActiveLearner(Learner):
-    @abstractmethod
-    def pop(self) -> TrainingExample:
-        pass
+class Learner(ABC, HasCandidates):
+    """A single learner that is used by DisagreementLearner."""
+
+    _fitted: bool = False
 
     @abstractmethod
-    def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-        pass
+    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+        """Train on the given data."""
+
+    @abstractmethod
+    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+        """For each of self.candidates, return our current guess [0,1] of if a match."""
+
+    @abstractmethod
+    def remove(self, index: int) -> None:
+        """Remove a pair from self.candidates."""
+
+    @staticmethod
+    def _verify_fit_args(pairs: TrainingExamples, y: LabelsLike) -> list[Literal[0, 1]]:
+        """Helper method to verify the arguments given to fit()"""
+        if len(pairs) == 0:
+            raise ValueError("pairs must have length of at least 1")
+        y = list(y)
+        if len(pairs) != len(y):
+            raise ValueError(
+                f"pairs and y must be same length. Got {len(pairs)} and {len(y)}"
+            )
+        return y
 
 
-class RLRLearner(sklearn.linear_model.LogisticRegression, ActiveLearner):
-    def __init__(self, data_model: DataModel):
-        super().__init__()
+class MatchLearner(Learner):
+    def __init__(self, data_model: DataModel, candidates: TrainingExamples):
         self.data_model = data_model
-        self._candidates: TrainingExamples = []
+        self._candidates = candidates.copy()
+        self._classifier = sklearn.linear_model.LogisticRegression()
+        self._distances = self._calc_distances(self.candidates)
 
-    @property  # type: ignore[override]
-    def candidates(self) -> TrainingExamples:  # type: ignore[override]
-        return self._candidates
+    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+        y = self._verify_fit_args(pairs, y)
+        self._classifier.fit(self._calc_distances(pairs), numpy.array(y))
+        self._fitted = True
 
-    @candidates.setter
-    def candidates(self, new_candidates: TrainingExamples) -> None:
-        self._candidates = new_candidates
-
-        self.distances = self.transform(self._candidates)
-
-        random_pair = random.choice(self._candidates)
-        exact_match = (random_pair[0], random_pair[0])
-        self.fit_transform([exact_match, random_pair], [1, 0])
-
-    def transform(self, pairs: TrainingExamples) -> numpy.typing.NDArray[numpy.float_]:
-        return self.data_model.distances(pairs)
-
-    def fit(self, X: numpy.typing.NDArray[numpy.float_], y: LabelsLike) -> None:
-
-        self.y: numpy.typing.NDArray[numpy.int_] = numpy.array(y)
-        self.X = X
-
-        super().fit(self.X, self.y)
-
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-        self.fit(self.transform(pairs), y)
-
-    def pop(self) -> TrainingExample:
-        if not len(self.candidates):
-            raise IndexError("No more unlabeled examples to label")
-
-        target_uncertainty = self._bias()
-
-        probabilities = self.candidate_scores()
-
-        distance_to_target = numpy.abs(target_uncertainty - probabilities)
-        uncertain_index = distance_to_target.argmin()
-
-        self.distances = numpy.delete(self.distances, uncertain_index, axis=0)
-
-        uncertain_pair: TrainingExample = self.candidates.pop(uncertain_index)
-
-        return uncertain_pair
-
-    def _remove(self, index: int) -> None:
-        self.distances = numpy.delete(self.distances, index, axis=0)
-
-    def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-
-        self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
-        self.X = numpy.vstack([self.X, self.transform(pairs)])
-
-        self.fit(self.X, self.y)
-
-    def _bias(self) -> float:
-        positive: int = numpy.sum(self.y == 1)
-        n_examples = len(self.y)
-
-        bias = 1 - (positive / n_examples if positive else 0)
-
-        # When we have just a few examples we are okay with getting
-        # examples where the model strongly believes the example is
-        # going to be positive or negative. As we get more examples,
-        # prefer to ask for labels of examples the model is more
-        # uncertain of.
-        uncertainty_weight = min(positive, n_examples - positive)
-        bias_weight = 10
-
-        weighted_bias = 0.5 * uncertainty_weight + bias * bias_weight
-        weighted_bias /= uncertainty_weight + bias_weight
-
-        return weighted_bias
+    def remove(self, index: int) -> None:
+        self._candidates.pop(index)
+        self._distances = numpy.delete(self._distances, index, axis=0)
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        scores: numpy.typing.NDArray[numpy.float_] = self.predict_proba(self.distances)[
-            :, 1
-        ].reshape(-1, 1)
+        if not self._fitted:
+            raise ValueError("Must call fit() before candidate_scores()")
+        scores: numpy.typing.NDArray[numpy.float_] = self._classifier.predict_proba(
+            self._distances
+        )[:, 1].reshape(-1, 1)
         return scores
+
+    def _calc_distances(
+        self, pairs: TrainingExamples
+    ) -> numpy.typing.NDArray[numpy.float_]:
+        return self.data_model.distances(pairs)
 
 
 class BlockLearner(Learner):
-    candidates: TrainingExamples
+    block_learner: training.BlockLearner
 
-    def __init__(self, data_model: DataModel, *args):
-        self.data_model = data_model
-
+    def __init__(self):
         self.current_predicates: tuple[Predicate, ...] = ()
-
-        self._cached_labels: numpy.typing.NDArray[numpy.float_] | None = None
+        self._cached_scores: numpy.typing.NDArray[numpy.float_] | None = None
         self._old_dupes: TrainingExamples = []
 
-        self.block_learner: training.BlockLearner
-
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+    def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
+        y = self._verify_fit_args(pairs, y)
         dupes = [pair for label, pair in zip(y, pairs) if label]
 
         new_dupes = [pair for pair in dupes if pair not in self._old_dupes]
-        new_uncovered = not all(self.predict(new_dupes))
+        new_uncovered = not all(self._predict(new_dupes))
 
         if new_uncovered:
-            self.current_predicates = self.block_learner.learn(dupes, recall=1.0)
-            self._cached_labels = None
+            self.current_predicates = self.block_learner.learn(
+                dupes, recall=1.0, index_predicates=True, candidate_types="simple"
+            )
+            self._cached_scores = None
             self._old_dupes = dupes
+        self._fitted = True
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        if self._cached_labels is None:
-            labels = self.predict(self.candidates)
-            self._cached_labels = numpy.array(labels).reshape(-1, 1)
+        if not self._fitted:
+            raise ValueError("Must call fit() before candidate_scores()")
+        if self._cached_scores is None:
+            labels = self._predict(self.candidates)
+            self._cached_scores = numpy.array(labels).reshape(-1, 1)
 
-        return self._cached_labels
+        return self._cached_scores
 
-    def predict(self, candidates: TrainingExamples) -> Labels:
+    def learn_predicates(
+        self, dupes: TrainingExamples, recall: float, index_predicates: bool
+    ) -> tuple[Predicate, ...]:
+        return self.block_learner.learn(
+            dupes,
+            recall=recall,
+            index_predicates=index_predicates,
+            candidate_types="random forest",
+        )
+
+    def _predict(self, pairs: TrainingExamples) -> Labels:
         labels: Labels = []
-        for record_1, record_2 in candidates:
+        for record_1, record_2 in pairs:
 
             for predicate in self.current_predicates:
                 keys = predicate(record_2, target=True)
@@ -187,9 +156,10 @@ class BlockLearner(Learner):
 
         return labels
 
-    def _remove(self, index: int) -> None:
-        if self._cached_labels is not None:
-            self._cached_labels = numpy.delete(self._cached_labels, index, axis=0)
+    def remove(self, index: int) -> None:
+        self._candidates.pop(index)
+        if self._cached_scores is not None:
+            self._cached_scores = numpy.delete(self._cached_scores, index, axis=0)
 
     def _sample_indices(self, sample_size: int) -> Iterable[RecordIDPair]:
 
@@ -246,21 +216,20 @@ class DedupeBlockLearner(BlockLearner):
         data: Data,
         index_include: TrainingExamples,
     ):
-        super().__init__(data_model)
+        super().__init__()
 
         N_SAMPLED_RECORDS = 5000
         N_SAMPLED_RECORD_PAIRS = 10000
 
         index_data = sample_records(data, 50000)
         sampled_records = sample_records(index_data, N_SAMPLED_RECORDS)
-        preds = self.data_model.predicates
-        preds = _filter_canopy_predicates(preds, canopies=True)
 
+        preds = _filter_canopy_predicates(data_model.predicates, canopies=True)
         self.block_learner = training.DedupeBlockLearner(
             preds, sampled_records, index_data
         )
 
-        self.candidates = self._sample(sampled_records, N_SAMPLED_RECORD_PAIRS)
+        self._candidates = self._sample(sampled_records, N_SAMPLED_RECORD_PAIRS)
         examples_to_index = self.candidates.copy()
 
         if index_include:
@@ -298,8 +267,7 @@ class RecordLinkBlockLearner(BlockLearner):
         data_2: Data,
         index_include: TrainingExamples,
     ):
-
-        super().__init__(data_model)
+        super().__init__()
 
         N_SAMPLED_RECORDS = 1000
         N_SAMPLED_RECORD_PAIRS = 5000
@@ -308,21 +276,18 @@ class RecordLinkBlockLearner(BlockLearner):
         index_data = sample_records(data_2, 50000)
         sampled_records_2 = sample_records(index_data, N_SAMPLED_RECORDS)
 
-        preds = self.data_model.predicates
-        preds = _filter_canopy_predicates(preds, canopies=False)
-
+        preds = _filter_canopy_predicates(data_model.predicates, canopies=False)
         self.block_learner = training.RecordLinkBlockLearner(
             preds, sampled_records_1, sampled_records_2, index_data
         )
 
-        self.candidates = self._sample(
+        self._candidates = self._sample(
             sampled_records_1, sampled_records_2, N_SAMPLED_RECORD_PAIRS
         )
-        examples_to_index = self.candidates.copy()
 
+        examples_to_index = self.candidates.copy()
         if index_include:
             examples_to_index += index_include
-
         self._index_predicates(examples_to_index)
 
     def _index_predicates(self, candidates: TrainingExamples) -> None:
@@ -349,15 +314,12 @@ class RecordLinkBlockLearner(BlockLearner):
         return sample
 
 
-class DisagreementLearner(ActiveLearner):
-
-    classifier: RLRLearner
+class DisagreementLearner(HasCandidates):
+    matcher: MatchLearner
     blocker: BlockLearner
-    candidates: TrainingExamples
 
-    def _common_init(self) -> None:
-
-        self.learners: tuple[Learner, ...] = (self.classifier, self.blocker)
+    def __init__(self, data_model: DataModel) -> None:
+        self.data_model = data_model
         self.y: numpy.typing.NDArray[numpy.int_] = numpy.array([])
         self.pairs: TrainingExamples = []
 
@@ -365,7 +327,8 @@ class DisagreementLearner(ActiveLearner):
         if not len(self.candidates):
             raise IndexError("No more unlabeled examples to label")
 
-        probs = self.candidate_scores()
+        prob_l = [learner.candidate_scores() for learner in self._learners]
+        probs = numpy.concatenate(prob_l, axis=1)
 
         # where do the classifers disagree?
         disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
@@ -383,63 +346,32 @@ class DisagreementLearner(ActiveLearner):
             bool(probs[uncertain_index][1]),
         )
 
-        uncertain_pair: TrainingExample = self.candidates.pop(uncertain_index)
-
+        uncertain_pair: TrainingExample = self.candidates[uncertain_index]
         self._remove(uncertain_index)
-
         return uncertain_pair
 
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
-        probs_l = []
-        for learner in self.learners:
-            probabilities = learner.candidate_scores()
-            probs_l.append(probabilities)
-
-        return numpy.concatenate(probs_l, axis=1)
+    @property
+    def _learners(self) -> tuple[Learner, ...]:
+        return (self.matcher, self.blocker)
 
     def _remove(self, index: int) -> None:
-        for learner in self.learners:
-            learner._remove(index)
+        self._candidates.pop(index)
+        for learner in self._learners:
+            learner.remove(index)
 
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-
         self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
         self.pairs.extend(pairs)
-
-        self.fit_transform(self.pairs, self.y)
-
-    def fit_transform(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-
-        for learner in self.learners:
-            learner.fit_transform(pairs, y)
+        for learner in self._learners:
+            learner.fit(self.pairs, self.y)
 
     def learn_predicates(
         self, recall: float, index_predicates: bool
     ) -> tuple[Predicate, ...]:
-
-        learned_preds: tuple[Predicate, ...]
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
-
-        if not index_predicates:
-            old_preds = self.blocker.block_learner.blocker.predicates.copy()  # type: ignore[attr-defined]
-
-            no_index_predicates = [
-                pred for pred in old_preds if not hasattr(pred, "index")
-            ]
-            self.blocker.block_learner.blocker.predicates = no_index_predicates
-
-            learned_preds = self.blocker.block_learner.learn(
-                dupes, recall=recall, candidate_types="random forest"
-            )
-
-            self.blocker.block_learner.blocker.predicates = old_preds
-
-        else:
-            learned_preds = self.blocker.block_learner.learn(
-                dupes, recall=recall, candidate_types="random forest"
-            )
-
-        return learned_preds
+        return self.blocker.learn_predicates(
+            dupes, recall=recall, index_predicates=index_predicates
+        )
 
 
 class DedupeDisagreementLearner(DisagreementLearner):
@@ -449,8 +381,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
         data: Data,
         index_include: TrainingExamples,
     ):
-
-        self.data_model = data_model
+        super().__init__(data_model)
 
         data = core.index(data)
 
@@ -465,12 +396,9 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
         self.blocker = DedupeBlockLearner(data_model, data, index_include)
 
-        self.candidates = self.blocker.candidates
+        self._candidates = self.blocker.candidates.copy()
 
-        self.classifier = RLRLearner(self.data_model)
-        self.classifier.candidates = self.candidates
-
-        self._common_init()
+        self.matcher = MatchLearner(self.data_model, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
@@ -485,8 +413,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         data_2: Data,
         index_include: TrainingExamples,
     ):
-
-        self.data_model = data_model
+        super().__init__(data_model)
 
         data_1 = core.index(data_1)
 
@@ -503,21 +430,18 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         index_include.append(exact_match)
 
         self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
-        self.candidates = self.blocker.candidates
+        self._candidates = self.blocker.candidates
 
-        self.classifier = RLRLearner(self.data_model)
-        self.classifier.candidates = self.candidates
-
-        self._common_init()
+        self.matcher = MatchLearner(self.data_model, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
         self.mark(examples, labels)
 
 
-def sample_records(data: Mapping, sample_size: int) -> Mapping:
-    if len(data) <= sample_size:
-        return data
-    else:
-        sample = random.sample(data.keys(), sample_size)
-        return {k: data[k] for k in sample}
+def sample_records(data: Mapping, sample_size: int) -> dict:
+    keys = data.keys()
+    if len(data) > sample_size:
+        keys = random.sample(keys, sample_size)  # type: ignore[assignment]
+    # Always make a copy to avoid surprises
+    return {k: data[k] for k in keys}

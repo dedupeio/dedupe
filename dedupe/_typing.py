@@ -81,10 +81,14 @@ class TrainingData(TypedDict):
 
 
 class Classifier(Protocol):
-    def fit(self, X: object, y: object) -> None:
+    """Takes an array of pairwise distances and computes the likelihood they are a pair."""
+
+    def fit(self, X: numpy.typing.NDArray[numpy.float_], y: LabelsLike) -> None:
         ...
 
-    def predict_proba(self, X: object) -> numpy.typing.NDArray[numpy.float_]:
+    def predict_proba(
+        self, X: numpy.typing.NDArray[numpy.float_]
+    ) -> numpy.typing.NDArray[numpy.float_]:
         ...
 
 
