@@ -178,7 +178,8 @@ class DedupeMatching(IntegralMatching):
         _cleanup_scores(pair_scores)
         return clusters
 
-    def _add_singletons(self, data: Data, clusters: Clusters) -> Clusters:
+    @staticmethod
+    def _add_singletons(data: Data, clusters: Clusters) -> Clusters:
 
         singletons = set(data.keys())
 
