@@ -173,15 +173,14 @@ class DedupeMatching(IntegralMatching):
         pairs = self.pairs(data)
         pair_scores = self.score(pairs)
         clusters = self.cluster(pair_scores, threshold)
-        clusters = self._add_singletons(data, clusters)
+        clusters = self._add_singletons(data.keys(), clusters)
         clusters = list(clusters)
         _cleanup_scores(pair_scores)
         return clusters
 
     @staticmethod
-    def _add_singletons(data: Data, clusters: Clusters) -> Clusters:
-
-        singletons = set(data.keys())
+    def _add_singletons(all_ids: Iterable[RecordID], clusters: Clusters) -> Clusters:
+        singletons = set(all_ids)
 
         for record_ids, score in clusters:
             singletons.difference_update(record_ids)
