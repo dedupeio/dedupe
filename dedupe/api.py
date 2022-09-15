@@ -978,10 +978,25 @@ class StaticMatching(Matching):
         """
         super().__init__(num_cores, in_memory, **kwargs)
 
+        self.data_model, self.classifier, self.predicates = self._load_settings(
+            settings_file
+        )
+
+        logger.info("Predicate set:")
+        for predicate in self.predicates:
+            logger.info(predicate)
+
+        self._fingerprinter = blocking.Fingerprinter(self.predicates)
+
+    @staticmethod
+    def _load_settings(
+        settings_file: BinaryIO,
+    ) -> tuple[datamodel.DataModel, Classifier, list[dedupe.predicates.Predicate]]:
         try:
-            self.data_model = pickle.load(settings_file)
-            self.classifier = pickle.load(settings_file)
-            self.predicates = pickle.load(settings_file)
+            data_model = pickle.load(settings_file)
+            classifier = pickle.load(settings_file)
+            predicates = pickle.load(settings_file)
+            return data_model, classifier, predicates
         except (KeyError, AttributeError):
             raise SettingsFileLoadingException(
                 "This settings file is not compatible with "
@@ -1006,12 +1021,6 @@ class StaticMatching(Matching):
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file"
             )
-
-        logger.info("Predicate set:")
-        for predicate in self.predicates:
-            logger.info(predicate)
-
-        self._fingerprinter = blocking.Fingerprinter(self.predicates)
 
 
 class ActiveMatching(Matching):
