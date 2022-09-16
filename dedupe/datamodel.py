@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     )
     from dedupe.predicates import Predicate
 
-VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
+VARIABLE_CLASSES = {k: v for k, v in Variable.all_subclasses() if k}
 
 
 class DataModel(object):
@@ -39,11 +39,16 @@ class DataModel(object):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
-        self.primary_variables = typify_variables(variable_definitions)
-        all_variables = _expand_higher_variables(self.primary_variables)
-        self._derived_start = len(all_variables)
+        variables = typify_variables(variable_definitions)
+        non_interactions: list[FieldVariable] = [
+            v for v in variables if not isinstance(v, InteractionType)  # type: ignore[misc]
+        ]
+        self.primary_variables = non_interactions
+        expanded_primary = _expand_higher_variables(self.primary_variables)
+        self._derived_start = len(expanded_primary)
 
-        all_variables += interactions(variable_definitions, self.primary_variables)
+        all_variables = expanded_primary.copy()
+        all_variables += _expanded_interactions(variables)
         all_variables += missing(all_variables)
 
         self._missing_field_indices = missing_field_indices(all_variables)
@@ -140,10 +145,8 @@ class DataModel(object):
         self.__dict__ = d
 
 
-def typify_variables(
-    variable_definitions: list[VariableDefinition],
-) -> list[FieldVariable]:
-    variables: list[FieldVariable] = []
+def typify_variables(variable_definitions: list[VariableDefinition]) -> list[Variable]:
+    variables: list[Variable] = []
     for definition in variable_definitions:
         try:
             variable_type = definition["type"]
@@ -162,9 +165,6 @@ def typify_variables(
                 "{'field' : 'Phone', type: 'String'}"
             )
 
-        if variable_type == "Interaction":
-            continue
-
         if variable_type == "FuzzyCategorical" and "other fields" not in definition:
             definition["other fields"] = [  # type: ignore
                 d["field"]
@@ -181,11 +181,11 @@ def typify_variables(
             )
 
         variable_object = variable_class(definition)
-        assert isinstance(variable_object, FieldVariable)
+        assert isinstance(variable_object, Variable)
 
         variables.append(variable_object)
 
-    only_custom = all(isinstance(v, CustomType) for v in variables)
+    only_custom = all(isinstance(v, (CustomType, InteractionType)) for v in variables)
     if only_custom:
         raise ValueError(
             "At least one of the variable types needs to be a type"
@@ -214,16 +214,12 @@ def missing(variables: list[Variable]) -> list[MissingDataType]:
     return missing_variables
 
 
-def interactions(
-    definitions: Iterable[VariableDefinition], primary_variables: list[FieldVariable]
-) -> list[InteractionType]:
-    var_d = {var.name: var for var in primary_variables}
-
+def _expanded_interactions(variables: list[Variable]) -> list[InteractionType]:
+    field_vars = {var.name: var for var in variables if isinstance(var, FieldVariable)}
     interactions = []
-    for definition in definitions:
-        if definition["type"] == "Interaction":
-            var = InteractionType(definition)
-            var.expandInteractions(var_d)
+    for var in variables:
+        if isinstance(var, InteractionType):
+            var.expandInteractions(field_vars)
             interactions.extend(var.higher_vars)
     return interactions
 
