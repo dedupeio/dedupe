@@ -318,8 +318,7 @@ class DisagreementLearner(HasCandidates):
     matcher: MatchLearner
     blocker: BlockLearner
 
-    def __init__(self, data_model: DataModel) -> None:
-        self.data_model = data_model
+    def __init__(self) -> None:
         self.y: numpy.typing.NDArray[numpy.int_] = numpy.array([])
         self.pairs: TrainingExamples = []
 
@@ -381,8 +380,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
         data: Data,
         index_include: TrainingExamples,
     ):
-        super().__init__(data_model)
-
+        super().__init__()
         data = core.index(data)
 
         random_pair = (
@@ -398,7 +396,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
         self._candidates = self.blocker.candidates.copy()
 
-        self.matcher = MatchLearner(self.data_model, self.candidates)
+        self.matcher = MatchLearner(data_model, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
@@ -413,8 +411,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         data_2: Data,
         index_include: TrainingExamples,
     ):
-        super().__init__(data_model)
-
+        super().__init__()
         data_1 = core.index(data_1)
 
         offset = len(data_1)
@@ -434,7 +431,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         )
         self._candidates = self.blocker.candidates
 
-        self.matcher = MatchLearner(self.data_model, self.candidates)
+        self.matcher = MatchLearner(data_model, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
