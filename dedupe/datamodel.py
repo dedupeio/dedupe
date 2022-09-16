@@ -233,13 +233,25 @@ def missing_field_indices(variables: list[Variable]) -> list[int]:
 
 
 def interaction_indices(variables: list[Variable]) -> list[list[int]]:
-    var_names = [var.name for var in variables]
+    _ensure_unique_names(variables)
+    name_to_index = {var.name: i for i, var in enumerate(variables)}
     indices = []
     for var in variables:
         if hasattr(var, "interaction_fields"):
-            interaction_indices = [var_names.index(f) for f in var.interaction_fields]  # type: ignore
+            interaction_indices = [name_to_index[f] for f in var.interaction_fields]  # type: ignore
             indices.append(interaction_indices)
     return indices
+
+
+def _ensure_unique_names(variables: Iterable[Variable]) -> None:
+    seen = set()
+    for var in variables:
+        if var.name in seen:
+            raise ValueError(
+                "Variable name used more than once! "
+                "Choose a unique name for each variable: '{var.name}'"
+            )
+        seen.add(var.name)
 
 
 def reduce_method(m):  # type: ignore[no-untyped-def]
