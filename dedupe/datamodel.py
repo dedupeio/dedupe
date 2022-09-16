@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 import numpy
 
 import dedupe.variables
+from dedupe.variables.base import CustomType
 from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
@@ -143,8 +144,6 @@ def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> list[FieldVariable]:
     variables: list[FieldVariable] = []
-    only_custom = True
-
     for definition in variable_definitions:
         try:
             variable_type = definition["type"]
@@ -162,9 +161,6 @@ def typify_variables(
                 "include a type definition, ex. "
                 "{'field' : 'Phone', type: 'String'}"
             )
-
-        if variable_type != "Custom":
-            only_custom = False
 
         if variable_type == "Interaction":
             continue
@@ -189,6 +185,7 @@ def typify_variables(
 
         variables.append(variable_object)
 
+    only_custom = all(isinstance(v, CustomType) for v in variables)
     if only_custom:
         raise ValueError(
             "At least one of the variable types needs to be a type"
