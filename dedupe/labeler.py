@@ -15,7 +15,7 @@ import dedupe.training as training
 if TYPE_CHECKING:
     from typing import Dict, Iterable, Literal, Mapping
 
-    from dedupe._typing import Data, Labels, LabelsLike
+    from dedupe._typing import Data, FeaturizerFunction, Labels, LabelsLike
     from dedupe._typing import RecordDictPair as TrainingExample
     from dedupe._typing import RecordDictPairs as TrainingExamples
     from dedupe._typing import RecordIDPair
@@ -70,33 +70,25 @@ class Learner(ABC, HasCandidates):
 
 
 class MatchLearner(Learner):
-    def __init__(self, data_model: DataModel, candidates: TrainingExamples):
-        self.data_model = data_model
+    def __init__(self, featurizer: FeaturizerFunction, candidates: TrainingExamples):
+        self._featurizer = featurizer
         self._candidates = candidates.copy()
         self._classifier = sklearn.linear_model.LogisticRegression()
-        self._distances = self._calc_distances(self.candidates)
+        self._features = self._featurizer(self.candidates)
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         y = self._verify_fit_args(pairs, y)
-        self._classifier.fit(self._calc_distances(pairs), numpy.array(y))
+        self._classifier.fit(self._featurizer(pairs), numpy.array(y))
         self._fitted = True
 
     def remove(self, index: int) -> None:
         self._candidates.pop(index)
-        self._distances = numpy.delete(self._distances, index, axis=0)
+        self._features = numpy.delete(self._features, index, axis=0)
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
         if not self._fitted:
             raise ValueError("Must call fit() before candidate_scores()")
-        scores: numpy.typing.NDArray[numpy.float_] = self._classifier.predict_proba(
-            self._distances
-        )[:, 1].reshape(-1, 1)
-        return scores
-
-    def _calc_distances(
-        self, pairs: TrainingExamples
-    ) -> numpy.typing.NDArray[numpy.float_]:
-        return self.data_model.distances(pairs)
+        return self._classifier.predict_proba(self._features)[:, 1].reshape(-1, 1)
 
 
 class BlockLearner(Learner):
@@ -402,7 +394,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
 
         self._candidates = self.blocker.candidates.copy()
 
-        self.matcher = MatchLearner(data_model, self.candidates)
+        self.matcher = MatchLearner(data_model.distances, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
@@ -437,7 +429,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         )
         self._candidates = self.blocker.candidates.copy()
 
-        self.matcher = MatchLearner(data_model, self.candidates)
+        self.matcher = MatchLearner(data_model.distances, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
