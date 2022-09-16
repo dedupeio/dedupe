@@ -34,6 +34,7 @@ if TYPE_CHECKING:
         Classifier,
         ClosableJoinable,
         Data,
+        FeaturizerFunction,
         Literal,
         MapLike,
         RecordID,
@@ -41,7 +42,6 @@ if TYPE_CHECKING:
         RecordPairs,
         Scores,
     )
-    from dedupe.datamodel import DataModel
 
     _Queue = Union[multiprocessing.dummy.Queue, multiprocessing.Queue]
 
@@ -53,7 +53,7 @@ class BlockingError(Exception):
 class ScoreDupes(object):
     def __init__(
         self,
-        data_model: DataModel,
+        featurizer: FeaturizerFunction,
         classifier: Classifier,
         records_queue: _Queue,
         exception_queue: _Queue,
@@ -61,7 +61,7 @@ class ScoreDupes(object):
         dtype: numpy.dtype,
         offset,
     ):
-        self.data_model = data_model
+        self.featurizer = featurizer
         self.classifier = classifier
         self.records_queue = records_queue
         self.exception_queue = exception_queue
@@ -87,8 +87,8 @@ class ScoreDupes(object):
         if not records:
             return
 
-        distances = self.data_model.distances(records)
-        scores = self.classifier.predict_proba(distances)[:, -1]
+        features = self.featurizer(records)
+        scores = self.classifier.predict_proba(features)[:, -1]
 
         mask = scores > 0
         if not mask.any():
@@ -113,7 +113,7 @@ class ScoreDupes(object):
 
 def scoreDuplicates(
     record_pairs: RecordPairs,
-    data_model: DataModel,
+    featurizer: FeaturizerFunction,
     classifier: Classifier,
     num_cores: int = 1,
 ) -> Scores:
@@ -145,7 +145,7 @@ def scoreDuplicates(
 
     n_map_processes = max(num_cores, 1)
     score_records = ScoreDupes(
-        data_model,
+        featurizer,
         classifier,
         record_pairs_queue,
         exception_queue,
@@ -200,15 +200,15 @@ def fillQueue(
 
 
 class ScoreGazette(object):
-    def __init__(self, data_model: DataModel, classifier: Classifier):
-        self.data_model = data_model
+    def __init__(self, featurizer: FeaturizerFunction, classifier: Classifier):
+        self.featurizer = featurizer
         self.classifier = classifier
 
     def __call__(self, block: Block) -> Scores:
         record_ids, records = zip(*(zip(*each) for each in block))
 
-        distances = self.data_model.distances(records)
-        scores = self.classifier.predict_proba(distances)[:, -1]
+        features = self.featurizer(records)
+        scores = self.classifier.predict_proba(features)[:, -1]
 
         id_type = sniff_id_type(record_ids)
         ids = numpy.array(record_ids, dtype=id_type)
@@ -227,7 +227,7 @@ class ScoreGazette(object):
 
 def scoreGazette(
     record_pairs: Blocks,
-    data_model: DataModel,
+    featurizer: FeaturizerFunction,
     classifier: Classifier,
     num_cores: int = 1,
 ) -> Generator[Scores, None, None]:
@@ -238,7 +238,7 @@ def scoreGazette(
 
     imap, pool = appropriate_imap(num_cores)
 
-    score_records = ScoreGazette(data_model, classifier)
+    score_records = ScoreGazette(featurizer, classifier)
 
     for scored_pairs in imap(score_records, record_pairs):
         yield scored_pairs

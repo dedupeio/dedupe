@@ -107,7 +107,7 @@ class IntegralMatching(Matching):
         """
         try:
             matches = core.scoreDuplicates(
-                pairs, self.data_model, self.classifier, self.num_cores
+                pairs, self.data_model.distances, self.classifier, self.num_cores
             )
         except RuntimeError:
             raise RuntimeError(
@@ -824,7 +824,7 @@ class GazetteerMatching(Matching):
         """
 
         matches = core.scoreGazette(
-            blocks, self.data_model, self.classifier, self.num_cores
+            blocks, self.data_model.distances, self.classifier, self.num_cores
         )
 
         return matches
