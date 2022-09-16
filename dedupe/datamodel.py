@@ -36,9 +36,6 @@ class DataModel(object):
     version = 1
 
     def __init__(self, variable_definitions: Iterable[VariableDefinition]):
-        variable_definitions = list(variable_definitions)
-        if not variable_definitions:
-            raise ValueError("The variable definitions cannot be empty")
         variables = typify_variables(variable_definitions)
         non_interactions: list[FieldVariable] = [
             v for v in variables if not isinstance(v, InteractionType)  # type: ignore[misc]
@@ -145,7 +142,13 @@ class DataModel(object):
         self.__dict__ = d
 
 
-def typify_variables(variable_definitions: list[VariableDefinition]) -> list[Variable]:
+def typify_variables(
+    variable_definitions: Iterable[VariableDefinition],
+) -> list[Variable]:
+    variable_definitions = list(variable_definitions)
+    if not variable_definitions:
+        raise ValueError("The variable definitions cannot be empty")
+
     variables: list[Variable] = []
     for definition in variable_definitions:
         try:
@@ -179,10 +182,8 @@ def typify_variables(variable_definitions: list[VariableDefinition]) -> list[Var
             raise KeyError(
                 f"Variable type {variable_type} not valid. Valid types include {valid}"
             )
-
         variable_object = variable_class(definition)
         assert isinstance(variable_object, Variable)
-
         variables.append(variable_object)
 
     only_custom = all(isinstance(v, (CustomType, InteractionType)) for v in variables)
