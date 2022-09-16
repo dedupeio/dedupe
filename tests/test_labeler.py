@@ -43,7 +43,9 @@ class ActiveLearningTest(unittest.TestCase):
             ({"name": "William", "age": "35"}, {"name": "Jimbo", "age": "21"}),
         ]
         EXPECTED_CANDIDATES = {freeze_record_pair(pair) for pair in EXPECTED_CANDIDATES}
-        active_learner = labeler.DedupeDisagreementLearner(self.data_model, SAMPLE, [])
+        active_learner = labeler.DedupeDisagreementLearner(
+            self.data_model.predicates, self.data_model.distances, SAMPLE, []
+        )
         actual_candidates = set()
         for i in range(len(EXPECTED_CANDIDATES), 0, -1):
             assert len(active_learner) == i
