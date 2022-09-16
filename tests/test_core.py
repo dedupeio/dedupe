@@ -70,7 +70,7 @@ class ScoreDuplicates(unittest.TestCase):
 
     def test_score_duplicates(self):
         scores = dedupe.core.scoreDuplicates(
-            self.records, self.data_model, self.classifier, 2
+            self.records, self.data_model.distances, self.classifier, 2
         )
 
         numpy.testing.assert_equal(scores["pairs"], self.desired_scored_pairs["pairs"])
@@ -94,7 +94,7 @@ class ScoreDuplicates(unittest.TestCase):
         expected = numpy.array([(["3", "4"], 1)], dtype=dtype)
 
         scores = dedupe.core.scoreDuplicates(
-            records, self.data_model, self.classifier, 2
+            records, self.data_model.distances, self.classifier, 2
         )
 
         assert isinstance(scores, numpy.memmap)
