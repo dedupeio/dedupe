@@ -14,6 +14,7 @@ import pickle
 import sqlite3
 import tempfile
 import warnings
+from io import BytesIO
 from typing import TYPE_CHECKING, cast
 
 import numpy
@@ -988,15 +989,23 @@ class StaticMatching(Matching):
 
         self._fingerprinter = blocking.Fingerprinter(self.predicates)
 
-    @staticmethod
+    @classmethod
     def _load_settings(
-        settings_file: BinaryIO,
+        cls, settings_file: BinaryIO
     ) -> tuple[datamodel.DataModel, Classifier, list[dedupe.predicates.Predicate]]:
+        # Make a copy so we can read it multiple times
+        settings_file = BytesIO(settings_file.read())
+        settings_file.seek(0)
         try:
-            data_model = pickle.load(settings_file)
-            classifier = pickle.load(settings_file)
-            predicates = pickle.load(settings_file)
-            return data_model, classifier, predicates
+            version = pickle.load(settings_file)
+            if not isinstance(version, int):
+                settings_file.seek(0)
+                return cls._load_settings_v0(settings_file)
+            else:
+                raise SettingsFileLoadingException(
+                    "Settings file version {} not understood".format(version)
+                )
+
         except (KeyError, AttributeError):
             raise SettingsFileLoadingException(
                 "This settings file is not compatible with "
@@ -1021,6 +1030,15 @@ class StaticMatching(Matching):
                 "Something has gone wrong with loading the settings file. "
                 "Try deleting the file"
             )
+
+    @staticmethod
+    def _load_settings_v0(
+        settings_file: BinaryIO,
+    ) -> tuple[datamodel.DataModel, Classifier, list[dedupe.predicates.Predicate]]:
+        data_model = pickle.load(settings_file)
+        classifier = pickle.load(settings_file)
+        predicates = pickle.load(settings_file)
+        return data_model, classifier, predicates
 
 
 class ActiveMatching(Matching):
