@@ -421,7 +421,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         self.blocker = RecordLinkBlockLearner(
             data_model.predicates, data_1, data_2, index_include
         )
-        self._candidates = self.blocker.candidates
+        self._candidates = self.blocker.candidates.copy()
 
         self.matcher = MatchLearner(data_model.distances, self.candidates)
 
