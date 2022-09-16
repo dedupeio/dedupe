@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from dedupe._typing import RecordDictPair as TrainingExample
     from dedupe._typing import RecordDictPairs as TrainingExamples
     from dedupe._typing import RecordIDPair
-    from dedupe.datamodel import DataModel
     from dedupe.predicates import Predicate
 
 
@@ -374,7 +373,8 @@ class DisagreementLearner(HasCandidates):
 class DedupeDisagreementLearner(DisagreementLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
+        featurizer: FeaturizerFunction,
         data: Data,
         index_include: TrainingExamples,
     ):
@@ -390,11 +390,11 @@ class DedupeDisagreementLearner(DisagreementLearner):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = DedupeBlockLearner(data_model.predicates, data, index_include)
+        self.blocker = DedupeBlockLearner(candidate_predicates, data, index_include)
 
         self._candidates = self.blocker.candidates.copy()
 
-        self.matcher = MatchLearner(data_model.distances, self.candidates)
+        self.matcher = MatchLearner(featurizer, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
@@ -404,7 +404,8 @@ class DedupeDisagreementLearner(DisagreementLearner):
 class RecordLinkDisagreementLearner(DisagreementLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
+        featurizer: FeaturizerFunction,
         data_1: Data,
         data_2: Data,
         index_include: TrainingExamples,
@@ -425,11 +426,11 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         index_include.append(exact_match)
 
         self.blocker = RecordLinkBlockLearner(
-            data_model.predicates, data_1, data_2, index_include
+            candidate_predicates, data_1, data_2, index_include
         )
         self._candidates = self.blocker.candidates.copy()
 
-        self.matcher = MatchLearner(data_model.distances, self.candidates)
+        self.matcher = MatchLearner(featurizer, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
