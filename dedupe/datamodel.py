@@ -38,8 +38,8 @@ class DataModel(object):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
-        all_variables: list[Variable]
-        self.primary_variables, all_variables = typify_variables(variable_definitions)
+        self.primary_variables = typify_variables(variable_definitions)
+        all_variables = _expand_higher_variables(self.primary_variables)
         self._derived_start = len(all_variables)
 
         all_variables += interactions(variable_definitions, self.primary_variables)
@@ -141,9 +141,8 @@ class DataModel(object):
 
 def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
-) -> tuple[list[FieldVariable], list[Variable]]:
-    primary_variables: list[FieldVariable] = []
-    all_variables: list[Variable] = []
+) -> list[FieldVariable]:
+    variables: list[FieldVariable] = []
     only_custom = True
 
     for definition in variable_definitions:
@@ -188,13 +187,7 @@ def typify_variables(
         variable_object = variable_class(definition)
         assert isinstance(variable_object, FieldVariable)
 
-        primary_variables.append(variable_object)
-
-        if hasattr(variable_object, "higher_vars"):
-            all_variables.extend(variable_object.higher_vars)
-        else:
-            variable_object = cast(Variable, variable_object)
-            all_variables.append(variable_object)
+        variables.append(variable_object)
 
     if only_custom:
         raise ValueError(
@@ -203,7 +196,17 @@ def typify_variables(
             "blocking rules"
         )
 
-    return primary_variables, all_variables
+    return variables
+
+
+def _expand_higher_variables(variables: Iterable[Variable]) -> list[Variable]:
+    result: list[Variable] = []
+    for variable in variables:
+        if hasattr(variable, "higher_vars"):
+            result.extend(variable.higher_vars)
+        else:
+            result.append(variable)
+    return result
 
 
 def missing(variables: list[Variable]) -> list[MissingDataType]:
