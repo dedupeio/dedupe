@@ -91,6 +91,26 @@ class ActiveMatch(unittest.TestCase):
                 ],
             )
 
+        # Duplicate variable names (explicitly)
+        with self.assertRaises(ValueError) as e:
+            dedupe.api.ActiveMatching(
+                [
+                    {"field": "age", "type": "String", "variable name": "my_age"},
+                    {"field": "age", "type": "ShortString", "variable name": "my_age"},
+                ],
+            )
+        assert "Variable name used more than once!" in str(e.exception)
+
+        # Duplicate variable names (implicitly)
+        with self.assertRaises(ValueError) as e:
+            dedupe.api.ActiveMatching(
+                [
+                    {"field": "age", "type": "String"},
+                    {"field": "age", "type": "String"},
+                ],
+            )
+        assert "Variable name used more than once!" in str(e.exception)
+
         dedupe.api.ActiveMatching(
             [
                 {"field": "name", "type": "Custom", "comparator": lambda x, y: 1},
