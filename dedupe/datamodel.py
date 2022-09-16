@@ -50,9 +50,6 @@ class DataModel(object):
 
         self._len = len(all_variables)
 
-    def __len__(self) -> int:
-        return self._len
-
     # Changing this from a property to just a normal attribute causes
     # pickling problems, because we are removing static methods from
     # their class context. This could be fixed by defining comparators
@@ -82,7 +79,7 @@ class DataModel(object):
     ) -> numpy.typing.NDArray[numpy.float_]:
         num_records = len(record_pairs)
 
-        distances = numpy.empty((num_records, len(self)), "f4")
+        distances = numpy.empty((num_records, self._len), "f4")
 
         for i, (record_1, record_2) in enumerate(record_pairs):
 
