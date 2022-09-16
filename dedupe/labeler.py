@@ -212,7 +212,7 @@ def _filter_canopy_predicates(
 class DedupeBlockLearner(BlockLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
         data: Data,
         index_include: TrainingExamples,
     ):
@@ -224,7 +224,7 @@ class DedupeBlockLearner(BlockLearner):
         index_data = sample_records(data, 50000)
         sampled_records = sample_records(index_data, N_SAMPLED_RECORDS)
 
-        preds = _filter_canopy_predicates(data_model.predicates, canopies=True)
+        preds = _filter_canopy_predicates(candidate_predicates, canopies=True)
         self.block_learner = training.DedupeBlockLearner(
             preds, sampled_records, index_data
         )
@@ -262,7 +262,7 @@ class DedupeBlockLearner(BlockLearner):
 class RecordLinkBlockLearner(BlockLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
         data_1: Data,
         data_2: Data,
         index_include: TrainingExamples,
@@ -276,7 +276,7 @@ class RecordLinkBlockLearner(BlockLearner):
         index_data = sample_records(data_2, 50000)
         sampled_records_2 = sample_records(index_data, N_SAMPLED_RECORDS)
 
-        preds = _filter_canopy_predicates(data_model.predicates, canopies=False)
+        preds = _filter_canopy_predicates(candidate_predicates, canopies=False)
         self.block_learner = training.RecordLinkBlockLearner(
             preds, sampled_records_1, sampled_records_2, index_data
         )
@@ -394,7 +394,7 @@ class DedupeDisagreementLearner(DisagreementLearner):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = DedupeBlockLearner(data_model, data, index_include)
+        self.blocker = DedupeBlockLearner(data_model.predicates, data, index_include)
 
         self._candidates = self.blocker.candidates.copy()
 
@@ -429,7 +429,9 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
+        self.blocker = RecordLinkBlockLearner(
+            data_model.predicates, data_1, data_2, index_include
+        )
         self._candidates = self.blocker.candidates
 
         self.matcher = MatchLearner(self.data_model, self.candidates)
