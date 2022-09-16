@@ -141,7 +141,7 @@ class DataModel(object):
 
 
 def typify_variables(
-    variable_definitions: Iterable[VariableDefinition],
+    variable_definitions: list[VariableDefinition],
 ) -> list[FieldVariable]:
     variables: list[FieldVariable] = []
     for definition in variable_definitions:
