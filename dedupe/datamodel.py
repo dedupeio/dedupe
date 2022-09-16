@@ -179,9 +179,9 @@ def typify_variables(
         try:
             variable_class = VARIABLE_CLASSES[variable_type]
         except KeyError:
+            valid = ", ".join(VARIABLE_CLASSES)
             raise KeyError(
-                "Field type %s not valid. Valid types include %s"
-                % (definition["type"], ", ".join(VARIABLE_CLASSES))
+                f"Variable type {variable_type} not valid. Valid types include {valid}"
             )
 
         variable_object = variable_class(definition)
