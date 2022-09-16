@@ -217,13 +217,13 @@ def missing(variables: list[Variable]) -> list[MissingDataType]:
 def interactions(
     definitions: Iterable[VariableDefinition], primary_variables: list[FieldVariable]
 ) -> list[InteractionType]:
-    field_d = {field.name: field for field in primary_variables}
+    var_d = {var.name: var for var in primary_variables}
 
     interactions = []
     for definition in definitions:
         if definition["type"] == "Interaction":
             var = InteractionType(definition)
-            var.expandInteractions(field_d)
+            var.expandInteractions(var_d)
             interactions.extend(var.higher_vars)
     return interactions
 
