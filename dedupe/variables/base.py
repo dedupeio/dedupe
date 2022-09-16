@@ -58,21 +58,16 @@ class Variable(object):
 
 
 class DerivedType(Variable):
-    type = "Derived"
-
     def __init__(self, definition: VariableDefinition):
         self.name = "(%s: %s)" % (str(definition["name"]), str(definition["type"]))
         super(DerivedType, self).__init__(definition)
 
 
 class MissingDataType(Variable):
-    type = "MissingData"
+    has_missing = False
 
     def __init__(self, name: str):
-
-        self.name = "(%s: Not Missing)" % name
-
-        self.has_missing = False
+        self.name = f"({name}: Not Missing)"
 
 
 class FieldType(Variable):
