@@ -996,6 +996,10 @@ class StaticMatching(Matching):
         # Make a copy so we can read it multiple times
         settings_file = BytesIO(settings_file.read())
         settings_file.seek(0)
+        catchall_exception = SettingsFileLoadingException(
+            "Something has gone wrong with loading the settings file. "
+            "Try deleting the file"
+        )
         try:
             version = pickle.load(settings_file)
             if not isinstance(version, int):
@@ -1021,15 +1025,9 @@ class StaticMatching(Matching):
                     "install that library: `pip install rlr`"
                 )
             else:
-                raise SettingsFileLoadingException(
-                    "Something has gone wrong with loading the settings file. "
-                    "Try deleting the file"
-                ) from exc
-        except:  # noqa: E722
-            raise SettingsFileLoadingException(
-                "Something has gone wrong with loading the settings file. "
-                "Try deleting the file"
-            )
+                raise
+        except Exception as exc:
+            raise catchall_exception from exc
 
     @staticmethod
     def _load_settings_v0(
