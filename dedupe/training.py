@@ -225,6 +225,8 @@ class RecordLinkBlockLearner(BlockLearner):
     ) -> ComparisonCover:
         cover: dict[Predicate, dict[str, tuple[set[RecordID], set[RecordID]]]] = {}
         pair_cover = {}
+        n_records_1 = len(records_1)
+        n_records_2 = len(records_2)
 
         for predicate in blocker.predicates:
             cover[predicate] = collections.defaultdict(lambda: (set(), set()))
@@ -238,6 +240,15 @@ class RecordLinkBlockLearner(BlockLearner):
                 blocks = set(predicate(record))
                 for block in blocks & current_blocks:
                     cover[predicate][block][0].add(id)
+
+        cover = {
+            predicate: blocks
+            for predicate, blocks in cover.items()
+            if not any(
+                len(A) == n_records_1 and len(B) == n_records_2
+                for A, B in blocks.values()
+            )
+        }
 
         for predicate, blocks in cover.items():
             pairs = frozenset(
