@@ -140,9 +140,16 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
     unlabeled: list[RecordDictPair] = []
     labeled: list[LabeledPair] = []
 
+    n_match = len(deduper.training_pairs["match"])
+    n_distinct = len(deduper.training_pairs["match"])
+
     while not finished:
         if use_previous:
-            record_pair, _ = labeled.pop(0)
+            record_pair, label = labeled.pop(0)
+            if label == "match":
+                n_match -= 1
+            elif label == "distinct":
+                n_distinct -= 1
             use_previous = False
         else:
             try:
@@ -152,13 +159,6 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
                 record_pair = unlabeled.pop()
             except IndexError:
                 break
-
-        n_match = len(deduper.training_pairs["match"]) + sum(
-            label == "match" for _, label in labeled
-        )
-        n_distinct = len(deduper.training_pairs["distinct"]) + sum(
-            label == "distinct" for _, label in labeled
-        )
 
         for record in record_pair:
             for field in fields:
@@ -183,8 +183,10 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
 
         if user_input == "y":
             labeled.insert(0, (record_pair, "match"))
+            n_match += 1
         elif user_input == "n":
             labeled.insert(0, (record_pair, "distinct"))
+            n_distinct += 1
         elif user_input == "u":
             labeled.insert(0, (record_pair, "unsure"))
         elif user_input == "f":
