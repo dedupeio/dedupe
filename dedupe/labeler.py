@@ -175,7 +175,7 @@ class BlockLearner(Learner):
             # the vote it puts on those few pairs will be worth more than
             # a predicate that covers almost all the record pairs
             proportion = len(covered) / max_cover
-            weight: float = numpy.exp(-1000 * proportion)
+            weight: float = numpy.exp(-10 * proportion)
             if weight and proportion != 1:
                 for pair in covered:
                     weights[pair] = weights.get(pair, 0.0) + weight
