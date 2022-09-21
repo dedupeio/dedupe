@@ -161,7 +161,9 @@ class BlockLearner(Learner):
         if self._cached_scores is not None:
             self._cached_scores = numpy.delete(self._cached_scores, index, axis=0)
 
-    def _sample_indices(self, sample_size: int) -> Iterable[RecordIDPair]:
+    def _sample_indices(
+        self, sample_size: int, max_cover: int
+    ) -> Iterable[RecordIDPair]:
 
         weights: Dict[RecordIDPair, float] = {}
         for predicate, covered in self.block_learner.comparison_cover.items():
@@ -172,9 +174,11 @@ class BlockLearner(Learner):
             # if a predicate only covers a few record pairs, the value of
             # the vote it puts on those few pairs will be worth more than
             # a predicate that covers almost all the record pairs
-            weight: float = 1 / len(covered)
-            for pair in covered:
-                weights[pair] = weights.get(pair, 0.0) + weight
+            proportion = len(covered) / max_cover
+            weight: float = numpy.exp(-1000 * proportion)
+            if weight and proportion != 1:
+                for pair in covered:
+                    weights[pair] = weights.get(pair, 0.0) + weight
 
         sample_ids: Iterable[RecordIDPair]
         if sample_size < len(weights):
@@ -252,7 +256,9 @@ class DedupeBlockLearner(BlockLearner):
 
     def _sample(self, data: Data, sample_size: int) -> TrainingExamples:
 
-        sample_indices = self._sample_indices(sample_size)
+        sample_indices = self._sample_indices(
+            sample_size, len(data) * len(data - 1) / 2
+        )
 
         sample = [(data[id_1], data[id_2]) for id_1, id_2 in sample_indices]
 
@@ -269,8 +275,8 @@ class RecordLinkBlockLearner(BlockLearner):
     ):
         super().__init__()
 
-        N_SAMPLED_RECORDS = 1000
-        N_SAMPLED_RECORD_PAIRS = 5000
+        N_SAMPLED_RECORDS = 4000
+        N_SAMPLED_RECORD_PAIRS = 10000
 
         sampled_records_1 = sample_records(data_1, N_SAMPLED_RECORDS)
         index_data = sample_records(data_2, 50000)
@@ -307,7 +313,7 @@ class RecordLinkBlockLearner(BlockLearner):
 
     def _sample(self, data_1: Data, data_2: Data, sample_size: int) -> TrainingExamples:
 
-        sample_indices = self._sample_indices(sample_size)
+        sample_indices = self._sample_indices(sample_size, len(data_1) * len(data_2))
 
         sample = [(data_1[id_1], data_2[id_2]) for id_1, id_2 in sample_indices]
 
@@ -430,7 +436,7 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         index_include.append(exact_match)
 
         self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
-        self._candidates = self.blocker.candidates
+        self._candidates = self.blocker.candidates.copy()
 
         self.matcher = MatchLearner(self.data_model, self.candidates)
 
