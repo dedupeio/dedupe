@@ -257,7 +257,7 @@ class DedupeBlockLearner(BlockLearner):
     def _sample(self, data: Data, sample_size: int) -> TrainingExamples:
 
         sample_indices = self._sample_indices(
-            sample_size, len(data) * len(data - 1) / 2
+            sample_size, len(data) * (len(data) - 1) / 2
         )
 
         sample = [(data[id_1], data[id_2]) for id_1, id_2 in sample_indices]
