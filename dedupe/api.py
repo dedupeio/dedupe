@@ -107,7 +107,7 @@ class IntegralMatching(Matching):
         """
         try:
             matches = core.scoreDuplicates(
-                pairs, self.data_model, self.classifier, self.num_cores
+                pairs, self.data_model.distances, self.classifier, self.num_cores
             )
         except RuntimeError:
             raise RuntimeError(
@@ -824,7 +824,7 @@ class GazetteerMatching(Matching):
         """
 
         matches = core.scoreGazette(
-            blocks, self.data_model, self.classifier, self.num_cores
+            blocks, self.data_model.distances, self.classifier, self.num_cores
         )
 
         return matches
@@ -1325,7 +1325,8 @@ class Dedupe(ActiveMatching, DedupeMatching):
         examples, y = flatten_training(self.training_pairs)
 
         self.active_learner = labeler.DedupeDisagreementLearner(
-            self.data_model,
+            self.data_model.predicates,
+            self.data_model.distances,
             data,
             index_include=examples,
         )
@@ -1392,7 +1393,8 @@ class Link(ActiveMatching):
         examples, y = flatten_training(self.training_pairs)
 
         self.active_learner = labeler.RecordLinkDisagreementLearner(
-            self.data_model,
+            self.data_model.predicates,
+            self.data_model.distances,
             data_1,
             data_2,
             index_include=examples,

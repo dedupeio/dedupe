@@ -80,6 +80,12 @@ class TrainingData(TypedDict):
     distinct: List[RecordDictPair]
 
 
+# Takes pairs of records and generates a (n_samples X n_features) array
+FeaturizerFunction = Callable[
+    [Sequence[RecordDictPair]], numpy.typing.NDArray[numpy.float_]
+]
+
+
 class Classifier(Protocol):
     """Takes an array of pairwise distances and computes the likelihood they are a pair."""
 

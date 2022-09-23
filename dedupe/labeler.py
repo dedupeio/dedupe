@@ -15,11 +15,10 @@ import dedupe.training as training
 if TYPE_CHECKING:
     from typing import Dict, Iterable, Literal, Mapping
 
-    from dedupe._typing import Data, Labels, LabelsLike
+    from dedupe._typing import Data, FeaturizerFunction, Labels, LabelsLike
     from dedupe._typing import RecordDictPair as TrainingExample
     from dedupe._typing import RecordDictPairs as TrainingExamples
     from dedupe._typing import RecordIDPair
-    from dedupe.datamodel import DataModel
     from dedupe.predicates import Predicate
 
 
@@ -70,33 +69,25 @@ class Learner(ABC, HasCandidates):
 
 
 class MatchLearner(Learner):
-    def __init__(self, data_model: DataModel, candidates: TrainingExamples):
-        self.data_model = data_model
+    def __init__(self, featurizer: FeaturizerFunction, candidates: TrainingExamples):
+        self._featurizer = featurizer
         self._candidates = candidates.copy()
         self._classifier = sklearn.linear_model.LogisticRegression()
-        self._distances = self._calc_distances(self.candidates)
+        self._features = self._featurizer(self.candidates)
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
         y = self._verify_fit_args(pairs, y)
-        self._classifier.fit(self._calc_distances(pairs), numpy.array(y))
+        self._classifier.fit(self._featurizer(pairs), numpy.array(y))
         self._fitted = True
 
     def remove(self, index: int) -> None:
         self._candidates.pop(index)
-        self._distances = numpy.delete(self._distances, index, axis=0)
+        self._features = numpy.delete(self._features, index, axis=0)
 
     def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
         if not self._fitted:
             raise ValueError("Must call fit() before candidate_scores()")
-        scores: numpy.typing.NDArray[numpy.float_] = self._classifier.predict_proba(
-            self._distances
-        )[:, 1].reshape(-1, 1)
-        return scores
-
-    def _calc_distances(
-        self, pairs: TrainingExamples
-    ) -> numpy.typing.NDArray[numpy.float_]:
-        return self.data_model.distances(pairs)
+        return self._classifier.predict_proba(self._features)[:, 1].reshape(-1, 1)
 
 
 class BlockLearner(Learner):
@@ -216,7 +207,7 @@ def _filter_canopy_predicates(
 class DedupeBlockLearner(BlockLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
         data: Data,
         index_include: TrainingExamples,
     ):
@@ -228,7 +219,7 @@ class DedupeBlockLearner(BlockLearner):
         index_data = sample_records(data, 50000)
         sampled_records = sample_records(index_data, N_SAMPLED_RECORDS)
 
-        preds = _filter_canopy_predicates(data_model.predicates, canopies=True)
+        preds = _filter_canopy_predicates(candidate_predicates, canopies=True)
         self.block_learner = training.DedupeBlockLearner(
             preds, sampled_records, index_data
         )
@@ -268,7 +259,7 @@ class DedupeBlockLearner(BlockLearner):
 class RecordLinkBlockLearner(BlockLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
         data_1: Data,
         data_2: Data,
         index_include: TrainingExamples,
@@ -282,7 +273,7 @@ class RecordLinkBlockLearner(BlockLearner):
         index_data = sample_records(data_2, 50000)
         sampled_records_2 = sample_records(index_data, N_SAMPLED_RECORDS)
 
-        preds = _filter_canopy_predicates(data_model.predicates, canopies=False)
+        preds = _filter_canopy_predicates(candidate_predicates, canopies=False)
         self.block_learner = training.RecordLinkBlockLearner(
             preds, sampled_records_1, sampled_records_2, index_data
         )
@@ -324,8 +315,7 @@ class DisagreementLearner(HasCandidates):
     matcher: MatchLearner
     blocker: BlockLearner
 
-    def __init__(self, data_model: DataModel) -> None:
-        self.data_model = data_model
+    def __init__(self) -> None:
         self.y: numpy.typing.NDArray[numpy.int_] = numpy.array([])
         self.pairs: TrainingExamples = []
 
@@ -383,12 +373,12 @@ class DisagreementLearner(HasCandidates):
 class DedupeDisagreementLearner(DisagreementLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
+        featurizer: FeaturizerFunction,
         data: Data,
         index_include: TrainingExamples,
     ):
-        super().__init__(data_model)
-
+        super().__init__()
         data = core.index(data)
 
         random_pair = (
@@ -400,11 +390,11 @@ class DedupeDisagreementLearner(DisagreementLearner):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = DedupeBlockLearner(data_model, data, index_include)
+        self.blocker = DedupeBlockLearner(candidate_predicates, data, index_include)
 
         self._candidates = self.blocker.candidates.copy()
 
-        self.matcher = MatchLearner(self.data_model, self.candidates)
+        self.matcher = MatchLearner(featurizer, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
@@ -414,13 +404,13 @@ class DedupeDisagreementLearner(DisagreementLearner):
 class RecordLinkDisagreementLearner(DisagreementLearner):
     def __init__(
         self,
-        data_model: DataModel,
+        candidate_predicates: Iterable[Predicate],
+        featurizer: FeaturizerFunction,
         data_1: Data,
         data_2: Data,
         index_include: TrainingExamples,
     ):
-        super().__init__(data_model)
-
+        super().__init__()
         data_1 = core.index(data_1)
 
         offset = len(data_1)
@@ -435,10 +425,12 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
         index_include = index_include.copy()
         index_include.append(exact_match)
 
-        self.blocker = RecordLinkBlockLearner(data_model, data_1, data_2, index_include)
+        self.blocker = RecordLinkBlockLearner(
+            candidate_predicates, data_1, data_2, index_include
+        )
         self._candidates = self.blocker.candidates.copy()
 
-        self.matcher = MatchLearner(self.data_model, self.candidates)
+        self.matcher = MatchLearner(featurizer, self.candidates)
 
         examples = [exact_match] * 4 + [random_pair]
         labels: Labels = [1] * 4 + [0]  # type: ignore[assignment]
