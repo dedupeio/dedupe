@@ -59,7 +59,7 @@ Once you have virtualenvwrapper set up,
 
 ```bash
 mkvirtualenv dedupe
-git clone git://github.com/dedupeio/dedupe.git
+git clone https://github.com/dedupeio/dedupe.git
 cd dedupe
 pip install -e . --config-settings editable_mode=compat
 pip install -r requirements.txt
