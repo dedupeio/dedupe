@@ -189,6 +189,32 @@ class DedupeMatching(IntegralMatching):
         for singleton in singletons:
             yield (singleton,), (1.0,)
 
+    def _atomic_blocks(self, records):
+
+        atomic_predicates = {
+            atomic_pred
+            for predicate in self.fingerprinter.predicates
+            for atomic_pred in predicate
+        }
+
+        virtual_size = 0
+
+        for record in records:
+            record_id, instance = record
+
+            for predicate in atomic_predicates:
+                component_id = str(predicate)
+                for block_key in predicate(instance):
+
+                    yield component_id, block_key, record_id
+
+    def _compounding(self):
+
+        for predicate in self.fingerprinter.predicates:
+            predicate_length = len(predicate)
+            for atomic_pred in predicate:
+                yield str(predicate), str(atomic_pred), predicate_length
+
     def pairs(self, data: Data) -> RecordPairs:
         """
         Yield pairs of records that share common fingerprints.
@@ -233,30 +259,57 @@ class DedupeMatching(IntegralMatching):
             # Set journal mode to WAL.
             con.execute("pragma journal_mode=off")
             con.execute(
-                f"CREATE TABLE blocking_map (block_key text, record_id {id_type})"
+                f"CREATE TABLE blocking_map (component_id INTEGER, block_key text, record_id {id_type})"
             )
             con.executemany(
-                "INSERT INTO blocking_map values (?, ?)",
-                self.fingerprinter(data.items()),
+                "INSERT INTO blocking_map values (?, ?, ?)",
+                self._atomic_blocks(data.items()),
             )
+
+            con.execute(
+                "CREATE TABLE compounding (pred_id text, component_id text, length integer)"
+            )
+
+            con.executemany(
+                "INSERT INTO compounding values (?, ?, ?)", self._compounding()
+            )
+
+            print(sum(1 for _ in self.fingerprinter(data.items())))
 
             self.fingerprinter.reset_indices()
 
             con.execute(
-                """CREATE UNIQUE INDEX record_id_block_key_idx
-                           ON blocking_map (record_id, block_key)"""
+                "create unique index component_bk_ri_idx on blocking_map (component_id, block_key, record_id)"
             )
-            con.execute(
-                """CREATE INDEX block_key_idx
-                           ON blocking_map (block_key)"""
-            )
+
             con.execute("""ANALYZE""")
+
             pairs = con.execute(
-                """SELECT DISTINCT a.record_id, b.record_id
+                """SELECT a.record_id, b.record_id, component_id, count(*) as component_count
                                    FROM blocking_map a
                                    INNER JOIN blocking_map b
-                                   USING (block_key)
-                                   WHERE a.record_id < b.record_id"""
+                                   USING (component_id, block_key)
+                                   WHERE a.record_id < b.record_id
+                       GROUP BY a.record_id, b.record_id, component_id;
+
+                SELECT 
+
+                                              """
+            )
+
+            pairs = con.execute(
+                """SELECT DISTINCT * FROM (
+                       SELECT a.record_id, b.record_id
+                                   FROM compounding 
+
+                                   INNER JOIN blocking_map a
+USING (component_id)                                   
+                                   INNER JOIN blocking_map b
+                                   USING (component_id, block_key)
+                                   WHERE a.record_id < b.record_id
+                       GROUP BY pred_id, a.record_id, b.record_id
+                       HAVING COUNT(distinct component_id) == length)
+                       AS block_match"""
             )
 
             for a_record_id, b_record_id in pairs:
@@ -264,6 +317,8 @@ class DedupeMatching(IntegralMatching):
                     (a_record_id, data[a_record_id]),
                     (b_record_id, data[b_record_id]),
                 )
+
+            breakpoint()
 
             pairs.close()
             con.close()
