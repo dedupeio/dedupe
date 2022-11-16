@@ -1479,6 +1479,7 @@ def _cleanup_scores(arr: Scores) -> None:
     except AttributeError:
         pass
     else:
+        arr._mmap.close()  # Unmap file to prevent PermissionError when deleting temp file
         del arr
         if mmap_file:
             os.remove(mmap_file)
