@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+import sys
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -439,7 +440,13 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
 
 def sample_records(data: Mapping, sample_size: int) -> dict:
     keys = data.keys()
+
     if len(data) > sample_size:
+        # As of Python 3.11 population for random.sample() must be a sequence,
+        # see https://docs.python.org/3/library/random.html#random.sample
+        if sys.version_info.major >=3 and sys.version_info.minor > 10:
+            keys = list(keys)
         keys = random.sample(keys, sample_size)  # type: ignore[assignment]
+
     # Always make a copy to avoid surprises
     return {k: data[k] for k in keys}
