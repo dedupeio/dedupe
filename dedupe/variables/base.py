@@ -6,7 +6,7 @@ from dedupe import predicates
 from dedupe.hookspecs import hookimpl
 
 if TYPE_CHECKING:
-    from typing import Any, ClassVar, Generator, Iterable, Optional, Sequence, Type
+    from typing import Any, ClassVar, Iterable, Sequence, Type
 
     from dedupe._typing import Comparator, PredicateFunction, VariableDefinition
 
