@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dedupe import predicates
+from dedupe.hookspecs import hookimpl
 
 if TYPE_CHECKING:
     from typing import Any, ClassVar, Generator, Iterable, Optional, Sequence, Type
@@ -46,15 +47,6 @@ class Variable(object):
         odict["predicates"] = None
 
         return odict
-
-    @classmethod
-    def all_subclasses(
-        cls,
-    ) -> Generator[tuple[Optional[str], Type["Variable"]], None, None]:
-        for q in cls.__subclasses__():
-            yield getattr(q, "type", None), q
-            for p in q.all_subclasses():
-                yield p
 
 
 class DerivedType(Variable):
@@ -135,3 +127,8 @@ def indexPredicates(
             index_predicates.append(predicate(threshold, field))
 
     return index_predicates
+
+
+@hookimpl
+def register_variable():
+    return {CustomType.type: CustomType, MissingDataType.type: MissingDataType}

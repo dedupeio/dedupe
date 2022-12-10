@@ -1,21 +1,18 @@
 from __future__ import annotations
 
 import copyreg
-import pkgutil
+import importlib
 import types
 from typing import TYPE_CHECKING, cast
 
 import numpy
+import pluggy
 
-import dedupe.variables
 from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
 
-for _, module, _ in pkgutil.iter_modules(  # type: ignore
-    dedupe.variables.__path__, "dedupe.variables."
-):
-    __import__(module)
+from . import hookspecs
 
 if TYPE_CHECKING:
     from typing import Generator, Iterable, Sequence
@@ -28,7 +25,25 @@ if TYPE_CHECKING:
     )
     from dedupe.predicates import Predicate
 
-VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
+
+DEFAULT_VARIABLES = [
+    "dedupe.variables.base",
+    "dedupe.variables.string",
+    "dedupe.variables.categorical_type",
+    "dedupe.variables.exists",
+    "dedupe.variables.exact",
+    "dedupe.variables.latlong",
+    "dedupe.variables.interaction",
+    "dedupe.variables.price",
+    "dedupe.variables.set",
+]
+
+pm = pluggy.PluginManager("dedupe")
+pm.add_hookspecs(hookspecs)
+
+for plugin in DEFAULT_VARIABLES:
+    mod = importlib.import_module(plugin)
+    pm.register(mod, plugin)
 
 
 class DataModel(object):
@@ -38,8 +53,15 @@ class DataModel(object):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
+
+        self.variable_types = {}
+        for variable_type in pm.hook.register_variable():
+            self.variable_types.update(variable_type)
+
         all_variables: list[Variable]
-        self.primary_variables, all_variables = typify_variables(variable_definitions)
+        self.primary_variables, all_variables = self.typify_variables(
+            variable_definitions
+        )
         self._derived_start = len(all_variables)
 
         all_variables += interactions(variable_definitions, self.primary_variables)
@@ -141,72 +163,72 @@ class DataModel(object):
 
         self.__dict__ = d
 
+    def typify_variables(
+        self,
+        variable_definitions: Iterable[VariableDefinition],
+    ) -> tuple[list[FieldVariable], list[Variable]]:
+        primary_variables: list[FieldVariable] = []
+        all_variables: list[Variable] = []
+        only_custom = True
 
-def typify_variables(
-    variable_definitions: Iterable[VariableDefinition],
-) -> tuple[list[FieldVariable], list[Variable]]:
-    primary_variables: list[FieldVariable] = []
-    all_variables: list[Variable] = []
-    only_custom = True
+        for definition in variable_definitions:
+            try:
+                variable_type = definition["type"]
+            except TypeError:
+                raise TypeError(
+                    "Incorrect variable specification: variable "
+                    "specifications are dictionaries that must "
+                    "include a type definition, ex. "
+                    "{'field' : 'Phone', type: 'String'}"
+                )
+            except KeyError:
+                raise KeyError(
+                    "Missing variable type: variable "
+                    "specifications are dictionaries that must "
+                    "include a type definition, ex. "
+                    "{'field' : 'Phone', type: 'String'}"
+                )
 
-    for definition in variable_definitions:
-        try:
-            variable_type = definition["type"]
-        except TypeError:
-            raise TypeError(
-                "Incorrect variable specification: variable "
-                "specifications are dictionaries that must "
-                "include a type definition, ex. "
-                "{'field' : 'Phone', type: 'String'}"
+            if variable_type != "Custom":
+                only_custom = False
+
+            if variable_type == "Interaction":
+                continue
+
+            if variable_type == "FuzzyCategorical" and "other fields" not in definition:
+                definition["other fields"] = [  # type: ignore
+                    d["field"]
+                    for d in variable_definitions
+                    if ("field" in d and d["field"] != definition["field"])
+                ]
+
+            try:
+                variable_class = self.variable_types[variable_type]
+            except KeyError:
+                raise KeyError(
+                    "Field type %s not valid. Valid types include %s"
+                    % (definition["type"], ", ".join(self.variable_types))
+                )
+
+            variable_object = variable_class(definition)
+            assert isinstance(variable_object, FieldVariable)
+
+            primary_variables.append(variable_object)
+
+            if hasattr(variable_object, "higher_vars"):
+                all_variables.extend(variable_object.higher_vars)
+            else:
+                variable_object = cast(Variable, variable_object)
+                all_variables.append(variable_object)
+
+        if only_custom:
+            raise ValueError(
+                "At least one of the variable types needs to be a type"
+                "other than 'Custom'. 'Custom' types have no associated"
+                "blocking rules"
             )
-        except KeyError:
-            raise KeyError(
-                "Missing variable type: variable "
-                "specifications are dictionaries that must "
-                "include a type definition, ex. "
-                "{'field' : 'Phone', type: 'String'}"
-            )
 
-        if variable_type != "Custom":
-            only_custom = False
-
-        if variable_type == "Interaction":
-            continue
-
-        if variable_type == "FuzzyCategorical" and "other fields" not in definition:
-            definition["other fields"] = [  # type: ignore
-                d["field"]
-                for d in variable_definitions
-                if ("field" in d and d["field"] != definition["field"])
-            ]
-
-        try:
-            variable_class = VARIABLE_CLASSES[variable_type]
-        except KeyError:
-            raise KeyError(
-                "Field type %s not valid. Valid types include %s"
-                % (definition["type"], ", ".join(VARIABLE_CLASSES))
-            )
-
-        variable_object = variable_class(definition)
-        assert isinstance(variable_object, FieldVariable)
-
-        primary_variables.append(variable_object)
-
-        if hasattr(variable_object, "higher_vars"):
-            all_variables.extend(variable_object.higher_vars)
-        else:
-            variable_object = cast(Variable, variable_object)
-            all_variables.append(variable_object)
-
-    if only_custom:
-        raise ValueError(
-            "At least one of the variable types needs to be a type"
-            "other than 'Custom'. 'Custom' types have no associated"
-            "blocking rules"
-        )
-
-    return primary_variables, all_variables
+        return primary_variables, all_variables
 
 
 def missing(variables: list[Variable]) -> list[MissingDataType]:

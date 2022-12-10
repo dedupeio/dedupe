@@ -6,6 +6,7 @@ from simplecosine.cosine import CosineTextSimilarity
 
 from dedupe import predicates
 from dedupe._typing import VariableDefinition
+from dedupe.hookspecs import hookimpl
 from dedupe.variables.base import FieldType, indexPredicates
 
 crfEd = CRFEditDistance()
@@ -105,3 +106,12 @@ class TextType(BaseStringType):
             definition["corpus"] = []
 
         self.comparator = CosineTextSimilarity(definition["corpus"])  # type: ignore[assignment]
+
+
+@hookimpl
+def register_variable():
+    return {
+        ShortStringType.type: ShortStringType,
+        StringType.type: StringType,
+        TextType.type: TextType,
+    }

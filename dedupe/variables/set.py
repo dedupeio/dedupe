@@ -2,6 +2,7 @@ from simplecosine.cosine import CosineSetSimilarity
 
 from dedupe import predicates
 from dedupe._typing import VariableDefinition
+from dedupe.hookspecs import hookimpl
 from dedupe.variables.base import FieldType
 
 
@@ -31,3 +32,8 @@ class SetType(FieldType):
             definition["corpus"] = []
 
         self.comparator = CosineSetSimilarity(definition["corpus"])  # type: ignore[assignment]
+
+
+@hookimpl
+def register_variable():
+    return {SetType.type: SetType}

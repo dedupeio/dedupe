@@ -38,6 +38,7 @@ dependencies = [
     "zope.index",
     "Levenshtein_search==1.4.5",
     "typing_extensions",
+    "pluggy",
 ]
 
 [project.urls]
