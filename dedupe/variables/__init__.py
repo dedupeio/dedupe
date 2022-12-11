@@ -10,15 +10,15 @@ from dedupe.variables.set import SetType
 from dedupe.variables.string import ShortStringType, StringType, TextType
 
 __all__ = [
-    CustomType,
-    CategoricalType,
-    ExactType,
-    ExistsType,
-    InteractionType,
-    LatLongType,
-    PriceType,
-    SetType,
-    ShortStringType,
-    StringType,
-    TextType,
+    "CustomType",
+    "CategoricalType",
+    "ExactType",
+    "ExistsType",
+    "InteractionType",
+    "LatLongType",
+    "PriceType",
+    "SetType",
+    "ShortStringType",
+    "StringType",
+    "TextType",
 ]

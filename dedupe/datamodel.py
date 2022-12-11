@@ -153,7 +153,10 @@ def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> tuple[list[FieldVariable], list[Variable]]:
 
-    variable_types = {variable.type: variable for variable in dedupe.variables.__all__}
+    variable_types = {}
+    for variablename in dedupe.variables.__all__:
+        variable = getattr(dedupe.variables, variablename)
+        variable_types[variable.type] = variable
 
     plugin_vars = load_setuptools_entrypoints("dedupevariables")
     for var in plugin_vars:
