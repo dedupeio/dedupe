@@ -5,7 +5,7 @@ version = "3.0.0"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
-keywords = [entity-resolution, deduplication, record-linkage, dedupe, clustering]
+keywords = ["entity-resolution", "deduplication", "record-linkage", "dedupe", "clustering"]
 authors = [
   { name = "Forest Gregg", email = "fgregg@datamade.us" },
 ]

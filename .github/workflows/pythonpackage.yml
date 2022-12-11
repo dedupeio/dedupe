@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e . --config-settings editable_mode=compat --use-pep517
+          pip install -e .
           pip install -r requirements.txt
       - name: flake8
         run: flake8 dedupe tests benchmarks/benchmarks
@@ -44,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -e . --config-settings editable_mode=compat --use-pep517
+        pip install -e .
     - name: Install test dependencies
       run: pip install -r requirements.txt
     - name: pytest
@@ -89,7 +89,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e . --config-settings editable_mode=compat
+          pip install -e .
           python -m pip install -e ./benchmarks
       - name: Run on canonical on main
         run: python benchmarks/benchmarks/canonical.py
@@ -98,7 +98,7 @@ jobs:
         with:
           clean: false
       - name: Install any new dependencies
-        run: pip install -e . --config-settings editable_mode=compat --use-pep517
+        run: pip install -e .
       - name: Run on canonical with setting file created on main
         run: python benchmarks/benchmarks/canonical.py      
   wheels:
