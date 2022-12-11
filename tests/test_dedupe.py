@@ -74,6 +74,33 @@ class DataModelTest(unittest.TestCase):
 
         assert data_model._missing_field_indices == []
 
+    def test_builtin_variables_basic(self):
+        """Tests that we can instantiate a DataModel with all of the
+        builtin variable types
+        """
+        builtin_types = [
+            "Exists",
+            "Exact",
+            "LatLong",
+            "Price",
+            "Set",
+            "ShortString",
+            "String",
+            "Text",
+            "DateTime",
+        ]
+        defs = [
+            {
+                "field": "a",
+                "variable name": "a",
+                "type": t,
+            }
+            for t in builtin_types
+        ]
+        defs.append({"type": "Categorical", "field": "a", "categories": ["foo", "bar"]})
+        defs.append({"type": "Custom", "field": "a", "comparator": lambda x, y: 0})
+        DataModel(defs)
+
 
 class ConnectedComponentsTest(unittest.TestCase):
     def test_components(self):
