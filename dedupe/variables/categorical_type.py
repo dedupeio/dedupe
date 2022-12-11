@@ -4,7 +4,6 @@ from categorical import CategoricalComparator
 
 from dedupe import predicates
 from dedupe._typing import PredicateFunction, VariableDefinition
-from dedupe.hookspecs import hookimpl
 from dedupe.variables.base import DerivedType, FieldType
 
 
@@ -37,8 +36,3 @@ class CategoricalType(FieldType):
 
     def __len__(self) -> int:
         return len(self.higher_vars)
-
-
-@hookimpl
-def register_variable():
-    return {CategoricalType.type: CategoricalType}

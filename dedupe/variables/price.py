@@ -3,7 +3,6 @@ from __future__ import annotations
 import numpy
 
 from dedupe import predicates
-from dedupe.hookspecs import hookimpl
 from dedupe.variables.base import FieldType
 
 
@@ -23,8 +22,3 @@ class PriceType(FieldType):
             return numpy.nan
         else:
             return abs(numpy.log10(price_1) - numpy.log10(price_2))
-
-
-@hookimpl
-def register_variable():
-    return {PriceType.type: PriceType}

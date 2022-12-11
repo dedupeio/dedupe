@@ -5,7 +5,6 @@ from typing import Any
 from categorical import CategoricalComparator
 
 from dedupe._typing import PredicateFunction, VariableDefinition
-from dedupe.hookspecs import hookimpl
 from dedupe.variables.base import DerivedType
 from dedupe.variables.categorical_type import CategoricalType
 
@@ -38,8 +37,3 @@ class ExistsType(CategoricalType):
     # This flag tells fieldDistances in dedupe.core to pass
     # missing values (None) into the comparator
     comparator.missing = True  # type: ignore
-
-
-@hookimpl
-def register_variable():
-    return {ExistsType.type: ExistsType}

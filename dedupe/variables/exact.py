@@ -1,7 +1,6 @@
 from typing import Any
 
 from dedupe import predicates
-from dedupe.hookspecs import hookimpl
 from dedupe.variables.base import FieldType
 
 
@@ -15,8 +14,3 @@ class ExactType(FieldType):
             return 1
         else:
             return 0
-
-
-@hookimpl
-def register_variable():
-    return {ExactType.type: ExactType}

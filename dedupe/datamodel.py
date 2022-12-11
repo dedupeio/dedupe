@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import copyreg
-import importlib
+import sys
 import types
 from typing import TYPE_CHECKING, cast
 
 import numpy
-import pluggy
 
-import dedupe.hookspecs
+import dedupe.variables
 from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
+
+if sys.version_info >= (3, 8):
+    from importlib import metadata as importlib_metadata
+else:
+    import importlib_metadata
 
 if TYPE_CHECKING:
     from typing import Generator, Iterable, Sequence
@@ -25,25 +29,13 @@ if TYPE_CHECKING:
     from dedupe.predicates import Predicate
 
 
-DEFAULT_VARIABLES = [
-    "dedupe.variables.base",
-    "dedupe.variables.string",
-    "dedupe.variables.categorical_type",
-    "dedupe.variables.exists",
-    "dedupe.variables.exact",
-    "dedupe.variables.latlong",
-    "dedupe.variables.interaction",
-    "dedupe.variables.price",
-    "dedupe.variables.set",
-]
-
-pm = pluggy.PluginManager("dedupe")
-pm.add_hookspecs(dedupe.hookspecs)
-pm.load_setuptools_entrypoints("dedupe")
-
-for plugin in DEFAULT_VARIABLES:
-    mod = importlib.import_module(plugin)
-    pm.register(mod, plugin)
+def load_setuptools_entrypoints(group: str):
+    variables = []
+    for dist in list(importlib_metadata.distributions()):
+        for ep in dist.entry_points:
+            if ep.group == group:
+                variables.append(ep.load())
+    return variables
 
 
 class DataModel(object):
@@ -161,9 +153,11 @@ def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> tuple[list[FieldVariable], list[Variable]]:
 
-    variable_types = {}
-    for variable_type in pm.hook.register_variable():
-        variable_types.update(variable_type)
+    variable_types = {variable.type: variable for variable in dedupe.variables.__all__}
+
+    plugin_vars = load_setuptools_entrypoints("dedupevariables")
+    for var in plugin_vars:
+        variable_types[var.type] = var
 
     primary_variables: list[FieldVariable] = []
     all_variables: list[Variable] = []

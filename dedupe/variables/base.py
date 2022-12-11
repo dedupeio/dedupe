@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dedupe import predicates
-from dedupe.hookspecs import hookimpl
 
 if TYPE_CHECKING:
     from typing import Any, ClassVar, Iterable, Sequence, Type
@@ -127,8 +126,3 @@ def indexPredicates(
             index_predicates.append(predicate(threshold, field))
 
     return index_predicates
-
-
-@hookimpl
-def register_variable():
-    return {CustomType.type: CustomType}

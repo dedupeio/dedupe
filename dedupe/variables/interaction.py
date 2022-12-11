@@ -4,7 +4,6 @@ import itertools
 from typing import Mapping
 
 from dedupe._typing import VariableDefinition
-from dedupe.hookspecs import hookimpl
 from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import Variable
 
@@ -78,8 +77,3 @@ class InteractionType(Variable):
                 atomic_interactions.append(field)
 
         return atomic_interactions
-
-
-@hookimpl
-def register_variable():
-    return {InteractionType.type: InteractionType}
