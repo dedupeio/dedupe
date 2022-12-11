@@ -38,8 +38,12 @@ class Gazetteer(canonical_matching.Matching):
             ]
 
             gazetteer = dedupe.Gazetteer(variables)
-            gazetteer.prepare_training(data_1, data_2, sample_size=10000)
-            gazetteer.mark_pairs(self.training_pairs)
+            gazetteer.prepare_training(
+                data_1,
+                data_2,
+                training_file=self.training_pairs_filelike,
+                sample_size=10000,
+            )
             gazetteer.train()
 
             with open(self.settings_file, "wb") as f:

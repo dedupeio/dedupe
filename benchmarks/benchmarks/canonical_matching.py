@@ -1,3 +1,4 @@
+import io
 import os
 import time
 
@@ -34,9 +35,10 @@ class Matching:
         data_2 = common.load_data(self.data_2_file)
 
         self.data = (data_1, data_2)
-        self.training_pairs = dedupe.training_data_link(
-            data_1, data_2, "unique_id", 5000
-        )
+        training_pairs = dedupe.training_data_link(data_1, data_2, "unique_id", 5000)
+        self.training_pairs_filelike = io.StringIO()
+        dedupe.serializer.write_training(training_pairs, self.training_pairs_filelike)
+        self.training_pairs_filelike.seek(0)
 
     def run(self, kwargs, use_settings=False):
         data_1, data_2 = self.data
@@ -52,8 +54,12 @@ class Matching:
                 {"field": "city", "type": "String"},
             ]
             deduper = dedupe.RecordLink(variables)
-            deduper.prepare_training(data_1, data_2, sample_size=10000)
-            deduper.mark_pairs(self.training_pairs)
+            deduper.prepare_training(
+                data_1,
+                data_2,
+                training_file=self.training_pairs_filelike,
+                sample_size=10000,
+            )
             deduper.train()
             with open(self.settings_file, "wb") as f:
                 deduper.write_settings(f)

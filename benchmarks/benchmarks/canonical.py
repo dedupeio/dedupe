@@ -1,3 +1,4 @@
+import io
 import os
 import time
 from itertools import combinations
@@ -22,7 +23,10 @@ class Canonical:
 
     def setup(self):
         self.data = common.load_data(self.data_file)
-        self.training_pairs = dedupe.training_data_dedupe(self.data, "unique_id", 5000)
+        training_pairs = dedupe.training_data_dedupe(self.data, "unique_id", 5000)
+        self.training_pairs_filelike = io.StringIO()
+        dedupe.serializer.write_training(training_pairs, self.training_pairs_filelike)
+        self.training_pairs_filelike.seek(0)
 
     def make_report(self, clustering):
         return make_report(self.data, clustering)
@@ -42,8 +46,9 @@ class Canonical:
             ]
 
             deduper = dedupe.Dedupe(variables, num_cores=5)
-            deduper.prepare_training(self.data, sample_size=10000)
-            deduper.mark_pairs(self.training_pairs)
+            deduper.prepare_training(
+                self.data, training_file=self.training_pairs_filelike, sample_size=10000
+            )
             deduper.train(index_predicates=True)
             with open(self.settings_file, "wb") as f:
                 deduper.write_settings(f)
