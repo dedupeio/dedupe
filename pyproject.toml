@@ -1,7 +1,7 @@
 [project]
 name = "dedupe"
 description = "A python library for accurate and scaleable data deduplication and entity-resolution"
-version = "3.0.0a1"
+version = "3.0.0"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
@@ -28,7 +28,7 @@ dependencies = [
     "scikit-learn",
     "affinegap>=1.3",
     "categorical-distance>=1.9",
-    "dedupe-variable-datetime",
+    "dedupe-variable-datetime>=1.0",
     "numpy>=1.20",
     "doublemetaphone",
     "highered>=0.2.0",
