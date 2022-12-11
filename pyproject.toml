@@ -5,7 +5,7 @@ version = "3.0.0"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
-keywords = []
+keywords = [entity-resolution, deduplication, record-linkage, dedupe, clustering]
 authors = [
   { name = "Forest Gregg", email = "fgregg@datamade.us" },
 ]
@@ -57,7 +57,7 @@ requires = ["setuptools",
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["dedupe", "dedupe.variables"]
+packages = ["dedupe"]
 
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
