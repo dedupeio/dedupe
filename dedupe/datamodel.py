@@ -3,7 +3,7 @@ from __future__ import annotations
 import copyreg
 import pkgutil
 import types
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Type, cast
 
 import numpy
 
@@ -142,6 +142,16 @@ class DataModel(object):
         self.__dict__ = d
 
 
+def _get_variable_class(variable_type: str) -> Type[Variable]:
+    try:
+        return VARIABLE_CLASSES[variable_type]
+    except KeyError:
+        raise KeyError(
+            "Field type %s not valid. Valid types include %s"
+            % (variable_type, ", ".join(VARIABLE_CLASSES))
+        )
+
+
 def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> tuple[list[FieldVariable], list[Variable]]:
@@ -180,14 +190,7 @@ def typify_variables(
                 if ("field" in d and d["field"] != definition["field"])
             ]
 
-        try:
-            variable_class = VARIABLE_CLASSES[variable_type]
-        except KeyError:
-            raise KeyError(
-                "Field type %s not valid. Valid types include %s"
-                % (definition["type"], ", ".join(VARIABLE_CLASSES))
-            )
-
+        variable_class = _get_variable_class(variable_type)
         variable_object = variable_class(definition)
         assert isinstance(variable_object, FieldVariable)
 
