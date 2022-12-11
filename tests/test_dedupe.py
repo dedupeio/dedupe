@@ -6,6 +6,7 @@ import unittest
 import numpy
 
 import dedupe
+from dedupe.datamodel import DataModel
 
 DATA = {
     100: {"name": "Bob", "age": "50"},
@@ -31,8 +32,6 @@ DATA_SAMPLE = (
 
 class DataModelTest(unittest.TestCase):
     def test_data_model(self):
-        DataModel = dedupe.datamodel.DataModel
-
         self.assertRaises(TypeError, DataModel)
 
         data_model = DataModel(
