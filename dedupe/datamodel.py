@@ -53,7 +53,6 @@ class DataModel(object):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
-
         all_variables: list[Variable]
         self.primary_variables, all_variables = typify_variables(variable_definitions)
         self._derived_start = len(all_variables)
