@@ -5,6 +5,13 @@ on: [push, pull_request]
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      PY_COLORS: 1
+      TERM: xterm-color
+      MYPY_FORCE_COLOR: 1
+      MYPY_FORCE_TERMINAL_WIDTH: 200
+      PYTEST_ADDOPTS: --color=yes
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -27,6 +34,13 @@ jobs:
         if: always()
         run: mypy
   test:
+    env:
+      FORCE_COLOR: 1
+      PY_COLORS: 1
+      TERM: xterm-color
+      MYPY_FORCE_COLOR: 1
+      MYPY_FORCE_TERMINAL_WIDTH: 200
+      PYTEST_ADDOPTS: --color=yes
     timeout-minutes: 40
     runs-on: ${{ matrix.os }}
     strategy:
