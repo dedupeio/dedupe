@@ -8,11 +8,10 @@ from typing import TYPE_CHECKING, cast
 import numpy
 import pluggy
 
+import dedupe.hookspecs
 from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
-
-from . import hookspecs
 
 if TYPE_CHECKING:
     from typing import Generator, Iterable, Sequence
@@ -39,7 +38,8 @@ DEFAULT_VARIABLES = [
 ]
 
 pm = pluggy.PluginManager("dedupe")
-pm.add_hookspecs(hookspecs)
+pm.add_hookspecs(dedupe.hookspecs)
+pm.load_setuptools_entrypoints("dedupe")
 
 for plugin in DEFAULT_VARIABLES:
     mod = importlib.import_module(plugin)

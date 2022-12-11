@@ -131,4 +131,4 @@ def indexPredicates(
 
 @hookimpl
 def register_variable():
-    return {CustomType.type: CustomType, MissingDataType.type: MissingDataType}
+    return {CustomType.type: CustomType}
