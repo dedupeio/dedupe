@@ -440,6 +440,6 @@ class RecordLinkDisagreementLearner(DisagreementLearner):
 def sample_records(data: Mapping, sample_size: int) -> dict:
     keys = data.keys()
     if len(data) > sample_size:
-        keys = random.sample(keys, sample_size)  # type: ignore[assignment]
+        keys = random.sample(tuple(keys), sample_size)  # type: ignore[assignment]
     # Always make a copy to avoid surprises
     return {k: data[k] for k in keys}
