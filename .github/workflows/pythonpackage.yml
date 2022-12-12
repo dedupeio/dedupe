@@ -5,6 +5,13 @@ on: [push, pull_request]
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+      PY_COLORS: 1
+      TERM: xterm-color
+      MYPY_FORCE_COLOR: 1
+      MYPY_FORCE_TERMINAL_WIDTH: 200
+      PYTEST_ADDOPTS: --color=yes
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -13,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e . --config-settings editable_mode=compat --use-pep517
+          pip install -e .
           pip install -r requirements.txt
       - name: flake8
         run: flake8 dedupe tests benchmarks/benchmarks
@@ -27,6 +34,13 @@ jobs:
         if: always()
         run: mypy
   test:
+    env:
+      FORCE_COLOR: 1
+      PY_COLORS: 1
+      TERM: xterm-color
+      MYPY_FORCE_COLOR: 1
+      MYPY_FORCE_TERMINAL_WIDTH: 200
+      PYTEST_ADDOPTS: --color=yes
     timeout-minutes: 40
     runs-on: ${{ matrix.os }}
     strategy:
@@ -44,7 +58,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -e . --config-settings editable_mode=compat --use-pep517
+        pip install -e .
     - name: Install test dependencies
       run: pip install -r requirements.txt
     - name: pytest
@@ -89,7 +103,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e . --config-settings editable_mode=compat
+          pip install -e .
           python -m pip install -e ./benchmarks
       - name: Run on canonical on main
         run: python benchmarks/benchmarks/canonical.py
@@ -98,7 +112,7 @@ jobs:
         with:
           clean: false
       - name: Install any new dependencies
-        run: pip install -e . --config-settings editable_mode=compat --use-pep517
+        run: pip install -e .
       - name: Run on canonical with setting file created on main
         run: python benchmarks/benchmarks/canonical.py      
   wheels:

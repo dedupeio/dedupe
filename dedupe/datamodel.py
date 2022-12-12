@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copyreg
-import pkgutil
+import sys
 import types
 from typing import TYPE_CHECKING, cast
 
@@ -12,10 +12,10 @@ from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
 
-for _, module, _ in pkgutil.iter_modules(  # type: ignore
-    dedupe.variables.__path__, "dedupe.variables."
-):
-    __import__(module)
+if sys.version_info >= (3, 8):
+    from importlib import metadata as importlib_metadata
+else:
+    import importlib_metadata
 
 if TYPE_CHECKING:
     from typing import Generator, Iterable, Sequence
@@ -28,7 +28,14 @@ if TYPE_CHECKING:
     )
     from dedupe.predicates import Predicate
 
-VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
+
+def load_setuptools_entrypoints(group: str):
+    variables = []
+    for dist in list(importlib_metadata.distributions()):
+        for ep in dist.entry_points:
+            if ep.group == group:
+                variables.append(ep.load())
+    return variables
 
 
 class DataModel(object):
@@ -145,6 +152,16 @@ class DataModel(object):
 def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> tuple[list[FieldVariable], list[Variable]]:
+
+    variable_types = {}
+    for variablename in dedupe.variables.__all__:
+        variable = getattr(dedupe.variables, variablename)
+        variable_types[variable.type] = variable
+
+    plugin_vars = load_setuptools_entrypoints("dedupevariables")
+    for var in plugin_vars:
+        variable_types[var.type] = var
+
     primary_variables: list[FieldVariable] = []
     all_variables: list[Variable] = []
     only_custom = True
@@ -181,11 +198,11 @@ def typify_variables(
             ]
 
         try:
-            variable_class = VARIABLE_CLASSES[variable_type]
+            variable_class = variable_types[variable_type]
         except KeyError:
             raise KeyError(
                 "Field type %s not valid. Valid types include %s"
-                % (definition["type"], ", ".join(VARIABLE_CLASSES))
+                % (definition["type"], ", ".join(variable_types))
             )
 
         variable_object = variable_class(definition)
