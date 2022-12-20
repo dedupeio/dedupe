@@ -58,11 +58,13 @@ class ActiveMatch(unittest.TestCase):
                 [],
             )
 
+        # only customs
         with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching(
                 [{"field": "name", "type": "Custom", "comparator": lambda x, y: 1}],
             )
 
+        # Only customs
         with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching(
                 [
@@ -71,10 +73,61 @@ class ActiveMatch(unittest.TestCase):
                 ],
             )
 
+        # Only custom and interactions
+        with self.assertRaises(ValueError):
+            dedupe.api.ActiveMatching(
+                [
+                    {"field": "name", "type": "Custom", "comparator": lambda x, y: 1},
+                    {"field": "age", "type": "Custom", "comparator": lambda x, y: 1},
+                    {"type": "Interaction", "interaction variables": ["name", "age"]},
+                ],
+            )
+
+        # Only interactions
+        with self.assertRaises(ValueError):
+            dedupe.api.ActiveMatching(
+                [
+                    {"type": "Interaction", "interaction variables": []},
+                ],
+            )
+
+        # Duplicate variable names (explicitly)
+        with self.assertRaises(ValueError) as e:
+            dedupe.api.ActiveMatching(
+                [
+                    {"field": "age", "type": "String", "variable name": "my_age"},
+                    {"field": "age", "type": "ShortString", "variable name": "my_age"},
+                ],
+            )
+        assert "Variable name used more than once!" in str(e.exception)
+
+        # Duplicate variable names (implicitly)
+        with self.assertRaises(ValueError) as e:
+            dedupe.api.ActiveMatching(
+                [
+                    {"field": "age", "type": "String"},
+                    {"field": "age", "type": "String"},
+                ],
+            )
+        assert "Variable name used more than once!" in str(e.exception)
+
         dedupe.api.ActiveMatching(
             [
                 {"field": "name", "type": "Custom", "comparator": lambda x, y: 1},
                 {"field": "age", "type": "String"},
+            ],
+        )
+
+        dedupe.api.ActiveMatching(
+            [
+                {"field": "name", "variable name": "name", "type": "String"},
+                {
+                    "field": "age",
+                    "variable name": "age",
+                    "type": "Custom",
+                    "comparator": lambda x, y: 1,
+                },
+                {"type": "Interaction", "interaction variables": ["name", "age"]},
             ],
         )
 
