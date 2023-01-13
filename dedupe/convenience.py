@@ -141,7 +141,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
     labeled: list[LabeledPair] = []
 
     n_match = len(deduper.training_pairs["match"])
-    n_distinct = len(deduper.training_pairs["match"])
+    n_distinct = len(deduper.training_pairs["distinct"])
 
     while not finished:
         if use_previous:
