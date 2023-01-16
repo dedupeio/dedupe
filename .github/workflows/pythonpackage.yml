@@ -53,7 +53,7 @@ jobs:
       uses: AndreMiras/coveralls-python-action@develop
       with:
         parallel: true
-        flag: job-${{ matrix.os}}-${{ matrix.python-version }}
+        flag-name: job-${{ matrix.os}}-${{ matrix.python-version }}
     - name: Integration tests
       # Do everything twice: The first time is training and generates settings,
       # the second time it tests using a static settings file.
