@@ -94,7 +94,7 @@ class ScoreDupes(object):
         if not mask.any():
             return
         scores = scores[mask]
-        record_ids = numpy.array(record_ids)[mask]
+        record_id_array = numpy.array(record_ids)[mask]
 
         with self.offset.get_lock():
             fp: Scores
@@ -102,13 +102,13 @@ class ScoreDupes(object):
                 self.score_file_path,
                 dtype=self.dtype,
                 offset=self.offset.value,
-                shape=(len(record_ids),),
+                shape=(len(record_id_array),),
             )
-            fp["pairs"] = record_ids
+            fp["pairs"] = record_id_array
             fp["score"] = scores
             fp.flush()
 
-            self.offset.value += len(record_ids) * self.dtype.itemsize
+            self.offset.value += len(record_id_array) * self.dtype.itemsize
 
 
 def scoreDuplicates(
