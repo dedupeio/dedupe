@@ -30,20 +30,37 @@ import dedupe.serializer as serializer
 from dedupe._typing import Literal
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Collection, Generator, Iterable, MutableMapping, TextIO
+    from typing import (
+        BinaryIO,
+        Collection,
+        Generator,
+        Iterable,
+        MutableMapping,
+        TextIO,
+        Union,
+        overload,
+    )
 
     import numpy.typing
 
     from dedupe._typing import (
         ArrayLinks,
         Blocks,
+        BlocksInt,
+        BlocksStr,
         Classifier,
         Clusters,
+        ClustersInt,
+        ClustersStr,
         Data,
+        DataInt,
+        DataStr,
         JoinConstraint,
         LabelsLike,
         Links,
         LookupResults,
+        LookupResultsInt,
+        LookupResultsStr,
         PathLike,
         RecordDict,
     )
@@ -133,9 +150,19 @@ class DedupeMatching(IntegralMatching):
 
     """
 
+    @overload
     def partition(
-        self, data: Data, threshold: float = 0.5
-    ) -> Clusters:  # pragma: no cover
+        self, data: DataInt, threshold: float = 0.5
+    ) -> ClustersInt:  # pragma: no cover
+        ...
+
+    @overload
+    def partition(
+        self, data: DataStr, threshold: float = 0.5
+    ) -> ClustersStr:  # pragma: no cover
+        ...
+
+    def partition(self, data, threshold=0.5):  # pragma: no cover
         """
         Identifies records that all refer to the same entity, returns
         tuples containing a sequence of record ids and corresponding
@@ -177,9 +204,9 @@ class DedupeMatching(IntegralMatching):
         pair_scores = self.score(pairs)
         clusters = self.cluster(pair_scores, threshold)
         clusters = self._add_singletons(data.keys(), clusters)
-        clusters = list(clusters)
+        clusters_eval = list(clusters)
         _cleanup_scores(pair_scores)
-        return clusters
+        return clusters_eval
 
     @staticmethod
     def _add_singletons(all_ids: Iterable[RecordID], clusters: Clusters) -> Clusters:
@@ -649,7 +676,10 @@ class GazetteerMatching(Matching):
             self.temp_dir = tempfile.TemporaryDirectory()
             self.db = self.temp_dir.name + "/blocks.db"
 
-        self.indexed_data: MutableMapping[RecordID, RecordDict] = {}
+        self.indexed_data: Union[
+            MutableMapping[int, RecordDict], MutableMapping[str, RecordDict]
+        ]
+        self.indexed_data = {}
 
     def _close(self) -> None:
         if not self.in_memory:
@@ -658,7 +688,15 @@ class GazetteerMatching(Matching):
     def __del__(self) -> None:
         self._close()
 
-    def index(self, data: Data) -> None:  # pragma: no cover
+    @overload
+    def index(self, data: DataInt) -> None:
+        ...
+
+    @overload
+    def index(self, data: DataStr) -> None:
+        ...
+
+    def index(self, data):  # pragma: no cover
         """
         Add records to the index of records to match against. If a record in
         `canonical_data` has the same key as a previously indexed record, the
@@ -705,7 +743,15 @@ class GazetteerMatching(Matching):
 
         self.indexed_data.update(data)
 
-    def unindex(self, data: Data) -> None:  # pragma: no cover
+    @overload
+    def unindex(self, data: DataInt) -> None:  # pragma: no cover
+        ...
+
+    @overload
+    def unindex(self, data: DataStr) -> None:  # pragma: no cover
+        ...
+
+    def unindex(self, data):  # pragma: no cover
         """
         Remove records from the index of records to match against.
 
@@ -734,7 +780,15 @@ class GazetteerMatching(Matching):
         for k in data:
             del self.indexed_data[k]
 
-    def blocks(self, data: Data) -> Blocks:
+    @overload
+    def blocks(self, data: DataInt) -> BlocksInt:
+        ...
+
+    @overload
+    def blocks(self, data: DataStr) -> BlocksStr:
+        ...
+
+    def blocks(self, data):
         """
         Yield groups of pairs of records that share fingerprints.
 
@@ -800,9 +854,12 @@ class GazetteerMatching(Matching):
                                ORDER BY a.record_id"""
         )
 
-        pair_blocks: Iterable[
-            tuple[RecordID, Iterable[tuple[RecordID, RecordID]]]
-        ] = itertools.groupby(pairs, lambda x: x[0])
+        pair_blocks: Union[
+            Iterable[tuple[int, Iterable[tuple[int, int]]]],
+            Iterable[tuple[str, Iterable[tuple[str, str]]]],
+        ]
+
+        pair_blocks = itertools.groupby(pairs, lambda x: x[0])
 
         for _, pair_block in pair_blocks:
 
@@ -866,13 +923,33 @@ class GazetteerMatching(Matching):
 
         yield from clustering.gazetteMatching(score_blocks, threshold, n_matches)
 
+    @overload
     def search(
         self,
-        data: Data,
+        data: DataInt,
         threshold: float = 0.0,
         n_matches: int = 1,
         generator: bool = False,
-    ) -> LookupResults:  # pragma: no cover
+    ) -> LookupResultsInt:  # pragma: no cover
+        ...
+
+    @overload
+    def search(
+        self,
+        data: DataStr,
+        threshold: float = 0.0,
+        n_matches: int = 1,
+        generator: bool = False,
+    ) -> LookupResultsStr:  # pragma: no cover
+        ...
+
+    def search(
+        self,
+        data,
+        threshold=0.0,
+        n_matches=1,
+        generator=False,
+    ):  # pragma: no cover
         """
         Identifies pairs of records that could refer to the same entity,
         returns tuples containing tuples of possible matches, with a
@@ -936,7 +1013,7 @@ class GazetteerMatching(Matching):
             b: RecordID
             score: float
             prepared_result: list[tuple[RecordID, float]] = []
-            for (a, b), score in result:  # type: ignore
+            for (a, b), score in result:
                 prepared_result.append((b, score))
 
             assert a is not None

@@ -33,38 +33,52 @@ if TYPE_CHECKING:
 RecordDict = Mapping[str, Any]
 RecordID = Union[int, str]
 RecordIDDType = Union[Type[int], Tuple[Type[str], Literal[256]]]
-RecordIDPair = Tuple[RecordID, RecordID]
-Record = Tuple[RecordID, RecordDict]
-RecordPair = Tuple[Record, Record]
-RecordPairs = Iterator[RecordPair]
-Block = List[RecordPair]
-Blocks = Iterator[Block]
-Cluster = Tuple[
-    Tuple[RecordID, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
+RecordIDPair = Union[Tuple[int, int], Tuple[str, str]]
+RecordInt = Tuple[int, RecordDict]
+RecordStr = Tuple[str, RecordDict]
+Record = Union[RecordInt, RecordStr]
+RecordPairInt = Tuple[RecordInt, RecordInt]
+RecordPairStr = Tuple[RecordStr, RecordStr]
+RecordPairs = Union[Iterator[RecordPairInt], Iterator[RecordPairStr]]
+BlockInt = List[RecordPairInt]
+BlockStr = List[RecordPairStr]
+Block = Union[RecordPairInt, RecordPairStr]
+BlocksInt = Iterator[BlockInt]
+BlocksStr = Iterator[BlockStr]
+Blocks = Union[BlocksInt, BlocksStr]
+ClusterInt = Tuple[
+    Tuple[int, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
 ]
-Clusters = Iterable[Cluster]
+ClusterStr = Tuple[
+    Tuple[str, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
+]
+ClustersInt = Iterable[ClusterInt]
+ClustersStr = Iterable[ClusterStr]
+Clusters = Union[ClustersInt, ClustersStr]
 
-# this is not quite right. we are saying that Data is a dictionary that
-# could have mixed string or integer keys, but really Data needs to be either
-# a dictionary with only string keys, or a dictionary with only integer keys.
-#
-# we might be able to express that instead with a lot of overloads, but i'm
-# not sure it's worth it.
-Data = Mapping[RecordID, RecordDict]
+DataInt = Mapping[int, RecordDict]
+DataStr = Mapping[str, RecordDict]
+Data = Union[DataInt, DataStr]
 
 RecordDictPair = Tuple[RecordDict, RecordDict]
 RecordDictPairs = List[RecordDictPair]
 ArrayLinks = Iterable[numpy.ndarray]
-TupleLinks = Iterable[Tuple[Tuple[RecordID, RecordID], float]]
+TupleLinksInt = Iterable[Tuple[Tuple[int, int], float]]
+TupleLinksStr = Iterable[Tuple[Tuple[str, str], float]]
+TupleLinks = Union[TupleLinksInt, TupleLinksStr]
 Links = Union[ArrayLinks, TupleLinks]
-LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
+LookupResultsInt = Iterable[Tuple[int, Tuple[Tuple[int, float], ...]]]
+LookupResultsStr = Iterable[Tuple[str, Tuple[Tuple[str, float], ...]]]
+LookupResults = Union[LookupResultsInt, LookupResultsStr]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 Comparator = Callable[[Any, Any], Union[Union[int, float], Sequence[Union[int, float]]]]
 Scores = Union[numpy.memmap, numpy.ndarray]
 Labels = List[Literal[0, 1]]
 LabelsLike = Iterable[Literal[0, 1]]
 Cover = Dict["Predicate", FrozenSet[int]]
-ComparisonCover = Dict["Predicate", FrozenSet[Tuple[RecordID, RecordID]]]
+ComparisonCoverInt = Dict["Predicate", FrozenSet[Tuple[int, int]]]
+ComparisonCoverStr = Dict["Predicate", FrozenSet[Tuple[str, str]]]
+ComparisonCover = Union[ComparisonCoverInt, ComparisonCoverStr]
 PredicateFunction = Callable[[Any], Iterable[str]]
 
 VariableDefinition = TypedDict(
