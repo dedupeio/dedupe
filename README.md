@@ -1,6 +1,6 @@
 # Dedupe Python Library
 
-[![Tests Passing](https://github.com/dedupeio/dedupe/workflows/tests/badge.svg)](https://github.com/dedupeio/dedupe/actions?query=workflow%3Atests)[![Coverage Status](https://coveralls.io/repos/github/dedupeio/dedupe/badge.svg)](https://coveralls.io/github/dedupeio/dedupe)
+[![Tests Passing](https://github.com/dedupeio/dedupe/workflows/tests/badge.svg)](https://github.com/dedupeio/dedupe/actions?query=workflow%3Atests)[![codecov](https://codecov.io/gh/dedupeio/dedupe/branch/master/graph/badge.svg?token=aauKUrTEgh)](https://codecov.io/gh/dedupeio/dedupe)
 
 _dedupe is a python library that uses machine learning to perform fuzzy matching, deduplication and entity resolution quickly on structured data._
 
