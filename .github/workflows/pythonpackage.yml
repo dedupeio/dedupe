@@ -51,9 +51,11 @@ jobs:
       run: pytest
     - name: Code Coverage
       uses: codecov/codecov-action@v3
+      env:
+        OS: ${{ matrix.os }}
+        PYTHON: '3.7'
       with:
-        flags: job-${{ matrix.os}}-${{ matrix.python-version }}
-        verbose: true # optional (default = false)      
+        env_vars: OS,PYTHON
     - name: Integration tests
       # Do everything twice: The first time is training and generates settings,
       # the second time it tests using a static settings file.
