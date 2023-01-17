@@ -49,12 +49,11 @@ jobs:
       run: pip install -r requirements.txt
     - name: pytest
       run: pytest
-    - name: Submit to coveralls
-      run: coveralls --service=github
-      env:
-        COVERALLS_PARALLEL: true
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COVERALLS_FLAG_NAME: job-${{ matrix.os}}-${{ matrix.python-version }}
+    - name: Code Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        flags: job-${{ matrix.os}}-${{ matrix.python-version }}
+        verbose: true # optional (default = false)      
     - name: Integration tests
       # Do everything twice: The first time is training and generates settings,
       # the second time it tests using a static settings file.
@@ -66,18 +65,6 @@ jobs:
         python benchmarks/benchmarks/canonical_matching.py
         python benchmarks/benchmarks/canonical_gazetteer.py
         python benchmarks/benchmarks/canonical_gazetteer.py
-  coveralls_finish:
-    name: Indicate completion to coveralls.io
-    needs: test
-    runs-on: ubuntu-latest
-    container: python:3-slim
-    steps:
-    - name: Finished
-      run: |
-        pip3 install --upgrade coveralls
-        coveralls --service=github --finish
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   settings_file_persists:
     runs-on: ubuntu-latest
     steps:
