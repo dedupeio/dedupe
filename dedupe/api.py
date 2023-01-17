@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     import numpy.typing
 
     from dedupe._typing import (
+        ArrayLinks,
         Blocks,
         Classifier,
         Clusters,
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
         LabelsLike,
         Links,
         LookupResults,
+        PathLike,
         RecordDict,
     )
     from dedupe._typing import RecordDictPair as TrainingExample
@@ -52,6 +54,7 @@ if TYPE_CHECKING:
         RecordPairs,
         Scores,
         TrainingData,
+        TupleLinks,
         VariableDefinition,
     )
 
@@ -512,6 +515,7 @@ class RecordLinkMatching(IntegralMatching):
         pairs = self.pairs(data_1, data_2)
         pair_scores = self.score(pairs)
 
+        links: Links
         if constraint == "one-to-one":
             links = self.one_to_one(pair_scores, threshold)
         elif constraint == "many-to-one":
@@ -519,11 +523,11 @@ class RecordLinkMatching(IntegralMatching):
         else:
             links = pair_scores[pair_scores["score"] > threshold]
 
-        links = list(links)
+        links_evaluated: Links = list(links)  # type: ignore[assignment]
         _cleanup_scores(pair_scores)
-        return links
+        return links_evaluated
 
-    def one_to_one(self, scores: Scores, threshold: float = 0.0) -> Links:
+    def one_to_one(self, scores: Scores, threshold: float = 0.0) -> TupleLinks:
         """From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
 
@@ -578,7 +582,7 @@ class RecordLinkMatching(IntegralMatching):
 
         yield from clustering.greedyMatching(scores)
 
-    def many_to_one(self, scores: Scores, threshold: float = 0.0) -> Links:
+    def many_to_one(self, scores: Scores, threshold: float = 0.0) -> ArrayLinks:
         """
         From the similarity scores of pairs of records, decide which
         pairs refer to the same entity.
@@ -638,6 +642,7 @@ class GazetteerMatching(Matching):
 
         super().__init__(num_cores, in_memory, **kwargs)
 
+        self.db: PathLike
         if self.in_memory:
             self.db = ":memory:"
         else:
@@ -834,7 +839,7 @@ class GazetteerMatching(Matching):
         score_blocks: Iterable[Scores],
         threshold: float = 0.0,
         n_matches: int = 1,
-    ) -> Links:
+    ) -> ArrayLinks:
         """
         For each group of scored pairs, yield the highest scoring N pairs
 
@@ -920,7 +925,9 @@ class GazetteerMatching(Matching):
         else:
             return list(results)
 
-    def _format_search_results(self, search_d: Data, results: Links) -> LookupResults:
+    def _format_search_results(
+        self, search_d: Data, results: ArrayLinks
+    ) -> LookupResults:
 
         seen: set[RecordID] = set()
 

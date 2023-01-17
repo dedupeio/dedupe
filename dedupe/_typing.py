@@ -1,3 +1,4 @@
+import os
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -42,10 +43,20 @@ Cluster = Tuple[
     Tuple[RecordID, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
 ]
 Clusters = Iterable[Cluster]
+
+# this is not quite right. we are saying that Data is a dictionary that
+# could have mixed string or integer keys, but really Data needs to be either
+# a dictionary with only string keys, or a dictionary with only integer keys.
+#
+# we might be able to express that instead with a lot of overloads, but i'm
+# not sure it's worth it.
 Data = Mapping[RecordID, RecordDict]
+
 RecordDictPair = Tuple[RecordDict, RecordDict]
 RecordDictPairs = List[RecordDictPair]
-Links = Iterable[Union[numpy.ndarray, Tuple[Tuple[RecordID, RecordID], float]]]
+ArrayLinks = Iterable[numpy.ndarray]
+TupleLinks = Iterable[Tuple[Tuple[RecordID, RecordID], float]]
+Links = Union[ArrayLinks, TupleLinks]
 LookupResults = Iterable[Tuple[RecordID, Tuple[Tuple[RecordID, float], ...]]]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 Comparator = Callable[[Any, Any], Union[Union[int, float], Sequence[Union[int, float]]]]
@@ -107,3 +118,5 @@ class ClosableJoinable(Protocol):
 
 
 MapLike = Callable[[Callable[[Any], Any], Iterable], Iterable]
+
+PathLike = Union[str, os.PathLike]

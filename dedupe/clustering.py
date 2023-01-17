@@ -13,7 +13,7 @@ import numpy
 import numpy.typing
 import scipy.cluster.hierarchy
 
-from dedupe._typing import Clusters, Links, RecordID, Scores
+from dedupe._typing import ArrayLinks, Clusters, RecordID, Scores, TupleLinks
 
 logger = logging.getLogger(__name__)
 
@@ -291,7 +291,7 @@ def confidences(
     return scores
 
 
-def greedyMatching(dupes: Scores) -> Links:
+def greedyMatching(dupes: Scores) -> TupleLinks:
     A: set[RecordID] = set()
     B: set[RecordID] = set()
 
@@ -308,7 +308,7 @@ def greedyMatching(dupes: Scores) -> Links:
 
 def gazetteMatching(
     scored_blocks: Iterable[Scores], threshold: float = 0, n_matches: int = 1
-) -> Links:
+) -> ArrayLinks:
 
     for block in scored_blocks:
         block = block[block["score"] > threshold]
@@ -324,7 +324,7 @@ def gazetteMatching(
 
 def pair_gazette_matching(
     scored_pairs: Scores, threshold: float = 0.0, n_matches: int = 1
-) -> Links:
+) -> ArrayLinks:
 
     scored_pairs.sort(order="pairs")
 
