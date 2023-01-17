@@ -679,7 +679,7 @@ class GazetteerMatching(Matching):
         self.indexed_data: Union[
             MutableMapping[int, RecordDict], MutableMapping[str, RecordDict]
         ]
-        self.indexed_data = {}
+        self.indexed_data = {}  # type: ignore[assignment]
 
     def _close(self) -> None:
         if not self.in_memory:
