@@ -59,6 +59,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["dedupe", "dedupe.variables"]
 
+[tool.setuptools.package-data]
+dedupe = ["py.typed"]
+
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
 files = "dedupe"
