@@ -1,7 +1,7 @@
 [project]
 name = "dedupe"
 description = "A python library for accurate and scaleable data deduplication and entity-resolution"
-version = "2.0.20"
+version = "2.0.21"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
@@ -36,7 +36,7 @@ dependencies = [
     "haversine>=0.4.1",
     "BTrees>=4.1.4",
     "zope.index",
-    "Levenshtein_search==1.4.5",
+    "dedupe_Levenshtein_search",
     "typing_extensions",
 ]
 
