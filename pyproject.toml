@@ -36,7 +36,7 @@ dependencies = [
     "haversine>=0.4.1",
     "BTrees>=4.1.4",
     "zope.index",
-    "Levenshtein_search==1.4.5",
+    "Levenshtein_search==1.4.4",
     "typing_extensions",
 ]
 
