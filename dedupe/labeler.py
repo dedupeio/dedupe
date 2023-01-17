@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 import numpy
 import numpy.typing
@@ -13,7 +13,7 @@ import dedupe.core as core
 import dedupe.training as training
 
 if TYPE_CHECKING:
-    from typing import Dict, Iterable, Literal, Mapping, overload
+    from typing import Dict, Iterable, Literal, Mapping
 
     from dedupe._typing import (
         Data,

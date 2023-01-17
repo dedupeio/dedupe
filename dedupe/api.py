@@ -14,7 +14,7 @@ import pickle
 import sqlite3
 import tempfile
 import warnings
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, overload
 
 import numpy
 import sklearn.linear_model
@@ -38,7 +38,6 @@ if TYPE_CHECKING:
         MutableMapping,
         TextIO,
         Union,
-        overload,
     )
 
     import numpy.typing

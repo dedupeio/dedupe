@@ -7,12 +7,12 @@ import logging
 import math
 import random
 from abc import ABC
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from . import blocking
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Mapping, Sequence, overload
+    from typing import Any, Iterable, Mapping, Sequence
 
     from ._typing import (
         ComparisonCover,
