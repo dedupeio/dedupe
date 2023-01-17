@@ -52,7 +52,6 @@ jobs:
     - name: Code Coverage
       uses: codecov/codecov-action@v3
       with:
-        files: ./coverage1.xml,./coverage2.xml # optional
         flags: job-${{ matrix.os}}-${{ matrix.python-version }}
         verbose: true # optional (default = false)      
     - name: Integration tests
