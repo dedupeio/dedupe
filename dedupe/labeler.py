@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 import numpy
 import numpy.typing
@@ -15,7 +15,14 @@ import dedupe.training as training
 if TYPE_CHECKING:
     from typing import Dict, Iterable, Literal, Mapping
 
-    from dedupe._typing import Data, FeaturizerFunction, Labels, LabelsLike
+    from dedupe._typing import (
+        Data,
+        DataInt,
+        DataStr,
+        FeaturizerFunction,
+        Labels,
+        LabelsLike,
+    )
     from dedupe._typing import RecordDictPair as TrainingExample
     from dedupe._typing import RecordDictPairs as TrainingExamples
     from dedupe._typing import RecordIDPair
@@ -245,7 +252,15 @@ class DedupeBlockLearner(BlockLearner):
         for pred in blocker.index_predicates:
             pred.freeze(records)
 
-    def _sample(self, data: Data, sample_size: int) -> TrainingExamples:
+    @overload
+    def _sample(self, data: DataInt, sample_size: int) -> TrainingExamples:
+        ...
+
+    @overload
+    def _sample(self, data: DataStr, sample_size: int) -> TrainingExamples:
+        ...
+
+    def _sample(self, data, sample_size):
 
         sample_indices = self._sample_indices(
             sample_size, len(data) * (len(data) - 1) // 2
@@ -302,7 +317,19 @@ class RecordLinkBlockLearner(BlockLearner):
         for pred in blocker.index_predicates:
             pred.freeze(A, B)
 
-    def _sample(self, data_1: Data, data_2: Data, sample_size: int) -> TrainingExamples:
+    @overload
+    def _sample(
+        self, data_1: DataInt, data_2: DataInt, sample_size: int
+    ) -> TrainingExamples:
+        ...
+
+    @overload
+    def _sample(
+        self, data_1: DataStr, data_2: DataStr, sample_size: int
+    ) -> TrainingExamples:
+        ...
+
+    def _sample(self, data_1, data_2, sample_size):
 
         sample_indices = self._sample_indices(sample_size, len(data_1) * len(data_2))
 
@@ -356,7 +383,7 @@ class DisagreementLearner(HasCandidates):
             learner.remove(index)
 
     def mark(self, pairs: TrainingExamples, y: LabelsLike) -> None:
-        self.y = numpy.concatenate([self.y, y])  # type: ignore[arg-type]
+        self.y = numpy.concatenate([self.y, y])
         self.pairs.extend(pairs)
         for learner in self._learners:
             learner.fit(self.pairs, self.y)

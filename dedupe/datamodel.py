@@ -240,12 +240,12 @@ def interaction_indices(variables: list[Variable]) -> list[list[int]]:
     indices = []
     for var in variables:
         if hasattr(var, "interaction_fields"):
-            interaction_indices = [var_names.index(f) for f in var.interaction_fields]  # type: ignore
+            interaction_indices = [var_names.index(f) for f in var.interaction_fields]
             indices.append(interaction_indices)
     return indices
 
 
-def reduce_method(m):  # type: ignore[no-untyped-def]
+def reduce_method(m):
     return (getattr, (m.__self__, m.__func__.__name__))
 
 

@@ -7,13 +7,14 @@ import itertools
 import random
 import sys
 import warnings
-from typing import Iterator, Tuple
+from typing import Iterator, Tuple, overload
 
 import numpy
 
 import dedupe
 from dedupe._typing import (
-    Data,
+    DataInt,
+    DataStr,
     Literal,
     RecordDict,
     RecordDictPair,
@@ -203,8 +204,22 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
         _mark_pair(deduper, labeled_pair)
 
 
+@overload
 def training_data_link(
-    data_1: Data, data_2: Data, common_key: str, training_size: int = 50000
+    data_1: DataInt, data_2: DataInt, common_key: str, training_size: int = 50000
+) -> TrainingData:  # pragma: nocover
+    ...
+
+
+@overload
+def training_data_link(
+    data_1: DataStr, data_2: DataStr, common_key: str, training_size: int = 50000
+) -> TrainingData:  # pragma: nocover
+    ...
+
+
+def training_data_link(
+    data_1, data_2, common_key, training_size=50000
 ) -> TrainingData:  # pragma: nocover
     """
     Construct training data for consumption by the func:`mark_pairs`
@@ -265,8 +280,22 @@ def training_data_link(
     return training_pairs
 
 
+@overload
 def training_data_dedupe(
-    data: Data, common_key: str, training_size: int = 50000
+    data: DataInt, common_key: str, training_size: int = 50000
+) -> TrainingData:  # pragma: nocover
+    ...
+
+
+@overload
+def training_data_dedupe(
+    data: DataStr, common_key: str, training_size: int = 50000
+) -> TrainingData:  # pragma: nocover
+    ...
+
+
+def training_data_dedupe(
+    data, common_key, training_size=50000
 ) -> TrainingData:  # pragma: nocover
     """
     Construct training data for consumption by the func:`mark_pairs`

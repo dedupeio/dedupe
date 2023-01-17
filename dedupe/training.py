@@ -7,14 +7,23 @@ import logging
 import math
 import random
 from abc import ABC
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from . import blocking
 
 if TYPE_CHECKING:
     from typing import Any, Iterable, Mapping, Sequence
 
-    from ._typing import ComparisonCover, Cover, Data, Literal
+    from ._typing import (
+        ComparisonCover,
+        ComparisonCoverInt,
+        ComparisonCoverStr,
+        Cover,
+        Data,
+        DataInt,
+        DataStr,
+        Literal,
+    )
     from ._typing import RecordDictPairs as TrainingExamples
     from ._typing import RecordID, RecordIDPair
     from .predicates import Predicate
@@ -172,8 +181,22 @@ class DedupeBlockLearner(BlockLearner):
 
         self.comparison_cover = self.coveredPairs(self.blocker, sampled_records)
 
+    @overload
     @staticmethod
-    def coveredPairs(blocker: blocking.Fingerprinter, records: Data) -> ComparisonCover:
+    def coveredPairs(
+        blocker: blocking.Fingerprinter, records: DataInt
+    ) -> ComparisonCoverInt:
+        ...
+
+    @overload
+    @staticmethod
+    def coveredPairs(
+        blocker: blocking.Fingerprinter, records: DataStr
+    ) -> ComparisonCoverStr:
+        ...
+
+    @staticmethod
+    def coveredPairs(blocker: blocking.Fingerprinter, records):
         cover = {}
 
         n_records = len(records)
@@ -205,12 +228,32 @@ class DedupeBlockLearner(BlockLearner):
 
 
 class RecordLinkBlockLearner(BlockLearner):
+    @overload
     def __init__(
         self,
         predicates: Iterable[Predicate],
-        sampled_records_1: Data,
-        sampled_records_2: Data,
-        data_2: Data,
+        sampled_records_1: DataInt,
+        sampled_records_2: DataInt,
+        data_2: DataInt,
+    ):
+        ...
+
+    @overload
+    def __init__(
+        self,
+        predicates: Iterable[Predicate],
+        sampled_records_1: DataStr,
+        sampled_records_2: DataStr,
+        data_2: DataStr,
+    ):
+        ...
+
+    def __init__(
+        self,
+        predicates,
+        sampled_records_1,
+        sampled_records_2,
+        data_2,
     ):
 
         self.blocker = blocking.Fingerprinter(predicates)
@@ -220,9 +263,19 @@ class RecordLinkBlockLearner(BlockLearner):
             self.blocker, sampled_records_1, sampled_records_2
         )
 
+    @overload
     def coveredPairs(
-        self, blocker: blocking.Fingerprinter, records_1: Data, records_2: Data
-    ) -> ComparisonCover:
+        self, blocker: blocking.Fingerprinter, records_1: DataInt, records_2: DataInt
+    ) -> ComparisonCoverInt:
+        ...
+
+    @overload
+    def coveredPairs(
+        self, blocker: blocking.Fingerprinter, records_1: DataStr, records_2: DataStr
+    ) -> ComparisonCoverStr:
+        ...
+
+    def coveredPairs(self, blocker, records_1, records_2):
         cover: dict[Predicate, dict[str, tuple[set[RecordID], set[RecordID]]]] = {}
         pair_cover = {}
         n_records_1 = len(records_1)
@@ -369,10 +422,10 @@ class BranchBound(object):
 
 
 class InfiniteSet(object):
-    def __and__(self, item):  # type: ignore[no-untyped-def]
+    def __and__(self, item):
         return item
 
-    def __rand__(self, item):  # type: ignore[no-untyped-def]
+    def __rand__(self, item):
         return item
 
 
