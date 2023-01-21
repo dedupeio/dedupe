@@ -4,8 +4,8 @@ import logging
 import math
 from typing import Iterable
 
-from numpy import log
 from BTrees.Length import Length
+from numpy import log
 from zope.index.text.cosineindex import CosineIndex
 from zope.index.text.lexicon import Lexicon
 from zope.index.text.setops import mass_weightedUnion
