@@ -39,7 +39,6 @@ cpdef tuple initials(basestring field, int n):
     return (ufield[:n], )
 
 
-
 cdef unicode _ustring(basestring s):
     if type(s) is unicode:
         # fast path for most common case(s)
