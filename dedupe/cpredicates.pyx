@@ -1,37 +1,33 @@
 # cython: c_string_type=unicode, c_string_encoding=utf8, infertypes=True, language_level=3
 
 cpdef list ngrams(basestring field, int n):
-    """ngrams returns all unique, contiguous sequences of n characters
+    """ngrams returns all contiguous sequences of n characters
     of a given field.
-        
-    :param field: the string to be 
+
+    :param field: the string to be sequenced
     :param n: the number of characters to be included in each gram
-    
+
     usage:
     >>> from dedupe.dedupe.predicated import ngrams
     >>> ngrams("deduplicate", 3)
-    ('ded', 'edu', 'dup', 'upl', 'pli', 'lic', 'ica', 'cat', 'ate')
+    ['ded', 'edu', 'dup', 'upl', 'pli', 'lic', 'ica', 'cat', 'ate']
     """
     cdef unicode ufield = _ustring(field)
 
-    cdef list grams = []
-    cdef int i, j
+    cdef int i
     cdef int n_char = len(ufield)
-    for i in range(n_char):
-        for j in range(i+n, min(n_char, i+n)+1):
-            grams.append(ufield[i:j])
-            
+    cdef int n_grams = n_char - n + 1
+    cdef list grams = [ufield[i:i+n] for i in range(n_grams)]
     return grams
 
+
 cpdef tuple initials(basestring field, int n):
-    """predicate which returns first a tuple containing
-    the first n chars of a field if and only if the
-    field contains at least n characters, or an empty
-    tuple otherwise.
-    
-    :param field: the string 
-    :type n: int, default None
-    
+    """returns a tuple containing the first n chars of a field.
+    The whole field is returned if n is greater than the field length.
+
+    :param field: the string
+    :type n: int
+
     usage:
     >>> initials("dedupe", 7)
     ('dedupe', )
