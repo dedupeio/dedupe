@@ -45,7 +45,7 @@ def configure_logging() -> None:
             log_level = logging.INFO
         elif opts.verbose >= 2:
             log_level = logging.DEBUG
-    logging.getLogger().setLevel(log_level)
+    logging.basicConfig(level=log_level)
 
 
 def get_true_dupes(data: dict) -> set:
