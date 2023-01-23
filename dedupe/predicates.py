@@ -479,7 +479,9 @@ def twoGramFingerprint(field: str) -> tuple[str, ...]:
     if len(field) > 1:
         return (
             "".join(
-                sorted(gram.strip() for gram in unique_ngrams(field.replace(" ", ""), 2))
+                sorted(
+                    gram.strip() for gram in unique_ngrams(field.replace(" ", ""), 2)
+                )
             ),
         )
     else:
