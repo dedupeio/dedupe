@@ -21,6 +21,27 @@ cpdef list ngrams(basestring field, int n):
     return grams
 
 
+cpdef set unique_ngrams(basestring field, int n):
+    """unique_ngrams returns all contiguous unique sequences of n characters
+    of a given field.
+
+    :param field: the string to be sequenced
+    :param n: the number of characters to be included in each gram
+
+    usage:
+    >>> from dedupe.dedupe.predicated import unique_ngrams
+    >>> unique_ngrams("mississippi", 2)
+    {"mi", "is", "ss", "si", "ip", "pp", "pi"}
+    """
+    cdef unicode ufield = _ustring(field)
+
+    cdef int i
+    cdef int n_char = len(ufield)
+    cdef int n_grams = n_char - n + 1
+    cdef set grams = {ufield[i:i+n] for i in range(n_grams)}
+    return grams
+
+
 cpdef tuple initials(basestring field, int n):
     """returns a tuple containing the first n chars of a field.
     The whole field is returned if n is greater than the field length.

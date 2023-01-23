@@ -1,6 +1,6 @@
 import unittest
 
-from dedupe.cpredicates import initials, ngrams
+from dedupe.cpredicates import initials, ngrams, unique_ngrams
 
 
 class TestCPredicates(unittest.TestCase):
@@ -86,6 +86,75 @@ class TestCPredicates(unittest.TestCase):
         assert ngrams("deduplicate", 11) == ["deduplicate"]
         assert ngrams("deduplicate", 12) == []
         assert ngrams("deduplicate", 100) == []
+
+    def test_unique_ngrams(self):
+        assert unique_ngrams("mississippi", 1) == {"m", "i", "s", "p"}
+        assert unique_ngrams("mississippi", 2) == {
+            "mi",
+            "is",
+            "ss",
+            "si",
+            "ip",
+            "pp",
+            "pi",
+        }
+        assert unique_ngrams("mississippi", 3) == {
+            "mis",
+            "iss",
+            "ssi",
+            "sis",
+            "sip",
+            "ipp",
+            "ppi",
+        }
+        assert unique_ngrams("mississippi", 4) == {
+            "miss",
+            "issi",
+            "ssis",
+            "siss",
+            "ssip",
+            "sipp",
+            "ippi",
+        }
+        assert unique_ngrams("mississippi", 5) == {
+            "missi",
+            "issis",
+            "ssiss",
+            "sissi",
+            "issip",
+            "ssipp",
+            "sippi",
+        }
+        assert unique_ngrams("mississippi", 6) == {
+            "missis",
+            "ississ",
+            "ssissi",
+            "sissip",
+            "issipp",
+            "ssippi",
+        }
+        assert unique_ngrams("mississippi", 7) == {
+            "mississ",
+            "ississi",
+            "ssissip",
+            "sissipp",
+            "issippi",
+        }
+        assert unique_ngrams("mississippi", 8) == {
+            "mississi",
+            "ississip",
+            "ssissipp",
+            "sissippi",
+        }
+        assert unique_ngrams("mississippi", 9) == {
+            "mississip",
+            "ississipp",
+            "ssissippi",
+        }
+        assert unique_ngrams("mississippi", 10) == {"mississipp", "ississippi"}
+        assert unique_ngrams("mississippi", 11) == {"mississippi"}
+        assert unique_ngrams("mississippi", 12) == set()
+        assert unique_ngrams("mississippi", 100) == set()
 
     def test_initials(self):
         assert initials("deduplicate", 1) == ("d",)
