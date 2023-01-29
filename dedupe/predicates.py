@@ -13,7 +13,7 @@ from doublemetaphone import doublemetaphone
 
 import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
-from dedupe.cpredicates import initials, ngrams
+from dedupe.cpredicates import initials, ngrams, unique_ngrams
 
 if TYPE_CHECKING:
     from typing import Any, Callable, Iterable, Mapping, Sequence
@@ -472,14 +472,16 @@ def fingerprint(field: str) -> tuple[str]:
 
 
 def oneGramFingerprint(field: str) -> tuple[str]:
-    return ("".join(sorted(set(ngrams(field.replace(" ", ""), 1)))).strip(),)
+    return ("".join(sorted(unique_ngrams(field.replace(" ", ""), 1))).strip(),)
 
 
 def twoGramFingerprint(field: str) -> tuple[str, ...]:
     if len(field) > 1:
         return (
             "".join(
-                sorted(gram.strip() for gram in set(ngrams(field.replace(" ", ""), 2)))
+                sorted(
+                    gram.strip() for gram in unique_ngrams(field.replace(" ", ""), 2)
+                )
             ),
         )
     else:
@@ -488,12 +490,12 @@ def twoGramFingerprint(field: str) -> tuple[str, ...]:
 
 def commonFourGram(field: str) -> set[str]:
     """return 4-grams"""
-    return set(ngrams(field.replace(" ", ""), 4))
+    return unique_ngrams(field.replace(" ", ""), 4)
 
 
 def commonSixGram(field: str) -> set[str]:
     """return 6-grams"""
-    return set(ngrams(field.replace(" ", ""), 6))
+    return unique_ngrams(field.replace(" ", ""), 6)
 
 
 def sameThreeCharStartPredicate(field: str) -> tuple[str]:
