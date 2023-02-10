@@ -12,6 +12,7 @@ from typing import (
     List,
     Mapping,
     Sequence,
+    Set,
     Tuple,
     Type,
     Union,
@@ -79,7 +80,7 @@ Cover = Dict["Predicate", FrozenSet[int]]
 ComparisonCoverInt = Dict["Predicate", FrozenSet[Tuple[int, int]]]
 ComparisonCoverStr = Dict["Predicate", FrozenSet[Tuple[str, str]]]
 ComparisonCover = Union[ComparisonCoverInt, ComparisonCoverStr]
-PredicateOutput = Union[set[str], tuple[str], tuple[()]]
+PredicateOutput = Union[Set[str], Tuple[str], Tuple[()]]
 PredicateFunction = Callable[[Any], PredicateOutput]
 
 VariableDefinition = TypedDict(

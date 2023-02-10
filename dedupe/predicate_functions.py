@@ -1,7 +1,7 @@
 import re
 from itertools import chain
 from math import copysign, floor, log10
-from typing import Any, Sequence, Tuple, Union
+from typing import Any, Sequence, Set, Tuple, Union
 
 from doublemetaphone import doublemetaphone
 
@@ -50,17 +50,17 @@ start_integer = re.compile(r"^(\d+)").match
 alpha_numeric = re.compile(r"(?=[a-zA-Z]*\d)[a-zA-Z\d]+").findall
 
 
-def wholeFieldPredicate(field: Any) -> tuple[str]:
+def wholeFieldPredicate(field: Any) -> Tuple[str]:
     """return the whole field as a string"""
     return (str(field),)
 
 
-def tokenFieldPredicate(field: str) -> set[str]:
+def tokenFieldPredicate(field: str) -> Set[str]:
     """returns the tokens"""
     return {*words(field)}
 
 
-def firstTokenPredicate(field: str) -> Union[tuple[str], Tuple[()]]:
+def firstTokenPredicate(field: str) -> Union[Tuple[str], Tuple[()]]:
     first_token = start_word(field)
     if first_token:
         return first_token.groups()  # type: ignore
@@ -68,7 +68,7 @@ def firstTokenPredicate(field: str) -> Union[tuple[str], Tuple[()]]:
         return ()
 
 
-def firstTwoTokensPredicate(field: str) -> Union[tuple[str], tuple[()]]:
+def firstTwoTokensPredicate(field: str) -> Union[Tuple[str], Tuple[()]]:
     first_two_tokens = two_start_words(field)
     if first_two_tokens:
         return first_two_tokens.groups()  # type: ignore
@@ -76,18 +76,18 @@ def firstTwoTokensPredicate(field: str) -> Union[tuple[str], tuple[()]]:
         return ()
 
 
-def commonIntegerPredicate(field: str) -> set[str]:
+def commonIntegerPredicate(field: str) -> Set[str]:
     """return any integers"""
 
     # `str(int(i))` removes leading zeros, e.g. `str(int("0001")) = "1"`
     return {str(int(i)) for i in integers(field)}
 
 
-def alphaNumericPredicate(field: str) -> set[str]:
+def alphaNumericPredicate(field: str) -> Set[str]:
     return {*alpha_numeric(field)}
 
 
-def nearIntegersPredicate(field: str) -> set[str]:
+def nearIntegersPredicate(field: str) -> Set[str]:
     """for any integer N in field return the integers N-1, N and N+1"""
     string_ints = integers(field)
     near_ints = set()
@@ -100,15 +100,15 @@ def nearIntegersPredicate(field: str) -> set[str]:
     return near_ints
 
 
-def hundredIntegerPredicate(field: str) -> set[str]:
+def hundredIntegerPredicate(field: str) -> Set[str]:
     return {str(int(i))[:-2] + "00" for i in integers(field)}
 
 
-def hundredIntegersOddPredicate(field: str) -> set[str]:
+def hundredIntegersOddPredicate(field: str) -> Set[str]:
     return {str(int(i))[:-2] + "0" + str(int(i) % 2) for i in integers(field)}
 
 
-def firstIntegerPredicate(field: str) -> Union[tuple[str], Tuple[()]]:
+def firstIntegerPredicate(field: str) -> Union[Tuple[str], Tuple[()]]:
     first_token = start_integer(field)
     if first_token:
         return first_token.groups()  # type: ignore
@@ -116,7 +116,7 @@ def firstIntegerPredicate(field: str) -> Union[tuple[str], Tuple[()]]:
         return ()
 
 
-def ngramsTokens(field: Sequence[Any], n: int) -> set[str]:
+def ngramsTokens(field: Sequence[Any], n: int) -> Set[str]:
     grams = set()
     n_tokens = len(field)
     for i in range(n_tokens):
@@ -125,56 +125,56 @@ def ngramsTokens(field: Sequence[Any], n: int) -> set[str]:
     return grams
 
 
-def commonTwoTokens(field: str) -> set[str]:
+def commonTwoTokens(field: str) -> Set[str]:
     return ngramsTokens(field.split(), 2)
 
 
-def commonThreeTokens(field: str) -> set[str]:
+def commonThreeTokens(field: str) -> Set[str]:
     return ngramsTokens(field.split(), 3)
 
 
-def fingerprint(field: str) -> tuple[str]:
+def fingerprint(field: str) -> Tuple[str]:
     return ("".join(sorted(field.split())),)  # removed last `.strip()`
 
 
-def oneGramFingerprint(field: str) -> Union[tuple[str], tuple[()]]:
+def oneGramFingerprint(field: str) -> Union[Tuple[str], Tuple[()]]:
     # return set(("".join(sorted(unique_ngrams(field.replace(" ", ""), 1))),))  # removed last `.strip()`
     return ("".join(sorted({*field.replace(" ", "")})),)  # removed last `.strip()`
 
 
-def twoGramFingerprint(field: str) -> Union[tuple[str], tuple[()]]:
+def twoGramFingerprint(field: str) -> Union[Tuple[str], Tuple[()]]:
     if len(field) > 1:
         return ("".join(sorted(unique_ngrams(field.replace(" ", ""), 2))),)
     else:
         return ()
 
 
-def commonFourGram(field: str) -> set[str]:
+def commonFourGram(field: str) -> Set[str]:
     """return 4-grams"""
     return unique_ngrams(field.replace(" ", ""), 4)
 
 
-def commonSixGram(field: str) -> set[str]:
+def commonSixGram(field: str) -> Set[str]:
     """return 6-grams"""
     return unique_ngrams(field.replace(" ", ""), 6)
 
 
-def sameThreeCharStartPredicate(field: str) -> set[str]:
+def sameThreeCharStartPredicate(field: str) -> Set[str]:
     """return first three characters"""
     return initials(field.replace(" ", ""), 3)
 
 
-def sameFiveCharStartPredicate(field: str) -> set[str]:
+def sameFiveCharStartPredicate(field: str) -> Set[str]:
     """return first five characters"""
     return initials(field.replace(" ", ""), 5)
 
 
-def sameSevenCharStartPredicate(field: str) -> set[str]:
+def sameSevenCharStartPredicate(field: str) -> Set[str]:
     """return first seven characters"""
     return initials(field.replace(" ", ""), 7)
 
 
-def suffixArray(field: str) -> set[str]:
+def suffixArray(field: str) -> Set[str]:
     suffixes = set()
     n = len(field) - 4
     if n > 0:
@@ -183,15 +183,15 @@ def suffixArray(field: str) -> set[str]:
     return suffixes
 
 
-def sortedAcronym(field: str) -> tuple[str]:
+def sortedAcronym(field: str) -> Tuple[str]:
     return ("".join(sorted(each[0] for each in field.split())),)
 
 
-def doubleMetaphone(field: str) -> set[str]:
+def doubleMetaphone(field: str) -> Set[str]:
     return {metaphone for metaphone in doublemetaphone(field) if metaphone}
 
 
-def metaphoneToken(field: str) -> set[str]:
+def metaphoneToken(field: str) -> Set[str]:
     return {
         metaphone_token
         for metaphone_token in chain(
@@ -201,41 +201,41 @@ def metaphoneToken(field: str) -> set[str]:
     }
 
 
-def wholeSetPredicate(field_set: Sequence[Any]) -> tuple[str]:
+def wholeSetPredicate(field_set: Sequence[Any]) -> Tuple[str]:
     return (str(field_set),)
 
 
-def commonSetElementPredicate(field_set: Sequence[Any]) -> set[str]:
+def commonSetElementPredicate(field_set: Sequence[Any]) -> Set[str]:
     """return set as individual elements"""
     # return tuple([str(each) for each in field_set])
     return {*field_set}
 
 
-def commonTwoElementsPredicate(field: Sequence[Any]) -> set[str]:
+def commonTwoElementsPredicate(field: Sequence[Any]) -> Set[str]:
     sequence = sorted(field)
     return ngramsTokens(sequence, 2)
 
 
-def commonThreeElementsPredicate(field: Sequence[Any]) -> set[str]:
+def commonThreeElementsPredicate(field: Sequence[Any]) -> Set[str]:
     sequence = sorted(field)
     return ngramsTokens(sequence, 3)
 
 
-def lastSetElementPredicate(field_set: Sequence[Any]) -> set[str]:
+def lastSetElementPredicate(field_set: Sequence[Any]) -> Set[str]:
     return {str(max(field_set))}
 
 
-def firstSetElementPredicate(field_set: Sequence[Any]) -> set[str]:
+def firstSetElementPredicate(field_set: Sequence[Any]) -> Set[str]:
     return {str(min(field_set))}
 
 
-def magnitudeOfCardinality(field_set: Sequence[Any]) -> Union[tuple[str], Tuple[()]]:
+def magnitudeOfCardinality(field_set: Sequence[Any]) -> Union[Tuple[str], Tuple[()]]:
     return orderOfMagnitude(len(field_set))
 
 
 def latLongGridPredicate(
-    field: tuple[float], digits: int = 1
-) -> Union[tuple[str], Tuple[()]]:
+    field: Tuple[float], digits: int = 1
+) -> Union[Tuple[str], Tuple[()]]:
     """
     Given a lat / long pair, return the grid coordinates at the
     nearest base value.  e.g., (42.3, -5.4) returns a grid at 0.1
@@ -251,7 +251,7 @@ def latLongGridPredicate(
         return ()
 
 
-def orderOfMagnitude(field: int | float) -> Union[tuple[str], Tuple[()]]:
+def orderOfMagnitude(field: Union[int, float]) -> Union[Tuple[str], Tuple[()]]:
     if field > 0:
         return (str(int(round(log10(field)))),)
     else:
@@ -261,7 +261,7 @@ def orderOfMagnitude(field: int | float) -> Union[tuple[str], Tuple[()]]:
 # Thanks to http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
 def roundTo1(
     field: float,
-) -> tuple[str]:
+) -> Tuple[str]:
     abs_num = abs(field)
     order = int(floor(log10(abs_num)))
     rounded = round(abs_num, -order)
