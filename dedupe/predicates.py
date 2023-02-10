@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 
 import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
-from dedupe.predicate_functions import *
+from dedupe.cpredicates import ngrams
+from dedupe.predicate_functions import *  # noqa: F401, F403
 
 if TYPE_CHECKING:
     from typing import Any, Iterable, Mapping, Sequence

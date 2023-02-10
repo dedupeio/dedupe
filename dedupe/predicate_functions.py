@@ -5,7 +5,7 @@ from typing import Any, Sequence, Set, Tuple, Union
 
 from doublemetaphone import doublemetaphone
 
-from dedupe.cpredicates import initials, ngrams, unique_ngrams
+from dedupe.cpredicates import initials, ngrams, unique_ngrams  # noqa: F401
 
 # Each predicate function returns a collection of strings. Since order
 # does not matter in such collections, a `set` would be the natural choice.

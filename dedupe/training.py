@@ -23,9 +23,10 @@ if TYPE_CHECKING:
         DataInt,
         DataStr,
         Literal,
+        PredicateOutput,
     )
     from ._typing import RecordDictPairs as TrainingExamples
-    from ._typing import PredicateOutput, RecordID, RecordIDPair
+    from ._typing import RecordID, RecordIDPair
     from .predicates import Predicate
 
 
