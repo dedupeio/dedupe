@@ -79,7 +79,8 @@ Cover = Dict["Predicate", FrozenSet[int]]
 ComparisonCoverInt = Dict["Predicate", FrozenSet[Tuple[int, int]]]
 ComparisonCoverStr = Dict["Predicate", FrozenSet[Tuple[str, str]]]
 ComparisonCover = Union[ComparisonCoverInt, ComparisonCoverStr]
-PredicateFunction = Callable[[Any], Iterable[str]]
+PredicateOutput = Union[set[str], tuple[str], tuple[()]]
+PredicateFunction = Callable[[Any], PredicateOutput]
 
 VariableDefinition = TypedDict(
     "VariableDefinition",

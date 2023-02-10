@@ -57,7 +57,7 @@ cpdef tuple initials(basestring field, int n):
     """
     cdef unicode ufield = _ustring(field)
 
-    return (ufield[:n], )
+    return (ufield[:n],)
 
 
 cdef unicode _ustring(basestring s):

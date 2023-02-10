@@ -25,7 +25,7 @@ if TYPE_CHECKING:
         Literal,
     )
     from ._typing import RecordDictPairs as TrainingExamples
-    from ._typing import RecordID, RecordIDPair
+    from ._typing import PredicateOutput, RecordID, RecordIDPair
     from .predicates import Predicate
 
 
@@ -156,16 +156,31 @@ class BlockLearner(ABC):
             predicates = [
                 pred for pred in self.blocker.predicates if not hasattr(pred, "index")
             ]
+
+        _non_empty_intersection = BlockLearner._non_empty_intersection
         for predicate in predicates:
             coverage = frozenset(
                 i
                 for i, (record_1, record_2) in enumerate(pairs)
-                if (set(predicate(record_1)) & set(predicate(record_2, target=True)))
+                if _non_empty_intersection(
+                    predicate(record_1), predicate(record_2, target=True)
+                )
             )
             if coverage:
                 predicate_cover[predicate] = coverage
 
         return predicate_cover
+
+    @staticmethod
+    def _non_empty_intersection(set_a: PredicateOutput, set_b: PredicateOutput) -> bool:
+        if len(set_b) < len(set_a):
+            set_a, set_b = set_b, set_a
+
+        for x in set_a:
+            if x in set_b:
+                return True
+
+        return False
 
     blocker: blocking.Fingerprinter
     comparison_cover: ComparisonCover
