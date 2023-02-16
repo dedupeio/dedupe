@@ -21,7 +21,7 @@ cpdef list ngrams(basestring field, int n):
     return grams
 
 
-cpdef set unique_ngrams(basestring field, int n):
+cpdef frozenset unique_ngrams(basestring field, int n):
     """unique_ngrams returns all contiguous unique sequences of n characters
     of a given field.
 
@@ -39,10 +39,10 @@ cpdef set unique_ngrams(basestring field, int n):
     cdef int n_char = len(ufield)
     cdef int n_grams = n_char - n + 1
     cdef set grams = {ufield[i:i+n] for i in range(n_grams)}
-    return grams
+    return frozenset(grams)
 
 
-cpdef tuple initials(basestring field, int n):
+cpdef frozenset initials(basestring field, int n):
     """returns a tuple containing the first n chars of a field.
     The whole field is returned if n is greater than the field length.
 
@@ -57,7 +57,7 @@ cpdef tuple initials(basestring field, int n):
     """
     cdef unicode ufield = _ustring(field)
 
-    return (ufield[:n],)
+    return frozenset((ufield[:n],))
 
 
 cdef unicode _ustring(basestring s):

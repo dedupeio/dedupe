@@ -157,19 +157,19 @@ class TestCPredicates(unittest.TestCase):
         assert unique_ngrams("mississippi", 100) == set()
 
     def test_initials(self):
-        assert initials("deduplicate", 1) == ("d",)
-        assert initials("deduplicate", 2) == ("de",)
-        assert initials("deduplicate", 3) == ("ded",)
-        assert initials("deduplicate", 4) == ("dedu",)
-        assert initials("deduplicate", 5) == ("dedup",)
-        assert initials("deduplicate", 6) == ("dedupl",)
-        assert initials("deduplicate", 7) == ("dedupli",)
-        assert initials("deduplicate", 8) == ("deduplic",)
-        assert initials("deduplicate", 9) == ("deduplica",)
-        assert initials("deduplicate", 10) == ("deduplicat",)
-        assert initials("deduplicate", 11) == ("deduplicate",)
-        assert initials("deduplicate", 12) == ("deduplicate",)
-        assert initials("deduplicate", 100) == ("deduplicate",)
+        assert initials("deduplicate", 1) == {"d"}
+        assert initials("deduplicate", 2) == {"de"}
+        assert initials("deduplicate", 3) == {"ded"}
+        assert initials("deduplicate", 4) == {"dedu"}
+        assert initials("deduplicate", 5) == {"dedup"}
+        assert initials("deduplicate", 6) == {"dedupl"}
+        assert initials("deduplicate", 7) == {"dedupli"}
+        assert initials("deduplicate", 8) == {"deduplic"}
+        assert initials("deduplicate", 9) == {"deduplica"}
+        assert initials("deduplicate", 10) == {"deduplicat"}
+        assert initials("deduplicate", 11) == {"deduplicate"}
+        assert initials("deduplicate", 12) == {"deduplicate"}
+        assert initials("deduplicate", 100) == {"deduplicate"}
 
 
 if __name__ == "__main__":

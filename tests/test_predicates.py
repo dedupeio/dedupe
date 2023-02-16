@@ -13,7 +13,7 @@ class TestPuncStrip(unittest.TestCase):
     def test_set(self):
         s1 = predicates.SimplePredicate(predicates.wholeSetPredicate, "foo")
         colors = {"red", "blue", "green"}
-        assert s1({"foo": colors}) == (str(colors),)
+        assert s1({"foo": colors}) == {str(colors)}
 
 
 class TestMetaphone(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestWholeSet(unittest.TestCase):
 
     def test_full_set(self):
         block_val = predicates.wholeSetPredicate(self.s1)
-        self.assertEqual(block_val, (str(self.s1),))
+        self.assertEqual(block_val, {str(self.s1)})
 
 
 class TestSetElement(unittest.TestCase):
@@ -51,10 +51,10 @@ class TestSetElement(unittest.TestCase):
 
     def test_magnitude(self):
         block_val = predicates.magnitudeOfCardinality(self.s1)
-        assert block_val == ("0",)
+        assert block_val == {"0"}
 
         block_val = predicates.magnitudeOfCardinality(())
-        assert block_val == ()
+        assert block_val == set()
 
 
 class TestLatLongGrid(unittest.TestCase):
@@ -63,9 +63,9 @@ class TestLatLongGrid(unittest.TestCase):
 
     def test_precise_latlong(self):
         block_val = predicates.latLongGridPredicate(self.latlong1)
-        assert block_val == ("(42.5, -5.0)",)
+        assert block_val == {"(42.5, -5.0)"}
         block_val = predicates.latLongGridPredicate((0, 0))
-        assert block_val == ()
+        assert block_val == set()
 
 
 class TestAlpaNumeric(unittest.TestCase):
@@ -87,14 +87,14 @@ class TestAlpaNumeric(unittest.TestCase):
 
 class TestNumericPredicates(unittest.TestCase):
     def test_order_of_magnitude(self):
-        assert predicates.orderOfMagnitude(10) == ("1",)
-        assert predicates.orderOfMagnitude(9) == ("1",)
-        assert predicates.orderOfMagnitude(2) == ("0",)
-        assert predicates.orderOfMagnitude(-2) == ()
+        assert predicates.orderOfMagnitude(10) == {"1"}
+        assert predicates.orderOfMagnitude(9) == {"1"}
+        assert predicates.orderOfMagnitude(2) == {"0"}
+        assert predicates.orderOfMagnitude(-2) == set()
 
     def test_round_to_1(self):
-        assert predicates.roundTo1(22315) == ("20000",)
-        assert predicates.roundTo1(-22315) == ("-20000",)
+        assert predicates.roundTo1(22315) == {"20000"}
+        assert predicates.roundTo1(-22315) == {"-20000"}
 
 
 class TestCompoundPredicate(unittest.TestCase):

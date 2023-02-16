@@ -72,7 +72,7 @@ class TrainingTest(unittest.TestCase):
         assert before == before_copy
 
     def test_covered_pairs(self):
-        p1 = lambda x, target=None: (1,)  # noqa: E 731
+        p1 = lambda x, target=None: frozenset((1,))  # noqa: E 731
 
         self.block_learner.blocker.predicates = (p1,)
         cover = self.block_learner.cover(self.block_learner, [("a", "b")] * 2)

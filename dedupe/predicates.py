@@ -3,20 +3,23 @@
 from __future__ import annotations
 
 import abc
-import itertools
 import re
 import string
-from typing import TYPE_CHECKING
+from itertools import product
+from typing import TYPE_CHECKING, FrozenSet
 
 import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
 from dedupe.cpredicates import ngrams
+
+# This allows to import predicate functions from this module and ensure backward compatibility.
 from dedupe.predicate_functions import *  # noqa: F401, F403
+from dedupe.predicate_functions import EMPTY_FROZENSET
 
 if TYPE_CHECKING:
     from typing import Any, Iterable, Mapping, Sequence
 
-    from dedupe._typing import Literal, PredicateFunction, PredicateOutput, RecordDict
+    from dedupe._typing import Literal, PredicateFunction, RecordDict
     from dedupe.index import Index
 
 
@@ -64,7 +67,7 @@ class Predicate(abc.ABC):
         return 1
 
     @abc.abstractmethod
-    def __call__(self, record: RecordDict, **kwargs) -> PredicateOutput:
+    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet:
         pass
 
     def __add__(self, other: "Predicate") -> "CompoundPredicate":
@@ -84,21 +87,21 @@ class SimplePredicate(Predicate):
         self.__name__ = "(%s, %s)" % (func.__name__, field)
         self.field = field
 
-    def __call__(self, record: RecordDict, **kwargs) -> PredicateOutput:
+    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[str]:
         column = record[self.field]
         if column:
             return self.func(column)
         else:
-            return set()
+            return EMPTY_FROZENSET
 
 
 class StringPredicate(SimplePredicate):
-    def __call__(self, record: RecordDict, **kwargs) -> PredicateOutput:
+    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[str]:
         column: str = record[self.field]
         if column:
             return self.func(" ".join(strip_punc(column).split()))
         else:
-            return set()
+            return EMPTY_FROZENSET
 
 
 class ExistsPredicate(Predicate):
@@ -124,7 +127,7 @@ class IndexPredicate(Predicate):
     field: str
     threshold: float
     index: Index | None
-    _cache: dict[Any, set[str]]
+    _cache: dict[Any, FrozenSet[str]]
 
     def __init__(self, threshold: float, field: str):
         self.__name__ = "(%s, %s)" % (threshold, field)
@@ -179,7 +182,7 @@ class CanopyPredicate(IndexPredicate):
         self.canopy = {}
         self.index = None
 
-    def __call__(self, record: RecordDict, **kwargs) -> set[str]:
+    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[str]:
 
         block_key = None
         column = record[self.field]
@@ -218,9 +221,9 @@ class CanopyPredicate(IndexPredicate):
                     self.canopy[doc_id] = None
 
         if block_key is None:
-            return set()
+            return EMPTY_FROZENSET
         else:
-            return {str(block_key)}
+            return frozenset((str(block_key),))
 
 
 class SearchPredicate(IndexPredicate):
@@ -243,7 +246,9 @@ class SearchPredicate(IndexPredicate):
         self._cache = {}
         self.index = None
 
-    def __call__(self, record: RecordDict, target: bool = False, **kwargs) -> set[str]:
+    def __call__(
+        self, record: RecordDict, target: bool = False, **kwargs
+    ) -> FrozenSet[str]:
 
         column = record[self.field]
         if column:
@@ -267,11 +272,11 @@ class SearchPredicate(IndexPredicate):
                 centers = [self.index._doc_to_id[doc]]
             else:
                 centers = self.index.search(doc, self.threshold)
-            result = {str(center) for center in centers}
+            result = frozenset(str(center) for center in centers)
             self._cache[(column, target)] = result
             return result
         else:
-            return set()
+            return EMPTY_FROZENSET
 
 
 class TfidfPredicate(IndexPredicate):
@@ -357,16 +362,16 @@ class CompoundPredicate(tuple, Predicate):
     def __eq__(self, other: Any) -> bool:
         return frozenset(self) == frozenset(other)
 
-    def __call__(self, record: RecordDict, **kwargs) -> set[str]:
+    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[str]:
         predicate_keys = [predicate(record, **kwargs) for predicate in self]
-        return {
+        return frozenset(
             ":".join(
                 # must escape : to avoid confusion with : join separator
                 b.replace(":", "\\:")
                 for b in block_key
             )
-            for block_key in itertools.product(*predicate_keys)
-        }
+            for block_key in product(*predicate_keys)
+        )
 
     def __add__(self, other: Predicate) -> "CompoundPredicate":  # type: ignore
         if isinstance(other, CompoundPredicate):

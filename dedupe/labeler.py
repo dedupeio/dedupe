@@ -22,7 +22,6 @@ if TYPE_CHECKING:
         FeaturizerFunction,
         Labels,
         LabelsLike,
-        PredicateOutput,
     )
     from dedupe._typing import RecordDictPair as TrainingExample
     from dedupe._typing import RecordDictPairs as TrainingExamples
@@ -142,28 +141,16 @@ class BlockLearner(Learner):
 
     def _predict(self, pairs: TrainingExamples) -> Labels:
         labels: Labels = []
-        _non_empty_intersection = BlockLearner._non_empty_intersection
         for record_1, record_2 in pairs:
             for predicate in self.current_predicates:
                 keys = predicate(record_2, target=True)
-                if keys and _non_empty_intersection(predicate(record_1), keys):
+                if not keys.isdisjoint(predicate(record_1)):
                     labels.append(1)
                     break
             else:
                 labels.append(0)
 
         return labels
-
-    @staticmethod
-    def _non_empty_intersection(set_a: PredicateOutput, set_b: PredicateOutput) -> bool:
-        if len(set_b) < len(set_a):
-            set_a, set_b = set_b, set_a
-
-        for x in set_a:
-            if x in set_b:
-                return True
-
-        return False
 
     def remove(self, index: int) -> None:
         self._candidates.pop(index)
