@@ -205,8 +205,18 @@ class DedupeMatching(IntegralMatching):
         _cleanup_scores(pair_scores)
         return clusters_eval
 
+    @overload
     @staticmethod
-    def _add_singletons(all_ids: Iterable[RecordID], clusters: Clusters) -> Clusters:
+    def _add_singletons(all_ids: Iterable[int], clusters: ClustersInt) -> ClustersInt:
+        ...
+
+    @overload
+    @staticmethod
+    def _add_singletons(all_ids: Iterable[str], clusters: ClustersStr) -> ClustersStr:
+        ...
+
+    @staticmethod
+    def _add_singletons(all_ids, clusters):
         singletons = set(all_ids)
 
         for record_ids, score in clusters:
@@ -997,9 +1007,19 @@ class GazetteerMatching(Matching):
         else:
             return list(results)
 
+    @overload
     def _format_search_results(
-        self, search_d: Data, results: ArrayLinks
-    ) -> LookupResults:
+        self, search_d: DataInt, results: ArrayLinks
+    ) -> LookupResultsInt:
+        ...
+
+    @overload
+    def _format_search_results(
+        self, search_d: DataStr, results: ArrayLinks
+    ) -> LookupResultsStr:
+        ...
+
+    def _format_search_results(self, search_d, results):
         seen: set[RecordID] = set()
 
         for result in results:

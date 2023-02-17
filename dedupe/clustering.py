@@ -252,7 +252,7 @@ def cluster(
             for cluster in clusters.values():
                 if len(cluster) > 1:
                     scores = confidences(cluster, squared_distances, N)
-                    yield tuple(i_to_id[i] for i in cluster), scores
+                    yield tuple(i_to_id[i] for i in cluster), scores  # type: ignore[misc]
 
         else:
             ((ids, score),) = sub_graph
