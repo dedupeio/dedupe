@@ -57,7 +57,6 @@ if TYPE_CHECKING:
         JoinConstraint,
         LabelsLike,
         Links,
-        LookupResults,
         LookupResultsInt,
         LookupResultsStr,
         PathLike,
