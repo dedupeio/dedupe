@@ -179,9 +179,8 @@ class BlockLearner(Learner):
             # if a predicate only covers a few record pairs, the value of
             # the vote it puts on those few pairs will be worth more than
             # a predicate that covers almost all the record pairs
-            proportion = len(covered) / max_cover
-            weight: float = numpy.exp(-10 * proportion)
-            if weight and proportion != 1:
+            if len(covered) < max_cover:
+                weight = 1 / len(covered)
                 for pair in covered:
                     weights[pair] = weights.get(pair, 0.0) + weight
 
@@ -189,9 +188,9 @@ class BlockLearner(Learner):
         if sample_size < len(weights):
             # consider using a reservoir sampling strategy, which would
             # be more memory efficient and probably about as fast
-            normalized_weights = numpy.fromiter(weights.values(), dtype=float) / sum(
-                weights.values()
-            )
+            normalized_weights = numpy.fromiter(
+                weights.values(), dtype=float, count=len(weights)
+            ) / sum(weights.values())
             rng = numpy.random.default_rng()
             sample_indices = rng.choice(
                 len(weights), size=sample_size, replace=False, p=normalized_weights
