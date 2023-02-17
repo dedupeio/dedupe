@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 def connected_components(
     edgelist: Scores, max_components: int
 ) -> Generator[Scores, None, None]:
-
     if len(edgelist) == 0:
         raise StopIteration()
 
@@ -60,7 +59,6 @@ def _connected_components(
 
     start = 0
     for stop in component_stops:
-
         sub_graph = edgelist[start:stop]
         n_edges = stop - start
         start = stop
@@ -77,7 +75,6 @@ def _connected_components(
                 needs_filtering = True
 
         if needs_filtering:
-
             min_score = numpy.min(sub_graph["score"])
             min_score_logit = numpy.log(min_score) - numpy.log(1 - min_score)
             threshold = 1 / (1 + numpy.exp(-min_score_logit - 1))
@@ -103,7 +100,6 @@ def _connected_components(
 
 
 def union_find(scored_pairs: Scores) -> numpy.typing.NDArray[numpy.int_]:
-
     root: dict[RecordID, int] = {}
 
     components = {}
@@ -237,7 +233,6 @@ def cluster(
 
     for sub_graph in dupe_sub_graphs:
         if len(sub_graph) > 1:
-
             i_to_id, condensed_distances, N = condensedDistance(sub_graph)
 
             linkage = scipy.cluster.hierarchy.linkage(
@@ -309,7 +304,6 @@ def greedyMatching(dupes: Scores) -> TupleLinks:
 def gazetteMatching(
     scored_blocks: Iterable[Scores], threshold: float = 0, n_matches: int = 1
 ) -> ArrayLinks:
-
     for block in scored_blocks:
         block = block[block["score"] > threshold]
         block.sort(order="score")
@@ -325,7 +319,6 @@ def gazetteMatching(
 def pair_gazette_matching(
     scored_pairs: Scores, threshold: float = 0.0, n_matches: int = 1
 ) -> ArrayLinks:
-
     scored_pairs.sort(order="pairs")
 
     group_key = scored_pairs["pairs"][:, 0]

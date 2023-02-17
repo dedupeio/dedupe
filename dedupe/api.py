@@ -85,7 +85,6 @@ class Matching(object):
     def __init__(
         self, num_cores: int | None, in_memory: bool = False, **kwargs
     ) -> None:
-
         if num_cores is None:
             self.num_cores = multiprocessing.cpu_count()
         else:
@@ -99,7 +98,6 @@ class Matching(object):
 
     @property
     def fingerprinter(self) -> blocking.Fingerprinter:
-
         if self._fingerprinter is None:
             raise ValueError(
                 "the record fingerprinter is not intialized, "
@@ -665,7 +663,6 @@ class GazetteerMatching(Matching):
     def __init__(
         self, num_cores: int | None, in_memory: bool = False, **kwargs
     ) -> None:
-
         super().__init__(num_cores, in_memory, **kwargs)
 
         self.db: PathLike
@@ -861,7 +858,6 @@ class GazetteerMatching(Matching):
         pair_blocks = itertools.groupby(pairs, lambda x: x[0])
 
         for _, pair_block in pair_blocks:
-
             yield [
                 (
                     (a_record_id, data[a_record_id]),
@@ -1004,7 +1000,6 @@ class GazetteerMatching(Matching):
     def _format_search_results(
         self, search_d: Data, results: ArrayLinks
     ) -> LookupResults:
-
         seen: set[RecordID] = set()
 
         for result in results:

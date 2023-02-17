@@ -38,7 +38,6 @@ class Fingerprinter(object):
     """Takes in a record and returns all blocks that record belongs to"""
 
     def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:
-
         self.predicates = predicates
 
         self.index_fields: dict[str, IndexList]
@@ -151,7 +150,6 @@ class Fingerprinter(object):
                     index.index(preprocess(doc))
 
         for index_type, index, _ in indices:
-
             index.initSearch()
 
             for predicate in self.index_fields[field][index_type]:
@@ -182,7 +180,6 @@ class Fingerprinter(object):
                         pass
 
         for index_type, index, _ in indices:
-
             index.initSearch()
 
             for predicate in self.index_fields[field][index_type]:
@@ -199,7 +196,6 @@ class Fingerprinter(object):
 def extractIndices(
     index_fields: IndexList,
 ) -> Sequence[tuple[str, Index, Callable[[Any], Any]]]:
-
     indices = []
     for index_type, predicates in index_fields.items():
         predicate = predicates[0]

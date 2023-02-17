@@ -14,7 +14,6 @@ class ExistsType(CategoricalType):
     _predicate_functions: list[PredicateFunction] = []
 
     def __init__(self, definition: VariableDefinition):
-
         super(CategoricalType, self).__init__(definition)
 
         self.cat_comparator = CategoricalComparator([0, 1])

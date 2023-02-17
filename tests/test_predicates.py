@@ -70,7 +70,6 @@ class TestLatLongGrid(unittest.TestCase):
 
 class TestAlpaNumeric(unittest.TestCase):
     def test_alphanumeric(self):
-
         assert predicates.alphaNumericPredicate("a1") == set(["a1"])
         assert predicates.alphaNumericPredicate("1a") == set(["1a"])
         assert predicates.alphaNumericPredicate("a1b") == set(["a1b"])

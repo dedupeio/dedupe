@@ -8,7 +8,6 @@ import dedupe
 
 class BlockingTest(unittest.TestCase):
     def setUp(self):
-
         field_definition = [{"field": "name", "type": "String"}]
         self.data_model = dedupe.Dedupe(field_definition).data_model
         self.training_pairs = {
@@ -51,7 +50,6 @@ class TfidfTest(unittest.TestCase):
         }
 
     def test_unconstrained_inverted_index(self):
-
         blocker = dedupe.blocking.Fingerprinter(
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")]
         )

@@ -70,7 +70,6 @@ class ScoreDupes(object):
         self.offset = offset
 
     def __call__(self) -> None:
-
         while True:
             record_pairs: Optional[RecordPairs] = self.records_queue.get()
             if record_pairs is None:
@@ -231,7 +230,6 @@ def scoreGazette(
     classifier: Classifier,
     num_cores: int = 1,
 ) -> Generator[Scores, None, None]:
-
     first, record_pairs = peek(record_pairs)
     if first is None:
         return  # terminate iteration
@@ -259,7 +257,6 @@ class MockPool(object):
 
 
 def appropriate_imap(num_cores: int) -> tuple[MapLike, ClosableJoinable]:
-
     if num_cores < 2:
         imap: MapLike = map
 
@@ -335,7 +332,6 @@ def sniff_id_type(ids: Sequence[tuple[RecordID, RecordID]]) -> RecordIDDType:
 
 
 def sqlite_id_type(data: Data) -> Literal["text", "integer"]:
-
     example = next(iter(data.keys()))
     python_type = type(example)
 

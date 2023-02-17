@@ -223,7 +223,6 @@ class ClusteringTest(unittest.TestCase):
         ]
 
     def test_gazette_matching(self):
-
         gazetteMatch = dedupe.clustering.gazetteMatching
         blocked_dupes = itertools.groupby(self.bipartite_dupes, key=lambda x: x[0][0])
 

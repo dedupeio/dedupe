@@ -85,7 +85,6 @@ class DataModel(object):
         distances = numpy.empty((num_records, len(self)), "f4")
 
         for i, (record_1, record_2) in enumerate(record_pairs):
-
             for field, compare, start, stop in self._field_comparators:
                 if record_1[field] is not None and record_2[field] is not None:
                     distances[i, start:stop] = compare(record_1[field], record_2[field])
@@ -133,7 +132,6 @@ class DataModel(object):
         return d
 
     def __setstate__(self, d):
-
         version = d.pop("version", None)
         if version is None and "_variables" in d:
             d["_len"] = len(d.pop("_variables"))

@@ -142,7 +142,6 @@ class BlockLearner(Learner):
     def _predict(self, pairs: TrainingExamples) -> Labels:
         labels: Labels = []
         for record_1, record_2 in pairs:
-
             for predicate in self.current_predicates:
                 keys = predicate(record_2, target=True)
                 if keys:
@@ -162,7 +161,6 @@ class BlockLearner(Learner):
     def _sample_indices(
         self, sample_size: int, max_cover: int
     ) -> Iterable[RecordIDPair]:
-
         weights: Dict[RecordIDPair, float] = {}
         for predicate, covered in self.block_learner.comparison_cover.items():
             # each predicate gets to vote for every record pair it covers. the
@@ -240,7 +238,6 @@ class DedupeBlockLearner(BlockLearner):
         self._index_predicates(examples_to_index)
 
     def _index_predicates(self, candidates: TrainingExamples) -> None:
-
         blocker = self.block_learner.blocker
 
         records = core.unique((record for pair in candidates for record in pair))
@@ -261,7 +258,6 @@ class DedupeBlockLearner(BlockLearner):
         ...
 
     def _sample(self, data, sample_size):
-
         sample_indices = self._sample_indices(
             sample_size, len(data) * (len(data) - 1) // 2
         )
@@ -303,7 +299,6 @@ class RecordLinkBlockLearner(BlockLearner):
         self._index_predicates(examples_to_index)
 
     def _index_predicates(self, candidates: TrainingExamples) -> None:
-
         blocker = self.block_learner.blocker
 
         A_full, B_full = zip(*candidates)
@@ -330,7 +325,6 @@ class RecordLinkBlockLearner(BlockLearner):
         ...
 
     def _sample(self, data_1, data_2, sample_size):
-
         sample_indices = self._sample_indices(sample_size, len(data_1) * len(data_2))
 
         sample = [(data_1[id_1], data_2[id_2]) for id_1, id_2 in sample_indices]

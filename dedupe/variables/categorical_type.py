@@ -20,7 +20,6 @@ class CategoricalType(FieldType):
         return categories
 
     def __init__(self, definition: VariableDefinition):
-
         super(CategoricalType, self).__init__(definition)
 
         categories = self._categories(definition)

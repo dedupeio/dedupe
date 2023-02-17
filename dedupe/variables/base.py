@@ -30,7 +30,6 @@ class Variable(object):
         return self.name == other_name
 
     def __init__(self, definition: VariableDefinition):
-
         if definition.get("has missing", False):
             self.has_missing = True
             try:
@@ -69,7 +68,6 @@ class MissingDataType(Variable):
     type = "MissingData"
 
     def __init__(self, name: str):
-
         self.name = "(%s: Not Missing)" % name
 
         self.has_missing = False

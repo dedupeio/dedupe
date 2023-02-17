@@ -13,7 +13,6 @@ class InteractionType(Variable):
     higher_vars: list["InteractionType"]
 
     def __init__(self, definition: VariableDefinition):
-
         self.interactions = definition["interaction variables"]
 
         self.name = "(Interaction: %s)" % str(self.interactions)
@@ -22,7 +21,6 @@ class InteractionType(Variable):
         super().__init__(definition)
 
     def expandInteractions(self, field_model: Mapping[str, FieldVariable]) -> None:
-
         self.interaction_fields = self.atomicInteractions(
             self.interactions, field_model
         )

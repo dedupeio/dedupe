@@ -9,7 +9,6 @@ import dedupe
 
 class MockClassifier:
     def __init__(self):
-
         self.weight = 0
         self.bias = 0
 

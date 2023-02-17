@@ -175,7 +175,6 @@ class DedupeBlockLearner(BlockLearner):
     def __init__(
         self, predicates: Iterable[Predicate], sampled_records: Data, data: Data
     ):
-
         self.blocker = blocking.Fingerprinter(predicates)
         self.blocker.index_all(data)
 
@@ -255,7 +254,6 @@ class RecordLinkBlockLearner(BlockLearner):
         sampled_records_2,
         data_2,
     ):
-
         self.blocker = blocking.Fingerprinter(predicates)
         self.blocker.index_all(data_2)
 
@@ -351,7 +349,6 @@ class BranchBound(object):
             reachable = self.reachable(candidates) + covered
 
             if candidates and reachable >= self.target:
-
                 order_by = functools.partial(self.order_by, candidates)
 
                 best = max(candidates, key=order_by)
@@ -431,7 +428,6 @@ class InfiniteSet(object):
 
 class Resampler(object):
     def __init__(self, sequence: Sequence[int]):
-
         sampled = random.choices(sequence, k=len(sequence))
 
         c = collections.Counter(sampled)
@@ -447,7 +443,6 @@ class Resampler(object):
 
     @functools.lru_cache()
     def __call__(self, iterable: Iterable[int]) -> frozenset[int]:
-
         result = itertools.chain.from_iterable(
             self.replacements[k] for k in iterable if k in self.replacements
         )
