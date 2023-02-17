@@ -6,7 +6,7 @@ import abc
 import re
 import string
 from itertools import product
-from typing import TYPE_CHECKING, FrozenSet
+from typing import TYPE_CHECKING
 
 import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
@@ -17,7 +17,7 @@ from dedupe.cpredicates import ngrams
 from dedupe.predicate_functions import *  # noqa: F401, F403
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Mapping, Sequence
+    from typing import AbstractSet, Any, FrozenSet, Iterable, Mapping, Sequence
 
     from dedupe._typing import Literal, PredicateFunction, RecordDict
     from dedupe.index import Index
@@ -67,7 +67,7 @@ class Predicate(abc.ABC):
         return 1
 
     @abc.abstractmethod
-    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[str]:
+    def __call__(self, record: RecordDict, **kwargs) -> AbstractSet[str]:
         pass
 
     def __add__(self, other: "Predicate") -> "CompoundPredicate":
