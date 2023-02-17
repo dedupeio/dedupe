@@ -176,7 +176,7 @@ class BlockLearner(ABC):
                 coverage = frozenset(
                     i
                     for i, (record_1, record_2) in enumerate(pairs)
-                    if not set(predicate(record_1)).isdisjoint(
+                    if not frozenset(predicate(record_1)).isdisjoint(
                         predicate(record_2, target=True)
                     )
                 )

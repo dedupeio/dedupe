@@ -153,7 +153,7 @@ class BlockLearner(Learner):
                         "a frozen set, this will soon be required behaviour",
                         DeprecationWarning,
                     )
-                    overlap = not set(keys).isdisjoint(predicate(record_1))
+                    overlap = not frozenset(keys).isdisjoint(predicate(record_1))
                 if overlap:
                     labels.append(1)
                     break
