@@ -67,7 +67,7 @@ class Predicate(abc.ABC):
         return 1
 
     @abc.abstractmethod
-    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet:
+    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[str]:
         pass
 
     def __add__(self, other: "Predicate") -> "CompoundPredicate":
@@ -112,13 +112,13 @@ class ExistsPredicate(Predicate):
         self.field = field
 
     @staticmethod
-    def func(column: Any) -> set[Literal["0", "1"]]:
+    def func(column: Any) -> FrozenSet[Literal["0", "1"]]:
         if column:
-            return {"1"}
+            return frozenset(("1",))
         else:
-            return {"0"}
+            return frozenset(("0",))
 
-    def __call__(self, record: RecordDict, **kwargs) -> set[Literal["0", "1"]]:  # type: ignore
+    def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[Literal["0", "1"]]:  # type: ignore
         column = record[self.field]
         return self.func(column)
 
