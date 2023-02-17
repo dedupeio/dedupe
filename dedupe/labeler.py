@@ -4,6 +4,7 @@ import logging
 import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, overload
+from warnings import warn
 
 import numpy
 import numpy.typing
@@ -144,10 +145,18 @@ class BlockLearner(Learner):
         for record_1, record_2 in pairs:
             for predicate in self.current_predicates:
                 keys = predicate(record_2, target=True)
-                if keys:
-                    if set(predicate(record_1)) & set(keys):
-                        labels.append(1)
-                        break
+                try:
+                    overlap = not keys.isdisjoint(predicate(record_1))
+                except AttributeError:
+                    warn(
+                        f"the predicate {predicate.__name__} is not returning "
+                        "a frozen set, this will soon be required behaviour",
+                        DeprecationWarning,
+                    )
+                    overlap = not set(keys).isdisjoint(predicate(record_1))
+                if overlap:
+                    labels.append(1)
+                    break
             else:
                 labels.append(0)
 

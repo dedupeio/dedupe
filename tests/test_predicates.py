@@ -12,8 +12,8 @@ class TestPuncStrip(unittest.TestCase):
 
     def test_set(self):
         s1 = predicates.SimplePredicate(predicates.wholeSetPredicate, "foo")
-        colors = set(["red", "blue", "green"])
-        assert s1({"foo": colors}) == (str(colors),)
+        colors = {"red", "blue", "green"}
+        assert s1({"foo": colors}) == {str(colors)}
 
 
 class TestMetaphone(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestWholeSet(unittest.TestCase):
 
     def test_full_set(self):
         block_val = predicates.wholeSetPredicate(self.s1)
-        self.assertEqual(block_val, (str(self.s1),))
+        self.assertEqual(block_val, {str(self.s1)})
 
 
 class TestSetElement(unittest.TestCase):
@@ -41,20 +41,20 @@ class TestSetElement(unittest.TestCase):
 
     def test_empty_set(self):
         block_val = predicates.commonSetElementPredicate(set())
-        self.assertEqual(block_val, tuple())
+        self.assertEqual(block_val, set())
 
     def test_first_last(self):
         block_val = predicates.lastSetElementPredicate(self.s1)
-        assert block_val == ("red",)
+        assert block_val == {"red"}
         block_val = predicates.firstSetElementPredicate(self.s1)
-        assert block_val == ("blue",)
+        assert block_val == {"blue"}
 
     def test_magnitude(self):
         block_val = predicates.magnitudeOfCardinality(self.s1)
-        assert block_val == ("0",)
+        assert block_val == {"0"}
 
         block_val = predicates.magnitudeOfCardinality(())
-        assert block_val == ()
+        assert block_val == set()
 
 
 class TestLatLongGrid(unittest.TestCase):
@@ -63,9 +63,9 @@ class TestLatLongGrid(unittest.TestCase):
 
     def test_precise_latlong(self):
         block_val = predicates.latLongGridPredicate(self.latlong1)
-        assert block_val == ("[42.5, -5.0]",)
+        assert block_val == {"(42.5, -5.0)"}
         block_val = predicates.latLongGridPredicate((0, 0))
-        assert block_val == ()
+        assert block_val == set()
 
 
 class TestAlpaNumeric(unittest.TestCase):
@@ -87,14 +87,14 @@ class TestAlpaNumeric(unittest.TestCase):
 
 class TestNumericPredicates(unittest.TestCase):
     def test_order_of_magnitude(self):
-        assert predicates.orderOfMagnitude(10) == ("1",)
-        assert predicates.orderOfMagnitude(9) == ("1",)
-        assert predicates.orderOfMagnitude(2) == ("0",)
-        assert predicates.orderOfMagnitude(-2) == ()
+        assert predicates.orderOfMagnitude(10) == {"1"}
+        assert predicates.orderOfMagnitude(9) == {"1"}
+        assert predicates.orderOfMagnitude(2) == {"0"}
+        assert predicates.orderOfMagnitude(-2) == set()
 
     def test_round_to_1(self):
-        assert predicates.roundTo1(22315) == ("20000",)
-        assert predicates.roundTo1(-22315) == ("-20000",)
+        assert predicates.roundTo1(22315) == {"20000"}
+        assert predicates.roundTo1(-22315) == {"-20000"}
 
 
 class TestCompoundPredicate(unittest.TestCase):
@@ -112,7 +112,7 @@ class TestCompoundPredicate(unittest.TestCase):
 
         block_val = predicates.CompoundPredicate([predicate_1, predicate_2])(record)
         assert len(set(block_val)) == 4
-        assert block_val == ["foo\\::\\:bar", "foo\\::bar", "foo:\\:bar", "foo:bar"]
+        assert block_val == {"foo\\::\\:bar", "foo\\::bar", "foo:\\:bar", "foo:bar"}
 
     def test_escapes_escaped_colon(self):
         """
@@ -128,12 +128,12 @@ class TestCompoundPredicate(unittest.TestCase):
 
         block_val = predicates.CompoundPredicate([predicate_1, predicate_2])(record)
         assert len(set(block_val)) == 4
-        assert block_val == [
+        assert block_val == {
             "foo\\\\::\\\\:bar",
             "foo\\\\::bar",
             "foo:\\\\:bar",
             "foo:bar",
-        ]
+        }
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
-from typing import Callable, Iterable, Sequence, Type
+from typing import Sequence, Type
 
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
 from dedupe import predicates
-from dedupe._typing import VariableDefinition
+from dedupe._typing import PredicateFunction, VariableDefinition
 from dedupe.variables.base import FieldType, indexPredicates
 
 crfEd = CRFEditDistance()
@@ -34,7 +34,7 @@ base_predicates = (
 
 class BaseStringType(FieldType):
     _Predicate = predicates.StringPredicate
-    _predicate_functions: Sequence[Callable[[str], Iterable[str]]] = ()
+    _predicate_functions: Sequence[PredicateFunction] = ()
 
     def __init__(self, definition: VariableDefinition):
         super(BaseStringType, self).__init__(definition)
