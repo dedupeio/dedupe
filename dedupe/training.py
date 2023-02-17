@@ -8,6 +8,7 @@ import math
 import random
 from abc import ABC
 from typing import TYPE_CHECKING, overload
+from warnings import warn
 
 from . import blocking
 
@@ -158,11 +159,27 @@ class BlockLearner(ABC):
             ]
 
         for predicate in predicates:
-            coverage = frozenset(
-                i
-                for i, (record_1, record_2) in enumerate(pairs)
-                if not predicate(record_1).isdisjoint(predicate(record_2, target=True))
-            )
+            try:
+                coverage = frozenset(
+                    i
+                    for i, (record_1, record_2) in enumerate(pairs)
+                    if not predicate(record_1).isdisjoint(
+                        predicate(record_2, target=True)
+                    )
+                )
+            except AttributeError:
+                warn(
+                    f"the predicate {predicate.__name__} is not returning "
+                    "a frozen set, this will soon be required behaviour",
+                    DeprecationWarning,
+                )
+                coverage = frozenset(
+                    i
+                    for i, (record_1, record_2) in enumerate(pairs)
+                    if not set(predicate(record_1)).isdisjoint(
+                        predicate(record_2, target=True)
+                    )
+                )
             if coverage:
                 predicate_cover[predicate] = coverage
 

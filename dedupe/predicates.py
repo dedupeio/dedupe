@@ -12,9 +12,9 @@ import dedupe.levenshtein as levenshtein
 import dedupe.tfidf as tfidf
 from dedupe.cpredicates import ngrams
 
-# This allows to import predicate functions from this module and ensure backward compatibility.
+# This allows to import predicate functions from this module
+# and ensure backward compatibility.
 from dedupe.predicate_functions import *  # noqa: F401, F403
-from dedupe.predicate_functions import EMPTY_FROZENSET
 
 if TYPE_CHECKING:
     from typing import Any, Iterable, Mapping, Sequence
@@ -92,7 +92,7 @@ class SimplePredicate(Predicate):
         if column:
             return self.func(column)
         else:
-            return EMPTY_FROZENSET
+            return frozenset()
 
 
 class StringPredicate(SimplePredicate):
@@ -101,7 +101,7 @@ class StringPredicate(SimplePredicate):
         if column:
             return self.func(" ".join(strip_punc(column).split()))
         else:
-            return EMPTY_FROZENSET
+            return frozenset()
 
 
 class ExistsPredicate(Predicate):
@@ -221,7 +221,7 @@ class CanopyPredicate(IndexPredicate):
                     self.canopy[doc_id] = None
 
         if block_key is None:
-            return EMPTY_FROZENSET
+            return frozenset()
         else:
             return frozenset((str(block_key),))
 
@@ -276,7 +276,7 @@ class SearchPredicate(IndexPredicate):
             self._cache[(column, target)] = result
             return result
         else:
-            return EMPTY_FROZENSET
+            return frozenset()
 
 
 class TfidfPredicate(IndexPredicate):

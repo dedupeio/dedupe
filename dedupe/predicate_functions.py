@@ -5,9 +5,8 @@ from typing import Any, FrozenSet, Sequence, Tuple, Union
 
 from doublemetaphone import doublemetaphone
 
+# This allows to import all cpredicate functions from this module.
 from dedupe.cpredicates import initials, ngrams, unique_ngrams  # noqa: F401
-
-EMPTY_FROZENSET: FrozenSet = frozenset()
 
 words = re.compile(r"[\w']+").findall
 integers = re.compile(r"\d+").findall
@@ -32,7 +31,7 @@ def firstTokenPredicate(field: str) -> FrozenSet[str]:
     if first_token:
         return frozenset(first_token.groups())
     else:
-        return EMPTY_FROZENSET
+        return frozenset()
 
 
 def firstTwoTokensPredicate(field: str) -> FrozenSet[str]:
@@ -40,7 +39,7 @@ def firstTwoTokensPredicate(field: str) -> FrozenSet[str]:
     if first_two_tokens:
         return frozenset(first_two_tokens.groups())
     else:
-        return EMPTY_FROZENSET
+        return frozenset()
 
 
 def commonIntegerPredicate(field: str) -> FrozenSet[str]:
@@ -80,7 +79,7 @@ def firstIntegerPredicate(field: str) -> FrozenSet[str]:
     if first_token:
         return frozenset(first_token.groups())
     else:
-        return EMPTY_FROZENSET
+        return frozenset()
 
 
 def ngramsTokens(field: Sequence[Any], n: int) -> FrozenSet[str]:
@@ -112,7 +111,7 @@ def twoGramFingerprint(field: str) -> FrozenSet[str]:
     if len(field) > 1:
         return frozenset(("".join(sorted(unique_ngrams(field.replace(" ", ""), 2))),))
     else:
-        return EMPTY_FROZENSET
+        return frozenset()
 
 
 def commonFourGram(field: str) -> FrozenSet[str]:
@@ -145,7 +144,7 @@ def suffixArray(field: str) -> FrozenSet[str]:
     if n > 0:
         return frozenset(field[i:] for i in range(0, n))
     else:
-        return EMPTY_FROZENSET
+        return frozenset()
 
 
 def sortedAcronym(field: str) -> FrozenSet[str]:
@@ -209,14 +208,14 @@ def latLongGridPredicate(field: Tuple[float], digits: int = 1) -> FrozenSet[str]
     if any(field):
         return frozenset((str(tuple(round(dim, digits) for dim in field)),))
     else:
-        return EMPTY_FROZENSET
+        return frozenset()
 
 
 def orderOfMagnitude(field: Union[int, float]) -> FrozenSet[str]:
     if field > 0:
         return frozenset((str(int(round(log10(field)))),))
     else:
-        return EMPTY_FROZENSET
+        return frozenset()
 
 
 # Thanks to http://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
