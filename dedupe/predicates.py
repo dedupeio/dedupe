@@ -183,7 +183,6 @@ class CanopyPredicate(IndexPredicate):
         self.index = None
 
     def __call__(self, record: RecordDict, **kwargs) -> FrozenSet[str]:
-
         block_key = None
         column = record[self.field]
 
@@ -249,7 +248,6 @@ class SearchPredicate(IndexPredicate):
     def __call__(
         self, record: RecordDict, target: bool = False, **kwargs
     ) -> FrozenSet[str]:
-
         column = record[self.field]
         if column:
             if (column, target) in self._cache:
