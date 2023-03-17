@@ -325,6 +325,8 @@ def sniff_id_type(ids: Sequence[tuple[RecordID, RecordID]]) -> RecordIDDType:
     elif python_type is int:
         int(example)  # make sure we can cast to int
         dtype = int
+    elif python_type is bytes:
+        dtype = (bytes, 256)  # type: ignore[assignment]
     else:
         raise ValueError("Invalid type for record id")
 
