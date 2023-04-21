@@ -7,7 +7,7 @@ import logging
 import math
 import random
 from abc import ABC
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Optional, overload
 from warnings import warn
 
 from . import blocking
@@ -40,6 +40,7 @@ class BlockLearner(ABC):
         recall: float,
         index_predicates: bool,
         candidate_types: Literal["simple", "random forest"] = "simple",
+        branch_bound_max_calls: Optional[int] = None
     ) -> tuple[Predicate, ...]:
         """
         Takes in a set of training pairs and predicates and tries to find
@@ -75,7 +76,7 @@ class BlockLearner(ABC):
         else:
             raise ValueError("candidate_type is not valid")
 
-        searcher = BranchBound(target_cover, 2500)
+        searcher = BranchBound(target_cover, branch_bound_max_calls or 2500)
         final_predicates = searcher.search(candidate_cover)
 
         logger.info("Final predicate set:")

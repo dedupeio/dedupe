@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Optional, overload
 from warnings import warn
 
 import numpy
@@ -131,13 +131,14 @@ class BlockLearner(Learner):
         return self._cached_scores
 
     def learn_predicates(
-        self, dupes: TrainingExamples, recall: float, index_predicates: bool
+        self, dupes: TrainingExamples, recall: float, index_predicates: bool, branch_bound_max_calls: Optional[int] = None
     ) -> tuple[Predicate, ...]:
         return self.block_learner.learn(
             dupes,
             recall=recall,
             index_predicates=index_predicates,
             candidate_types="random forest",
+            branch_bound_max_calls=branch_bound_max_calls
         )
 
     def _predict(self, pairs: TrainingExamples) -> Labels:
@@ -391,11 +392,11 @@ class DisagreementLearner(HasCandidates):
             learner.fit(self.pairs, self.y)
 
     def learn_predicates(
-        self, recall: float, index_predicates: bool
+        self, recall: float, index_predicates: bool, branch_bound_max_calls: Optional[int] = None
     ) -> tuple[Predicate, ...]:
         dupes = [pair for label, pair in zip(self.y, self.pairs) if label]
         return self.blocker.learn_predicates(
-            dupes, recall=recall, index_predicates=index_predicates
+            dupes, recall=recall, index_predicates=index_predicates, branch_bound_max_calls=branch_bound_max_calls
         )
 
 

@@ -14,7 +14,7 @@ import pickle
 import sqlite3
 import tempfile
 import warnings
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, Optional, cast, overload
 
 import numpy
 import sklearn.linear_model
@@ -1182,7 +1182,7 @@ class ActiveMatching(Matching):
         self.mark_pairs(training_pairs)
 
     def train(
-        self, recall: float = 1.00, index_predicates: bool = True
+        self, recall: float = 1.00, index_predicates: bool = True, branch_bound_max_calls: Optional[int] = None
     ) -> None:  # pragma: no cover
         """
         Learn final pairwise classifier and fingerprinting rules. Requires that
@@ -1212,7 +1212,7 @@ class ActiveMatching(Matching):
         examples, y = flatten_training(self.training_pairs)
         self.classifier.fit(self.data_model.distances(examples), y)
 
-        self.predicates = self.active_learner.learn_predicates(recall, index_predicates)
+        self.predicates = self.active_learner.learn_predicates(recall, index_predicates, branch_bound_max_calls)
         self._fingerprinter = blocking.Fingerprinter(self.predicates)
         self.fingerprinter.reset_indices()
 
