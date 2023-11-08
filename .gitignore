@@ -31,7 +31,7 @@ mysql.cnf
 ENV
 dist
 src/*.c
-
+.idea/
 .coverage
 htmlcov
 

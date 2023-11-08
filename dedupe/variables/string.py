@@ -1,14 +1,12 @@
 from typing import Sequence, Type
 
 from affinegap import normalizedAffineGapDistance as affineGap
-from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
 from dedupe import predicates
 from dedupe._typing import PredicateFunction, VariableDefinition
 from dedupe.variables.base import FieldType, indexPredicates
 
-crfEd = CRFEditDistance()
 
 base_predicates = (
     predicates.wholeFieldPredicate,
@@ -69,11 +67,7 @@ class ShortStringType(BaseStringType):
 
     def __init__(self, definition: VariableDefinition):
         super(ShortStringType, self).__init__(definition)
-
-        if definition.get("crf", False) is True:
-            self.comparator = crfEd  # type: ignore[assignment]
-        else:
-            self.comparator = affineGap  # type: ignore[assignment]
+        self.comparator = affineGap  # type: ignore[assignment]
 
 
 class StringType(ShortStringType):
