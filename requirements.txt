@@ -9,3 +9,4 @@ pytest
 pytest-cov
 virtualenv
 isort
+pre-commit
