@@ -1,7 +1,15 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-from pkgutil import extend_path
-
-__path__ = extend_path(__path__, __name__)
-
-from dedupe._init import *  # noqa
+from dedupe.api import (  # noqa: F401
+    Dedupe,
+    Gazetteer,
+    RecordLink,
+    StaticDedupe,
+    StaticGazetteer,
+    StaticRecordLink,
+)
+from dedupe.convenience import (  # noqa: F401
+    canonicalize,
+    console_label,
+    training_data_dedupe,
+    training_data_link,
+)
+from dedupe.serializer import read_training, write_training  # noqa: F401
