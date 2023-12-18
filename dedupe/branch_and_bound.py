@@ -44,7 +44,7 @@ def _score(partial: Iterable[Predicate]) -> float:
     return sum(p.cover_count for p in partial)
 
 
-def _suppress_recursion_wrapper(func):
+def _suppress_recursion_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -69,7 +69,7 @@ def search(candidates, target: int, max_calls: int) -> Partial:
             else 0
         )
 
-    @_suppress_recursion_wrapper
+    @_suppress_recursion_error
     def walk(candidates: Cover, partial: Partial = ()) -> None:
         nonlocal calls
         nonlocal cheapest
