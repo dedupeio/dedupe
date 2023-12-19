@@ -27,6 +27,9 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - name: Install hub
+        run: sudo apt-get install -y hub
+
       - name: Setup git
         uses: actions/checkout@v3
 
@@ -36,6 +39,7 @@ jobs:
       # From https://github.com/actions/checkout/issues/331#issuecomment-925405415
       - name: Checkout Pull Request
         run: |
+          
           hub pr checkout ${{ github.event.issue.number }}
           echo "Checked out SHA:"
           git log -1 --format='%H'
