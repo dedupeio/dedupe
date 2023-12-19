@@ -44,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install .
+        pip install -e .
     - name: Install test dependencies
       run: pip install -r requirements.txt
     - name: pytest
