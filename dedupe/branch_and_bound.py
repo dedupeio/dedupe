@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import collections
 import functools
 from typing import Any, Iterable, Mapping, Sequence, Tuple
 
@@ -56,10 +55,10 @@ def search(original_cover: Cover, target: int, calls: int) -> Partial:
     cheapest: Partial = ()
 
     start: tuple[Cover, Partial] = (original_cover, ())
-    to_explore = collections.deque((start,))
+    to_explore = [start]
 
     while to_explore and calls:
-        candidates, partial = to_explore.popleft()
+        candidates, partial = to_explore.pop()
 
         covered = _covered(partial)
         score = _score(partial)
@@ -76,11 +75,11 @@ def search(original_cover: Cover, target: int, calls: int) -> Partial:
                 order_by = functools.partial(_order_by, candidates)
                 best = max(candidates, key=order_by)
 
-                remaining = _uncovered_by(candidates, candidates[best])
-                to_explore.append((remaining, partial + (best,)))
-
                 reduced = _remove_dominated(candidates, best)
                 to_explore.append((reduced, partial))
+
+                remaining = _uncovered_by(candidates, candidates[best])
+                to_explore.append((remaining, partial + (best,)))
 
         elif score < cheapest_score:
             cheapest = partial
