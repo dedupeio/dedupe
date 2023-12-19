@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import collections
 import functools
-import warnings
 from typing import Any, Iterable, Mapping, Sequence, Tuple
 
 from ._typing import Cover
@@ -27,13 +27,11 @@ def _remove_dominated(coverage: Cover, dominator: Predicate) -> Cover:
 def _uncovered_by(
     coverage: Mapping[Any, frozenset[int]], covered: frozenset[int]
 ) -> dict[Any, frozenset[int]]:
-    remaining = {}
-    for predicate, uncovered in coverage.items():
-        still_uncovered = uncovered - covered
-        if still_uncovered:
-            remaining[predicate] = still_uncovered
-
-    return remaining
+    return {
+        pred: still_uncovered
+        for pred, uncovered in coverage.items()
+        if (still_uncovered := uncovered - covered)
+    }
 
 
 def _order_by(
@@ -46,24 +44,7 @@ def _score(partial: Iterable[Predicate]) -> float:
     return sum(p.cover_count for p in partial)
 
 
-def _suppress_recursion_error(func):
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except RecursionError:
-            warnings.warn("Recursion limit eached while searching for predicates")
-
-    return wrapper
-
-
-def search(candidates, target: int, max_calls: int) -> Partial:
-    calls = max_calls
-
-    cheapest_score = float("inf")
-    cheapest: Partial = ()
-
-    original_cover = candidates.copy()
-
+def search(original_cover: Cover, target: int, calls: int) -> Partial:
     def _covered(partial: Partial) -> int:
         return (
             len(frozenset.union(*(original_cover[p] for p in partial)))
@@ -71,16 +52,14 @@ def search(candidates, target: int, max_calls: int) -> Partial:
             else 0
         )
 
-    @_suppress_recursion_error
-    def walk(candidates: Cover, partial: Partial = ()) -> None:
-        nonlocal calls
-        nonlocal cheapest
-        nonlocal cheapest_score
+    cheapest_score = float("inf")
+    cheapest: Partial = ()
 
-        if calls <= 0:
-            return
+    start: tuple[Cover, Partial] = (original_cover, ())
+    to_explore = collections.deque((start,))
 
-        calls -= 1
+    while to_explore and calls:
+        candidates, partial = to_explore.popleft()
 
         covered = _covered(partial)
         score = _score(partial)
@@ -98,16 +77,15 @@ def search(candidates, target: int, max_calls: int) -> Partial:
                 best = max(candidates, key=order_by)
 
                 remaining = _uncovered_by(candidates, candidates[best])
-                walk(remaining, partial + (best,))
-                del remaining
+                to_explore.append((remaining, partial + (best,)))
 
                 reduced = _remove_dominated(candidates, best)
-                walk(reduced, partial)
-                del reduced
+                to_explore.append((reduced, partial))
 
         elif score < cheapest_score:
             cheapest = partial
             cheapest_score = score
 
-    walk(candidates)
+        calls -= 1
+
     return cheapest
