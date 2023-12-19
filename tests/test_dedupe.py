@@ -6,6 +6,9 @@ import unittest
 import numpy
 
 import dedupe
+from dedupe import datamodel
+from dedupe.datamodel import DataModel
+from dedupe.variables.base import FieldType
 
 DATA = {
     100: {"name": "Bob", "age": "50"},
@@ -31,8 +34,6 @@ DATA_SAMPLE = (
 
 class DataModelTest(unittest.TestCase):
     def test_data_model(self):
-        DataModel = dedupe.datamodel.DataModel
-
         self.assertRaises(TypeError, DataModel)
 
         data_model = DataModel(
@@ -74,6 +75,59 @@ class DataModelTest(unittest.TestCase):
         )
 
         assert data_model._missing_field_indices == []
+
+    def test_builtin_variables_basic(self):
+        """Tests that we can instantiate a DataModel with all of the
+        builtin variable types
+        """
+        builtin_types = [
+            "Exists",
+            "Exact",
+            "LatLong",
+            "Price",
+            "Set",
+            "ShortString",
+            "String",
+            "Text",
+            "DateTime",
+        ]
+        defs = [
+            {
+                "field": "a",
+                "variable name": "a",
+                "type": t,
+            }
+            for t in builtin_types
+        ]
+        defs.append({"type": "Categorical", "field": "a", "categories": ["foo", "bar"]})
+        defs.append({"type": "Custom", "field": "a", "comparator": lambda x, y: 0})
+        DataModel(defs)
+
+    def test_plugin_variables(self):
+        """Tests that we can instantiate a DataModel with a variable from a plugin"""
+
+        class Mock(FieldType):
+            def __init__(self, definition):
+                super().__init__(definition)
+
+        def make_defs(type_str):
+            return [
+                {
+                    "field": "a",
+                    "variable name": "a",
+                    "type": type_str,
+                }
+            ]
+
+        # TODO: This has the side effect where datamodel now has an extra attribute.
+        # Really, we should be cleaning up after ourselves.
+        setattr(datamodel, "Mock", Mock)
+
+        with self.assertRaises(ValueError):
+            DataModel(make_defs("Mock"))
+
+        dm = DataModel(make_defs("dedupe.datamodel:Mock"))
+        assert isinstance(dm.primary_variables[0], Mock)
 
 
 class ConnectedComponentsTest(unittest.TestCase):

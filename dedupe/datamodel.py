@@ -1,21 +1,16 @@
 from __future__ import annotations
 
 import copyreg
-import pkgutil
+import importlib
 import types
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Type, cast
 
 import numpy
 
-import dedupe.variables
+from dedupe import variables
 from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
-
-for _, module, _ in pkgutil.iter_modules(  # type: ignore
-    dedupe.variables.__path__, "dedupe.variables."
-):
-    __import__(module)
 
 if TYPE_CHECKING:
     from typing import Generator, Iterable, Sequence
@@ -27,8 +22,6 @@ if TYPE_CHECKING:
         VariableDefinition,
     )
     from dedupe.predicates import Predicate
-
-VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
 
 
 class DataModel(object):
@@ -140,6 +133,26 @@ class DataModel(object):
         self.__dict__ = d
 
 
+def _get_variable_class(variable_type: str) -> Type[Variable]:
+    if ":" in variable_type:
+        module_name, class_name = variable_type.split(":")
+    else:
+        module_name, class_name = "dedupe.variables", variable_type
+    msg = (
+        f"Bad variable type: '{variable_type}'. "
+        "Should be in the format mypackage.mymodule:MyClass "
+        f"or one of the built-in types: {variables.__all__}"
+    )
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError as e:
+        raise ValueError(msg) from e
+    try:
+        return getattr(module, class_name)
+    except AttributeError as e:
+        raise ValueError(msg) from e
+
+
 def typify_variables(
     variable_definitions: Iterable[VariableDefinition],
 ) -> tuple[list[FieldVariable], list[Variable]]:
@@ -178,14 +191,7 @@ def typify_variables(
                 if ("field" in d and d["field"] != definition["field"])
             ]
 
-        try:
-            variable_class = VARIABLE_CLASSES[variable_type]
-        except KeyError:
-            raise KeyError(
-                "Field type %s not valid. Valid types include %s"
-                % (definition["type"], ", ".join(VARIABLE_CLASSES))
-            )
-
+        variable_class = _get_variable_class(variable_type)
         variable_object = variable_class(definition)
         assert isinstance(variable_object, FieldVariable)
 
