@@ -1,8 +1,6 @@
 import unittest
 from collections import defaultdict
 
-from future.utils import viewitems, viewvalues
-
 import dedupe
 
 
@@ -54,7 +52,7 @@ class TfidfTest(unittest.TestCase):
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")]
         )
 
-        blocker.index(set(record["name"] for record in viewvalues(self.data_d)), "name")
+        blocker.index(set(record["name"] for record in self.data_d.values()), "name")
 
         blocks = defaultdict(set)
 
@@ -87,13 +85,13 @@ class TfIndexUnindex(unittest.TestCase):
 
         self.records_1 = dict(
             (record_id, record)
-            for record_id, record in viewitems(data_d)
+            for record_id, record in data_d.items()
             if record["dataset"] == 0
         )
 
         self.fields_2 = dict(
             (record_id, record["name"])
-            for record_id, record in viewitems(data_d)
+            for record_id, record in data_d.items()
             if record["dataset"] == 1
         )
 

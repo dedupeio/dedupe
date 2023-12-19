@@ -10,10 +10,10 @@ from abc import ABC
 from typing import TYPE_CHECKING, overload
 from warnings import warn
 
-from . import blocking
+from . import blocking, branch_and_bound
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Mapping, Sequence
+    from typing import Iterable, Sequence
 
     from ._typing import (
         ComparisonCover,
@@ -75,8 +75,7 @@ class BlockLearner(ABC):
         else:
             raise ValueError("candidate_type is not valid")
 
-        searcher = BranchBound(target_cover, 2500)
-        final_predicates = searcher.search(candidate_cover)
+        final_predicates = branch_and_bound.search(candidate_cover, target_cover, 2500)
 
         logger.info("Final predicate set:")
         for predicate in final_predicates:
@@ -327,113 +326,6 @@ class RecordLinkBlockLearner(BlockLearner):
                 pair_cover[predicate] = pairs
 
         return pair_cover
-
-
-class BranchBound(object):
-    def __init__(self, target: int, max_calls: int) -> None:
-        self.target: int = target
-        self.calls: int = max_calls
-
-        self.cheapest_score: float = float("inf")
-        self.original_cover: Cover = {}
-        self.cheapest: tuple[Predicate, ...] = ()
-
-    def search(
-        self, candidates: Cover, partial: tuple[Predicate, ...] = ()
-    ) -> tuple[Predicate, ...]:
-        if self.calls <= 0:
-            return self.cheapest
-
-        if not self.original_cover:
-            self.original_cover = candidates.copy()
-
-        self.calls -= 1
-
-        covered = self.covered(partial)
-        score = self.score(partial)
-
-        if covered >= self.target:
-            if score < self.cheapest_score:
-                self.cheapest = partial
-                self.cheapest_score = score
-
-        else:
-            window = self.cheapest_score - score
-
-            candidates = {
-                p: cover for p, cover in candidates.items() if p.cover_count < window
-            }
-
-            reachable = self.reachable(candidates) + covered
-
-            if candidates and reachable >= self.target:
-                order_by = functools.partial(self.order_by, candidates)
-
-                best = max(candidates, key=order_by)
-
-                remaining = self.uncovered_by(candidates, candidates[best])
-                try:
-                    self.search(remaining, partial + (best,))
-                except RecursionError:
-                    return self.cheapest
-
-                del remaining
-
-                reduced = self.remove_dominated(candidates, best)
-
-                try:
-                    self.search(reduced, partial)
-                except RecursionError:
-                    return self.cheapest
-
-                del reduced
-
-        return self.cheapest
-
-    @staticmethod
-    def order_by(
-        candidates: Mapping[Predicate, Sequence[Any]], p: Predicate
-    ) -> tuple[int, float]:
-        return (len(candidates[p]), -p.cover_count)
-
-    @staticmethod
-    def score(partial: Iterable[Predicate]) -> float:
-        return sum(p.cover_count for p in partial)
-
-    def covered(self, partial: tuple[Predicate, ...]) -> int:
-        if partial:
-            return len(frozenset.union(*(self.original_cover[p] for p in partial)))
-        else:
-            return 0
-
-    @staticmethod
-    def reachable(dupe_cover: Mapping[Any, frozenset[int]]) -> int:
-        if dupe_cover:
-            return len(frozenset.union(*dupe_cover.values()))
-        else:
-            return 0
-
-    @staticmethod
-    def remove_dominated(coverage: Cover, dominator: Predicate) -> Cover:
-        dominant_cover = coverage[dominator]
-
-        for pred, cover in coverage.copy().items():
-            if dominator.cover_count <= pred.cover_count and dominant_cover >= cover:
-                del coverage[pred]
-
-        return coverage
-
-    @staticmethod
-    def uncovered_by(
-        coverage: Mapping[Any, frozenset[int]], covered: frozenset[int]
-    ) -> dict[Any, frozenset[int]]:
-        remaining = {}
-        for predicate, uncovered in coverage.items():
-            still_uncovered = uncovered - covered
-            if still_uncovered:
-                remaining[predicate] = still_uncovered
-
-        return remaining
 
 
 class InfiniteSet(object):

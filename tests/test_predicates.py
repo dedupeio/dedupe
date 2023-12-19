@@ -1,7 +1,5 @@
 import unittest
 
-from future.builtins import str
-
 from dedupe import predicates
 
 

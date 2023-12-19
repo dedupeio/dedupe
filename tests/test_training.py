@@ -1,6 +1,7 @@
 import unittest
 
 import dedupe
+import dedupe.branch_and_bound as branch_and_bound
 import dedupe.training as training
 
 
@@ -67,8 +68,8 @@ class TrainingTest(unittest.TestCase):
 
         before_copy = before.copy()
 
-        assert training.BranchBound.uncovered_by(before, frozenset()) == before
-        assert training.BranchBound.uncovered_by(before, frozenset({3})) == after
+        assert branch_and_bound._uncovered_by(before, frozenset()) == before
+        assert branch_and_bound._uncovered_by(before, frozenset({3})) == after
         assert before == before_copy
 
     def test_covered_pairs(self):
