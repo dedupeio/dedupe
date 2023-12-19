@@ -1,11 +1,11 @@
 import functools
 import warnings
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence, Tuple
 
 from ._typing import Cover
 from .predicates import Predicate
 
-Partial = tuple[Predicate, ...]
+Partial = Tuple[Predicate, ...]
 
 
 def _reachable(dupe_cover: Mapping[Any, frozenset[int]]) -> int:
