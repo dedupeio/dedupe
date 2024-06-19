@@ -36,15 +36,15 @@ class DataModelTest(unittest.TestCase):
 
         self.assertRaises(TypeError, DataModel)
 
-        # data_model = DataModel(
-        #     [
-        #         dedupe.variables.String(field="a", name="a"),
-        #         dedupe.variables.String(field="b", name="b"),
-        #         dedupe.variables.Interaction("a", "b")
-        #     ]
-        # )
+        data_model = DataModel(
+            [
+                dedupe.variables.String(field="a", name="a"),
+                dedupe.variables.String(field="b", name="b"),
+                dedupe.variables.Interaction("a", "b"),
+            ]
+        )
 
-        # assert data_model._interaction_indices == [[0, 1]]
+        assert data_model._interaction_indices == [[0, 1]]
 
         data_model = DataModel(
             [
