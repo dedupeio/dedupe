@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copyreg
-import pkgutil
 import types
 from typing import TYPE_CHECKING, cast
 
@@ -12,43 +11,56 @@ from dedupe.variables.base import FieldType as FieldVariable
 from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
 
-for _, module, _ in pkgutil.iter_modules(  # type: ignore
-    dedupe.variables.__path__, "dedupe.variables."
-):
-    __import__(module)
-
 if TYPE_CHECKING:
     from typing import Generator, Iterable, Sequence
 
-    from dedupe._typing import (
-        Comparator,
-        RecordDict,
-        RecordDictPair,
-        VariableDefinition,
-    )
+    from dedupe._typing import Comparator, RecordDict, RecordDictPair
     from dedupe.predicates import Predicate
-
-VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
 
 
 class DataModel(object):
     version = 1
 
-    def __init__(self, variable_definitions: Iterable[VariableDefinition]):
+    def __init__(
+        self, variable_definitions: Iterable[Variable]
+    ):  # todo make a protocol
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
-        all_variables: list[Variable]
-        self.primary_variables, all_variables = typify_variables(variable_definitions)
-        self._derived_start = len(all_variables)
+        if all(
+            isinstance(variable, dedupe.variables.Custom)
+            for variable in variable_definitions
+        ):
+            raise ValueError(
+                "At least one of the variable types needs to be a type"
+                "other than 'Custom'. 'Custom' types have no associated"
+                "blocking rules"
+            )
 
-        all_variables += interactions(variable_definitions, self.primary_variables)
-        all_variables += missing(all_variables)
+        self.field_variables = [
+            variable for variable in variable_definitions if hasattr(variable, "field")
+        ]
 
-        self._missing_field_indices = missing_field_indices(all_variables)
-        self._interaction_indices = interaction_indices(all_variables)
+        # we need to keep track of ordering of variables because in
+        # order calculate derived fields like interation and missing
+        # data fields. This code would be much better if there was
+        # always a "columns" attribute on variables
+        columns = []
+        for variable in self.field_variables:
+            if hasattr(variable, "higher_vars"):
+                columns.extend(variable.higher_vars)
+            else:
+                columns.append(variable)
 
-        self._len = len(all_variables)
+        self._derived_start = len(columns)
+
+        columns += interactions(variable_definitions, self.field_variables)
+        columns += missing(columns)
+
+        self._missing_field_indices = missing_field_indices(columns)
+        self._interaction_indices = interaction_indices(columns)
+
+        self._len = len(columns)
 
     def __len__(self) -> int:
         return self._len
@@ -63,7 +75,7 @@ class DataModel(object):
     ) -> Generator[tuple[str, Comparator, int, int], None, None]:
         start = 0
         stop = 0
-        for var in self.primary_variables:
+        for var in self.field_variables:
             stop = start + len(var)
             comparator = cast("Comparator", var.comparator)
             yield (var.field, comparator, start, stop)
@@ -72,7 +84,7 @@ class DataModel(object):
     @property
     def predicates(self) -> set[Predicate]:
         predicates = set()
-        for var in self.primary_variables:
+        for var in self.field_variables:
             for predicate in var.predicates:
                 predicates.add(predicate)
         return predicates
@@ -140,73 +152,6 @@ class DataModel(object):
         self.__dict__ = d
 
 
-def typify_variables(
-    variable_definitions: Iterable[VariableDefinition],
-) -> tuple[list[FieldVariable], list[Variable]]:
-    primary_variables: list[FieldVariable] = []
-    all_variables: list[Variable] = []
-    only_custom = True
-
-    for definition in variable_definitions:
-        try:
-            variable_type = definition["type"]
-        except TypeError:
-            raise TypeError(
-                "Incorrect variable specification: variable "
-                "specifications are dictionaries that must "
-                "include a type definition, ex. "
-                "{'field' : 'Phone', type: 'String'}"
-            )
-        except KeyError:
-            raise KeyError(
-                "Missing variable type: variable "
-                "specifications are dictionaries that must "
-                "include a type definition, ex. "
-                "{'field' : 'Phone', type: 'String'}"
-            )
-
-        if variable_type != "Custom":
-            only_custom = False
-
-        if variable_type == "Interaction":
-            continue
-
-        if variable_type == "FuzzyCategorical" and "other fields" not in definition:
-            definition["other fields"] = [  # type: ignore
-                d["field"]
-                for d in variable_definitions
-                if ("field" in d and d["field"] != definition["field"])
-            ]
-
-        try:
-            variable_class = VARIABLE_CLASSES[variable_type]
-        except KeyError:
-            raise KeyError(
-                "Field type %s not valid. Valid types include %s"
-                % (definition["type"], ", ".join(VARIABLE_CLASSES))
-            )
-
-        variable_object = variable_class(definition)
-        assert isinstance(variable_object, FieldVariable)
-
-        primary_variables.append(variable_object)
-
-        if hasattr(variable_object, "higher_vars"):
-            all_variables.extend(variable_object.higher_vars)
-        else:
-            variable_object = cast(Variable, variable_object)
-            all_variables.append(variable_object)
-
-    if only_custom:
-        raise ValueError(
-            "At least one of the variable types needs to be a type"
-            "other than 'Custom'. 'Custom' types have no associated"
-            "blocking rules"
-        )
-
-    return primary_variables, all_variables
-
-
 def missing(variables: list[Variable]) -> list[MissingDataType]:
     missing_variables = []
     for var in variables:
@@ -216,16 +161,15 @@ def missing(variables: list[Variable]) -> list[MissingDataType]:
 
 
 def interactions(
-    definitions: Iterable[VariableDefinition], primary_variables: list[FieldVariable]
+    variables: Iterable[Variable], primary_variables: list[FieldVariable]
 ) -> list[InteractionType]:
     field_d = {field.name: field for field in primary_variables}
 
     interactions = []
-    for definition in definitions:
-        if definition["type"] == "Interaction":
-            var = InteractionType(definition)
-            var.expandInteractions(field_d)
-            interactions.extend(var.higher_vars)
+    for variable in variables:
+        if isinstance(variable, InteractionType):
+            variable.expandInteractions(field_d)
+            interactions.extend(variable.higher_vars)
     return interactions
 
 

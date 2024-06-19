@@ -81,24 +81,6 @@ ComparisonCoverStr = Dict["Predicate", FrozenSet[Tuple[str, str]]]
 ComparisonCover = Union[ComparisonCoverInt, ComparisonCoverStr]
 PredicateFunction = Callable[[Any], FrozenSet[str]]
 
-VariableDefinition = TypedDict(
-    "VariableDefinition",
-    {
-        "type": str,
-        "field": str,
-        "variable name": str,
-        "corpus": Iterable[Union[str, Collection[str]]],
-        "comparator": Callable[
-            [Any, Any], Union[int, float]
-        ],  # a custom comparator can only return a single float or int, not a sequence of numbers
-        "categories": List[str],
-        "interaction variables": List[str],
-        "has missing": bool,
-        "name": str,
-    },
-    total=False,
-)
-
 
 class TrainingData(TypedDict):
     match: List[RecordDictPair]

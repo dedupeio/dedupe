@@ -48,10 +48,10 @@ class Matching:
                 deduper = dedupe.StaticRecordLink(f)
         else:
             variables = [
-                {"field": "name", "type": "String"},
-                {"field": "address", "type": "String"},
-                {"field": "cuisine", "type": "String"},
-                {"field": "city", "type": "String"},
+                dedupe.variables.String("name"),
+                dedupe.variables.String("address"),
+                dedupe.variables.String("cuisine"),
+                dedupe.variables.String("city"),
             ]
             deduper = dedupe.RecordLink(variables)
             deduper.prepare_training(

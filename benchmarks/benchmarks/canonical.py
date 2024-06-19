@@ -38,11 +38,11 @@ class Canonical:
 
         else:
             variables = [
-                {"field": "name", "type": "String"},
-                {"field": "name", "type": "Exact"},
-                {"field": "address", "type": "String"},
-                {"field": "cuisine", "type": "ShortString", "has missing": True},
-                {"field": "city", "type": "ShortString"},
+                dedupe.variables.String("name"),
+                dedupe.variables.Exact("name"),
+                dedupe.variables.String("address"),
+                dedupe.variables.ShortString("cuisine", has_missing=True),
+                dedupe.variables.ShortString("city"),
             ]
 
             deduper = dedupe.Dedupe(variables, num_cores=5)

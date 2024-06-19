@@ -31,10 +31,10 @@ class Gazetteer(canonical_matching.Matching):
                 gazetteer = dedupe.StaticGazetteer(f)
         else:
             variables = [
-                {"field": "name", "type": "String"},
-                {"field": "address", "type": "String"},
-                {"field": "cuisine", "type": "String"},
-                {"field": "city", "type": "String"},
+                dedupe.variables.String("name"),
+                dedupe.variables.String("address"),
+                dedupe.variables.String("cuisine"),
+                dedupe.variables.String("city"),
             ]
 
             gazetteer = dedupe.Gazetteer(variables)
