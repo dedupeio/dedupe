@@ -111,7 +111,7 @@ class ClosableJoinable(Protocol):
 
 class Variable(Protocol):
     name: str
-    predicates: list["Predicate"]
+    predicates: List["Predicate"]
     has_missing: bool
 
     def __len__(self) -> int: ...
