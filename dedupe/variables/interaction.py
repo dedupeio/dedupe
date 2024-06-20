@@ -11,7 +11,7 @@ class InteractionType(Variable):
     type = "Interaction"
     higher_vars: list[InteractionVariable]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: str, **kwargs):
         self.interactions = list(args)
 
         self.name = "(Interaction: %s)" % str(self.interactions)
