@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, cast
 
 import numpy
 
+from dedupe._typing import FieldVariable
 from dedupe.variables.base import MissingDataType
 from dedupe.variables.interaction import InteractionType
 
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
     from dedupe._typing import (
         Comparator,
-        FieldVariable,
+        InteractionVariable,
         RecordDict,
         RecordDictPair,
         Variable,
@@ -25,23 +26,22 @@ if TYPE_CHECKING:
 class DataModel(object):
     version = 1
 
-    def __init__(
-        self, variable_definitions: Iterable[Variable]
-    ):  # todo make a protocol
+    def __init__(self, variable_definitions: Iterable[Variable]):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
-        if any(hasattr(variable, "predicates") for variable in variable_definitions):
+        if not any(variable.predicates for variable in variable_definitions):
             raise ValueError(
                 "At least one of the variable types needs to be a type"
                 "other than 'Custom'. 'Custom' types have no associated"
                 "blocking rules"
             )
 
+        # This is a protocol check, not a class inheritance check
         self.field_variables: list[FieldVariable] = [
             variable
             for variable in variable_definitions
-            if hasattr(variable, "field") and hasattr(variable, "comparator")
+            if isinstance(variable, FieldVariable)
         ]
 
         # we need to keep track of ordering of variables because in
@@ -165,10 +165,10 @@ def missing(variables: list[Variable]) -> list[MissingDataType]:
 
 def interactions(
     variables: Iterable[Variable], primary_variables: Iterable[FieldVariable]
-) -> list[InteractionType]:
+) -> list[InteractionVariable]:
     field_d = {field.name: field for field in primary_variables}
 
-    interactions: list[InteractionType] = []
+    interactions: list[InteractionVariable] = []
     for variable in variables:
         if isinstance(variable, InteractionType):
             variable.expandInteractions(field_d)

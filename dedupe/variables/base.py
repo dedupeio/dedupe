@@ -8,13 +8,14 @@ if TYPE_CHECKING:
     from typing import Any, ClassVar, Generator, Iterable, Optional, Sequence, Type
 
     from dedupe._typing import Comparator, PredicateFunction
+    from dedupe._typing import Variable as VariableProtocol
 
 
 class Variable(object):
     name: str
     type: ClassVar[str]
     predicates: list[predicates.Predicate]
-    higher_vars: Sequence["Variable"]
+    higher_vars: Sequence["VariableProtocol"]
 
     def __len__(self) -> int:
         return 1

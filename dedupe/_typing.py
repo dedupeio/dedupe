@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    runtime_checkable,
 )
 
 import numpy
@@ -112,14 +113,18 @@ class Variable(Protocol):
     name: str
     predicates: list["Predicate"]
     has_missing: bool
-    higher_vars: Sequence["Variable"]
 
     def __len__(self) -> int: ...
 
 
+@runtime_checkable
 class FieldVariable(Variable, Protocol):
     field: str
     comparator: Comparator
+
+
+class InteractionVariable(Variable, Protocol):
+    interaction_fields: list[str]
 
 
 MapLike = Callable[[Callable[[Any], Any], Iterable], Iterable]

@@ -3,13 +3,13 @@ from __future__ import annotations
 import itertools
 from typing import Mapping
 
-from dedupe._typing import FieldVariable
+from dedupe._typing import FieldVariable, InteractionVariable
 from dedupe.variables.base import Variable
 
 
 class InteractionType(Variable):
     type = "Interaction"
-    higher_vars: list["InteractionType"]
+    higher_vars: list[InteractionVariable]
 
     def __init__(self, *args, **kwargs):
         self.interactions = list(args)
@@ -41,7 +41,7 @@ class InteractionType(Variable):
             if not hasattr(field_model[field], "higher_vars")
         ]
 
-        dummies = [field_model[field].higher_vars for field in categoricals]
+        dummies = [field_model[field].higher_vars for field in categoricals]  # type: ignore[attr-defined]
 
         self.higher_vars = []
         for combo in itertools.product(*dummies):
