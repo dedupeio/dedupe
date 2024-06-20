@@ -124,7 +124,7 @@ class FieldVariable(Variable, Protocol):
 
 
 class InteractionVariable(Variable, Protocol):
-    interaction_fields: list[str]
+    interaction_fields: List[str]
 
 
 MapLike = Callable[[Callable[[Any], Any], Iterable], Iterable]
