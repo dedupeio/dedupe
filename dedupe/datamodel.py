@@ -6,15 +6,19 @@ from typing import TYPE_CHECKING, cast
 
 import numpy
 
-import dedupe.variables
-from dedupe.variables.base import FieldType as FieldVariable
-from dedupe.variables.base import MissingDataType, Variable
+from dedupe.variables.base import MissingDataType
 from dedupe.variables.interaction import InteractionType
 
 if TYPE_CHECKING:
     from typing import Generator, Iterable, Sequence
 
-    from dedupe._typing import Comparator, RecordDict, RecordDictPair
+    from dedupe._typing import (
+        Comparator,
+        FieldVariable,
+        RecordDict,
+        RecordDictPair,
+        Variable,
+    )
     from dedupe.predicates import Predicate
 
 
@@ -27,25 +31,24 @@ class DataModel(object):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
-        if all(
-            isinstance(variable, dedupe.variables.Custom)
-            for variable in variable_definitions
-        ):
+        if any(hasattr(variable, "predicates") for variable in variable_definitions):
             raise ValueError(
                 "At least one of the variable types needs to be a type"
                 "other than 'Custom'. 'Custom' types have no associated"
                 "blocking rules"
             )
 
-        self.field_variables = [
-            variable for variable in variable_definitions if hasattr(variable, "field")
+        self.field_variables: list[FieldVariable] = [
+            variable
+            for variable in variable_definitions
+            if hasattr(variable, "field") and hasattr(variable, "comparator")
         ]
 
         # we need to keep track of ordering of variables because in
         # order calculate derived fields like interation and missing
         # data fields. This code would be much better if there was
         # always a "columns" attribute on variables
-        columns = []
+        columns: list[Variable] = []
         for variable in self.field_variables:
             if hasattr(variable, "higher_vars"):
                 columns.extend(variable.higher_vars)
@@ -161,11 +164,11 @@ def missing(variables: list[Variable]) -> list[MissingDataType]:
 
 
 def interactions(
-    variables: Iterable[Variable], primary_variables: list[FieldVariable]
+    variables: Iterable[Variable], primary_variables: Iterable[FieldVariable]
 ) -> list[InteractionType]:
     field_d = {field.name: field for field in primary_variables}
 
-    interactions = []
+    interactions: list[InteractionType] = []
     for variable in variables:
         if isinstance(variable, InteractionType):
             variable.expandInteractions(field_d)

@@ -31,12 +31,6 @@ class Variable(object):
 
     def __init__(self, has_missing=False):
         self.has_missing = has_missing
-        if self.has_missing:
-            try:
-                exists_pred = predicates.ExistsPredicate(self.field)
-                self.predicates.append(exists_pred)
-            except AttributeError:
-                pass
 
     def __getstate__(self) -> dict[str, Any]:
         odict = self.__dict__.copy()
@@ -78,7 +72,7 @@ class FieldType(Variable):
     _Predicate: Type[predicates.SimplePredicate] = predicates.SimplePredicate
     comparator: Comparator
 
-    def __init__(self, field, name=None, **kwargs):
+    def __init__(self, field, name=None, has_missing=False):
         self.field = field
 
         if name is None:
@@ -94,7 +88,10 @@ class FieldType(Variable):
             self._index_predicates, self._index_thresholds, self.field
         )
 
-        super().__init__(**kwargs)
+        self.has_missing = has_missing
+        if self.has_missing:
+            exists_pred = predicates.ExistsPredicate(self.field)
+            self.predicates.append(exists_pred)
 
 
 class CustomType(FieldType):

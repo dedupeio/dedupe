@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from typing import Mapping
 
-from dedupe.variables.base import FieldType as FieldVariable
+from dedupe._typing import FieldVariable
 from dedupe.variables.base import Variable
 
 

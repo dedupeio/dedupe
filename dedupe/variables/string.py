@@ -5,7 +5,7 @@ from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
 from dedupe import predicates
-from dedupe._typing import PredicateFunction, VariableDefinition
+from dedupe._typing import PredicateFunction
 from dedupe.variables.base import FieldType, indexPredicates
 
 crfEd = CRFEditDistance()
@@ -98,10 +98,10 @@ class TextType(BaseStringType):
     ]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, definition: VariableDefinition):
-        super(TextType, self).__init__(definition)
+    def __init__(self, field, corpus=None, **kwargs):
+        super().__init__(field, **kwargs)
 
-        if "corpus" not in definition:
-            definition["corpus"] = []
+        if corpus is None:
+            corpus = []
 
-        self.comparator = CosineTextSimilarity(definition["corpus"])  # type: ignore[assignment]
+        self.comparator = CosineTextSimilarity(corpus)  # type: ignore[assignment]

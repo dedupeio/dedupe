@@ -4,7 +4,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
     Dict,
     FrozenSet,
     Iterable,
@@ -107,6 +106,20 @@ class ClosableJoinable(Protocol):
     def close(self) -> None: ...
 
     def join(self) -> None: ...
+
+
+class Variable(Protocol):
+    name: str
+    predicates: list["Predicate"]
+    has_missing: bool
+    higher_vars: Sequence["Variable"]
+
+    def __len__(self) -> int: ...
+
+
+class FieldVariable(Variable, Protocol):
+    field: str
+    comparator: Comparator
 
 
 MapLike = Callable[[Callable[[Any], Any], Iterable], Iterable]

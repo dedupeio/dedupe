@@ -135,7 +135,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
 
     finished = False
     use_previous = False
-    fields = unique(var.field for var in deduper.data_model.primary_variables)
+    fields = unique(var.field for var in deduper.data_model.field_variables)
 
     buffer_len = 1  # Max number of previous operations
     unlabeled: list[RecordDictPair] = []

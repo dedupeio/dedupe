@@ -70,7 +70,7 @@ if TYPE_CHECKING:
         Scores,
         TrainingData,
         TupleLinks,
-        VariableDefinition,
+        Variable,
     )
 
 logger = logging.getLogger(__name__)
@@ -1117,7 +1117,7 @@ class ActiveMatching(Matching):
 
     def __init__(
         self,
-        variable_definition: Collection[VariableDefinition],
+        variable_definition: Collection[Variable],
         num_cores: int | None = None,
         in_memory: bool = False,
         **kwargs,
