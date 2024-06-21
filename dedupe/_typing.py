@@ -47,10 +47,10 @@ BlocksInt = Iterator[BlockInt]
 BlocksStr = Iterator[BlockStr]
 Blocks = Union[BlocksInt, BlocksStr]
 ClusterInt = Tuple[
-    Tuple[int, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
+    Tuple[int, ...], Union[numpy.typing.NDArray[numpy.float64], Tuple[float, ...]]
 ]
 ClusterStr = Tuple[
-    Tuple[str, ...], Union[numpy.typing.NDArray[numpy.float_], Tuple[float, ...]]
+    Tuple[str, ...], Union[numpy.typing.NDArray[numpy.float64], Tuple[float, ...]]
 ]
 ClustersInt = Iterable[ClusterInt]
 ClustersStr = Iterable[ClusterStr]
@@ -107,18 +107,18 @@ class TrainingData(TypedDict):
 
 # Takes pairs of records and generates a (n_samples X n_features) array
 FeaturizerFunction = Callable[
-    [Sequence[RecordDictPair]], numpy.typing.NDArray[numpy.float_]
+    [Sequence[RecordDictPair]], numpy.typing.NDArray[numpy.float64]
 ]
 
 
 class Classifier(Protocol):
     """Takes an array of pairwise distances and computes the likelihood they are a pair."""
 
-    def fit(self, X: numpy.typing.NDArray[numpy.float_], y: LabelsLike) -> None: ...
+    def fit(self, X: numpy.typing.NDArray[numpy.float64], y: LabelsLike) -> None: ...
 
     def predict_proba(
-        self, X: numpy.typing.NDArray[numpy.float_]
-    ) -> numpy.typing.NDArray[numpy.float_]: ...
+        self, X: numpy.typing.NDArray[numpy.float64]
+    ) -> numpy.typing.NDArray[numpy.float64]: ...
 
 
 class ClosableJoinable(Protocol):
