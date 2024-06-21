@@ -56,7 +56,7 @@ class Learner(ABC, HasCandidates):
         """Train on the given data."""
 
     @abstractmethod
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float64]:
         """For each of self.candidates, return our current guess [0,1] of if a match."""
 
     @abstractmethod
@@ -92,7 +92,7 @@ class MatchLearner(Learner):
         self._candidates.pop(index)
         self._features = numpy.delete(self._features, index, axis=0)
 
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float64]:
         if not self._fitted:
             raise ValueError("Must call fit() before candidate_scores()")
         return self._classifier.predict_proba(self._features)[:, 1].reshape(-1, 1)
@@ -103,7 +103,7 @@ class BlockLearner(Learner):
 
     def __init__(self):
         self.current_predicates: tuple[Predicate, ...] = ()
-        self._cached_scores: numpy.typing.NDArray[numpy.float_] | None = None
+        self._cached_scores: numpy.typing.NDArray[numpy.float64] | None = None
         self._old_dupes: TrainingExamples = []
 
     def fit(self, pairs: TrainingExamples, y: LabelsLike) -> None:
@@ -121,7 +121,7 @@ class BlockLearner(Learner):
             self._old_dupes = dupes
         self._fitted = True
 
-    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float_]:
+    def candidate_scores(self) -> numpy.typing.NDArray[numpy.float64]:
         if not self._fitted:
             raise ValueError("Must call fit() before candidate_scores()")
         if self._cached_scores is None:

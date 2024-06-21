@@ -79,7 +79,7 @@ class DataModel(object):
 
     def distances(
         self, record_pairs: Sequence[RecordDictPair]
-    ) -> numpy.typing.NDArray[numpy.float_]:
+    ) -> numpy.typing.NDArray[numpy.float64]:
         num_records = len(record_pairs)
 
         distances = numpy.empty((num_records, len(self)), "f4")
@@ -98,8 +98,8 @@ class DataModel(object):
         return distances
 
     def _add_derived_distances(
-        self, distances: numpy.typing.NDArray[numpy.float_]
-    ) -> numpy.typing.NDArray[numpy.float_]:
+        self, distances: numpy.typing.NDArray[numpy.float64]
+    ) -> numpy.typing.NDArray[numpy.float64]:
         current_column = self._derived_start
 
         for indices in self._interaction_indices:

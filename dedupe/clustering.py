@@ -177,7 +177,7 @@ def union_find(scored_pairs: Scores) -> numpy.typing.NDArray[numpy.int_]:
 
 def condensedDistance(
     dupes: Scores,
-) -> tuple[dict[int, RecordID], numpy.typing.NDArray[numpy.float_], int]:
+) -> tuple[dict[int, RecordID], numpy.typing.NDArray[numpy.float64], int]:
     """
     Convert the pairwise list of distances in dupes to "condensed
     distance matrix" required by the hierarchical clustering
@@ -262,16 +262,16 @@ def cluster(
 
 def confidences(
     cluster: Sequence[int],
-    squared_distances: numpy.typing.NDArray[numpy.float_],
+    squared_distances: numpy.typing.NDArray[numpy.float64],
     d: int,
-) -> numpy.typing.NDArray[numpy.float_]:
+) -> numpy.typing.NDArray[numpy.float64]:
     """
     We calculate a per record score that is similar to a standard
     deviation.  The main reason is that these record scores can be
     used to calculate the standard deviation of an entire cluster,
     which is a reasonable metric for clusters.
     """
-    scores: numpy.typing.NDArray[numpy.float_]
+    scores: numpy.typing.NDArray[numpy.float64]
     scores_d = dict.fromkeys(cluster, 0.0)
     C = 2 * d - 3
     for i, j in itertools.combinations(cluster, 2):
