@@ -147,7 +147,7 @@ class DataModel(object):
         return d
 
     def __setstate__(self, d):
-        version = d.pop("version", None)
+        version = d.pop("object_version", None)
         if version is None and "_variables" in d:
             d["_len"] = len(d.pop("_variables"))
             d["primary_variables"] = d.pop("primary_fields")
