@@ -258,12 +258,10 @@ class DedupeBlockLearner(BlockLearner):
             pred.freeze(records)
 
     @overload
-    def _sample(self, data: DataInt, sample_size: int) -> TrainingExamples:
-        ...
+    def _sample(self, data: DataInt, sample_size: int) -> TrainingExamples: ...
 
     @overload
-    def _sample(self, data: DataStr, sample_size: int) -> TrainingExamples:
-        ...
+    def _sample(self, data: DataStr, sample_size: int) -> TrainingExamples: ...
 
     def _sample(self, data, sample_size):
         sample_indices = self._sample_indices(
@@ -323,14 +321,12 @@ class RecordLinkBlockLearner(BlockLearner):
     @overload
     def _sample(
         self, data_1: DataInt, data_2: DataInt, sample_size: int
-    ) -> TrainingExamples:
-        ...
+    ) -> TrainingExamples: ...
 
     @overload
     def _sample(
         self, data_1: DataStr, data_2: DataStr, sample_size: int
-    ) -> TrainingExamples:
-        ...
+    ) -> TrainingExamples: ...
 
     def _sample(self, data_1, data_2, sample_size):
         sample_indices = self._sample_indices(sample_size, len(data_1) * len(data_2))

@@ -151,19 +151,16 @@ class IndexPredicate(Predicate):
             self.index = None
 
     @abc.abstractmethod
-    def reset(self) -> None:
-        ...
+    def reset(self) -> None: ...
 
     @abc.abstractmethod
-    def initIndex(self) -> Index:
-        ...
+    def initIndex(self) -> Index: ...
 
     def bust_cache(self) -> None:
         self._cache = {}
 
     @abc.abstractmethod
-    def preprocess(self, doc: Any) -> Any:
-        ...
+    def preprocess(self, doc: Any) -> Any: ...
 
 
 class CanopyPredicate(IndexPredicate):

@@ -201,15 +201,13 @@ class DedupeBlockLearner(BlockLearner):
     @staticmethod
     def coveredPairs(
         blocker: blocking.Fingerprinter, records: DataInt
-    ) -> ComparisonCoverInt:
-        ...
+    ) -> ComparisonCoverInt: ...
 
     @overload
     @staticmethod
     def coveredPairs(
         blocker: blocking.Fingerprinter, records: DataStr
-    ) -> ComparisonCoverStr:
-        ...
+    ) -> ComparisonCoverStr: ...
 
     @staticmethod
     def coveredPairs(blocker: blocking.Fingerprinter, records):
@@ -251,8 +249,7 @@ class RecordLinkBlockLearner(BlockLearner):
         sampled_records_1: DataInt,
         sampled_records_2: DataInt,
         data_2: DataInt,
-    ):
-        ...
+    ): ...
 
     @overload
     def __init__(
@@ -261,8 +258,7 @@ class RecordLinkBlockLearner(BlockLearner):
         sampled_records_1: DataStr,
         sampled_records_2: DataStr,
         data_2: DataStr,
-    ):
-        ...
+    ): ...
 
     def __init__(
         self,
@@ -281,14 +277,12 @@ class RecordLinkBlockLearner(BlockLearner):
     @overload
     def coveredPairs(
         self, blocker: blocking.Fingerprinter, records_1: DataInt, records_2: DataInt
-    ) -> ComparisonCoverInt:
-        ...
+    ) -> ComparisonCoverInt: ...
 
     @overload
     def coveredPairs(
         self, blocker: blocking.Fingerprinter, records_1: DataStr, records_2: DataStr
-    ) -> ComparisonCoverStr:
-        ...
+    ) -> ComparisonCoverStr: ...
 
     def coveredPairs(self, blocker, records_1, records_2):
         cover: dict[Predicate, dict[str, tuple[set[RecordID], set[RecordID]]]] = {}

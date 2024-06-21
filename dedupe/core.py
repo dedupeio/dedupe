@@ -307,13 +307,11 @@ def Enumerator(start: int = 0) -> collections.defaultdict[Any, int]:
 
 
 @overload
-def sniff_id_type(ids: Sequence[tuple[int, int]]) -> Type[int]:
-    ...
+def sniff_id_type(ids: Sequence[tuple[int, int]]) -> Type[int]: ...
 
 
 @overload
-def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[Type[str], Literal[256]]:
-    ...
+def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[Type[str], Literal[256]]: ...
 
 
 def sniff_id_type(ids: Sequence[tuple[RecordID, RecordID]]) -> RecordIDDType:

@@ -206,13 +206,15 @@ class DedupeMatching(IntegralMatching):
 
     @overload
     @staticmethod
-    def _add_singletons(all_ids: Iterable[int], clusters: ClustersInt) -> ClustersInt:
-        ...
+    def _add_singletons(
+        all_ids: Iterable[int], clusters: ClustersInt
+    ) -> ClustersInt: ...
 
     @overload
     @staticmethod
-    def _add_singletons(all_ids: Iterable[str], clusters: ClustersStr) -> ClustersStr:
-        ...
+    def _add_singletons(
+        all_ids: Iterable[str], clusters: ClustersStr
+    ) -> ClustersStr: ...
 
     @staticmethod
     def _add_singletons(all_ids, clusters):
@@ -694,12 +696,10 @@ class GazetteerMatching(Matching):
         self._close()
 
     @overload
-    def index(self, data: DataInt) -> None:
-        ...
+    def index(self, data: DataInt) -> None: ...
 
     @overload
-    def index(self, data: DataStr) -> None:
-        ...
+    def index(self, data: DataStr) -> None: ...
 
     def index(self, data):  # pragma: no cover
         """
@@ -786,12 +786,10 @@ class GazetteerMatching(Matching):
             del self.indexed_data[k]
 
     @overload
-    def blocks(self, data: DataInt) -> BlocksInt:
-        ...
+    def blocks(self, data: DataInt) -> BlocksInt: ...
 
     @overload
-    def blocks(self, data: DataStr) -> BlocksStr:
-        ...
+    def blocks(self, data: DataStr) -> BlocksStr: ...
 
     def blocks(self, data):
         """
@@ -1009,14 +1007,12 @@ class GazetteerMatching(Matching):
     @overload
     def _format_search_results(
         self, search_d: DataInt, results: ArrayLinks
-    ) -> LookupResultsInt:
-        ...
+    ) -> LookupResultsInt: ...
 
     @overload
     def _format_search_results(
         self, search_d: DataStr, results: ArrayLinks
-    ) -> LookupResultsStr:
-        ...
+    ) -> LookupResultsStr: ...
 
     def _format_search_results(self, search_d, results):
         seen: set[RecordID] = set()
