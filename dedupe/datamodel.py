@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class DataModel(object):
-    version = 1
+    version = 2
 
     def __init__(self, variable_definitions: Iterable[Variable]):
         variable_definitions = list(variable_definitions)
@@ -151,6 +151,8 @@ class DataModel(object):
         if version is None and "_variables" in d:
             d["_len"] = len(d.pop("_variables"))
             d["primary_variables"] = d.pop("primary_fields")
+        elif version == 1:
+            d["field_variables"] = d.pop("primary_variables")
 
         self.__dict__ = d
 
