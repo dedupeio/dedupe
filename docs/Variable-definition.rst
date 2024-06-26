@@ -127,7 +127,7 @@ fields will raise an error.
 LatLong
 ^^^^^^^
 
-A ``LatLong`` variables are compared using the `Haversine
+``LatLong`` variables are compared using the `Haversine
 Formula <http://en.wikipedia.org/wiki/Haversine_formula>`__. 
 
 A ``LatLong`` variable field must consist of tuples of floats
@@ -140,7 +140,7 @@ corresponding to a latitude and a longitude.
 Set
 ^^^
 
-A ``Set`` variables are for comparing lists of elements, like keywords or
+``Set`` variables are for comparing lists of elements, like keywords or
 client names. ``Set`` variables are very similar to :ref:`text-types-label`. They
 use the same comparison function and you can also let dedupe learn which
 terms are common or rare by providing a corpus. Within a record, a ``Set``
@@ -334,6 +334,8 @@ For example:-
 
     namevariable.WesternName("field")
 
+To install: 
+    
 .. code:: console
 
     pip install dedupe-variable-name
