@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copyreg
 import types
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, cast
 
 import numpy
@@ -23,10 +24,19 @@ if TYPE_CHECKING:
     from dedupe.predicates import Predicate
 
 
-class DataModel(object):
+class DataModel:
     version = 2
 
     def __init__(self, variable_definitions: Iterable[Variable]):
+        for item in variable_definitions:
+            if isinstance(item, Mapping):
+                raise ValueError(
+                    "It looks like you are trying to use a variable definition "
+                    "composed of dictionaries. dedupe 3.0 uses variable objects "
+                    'directly. So instead of [{"field": "name", "type": "String"}] '
+                    'we now do [dedupe.variables.String("name")].'
+                )
+
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
