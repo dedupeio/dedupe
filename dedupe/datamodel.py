@@ -11,7 +11,7 @@ from dedupe._typing import FieldVariable
 from dedupe.variables.interaction import InteractionType
 
 if TYPE_CHECKING:
-    from typing import Generator, Iterable, Sequence
+    from typing import Collection, Generator, Iterable, Sequence
 
     from dedupe._typing import (
         Comparator,
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class DataModel:
     version = 2
 
-    def __init__(self, variable_definitions: Iterable[Variable]):
+    def __init__(self, variable_definitions: Collection[Variable]):
         for item in variable_definitions:
             if isinstance(item, Mapping):
                 raise ValueError(
@@ -61,6 +61,7 @@ class DataModel:
             if len(variable) == 1:
                 columns.append(variable)
             elif len(variable) > 1:
+                assert hasattr(variable, "higher_vars")
                 columns.extend(variable.higher_vars)
 
         self._derived_start = len(columns)
