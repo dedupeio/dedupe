@@ -67,6 +67,7 @@ files = ["dedupe", "benchmarks"]
 show_error_codes = true
 ignore_missing_imports = true
 check_untyped_defs = true
+implicit_reexport = false
 
 [tool.pytest.ini_options]
 minversion = "7.1"

@@ -27,7 +27,6 @@ import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
 import dedupe.predicates
 import dedupe.serializer as serializer
-from dedupe._typing import Literal
 
 if TYPE_CHECKING:
     from typing import (
@@ -35,6 +34,7 @@ if TYPE_CHECKING:
         Collection,
         Generator,
         Iterable,
+        Literal,
         MutableMapping,
         TextIO,
         Union,

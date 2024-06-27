@@ -7,7 +7,7 @@ import itertools
 import random
 import sys
 import warnings
-from typing import Iterator, Tuple, overload
+from typing import Iterator, Literal, Tuple, overload
 
 import numpy
 
@@ -15,7 +15,6 @@ import dedupe
 from dedupe._typing import (
     DataInt,
     DataStr,
-    Literal,
     RecordDict,
     RecordDictPair,
     RecordID,
