@@ -1,7 +1,7 @@
 [project]
 name = "dedupe"
 description = "A python library for accurate and scaleable data deduplication and entity-resolution"
-version = "2.0.23"
+version = "2.0.24"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
