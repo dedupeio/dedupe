@@ -53,7 +53,7 @@ class SerializerTest(unittest.TestCase):
         assert isinstance(loaded_training_pairs["distinct"][0][0]["bar"], frozenset)
         assert isinstance(loaded_training_pairs["distinct"][0][0]["baz"], tuple)
 
-        deduper = dedupe.Dedupe([{"field": "foo", "type": "String"}])
+        deduper = dedupe.Dedupe([dedupe.variables.String("foo")])
         deduper.classifier.cv = False
 
         encoded_file.seek(0)

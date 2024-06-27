@@ -4,17 +4,18 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
     Dict,
     FrozenSet,
     Iterable,
     Iterator,
     List,
     Mapping,
+    MutableSequence,
     Sequence,
     Tuple,
     Type,
     Union,
+    runtime_checkable,
 )
 
 import numpy
@@ -72,6 +73,7 @@ LookupResultsStr = Iterable[Tuple[str, Tuple[Tuple[str, float], ...]]]
 LookupResults = Union[LookupResultsInt, LookupResultsStr]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 Comparator = Callable[[Any, Any], Union[Union[int, float], Sequence[Union[int, float]]]]
+CustomComparator = Callable[[Any, Any], Union[int, float]]
 Scores = Union[numpy.memmap, numpy.ndarray]
 Labels = List[Literal[0, 1]]
 LabelsLike = Iterable[Literal[0, 1]]
@@ -81,28 +83,10 @@ ComparisonCoverStr = Dict["Predicate", FrozenSet[Tuple[str, str]]]
 ComparisonCover = Union[ComparisonCoverInt, ComparisonCoverStr]
 PredicateFunction = Callable[[Any], FrozenSet[str]]
 
-VariableDefinition = TypedDict(
-    "VariableDefinition",
-    {
-        "type": str,
-        "field": str,
-        "variable name": str,
-        "corpus": Iterable[Union[str, Collection[str]]],
-        "comparator": Callable[
-            [Any, Any], Union[int, float]
-        ],  # a custom comparator can only return a single float or int, not a sequence of numbers
-        "categories": List[str],
-        "interaction variables": List[str],
-        "has missing": bool,
-        "name": str,
-    },
-    total=False,
-)
-
 
 class TrainingData(TypedDict):
-    match: List[RecordDictPair]
-    distinct: List[RecordDictPair]
+    match: MutableSequence[RecordDictPair]
+    distinct: MutableSequence[RecordDictPair]
 
 
 # Takes pairs of records and generates a (n_samples X n_features) array
@@ -125,6 +109,24 @@ class ClosableJoinable(Protocol):
     def close(self) -> None: ...
 
     def join(self) -> None: ...
+
+
+class Variable(Protocol):
+    name: str
+    predicates: List["Predicate"]
+    has_missing: bool
+
+    def __len__(self) -> int: ...
+
+
+@runtime_checkable
+class FieldVariable(Variable, Protocol):
+    field: str
+    comparator: Comparator
+
+
+class InteractionVariable(Variable, Protocol):
+    interaction_fields: List[str]
 
 
 MapLike = Callable[[Callable[[Any], Any], Iterable], Iterable]
