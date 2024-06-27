@@ -3,6 +3,7 @@ import unittest
 
 import pytest
 
+import dedupe
 from dedupe import datamodel, labeler
 from dedupe._typing import RecordDictPair
 
@@ -24,7 +25,7 @@ def freeze_record_pair(record_pair: RecordDictPair):
 class ActiveLearningTest(unittest.TestCase):
     def setUp(self):
         self.data_model = datamodel.DataModel(
-            [{"field": "name", "type": "String"}, {"field": "age", "type": "String"}]
+            [dedupe.variables.String("name"), dedupe.variables.String("age")]
         )
 
     def test_AL(self):

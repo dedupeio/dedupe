@@ -42,16 +42,17 @@ class Matching:
 
     def run(self, kwargs, use_settings=False):
         data_1, data_2 = self.data
+        deduper: dedupe.StaticRecordLink | dedupe.RecordLink
 
         if use_settings and os.path.exists(self.settings_file):
             with open(self.settings_file, "rb") as f:
                 deduper = dedupe.StaticRecordLink(f)
         else:
             variables = [
-                {"field": "name", "type": "String"},
-                {"field": "address", "type": "String"},
-                {"field": "cuisine", "type": "String"},
-                {"field": "city", "type": "String"},
+                dedupe.variables.String("name"),
+                dedupe.variables.String("address"),
+                dedupe.variables.String("cuisine"),
+                dedupe.variables.String("city"),
             ]
             deduper = dedupe.RecordLink(variables)
             deduper.prepare_training(

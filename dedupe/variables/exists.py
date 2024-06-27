@@ -4,7 +4,7 @@ from typing import Any
 
 from categorical import CategoricalComparator
 
-from dedupe._typing import PredicateFunction, VariableDefinition
+from dedupe._typing import PredicateFunction
 from dedupe.variables.base import DerivedType
 from dedupe.variables.categorical_type import CategoricalType
 
@@ -13,16 +13,14 @@ class ExistsType(CategoricalType):
     type = "Exists"
     _predicate_functions: list[PredicateFunction] = []
 
-    def __init__(self, definition: VariableDefinition):
-        super(CategoricalType, self).__init__(definition)
+    def __init__(self, field: str, **kwargs):
+        super().__init__(field, **kwargs)
 
         self.cat_comparator = CategoricalComparator([0, 1])
 
         self.higher_vars = []
         for higher_var in self.cat_comparator.dummy_names:
-            dummy_var = DerivedType(
-                {"name": higher_var, "type": "Dummy", "has missing": self.has_missing}
-            )
+            dummy_var = DerivedType(higher_var, "Dummy", has_missing=self.has_missing)
             self.higher_vars.append(dummy_var)
 
     def comparator(self, field_1: Any, field_2: Any) -> list[int]:

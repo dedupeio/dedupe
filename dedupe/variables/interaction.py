@@ -1,24 +1,23 @@
 from __future__ import annotations
 
 import itertools
-from typing import Mapping
+from typing import List, Mapping
 
-from dedupe._typing import VariableDefinition
-from dedupe.variables.base import FieldType as FieldVariable
+from dedupe._typing import FieldVariable, InteractionVariable
 from dedupe.variables.base import Variable
 
 
 class InteractionType(Variable):
     type = "Interaction"
-    higher_vars: list["InteractionType"]
+    higher_vars: List[InteractionVariable]
 
-    def __init__(self, definition: VariableDefinition):
-        self.interactions = definition["interaction variables"]
+    def __init__(self, *args: str, **kwargs):
+        self.interactions = list(args)
 
         self.name = "(Interaction: %s)" % str(self.interactions)
         self.interaction_fields = self.interactions
 
-        super().__init__(definition)
+        super().__init__(**kwargs)
 
     def expandInteractions(self, field_model: Mapping[str, FieldVariable]) -> None:
         self.interaction_fields = self.atomicInteractions(
@@ -42,14 +41,12 @@ class InteractionType(Variable):
             if not hasattr(field_model[field], "higher_vars")
         ]
 
-        dummies = [field_model[field].higher_vars for field in categoricals]
+        dummies = [field_model[field].higher_vars for field in categoricals]  # type: ignore[attr-defined]
 
         self.higher_vars = []
         for combo in itertools.product(*dummies):
             var_names = [field.name for field in combo] + noncategoricals
-            higher_var = InteractionType(
-                {"has missing": self.has_missing, "interaction variables": var_names}
-            )
+            higher_var = InteractionType(*var_names, has_missing=self.has_missing)
             self.higher_vars.append(higher_var)
 
     def atomicInteractions(
