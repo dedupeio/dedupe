@@ -321,7 +321,7 @@ class RecordLinkBlockLearner(BlockLearner):
         return pair_cover
 
 
-class InfiniteSet(object):
+class InfiniteSet:
     def __and__(self, item):
         return item
 
@@ -329,7 +329,7 @@ class InfiniteSet(object):
         return item
 
 
-class Resampler(object):
+class Resampler:
     def __init__(self, sequence: Sequence[int]):
         sampled = random.choices(sequence, k=len(sequence))
 
@@ -344,7 +344,7 @@ class Resampler(object):
                     self.replacements[k].append(max_value)
                     max_value += 1
 
-    @functools.lru_cache()
+    @functools.lru_cache
     def __call__(self, iterable: Iterable[int]) -> frozenset[int]:
         result = itertools.chain.from_iterable(
             self.replacements[k] for k in iterable if k in self.replacements

@@ -1,5 +1,4 @@
 import os
-import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,23 +8,20 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     MutableSequence,
+    Protocol,
     Sequence,
     Tuple,
     Type,
+    TypedDict,
     Union,
     runtime_checkable,
 )
 
 import numpy
 import numpy.typing
-
-if sys.version_info >= (3, 8):
-    from typing import Literal, Protocol, TypedDict
-else:
-    from typing_extensions import Literal, Protocol, TypedDict
-
 
 if TYPE_CHECKING:
     from dedupe.predicates import Predicate

@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import collections
@@ -162,7 +161,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
 
         for record in record_pair:
             for field in fields:
-                line = "%s : %s" % (field, record[field])
+                line = "{} : {}".format(field, record[field])
                 _print(line)
             _print()
         _print(f"{n_match}/10 positive, {n_distinct}/10 negative")

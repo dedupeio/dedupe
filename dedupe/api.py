@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 """
 dedupe provides the main user interface for the library the
 Dedupe class
@@ -29,15 +28,7 @@ import dedupe.predicates
 import dedupe.serializer as serializer
 
 if TYPE_CHECKING:
-    from typing import (
-        BinaryIO,
-        Collection,
-        Generator,
-        Iterable,
-        MutableMapping,
-        TextIO,
-        Union,
-    )
+    from typing import BinaryIO, Collection, Generator, Iterable, MutableMapping, TextIO
 
     import numpy.typing
 
@@ -75,7 +66,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Matching(object):
+class Matching:
     """
     Base Class for Record Matching Classes
     """
@@ -682,9 +673,9 @@ class GazetteerMatching(Matching):
             self.temp_dir = tempfile.TemporaryDirectory()
             self.db = self.temp_dir.name + "/blocks.db"
 
-        self.indexed_data: Union[
-            MutableMapping[int, RecordDict], MutableMapping[str, RecordDict]
-        ]
+        self.indexed_data: (
+            MutableMapping[int, RecordDict] | MutableMapping[str, RecordDict]
+        )
         self.indexed_data = {}  # type: ignore[assignment]
 
     def _close(self) -> None:
@@ -856,10 +847,10 @@ class GazetteerMatching(Matching):
                                ORDER BY a.record_id"""
         )
 
-        pair_blocks: Union[
-            Iterable[tuple[int, Iterable[tuple[int, int]]]],
-            Iterable[tuple[str, Iterable[tuple[str, str]]]],
-        ]
+        pair_blocks: (
+            Iterable[tuple[int, Iterable[tuple[int, int]]]]
+            | Iterable[tuple[str, Iterable[tuple[str, str]]]]
+        )
 
         pair_blocks = itertools.groupby(pairs, lambda x: x[0])
 
@@ -1313,14 +1304,12 @@ class ActiveMatching(Matching):
                 self.active_learner.mark(examples, y)
             except dedupe.predicates.NoIndexError as e:
                 raise UserWarning(
-                    (
-                        "The record\n"
-                        f"{e.failing_record}\n"
-                        "is not known to to the active learner. "
-                        "Make sure all `labeled_pairs` "
-                        "are in the data or training file "
-                        "of the `prepare_training()` method"
-                    )
+                    "The record\n"
+                    f"{e.failing_record}\n"
+                    "is not known to to the active learner. "
+                    "Make sure all `labeled_pairs` "
+                    "are in the data or training file "
+                    "of the `prepare_training()` method"
                 )
 
     def _checkTrainingPairs(self, labeled_pairs: TrainingData) -> None:

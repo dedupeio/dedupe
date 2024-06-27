@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import logging
@@ -34,7 +33,7 @@ def index_list() -> IndexList:
     return defaultdict(list)
 
 
-class Fingerprinter(object):
+class Fingerprinter:
     """Takes in a record and returns all blocks that record belongs to"""
 
     def __init__(self, predicates: Iterable[dedupe.predicates.Predicate]) -> None:

@@ -7,9 +7,9 @@ from benchmarks import canonical_matching, common
 
 def make_report(data, clustering):
     true_dupes = canonical_matching.get_true_dupes(data)
-    predicted_dupes = set(
+    predicted_dupes = {
         frozenset([a, b]) for a, result in clustering for b, score in result
-    )
+    }
     return common.Report.from_scores(true_dupes, predicted_dupes)
 
 

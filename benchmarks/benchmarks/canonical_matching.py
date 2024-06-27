@@ -15,7 +15,7 @@ def get_true_dupes(data):
 
 def make_report(data, clustering):
     true_dupes = get_true_dupes(data)
-    predicted_dupes = set(frozenset(pair) for pair, _ in clustering)
+    predicted_dupes = {frozenset(pair) for pair, _ in clustering}
     return common.Report.from_scores(true_dupes, predicted_dupes)
 
 

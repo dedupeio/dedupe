@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import collections
@@ -17,17 +16,7 @@ import numpy
 from dedupe.backport import RLock
 
 if TYPE_CHECKING:
-    from typing import (
-        Any,
-        Generator,
-        Iterable,
-        Iterator,
-        Literal,
-        Optional,
-        Sequence,
-        Type,
-        Union,
-    )
+    from typing import Any, Generator, Iterable, Iterator, Literal, Sequence, Union
 
     from dedupe._typing import (
         Block,
@@ -50,7 +39,7 @@ class BlockingError(Exception):
     pass
 
 
-class ScoreDupes(object):
+class ScoreDupes:
     def __init__(
         self,
         featurizer: FeaturizerFunction,
@@ -71,7 +60,7 @@ class ScoreDupes(object):
 
     def __call__(self) -> None:
         while True:
-            record_pairs: Optional[RecordPairs] = self.records_queue.get()
+            record_pairs: RecordPairs | None = self.records_queue.get()
             if record_pairs is None:
                 break
 
@@ -198,7 +187,7 @@ def fillQueue(
             break
 
 
-class ScoreGazette(object):
+class ScoreGazette:
     def __init__(self, featurizer: FeaturizerFunction, classifier: Classifier):
         self.featurizer = featurizer
         self.classifier = classifier
@@ -238,8 +227,7 @@ def scoreGazette(
 
     score_records = ScoreGazette(featurizer, classifier)
 
-    for scored_pairs in imap(score_records, record_pairs):
-        yield scored_pairs
+    yield from imap(score_records, record_pairs)
 
     # The underlying processes in the pool should terminate when the
     # pool is garbage collected, but sometimes it takes a while
@@ -248,7 +236,7 @@ def scoreGazette(
     pool.join()
 
 
-class MockPool(object):
+class MockPool:
     def close(self) -> None:
         pass
 
@@ -273,7 +261,7 @@ def appropriate_imap(num_cores: int) -> tuple[MapLike, ClosableJoinable]:
     return imap, pool
 
 
-def peek(seq: Iterator[Any]) -> tuple[Optional[Any], Iterator[Any]]:
+def peek(seq: Iterator[Any]) -> tuple[Any | None, Iterator[Any]]:
     try:
         first = next(seq)
     except TypeError as e:
@@ -307,11 +295,11 @@ def Enumerator(start: int = 0) -> collections.defaultdict[Any, int]:
 
 
 @overload
-def sniff_id_type(ids: Sequence[tuple[int, int]]) -> Type[int]: ...
+def sniff_id_type(ids: Sequence[tuple[int, int]]) -> type[int]: ...
 
 
 @overload
-def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[Type[str], Literal[256]]: ...
+def sniff_id_type(ids: Sequence[tuple[str, str]]) -> tuple[type[str], Literal[256]]: ...
 
 
 def sniff_id_type(ids: Sequence[tuple[RecordID, RecordID]]) -> RecordIDDType:
