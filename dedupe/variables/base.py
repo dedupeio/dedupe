@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from dedupe import predicates
 
 if TYPE_CHECKING:
-    from typing import Any, ClassVar, Generator, Iterable, Optional, Sequence, Type
+    from typing import Any, ClassVar, Iterable, Sequence, Type
 
     from dedupe._typing import Comparator, PredicateFunction
     from dedupe._typing import Variable as VariableProtocol
@@ -38,15 +38,6 @@ class Variable(object):
         odict["predicates"] = None
 
         return odict
-
-    @classmethod
-    def all_subclasses(
-        cls,
-    ) -> Generator[tuple[Optional[str], Type["Variable"]], None, None]:
-        for q in cls.__subclasses__():
-            yield getattr(q, "type", None), q
-            for p in q.all_subclasses():
-                yield p
 
 
 class DerivedType(Variable):
