@@ -68,7 +68,7 @@ class ShortStringType(BaseStringType):
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(
-        self, field: str, name: str | None = None, crf: bool = False, **kwargs
+        self, field: str, name: Optional[str] = None, crf: bool = False, **kwargs
     ):
         super().__init__(field, name=name, **kwargs)
 
