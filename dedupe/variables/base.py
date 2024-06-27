@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from dedupe import predicates
 
@@ -55,7 +55,9 @@ class FieldType(Variable):
     _Predicate: Type[predicates.SimplePredicate] = predicates.SimplePredicate
     comparator: Comparator
 
-    def __init__(self, field: str, name: str | None = None, has_missing: bool = False):
+    def __init__(
+        self, field: str, name: Optional[str] = None, has_missing: bool = False
+    ):
         self.field = field
 
         if name is None:
@@ -84,7 +86,7 @@ class CustomType(FieldType):
         self,
         field: str,
         comparator: CustomComparator,
-        name: str | None = None,
+        name: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(field, **kwargs)
