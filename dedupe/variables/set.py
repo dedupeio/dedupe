@@ -1,4 +1,4 @@
-from typing import Collection, Iterable
+from typing import Collection, Iterable, Optional
 
 from simplecosine.cosine import CosineSetSimilarity
 
@@ -26,7 +26,7 @@ class SetType(FieldType):
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
     def __init__(
-        self, field: str, corpus: Iterable[Collection[str]] | None = None, **kwargs
+        self, field: str, corpus: Optional[Iterable[Collection[str]]] = None, **kwargs
     ):
         super().__init__(field, **kwargs)
 
