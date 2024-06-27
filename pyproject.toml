@@ -3,7 +3,7 @@ name = "dedupe"
 description = "A python library for accurate and scaleable data deduplication and entity-resolution"
 version = "3.0.0"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = {file = "LICENSE"}
 keywords = []
 authors = [
@@ -37,7 +37,6 @@ dependencies = [
     "zope.index",
     "dedupe_Levenshtein_search",
 ]
-requires-python = ">= 3.8"
 
 [project.urls]
 Homepage = "https://github.com/dedupeio/dedupe"
