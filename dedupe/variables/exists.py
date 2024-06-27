@@ -13,7 +13,7 @@ class ExistsType(CategoricalType):
     type = "Exists"
     _predicate_functions: list[PredicateFunction] = []
 
-    def __init__(self, field, **kwargs):
+    def __init__(self, field: str, **kwargs):
         super().__init__(field, **kwargs)
 
         self.cat_comparator = CategoricalComparator([0, 1])

@@ -1,4 +1,4 @@
-from typing import Sequence, Type
+from typing import Iterable, Sequence, Type
 
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
@@ -67,7 +67,9 @@ class ShortStringType(BaseStringType):
     ]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, field, name=None, crf=False, **kwargs):
+    def __init__(
+        self, field: str, name: str | None = None, crf: bool = False, **kwargs
+    ):
         super().__init__(field, name=name, **kwargs)
 
         if crf:
@@ -98,7 +100,7 @@ class TextType(BaseStringType):
     ]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, field, corpus=None, **kwargs):
+    def __init__(self, field: str, corpus: Iterable[str] | None = None, **kwargs):
         super().__init__(field, **kwargs)
 
         if corpus is None:

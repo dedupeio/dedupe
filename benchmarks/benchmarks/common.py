@@ -54,8 +54,8 @@ def get_true_dupes(data: dict) -> set:
         sorted(data.items(), key=lambda x: x[1]["unique_id"]),
         key=lambda x: x[1]["unique_id"],
     ):
-        pair = list(pair)
-        if len(pair) == 2:
+        pair_l = list(pair)
+        if len(pair_l) == 2:
             a, b = pair
             duplicates.add(frozenset((a[0], b[0])))
     return duplicates

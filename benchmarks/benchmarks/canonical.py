@@ -32,6 +32,8 @@ class Canonical:
         return make_report(self.data, clustering)
 
     def run(self, use_settings=False):
+        deduper: dedupe.StaticDedupe | dedupe.Dedupe
+
         if use_settings and os.path.exists(self.settings_file):
             with open(self.settings_file, "rb") as f:
                 deduper = dedupe.StaticDedupe(f)

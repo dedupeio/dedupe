@@ -63,7 +63,7 @@ dedupe = ["py.typed"]
 
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
-files = "dedupe"
+files = ["dedupe", "benchmarks"]
 show_error_codes = true
 ignore_missing_imports = true
 check_untyped_defs = true

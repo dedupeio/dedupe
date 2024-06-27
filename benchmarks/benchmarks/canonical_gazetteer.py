@@ -25,6 +25,7 @@ class Gazetteer(canonical_matching.Matching):
 
     def run(self, kwargs, use_settings=False):
         data_1, data_2 = self.data
+        gazetteer: dedupe.StaticGazetteer | dedupe.Gazetteer
 
         if use_settings and os.path.exists(self.settings_file):
             with open(self.settings_file, "rb") as f:

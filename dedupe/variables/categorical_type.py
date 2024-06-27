@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Sequence
+
 from categorical import CategoricalComparator
 
 from dedupe import predicates
@@ -11,7 +13,7 @@ class CategoricalType(FieldType):
     type = "Categorical"
     _predicate_functions: list[PredicateFunction] = [predicates.wholeFieldPredicate]
 
-    def __init__(self, field, categories, **kwargs):
+    def __init__(self, field: str, categories: Sequence[str], **kwargs):
         super().__init__(field, **kwargs)
 
         self.comparator = CategoricalComparator(categories)  # type: ignore[assignment]

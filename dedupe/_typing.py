@@ -10,6 +10,7 @@ from typing import (
     Iterator,
     List,
     Mapping,
+    MutableSequence,
     Sequence,
     Tuple,
     Type,
@@ -72,6 +73,7 @@ LookupResultsStr = Iterable[Tuple[str, Tuple[Tuple[str, float], ...]]]
 LookupResults = Union[LookupResultsInt, LookupResultsStr]
 JoinConstraint = Literal["one-to-one", "many-to-one", "many-to-many"]
 Comparator = Callable[[Any, Any], Union[Union[int, float], Sequence[Union[int, float]]]]
+CustomComparator = Callable[[Any, Any], Union[int, float]]
 Scores = Union[numpy.memmap, numpy.ndarray]
 Labels = List[Literal[0, 1]]
 LabelsLike = Iterable[Literal[0, 1]]
@@ -83,8 +85,8 @@ PredicateFunction = Callable[[Any], FrozenSet[str]]
 
 
 class TrainingData(TypedDict):
-    match: List[RecordDictPair]
-    distinct: List[RecordDictPair]
+    match: MutableSequence[RecordDictPair]
+    distinct: MutableSequence[RecordDictPair]
 
 
 # Takes pairs of records and generates a (n_samples X n_features) array

@@ -7,7 +7,7 @@ from dedupe import predicates
 if TYPE_CHECKING:
     from typing import Any, ClassVar, Iterable, Sequence, Type
 
-    from dedupe._typing import Comparator, PredicateFunction
+    from dedupe._typing import Comparator, CustomComparator, PredicateFunction
     from dedupe._typing import Variable as VariableProtocol
 
 
@@ -30,7 +30,7 @@ class Variable(object):
         other_name: str = other.name
         return self.name == other_name
 
-    def __init__(self, has_missing=False):
+    def __init__(self, has_missing: bool = False):
         self.has_missing = has_missing
 
     def __getstate__(self) -> dict[str, Any]:
@@ -43,7 +43,7 @@ class Variable(object):
 class DerivedType(Variable):
     type = "Derived"
 
-    def __init__(self, name, var_type, **kwargs):
+    def __init__(self, name: str, var_type: str, **kwargs):
         self.name = "(%s: %s)" % (str(name), str(var_type))
         super().__init__(**kwargs)
 
@@ -55,7 +55,7 @@ class FieldType(Variable):
     _Predicate: Type[predicates.SimplePredicate] = predicates.SimplePredicate
     comparator: Comparator
 
-    def __init__(self, field, name=None, has_missing=False):
+    def __init__(self, field: str, name: str | None = None, has_missing: bool = False):
         self.field = field
 
         if name is None:
@@ -80,7 +80,13 @@ class FieldType(Variable):
 class CustomType(FieldType):
     type = "Custom"
 
-    def __init__(self, field, comparator, name=None, **kwargs):
+    def __init__(
+        self,
+        field: str,
+        comparator: CustomComparator,
+        name: str | None = None,
+        **kwargs,
+    ):
         super().__init__(field, **kwargs)
 
         if comparator is None:

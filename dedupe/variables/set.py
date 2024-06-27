@@ -1,3 +1,5 @@
+from typing import Collection, Iterable
+
 from simplecosine.cosine import CosineSetSimilarity
 
 from dedupe import predicates
@@ -23,7 +25,9 @@ class SetType(FieldType):
     )
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, field: str, corpus=None, **kwargs):
+    def __init__(
+        self, field: str, corpus: Iterable[Collection[str]] | None = None, **kwargs
+    ):
         super().__init__(field, **kwargs)
 
         if corpus is None:
