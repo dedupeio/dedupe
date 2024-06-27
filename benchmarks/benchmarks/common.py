@@ -56,7 +56,7 @@ def get_true_dupes(data: dict) -> set:
     ):
         pair_l = list(pair)
         if len(pair_l) == 2:
-            a, b = pair
+            a, b = pair_l
             duplicates.add(frozenset((a[0], b[0])))
     return duplicates
 
