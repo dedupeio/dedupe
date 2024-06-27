@@ -37,6 +37,7 @@ dependencies = [
     "zope.index",
     "dedupe_Levenshtein_search",
 ]
+requires-python = ">= 3.8"
 
 [project.urls]
 Homepage = "https://github.com/dedupeio/dedupe"
