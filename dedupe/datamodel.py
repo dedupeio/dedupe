@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, cast
 import numpy
 
 from dedupe._typing import FieldVariable
-from dedupe.variables.base import MissingDataType
 from dedupe.variables.interaction import InteractionType
 
 if TYPE_CHECKING:
@@ -55,25 +54,26 @@ class DataModel:
         ]
 
         # we need to keep track of ordering of variables because in
-        # order calculate derived fields like interation and missing
-        # data fields. This code would be much better if there was
-        # always a "columns" attribute on variables
+        # order to calculate derived fields like interaction and missing
+        # data fields.
         columns: list[Variable] = []
         for variable in self.field_variables:
-            if hasattr(variable, "higher_vars"):
-                columns.extend(variable.higher_vars)
-            else:
+            if len(variable) == 1:
                 columns.append(variable)
+            elif len(variable) > 1:
+                columns.extend(variable.higher_vars)
 
         self._derived_start = len(columns)
 
+        # i'm not really satisfied with how we are dealing with interactions
+        # here. seems like there should be a cleaner path, but i don't see it
+        # today
         columns += interactions(variable_definitions, self.field_variables)
-        columns += missing(columns)
 
         self._missing_field_indices = missing_field_indices(columns)
         self._interaction_indices = interaction_indices(columns)
 
-        self._len = len(columns)
+        self._len = len(columns) + len(self._missing_field_indices)
 
     def __len__(self) -> int:
         return self._len
@@ -165,14 +165,6 @@ class DataModel:
             d["field_variables"] = d.pop("primary_variables")
 
         self.__dict__ = d
-
-
-def missing(variables: list[Variable]) -> list[MissingDataType]:
-    missing_variables = []
-    for var in variables:
-        if var.has_missing:
-            missing_variables.append(MissingDataType(var.name))
-    return missing_variables
 
 
 def interactions(

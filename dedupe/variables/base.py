@@ -57,15 +57,6 @@ class DerivedType(Variable):
         super().__init__(**kwargs)
 
 
-class MissingDataType(Variable):
-    type = "MissingData"
-
-    def __init__(self, name: str):
-        self.name = "(%s: Not Missing)" % name
-
-        self.has_missing = False
-
-
 class FieldType(Variable):
     _index_thresholds: Sequence[float] = []
     _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
