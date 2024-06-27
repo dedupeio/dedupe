@@ -17,9 +17,9 @@ from dedupe.cpredicates import ngrams
 from dedupe.predicate_functions import *  # noqa: F401, F403
 
 if TYPE_CHECKING:
-    from typing import AbstractSet, Any, FrozenSet, Iterable, Literal, Mapping, Sequence
+    from typing import AbstractSet, Any, FrozenSet, Iterable, Mapping, Sequence
 
-    from dedupe._typing import PredicateFunction, RecordDict
+    from dedupe._typing import Literal, PredicateFunction, RecordDict
     from dedupe.index import Index
 
 

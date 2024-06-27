@@ -7,7 +7,7 @@ import itertools
 import random
 import sys
 import warnings
-from typing import Iterator, Literal, Tuple, overload
+from typing import Iterator, Tuple, overload
 
 import numpy
 
@@ -15,6 +15,7 @@ import dedupe
 from dedupe._typing import (
     DataInt,
     DataStr,
+    Literal,
     RecordDict,
     RecordDictPair,
     RecordID,
@@ -134,7 +135,7 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
 
     finished = False
     use_previous = False
-    fields = unique(var.field for var in deduper.data_model.field_variables)
+    fields = unique(var.field for var in deduper.data_model.primary_variables)
 
     buffer_len = 1  # Max number of previous operations
     unlabeled: list[RecordDictPair] = []

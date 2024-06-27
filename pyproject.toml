@@ -1,7 +1,7 @@
 [project]
 name = "dedupe"
 description = "A python library for accurate and scaleable data deduplication and entity-resolution"
-version = "3.0.0"
+version = "2.0.24"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
@@ -63,11 +63,10 @@ dedupe = ["py.typed"]
 
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
-files = ["dedupe"]
+files = "dedupe"
 show_error_codes = true
 ignore_missing_imports = true
 check_untyped_defs = true
-implicit_reexport = false
 
 [tool.pytest.ini_options]
 minversion = "7.1"

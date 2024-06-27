@@ -14,7 +14,7 @@ import pickle
 import sqlite3
 import tempfile
 import warnings
-from typing import TYPE_CHECKING, Literal, cast, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import numpy
 import sklearn.linear_model
@@ -27,6 +27,7 @@ import dedupe.datamodel as datamodel
 import dedupe.labeler as labeler
 import dedupe.predicates
 import dedupe.serializer as serializer
+from dedupe._typing import Literal
 
 if TYPE_CHECKING:
     from typing import (
@@ -69,7 +70,7 @@ if TYPE_CHECKING:
         Scores,
         TrainingData,
         TupleLinks,
-        Variable,
+        VariableDefinition,
     )
 
 logger = logging.getLogger(__name__)
@@ -1116,7 +1117,7 @@ class ActiveMatching(Matching):
 
     def __init__(
         self,
-        variable_definition: Collection[Variable],
+        variable_definition: Collection[VariableDefinition],
         num_cores: int | None = None,
         in_memory: bool = False,
         **kwargs,

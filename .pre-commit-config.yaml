@@ -8,8 +8,3 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
-  - repo: https://github.com/pycqa/flake8
-    rev: "7.1.0"
-    hooks:
-      - id: flake8
-        args: [--config=.flake8]

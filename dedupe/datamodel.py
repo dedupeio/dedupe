@@ -1,80 +1,54 @@
 from __future__ import annotations
 
 import copyreg
+import pkgutil
 import types
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, cast
 
 import numpy
 
-from dedupe._typing import FieldVariable
+import dedupe.variables
+from dedupe.variables.base import FieldType as FieldVariable
+from dedupe.variables.base import MissingDataType, Variable
 from dedupe.variables.interaction import InteractionType
 
+for _, module, _ in pkgutil.iter_modules(  # type: ignore
+    dedupe.variables.__path__, "dedupe.variables."
+):
+    __import__(module)
+
 if TYPE_CHECKING:
-    from typing import Collection, Generator, Iterable, Sequence
+    from typing import Generator, Iterable, Sequence
 
     from dedupe._typing import (
         Comparator,
-        InteractionVariable,
         RecordDict,
         RecordDictPair,
-        Variable,
+        VariableDefinition,
     )
     from dedupe.predicates import Predicate
 
+VARIABLE_CLASSES = {k: v for k, v in FieldVariable.all_subclasses() if k}
 
-class DataModel:
-    version = 2
 
-    def __init__(self, variable_definitions: Collection[Variable]):
-        for item in variable_definitions:
-            if isinstance(item, Mapping):
-                raise ValueError(
-                    "It looks like you are trying to use a variable definition "
-                    "composed of dictionaries. dedupe 3.0 uses variable objects "
-                    'directly. So instead of [{"field": "name", "type": "String"}] '
-                    'we now do [dedupe.variables.String("name")].'
-                )
+class DataModel(object):
+    version = 1
 
+    def __init__(self, variable_definitions: Iterable[VariableDefinition]):
         variable_definitions = list(variable_definitions)
         if not variable_definitions:
             raise ValueError("The variable definitions cannot be empty")
-        if not any(variable.predicates for variable in variable_definitions):
-            raise ValueError(
-                "At least one of the variable types needs to be a type"
-                "other than 'Custom'. 'Custom' types have no associated"
-                "blocking rules"
-            )
+        all_variables: list[Variable]
+        self.primary_variables, all_variables = typify_variables(variable_definitions)
+        self._derived_start = len(all_variables)
 
-        # This is a protocol check, not a class inheritance check
-        self.field_variables: list[FieldVariable] = [
-            variable
-            for variable in variable_definitions
-            if isinstance(variable, FieldVariable)
-        ]
+        all_variables += interactions(variable_definitions, self.primary_variables)
+        all_variables += missing(all_variables)
 
-        # we need to keep track of ordering of variables because in
-        # order to calculate derived fields like interaction and missing
-        # data fields.
-        columns: list[Variable] = []
-        for variable in self.field_variables:
-            if len(variable) == 1:
-                columns.append(variable)
-            elif len(variable) > 1:
-                assert hasattr(variable, "higher_vars")
-                columns.extend(variable.higher_vars)
+        self._missing_field_indices = missing_field_indices(all_variables)
+        self._interaction_indices = interaction_indices(all_variables)
 
-        self._derived_start = len(columns)
-
-        # i'm not really satisfied with how we are dealing with interactions
-        # here. seems like there should be a cleaner path, but i don't see it
-        # today
-        columns += interactions(variable_definitions, self.field_variables)
-
-        self._missing_field_indices = missing_field_indices(columns)
-        self._interaction_indices = interaction_indices(columns)
-
-        self._len = len(columns) + len(self._missing_field_indices)
+        self._len = len(all_variables)
 
     def __len__(self) -> int:
         return self._len
@@ -89,7 +63,7 @@ class DataModel:
     ) -> Generator[tuple[str, Comparator, int, int], None, None]:
         start = 0
         stop = 0
-        for var in self.field_variables:
+        for var in self.primary_variables:
             stop = start + len(var)
             comparator = cast("Comparator", var.comparator)
             yield (var.field, comparator, start, stop)
@@ -98,7 +72,7 @@ class DataModel:
     @property
     def predicates(self) -> set[Predicate]:
         predicates = set()
-        for var in self.field_variables:
+        for var in self.primary_variables:
             for predicate in var.predicates:
                 predicates.add(predicate)
         return predicates
@@ -158,26 +132,100 @@ class DataModel:
         return d
 
     def __setstate__(self, d):
-        version = d.pop("object_version", None)
+        version = d.pop("version", None)
         if version is None and "_variables" in d:
             d["_len"] = len(d.pop("_variables"))
             d["primary_variables"] = d.pop("primary_fields")
-        elif version == 1:
-            d["field_variables"] = d.pop("primary_variables")
 
         self.__dict__ = d
 
 
+def typify_variables(
+    variable_definitions: Iterable[VariableDefinition],
+) -> tuple[list[FieldVariable], list[Variable]]:
+    primary_variables: list[FieldVariable] = []
+    all_variables: list[Variable] = []
+    only_custom = True
+
+    for definition in variable_definitions:
+        try:
+            variable_type = definition["type"]
+        except TypeError:
+            raise TypeError(
+                "Incorrect variable specification: variable "
+                "specifications are dictionaries that must "
+                "include a type definition, ex. "
+                "{'field' : 'Phone', type: 'String'}"
+            )
+        except KeyError:
+            raise KeyError(
+                "Missing variable type: variable "
+                "specifications are dictionaries that must "
+                "include a type definition, ex. "
+                "{'field' : 'Phone', type: 'String'}"
+            )
+
+        if variable_type != "Custom":
+            only_custom = False
+
+        if variable_type == "Interaction":
+            continue
+
+        if variable_type == "FuzzyCategorical" and "other fields" not in definition:
+            definition["other fields"] = [  # type: ignore
+                d["field"]
+                for d in variable_definitions
+                if ("field" in d and d["field"] != definition["field"])
+            ]
+
+        try:
+            variable_class = VARIABLE_CLASSES[variable_type]
+        except KeyError:
+            raise KeyError(
+                "Field type %s not valid. Valid types include %s"
+                % (definition["type"], ", ".join(VARIABLE_CLASSES))
+            )
+
+        variable_object = variable_class(definition)
+        assert isinstance(variable_object, FieldVariable)
+
+        primary_variables.append(variable_object)
+
+        if hasattr(variable_object, "higher_vars"):
+            all_variables.extend(variable_object.higher_vars)
+        else:
+            variable_object = cast(Variable, variable_object)
+            all_variables.append(variable_object)
+
+    if only_custom:
+        raise ValueError(
+            "At least one of the variable types needs to be a type"
+            "other than 'Custom'. 'Custom' types have no associated"
+            "blocking rules"
+        )
+
+    return primary_variables, all_variables
+
+
+def missing(variables: list[Variable]) -> list[MissingDataType]:
+    missing_variables = []
+    for var in variables:
+        if var.has_missing:
+            missing_variables.append(MissingDataType(var.name))
+    return missing_variables
+
+
 def interactions(
-    variables: Iterable[Variable], primary_variables: Iterable[FieldVariable]
-) -> list[InteractionVariable]:
+    definitions: Iterable[VariableDefinition], primary_variables: list[FieldVariable]
+) -> list[InteractionType]:
     field_d = {field.name: field for field in primary_variables}
 
-    interactions: list[InteractionVariable] = []
-    for variable in variables:
-        if isinstance(variable, InteractionType):
-            variable.expandInteractions(field_d)
-            interactions.extend(variable.higher_vars)
+    interactions = []
+    for definition in definitions:
+        if definition["type"] == "Interaction":
+            var = InteractionType(definition)
+            var.expandInteractions(field_d)
+            interactions.extend(var.higher_vars)
     return interactions
 
 

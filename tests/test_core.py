@@ -47,7 +47,7 @@ class ScoreDuplicates(unittest.TestCase):
             ]
         )
 
-        deduper = dedupe.Dedupe([dedupe.variables.String("name")])
+        deduper = dedupe.Dedupe([{"field": "name", "type": "String"}])
         self.data_model = deduper.data_model
         self.classifier = MockClassifier()
 
@@ -104,7 +104,7 @@ class ScoreDuplicates(unittest.TestCase):
 
 class FieldDistances(unittest.TestCase):
     def test_exact_comparator(self):
-        deduper = dedupe.Dedupe([dedupe.variables.Exact("name")])
+        deduper = dedupe.Dedupe([{"field": "name", "type": "Exact"}])
 
         record_pairs = (
             ({"name": "Shmoo"}, {"name": "Shmee"}),
@@ -117,7 +117,7 @@ class FieldDistances(unittest.TestCase):
 
     def test_comparator(self):
         deduper = dedupe.Dedupe(
-            [dedupe.variables.Categorical("type", categories=["a", "b", "c"])]
+            [{"field": "type", "type": "Categorical", "categories": ["a", "b", "c"]}]
         )
 
         record_pairs = (({"type": "a"}, {"type": "b"}), ({"type": "a"}, {"type": "c"}))
@@ -131,11 +131,14 @@ class FieldDistances(unittest.TestCase):
     def test_comparator_interaction(self):
         deduper = dedupe.Dedupe(
             [
-                dedupe.variables.Categorical(
-                    "type", categories=["a", "b"], name="type"
-                ),
-                dedupe.variables.Interaction("type", "name"),
-                dedupe.variables.Exact("name", name="name"),
+                {
+                    "field": "type",
+                    "variable name": "type",
+                    "type": "Categorical",
+                    "categories": ["a", "b"],
+                },
+                {"type": "Interaction", "interaction variables": ["type", "name"]},
+                {"field": "name", "variable name": "name", "type": "Exact"},
             ]
         )
 

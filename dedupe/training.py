@@ -13,7 +13,7 @@ from warnings import warn
 from . import blocking, branch_and_bound
 
 if TYPE_CHECKING:
-    from typing import Iterable, Literal, Sequence
+    from typing import Iterable, Sequence
 
     from ._typing import (
         ComparisonCover,
@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         Data,
         DataInt,
         DataStr,
+        Literal,
     )
     from ._typing import RecordDictPairs as TrainingExamples
     from ._typing import RecordID, RecordIDPair

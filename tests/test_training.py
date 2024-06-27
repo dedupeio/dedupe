@@ -7,7 +7,7 @@ import dedupe.training as training
 
 class TrainingTest(unittest.TestCase):
     def setUp(self):
-        field_definition = [dedupe.variables.String("name")]
+        field_definition = [{"field": "name", "type": "String"}]
         self.data_model = dedupe.Dedupe(field_definition).data_model
         self.training_pairs = {
             "match": [

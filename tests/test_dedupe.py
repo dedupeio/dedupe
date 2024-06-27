@@ -6,7 +6,6 @@ import unittest
 import numpy
 
 import dedupe
-import dedupe.variables
 
 DATA = {
     100: {"name": "Bob", "age": "50"},
@@ -38,9 +37,9 @@ class DataModelTest(unittest.TestCase):
 
         data_model = DataModel(
             [
-                dedupe.variables.String(field="a", name="a"),
-                dedupe.variables.String(field="b", name="b"),
-                dedupe.variables.Interaction("a", "b"),
+                {"field": "a", "variable name": "a", "type": "String"},
+                {"field": "b", "variable name": "b", "type": "String"},
+                {"type": "Interaction", "interaction variables": ["a", "b"]},
             ]
         )
 
@@ -48,9 +47,14 @@ class DataModelTest(unittest.TestCase):
 
         data_model = DataModel(
             [
-                dedupe.variables.String(field="a", name="a", has_missing=True),
-                dedupe.variables.String(field="b", name="b"),
-                dedupe.variables.Interaction("a", "b"),
+                {
+                    "field": "a",
+                    "variable name": "a",
+                    "type": "String",
+                    "has missing": True,
+                },
+                {"field": "b", "variable name": "b", "type": "String"},
+                {"type": "Interaction", "interaction variables": ["a", "b"]},
             ]
         )
 
@@ -58,9 +62,14 @@ class DataModelTest(unittest.TestCase):
 
         data_model = DataModel(
             [
-                dedupe.variables.String(field="a", name="a", has_missing=False),
-                dedupe.variables.String(field="b", name="b"),
-                dedupe.variables.Interaction("a", "b"),
+                {
+                    "field": "a",
+                    "variable name": "a",
+                    "type": "String",
+                    "has missing": False,
+                },
+                {"field": "b", "variable name": "b", "type": "String"},
+                {"type": "Interaction", "interaction variables": ["a", "b"]},
             ]
         )
 

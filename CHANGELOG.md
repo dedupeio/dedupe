@@ -1,8 +1,3 @@
-# 3.0.0
-- Development in python packaging made supporting the previous namespace approach for
-  variable plugins untenable. Since we had to redo the way we defined the data model, 
-  we took the opportunity to explicity instantiate variable objects. 
-
 # 2.0.6
 - fixed bug that was preventing learning of index predicates in Dedupe mode
 

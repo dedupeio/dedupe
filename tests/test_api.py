@@ -46,8 +46,8 @@ data_dict_2 = OrderedDict(
 class ActiveMatch(unittest.TestCase):
     def setUp(self):
         self.field_definition = [
-            dedupe.variables.String("name"),
-            dedupe.variables.String("age"),
+            {"field": "name", "type": "String"},
+            {"field": "age", "type": "String"},
         ]
 
     def test_initialize_fields(self):
@@ -59,25 +59,22 @@ class ActiveMatch(unittest.TestCase):
             )
 
         with self.assertRaises(ValueError):
-            dedupe.api.ActiveMatching([{"field": "name", "type": "String"}])
-
-        with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching(
-                [dedupe.variables.Custom("name", comparator=lambda x, y: 1)],
+                [{"field": "name", "type": "Custom", "comparator": lambda x, y: 1}],
             )
 
         with self.assertRaises(ValueError):
             dedupe.api.ActiveMatching(
                 [
-                    dedupe.variables.Custom("name", comparator=lambda x, y: 1),
-                    dedupe.variables.Custom("age", comparator=lambda x, y: 1),
+                    {"field": "name", "type": "Custom", "comparator": lambda x, y: 1},
+                    {"field": "age", "type": "Custom", "comparator": lambda x, y: 1},
                 ],
             )
 
         dedupe.api.ActiveMatching(
             [
-                dedupe.variables.Custom("name", comparator=lambda x, y: 1),
-                dedupe.variables.String("age"),
+                {"field": "name", "type": "Custom", "comparator": lambda x, y: 1},
+                {"field": "age", "type": "String"},
             ],
         )
 

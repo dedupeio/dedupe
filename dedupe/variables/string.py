@@ -1,11 +1,11 @@
-from typing import Iterable, Optional, Sequence, Type
+from typing import Sequence, Type
 
 from affinegap import normalizedAffineGapDistance as affineGap
 from highered import CRFEditDistance
 from simplecosine.cosine import CosineTextSimilarity
 
 from dedupe import predicates
-from dedupe._typing import PredicateFunction
+from dedupe._typing import PredicateFunction, VariableDefinition
 from dedupe.variables.base import FieldType, indexPredicates
 
 crfEd = CRFEditDistance()
@@ -36,8 +36,8 @@ class BaseStringType(FieldType):
     _Predicate = predicates.StringPredicate
     _predicate_functions: Sequence[PredicateFunction] = ()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, definition: VariableDefinition):
+        super(BaseStringType, self).__init__(definition)
 
         self.predicates += indexPredicates(
             (
@@ -67,12 +67,10 @@ class ShortStringType(BaseStringType):
     ]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(
-        self, field: str, name: Optional[str] = None, crf: bool = False, **kwargs
-    ):
-        super().__init__(field, name=name, **kwargs)
+    def __init__(self, definition: VariableDefinition):
+        super(ShortStringType, self).__init__(definition)
 
-        if crf:
+        if definition.get("crf", False) is True:
             self.comparator = crfEd  # type: ignore[assignment]
         else:
             self.comparator = affineGap  # type: ignore[assignment]
@@ -100,10 +98,10 @@ class TextType(BaseStringType):
     ]
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(self, field: str, corpus: Optional[Iterable[str]] = None, **kwargs):
-        super().__init__(field, **kwargs)
+    def __init__(self, definition: VariableDefinition):
+        super(TextType, self).__init__(definition)
 
-        if corpus is None:
-            corpus = []
+        if "corpus" not in definition:
+            definition["corpus"] = []
 
-        self.comparator = CosineTextSimilarity(corpus)  # type: ignore[assignment]
+        self.comparator = CosineTextSimilarity(definition["corpus"])  # type: ignore[assignment]

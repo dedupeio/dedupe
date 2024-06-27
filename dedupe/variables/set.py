@@ -1,8 +1,7 @@
-from typing import Collection, Iterable, Optional
-
 from simplecosine.cosine import CosineSetSimilarity
 
 from dedupe import predicates
+from dedupe._typing import VariableDefinition
 from dedupe.variables.base import FieldType
 
 
@@ -25,12 +24,10 @@ class SetType(FieldType):
     )
     _index_thresholds = (0.2, 0.4, 0.6, 0.8)
 
-    def __init__(
-        self, field: str, corpus: Optional[Iterable[Collection[str]]] = None, **kwargs
-    ):
-        super().__init__(field, **kwargs)
+    def __init__(self, definition: VariableDefinition):
+        super(SetType, self).__init__(definition)
 
-        if corpus is None:
-            corpus = []
+        if "corpus" not in definition:
+            definition["corpus"] = []
 
-        self.comparator = CosineSetSimilarity(corpus)  # type: ignore[assignment]
+        self.comparator = CosineSetSimilarity(definition["corpus"])  # type: ignore[assignment]
