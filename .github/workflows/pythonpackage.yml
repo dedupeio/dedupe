@@ -50,7 +50,7 @@ jobs:
     - name: pytest
       run: pytest
     - name: Code Coverage
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       env:
         OS: ${{ matrix.os }}
         PYTHON: '3.7'
