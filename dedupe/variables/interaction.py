@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import List, Mapping
+from typing import Mapping
 
 from dedupe._typing import FieldVariable, InteractionVariable
 from dedupe.variables.base import Variable
@@ -9,7 +9,7 @@ from dedupe.variables.base import Variable
 
 class InteractionType(Variable):
     type = "Interaction"
-    higher_vars: List[InteractionVariable]
+    higher_vars: list[InteractionVariable]
 
     def __init__(self, *args: str, **kwargs):
         self.interactions = list(args)

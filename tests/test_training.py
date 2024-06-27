@@ -28,9 +28,7 @@ class TrainingTest(unittest.TestCase):
                 if record not in self.training_records:
                     self.training_records.append(record)
 
-        self.simple = lambda x: set(
-            [str(k) for k in x if "CompoundPredicate" not in str(k)]
-        )
+        self.simple = lambda x: {str(k) for k in x if "CompoundPredicate" not in str(k)}
 
         self.block_learner = training.BlockLearner
         self.block_learner.blocker = dedupe.blocking.Fingerprinter(
@@ -43,23 +41,21 @@ class TrainingTest(unittest.TestCase):
     def test_dedupe_coverage(self):
         coverage = self.block_learner.cover(self.block_learner, self.training)
         assert self.simple(coverage.keys()).issuperset(
-            set(
-                [
-                    "SimplePredicate: (tokenFieldPredicate, name)",
-                    "SimplePredicate: (commonSixGram, name)",
-                    "TfidfTextCanopyPredicate: (0.4, name)",
-                    "SimplePredicate: (sortedAcronym, name)",
-                    "SimplePredicate: (sameThreeCharStartPredicate, name)",
-                    "TfidfTextCanopyPredicate: (0.2, name)",
-                    "SimplePredicate: (sameFiveCharStartPredicate, name)",
-                    "TfidfTextCanopyPredicate: (0.6, name)",
-                    "SimplePredicate: (wholeFieldPredicate, name)",
-                    "TfidfTextCanopyPredicate: (0.8, name)",
-                    "SimplePredicate: (commonFourGram, name)",
-                    "SimplePredicate: (firstTokenPredicate, name)",
-                    "SimplePredicate: (sameSevenCharStartPredicate, name)",
-                ]
-            )
+            {
+                "SimplePredicate: (tokenFieldPredicate, name)",
+                "SimplePredicate: (commonSixGram, name)",
+                "TfidfTextCanopyPredicate: (0.4, name)",
+                "SimplePredicate: (sortedAcronym, name)",
+                "SimplePredicate: (sameThreeCharStartPredicate, name)",
+                "TfidfTextCanopyPredicate: (0.2, name)",
+                "SimplePredicate: (sameFiveCharStartPredicate, name)",
+                "TfidfTextCanopyPredicate: (0.6, name)",
+                "SimplePredicate: (wholeFieldPredicate, name)",
+                "TfidfTextCanopyPredicate: (0.8, name)",
+                "SimplePredicate: (commonFourGram, name)",
+                "SimplePredicate: (firstTokenPredicate, name)",
+                "SimplePredicate: (sameSevenCharStartPredicate, name)",
+            }
         )
 
     def test_uncovered_by(self):

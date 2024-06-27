@@ -9,7 +9,7 @@ from benchmarks import common
 
 def make_report(data, clustering):
     true_dupes = common.get_true_dupes(data)
-    predicted_dupes = set([])
+    predicted_dupes = set()
     for cluser_id, _ in clustering:
         for pair in combinations(cluser_id, 2):
             predicted_dupes.add(frozenset(pair))

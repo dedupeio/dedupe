@@ -17,12 +17,12 @@ class TestPuncStrip(unittest.TestCase):
 class TestMetaphone(unittest.TestCase):
     def test_metaphone_token(self):
         block_val = predicates.metaphoneToken("9301 S. State St. ")
-        assert block_val == set(["STT", "S", "ST"])
+        assert block_val == {"STT", "S", "ST"}
 
 
 class TestWholeSet(unittest.TestCase):
     def setUp(self):
-        self.s1 = set(["red", "blue", "green"])
+        self.s1 = {"red", "blue", "green"}
 
     def test_full_set(self):
         block_val = predicates.wholeSetPredicate(self.s1)
@@ -31,11 +31,11 @@ class TestWholeSet(unittest.TestCase):
 
 class TestSetElement(unittest.TestCase):
     def setUp(self):
-        self.s1 = set(["red", "blue", "green"])
+        self.s1 = {"red", "blue", "green"}
 
     def test_long_set(self):
         block_val = predicates.commonSetElementPredicate(self.s1)
-        self.assertEqual(set(block_val), set(("blue", "green", "red")))
+        self.assertEqual(set(block_val), {"blue", "green", "red"})
 
     def test_empty_set(self):
         block_val = predicates.commonSetElementPredicate(set())
@@ -68,19 +68,21 @@ class TestLatLongGrid(unittest.TestCase):
 
 class TestAlpaNumeric(unittest.TestCase):
     def test_alphanumeric(self):
-        assert predicates.alphaNumericPredicate("a1") == set(["a1"])
-        assert predicates.alphaNumericPredicate("1a") == set(["1a"])
-        assert predicates.alphaNumericPredicate("a1b") == set(["a1b"])
-        assert predicates.alphaNumericPredicate("1 a") == set(["1"])
-        assert predicates.alphaNumericPredicate("a1 b1") == set(["a1", "b1"])
+        assert predicates.alphaNumericPredicate("a1") == {"a1"}
+        assert predicates.alphaNumericPredicate("1a") == {"1a"}
+        assert predicates.alphaNumericPredicate("a1b") == {"a1b"}
+        assert predicates.alphaNumericPredicate("1 a") == {"1"}
+        assert predicates.alphaNumericPredicate("a1 b1") == {"a1", "b1"}
         assert predicates.alphaNumericPredicate("asdf") == set()
-        assert predicates.alphaNumericPredicate("1") == set(["1"])
-        assert predicates.alphaNumericPredicate("a_1") == set(["1"])
-        assert predicates.alphaNumericPredicate("a$1") == set(["1"])
-        assert predicates.alphaNumericPredicate("a 1") == set(["1"])
-        assert predicates.alphaNumericPredicate("773-555-1676") == set(
-            ["773", "555", "1676"]
-        )
+        assert predicates.alphaNumericPredicate("1") == {"1"}
+        assert predicates.alphaNumericPredicate("a_1") == {"1"}
+        assert predicates.alphaNumericPredicate("a$1") == {"1"}
+        assert predicates.alphaNumericPredicate("a 1") == {"1"}
+        assert predicates.alphaNumericPredicate("773-555-1676") == {
+            "773",
+            "555",
+            "1676",
+        }
 
 
 class TestNumericPredicates(unittest.TestCase):

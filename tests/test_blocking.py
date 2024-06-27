@@ -27,9 +27,7 @@ class BlockingTest(unittest.TestCase):
                 if record not in self.training_records:
                     self.training_records.append(record)
 
-        self.simple = lambda x: set(
-            [str(k) for k in x if "CompoundPredicate" not in str(k)]
-        )
+        self.simple = lambda x: {str(k) for k in x if "CompoundPredicate" not in str(k)}
 
 
 class TfidfTest(unittest.TestCase):
@@ -52,16 +50,16 @@ class TfidfTest(unittest.TestCase):
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")]
         )
 
-        blocker.index(set(record["name"] for record in self.data_d.values()), "name")
+        blocker.index({record["name"] for record in self.data_d.values()}, "name")
 
         blocks = defaultdict(set)
 
         for block_key, record_id in blocker(self.data_d.items()):
             blocks[block_key].add(record_id)
 
-        blocks = set([frozenset(block) for block in blocks.values() if len(block) > 1])
+        blocks = {frozenset(block) for block in blocks.values() if len(block) > 1}
 
-        assert blocks == set([frozenset([120, 125]), frozenset([130, 135])])
+        assert blocks == {frozenset([120, 125]), frozenset([130, 135])}
 
 
 class TfIndexUnindex(unittest.TestCase):
@@ -83,17 +81,17 @@ class TfIndexUnindex(unittest.TestCase):
             [dedupe.predicates.TfidfTextSearchPredicate(0.0, "name")]
         )
 
-        self.records_1 = dict(
-            (record_id, record)
+        self.records_1 = {
+            record_id: record
             for record_id, record in data_d.items()
             if record["dataset"] == 0
-        )
+        }
 
-        self.fields_2 = dict(
-            (record_id, record["name"])
+        self.fields_2 = {
+            record_id: record["name"]
             for record_id, record in data_d.items()
             if record["dataset"] == 1
-        )
+        }
 
     def test_index(self):
         self.blocker.index(set(self.fields_2.values()), "name")
@@ -103,7 +101,7 @@ class TfIndexUnindex(unittest.TestCase):
         for block_key, record_id in self.blocker(self.records_1.items()):
             blocks[block_key].add(record_id)
 
-        assert list(blocks.items())[0][1] == set([130])
+        assert list(blocks.items())[0][1] == {130}
 
     def test_doubled_index(self):
         self.blocker.index(self.fields_2.values(), "name")
@@ -118,7 +116,7 @@ class TfIndexUnindex(unittest.TestCase):
 
         assert len(result) == 1
 
-        assert result[0][1] == set([130])
+        assert result[0][1] == {130}
 
     def test_unindex(self):
         self.blocker.index(self.fields_2.values(), "name")

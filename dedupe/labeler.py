@@ -14,7 +14,7 @@ import dedupe.core as core
 import dedupe.training as training
 
 if TYPE_CHECKING:
-    from typing import Dict, Iterable, Literal, Mapping
+    from typing import Iterable, Literal, Mapping
 
     from dedupe._typing import (
         Data,
@@ -170,7 +170,7 @@ class BlockLearner(Learner):
     def _sample_indices(
         self, sample_size: int, max_cover: int
     ) -> Iterable[RecordIDPair]:
-        weights: Dict[RecordIDPair, float] = {}
+        weights: dict[RecordIDPair, float] = {}
         for predicate, covered in self.block_learner.comparison_cover.items():
             # each predicate gets to vote for every record pair it covers. the
             # strength of that vote is in inverse proportion to the number of
@@ -248,7 +248,7 @@ class DedupeBlockLearner(BlockLearner):
     def _index_predicates(self, candidates: TrainingExamples) -> None:
         blocker = self.block_learner.blocker
 
-        records = core.unique((record for pair in candidates for record in pair))
+        records = core.unique(record for pair in candidates for record in pair)
 
         for field in blocker.index_fields:
             unique_fields = {record[field] for record in records}

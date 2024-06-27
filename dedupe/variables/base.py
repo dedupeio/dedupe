@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from dedupe import predicates
 
 if TYPE_CHECKING:
-    from typing import Any, ClassVar, Iterable, Sequence, Type
+    from typing import Any, ClassVar, Iterable, Sequence
 
     from dedupe._typing import Comparator, CustomComparator, PredicateFunction
     from dedupe._typing import Variable as VariableProtocol
 
 
-class Variable(object):
+class Variable:
     name: str
     type: ClassVar[str]
     predicates: list[predicates.Predicate]
-    higher_vars: Sequence["VariableProtocol"]
+    higher_vars: Sequence[VariableProtocol]
 
     def __len__(self) -> int:
         return 1
@@ -44,24 +44,22 @@ class DerivedType(Variable):
     type = "Derived"
 
     def __init__(self, name: str, var_type: str, **kwargs):
-        self.name = "(%s: %s)" % (str(name), str(var_type))
+        self.name = "({}: {})".format(str(name), str(var_type))
         super().__init__(**kwargs)
 
 
 class FieldType(Variable):
     _index_thresholds: Sequence[float] = []
-    _index_predicates: Sequence[Type[predicates.IndexPredicate]] = []
+    _index_predicates: Sequence[type[predicates.IndexPredicate]] = []
     _predicate_functions: Sequence[PredicateFunction] = ()
-    _Predicate: Type[predicates.SimplePredicate] = predicates.SimplePredicate
+    _Predicate: type[predicates.SimplePredicate] = predicates.SimplePredicate
     comparator: Comparator
 
-    def __init__(
-        self, field: str, name: Optional[str] = None, has_missing: bool = False
-    ):
+    def __init__(self, field: str, name: str | None = None, has_missing: bool = False):
         self.field = field
 
         if name is None:
-            self.name = "(%s: %s)" % (self.field, self.type)
+            self.name = "({}: {})".format(self.field, self.type)
         else:
             self.name = name
 
@@ -86,7 +84,7 @@ class CustomType(FieldType):
         self,
         field: str,
         comparator: CustomComparator,
-        name: Optional[str] = None,
+        name: str | None = None,
         **kwargs,
     ):
         super().__init__(field, **kwargs)
@@ -99,7 +97,7 @@ class CustomType(FieldType):
             self.comparator = comparator
 
         if name is None:
-            self.name = "(%s: %s, %s)" % (
+            self.name = "({}: {}, {})".format(
                 self.field,
                 self.type,
                 self.comparator.__name__,
@@ -109,7 +107,7 @@ class CustomType(FieldType):
 
 
 def indexPredicates(
-    predicates: Iterable[Type[predicates.IndexPredicate]],
+    predicates: Iterable[type[predicates.IndexPredicate]],
     thresholds: Sequence[float],
     field: str,
 ) -> list[predicates.IndexPredicate]:
