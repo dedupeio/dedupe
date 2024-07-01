@@ -5,11 +5,11 @@ from typing import Any
 from categorical import CategoricalComparator
 
 from dedupe._typing import PredicateFunction
-from dedupe.variables.base import DerivedType
-from dedupe.variables.categorical_type import CategoricalType
+from dedupe.variables.base import DerivedType, FieldType
 
 
-class ExistsType(CategoricalType):
+
+class ExistsType(FieldType):
     type = "Exists"
     _predicate_functions: list[PredicateFunction] = []
 
@@ -30,6 +30,9 @@ class ExistsType(CategoricalType):
             return self.cat_comparator(0, 1)
         else:
             return self.cat_comparator(0, 0)
+        
+    def __len__(self) -> int:
+        return len(self.higher_vars)
 
     # This flag tells fieldDistances in dedupe.core to pass
     # missing values (None) into the comparator
