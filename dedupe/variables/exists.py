@@ -29,6 +29,9 @@ class ExistsType(FieldType):
             return self.cat_comparator(0, 1)
         else:
             return self.cat_comparator(0, 0)
+        
+    def __len__(self) -> int:
+        return len(self.higher_vars)
 
     # This flag tells fieldDistances in dedupe.core to pass
     # missing values (None) into the comparator
