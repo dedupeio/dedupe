@@ -8,7 +8,6 @@ from dedupe._typing import PredicateFunction
 from dedupe.variables.base import DerivedType, FieldType
 
 
-
 class ExistsType(FieldType):
     type = "Exists"
     _predicate_functions: list[PredicateFunction] = []
