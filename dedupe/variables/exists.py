@@ -5,11 +5,10 @@ from typing import Any
 from categorical import CategoricalComparator
 
 from dedupe._typing import PredicateFunction
-from dedupe.variables.base import DerivedType
-from dedupe.variables.categorical_type import CategoricalType
+from dedupe.variables.base import DerivedType, FieldType
 
 
-class ExistsType(CategoricalType):
+class ExistsType(FieldType):
     type = "Exists"
     _predicate_functions: list[PredicateFunction] = []
 
