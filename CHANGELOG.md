@@ -1,3 +1,7 @@
+# 3.0.1
+- Fixed regression in Exists predicate
+
+
 # 3.0.0
 - Development in python packaging made supporting the previous namespace approach for
   variable plugins untenable. Since we had to redo the way we defined the data model, 
