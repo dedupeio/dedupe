@@ -116,7 +116,7 @@ class Fingerprinter:
 
     def reset_indices(self) -> None:
         """
-        Fingeprinter indicdes can take up a lot of memory. If you are
+        Fingerprinter indices can take up a lot of memory. If you are
         done with blocking, the method will reset the indices to free up.
         If you need to block again, the data will need to be re-indexed.
         """
