@@ -29,7 +29,7 @@ class ExistsType(FieldType):
             return self.cat_comparator(0, 1)
         else:
             return self.cat_comparator(0, 0)
-        
+
     def __len__(self) -> int:
         return len(self.higher_vars)
 
