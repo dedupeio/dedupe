@@ -14,7 +14,7 @@ class TestExists(unittest.TestCase):
 
     def test_len_higher_vars(self):
         # The len > 1 is neccessary for the correct processing in datamodel.py
-        var = ExistType("foo")
+        var = ExistsType("foo")
         assert len(var) > 1
         assert len(var.higher_vars) > 1
         assert len(var) == len(var.higher_vars)
