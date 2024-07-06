@@ -1164,8 +1164,7 @@ class ActiveMatching(Matching):
         """
 
         logger.info("reading training from file")
-        training_pairs = serializer.read_training(training_file)
-        self.mark_pairs(training_pairs)
+        self.training_pairs = serializer.read_training(training_file)
 
     def train(
         self, recall: float = 1.00, index_predicates: bool = True
