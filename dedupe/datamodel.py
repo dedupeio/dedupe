@@ -86,7 +86,7 @@ class DataModel:
     @property
     def _field_comparators(
         self,
-    ) -> Generator[tuple[str, Comparator, int, int], None, None]:
+    ) -> Generator[tuple[str, Comparator, int, int]]:
         start = 0
         stop = 0
         for var in self.field_variables:

@@ -57,7 +57,7 @@ class Fingerprinter:
 
     def __call__(
         self, records: Iterable[Record], target: bool = False
-    ) -> Generator[tuple[str, RecordID], None, None]:
+    ) -> Generator[tuple[str, RecordID]]:
         """
         Generate the predicates for records. Yields tuples of (predicate,
         record_id).

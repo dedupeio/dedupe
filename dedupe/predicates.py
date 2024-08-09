@@ -50,7 +50,7 @@ class Predicate(abc.ABC):
         yield self
 
     def __repr__(self) -> str:
-        return "{}: {}".format(self.type, self.__name__)
+        return f"{self.type}: {self.__name__}"
 
     def __hash__(self) -> int:
         try:
@@ -83,7 +83,7 @@ class SimplePredicate(Predicate):
 
     def __init__(self, func: PredicateFunction, field: str):
         self.func = func
-        self.__name__ = "({}, {})".format(func.__name__, field)
+        self.__name__ = f"({func.__name__}, {field})"
         self.field = field
 
     def __call__(self, record: RecordDict, **kwargs) -> frozenset[str]:
@@ -107,7 +107,7 @@ class ExistsPredicate(Predicate):
     type = "ExistsPredicate"
 
     def __init__(self, field: str):
-        self.__name__ = "(Exists, {})".format(field)
+        self.__name__ = f"(Exists, {field})"
         self.field = field
 
     @staticmethod
@@ -129,7 +129,7 @@ class IndexPredicate(Predicate):
     _cache: dict[Any, frozenset[str]]
 
     def __init__(self, threshold: float, field: str):
-        self.__name__ = "({}, {})".format(threshold, field)
+        self.__name__ = f"({threshold}, {field})"
         self.field = field
         self.threshold = threshold
         self.index = None

@@ -218,7 +218,7 @@ def scoreGazette(
     featurizer: FeaturizerFunction,
     classifier: Classifier,
     num_cores: int = 1,
-) -> Generator[Scores, None, None]:
+) -> Generator[Scores]:
     first, record_pairs = peek(record_pairs)
     if first is None:
         return  # terminate iteration

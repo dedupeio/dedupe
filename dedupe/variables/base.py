@@ -44,7 +44,7 @@ class DerivedType(Variable):
     type = "Derived"
 
     def __init__(self, name: str, var_type: str, **kwargs):
-        self.name = "({}: {})".format(str(name), str(var_type))
+        self.name = f"({str(name)}: {str(var_type)})"
         super().__init__(**kwargs)
 
 
@@ -59,7 +59,7 @@ class FieldType(Variable):
         self.field = field
 
         if name is None:
-            self.name = "({}: {})".format(self.field, self.type)
+            self.name = f"({self.field}: {self.type})"
         else:
             self.name = name
 

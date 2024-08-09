@@ -867,7 +867,7 @@ class GazetteerMatching(Matching):
         con.execute("ROLLBACK")
         con.close()
 
-    def score(self, blocks: Blocks) -> Generator[Scores, None, None]:
+    def score(self, blocks: Blocks) -> Generator[Scores]:
         """
         Scores groups of pairs of records. Yields structured numpy arrays
         representing pairs of records in the group and the associated

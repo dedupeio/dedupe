@@ -17,9 +17,7 @@ from dedupe._typing import ArrayLinks, Clusters, RecordID, Scores, TupleLinks
 logger = logging.getLogger(__name__)
 
 
-def connected_components(
-    edgelist: Scores, max_components: int
-) -> Generator[Scores, None, None]:
+def connected_components(edgelist: Scores, max_components: int) -> Generator[Scores]:
     if len(edgelist) == 0:
         raise StopIteration()
 
@@ -51,9 +49,7 @@ def connected_components(
         edgelist._mmap.close()  # type: ignore
 
 
-def _connected_components(
-    edgelist: Scores, max_components: int
-) -> Generator[Scores, None, None]:
+def _connected_components(edgelist: Scores, max_components: int) -> Generator[Scores]:
     component_stops = union_find(edgelist)
 
     start = 0
