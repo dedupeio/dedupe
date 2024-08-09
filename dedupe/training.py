@@ -65,12 +65,22 @@ class BlockLearner(ABC):
             logger.debug(uncoverable_dupes)
             target_cover = len(coverable_dupes)
 
-        if candidate_types == "simple":
-            candidate_cover = self.simple_candidates(match_cover, comparison_cover)
-        elif candidate_types == "random forest":
-            candidate_cover = self.random_forest_candidates(
-                match_cover, comparison_cover
-            )
+        candidate_cover = simple_candidates(match_cover, comparison_cover)
+
+        if candidate_types == "random forest":
+            # The random forest conjunctions can sometimes not cover
+            # all the matches, so we always include the simple
+            # predicates to avoid that coverage loss.
+
+            # To avoid overfitting, we only start to include conjunctions
+            # as our training data reaches certain sizes
+            K = max(math.floor(math.log10(len(matches))), 1)
+            if K > 1:
+                candidate_cover.update(
+                    random_forest_candidates(match_cover, comparison_cover, K)
+                )
+        elif candidate_types == "simple":
+            pass
         else:
             raise ValueError("candidate_type is not valid")
 
@@ -81,71 +91,6 @@ class BlockLearner(ABC):
             logger.info(predicate)
 
         return final_predicates
-
-    def simple_candidates(
-        self, match_cover: Cover, comparison_cover: ComparisonCover
-    ) -> Cover:
-        candidates = {}
-        for predicate, coverage in match_cover.items():
-            predicate.cover_count = len(comparison_cover[predicate])
-            candidates[predicate] = coverage.copy()
-
-        return candidates
-
-    def random_forest_candidates(
-        self,
-        match_cover: Cover,
-        comparison_cover: ComparisonCover,
-        K: int | None = None,
-    ) -> Cover:
-        predicates = list(match_cover)
-        matches = list(frozenset.union(*match_cover.values()))
-        pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
-        candidates = {}
-        if K is None:
-            K = max(math.floor(math.log10(len(matches))), 1)
-
-        n_samples = 5000
-        for _ in range(n_samples):
-            sample_predicates = random.sample(predicates, pred_sample_size)
-            resampler = Resampler(matches)
-            sample_match_cover = {
-                pred: resampler(pairs) for pred, pairs in match_cover.items()
-            }
-
-            # initialize variables that will be
-            # the base for the constructing k-conjunctions
-            candidate = None
-            covered_comparisons: frozenset[RecordIDPair] | InfiniteSet = InfiniteSet()
-            covered_matches: frozenset[int] | InfiniteSet = InfiniteSet()
-            covered_sample_matches = InfiniteSet()
-
-            def score(predicate: Predicate) -> float:
-                try:
-                    return len(
-                        covered_sample_matches & sample_match_cover[predicate]
-                    ) / len(covered_comparisons & comparison_cover[predicate])
-                except ZeroDivisionError:
-                    return 0.0
-
-            for _ in range(K):
-                next_predicate = max(sample_predicates, key=score)
-                if candidate:
-                    candidate += next_predicate
-                else:
-                    candidate = next_predicate
-
-                covered_comparisons &= comparison_cover[next_predicate]
-                candidate.cover_count = len(covered_comparisons)
-
-                covered_matches &= match_cover[next_predicate]
-                candidates[candidate] = covered_matches
-
-                covered_sample_matches &= sample_match_cover[next_predicate]
-
-                sample_predicates.remove(next_predicate)
-
-        return candidates
 
     def cover(self, pairs: TrainingExamples, index_predicates: bool = True) -> Cover:
         predicate_cover = {}
@@ -319,6 +264,68 @@ class RecordLinkBlockLearner(BlockLearner):
                 pair_cover[predicate] = pairs
 
         return pair_cover
+
+
+def simple_candidates(match_cover: Cover, comparison_cover: ComparisonCover) -> Cover:
+    candidates = {}
+    for predicate, coverage in match_cover.items():
+        predicate.cover_count = len(comparison_cover[predicate])
+        candidates[predicate] = coverage.copy()
+
+    return candidates
+
+
+def random_forest_candidates(
+    match_cover: Cover,
+    comparison_cover: ComparisonCover,
+    K: int,
+) -> Cover:
+    predicates = list(match_cover)
+    matches = list(frozenset.union(*match_cover.values()))
+    pred_sample_size = max(int(math.sqrt(len(predicates))), 5)
+    candidates = {}
+
+    n_samples = 5000
+    for _ in range(n_samples):
+        sample_predicates = random.sample(predicates, pred_sample_size)
+        resampler = Resampler(matches)
+        sample_match_cover = {
+            pred: resampler(pairs) for pred, pairs in match_cover.items()
+        }
+
+        # initialize variables that will be
+        # the base for the constructing k-conjunctions
+        candidate = None
+        covered_comparisons: frozenset[RecordIDPair] | InfiniteSet = InfiniteSet()
+        covered_matches: frozenset[int] | InfiniteSet = InfiniteSet()
+        covered_sample_matches = InfiniteSet()
+
+        def score(predicate: Predicate) -> float:
+            try:
+                return len(
+                    covered_sample_matches & sample_match_cover[predicate]
+                ) / len(covered_comparisons & comparison_cover[predicate])
+            except ZeroDivisionError:
+                return 0.0
+
+        for _ in range(K):
+            next_predicate = max(sample_predicates, key=score)
+            if candidate:
+                candidate += next_predicate
+            else:
+                candidate = next_predicate
+
+            covered_comparisons &= comparison_cover[next_predicate]
+            candidate.cover_count = len(covered_comparisons)
+
+            covered_matches &= match_cover[next_predicate]
+            candidates[candidate] = covered_matches
+
+            covered_sample_matches &= sample_match_cover[next_predicate]
+
+            sample_predicates.remove(next_predicate)
+
+    return candidates
 
 
 class InfiniteSet:

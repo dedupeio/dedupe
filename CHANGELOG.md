@@ -1,3 +1,6 @@
+# 3.0.2
+- Fixed regression in Exists predicate
+
 # 3.0.1
 - Fixed regression in Exists predicate
 

@@ -343,23 +343,49 @@ class DisagreementLearner(HasCandidates):
     def __init__(self) -> None:
         self.y: numpy.typing.NDArray[numpy.int_] = numpy.array([])
         self.pairs: TrainingExamples = []
+        self.rng = numpy.random.default_rng()
 
     def pop(self) -> TrainingExample:
-        if not len(self.candidates):
+        if not (n_candidates := len(self.candidates)):
             raise IndexError("No more unlabeled examples to label")
 
         prob_l = [learner.candidate_scores() for learner in self._learners]
         probs = numpy.concatenate(prob_l, axis=1)
 
         # where do the classifers disagree?
-        disagreement = numpy.std(probs > 0.5, axis=1).astype(bool)
+        decisions = probs > 0.5
+        uncovered_disagreement = numpy.any(decisions != decisions[:, [0]], axis=1) * (
+            probs[:, 1] == 0
+        )
 
-        if disagreement.any():
-            conflicts = disagreement.nonzero()[0]
-            target = numpy.random.uniform(size=1)
-            uncertain_index = conflicts[numpy.argmax(probs[conflicts][:, 0] - target)]
+        if uncovered_disagreement.any():
+            # If there are records that the classifier thinks are
+            # matches but we are not covering with a blocking rule
+            # then choose one of those, with the weights
+            # proportional to the classifier's confidence that it
+            # is a match. These are the most important to capture
+            # for the best possible recall.
+            weights = uncovered_disagreement * probs[:, 0]
+            weights /= weights.sum()
+            uncertain_index = self.rng.choice(n_candidates, p=weights)
+        elif (probs[:, 1] == 1).any():
+            # Otherwise, sample from records that are covered, uniformly
+            # across classifier confidence.
+            #
+            # We don't sample uniformly across covered records, because
+            # negative examples would dominate.
+            covered = (probs[:, 1] == 1).nonzero()[0]
+            target = random.random()
+            uncertain_index = covered[
+                numpy.argmin(numpy.absolute(probs[covered, 0] - target))
+            ]
         else:
-            uncertain_index = numpy.std(probs, axis=1).argmax()
+            # If there are no uncovered disagreements and no covered pairs, then
+            # choose a pair using weights related to the disagreement
+            # between the classifiers
+            weights = numpy.std(probs, axis=1)
+            weights /= weights.sum()
+            uncertain_index = self.rng.choice(n_candidates, p=weights)
 
         logger.debug(
             "Classifier: %.2f, Covered: %s",
