@@ -97,7 +97,7 @@ of the variable definition entirely.
 
 
 Custom Variable
-^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 A ``Custom`` variables allows you to use a custom function for
 comparing fields. The function must take two field values and return a
