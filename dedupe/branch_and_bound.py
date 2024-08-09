@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Iterable, Mapping, Sequence, Tuple
+from typing import Any, Collection, Iterable, Mapping, Tuple
 
 from ._typing import Cover
 from .predicates import Predicate
@@ -34,7 +34,7 @@ def _uncovered_by(
 
 
 def _order_by(
-    candidates: Mapping[Predicate, Sequence[Any]], p: Predicate
+    candidates: Mapping[Predicate, Collection[Any]], p: Predicate
 ) -> tuple[int, float]:
     return (len(candidates[p]), -p.cover_count)
 
