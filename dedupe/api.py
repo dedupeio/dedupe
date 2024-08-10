@@ -1114,7 +1114,7 @@ class ActiveMatching(Matching):
     ) -> None:
         """
         Args:
-            variable_definition: A list of dictionaries describing
+            variable_definition: A list of Variable objects describing
                                  the variables will be used for
                                  training a model. See :ref:`variable_definitions`
 
