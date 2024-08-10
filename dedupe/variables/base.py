@@ -97,11 +97,7 @@ class CustomType(FieldType):
             self.comparator = comparator
 
         if name is None:
-            self.name = "({}: {}, {})".format(
-                self.field,
-                self.type,
-                self.comparator.__name__,
-            )
+            self.name = f"({self.field}: {self.type}, {self.comparator.__name__})"
         else:
             self.name = name
 
