@@ -6,8 +6,8 @@ Variable Definitions
 Variables
 ---------
 
-A variable definition describes the records that you want to match. It is sequence
-of Variable objects. For example:-
+A variable definition describes the records that you want to match. It
+is a collection of Variable objects. For example:-
 
 .. code:: python
 

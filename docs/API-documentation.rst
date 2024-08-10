@@ -10,10 +10,10 @@ Library Documentation
 
         # initialize from a defined set of fields
         variables = [
-            {'field' : 'Site name', 'type': 'String'},
-            {'field' : 'Address', 'type': 'String'},
-            {'field' : 'Zip', 'type': 'String', 'has missing':True},
-            {'field' : 'Phone', 'type': 'String', 'has missing':True},
+	    dedupe.variables.String("Site name"),
+	    dedupe.variables.String("Address"),
+	    dedupe.variables.String("Zip", has_missing=True),
+	    dedupe.variables.String("Phone", has_missing=True),
         ]
         deduper = dedupe.Dedupe(variables)
 
@@ -48,10 +48,10 @@ Library Documentation
 
         # initialize from a defined set of fields
         variables = [
-            {'field' : 'Site name', 'type': 'String'},
-            {'field' : 'Address', 'type': 'String'},
-            {'field' : 'Zip', 'type': 'String', 'has missing':True},
-            {'field' : 'Phone', 'type': 'String', 'has missing':True},
+	    dedupe.variables.String("Site name"),
+	    dedupe.variables.String("Address"),
+	    dedupe.variables.String("Zip", has_missing=True),
+	    dedupe.variables.String("Phone", has_missing=True),
         ]
         deduper = dedupe.RecordLink(variables)
 
@@ -85,10 +85,10 @@ Library Documentation
 
         # initialize from a defined set of fields
         variables = [
-            {'field' : 'Site name', 'type': 'String'},
-            {'field' : 'Address', 'type': 'String'},
-            {'field' : 'Zip', 'type': 'String', 'has missing':True},
-            {'field' : 'Phone', 'type': 'String', 'has missing':True},
+	    dedupe.variables.String("Site name"),
+	    dedupe.variables.String("Address"),
+	    dedupe.variables.String("Zip", has_missing=True),
+	    dedupe.variables.String("Phone", has_missing=True),
         ]
         matcher = dedupe.Gazetteer(variables)
 
