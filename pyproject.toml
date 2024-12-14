@@ -36,6 +36,7 @@ dependencies = [
     "BTrees>=4.1.4",
     "zope.index",
     "dedupe_Levenshtein_search",
+    "rich==13.9.4",
 ]
 
 [project.urls]
