@@ -201,7 +201,7 @@ def condensedDistance(
 
     N = len(candidate_set)
 
-    # alternate form thanks to wolfram alpa
+    # alternate form thanks to Wolfram Alpha
     index = row * (2 * N - row - 3) // 2 + col - 1
 
     condensed_distances = numpy.ones(N * (N - 1) // 2, "f4")
