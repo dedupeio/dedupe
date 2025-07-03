@@ -10,3 +10,4 @@ pytest-cov
 virtualenv
 isort
 pre-commit
+scipy-stubs; python_version>='3.10'
