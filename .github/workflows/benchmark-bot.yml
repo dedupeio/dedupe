@@ -2,9 +2,9 @@
 name: "Benchmark Bot"
 
 on:
-  issue_comment: # Pull requests are also issues
-    types:
-      - created
+  # issue_comment: # Pull requests are also issues
+  #   types:
+  #    - created
 
 env:
   COMMENT: ${{github.event.comment.body}}
