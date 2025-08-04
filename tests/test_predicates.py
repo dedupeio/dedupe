@@ -66,7 +66,7 @@ class TestLatLongGrid(unittest.TestCase):
         assert block_val == set()
 
 
-class TestAlpaNumeric(unittest.TestCase):
+class TestAlphaNumeric(unittest.TestCase):
     def test_alphanumeric(self):
         assert predicates.alphaNumericPredicate("a1") == {"a1"}
         assert predicates.alphaNumericPredicate("1a") == {"1a"}

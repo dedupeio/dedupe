@@ -89,7 +89,7 @@ class Matching:
     def fingerprinter(self) -> blocking.Fingerprinter:
         if self._fingerprinter is None:
             raise ValueError(
-                "the record fingerprinter is not intialized, "
+                "the record fingerprinter is not initialized, "
                 "please run the train method"
             )
 
