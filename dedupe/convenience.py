@@ -9,7 +9,9 @@ import warnings
 from typing import Iterator, Literal, Tuple, overload
 
 import numpy
-
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 import dedupe
 from dedupe._typing import (
     DataInt,
@@ -142,6 +144,8 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
     n_match = len(deduper.training_pairs["match"])
     n_distinct = len(deduper.training_pairs["distinct"])
 
+    console = Console()
+
     while not finished:
         if use_previous:
             record_pair, label = labeled.pop(0)
@@ -159,12 +163,40 @@ def console_label(deduper: dedupe.api.ActiveMatching) -> None:  # pragma: no cov
             except IndexError:
                 break
 
-        for record in record_pair:
-            for field in fields:
-                line = f"{field} : {record[field]}"
-                _print(line)
-            _print()
-        _print(f"{n_match}/10 positive, {n_distinct}/10 negative")
+        table = Table(
+            title="Active Labeling",
+            caption=f"{n_match}/10 positive, {n_distinct}/10 negative",
+            expand=True,
+            show_lines=True,
+        )
+        table.add_column("Variable", justify="center")
+        table.add_column("Record A", justify="center")
+        table.add_column("Record B", justify="center")
+        console.clear()
+
+        for field in fields:
+            record_A = str(record_pair[0][field])
+            record_B = str(record_pair[1][field])
+
+            unmatched_indices = []
+            ind = 0
+
+            for a, b in itertools.zip_longest(record_A, record_B):
+                if a != b:
+                    unmatched_indices.append(ind)
+                ind += 1
+
+            record_A_Text = Text(record_A)
+            record_B_Text = Text(record_B)
+            for unmatched_index in unmatched_indices:
+                record_A_Text.stylize("bold red", unmatched_index, unmatched_index + 1)
+                record_B_Text.stylize("bold red", unmatched_index, unmatched_index + 1)
+
+            table.add_row(field, record_A_Text, record_B_Text)
+
+        console.print(table)
+
+        _print()
         _print("Do these records refer to the same thing?")
 
         valid_response = False
