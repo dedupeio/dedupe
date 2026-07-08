@@ -1,6 +1,6 @@
 [project]
 name = "dedupe"
-description = "A python library for accurate and scaleable data deduplication and entity-resolution"
+description = "A python library for accurate and scalable data deduplication and entity-resolution"
 version = "3.0.3"
 readme = "README.md"
 requires-python = ">=3.8"
