@@ -18,7 +18,7 @@ class Gazetteer(canonical_matching.Matching):
     data_1_file = common.DATASETS_DIR / "restaurant-1.csv"
     data_2_file = common.DATASETS_DIR / "restaurant-2.csv"
 
-    params = [None]  # placholder
+    params = [None]  # placeholder
 
     def make_report(self, clustering):
         return make_report(self.data, clustering)

@@ -391,7 +391,7 @@ Longer example of a variable definition:
 	dedupe.variables.String("city", name="city"),
 	dedupe.variables.Custom("zip", comparator=same_or_not_comparator),
 	dedupe.variables.String("cuisine", has_missing=True),
-	dedupe.vairables.Interaction("name", "city")
+	dedupe.variables.Interaction("name", "city")
     ]
 
 Multiple Variables comparing same field

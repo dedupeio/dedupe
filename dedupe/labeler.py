@@ -352,7 +352,7 @@ class DisagreementLearner(HasCandidates):
         prob_l = [learner.candidate_scores() for learner in self._learners]
         probs = numpy.concatenate(prob_l, axis=1)
 
-        # where do the classifers disagree?
+        # where do the classifiers disagree?
         decisions = probs > 0.5
         uncovered_disagreement = numpy.any(decisions != decisions[:, [0]], axis=1) * (
             probs[:, 1] == 0
