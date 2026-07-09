@@ -61,7 +61,6 @@ packages = ["dedupe", "dedupe.variables"]
 dedupe = ["py.typed"]
 
 [tool.mypy]
-plugins = "numpy.typing.mypy_plugin"
 files = ["dedupe"]
 show_error_codes = true
 ignore_missing_imports = true
