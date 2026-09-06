@@ -73,7 +73,7 @@ class CanopyIndex(TextIndex):  # pragma: no cover
         results = mass_weightedUnion(L)
 
         qw = math.sqrt(qw)
-        filtered_results: list[tuple[float, int]] = results.byValue(qw * threshold)
+        filtered_results: list[tuple[float, int]] = sorted([(j, i) for (i, j) in results.items() if j >= qw * threshold], key=lambda x: -x[0])
 
         return filtered_results
 
