@@ -9,6 +9,7 @@ from .set import SetType as Set
 from .string import ShortStringType as ShortString
 from .string import StringType as String
 from .string import TextType as Text
+from .vector import VectorType as Vector
 
 __all__ = [
     "Custom",
@@ -22,4 +23,5 @@ __all__ = [
     "ShortString",
     "String",
     "Text",
+    "Vector",
 ]
